@@ -28,14 +28,16 @@ on them.
 - **Identities** — users, vhost, and permissions live *here*, not in the
   conf's `default_*` lines (which would race `load_definitions` at boot).
 
-**Generator → per-vhost definitions JSON.** A generator
-(`for_docker/gen_definitions.py`) renders a RabbitMQ management-plugin
-definitions JSON, parameterized by `--vhost` (`d1__1` dev, `hw1__1` prod).
-Everything but the vhost (and prod-secret handling) is environment-
-invariant. `tests/_stubs.py` derives its exchanges/bindings from the *same*
-`gwbase/topology.py`, so test, dev, and prod topologies cannot diverge. A
-**CI guard** regenerates the JSON and diffs it against the committed
-artifacts, failing on drift.
+**Generator → per-vhost definitions JSON.** The build logic lives in the
+package (`gwbase.rabbit_definitions.build_definitions`, unit-tested);
+`for_docker/gen_definitions.py` is the thin CLI the broker-image build and
+the CI guard call. It renders a RabbitMQ management-plugin definitions JSON,
+parameterized by `--vhost` (`d1__1` dev, `hw1__1` prod). Output is
+**deterministic** (fixed dev-password salt + sorted keys) so the CI guard
+can regenerate-and-diff. Everything but the vhost (and prod-secret handling)
+is environment-invariant. `tests/_stubs.py` derives its exchanges/bindings
+from the *same* `gwbase.topology`, so test, dev, and prod topologies cannot
+diverge.
 
 **Identities & secrets.** Definitions store a `password_hash`, not
 plaintext. **Dev** commits the `smqPublic` user + hash (non-secret).

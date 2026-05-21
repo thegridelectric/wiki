@@ -196,7 +196,10 @@ invariants are load-bearing — preserve them.
     a subclass's codec does not need those types registered.
 22. A `sim.timestep` whose value rewinds is dropped; one whose value
     repeats is surfaced with `is_new = false`.
-23. A `heartbeat.a` from a non-supervisor alias is dropped.
+23. A `heartbeat.a` from `my_super_alias` is handled internally (pong +
+    `on_supervisor_heartbeat`); a `heartbeat.a` from any *other* alias
+    falls through to `process_message` (so e.g. a supervisor observes its
+    subordinates' heartbeats).
 24. The supervisor is identified by alias only; there is no separate
     secret or token at this layer (auth lives in the broker
     `client_properties` handshake).

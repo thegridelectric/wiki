@@ -49,12 +49,17 @@ wants to talk in typed messages owns its own codec instance.
 Virtually every application class inherits from it (including
 Supervisor and TimeCoordinator implementations, which themselves
 participate in the control plane further upstream). It is a thin
-layer on top of `ActorBase` that handles two control-plane messages
-internally so applications do not have to re-implement them:
+layer on top of `ActorBase` that handles its control-plane traffic
+internally so applications do not have to re-implement it:
 
-- `heartbeat.a` from this actor's supervisor — automatically answered
-  with a pong; semantic hook `on_supervisor_heartbeat(from_alias)`
-  is then called.
+- `heartbeat.a` **from this actor's supervisor** (`my_super_alias`) —
+  automatically answered with a pong; semantic hook
+  `on_supervisor_heartbeat(from_alias)` is then called. A `heartbeat.a`
+  from any *other* sender — e.g. a subordinate's heartbeat arriving at its
+  supervisor — is **not** consumed; it falls through to `process_message`
+  so the application can observe it. (This is what lets a supervisor watch
+  its subordinates' heartbeats while still auto-ponging its own
+  supervisor.)
 - `sim.timestep` from this actor's time coordinator — updates the
   simulated clock; semantic hook
   `on_simulated_time(time_unix_s, from_alias, is_new)` is called.
@@ -70,19 +75,26 @@ The dispatch rule (implemented inside `GridworksActor.dispatch_message`):
 
 ```
 dispatch_message(envelope, body):
-    if envelope.type_name in {"heartbeat.a", "sim.timestep"}:
-        decode with private codec, handle internally, do not surface
+    if envelope.type_name == "heartbeat.a" and envelope.from_alias == my_super_alias:
+        decode (private codec); pong + on_supervisor_heartbeat   # internal
+    elif envelope.type_name == "sim.timestep":
+        decode (private codec); update clock + on_simulated_time # internal
     else:
-        process_message(envelope, body)   # abstract on GridworksActor
+        process_message(envelope, body)   # incl. heartbeat.a from non-supervisors
 ```
+
+(In the implementation the `from_alias` check happens just after decode,
+inside the control-plane handler; the effective routing is as above.)
 
 Final application classes implement `process_message`. They do **not**
 override `dispatch_message`.
 
 Behavioral rules of note:
 
-- A `heartbeat.a` from any alias other than the configured
-  `my_super_alias` is logged and dropped.
+- A `heartbeat.a` from `my_super_alias` is handled internally (pong +
+  `on_supervisor_heartbeat`). A `heartbeat.a` from any *other* alias is
+  **not** swallowed — it falls through to `process_message`, so an actor
+  (e.g. a supervisor) can observe heartbeats from its subordinates.
 - A `sim.timestep` with `time_unix_s` less than the latest observed
   value is dropped (anti-rewind).
 - A `sim.timestep` whose value equals the latest is still surfaced via

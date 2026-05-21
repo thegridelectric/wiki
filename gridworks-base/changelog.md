@@ -62,6 +62,70 @@ See `wiki/gridworks-base/executor/transport.md` §3.5 +
 `wiki/ear/executor/broker-tap.md`, and
 `wiki/rmqbot/research/broker-todos.md`.
 
+## 2026-05-21 — generate rabbit definitions from topology; render dev + prod JSON (`575681f`)
+
+**Why:** Topology-roadmap commit #4 — the broker fabric becomes a
+*generated* artifact instead of the hand-maintained
+`rabbit_definitions_dev.json`.
+
+- **`gwbase.rabbit_definitions.build_definitions`** renders a RabbitMQ
+  management-plugin definitions dict from `gwbase.topology` (exchanges +
+  bindings), parameterized by vhost. **Dev** includes the non-secret
+  `smqPublic` user with a deterministic (fixed-salt) sha256 password hash +
+  full permissions; **prod** omits users/permissions (injected at deploy,
+  never baked). Output is deterministic (sorted keys) so CI can
+  regenerate-and-diff.
+- **`for_docker/gen_definitions.py`** — the thin CLI the image build / CI
+  guard call.
+- Rendered **`rabbit/rabbitconfig/{dev,prod}_definitions.json`** (`d1__1` /
+  `hw1__1`; 15 exchanges, 17 bindings each).
+
+The stale multi-vhost `rabbit_definitions_dev.json` (+ hybrid/analytics
+files) are left in place for the docker rework (next), which repoints the
+build off them.
+
+## 2026-05-21 — infra owns the exchange fabric (passive declare + provisioned tests) (`ce9b79f`)
+
+**Why:** Topology-roadmap commit #3. Actors stop creating the routing
+fabric — it is provisioned out-of-band from the shared `gwbase.topology`
+source; the actor only owns its ephemeral endpoint.
+
+- **`actor_base`:** assert the consume exchange with a *passive*
+  `Exchange.Declare` (existence check, fail-fast) instead of defining it;
+  still never declares `mic_tx` or cross-class bindings. Adds
+  `subscribe_broadcast` (bind own queue to a publisher's `mic_tx`) and
+  `subscribe_amq_topic` (the AMQP↔MQTT/scada seam). Drops the
+  `LeafTransactiveNode` gate on `GridworksWrapped` sends — any actor may
+  send wrapped (e.g. a simulated `ta` reaching scada).
+- **`gridworks_actor`:** a `heartbeat.a` from `my_super_alias` is still
+  handled internally (pong + `on_supervisor_heartbeat`); a `heartbeat.a`
+  from any *other* sender now falls through to `process_message`, so a
+  supervisor can observe its subordinates' heartbeats.
+- **tests:** `_stubs` gains `declare_topology` / `provision_topology`
+  derived from `gwbase.topology` (replacing the hand-coded bindings);
+  `test_actor_base` and `test_hello` provision the fabric *before* starting
+  actors and use a `LeafTransactiveNode` actor (`scada` is MQTT-only, has
+  no AMQP exchanges). Full suite green against a live broker.
+
+## 2026-05-21 — add shared broker topology source (`dd2faf8`)
+
+**Why:** Topology-roadmap commit #2 — the single source of truth the rest
+of the work derives from. Adds `gwbase/topology.py`:
+
+- `AMQP_ACTOR_CLASSES` — the opt-in set of routing classes that get
+  `<rc>_tx` (internal) + `<rc>mic_tx` exchanges (`scada` excluded as
+  MQTT-only, `cn` excluded as passive; a new class gets nothing until
+  added).
+- `ROUTING_EDGES` — the direct-only cross-class routing edges (broadcasts
+  are subscriber-bound, not here).
+- `direct_binding_key(src, dst)` + `exchanges()` / `exchange_bindings()`
+  derivations that the definitions generator *and* `tests/_stubs.py` will
+  both consume, so test / dev / prod topologies can't diverge.
+
+`tests/test_topology.py` locks the invariants — and caught a spec typo:
+the MarketMaker publish exchange is `mmmic_tx` (`mm` + `mic_tx`), not
+`mmic_tx`; the transport spec is corrected to match.
+
 ## 2026-05-21 — poetry -> uv (`a64b3c0`)
 
 **Why:** First commit of the topology roadmap above — the toolchain
