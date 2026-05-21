@@ -83,6 +83,34 @@ real question is a whole-system comparison under genuine cost pressure:
    FEA?" section agrees: no for procurement sizing, yes eventually for the
    operating-cost simulator.
 
+## AWHP market trajectory, R290, and rollout timing
+
+> **Hypothesis from Jessica — needs research to validate.** Provenance: market
+> read, not yet sourced. Flagged here because it bears directly on the
+> HP-vs-resistive axis above and on *when* Matt commits to a heat source.
+
+- **Air-to-water heat pumps (AWHP) are still a niche product in the US**, so they
+  carry a niche-product price premium today. This is part of why "HP" sits as the
+  high-capital option in the multi-axis comparison above — the capital number is
+  inflated by an immature US market, not just by the technology.
+- **Likely refrigerant transition to R290 (propane).** Globally, AWHP is moving
+  toward R290 (low-GWP, driven by F-gas / refrigerant-phasedown regulation). The
+  hypothesis is the US market follows. **To validate:** the global R290 trend and
+  its US timeline; whether the in-envelope candidates in
+  [`../heat-pumps/hp-curve.md`](../heat-pumps/hp-curve.md) (Mitsubishi PUZ-HWM,
+  Arctic 060) are R32 or R290 and their roadmaps; R290 install constraints
+  (flammable-refrigerant charge limits, siting) for a monoblock feeding the store.
+- **Timing question (the decision-relevant part):** Matt installs **14 homes in
+  phase 1, eventually ~100.** Will US AWHP prices fall — as the market matures and
+  R290 scales — **before he installs the remaining ~86 homes?** Implications:
+  1. The HP-vs-resistive answer may **differ between phase 1 and later phases**:
+     resistive (or a cheaper interim) now, HP later once prices drop.
+  2. The lifecycle-cost model should treat **HP capital cost as time-varying /
+     phase-dependent**, not a single fixed number — a price-decline curve is its
+     own scenario axis, alongside the electricity-regime axis.
+  3. It may argue for **designing the hydronics HP-ready now** (so a later
+     swap-in is cheap) even if phase 1 ships with resistive.
+
 ## Open inputs needed before building the model
 
 - **Config shortlist** — which heat-source × storage × insulation

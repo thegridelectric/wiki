@@ -86,3 +86,27 @@ To find a concern's open findings: search this file for `Concern: [[that-concern
 - **Location:** `actors/contract_handler.py` (multiple)
 - **What:** "Creats", "Managesthe", "fluses", "aysnchronously", etc. Cosmetic, but they hurt the à-la-carte legibility goal.
 - **Status:** open
+
+---
+
+## Area: heartbeat / contract design (cross-layer)
+
+### F-008 — Fix `heartbeat.a` sema definition (delete erroneous v001; document supervisor-health use)
+- **Type:** bug (sema definition) + doc-gap
+- **Severity:** med
+- **Effort:** small
+- **Location:** `sema/definitions/types/heartbeat.a/*`, `sema/definitions/registry.yaml`
+- **Concern:** [[concerns/liveness-and-sla]]
+- **What:** Joe created an **unpublished** `heartbeat.a/001` that *deleted* `MyHex`/`YourLastHex` and was set as `latest_version`. The hex pair is the liveness/continuity primitive (and the skeleton of the contract chain) — it must not be dropped. Resolution: deleted `001.yaml`, reverted `latest_version`→`000`, improved `000` docs to state the supervisor-health-monitoring purpose.
+- **Decision:** **Do NOT rename `MyHex`→`SuHex`.** The names are sender-relative (sender's hex / peer's last), so one type serves both directions; "SuHex" would break that symmetry. The supervisor-vs-contract distinction is handled by keeping them separate types/layers, documented in `heartbeat.a/000`'s `extended_description`.
+- **Status:** fixed in working tree (source edits) — **regen + sema commit pending** (see note below). Pre-publication revise-in-place is sema-legal (v001 not published).
+
+### F-009 — Contract-heartbeat `MyDigit` is too weak to be umpire-grade
+- **Type:** design-question
+- **Severity:** med
+- **Effort:** large
+- **Location:** `SlowContractHeartbeat.MyDigit`/`YourLastDigit` (`actors/contract_handler.py:229,236` etc.)
+- **Concern:** [[concerns/liveness-and-sla]]
+- **What:** `MyDigit = random.choice(range(10))` is a single decimal digit — adequate as a liveness toggle, but cannot support the third-party-umpire / blockchain vision: trivial collisions, forgeable, no cryptographic link between beats. To be the non-repudiable foundation of the contract it must evolve to a **signed nonce/hash chain** (each beat signed by the party's identity key — SCADA deed key / LTN TradingRights key — and referencing the peer's prior beat). See [[concerns/liveness-and-sla]] "non-repudiation / umpire vision" and [[concerns/deeds-and-trading-rights]].
+- **Why it matters:** this is the load-bearing primitive for whose-fault adjudication; it's `large` because it ties to signing keys (deeds/trading rights) and an anchor (ear log / blockchain), not a local change.
+- **Status:** open (design; epic-adjacent — may graduate to its own concern)

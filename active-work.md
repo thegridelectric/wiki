@@ -25,6 +25,12 @@ the same convention (and may replicate the hook with their own path).
 
 ## Protocol (every session follows this)
 
+0. **Start from a clean tree.** Before claiming/editing a new area, run
+   `git status` and confirm there are **no uncommitted changes you don't
+   recognize**. If you find foreign/abandoned WIP, stop and raise it — do **not**
+   edit or run a global regeneration over it, or you will entangle someone
+   else's work into your commit (this happened once with sema). Only your own
+   in-session changes should be present.
 1. **On start:** read this file.
 2. **Claim your area:** append/update a row in the table below — your session
    label, the repo(s)/domain, the path globs you expect to edit, status, and
@@ -72,8 +78,8 @@ must edit the *same* subfolder concurrently or need isolated builds.
 
 | Session | Repo / domain | Scope (path globs) | Status | Since | Notes |
 | --- | --- | --- | --- | --- | --- |
-| scada-wiki-bootstrap | `wiki/` + `gridworks-scada` | `wiki/gridworks-scada/**`, `wiki/primary.md`, `wiki/glossary.md`, `wiki/active-work.md`, `gridworks-scada/CLAUDE.md` | active | 2026-05-21 | Wiki bootstrap + process design; CLAUDE.md change pending Jessica's commit |
-| gridworks-base-refactor | `gridworks-base` + `wiki/gridworks-base` | `gridworks-base/**`, `wiki/gridworks-base/**` | active | 2026-05-21 | Transport/codec decouple + drift-proof rabbit topology. uv migration committed (`a64b3c0`); `gwbase/topology.py` done; executing actor_base passive-declare + broadcast/scada helpers + definitions generator/CI/GHCR image. Will claim any folder outside this scope HERE before editing it. (Earlier this session, before this file existed, I also created unclaimed cross-domain docs: `wiki/{ear,rmqbot,gridworks-proactor}/`, `wiki/heating-system-design/research/`, top-level `CLAUDE.md` — left as-is, up for grabs.) |
+| scada-wiki-bootstrap | `wiki/` + `gridworks-scada` + `sema` (heartbeat.a) + `wiki/heating-system-design` | `wiki/gridworks-scada/**`, `wiki/primary.md`, `wiki/glossary.md`, `wiki/active-work.md`, `gridworks-scada/CLAUDE.md`, `sema/definitions/types/heartbeat.a/**`, `sema/definitions/registry.yaml` (heartbeat.a entry), sema generated artifacts (heartbeat regen), `wiki/heating-system-design/research/polstein-design.md` | active | 2026-05-21 | Wiki bootstrap + process design; CLAUDE.md change pending. **sema:** deleted Joe's unpublished erroneous `heartbeat.a/001` (removed the hex), reverted `latest_version`→`000`, improved v000 docs (supervisor health-monitoring; `MyHex`/`YourLastHex` are sender-relative — kept, NOT renamed). Also cleaned up the abandoned sema WIP below (Jessica confirmed abandoned) — preserved to a backup outside the repo — so the heartbeat regen+commit is clean. FYI @gridworks-base: restores the hex your spec assumes. |
+| gridworks-base-refactor | `gridworks-base` + `wiki/gridworks-base` | `gridworks-base/**`, `wiki/gridworks-base/**` | active | 2026-05-21 | Transport/codec decouple + drift-proof rabbit topology. uv migration committed (`a64b3c0`); `gwbase/topology.py` done; executing actor_base passive-declare + broadcast/scada helpers + definitions generator/CI/GHCR image. Will claim any folder outside this scope HERE before editing it. (Earlier this session, before this file existed, I also created unclaimed cross-domain docs: `wiki/{ear,rmqbot,gridworks-proactor}/`, `wiki/heating-system-design/research/`, top-level `CLAUDE.md` — left as-is, up for grabs.) **The abandoned sema WIP (`gw`/`gridworks.header` defs, build-tool tweaks) was Jessica's, now cleaned up by the scada session.** |
 
 ## How to read this
 
