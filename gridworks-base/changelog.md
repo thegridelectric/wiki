@@ -62,6 +62,48 @@ See `wiki/gridworks-base/executor/transport.md` §3.5 +
 `wiki/ear/executor/broker-tap.md`, and
 `wiki/rmqbot/research/broker-todos.md`.
 
+## 2026-05-21 — dev broker: official 4.x + baked GHCR image; retire jessmillar build infra (`4d3f414`)
+
+**Why:** Topology-roadmap commit #6 (final) — replace the hand-built,
+drift-prone per-arch broker images with one generated, CI-built artifact.
+
+- **`rabbit/Dockerfile`** bakes `enabled_plugins` + `dev_rabbitmq.conf` +
+  `dev_definitions.json` onto the official **multi-arch
+  `rabbitmq:4.1-management`** (one image serves arm64 + amd64; Docker
+  auto-selects the host's arch on pull).
+- **`for_docker/{arm,x86}.yml`** pull `ghcr.io/thegridelectric/dev-rabbit:latest`
+  (definitions baked in, no mounts). `dev_rabbitmq.conf` switches to the 4.x
+  `definitions.import_backend` / `definitions.local.path` keys and drops the
+  `default_*` identity lines (identities come from the baked definitions).
+- **`.github/workflows/broker-image.yml`** + **`rabbit/build-and-push.sh`**
+  build and push the image (CI gated by `gen_definitions.py --check`; both
+  tag `:latest` and `:chaos__<short-sha>__<date>`).
+- **Deleted** the superseded dev build infra: `DevRabbit{Arm,X86}Dockerfile`,
+  `build-dev-broker-{arm,x86}.sh`, stale `rabbit_definitions_dev.json`. Prod
+  track (`broker_arm.yml`, prod `rabbitmq.conf`, hybrid/analytics defs) left
+  untouched — prod upgrade is deferred.
+
+Remaining (TODO.md): one-time GHCR push + public visibility, and the
+multi-arch smoke test (arm64 local; x86 deferred) before the prod upgrade.
+
+## 2026-05-21 — add definitions drift guard (test + pre-commit + CLI --check) (`232b063`)
+
+**Why:** Topology-roadmap commit #5 — keep the committed broker-definitions
+JSON from silently drifting away from `gwbase.topology` (the artifacts are
+hand-committed but generator-produced, so they could go stale).
+
+- `gwbase.rabbit_definitions`: add `DEFINITION_ARTIFACTS` (the canonical
+  render set), `dumps()` (one canonical serializer), and
+  `rendered_artifacts()` — a single source the generator and the guard both
+  use, so they can't disagree on form.
+- `for_docker/gen_definitions.py`: `--write-all` (render the artifacts) and
+  `--check` (exit 1 on drift) modes.
+- `tests/test_definitions_drift.py`: the guard, parametrized over the
+  artifacts — runs in the normal `uv run pytest` / CI, so an un-rendered
+  topology change fails the build.
+- `.pre-commit-config.yaml`: a drift hook scoped to the topology/definitions
+  files.
+
 ## 2026-05-21 — generate rabbit definitions from topology; render dev + prod JSON (`575681f`)
 
 **Why:** Topology-roadmap commit #4 — the broker fabric becomes a

@@ -6,6 +6,13 @@ what**, so sessions don't collide. It is the single coordination point across
 *all* repos — git worktrees isolate within one repo, but only this registry
 makes cross-repo work visible.
 
+> **Template vs. live copy.** This file, `active-work-template.md`, is the
+> **committed seed** (version-controlled). The **live** working copy is
+> `active-work.md`, which is **gitignored** — it's local to your machine and is
+> where sessions add and clear claims (its churn never causes merge conflicts).
+> **Protocol changes go in this template; live claims go in `active-work.md`.**
+> On a fresh checkout, copy this file to `active-work.md` to start.
+
 ## Launch from the umbrella directory (recommended for everyone)
 
 Start Claude from the **GridWorks umbrella directory** (Jessica's is

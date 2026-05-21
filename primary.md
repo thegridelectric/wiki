@@ -6,7 +6,9 @@ for the GridWorks system. Code lives in the sibling repos
 this wiki holds the *why*, the *design intent*, and the normative specs that
 those repos are built to satisfy.
 
-This is the wiki's own primary document — start here.
+This is the wiki's **conventions & process** document. To find a domain or a
+specific doc, start at [`README.md`](README.md) — the entry point (domain map +
+a getting-started/how-to table). This file explains *how the wiki works*.
 
 > **Launch from the GridWorks umbrella directory** (the parent that holds all
 > the repos + this `wiki/`), not from inside a single repo — that is what loads
@@ -17,24 +19,14 @@ This is the wiki's own primary document — start here.
 > [`active-work.md`](active-work.md) first, **claim your edit area**, and check
 > for overlap with another session. If your work would expand into an area
 > another active session has claimed, **stop and raise it to Jessica** rather
-> than editing across the boundary. Entry points: this file (index +
-> conventions), [`active-work.md`](active-work.md) (who's editing what),
-> [`glossary.md`](glossary.md) (vocabulary).
+> than editing across the boundary. Entry points: [`README.md`](README.md)
+> (entry + navigation), this file (conventions), [`active-work.md`](active-work.md)
+> (who's editing what), [`glossary.md`](glossary.md) (vocabulary).
 
 ## Domains
 
-Each top-level folder is a **domain** — a service, mechanism, or design
-area. Current domains:
-
-| Domain | What it is |
-| --- | --- |
-| [`gridworks-base/`](gridworks-base/) | The rabbit-transport actor framework + sema codec boundary |
-| [`gridworks-proactor/`](gridworks-proactor/) | The MQTT-native "live actor" + monitored-communication infra under the scada (first-pass spec) |
-| [`ear/`](ear/) | The universal audit tap / fundamental persistence mechanism |
-| [`rmqbot/`](rmqbot/) | The deployed RabbitMQ/MQTT broker: hosting, TLS/certs, ops |
-| [`gridworks-fleet-index-service/`](gridworks-fleet-index-service/) | FIS — the connection-authority (mTLS + instance authorization) |
-| [`gridworks-scada/`](gridworks-scada/) | The residential heat-pump SCADA — legacy cleanup in discovery (see its `PROCESS.md`) |
-| [`heating-system-design/`](heating-system-design/) | Store-under-floor + heating-system engineering & economics |
+Each top-level folder is a **domain** — a service, mechanism, or design area.
+The domain map lives in the entry README: [`README.md`](README.md#domains).
 
 Cross-cutting: [`glossary.md`](glossary.md) holds the GridWorks-wide informal
 vocabulary and legacy→current naming canon (e.g. `atn`→LTN, `ASL`→Sema),
