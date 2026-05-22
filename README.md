@@ -5,10 +5,12 @@ system. Code lives in the sibling repos (`gridworks-base`, `gridworks-scada`,
 `sema`, …); this wiki holds the *why*, the design intent, and the normative
 specs those repos satisfy.
 
-**This README is the entry point — what's here and where to go.** For *how the
-wiki works* (conventions, structure, authoring process), see
-[`primary.md`](primary.md). New to the repo? See [Setup](#setup) for how this
-wiki is meant to sit in a GridWorks umbrella folder next to the code repos.
+**This README is the entry point — what's here and where to go.** For *how we
+work with Claude* and the wiki's conventions, see
+[`working-with-llms.md`](working-with-llms.md) (the authoring rules Claude
+follows live in [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md)). New to the repo?
+See [Setup](#setup) for how this wiki is meant to sit in a GridWorks umbrella
+folder next to the code repos.
 
 > **Editing?** Read [`active-work.md`](active-work.md) first and **claim your
 > area** — multiple Claude sessions run at once. Launch Claude from the
@@ -20,7 +22,7 @@ wiki is meant to sit in a GridWorks umbrella folder next to the code repos.
 | I want to… | Go to |
 | --- | --- |
 | Understand a domain's design / rebuild spec | that domain's `executor/primary.md` (see **Domains** below) |
-| Understand how the wiki works (conventions, process) | [`primary.md`](primary.md) |
+| Understand the conventions / how we work with Claude | [`working-with-llms.md`](working-with-llms.md) (+ [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) for the rules) |
 | Edit safely while other sessions are running | [`active-work.md`](active-work.md) — claim your area, start from a clean tree |
 | Look up a term or a legacy→current name | [`glossary.md`](glossary.md) |
 | Work the SCADA cleanup effort | [`gridworks-scada/PROCESS.md`](gridworks-scada/PROCESS.md) + [`gridworks-scada/research/map.md`](gridworks-scada/research/map.md) |
@@ -46,10 +48,10 @@ Each top-level folder is a **domain** — a service, mechanism, or design area.
 
 ## Cross-cutting
 
-- [`primary.md`](primary.md) — the wiki's purpose, structure, conventions, and process (hub-and-spoke, living-spec discipline, research→executor workflow, authoring rules).
+- [`working-with-llms.md`](working-with-llms.md) — how we work with Claude and the wiki conventions: how Claude operates, source precedence, the maturity-stamp dial, signaling vocabulary, the research→executor loop, memory-vs-wiki. The *why* behind the conventions.
+- [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) — the canonical `CLAUDE.md` for the umbrella directory: the rules Claude follows, incl. the wiki authoring conventions ("Wiki essentials") and source precedence (see Setup).
 - [`glossary.md`](glossary.md) — vocabulary + legacy→current naming (`atn`→LTN, `ASL`→Sema); defers to Sema for formal types.
 - [`active-work-template.md`](active-work-template.md) — the committed multi-session coordination protocol (your live working copy is the gitignored `active-work.md`).
-- [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) — the canonical `CLAUDE.md` for the GridWorks umbrella directory (see Setup).
 
 ## Setup
 
@@ -61,7 +63,7 @@ GridWorks/                      ← umbrella (NOT a git repo); launch Claude her
 ├── CLAUDE.md                   → symlink to wiki/GridWorks_CLAUDE.md
 ├── wiki/                       ← this repo (github.com/thegridelectric/wiki)
 │   ├── GridWorks_CLAUDE.md     ← canonical umbrella CLAUDE.md (version-controlled)
-│   ├── README.md  primary.md  glossary.md  active-work-template.md
+│   ├── README.md  working-with-llms.md  glossary.md  active-work-template.md
 │   └── <domain>/ …
 ├── gridworks-base/             ← sibling code repo
 ├── gridworks-scada/            ← sibling code repo
@@ -81,4 +83,8 @@ To set up a machine:
 
 **Why a symlink:** the umbrella folder isn't version-controlled, so its
 `CLAUDE.md` can't be shared on its own. Keeping the canonical copy here as
-`GridWorks_CLAUDE.md` and symlinking makes it shareable and drift-free.
+`GridWorks_CLAUDE.md` and symlinking makes it shareable and drift-free. Claude
+Code **auto-loads `CLAUDE.md`** every session (walking up parent directories);
+it does **not** auto-load `AGENTS.md` — so the canonical file must be a
+`CLAUDE.md`. (`GridWorks_CLAUDE.md` is just its version-controlled home; the
+symlink gives it the name Claude reads.)

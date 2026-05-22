@@ -72,7 +72,7 @@ Cadence and hygiene:
   are noisy and buy no safety.
 - **Push promptly** after a unit so other sessions can pull.
 - **Pull at session start.**
-- **Shared root files** (`primary.md`, `glossary.md`, `active-work.md`) are the
+- **Shared root files** (`README.md`, `GridWorks_CLAUDE.md`, `working-with-llms.md`, `glossary.md`, `active-work.md`) are the
   one real conflict zone: pull first, keep edits small, commit + push
   immediately.
 
@@ -83,15 +83,17 @@ must edit the *same* subfolder concurrently or need isolated builds.
 
 ## Current claims
 
+> Copy this file to `active-work.md` (gitignored) and replace the example row
+> below with your own. Delete the example. One row per active session.
+
 | Session | Repo / domain | Scope (path globs) | Status | Since | Notes |
 | --- | --- | --- | --- | --- | --- |
-| scada-wiki-bootstrap | `wiki/` + `gridworks-scada` + `sema` (heartbeat.a) + `wiki/heating-system-design` | `wiki/gridworks-scada/**`, `wiki/primary.md`, `wiki/glossary.md`, `wiki/active-work.md`, `gridworks-scada/CLAUDE.md`, `sema/definitions/types/heartbeat.a/**`, `sema/definitions/registry.yaml` (heartbeat.a entry), sema generated artifacts (heartbeat regen), `wiki/heating-system-design/research/polstein-design.md` | active | 2026-05-21 | Wiki bootstrap + process design; CLAUDE.md change pending. **sema heartbeat.a: DONE & committed (`359f5b5`)** — deleted unpublished erroneous `heartbeat.a/001` (removed the hex), reverted `latest_version`→`000`, improved v000 docs (supervisor health-monitoring; `MyHex`/`YourLastHex` are sender-relative — kept, NOT renamed). Jessica's other sema WIP (gw/gridworks.header) was briefly set aside then **reloaded at her request**. **Now finishing it at Jessica's direction** (sema unclaimed by gridworks-base): fixing schema bugs (e.g. `gridworks.header/001` `Dst` missing `type`), regenerating indexes/runtime, running tests. |
-| gridworks-base-refactor | `gridworks-base` + `wiki/gridworks-base` | `gridworks-base/**`, `wiki/gridworks-base/**` | active | 2026-05-21 | Transport/codec decouple + drift-proof rabbit topology. uv migration committed (`a64b3c0`); `gwbase/topology.py` done; executing actor_base passive-declare + broadcast/scada helpers + definitions generator/CI/GHCR image. Will claim any folder outside this scope HERE before editing it. (Earlier this session, before this file existed, I also created unclaimed cross-domain docs: `wiki/{ear,rmqbot,gridworks-proactor}/`, `wiki/heating-system-design/research/`, top-level `CLAUDE.md` — left as-is, up for grabs.) **Jessica's sema WIP (`gw`/`gridworks.header` defs + build-tool tweaks) is uncommitted in the sema tree (reloaded after a brief set-aside). Indexes/runtime not yet regenerated for those types — regen pending whoever finishes it. Likely belongs to this gridworks-base track since `gw`/`gridworks.header` are the envelope types.** |
+| _example-session-label_ | `<repo>` + `wiki/<domain>` | `wiki/<domain>/**`, `<repo>/src/<area>/**` | active | YYYY-MM-DD | One line on what you're doing + anything another session should know (e.g. "will claim outside this scope HERE first"). Set `paused`/`done` when finished. |
 
 ## How to read this
 
 - Two sessions in **different repos** don't collide — the table just makes that
   visible.
-- The danger zones are shared files: `wiki/primary.md`, `wiki/glossary.md`, this
+- The danger zones are shared files: `wiki/README.md`, `wiki/GridWorks_CLAUDE.md`, `wiki/glossary.md`, this
   file, and any domain a code-refactor session also documents in the wiki. If
   two rows overlap on a path glob, treat it as a conflict to raise.

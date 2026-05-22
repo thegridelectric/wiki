@@ -1,0 +1,22 @@
+name: wiki-health
+
+# Runs the wiki health checks (status stamps + the ≤1000-line cap) on every push
+# and pull request.
+#
+# To make this a hard MERGE GATE, add "wiki-health / health" as a required status
+# check in the repo's branch-protection rules — but do that only AFTER the current
+# backlog is green (status-stamp rollout + the oversized-doc split), or it will
+# block every merge.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Run wiki health checks
+        run: uv run pytest -q
