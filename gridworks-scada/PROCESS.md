@@ -174,10 +174,11 @@ invariant-first, with a faithful-reimplementation checklist.
 
 ## Wiki-wide conventions
 
-The **agent-memory-vs-wiki** routing rule and the **authoring disciplines**
-(don't restate code, update-don't-duplicate, mark provenance/freshness, cheap
-recall) live wiki-wide in [`../primary.md`](../primary.md). They apply here;
-not repeated.
+The **authoring disciplines** (don't restate code, update-don't-duplicate, mark
+provenance/freshness, cheap recall) live in [`../GridWorks_CLAUDE.md`](../GridWorks_CLAUDE.md)
+("Wiki essentials"); the **agent-memory-vs-wiki** routing rule and source
+precedence are in [`../working-with-llms.md`](../working-with-llms.md). They
+apply here; not repeated.
 
 ## Guardrails
 

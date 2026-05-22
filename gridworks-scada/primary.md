@@ -1,8 +1,11 @@
 # gridworks-scada — domain primary
 
 Start here for the `gridworks-scada` domain. Wiki-wide conventions (folder
-structure, hub-and-spoke, living-spec discipline, agent-memory-vs-wiki) live in
-the wiki root [`../primary.md`](../primary.md) — this file does not repeat them.
+structure, hub-and-spoke, living-spec discipline) live in
+[`../GridWorks_CLAUDE.md`](../GridWorks_CLAUDE.md); how-we-work-with-Claude
+(memory-vs-wiki, source precedence) is in
+[`../working-with-llms.md`](../working-with-llms.md). This file does not repeat
+them.
 
 > **Goal:** continuously clean up the SCADA until it is code that LLMs and
 > humans can glean from à la carte, and until it can be rebuilt faithfully from
