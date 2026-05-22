@@ -38,6 +38,19 @@ end-to-end hop traversal — see §4.7 ([`codec.md`](codec.md)). The two are
 distinguished by name (`RoutingEnvelope` vs. `Gw` / "gw envelope") and live
 at different layers.
 
+## Role in the GridWorks fleet
+
+`gridworks-base` (module `gwbase`) is the **shared foundation for the
+GridWorks GNode service fleet**: the RabbitMQ-transport actor framework, the
+Sema codec boundary, and `gwbase.topology` — the single source of truth for
+the broker fabric (every service's exchanges/bindings derive from it, §3.6).
+Services import it as a package and subclass `GridworksActor`, one per
+`TransportClass`. Imported today by **gridworks-ear** and
+**gridworks-journalkeeper**; intended as the base for **gridworks-ltn**
+(`ltn`), **gridworks-marketmaker** (`mm`), and the **weather** (`weather`)
+and **price** (`price`) forecast services. The routing taxonomy for all of
+them already lives here in `gwbase` (§3.1).
+
 ---
 
 ## 1. The two layers

@@ -67,8 +67,13 @@ pre-refactor token namespace). `arm.sh` / `x86.sh` both pull the same
 `:latest` image (refresh via `docker compose pull`); other repos
 (gridworks-marketmaker, gridworks-scada) pull it too and run a dev broker
 with **no gridworks-base checkout** — the reason a published image beats a
-host mount here. The dev image is **public**; the prod broker never ships
-baked secrets. Tags: `:latest` plus a commit-pinned
+host mount here. gridworks-base's **own CI test suite**
+(`.github/workflows/tests.yml`) also runs against this image as a service
+container, retiring the standalone RabbitMQ 3.9.13 test broker (the
+`namoshek` action + `.ci/rabbitmq.conf`) it replaced — so unit tests and
+dev exercise one topology+broker build (prod joins once its 4.x upgrade
+lands; see parity note below). The dev image is
+**public**; the prod broker never ships baked secrets. Tags: `:latest` plus a commit-pinned
 `:chaos__<short-sha>__<date>` for traceability. For gridworks-base's own
 fast inner loop you may instead mount the freshly-generated JSON rather than
 rebuild.

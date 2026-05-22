@@ -62,6 +62,25 @@ See `wiki/gridworks-base/executor/transport.md` §3.5 +
 `wiki/ear/executor/broker-tap.md`, and
 `wiki/rmqbot/research/broker-todos.md`.
 
+## 2026-05-22 — fix dev broker conf for RabbitMQ 4.x; document GHCR image (`aa2a368`)
+
+**Why:** The first 4.x dev-broker boot crashed
+(`failed_to_prepare_configuration`) — `dev_rabbitmq.conf` still carried 3.x
+MQTT keys that 4.x removed:
+
+- `mqtt.default_user` / `mqtt.default_pass` → replaced by the global
+  `anonymous_login_user` / `anonymous_login_pass`.
+- `mqtt.subscription_ttl` (ms) → `mqtt.max_session_expiry_interval_seconds`
+  (s).
+
+Validated by mounting the conf on `rabbitmq:4.1-management` (boots clean;
+definitions import into `d1__1`). Also documents the GHCR build/publish flow
+and a corrected `rabbitmqctl … -p d1__1` verify step in the README, and
+removes the stale cookiecutter footer. **Lesson:** `docker build` only
+`COPY`s the conf, so a bad conf surfaces at *container boot*, not build —
+always run the image after pushing. (A follow-up fixes `arm.sh`/`x86.sh` to
+pull the moving `:latest` and start from a fresh data volume.)
+
 ## 2026-05-21 — dev broker: official 4.x + baked GHCR image; retire jessmillar build infra (`4d3f414`)
 
 **Why:** Topology-roadmap commit #6 (final) — replace the hand-built,
