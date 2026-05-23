@@ -130,7 +130,7 @@ distinct from a discovery pass:
 1. Pick a batch of `Effort: small` findings **within one area subsection** —
    localized edits keep the session finishable *and* minimize collision with
    other active sessions.
-2. **Claim that area** in [`../active-work.md`](../active-work.md) before
+2. **Claim that area** in [`../active-claims.md`](../active-claims.md) before
    editing code.
 3. Fix, then mark each finding `fixed` with the commit; do not delete it.
 4. The tighter the area, the safer to run concurrently with other sessions.
@@ -159,7 +159,7 @@ invariant-first, with a faithful-reimplementation checklist.
 
 ## Per-session protocol
 
-1. **Claim your area** in [`../active-work.md`](../active-work.md) and check for
+1. **Claim your area** in [`../active-claims.md`](../active-claims.md) and check for
    overlap with another active session (Jessica runs 2–4 at once). If your work
    would expand into another session's claimed area, stop and raise it.
 2. Read `research/map.md` (coverage + open questions) and the tail of
@@ -170,7 +170,7 @@ invariant-first, with a faithful-reimplementation checklist.
 5. Update `map.md`, `findings.md`, the component doc, and `changelog.md`.
 6. **Do not run git commits** — Jessica handles those. Stage nothing; instead
    summarize the changes and suggest a commit message.
-7. Update your `active-work.md` row (`paused`/`done`).
+7. Update your `active-claims.md` row (`paused`/`done`).
 
 ## Wiki-wide conventions
 

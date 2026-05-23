@@ -58,23 +58,19 @@ no separate config. **This is how "weight the wiki more and more over time"
 actually happens.** (Lineage: ADR maturity + epistemic-status headers +
 docs-as-code freshness; the pass count is ours — see Prior art below.)
 
-**In-conversation signaling.** Lightweight verbs to tell Claude how much a
-statement should weigh (the operative list lives in
+**In-conversation signaling.** Two lightweight verbs tell Claude how much a
+statement should weigh (operative list in
 [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md)):
 
 - **canonize** ("for the record", "ratify") → durable; Claude writes it into the
   wiki.
-- **workshop** ("pressure-test", "float") → a serious candidate: engage
-  critically, refine it together (a pass); not locked yet. *This is the mode
-  most design happens in.*
 - **musing** ("thinking out loud", "scratch") → low weight, not a decision.
-- **override** ("do Y despite the wiki") → your call wins now; Claude flags the
-  divergence and offers to reconcile.
-- **retract** ("scratch that") → undo a prior canon.
 
 Claude also **proactively asks to canonize** at genuine decision points (not
 musings/routine), and asks when it can't tell a decision from a musing — so
-durable choices get captured while fresh instead of slipping by.
+durable choices get captured while fresh instead of slipping by. Other moves —
+*pressure-test this*, *override the wiki on Y*, *retract that canon* — work as
+plain English under the source-precedence rule and don't need registered verbs.
 
 ## Converging research → executor (the design loop)
 
@@ -144,7 +140,7 @@ hides at seams.
 
 **Per hit:** record the seed, the disagreeing locations, the kind and severity;
 **fix if safe and in scope**; otherwise log it; if it falls in another session's
-claimed area, hand it off via `active-work.md`.
+claimed area, hand it off via `active-claims.md`.
 
 **Continuity (the frontier).** Keep a small ledger — seeds walked, seeds queued,
 open hits — so the patrol *resumes* instead of restarting. It is a route, not a
@@ -185,6 +181,31 @@ two exemptions — the wiki's own `README.md`, and a repo's `CLAUDE.md` (which i
 Claude-facing and *may* point to the wiki) — are in
 [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) under "Write boundary."
 
+## Karan's commit rules (reference — not what we're doing yet)
+
+> These are conventions Karan uses with his Claude sessions, where Claude is
+> trusted to do its own commits and merges within guardrails. **We are
+> currently more conservative — Jessica does all commits; Claude only
+> *suggests* them** (see `GridWorks_CLAUDE.md` "Commit suggestions"). Kept here
+> as a reference for when/if we loosen that.
+
+**Plan before coding.** Before writing any code, analyze the current
+code/module and produce a plan covering: files affected, dependencies, risk
+level of each change, and execution order.
+
+**Git merge rules.**
+
+- *Default rule: never delete code or files in a merge.* If either side has
+  content the other lacks, **KEEP** it. The only deletions allowed are ones
+  BOTH sides explicitly made via real commits — and even then, surface them
+  for confirmation first.
+- If anything is suspicious, `git merge --abort` and re-resolve. Never seal a
+  merge whose deletions you cannot explain.
+- **Tag pre-merge state on risky merges:** `git tag pre-merge-$(date +%Y%m%d-%H%M)` so recovery is intentional, not luck.
+- **Never trust the merge commit message — only trust the diff.** Past
+  incidents had messages like "keeping research additions" that did the
+  opposite.
+
 ## Prior art & lineage — we're on a known path
 
 These conventions aren't invented from scratch; most map to established
@@ -207,7 +228,7 @@ not theoretical.)
 - **Lean carried context file** — the community caps `CLAUDE.md` well under a few
   hundred lines (some say <150); ours is ~120.
 - **2–5 parallel agents** as the sweet spot, coordinated by a shared file —
-  exactly our [`active-work.md`](active-work.md) layer. (`AGENTS.md` is the
+  exactly our [`active-claims.md`](active-claims.md) layer. (`AGENTS.md` is the
   cross-tool variant of that shared file, but Claude Code only *auto-loads*
   `CLAUDE.md`.)
 - **Freshness** via "last reviewed" stamps + git-commit dates + flag-stale review
@@ -222,5 +243,5 @@ not theoretical.)
 **What's ours (ahead of the published practice):** the **pass count**
 (human–LLM joint iterations); keeping specs **living + stamped** (most SDD
 *discards* the spec once code exists); the **"looking for trouble" coherence
-crawl**; and **source precedence + weight signals** (canonize / workshop /
-musing). No published equivalents found.
+crawl**; and **source precedence + weight signals** (canonize / musing). No
+published equivalents found.

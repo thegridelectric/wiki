@@ -12,7 +12,7 @@ follows live in [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md)). New to the repo?
 See [Setup](#setup) for how this wiki is meant to sit in a GridWorks umbrella
 folder next to the code repos.
 
-> **Editing?** Read [`active-work.md`](active-work.md) first and **claim your
+> **Editing?** Read [`active-claims.md`](active-claims.md) first and **claim your
 > area** — multiple Claude sessions run at once. Launch Claude from the
 > GridWorks **umbrella directory** (not inside one repo) so project memory +
 > this wiki load.
@@ -23,7 +23,7 @@ folder next to the code repos.
 | --- | --- |
 | Understand a domain's design / rebuild spec | that domain's `executor/primary.md` (see **Domains** below) |
 | Understand the conventions / how we work with Claude | [`working-with-llms.md`](working-with-llms.md) (+ [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) for the rules) |
-| Edit safely while other sessions are running | [`active-work.md`](active-work.md) — claim your area, start from a clean tree |
+| Edit safely while other sessions are running | [`active-claims.md`](active-claims.md) — claim your area, start from a clean tree |
 | Look up a term or a legacy→current name | [`glossary.md`](glossary.md) |
 | Work the SCADA cleanup effort | [`gridworks-scada/PROCESS.md`](gridworks-scada/PROCESS.md) + [`gridworks-scada/research/map.md`](gridworks-scada/research/map.md) |
 | Rebuild / understand gridworks-base | [`gridworks-base/executor/primary.md`](gridworks-base/executor/primary.md) |
@@ -51,7 +51,7 @@ Each top-level folder is a **domain** — a service, mechanism, or design area.
 - [`working-with-llms.md`](working-with-llms.md) — how we work with Claude and the wiki conventions: how Claude operates, source precedence, the maturity-stamp dial, signaling vocabulary, the research→executor loop, memory-vs-wiki. The *why* behind the conventions.
 - [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) — the canonical `CLAUDE.md` for the umbrella directory: the rules Claude follows, incl. the wiki authoring conventions ("Wiki essentials") and source precedence (see Setup).
 - [`glossary.md`](glossary.md) — vocabulary + legacy→current naming (`atn`→LTN, `ASL`→Sema); defers to Sema for formal types.
-- [`active-work-template.md`](active-work-template.md) — the committed multi-session coordination protocol (your live working copy is the gitignored `active-work.md`).
+- [`active-claims-template.md`](active-claims-template.md) — the committed multi-session coordination protocol (your live working copy is the gitignored `active-claims.md`).
 
 ## Setup
 
@@ -63,7 +63,7 @@ GridWorks/                      ← umbrella (NOT a git repo); launch Claude her
 ├── CLAUDE.md                   → symlink to wiki/GridWorks_CLAUDE.md
 ├── wiki/                       ← this repo (github.com/thegridelectric/wiki)
 │   ├── GridWorks_CLAUDE.md     ← canonical umbrella CLAUDE.md (version-controlled)
-│   ├── README.md  working-with-llms.md  glossary.md  active-work-template.md
+│   ├── README.md  working-with-llms.md  glossary.md  active-claims-template.md
 │   └── <domain>/ …
 ├── gridworks-base/             ← sibling code repo
 ├── gridworks-scada/            ← sibling code repo
@@ -77,9 +77,29 @@ To set up a machine:
 2. Point the umbrella's `CLAUDE.md` at this repo's canonical copy:
    `cd GridWorks && ln -s wiki/GridWorks_CLAUDE.md CLAUDE.md` (symlink preferred;
    copy works too).
-3. **Launch Claude from the umbrella dir** — that loads the project memory
+3. **Wire up the SessionStart hook** so each session gets a friendly name +
+   auto-claim row in `active-claims.md`. The hook script is in this repo at
+   [`tools/gridworks-session-init.sh`](tools/gridworks-session-init.sh) and is
+   self-locating — no per-user customization. Add to your `~/.claude/settings.json`:
+
+   ```json
+   {
+     "hooks": {
+       "SessionStart": [{
+         "hooks": [{
+           "type": "command",
+           "command": "<your-umbrella>/wiki/tools/gridworks-session-init.sh",
+           "statusMessage": "GridWorks session init"
+         }]
+       }]
+     }
+   }
+   ```
+
+   Replace `<your-umbrella>` with your GridWorks path. Requires `jq` on PATH.
+4. **Launch Claude from the umbrella dir** — that loads the project memory
    (keyed to the umbrella) and makes the wiki + sibling repos reachable in one
-   session. See [`active-work.md`](active-work.md) for the multi-session protocol.
+   session. See [`active-claims.md`](active-claims.md) for the multi-session protocol.
 
 **Why a symlink:** the umbrella folder isn't version-controlled, so its
 `CLAUDE.md` can't be shared on its own. Keeping the canonical copy here as
