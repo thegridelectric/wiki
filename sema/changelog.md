@@ -9,6 +9,34 @@ Newest at the top.
 
 ---
 
+## 2026-05-23 — Promote sema/spec/ to the top level alongside definitions/ and indexes/ (`bfc7c21`)
+
+**Why:** Primary motivation is to make the spec **digestible for LLMs** —
+a 2006-line monolith forces every AI session to skim or partial-load,
+making "Read the spec" a wishful directive rather than a real verification
+step. Bundles two moves: (1) split `docs/sema-specification.md` into a
+hub-and-spoke layout (`spec/primary.md` + `spec/registry/` +
+`spec/authoring/` + `spec/governance.md`) so an agent under
+`/make-sema-word` can pull the ~200-line spoke for the kind it's touching
+and actually load it in full; (2) elevate `spec/` out of `docs/` to sit
+beside `definitions/` and `indexes/` because the spec is the canonical
+rebuild artifact, not background reading. The split also let us fold
+language-neutral runtime upgrade discipline into the spec
+(`authoring/type-semantics.md#upgrade-discipline`, replacing lore that had
+been hiding in `sema/CLAUDE.md`) and fix two latent issues in the source:
+a duplicated Change Process section and the `report v002`
+`Version: const "003"` mismatch with its `$id`/title.
+
+## 2026-05-23 — Update regular sema CLAUDE.md (`87cae7c`)
+
+**Why:** Slimmed `sema/CLAUDE.md` to invariants only — dropped stale
+`Coding/...` paths, dropped pydantic-emitter lore that doesn't belong on
+every sema session, added the regen commands by path
+(`scripts/build_indexes.sh`, `scripts/regenerate_runtime.py`), pointed at
+`/make-sema-word` for the per-word ritual. Loaded on every sema work session,
+so keeping it dense saves tokens and concentrates attention on the MUSTs
+that actually bind.
+
 ## 2026-05-21 — Add gw / gridworks.header envelope Sema types; fix Dst; regenerate
 
 **Why:** Register the GridWorks application-layer **envelope** as Sema
