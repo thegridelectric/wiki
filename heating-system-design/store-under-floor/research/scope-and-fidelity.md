@@ -7,7 +7,7 @@ Design-scoping analysis: which boundary condition sizes the geometry, whether
 envelope, and standby losses. The core design and parameter interface live in
 [`design.md`](design.md).
 
-### Pipe-geometry impact of task #9 (perimeter exclusion)
+## Pipe-geometry impact of task #9 (perimeter exclusion)
 
 The decision to skip tubes in the outer ~1.5 ft perimeter band reduces
 the tube field from 940 m / 11 loops / 12-port manifold (the original
@@ -19,7 +19,7 @@ savings: ~$1 200 per house. Manifold savings: ~$200. The excluded
 perimeter ring still contributes thermal mass via passive conduction
 into the central zone; it is not lost capacity, just passive capacity.
 
-### Which boundary condition actually binds the geometry?
+## Which boundary condition actually binds the geometry?
 
 The two boundary conditions are stipulated, not derived: **Q_in,max = 15 kW**
 into the store from the HP, and **Q_out,max = 5 kW** out of the store to the
@@ -53,7 +53,7 @@ bulk T as the store fills) while discharging LMTD is large (T_store
 boundary, **changes to Q_in,max have an immediate cost impact via tube
 length; changes to Q_out,max within ~7 kW are free.**
 
-### Could the 15 kW Q_in,max be relaxed?
+## Could the 15 kW Q_in,max be relaxed?
 
 The 15 kW stipulation was set before V1 and mode 3 were fully in the
 architecture. With those in place, the **store-charging tube field only
@@ -102,7 +102,7 @@ sweep, not the default.
 This makes the parameter list a column wider but the new default is a
 strict cost improvement under any reasonable Maine TOU schedule.
 
-### Do we still need finite-element analysis?
+## Do we still need finite-element analysis?
 
 For the *capital-cost-minimizer module* this doc scopes — **no.** The
 analytical shape-factor work in [`pipe-geometry.md`](pipe-geometry.md)
@@ -140,7 +140,7 @@ Bottom line: ship the current analytical numbers for the procurement
 spec; budget a 2-D transient FEM pass before the outer operating-cost
 simulator is treated as authoritative.
 
-### Capital sizing vs. operational overdrive
+## Capital sizing vs. operational overdrive
 
 The HP + inline-resistance **hardware architecture is fixed across all
 scenarios**. The split between what the capital-cost minimizer sizes for
@@ -200,7 +200,7 @@ permits the resistance command to drive `Q_in,store` and `T_store`
 above the capital-design values up to the operational limits. The BOM
 does not change.
 
-### Standby losses — a binding architectural concern
+## Standby losses — a binding architectural concern
 
 At the recommended package the store still bleeds **~1 700 W nominal**
 (~511 W top + ~371 W bottom + ~800 W edge per the 2-D analysis, partially

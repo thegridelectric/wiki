@@ -1,5 +1,10 @@
 # Store-Under-Floor — Design Notes
 
+> Status: **Draft · Pass 0** · Updated 2026-05-22 — split:
+> [`worked-example.md`](worked-example.md) (cost ledgers) and
+> [`scope-and-fidelity.md`](scope-and-fidelity.md) (scoping / FEA / standby)
+> were extracted from this hub.
+
 Working design notes for the decoupled thermal-store + radiant-floor system
 going into Matt Polstein's 14-home phase-1 development in Millinocket, ME
 (eventually 100 homes). Engaging John Siegenthaler as the consulting
@@ -36,10 +41,14 @@ working value: 35 °C** until Polstein confirms the upper-emitter choice.
 
 - Location: Millinocket, ME. ASHRAE 99.6 % heating DB ≈ **−30 °C (−22 °F)**.
 - Indoor setpoint 21 °C.
-- **Q_in,max** (HP → store) = **15 kW_th** at design conditions.
+- **Q_in,max** (HP → store, design): **10 kW_th** default, **15 kW** upper
+  bound. `Q_in_store_max` is a sweep parameter — see *Model parameters* below
+  and [`scope-and-fidelity.md`](scope-and-fidelity.md) "Could the 15 kW
+  Q_in,max be relaxed?" (reduced default reflects that HP-alone delivers
+  ~10 kW at −30 °C OAT, so 5–10 kW of resistance is the upper-bound stretch).
 - **Q_out,max** (store → floor + any FCU) = **5 kW_th** at design conditions.
-- 15 kW is sourced by a single monoblock plus an inline electric
-  resistance backup. The HP candidate list narrows after the −30 °C OAT
+- At the **15 kW upper bound**, sourcing is a single monoblock plus an inline
+  electric resistance backup. The HP candidate list narrows after the −30 °C OAT
   operating-envelope check (see [`../../heat-pumps/hp-curve.md`](../../heat-pumps/hp-curve.md) §12): the
   initial Mitsubishi PUZ-WM112 and Arctic 060A are **not** rated to
   operate at −30 °C and fall off the list. In-envelope candidates:
@@ -160,7 +169,28 @@ load.
 exclusion factor. Add ~70 % more low-grade capacity below 96 °F as
 passive leak; counted separately because it isn't on-demand.)
 
-### Leaky-top architecture — concept and operating modes
+## Upper-emitter options (under evaluation)
+
+The upper emitter — the layer that takes heat from the store and delivers it
+to the room — is a **live design parameter, not locked**. Two candidate
+stackups are under cost evaluation; the choice is **cost-driven** (Matt
+Polstein's lean is the sleeper + nailed hardwood, but if Option B prices
+cheaper he'd take it). Both options are costed in
+[`worked-example.md`](worked-example.md).
+
+| Option | Stackup | Active discharge ΔT | T_store → T_floor_supply (design day) |
+|---|---|---|---|
+| **A. Sleeper + nailed hardwood** (Matt's lean) | 2″ XPS R-10 / 3/4″ CDX glued / 1×4 sleepers + Matt-fab Al heat-transfer plates + PEX / 3/8″ CDX / 3/4″ solid nailed hardwood w/ water-based polyurethane | ~21 °F (11.7 K) | 122 °F → 101 °F |
+| **B. 1.5″ polished structural-concrete overpour** (Siegenthaler's specified detail) | 2″ XPS R-10 / 1.5″ structural concrete overpour (¼″ aggregate + glass-fiber-reinforced topping, plastic-strip control joints; polished as finish floor) | ~26 °F (14.4 K) | 122 °F → 96 °F |
+
+Option B widens the active-discharge range (~1.44× capacity at the same slab
+depth) because the thinner overpour lowers the floor-supply temperature.
+Option A is low-VOC dry-install with Matt's in-house aluminum-plate fab as a
+major cost lever. **Numbers in this hub (capacity table, temperature stack)
+default to Option A unless noted**; Option B's parallel numbers live in
+[`worked-example.md`](worked-example.md).
+
+## Leaky-top architecture — concept and operating modes
 
 The default architecture used by both worked examples above. The
 top insulation is deliberately thin (R-8 instead of R-30) so a
@@ -178,7 +208,7 @@ old "decoupled, minimize-top-transfer" framing treated the leak as
 wasted; the leaky-top framing treats it as a fixture of the load
 profile.
 
-#### Operational tradeoffs
+### Operational tradeoffs
 
 The leaky-top architecture commits the project to a particular
 seasonal operating concept:
@@ -228,7 +258,7 @@ seasonal operating concept:
    transition planning, and direction-of-leak management all live in
    the transactive control layer.
 
-#### Decoupled-top fallback
+### Decoupled-top fallback
 
 The "decoupled" design with R-30 top insulation remains available as
 a fallback option for projects where the seasonal-transition
@@ -318,29 +348,32 @@ C_corrected  ≈  2.0 W/(m · K)        (½″ PEX, s = 150 mm, k_CLSM = 1.0)
 For structural concrete at k = 1.5: C ≈ 2.5 W/(m·K) corrected. **The
 flowable-fill conductivity penalty vs. structural concrete shrinks to
 ~1.5×** at the calibrated k. All downstream numbers in this doc use the
-corrected C with the calibrated k. The geometry sub-document
-([`pipe-geometry.md`](pipe-geometry.md)) was worked at the earlier
-k = 0.7 W/(m·K); its conclusions are conservative on Δ_depr (numbers
-shrink ~30 % at the calibrated k) but the recommended geometry should be
-revisited under a future revision pass.
+corrected C with the calibrated k = 1.0.
+
+> **Uncertainty in k — acknowledged in both docs.** The calibrated CLSM
+> conductivity carries a real uncertainty band, **k ≈ 0.85–1.10 W/(m·K)** per
+> the source review in [`materials-flowable-fill.md`](materials-flowable-fill.md).
+> Headline numbers in this doc and in [`pipe-geometry.md`](pipe-geometry.md)
+> use the central value **k = 1.0** (pipe-geometry has been **re-worked** at
+> 1.0; its 2026-05-18 revision note + sensitivity column retain k = 0.7 to
+> bound the lower edge of the band). Δ_depr scales roughly inversely with k,
+> so the band translates to ≈ ±10–15 % on Δ_depr at the recommended geometry.
+> Pinning k tighter is open research (in-service in-place measurement, or a
+> calibrated pour test).
 
 Heat extracted per meter of tube at design discharge: `q = Q_out / L_tube`.
 Local depression at the tube wall: `Δ_depr ≈ q / C`.
 
-For Q_out = 5 kW and a single shared 940 m field at s = 150 mm
-(the recommended design point from [`pipe-geometry.md`](pipe-geometry.md) §9
-at calibrated k = 1.0), using corrected C = 2.0 W/(m·K):
+For Q_out = 5 kW at s = 150 mm, calibrated k = 1.0, corrected
+C = 2.0 W/(m·K) — sensitivity to active tube length L (q = Q_out / L;
+Δ_depr ≈ q / C):
 
-- q = 5000 / 940 = 5.3 W/m
-- Δ_depr ≈ 5.3 / 2.0 ≈ **2.7 K**
-
-For a leaner 600 m field:
-
-- q = 8.3 W/m → Δ_depr ≈ **4.2 K**
-
-For a skimpy 300 m field:
-
-- q = 16.7 W/m → Δ_depr ≈ **8.4 K** — wipes out the COP budget.
+| L_tube | q (W/m) | Δ_depr |
+|---|---|---|
+| **750 m** — final post-task-#9 geometry (see [`scope-and-fidelity.md`](scope-and-fidelity.md) and [`pipe-geometry.md`](pipe-geometry.md) §9) | **6.7** | **3.3 K** |
+| 940 m — pre-task-#9 design point (superseded) | 5.3 | 2.7 K |
+| 600 m — leaner | 8.3 | 4.2 K |
+| 300 m — skimpy | 16.7 | 8.4 K — wipes out the COP budget |
 
 Geometry directly buys or loses degrees of useful ΔT at the bottom of the
 stack. Every K of avoidable Δ_depr is a K of COP headroom or a K less store
@@ -537,5 +570,9 @@ Locked design choices (not parameters):
   COP-penalty number but revises the absolute COPs down by ~0.3 (direct
   1.5–1.8, charging 1.0–1.3 at −30 °C OAT). Soft cap T_HP,LWT = 60 °C,
   hard cap 65 °C.
-- [`worked-example.md`](worked-example.md) — (TBW) one full design point
-  end-to-end.
+- [`worked-example.md`](worked-example.md) — incremental cost ledgers
+  (baseline + Worked Examples A & B + "reading them together"), costing
+  **both upper-emitter options** so the choice can be cost-driven.
+- [`scope-and-fidelity.md`](scope-and-fidelity.md) — scoping analysis: which
+  boundary condition binds the geometry, can Q_in be relaxed, do we still need
+  FEA, capital-vs-operational envelope, and standby losses.
