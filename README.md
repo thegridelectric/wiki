@@ -97,7 +97,20 @@ To set up a machine:
    ```
 
    Replace `<your-umbrella>` with your GridWorks path. Requires `jq` on PATH.
-4. **Launch Claude from the umbrella dir** — that loads the project memory
+4. **Install the wiki's slash commands.** Symlink each `.md` in
+   [`tools/claude-commands/`](tools/claude-commands/) into your
+   `~/.claude/commands/`:
+
+   ```sh
+   for f in <your-umbrella>/wiki/tools/claude-commands/*.md; do
+     ln -sf "$f" ~/.claude/commands/"$(basename "$f")"
+   done
+   ```
+
+   These ritualize sub-CLAUDE.md loading (e.g. `/make-sema-word`) so cross-repo
+   sessions don't skip domain-specific protocols. See
+   [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) "Sub-CLAUDE.md protocols".
+5. **Launch Claude from the umbrella dir** — that loads the project memory
    (keyed to the umbrella) and makes the wiki + sibling repos reachable in one
    session. See [`active-claims.md`](active-claims.md) for the multi-session protocol.
 

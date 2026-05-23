@@ -23,6 +23,13 @@
 - **Honest caveat:** instructions strongly shape but do not *deterministically
   guarantee* what Claude attends to. The hard guarantees come from what is
   loaded and from rules expressible as logic.
+- **Sub-`CLAUDE.md` doesn't auto-load.** Sub-repos may carry their own
+  `CLAUDE.md` with mode-specific operative rules. These are **not**
+  auto-loaded when Claude launches from the umbrella — `CLAUDE.md` loading is
+  locked at session start, so a `cd` mid-session does not activate a
+  sub-CLAUDE.md. Claude must **Read** it explicitly before working in that
+  domain, which is why operative entry points (e.g. `/make-sema-word`)
+  ritualize the load.
 
 ## Failure modes we design against
 

@@ -61,6 +61,12 @@ when extending into a new path or area.** The SessionStart hook auto-claims
 your session there (friendly name + first-6 hash); the protocol lives in
 that file below the table.
 
+## Sub-CLAUDE.md protocols
+
+- **Adding or modifying a sema word** → suggest the user run
+  `/make-sema-word`. Before any edit, **Read `sema/CLAUDE.md`** and follow
+  its protocol verbatim.
+
 ## Commit suggestions
 
 Human does all `git commit`s; I suggest at logical units (path-scoped
