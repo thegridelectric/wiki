@@ -33,7 +33,7 @@ Three reasons it earns its keep beyond "just write a script":
 gridworks-marketmaker, gridworks-base, gridworks-protocol, sema}/`.)
 
 ### SEMA — the protocol
-- Spec: [`/Users/jessica/GridWorks/sema/docs/sema-specification.md`](../../../../sema/docs/sema-specification.md).
+- Spec: [`/Users/jessica/GridWorks/sema/spec/primary.md`](../../../../sema/spec/primary.md) (hub; spokes under `sema/spec/{registry,authoring}/`).
 - A **boundary protocol**, not a runtime — JSON-Schema-typed messages with
   `TypeName` and `Version`, CamelCase fields, immutable primitive formats
   (e.g., `uuid4.str`, `utc.seconds`), monotonic versioning.

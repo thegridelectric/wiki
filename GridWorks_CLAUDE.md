@@ -94,7 +94,9 @@ doc may exceed **1000 lines** — split it.)
 - After each task, reconcile the relevant sub-spec with what you built —
   resolve "Open" markers, fix divergences; touch the executor `primary.md`
   only for cross-cutting changes.
-- Per commit, add a changelog entry.
+- **When the user lands a commit, ALWAYS add the matching `changelog.md`
+  entry before considering the work done.** Date + title mirror the commit;
+  body is the *why*. See `wiki/sema/changelog.md` for register.
 - A spec may say "Open" and may change — a short, honest, current spec beats
   a long speculative one.
 - Holistic consistency pass at milestones.
