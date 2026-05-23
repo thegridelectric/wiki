@@ -1,7 +1,7 @@
 # Concern: Sema, and the legacy SCADA style
 
 Design intent from Jessica + foundational reads (`sema/CLAUDE.md`,
-`sema/docs/where-meaning-lives-in-gridworks.md`).
+[[../../../sema/research/where-meaning-lives-in-gridworks]]).
 
 ## What Sema is (and isn't)
 
@@ -28,7 +28,7 @@ Core rules (from `sema/CLAUDE.md`):
 
 Meaning is **explicit**: any fact that matters for validation/composition is
 declared in the Sema schema, never inferred from naming or implementation
-(`where-meaning-lives-in-gridworks.md`).
+([[../../../sema/research/where-meaning-lives-in-gridworks]]).
 
 ## In the SCADA
 
@@ -58,5 +58,5 @@ hierarchies. See [[../principles]].
 
 ## Links
 
-`sema/CLAUDE.md` · `sema/docs/where-meaning-lives-in-gridworks.md` ·
+`sema/CLAUDE.md` · [[../../../sema/research/where-meaning-lives-in-gridworks]] ·
 `gridworks-scada/CLAUDE.md` (Boundary protocol vs. runtime) · [[../principles]]

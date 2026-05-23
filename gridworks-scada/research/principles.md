@@ -41,7 +41,7 @@ occur. See [[liveness-and-sla]].
 
 ## Meaning is explicit (Sema), not implicit
 
-Per `sema/docs/where-meaning-lives-in-gridworks.md`: semantic authority lives
+Per [[../../sema/research/where-meaning-lives-in-gridworks]]: semantic authority lives
 in Sema. Any fact that matters for validation or composition is declared in the
 Sema schema, never inferred from naming conventions or implementation details.
 The SCADA's *boundary* messages obey this; its *internal* runtime need not.

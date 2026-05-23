@@ -9,6 +9,48 @@ Newest at the top.
 
 ---
 
+## 2026-05-23 — Dissolve sema/docs/: relocate context to wiki, merge motivation into README (<!-- pending commit -->)
+
+**Why:** With the spec promoted to `sema/spec/`, `sema/docs/` had no
+load-bearing job left — orig-spec.md moved to `sema/spec/`, and the
+remaining files were either GridWorks-flavored context (wrong repo) or
+overlapped with the README. A single-file `docs/` folder is overhead;
+the README is THE standalone landing page per wiki convention and the
+right home for motivation.
+
+GridWorks-flavored context moved out (wrong repo):
+
+- `scada-layout-concerns.md` (SCADA-side critique of the
+  `gw.nolan.layout` word framed in LLM-comprehension terms — concerns
+  *about* a Sema word, not the spec) → moved to
+  `wiki/gridworks-scada/research/concerns/layout-axiom-complexity.md`
+  with light rephrasing (header, attribution, typo fixes).
+- `sema-and-domain-protocols.md` (framing on how Sema relates to OpenADR
+  and similar) → moved to `wiki/sema/research/sema-and-domain-protocols.md`
+  with a status stamp and a one-line "what this is" opener.
+- `where-meaning-lives-in-gridworks.md` (GridWorks-architecture position
+  paper naming Sema as the semantic authority, written in the first
+  person) → moved to `wiki/sema/research/where-meaning-lives-in-gridworks.md`
+  with a status stamp; cross-refs in `wiki/gridworks-scada/research/`
+  updated to the new path.
+
+Repo-level reshuffles:
+
+- `motivation.md` merged into `README.md` as a new "Why this matters"
+  section (the README already covered most of the framing; the unique
+  bits — the four-point benefits list and the vision line — fit cleanly
+  there). Also fixed a misplaced-bold typo from the original
+  (`i**ndependent teams and organizations**` →
+  `**independent teams and organizations**`) en route.
+- `index.md` deleted: with everything either in `README.md` or in
+  `spec/`, the navigation file was pure overhead.
+- `docs/` folder deleted entirely.
+- `README.md` also fixed a pre-existing broken link to
+  `docs/rules_and_guidelines.md#vocabulary-registration-process` →
+  `spec/governance.md#vocabulary-registration-process`.
+- `sema/CLAUDE.md`: `docs/orig-spec.md` → `spec/orig-spec.md` (you
+  moved orig-spec to spec/ between turns).
+
 ## 2026-05-23 — Promote sema/spec/ to the top level alongside definitions/ and indexes/ (`bfc7c21`)
 
 **Why:** Primary motivation is to make the spec **digestible for LLMs** —
