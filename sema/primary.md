@@ -15,7 +15,7 @@ Not a runtime framework.
 
 | Source | Covers |
 |---|---|
-| `sema/docs/sema-specification.md` | **THE spec** — registry model, formats/enums/types, versioning, dependencies, axioms, governance. This is the rebuild spec. |
+| `sema/spec/primary.md` | **THE spec hub** — core principles, glossary, TOC. The rebuild spec; spokes live under `sema/spec/{registry,authoring}/` and `sema/spec/governance.md`. The previous monolithic version is archived at `sema/docs/orig-spec.md`. |
 | `sema/CLAUDE.md` | working rules for editing sema; regen commands (`scripts/build_indexes.sh`, `scripts/regenerate_runtime.py`). |
 | `sema/docs/where-meaning-lives-in-gridworks.md` | the semantic-authority philosophy. |
 | `sema/docs/` | motivation, project-structure, sema-and-domain-protocols, scada-layout-concerns. |
