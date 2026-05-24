@@ -22,6 +22,7 @@ PAIRS="
 sema:sema
 gridworks-base:gridworks-base
 gridworks-data:gridworks-data
+gridworks-journalkeeper:gridworks-journalkeeper
 gridworks-scada:gridworks-scada
 gridworks-fleet-index-service:gridworks-fleet-index-service
 gridworks-ear:ear

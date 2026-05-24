@@ -17,7 +17,7 @@ Newest at the top.
 
 ---
 
-## 2026-05-23 — README: clarify postgres setup walkthrough <!-- pending commit -->
+## 2026-05-23 — README: clarify postgres setup walkthrough
 
 **Why:** First end-to-end walkthrough of the setup (during the
 gridworks-journalkeeper → base 0.4.2 refactor) exposed several friction
