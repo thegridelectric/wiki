@@ -154,11 +154,23 @@ modules with zero remaining importers:
 Verify: `ruff`, `mypy --strict`, `pytest` green; `uv sync` clean;
 `import gjk` from a scratch venv only loads survivors.
 
+## Stage order revision (2026-05-23)
+
+User reordered: tooling alignment + a green-tests baseline come before
+deletion. **New order: 3 → 1 → 3b → 2 → 4 → 5 → 6.** Stage 1 (the
+journal_keeper port) has to land before Stage 3b can be meaningfully
+green, because the current `journal_keeper.py` imports `named_types/`
+and `models/` — surviving-code green isn't reachable until those
+imports go away. Stage 3b's job is then to verify the survivors are
+actually green before Stage 2 starts deleting; deletion lands as a
+no-op against the test suite.
+
 ## Stage 3 — Pyproject + tooling alignment
 
 - `[build-system]` → `hatchling.build`.
 - `requires-python = ">=3.12,<3.14"` (matches base).
-- Bump `gridworks-base>=0.4.2`.
+- Bump `gridworks-base>=0.4.0`. (0.4.1 / 0.4.2 were failed CI publish
+  attempts with no functional change; 0.4.0 is what's on PyPI.)
 - `gw_data` dep: stay on local path during umbrella dev; confirm before
   pinning a published version.
 - `[tool.mypy] strict = true`, `[tool.ruff]` mirroring base.
@@ -171,6 +183,39 @@ Verify: `ruff`, `mypy --strict`, `pytest` green; `uv sync` clean;
 
 Verify: `uv sync && uv run pytest && uv run mypy --strict src && uv run
 ruff check`. Push branch, watch CI.
+
+## Stage 3b — Pytest running
+
+Goal: pytest collects and the survivor tests pass. Mypy and ruff
+cleanup are deliberately deferred to **after** Stage 2 — strict-mypy on
+code that's about to be deleted is wasted effort, and trying to lint
+green inside doomed modules has the same problem.
+
+Survivor scope (the only thing that needs to import cleanly + test
+green right now):
+
+- `src/gjk/`: `__init__.py`, `__main__.py`, `config.py`, `journal_keeper.py`
+  (post-Stage-1 shape), `layout_lite_persistor.py`,
+  `message_persistence_info.py`, `property_format.py`,
+  `report_event_persistor.py`, `s3_message_importer.py`,
+  `sema_message_persistor.py`, `utils.py`, `sema/**`, `enums/**`.
+- `tests/`: `test_main.py`, `test_utils.py`, `tests/enums/**` (keep if
+  `src/gjk/enums/` survives).
+
+Targets:
+
+- `uv run pytest` → collects without errors and the surviving tests
+  pass.
+
+If the doomed tests under `tests/types/` and `tests/old_types/` block
+collection (they import doomed `gjk.named_types`/`gjk.old_types` modules
+that may temporarily break post-Stage-1), point pytest at the survivor
+set via `[tool.pytest.ini_options] testpaths = [...]` rather than fixing
+the doomed tests. Stage 2 then deletes both the doomed source and the
+doomed test dirs together.
+
+**Mypy and ruff** are run post-Stage-2 (or in a new Stage 3c) once the
+doomed paths are gone and there's nothing distorting the picture.
 
 ## Stage 4 — CLAUDE.md + wiki bootstrap for journalkeeper
 
@@ -193,28 +238,100 @@ and umbrella `wiki/GridWorks_CLAUDE.md`.
 - `changelog.md` — first entries seeded with `<!-- pending commit -->`
   markers.
 
-## Stage 5 — Dev-stack guide + multi-actor smoke
+## Stage 5 — Production-broker integration test (reframed 2026-05-24)
 
-Smoke target (replaces "stand up journalkeeper alone"):
+**Reframed:** the primary integration check is **pointing
+journalkeeper at the production rabbit broker** and seeing if it just
+works — real volume, real type variety, real edge cases. The old
+"spin up scada-simulated locally" recipe is the fallback for
+offline development, not the primary smoke target.
 
-A `gridworks-scada` actor in **simulated mode**
-(`SCADA_IS_SIMULATED=true`, see `gw_spaceheat/actors/config.py:62`,
-`actors/sh_node_actor.py:1046`) attached to the dev-rabbit broker, with
-journalkeeper subscribed to the same broker, persisting into `gw_data`'s
-postgres.
+### 5a observations (2026-05-24)
 
-Recipe:
+- **Connected cleanly** to `amqp://hw1-1.electricity.works:5672/hw1__1`
+  with prod creds. Queue auto-deletes on Ctrl-C as expected.
+- **Across two runs (40s + 5min):** 120 raw bytes captured, 81
+  persisted to local `messages`. Type breakdown: snapshot.spaceheat
+  ×66, report.event ×6, gridworks.event.problem ×6, power.watts ×2.
+  Degraded (not persisted, not Sema-registered): gridworks.ack ×22+,
+  slow.contract.heartbeat ×10+.
+- **All captures from `*.scada` aliases.** No LTN-aliased captures
+  even though the broker has an `amq.topic → ear_tx` exchange-binding
+  (routing key `#`) — the LTN publishes on `amq.topic` and the binding
+  should fan to ear_tx. Either LTN was quiet in the window, or LTN
+  traffic uses routing classes that ActorBase drops (see F-007 below).
+- **Zero weather messages caught** despite the operator-reported
+  10-minute cadence and runs spanning the expected window. Root cause
+  surfaced (and filed as F-007 in
+  `../../gridworks-base/research/findings.md`): ActorBase's
+  `RoutingClass` enum lacks the short forms production actually uses
+  (`ws`, `s`); every `rjb.hw1-isone-ws.ws.weather` and
+  `gw.<scada>.to.s.*` message is dropped at parse. 48 such drops in
+  the 5-minute window.
+- **Other broker observations:** production already has a journalkeeper
+  running (`hw1.isone.journal-F6c6`) with narrow bindings
+  (`#.atn-bid`, `#.energy-instruction`, …), not `#`. We did not
+  conflict — fan-out gives each consumer its own copy. The broker
+  fabric is richer than expected: 11 `<class>_tx` exchanges (plus
+  `_mic` siblings) all bound `#` → `ear_tx`, plus `amq.topic` → `ear_tx`.
+  ear_tx really is the union audit tap.
 
-1. Boot dev-rabbit: `gridworks-base/arm.sh` (or `x86.sh`) — single
-   broker from `for_docker/{arch}.yml`.
-2. Enable MQTT plugin (one-time; broker speaks AMQP by default, scada
-   uses MQTT): `docker exec gw-dev-rabbit rabbitmq-plugins enable
+### 5a — Point at prod (next action)
+
+- One-off untracked `scripts/point_at_prod.py` in the journalkeeper
+  repo. Constructs `Settings()` + `SemaCodec()` +
+  `JournalKeeper(settings, codec, logger)`, then
+  **monkey-patches `local_rabbit_startup`** to bind a single narrow
+  routing key (`#.report-event` first) and **monkey-patches
+  `dispatch_message`** to also dump each consumed `body: bytes`
+  into `./captured/` as a free fixture seed.
+- `.env` (gitignored) supplies `GJK_RABBIT__URL` (prod creds, plain
+  `amqp://` — prod is not TLS per beech scada's config) and
+  `GJK_DB_URL` pointing at local `gw-data-pg`.
+- `g_node.json` (gitignored) holds a synthesized journalkeeper
+  identity — broker auth is via URL creds, not GNode identity.
+- Queue is auto-delete (`actor_base.py:361`), so Ctrl-C cleans up;
+  abnormal exit doesn't leave a queue accumulating prod traffic.
+- Start narrow, widen as it proves out
+  (`#.report-event` → `#.snapshot-spaceheat` → `#.power-watts` → `#.*`).
+
+### 5b — Design a repeatable test from observation
+
+Two paths, pick after we've seen real traffic:
+
+- **Sample replay** — feed captured bytes through `dispatch_message`,
+  assert parse + persist. Fast, deterministic, CI-friendly. Likely
+  sufficient: journalkeeper is a pure consumer with no time-ordered
+  or stateful behavior, so a representative byte snapshot covers the
+  contract. Risk: snapshot ages as new types appear.
+- **Spin up scada in test** — boots dev-rabbit + scada-simulated +
+  journalkeeper, asserts messages flow. Catches integration drift
+  but heavy (3 containers), slow, prone to flake. Defer unless 5a
+  reveals behavior-over-time matters (ordering, batching,
+  idempotency under bursts).
+
+The captured fixtures from 5a are the input either way — for replay
+they ARE the test, for scada-in-test they're a known-good comparison
+set.
+
+### 5c — Dev-stack guide (still wanted, in parallel)
+
+The cross-repo "how to run things locally" story still belongs in a
+new `wiki/dev-stack/` domain — broker recipes, MQTT plugin nuance,
+scada-simulated as the offline alternative. Doesn't gate on 5a.
+
+The original scada-simulated recipe (was 5a, now 5c) as a fallback:
+
+1. Boot dev-rabbit: `gridworks-base/arm.sh` — single broker from
+   `for_docker/{arch}.yml`.
+2. Enable MQTT plugin (one-time; scada uses MQTT, broker is AMQP by
+   default): `docker exec gw-dev-rabbit rabbitmq-plugins enable
    rabbitmq_mqtt && docker exec gw-dev-rabbit rabbitmqctl restart_app`.
 3. Boot postgres for `gw_data`.
-4. Terminal A: journalkeeper.
+4. Terminal A: journalkeeper against the dev broker.
 5. Terminal B: `SCADA_IS_SIMULATED=true gws run` (after
    `./tools/mkenv.sh`).
-6. Watch journalkeeper logs; assert rows in `MessageSql`.
+6. Watch journalkeeper logs; assert rows in `messages`.
 
 Living artifact: a new wiki domain `wiki/dev-stack/`, because the
 orchestration is cross-repo and the umbrella convention forbids repo
