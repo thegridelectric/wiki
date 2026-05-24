@@ -1,0 +1,282 @@
+# Refactor: gridworks-journalkeeper → gridworks-base 0.4.2
+
+Status: Draft · Pass 0 · Updated 2026-05-23
+
+Pre-spec plan capturing the *why* and intended shape of the
+journalkeeper-on-base-0.4.2 refactor. The executor spec
+(`../executor/primary.md` + sub-specs) is bootstrapped as part of Stage 4
+of this plan and will eventually supersede this note.
+
+## Context
+
+`gridworks-journalkeeper` duplicates work now owned elsewhere:
+
+- **Named types** in `src/gjk/named_types/` (45 files) are vestigial: the
+  canonical codec is **Sema** and `src/gjk/sema/` already has it. Joe's
+  `src/gjk/s3_message_importer.py:197-236` already parses with
+  `SemaCodec.from_dict(...)` and persists via `SemaMessagePersistor`. The
+  live AMQP path in `journal_keeper.py` (pika-based, since `gwbase` is
+  pika-native — the scada side is the MQTT side, via the rabbit MQTT
+  plugin) still uses the old per-type-name if/elif over `gjk.named_types`.
+  The live path must mirror the import path.
+- **DB models** in `src/gjk/models/` are superseded by
+  `gw_data.db.models.MessageSql` (Joe's persistor at
+  `sema_message_persistor.py:6` already imports from there).
+- **Weather:** the legacy `Weather` type
+  (`gjk/named_types/weather.py`, `weather_service.py`, `run_weather.py`)
+  is **dead code**. `WeatherForecast` and `HeatingForecast` ARE
+  Sema-registered (`sema/definitions/registry.yaml`,
+  `gjk/sema/types/weather_forecast.py`), but scada **self-generates** them
+  via NWS in `gw_spaceheat/actors/derived_generator.py:814-896` and sends
+  them to its LTN — no broadcast consumer exists. The
+  "weather forecast service" (one Rabbit broadcast channel per channel
+  type) is a future design, not an extraction of current code.
+- **Build:** pyproject still uses `setuptools.build_meta`, pins
+  `gridworks-base>=0.3.5`. Move to hatchling + `uv` and bump to
+  `gridworks-base>=0.4.2` (matches base's own toolchain).
+- **No `CLAUDE.md`, no `wiki/gridworks-journalkeeper/`** — umbrella
+  living-spec convention not bootstrapped here yet (this note starts it).
+- **No multi-actor dev orchestration exists** anywhere. The smoke target
+  is a scada actor in simulated mode against dev-rabbit; that recipe
+  needs writing down and a wiki home.
+
+Outcome: a small, focused journalkeeper that (a) inherits transport from
+`gwbase.ActorBase`, (b) parses inbound with `SemaCodec.from_dict(...)`,
+(c) persists through `SemaMessagePersistor` into `gw_data`. Plus a
+wiki-level dev-stack guide so we can stand up `dev-rabbit +
+scada(simulated) + journalkeeper + postgres` with a reusable recipe that
+extends toward hundreds-of-actors experiments later.
+
+## User-confirmed choices
+
+- New weather repo will be `gridworks-weather-forecast/` (sibling, package
+  `gwwf`), but **spin-out is deferred** — this plan only deletes the
+  dead `weather_service.py`/`Weather` legacy code. The real
+  WeatherForecastService is green-field (broadcast-per-channel) and gets
+  its own plan.
+- Branch: continue on `jm/db_v2` (clean, last commit aligned).
+- Stage order: **port `journal_keeper.py` first**, then delete cruft only
+  if unreferenced, then pyproject, then CLAUDE.md + wiki. 4 commits in
+  the repo, plus the wiki bootstrap.
+- Auto mode up to (but not including) commits — user lands commits.
+
+## Stage 0 — Set up postgres per `gridworks-data` README (prerequisite)
+
+Before touching journalkeeper code, walk the `gridworks-data/README.md`
+setup end-to-end on this machine so Stage 5's smoke test has a schema to
+write into. Then suggest README improvements based on the walk-through.
+
+Steps (per `gridworks-data/README.md:1-71`):
+
+1. Pull `timescale/timescaledb-ha:pg18-ts2.25`; run with `5432:5432` (or
+   `5433:5432`) and `POSTGRES_PASSWORD`.
+2. `psql ... -f src/gw_data/db/scripts/0_server_init.sql` (creates
+   `gw_admin`).
+3. `cp template.env .env`; fill `GW_DATA_DB_URL`.
+4. `uv sync && uv run alembic upgrade head`.
+5. `uv run python ./src/gw_data/db/scripts/1_db_seed.py`.
+6. **Verify with `psql` which tables exist** — this is the contract Stage 2
+   needs (resolves cross-stage open item #1: does `gw_data` cover
+   `DataChannelSql` / `NodalHourlyEnergySql` / `ScadaSql` analogues?).
+
+Suggestions for `gridworks-data/README.md` (refine after the actual
+walk-through):
+
+- L35, L50: typo `127.0.01` → `127.0.0.1`.
+- §1: include a concrete `docker run` example so first-time readers
+  don't bounce out to tigerdata's docs for the basics. Keep the link.
+- §2: name `template.env`'s location (repo root) explicitly.
+- §3: heading is `## 3` while §1, §2 use `###` — make consistent.
+- §3: add a "verify" step (`psql -c "\dt"` should show these N tables).
+- §3: list what `1_db_seed.py` seeds.
+- Consider a top-level "Prerequisites" block (Python ≥ 3.12, Docker,
+  psql ≥ 18) — currently scattered across §1 and §2.
+
+Land README edits on a `jm/readme` branch of `gridworks-data`,
+separate from the journalkeeper refactor on `jm/db_v2`. Make the
+edits directly on the branch; user lands the commit.
+
+## Stage 1 — Port `journal_keeper.py`
+
+Goal: the live AMQP path mirrors the S3 import path. (Both pika/Rabbit-side;
+the MQTT-side scada actor produces, journalkeeper consumes off the broker
+via AMQP.)
+
+Pattern: `src/gjk/s3_message_importer.py:197-236` (dispatch shape) +
+`src/gjk/sema_message_persistor.py:124-168` (persistor handoff).
+
+Shape:
+
+- `JournalKeeper(ActorBase)` keeps inheriting `gwbase.actor_base.ActorBase`.
+  Journalkeeper is **not** a GridWorks actor (no GNode role, no
+  heartbeat/time participation), so `GridworksActor` is the wrong base —
+  `ActorBase` is correct by definition, not a deferred choice.
+- `__init__(settings, codec: SemaCodec, logger)` constructs
+  `SemaMessagePersistor(settings, codec, logger)` and stashes both. Reuse
+  the same `SemaCodec` factory as `s3_message_importer`.
+- `local_rabbit_startup()`: replace 18 hard-coded bindings with a loop
+  over `self.persistor.all_known_message_types()`
+  (`sema_message_persistor.py:80`). New types added to the persistor's
+  table flow through automatically.
+- Inbound handler: drop the giant if/elif; do
+  `payload = self.codec.from_dict(payload_dict, auto_upgrade=False,
+  mode="degraded")` then
+  `self.persistor.persist_message(from_alias, time_received, payload)`.
+  Errors log + continue (live path differs from the importer, which
+  halts).
+- Delete S3-import utilities in `journal_keeper.py` (≈ lines 481-546) —
+  superseded by `s3_message_importer.py`.
+
+Touched: `src/gjk/journal_keeper.py` (heavy rewrite), `src/gjk/__main__.py`
+(verify wiring).
+
+## Stage 2 — Delete cruft (only what's now unreferenced)
+
+After Stage 1, sweep with `grep` + `ruff --select F401`. Delete only
+modules with zero remaining importers:
+
+- `src/gjk/named_types/` — all 45 files.
+- `src/gjk/old_types/` — confirmed legacy.
+- `src/gjk/models/` — `MessageSql` superseded; **verify `gw_data` covers
+  `DataChannelSql` / `NodalHourlyEnergySql` / `ScadaSql`** before
+  deleting (flag any gap).
+- `src/gjk/codec.py` (`pyd_to_sql`) — deletes with old models.
+- `src/gjk/weather_service.py`, `run_weather.py`, weather tests — delete
+  outright; commit message records why (deferred spin-out + dead path).
+- `gjk/named_types/weather.py` — legacy `Weather` not in Sema, unused;
+  deletes with `named_types/`.
+- `alembic/` + `alembic.ini` — **ASK before deletion**; DB now owned by
+  `gridworks-data`.
+- Tests under `tests/types/`, `tests/old_types/`, `tests/enums/` — drop
+  those covering deleted modules; keep enum tests if `src/gjk/enums/`
+  survives (likely referenced by `sema/types/`).
+
+Verify: `ruff`, `mypy --strict`, `pytest` green; `uv sync` clean;
+`import gjk` from a scratch venv only loads survivors.
+
+## Stage 3 — Pyproject + tooling alignment
+
+- `[build-system]` → `hatchling.build`.
+- `requires-python = ">=3.12,<3.14"` (matches base).
+- Bump `gridworks-base>=0.4.2`.
+- `gw_data` dep: stay on local path during umbrella dev; confirm before
+  pinning a published version.
+- `[tool.mypy] strict = true`, `[tool.ruff]` mirroring base.
+- Update `.pre-commit-config.yaml` to match base.
+- Regenerate `uv.lock`.
+- Drop deps that go with deleted modules (`psycopg2-binary`, `requests`,
+  `pytz` if only used by deletions).
+- `.github/workflows/` mirrors base CI: ruff + mypy + pytest on py3.12
+  and py3.13 with `ghcr.io/thegridelectric/dev-rabbit:latest`.
+
+Verify: `uv sync && uv run pytest && uv run mypy --strict src && uv run
+ruff check`. Push branch, watch CI.
+
+## Stage 4 — CLAUDE.md + wiki bootstrap for journalkeeper
+
+Repo `CLAUDE.md`: one-paragraph "what this is"; pointers to
+gridworks-base (transport), gw_data (schema), `src/gjk/sema/` (codec);
+working-with-Claude protocol pointer to `wiki/gridworks-journalkeeper/`
+and umbrella `wiki/GridWorks_CLAUDE.md`.
+
+`wiki/gridworks-journalkeeper/` at acceptable-minimum:
+
+- `executor/primary.md` — overview, invariants ("persistence boundary is
+  `gw_data.db.models.MessageSql`"; "inbound parsing is `SemaCodec` — no
+  hand-dispatch"), glossary, TOC. Status: Draft · Pass 0.
+- `executor/journal-keeper.md` — sub-spec of the actor: routing table
+  from `persistor.all_known_message_types()`, dispatch via
+  `codec.from_dict`, persistor handoff.
+- `executor/s3-import.md` — sub-spec for Joe's importer.
+- `research/refactor-to-base-0.4.2.md` — **this file**, preserved as the
+  pre-spec rationale.
+- `changelog.md` — first entries seeded with `<!-- pending commit -->`
+  markers.
+
+## Stage 5 — Dev-stack guide + multi-actor smoke
+
+Smoke target (replaces "stand up journalkeeper alone"):
+
+A `gridworks-scada` actor in **simulated mode**
+(`SCADA_IS_SIMULATED=true`, see `gw_spaceheat/actors/config.py:62`,
+`actors/sh_node_actor.py:1046`) attached to the dev-rabbit broker, with
+journalkeeper subscribed to the same broker, persisting into `gw_data`'s
+postgres.
+
+Recipe:
+
+1. Boot dev-rabbit: `gridworks-base/arm.sh` (or `x86.sh`) — single
+   broker from `for_docker/{arch}.yml`.
+2. Enable MQTT plugin (one-time; broker speaks AMQP by default, scada
+   uses MQTT): `docker exec gw-dev-rabbit rabbitmq-plugins enable
+   rabbitmq_mqtt && docker exec gw-dev-rabbit rabbitmqctl restart_app`.
+3. Boot postgres for `gw_data`.
+4. Terminal A: journalkeeper.
+5. Terminal B: `SCADA_IS_SIMULATED=true gws run` (after
+   `./tools/mkenv.sh`).
+6. Watch journalkeeper logs; assert rows in `MessageSql`.
+
+Living artifact: a new wiki domain `wiki/dev-stack/`, because the
+orchestration is cross-repo and the umbrella convention forbids repo
+READMEs from referencing the wiki.
+
+`wiki/dev-stack/`:
+
+- `primary.md` — dev stack topology (one broker, N actors, optional
+  postgres), one-broker-many-actors invariant, MQTT-vs-AMQP plugin
+  nuance, layout conventions.
+- `recipes/single-broker.md` — extracted from `for_docker/`.
+- `recipes/scada-simulated.md` — the recipe above.
+- `recipes/journalkeeper-persisting.md` — counterpart.
+- `recipes/smoke-test.md` — combined three-way smoke.
+- `research/scale-strategy.md` — see Stage 6.
+
+`wiki/README.md` domain table: add `dev-stack`.
+
+Repo READMEs: touched only to ensure self-contained "run me" sections
+name the right entry points; do not reference the wiki.
+
+## Stage 6 — Scale strategy (1 → 10 → 100s of actors)
+
+Don't build for hundreds now; do write the trajectory down so we don't
+accumulate dev-stack debt that has to be undone.
+`wiki/dev-stack/research/scale-strategy.md` records:
+
+- **Today (1-3 actors):** terminals + venvs + `gws run --is-simulated`.
+  No orchestration. Sufficient for the journalkeeper refactor smoke.
+- **Tier 1 (1-10 actors, near-term):** extend `for_docker/{arch}.yml`
+  to multi-service compose: rabbit + postgres + scada(s) +
+  journalkeeper. Wrap with Makefile/script. Each actor still a full
+  venv process.
+- **Tier 2 (10-50 actors, mid-term):** container per actor type,
+  parameterised by layout file + identity env vars. Validate
+  dev-rabbit memory; consider non-baked broker.
+- **Tier 3 (100s of actors, far-term):** open question. Candidates:
+  (a) k3s/k8s + rabbit cluster; (b) Nomad; (c) custom Python supervisor
+  pool with process-per-actor. Resurrect or discard
+  `gridworks-infra/`'s dormant Terraform skeleton. Decision deferred —
+  the doc records candidates + criteria (process isolation needs,
+  broker fan-out limits, experiment reproducibility).
+
+This stage produces only a doc, not infrastructure. Build Tier 1 only
+when the journalkeeper refactor needs it (it doesn't, today).
+
+## Cross-stage open items
+
+1. `gw_data` schema coverage for `DataChannelSql` / `NodalHourlyEnergySql`
+   / `ScadaSql` analogues.
+2. `SemaCodec` type discovery mechanism (entry-points vs startup
+   register) — read `src/gjk/sema/codec.py` before Stage 1.
+3. `alembic/` ownership — confirm with user before deletion.
+4. Whether `src/gjk/enums/` stays (likely yes, referenced by
+   `sema/types/`).
+
+## End-to-end verification
+
+1. `uv sync` clean in journalkeeper, gridworks-data, gridworks-scada,
+   gridworks-base.
+2. Run the Stage 5 recipe; observe persistence end-to-end.
+3. `pytest && mypy --strict && ruff check` in journalkeeper.
+4. `s3_message_importer` still works against a small date window.
+5. Stage 4's wiki passes umbrella conventions (status stamps, ≤1000
+   lines/doc, no repo README references the wiki).

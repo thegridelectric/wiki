@@ -21,6 +21,7 @@ WIKI="$UMBRELLA/wiki"
 PAIRS="
 sema:sema
 gridworks-base:gridworks-base
+gridworks-data:gridworks-data
 gridworks-scada:gridworks-scada
 gridworks-fleet-index-service:gridworks-fleet-index-service
 gridworks-ear:ear

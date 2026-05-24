@@ -55,11 +55,11 @@ decision from a musing, I ask.
 
 ## Multi-session coordination
 
-Several Claude sessions edit GridWorks at once. **Read
-[`wiki/active-claims.md`](wiki/active-claims.md) before you edit — and again
-when extending into a new path or area.** The SessionStart hook auto-claims
-your session there (friendly name + first-6 hash); the protocol lives in
-that file below the table.
+Several Claude sessions edit GridWorks at once. You **MUST** read
+[`wiki/active-claims.md`](wiki/active-claims.md) before you edit and again
+when extending into a new path or area. The SessionStart hook auto-claims
+your session there (friendly name + first-6 hash); the **normative
+protocol** lives in that file below the table.
 
 ## Sub-CLAUDE.md protocols
 
