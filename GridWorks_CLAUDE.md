@@ -95,11 +95,24 @@ doc may exceed **1000 lines** — split it.)
   resolve "Open" markers, fix divergences; touch the executor `primary.md`
   only for cross-cutting changes.
 - **When the user lands a commit, ALWAYS add the matching `changelog.md`
-  entry before considering the work done.** Date + title mirror the commit;
-  body is the *why*. See `wiki/sema/changelog.md` for register.
+  entry before considering the work done.** See *Commit + changelog
+  convention* below for the entry shape and verification requirement.
 - A spec may say "Open" and may change — a short, honest, current spec beats
   a long speculative one.
 - Holistic consistency pass at milestones.
+
+**Commit + changelog convention:**
+
+- Git commits SHALL be **title-only** — a single concise summary line, no
+  body. The diff is the authoritative *what*; bodies risk drift from the
+  diff and duplicate what belongs in the changelog.
+- The corresponding `wiki/<domain>/changelog.md` entry SHALL contain a
+  brief *what* and the *why*. Date + title mirror the commit so the two
+  can be cross-referenced (`git = the pointer; changelog = the narrative`).
+- **Before writing a changelog entry, you SHALL verify it against the
+  actual diff** (`git show <hash>` or `git diff <hash>^ <hash>`), not your
+  memory of the change. Drift between the diff and the changelog is the
+  failure mode this convention exists to prevent.
 
 **Where to start** — `executor/` specs are a work in progress across every
 domain. When a repo has substantial code but a poor/missing `executor/`, the
