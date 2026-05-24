@@ -27,6 +27,7 @@ folder next to the code repos.
 | Look up a term or a legacy→current name | [`glossary.md`](glossary.md) |
 | Work the SCADA cleanup effort | [`gridworks-scada/PROCESS.md`](gridworks-scada/PROCESS.md) + [`gridworks-scada/research/map.md`](gridworks-scada/research/map.md) |
 | Rebuild / understand gridworks-base | [`gridworks-base/executor/primary.md`](gridworks-base/executor/primary.md) |
+| Find / understand the LTN (per-house transactive agent) | [`gridworks-ltn/executor/primary.md`](gridworks-ltn/executor/primary.md) — code currently lives in `gridworks-scada/gw_spaceheat/actors/ltn/`, not a standalone repo |
 | Understand Sema | [`sema/primary.md`](sema/primary.md) → the in-repo spec it points to |
 | See heating / Polstein lifecycle economics | [`heating-system-design/research/polstein-design.md`](heating-system-design/research/polstein-design.md) |
 | Trace *why* a change was made | the domain's `changelog.md` |
@@ -39,6 +40,8 @@ Each top-level folder is a **domain** — a service, mechanism, or design area.
 | --- | --- |
 | [`gridworks-base/`](gridworks-base/) | The rabbit-transport actor framework + sema codec boundary |
 | [`gridworks-data/`](gridworks-data/) | The shared postgres+TimescaleDB schema, alembic migrations, and SQLAlchemy mapping (`gw_data`) consumed by app services |
+| [`gridworks-ltn/`](gridworks-ltn/) | LeafTransactiveNode — per-house transactive agent (parent of scada). Code currently at `gridworks-scada/gw_spaceheat/actors/ltn/`; runs via tmux; uses private `gridworks-innovations/gridworks-flo/`. Acceptable-minimum spec, lots Open. |
+| [`gridworks-weather-forecast/`](gridworks-weather-forecast/) | Weather service. Today: like-for-like port of `gjk/weather_service.py` (publishes `weather` v000). Eventually: forecasts (`weather.forecast`) for LTN forward-looking optimizers + observations under a renamed `gw.weather`-ish type. |
 | [`gridworks-proactor/`](gridworks-proactor/) | The MQTT-native "live actor" + monitored-communication infra under the scada (first-pass spec) |
 | [`ear/`](ear/) | The universal audit tap / fundamental persistence mechanism |
 | [`rmqbot/`](rmqbot/) | The deployed RabbitMQ/MQTT broker: hosting, TLS/certs, ops |
