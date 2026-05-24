@@ -38,6 +38,7 @@ Each top-level folder is a **domain** — a service, mechanism, or design area.
 | Domain | What it is |
 | --- | --- |
 | [`gridworks-base/`](gridworks-base/) | The rabbit-transport actor framework + sema codec boundary |
+| [`gridworks-data/`](gridworks-data/) | The shared postgres+TimescaleDB schema, alembic migrations, and SQLAlchemy mapping (`gw_data`) consumed by app services |
 | [`gridworks-proactor/`](gridworks-proactor/) | The MQTT-native "live actor" + monitored-communication infra under the scada (first-pass spec) |
 | [`ear/`](ear/) | The universal audit tap / fundamental persistence mechanism |
 | [`rmqbot/`](rmqbot/) | The deployed RabbitMQ/MQTT broker: hosting, TLS/certs, ops |
