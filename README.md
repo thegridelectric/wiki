@@ -82,8 +82,8 @@ To set up a machine:
    `cd GridWorks && ln -s wiki/GridWorks_CLAUDE.md CLAUDE.md` (symlink preferred;
    copy works too).
 3. **Wire up the hooks.** All ship as scripts under
-   [`tools/`](tools/) and inject context into the assistant; none of
-   them block tool calls. Add to your `~/.claude/settings.json`
+   [`tools/`](tools/); each script's top-of-file comment explains what
+   it does and why. Add to your `~/.claude/settings.json`
    (replace `<your-umbrella>` with your GridWorks path; all require
    `jq` on PATH):
 
@@ -104,33 +104,48 @@ To set up a machine:
            "statusMessage": "Checking changelog discipline"
          }]
        }],
-       "PreToolUse": [{
-         "matcher": "Bash",
-         "hooks": [
-           {
-             "type": "command",
-             "command": "<your-umbrella>/wiki/tools/precheck-claims-on-branch.sh",
-             "statusMessage": "Branch-create re-check (active-claims)"
-           },
-           {
-             "type": "command",
-             "command": "<your-umbrella>/wiki/tools/precheck-bulk-on-dirty-tree.sh",
-             "statusMessage": "Bulk-op on dirty tree re-check"
-           }
-         ]
-       }],
+       "PreToolUse": [
+         {
+           "matcher": "Bash",
+           "hooks": [
+             {
+               "type": "command",
+               "command": "<your-umbrella>/wiki/tools/precheck-claims-on-branch.sh",
+               "statusMessage": "Branch-create re-check (active-claims)"
+             },
+             {
+               "type": "command",
+               "command": "<your-umbrella>/wiki/tools/precheck-bulk-on-dirty-tree.sh",
+               "statusMessage": "Bulk-op on dirty tree re-check"
+             }
+           ]
+         },
+         {
+           "matcher": "Edit|Write|NotebookEdit",
+           "hooks": [
+             {
+               "type": "command",
+               "command": "<your-umbrella>/wiki/tools/precheck-pending-changelog.sh",
+               "statusMessage": "Code-repo edit needs a pending changelog entry"
+             },
+             {
+               "type": "command",
+               "command": "<your-umbrella>/wiki/tools/precheck-claim-on-dirty.sh",
+               "statusMessage": "Active-claim adding dirty repo re-check"
+             }
+           ]
+         }
+       ],
        "Stop": [{
          "hooks": [{
            "type": "command",
-           "command": "<your-umbrella>/wiki/tools/stop-bulk-on-dirty-tree.sh",
-           "statusMessage": "End-of-turn dirty-tree check"
+           "command": "<your-umbrella>/wiki/tools/stop-cluster-coherence.sh",
+           "statusMessage": "End-of-turn cluster-coherence check"
          }]
        }]
      }
    }
    ```
-
-   Each hook's top-of-file comment block explains what it does and why.
 4. **Install the wiki's slash commands.** Symlink each `.md` in
    [`tools/claude-commands/`](tools/claude-commands/) into your
    `~/.claude/commands/`:
@@ -144,7 +159,21 @@ To set up a machine:
    These ritualize sub-CLAUDE.md loading (e.g. `/make-sema-word`) so cross-repo
    sessions don't skip domain-specific protocols. See
    [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) "Sub-CLAUDE.md protocols".
-5. **Launch Claude from the umbrella dir** — that loads the project memory
+5. **Source the bulk-mode aliases.** Add this line to your
+   `~/.bash_profile` (or `~/.zshrc`):
+
+   ```sh
+   source <your-umbrella>/wiki/tools/bulk-aliases.sh
+   ```
+
+   Then `bulk-on <session-name>` creates a per-session override that
+   silences the cluster-coherence hooks when you genuinely need a
+   large diff burst; `bulk-on --global` is the unscoped form;
+   `bulk-status` shows which overrides are active; `bulk-off` clears
+   them. Claude MUST NOT touch the override files itself — they're
+   the user's signal.
+
+6. **Launch Claude from the umbrella dir** — that loads the project memory
    (keyed to the umbrella) and makes the wiki + sibling repos reachable in one
    session. See [`active-claims.md`](active-claims.md) for the multi-session protocol.
 

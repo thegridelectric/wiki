@@ -75,6 +75,20 @@ may be live (mirror your active-claims Scope). For Karan-style autonomy
 (Claude doing commits/merges with merge-safety guardrails) see
 `working-with-llms.md` "Karan's commit rules" — reference, not active.
 
+## Working-tree hygiene
+
+Code-repo edits are organised into **clusters**: one pending changelog
+entry (`<!-- pending commit -->`) in `wiki/<domain>/changelog.md` = one
+cluster. Wiki changes are not cluster-checked. Enforced structurally by
+hooks in `tools/` — `precheck-pending-changelog.sh`,
+`precheck-claim-on-dirty.sh`, `precheck-bulk-on-dirty-tree.sh`,
+`stop-cluster-coherence.sh`. If a hook fires, cache any in-flight plan
+to a scratch note before pivoting and surface the state to the user;
+disposition is theirs. Before more than ~5 file edits in one cycle, I
+SHALL ask whether to enable `bulk-on` for the burst. The user creates
+`~/.claude/.bulk-stop-override(.<session>)` via `bulk-on` to silence
+the hooks; I MUST NOT create that file myself.
+
 ## Wiki essentials (the wiki's authoring conventions)
 
 **Structure** — each top-level `wiki/<domain>/` is a service/mechanism/design
