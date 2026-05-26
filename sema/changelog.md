@@ -9,6 +9,101 @@ Newest at the top.
 
 ---
 
+## 2026-05-25 — `new.command.tree/000`: allow union over multiple `spaceheat.node.gt` versions (`3286294`)
+
+**What:** `definitions/types/new.command.tree/000.yaml` —
+`ShNodes.items` changed from a single
+`$ref → spaceheat.node.gt/200` to a `oneOf` over `/200`, `/300`, and
+`/301`. `registry.yaml` structural deps for `new.command.tree:000`
+extended to include `spaceheat.node.gt:300` and `:301`. Indexes regen
+(`dependency_closure`, `public_registry`, `reverse_dependencies` —
+also picks up `gw1.actor.class:009` and `:011` as transitive enum deps
+via the new node-gt versions). Runtime regen
+(`src/sema/runtime/types/new_command_tree.py`, `reverse_query.py`,
+`type_helpers/__init__.py`).
+
+**Why:** `new.command.tree:000` was pinned to a single
+`spaceheat.node.gt` version (`/200`) but real-world command-tree
+payloads now need to carry nodes spanning multiple node-gt versions
+during the SCADA rolling-version window. Widening via `oneOf` rather
+than version-bumping `new.command.tree` itself is the right move
+because the envelope semantics are unchanged — only the per-item union
+shape needs to admit the additional versions. Pre-publication
+in-place edit (no version bump) per `feedback_schema_fix_protocol`.
+
+---
+
+## 2026-05-25 — Add weather type v000 (`01821ce`)
+
+**What:** New `definitions/types/weather/000.yaml` (literal versioning).
+`registry.yaml` entry added with `latest_version: 000`, deps closure
+(`spaceheat.name`, `utc.seconds`, `non.empty.string`, `unitless.float`,
+etc.). Indexes regenerated (`dependency_closure`, `lookup`,
+`public_registry`, `reverse_dependencies`, `versions`). Runtime
+generated (`src/sema/runtime/types/weather.py`) and an empty axiom
+template stub created (`templates/axioms/weather_000.py.jinja2`).
+`registry.yaml.metadata.last_updated` bumped to `2026-05-24T17:00:00Z`.
+
+**Why:** Registers the legacy weather observation type (single-instant
+outside-air-temperature + wind-speed from a third-party source,
+identified by a weather channel name like `weather.gov.kmlt`) so that
+journalkeeper can persist messages emitted by the new
+gridworks-weather-forecast service. Closes the `queued-sema-add-weather-v000`
+memory item. Stub axiom template lands ahead of axiom logic; the type
+ships usable without it (the axiom slot is reserved for a future
+"WeatherChannelNameInRegistry" or similar constraint, currently empty).
+
+---
+
+<!-- pending commit -->
+## 2026-05-26 — Three new research docs: MD↔ERB mirror + no-degradation audit + findings log
+
+**What:** Three new docs under `wiki/sema/research/`, all Pass 0 Draft.
+
+`erb-md-mirror.md` — proposes a small bidirectional tool that emits the
+rulebook schema as a wiki-style hub-and-spoke MD tree under
+`wiki/sema/erb-mirror/` and accepts schema-level edits back as JSON
+patches against the rulebook. Data rows stay in JSON; only the schema
+round-trips. Two-emitter design + CI gate + day-one pilot scope + open
+questions. Names the downstream extension: same tooling enables
+Karan-style ERB-as-functional-spec convergence on production repos like
+gridworks-scada (with the structural-~50% / behavioral-~50% fit caveat).
+
+`erb-no-degradation-audit.md` — catalogs every operation sema supports
+today (authoring, indexes, runtime gen, tests, publishing) and
+classifies each under the working thesis (ii): YAML-leading, granular
+bidirectional, no degradation. Surfaces 6 specific findings for ej
+(granular emit not yet implemented; upgrades are a second source-of-truth
+in Python modules not in YAML; coverage gap from unfinished migration;
+TypeHelpers rule alignment to verify; Templates table empty;
+axioms/combinators round-trip as opaque blobs). F3 (lifecycle/publication
+Status) was initially scoped as a degradation risk; corrected during
+review (jess caught the error — sema does carry explicit `status:`) and
+dissolved. Closes with a 9-item acceptance checklist plus 5 open
+questions for ej.
+
+`findings.md` — new running log of actions WE (jess + Claude) will take
+on sema or sema-adjacent tooling. First entry: drop ERB's `PromotedAt`
+column (redundant with sema's `created` per
+`spec/registry/structure.md:100-103`). Distinct from the audit, which
+lists items for ej to satisfy.
+
+**Why:** The trio forms the load-bearing artifact set for evaluating
+ej's ERB integration. The mirror tool addresses how the team and Claude
+reason about the rulebook itself (the meta-work case ej's
+LLM-friendliness story does not optimize for, per the working
+`erb-is-an-llm-interpretation` C-reading: rulebook-as-generative-prior).
+The audit converts the abstract "no degradation" goal into a concrete
+checklist for ej. The findings log separates *our* action items from
+ej-facing recommendations so the audit stays scoped to its actual
+audience. Together they surface that several pieces ej presents as
+working — notably granular bidirectional emit — are aspirational
+rather than current code. Output of `/grill-me` thread item q (audit)
+and the MD-mirror brainstorm; sets up p (axiom DSL feasibility) and r
+(round-trip empirical run) as smaller follow-on investigations.
+
+---
+
 ## 2026-05-24 — Typed Maps construct & applications (`f2472ba`)
 
 **What:** Add `spec/authoring/types.md` §Open Containers and §Typed
