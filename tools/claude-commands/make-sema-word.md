@@ -30,3 +30,28 @@ Before editing, state to the user:
 - the regen command(s) you will run after.
 
 Then WAIT for confirmation.
+
+Once the user confirms, BEFORE making any edit:
+
+1. Verify your `wiki/active-claims.md` row covers `sema/`. If not,
+   claim it (one row update). Touching `sema/` files without a matching
+   claim is a violation of the active-claims protocol.
+2. Create a new feature branch in `sema/`:
+
+   ```
+   git -C sema checkout -b <handle>/<short-topic>
+   ```
+
+   Use the convention `<handle>/<short-topic>` — e.g. `jm/weather-v000`,
+   `jm/add-glitch-axiom`. The handle is the user's; default to `jm` for
+   Jessica. The `git checkout -b` triggers the multi-session
+   PreToolUse hook (`wiki/tools/precheck-claims-on-branch.sh`), which
+   re-injects the umbrella CLAUDE.md's Multi-session section + the
+   current active-claims.md — a natural re-read of the protocol at
+   the right moment.
+3. Only after the branch is created may you edit files in `sema/`.
+
+This branch-first step exists because per-word ritual edits should land
+on a feature branch (not directly on `dev` or `main`), and the hook
+re-read is the structural reinforcement of the active-claims protocol
+that the in-Claude prose can't supply on its own.

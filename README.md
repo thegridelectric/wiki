@@ -81,10 +81,11 @@ To set up a machine:
 2. Point the umbrella's `CLAUDE.md` at this repo's canonical copy:
    `cd GridWorks && ln -s wiki/GridWorks_CLAUDE.md CLAUDE.md` (symlink preferred;
    copy works too).
-3. **Wire up the SessionStart hook** so each session gets a friendly name +
-   auto-claim row in `active-claims.md`. The hook script is in this repo at
-   [`tools/gridworks-session-init.sh`](tools/gridworks-session-init.sh) and is
-   self-locating — no per-user customization. Add to your `~/.claude/settings.json`:
+3. **Wire up the hooks.** All ship as scripts under
+   [`tools/`](tools/) and inject context into the assistant; none of
+   them block tool calls. Add to your `~/.claude/settings.json`
+   (replace `<your-umbrella>` with your GridWorks path; all require
+   `jq` on PATH):
 
    ```json
    {
@@ -95,12 +96,41 @@ To set up a machine:
            "command": "<your-umbrella>/wiki/tools/gridworks-session-init.sh",
            "statusMessage": "GridWorks session init"
          }]
+       }],
+       "UserPromptSubmit": [{
+         "hooks": [{
+           "type": "command",
+           "command": "<your-umbrella>/wiki/tools/check-changelog.sh",
+           "statusMessage": "Checking changelog discipline"
+         }]
+       }],
+       "PreToolUse": [{
+         "matcher": "Bash",
+         "hooks": [
+           {
+             "type": "command",
+             "command": "<your-umbrella>/wiki/tools/precheck-claims-on-branch.sh",
+             "statusMessage": "Branch-create re-check (active-claims)"
+           },
+           {
+             "type": "command",
+             "command": "<your-umbrella>/wiki/tools/precheck-bulk-on-dirty-tree.sh",
+             "statusMessage": "Bulk-op on dirty tree re-check"
+           }
+         ]
+       }],
+       "Stop": [{
+         "hooks": [{
+           "type": "command",
+           "command": "<your-umbrella>/wiki/tools/stop-bulk-on-dirty-tree.sh",
+           "statusMessage": "End-of-turn dirty-tree check"
+         }]
        }]
      }
    }
    ```
 
-   Replace `<your-umbrella>` with your GridWorks path. Requires `jq` on PATH.
+   Each hook's top-of-file comment block explains what it does and why.
 4. **Install the wiki's slash commands.** Symlink each `.md` in
    [`tools/claude-commands/`](tools/claude-commands/) into your
    `~/.claude/commands/`:

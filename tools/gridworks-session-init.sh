@@ -95,6 +95,14 @@ awk -v r="$ROW" '
   }
 ' "$ACTIVE_CLAIMS" > "$ACTIVE_CLAIMS.tmp" && mv "$ACTIVE_CLAIMS.tmp" "$ACTIVE_CLAIMS"
 
+# Record session_id → friendly_name so other hooks can derive their
+# session name for per-session features (e.g., the bulk-stop override
+# at ~/.claude/.bulk-stop-override.<name>).
+if [ -n "$CLAUDE_CODE_SESSION_ID" ]; then
+  mkdir -p "$HOME/.claude/.session-by-id"
+  echo "$NAME" > "$HOME/.claude/.session-by-id/$CLAUDE_CODE_SESSION_ID"
+fi
+
 # Build additionalContext for Claude.
 CTX="You are session ${NAME} (hash ${HASH}). Your starter row was inserted into wiki/active-claims.md.
 
