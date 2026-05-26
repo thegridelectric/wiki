@@ -15,6 +15,78 @@ complete; the doc itself stays as a running ledger.
 
 ---
 
+## 2026-05-26 — Integrate the two sema CLAUDE.mds (dev-lens + effortless-lens)
+
+**Context:** as of commit 5fc0d94 ("swap claudes"), `sema/` is set up to
+carry **two** Claude-orienting documents that frame the project through
+different lenses:
+
+- **`sema/effortless_CLAUDE.md`** (committed, team-shared) — EJ's
+  *ERB lens*: SSoT is `effortless-rulebook/effortless-rulebook.json`
+  (hand-edited). Invariants: never edit generated
+  `postgres/0[0-5]*.sql`; read from `vw_*` views, write to base tables.
+  Workflow: `effortless build` sandwiched by clean-tree commits. Skill
+  set: the `effortless-*` family. Path the YAML-ODXML-RULEBOOK migration
+  plan steers toward.
+- **`sema/CLAUDE.md`** (gitignored, personal-local) — the *vocabulary
+  lens* that jess uses today: SSoT is `spec/primary.md` + per-word
+  `definitions/*.yaml`. Invariants: preserve `TypeName` + `Version`,
+  formats immutable, enums additive-only, no edits to historical
+  versions; pass `pytest` and registry validation. Workflow:
+  `/make-sema-word` for additions / modifications; regen via
+  `scripts/build_indexes.sh` and `scripts/regenerate_runtime.py`.
+
+The `.gitignore` line `CLAUDE.md` is what makes this two-lens shape work
+mechanically — the committed lens lives at an explicit name, and each
+developer layers their preferred lens on top at the default path without
+collisions.
+
+**Tension:** both files claim authority over sema with different SSoTs
+and different rituals. They are not contradictory but they are not
+unified. The migration plan referenced in the effortless lens treats
+`definitions/*.yaml` (today's source-of-record for the vocabulary lens)
+as eventually becoming a *downstream artifact* of the rulebook (Phase 3
+cutover). Until that flip lands, **both lenses are live** and a sema
+session can run under either — but not coherently under both at once.
+
+**Action:** produce an integration doc (likely a third, neutral
+`wiki/sema/research/two-claudes.md` or a top section in
+`erb-md-mirror.md`) that:
+
+1. Names the two lenses explicitly so any new sema session knows which
+   it is in and how to switch (rename the gitignored file, or load the
+   committed `effortless_CLAUDE.md` instead).
+2. Lists the **universal invariants** that hold under both lenses (preserve
+   `TypeName` + `Version`, additive enums, immutable formats, no edits to
+   historical versions). These are sema-language invariants, not
+   lens-specific, and should appear *once* at the top of whichever
+   CLAUDE.md is active.
+3. Maps the **migration phases** to which lens binds: pre-Phase-3 (YAML
+   is HEAD) → vocabulary lens is authoritative for vocab edits;
+   post-Phase-3 (rulebook is HEAD, YAML emitted) → effortless lens is.
+   The transition point is the moment YAML stops being HEAD.
+4. Reconciles the per-word ritual with the rulebook ritual:
+   `/make-sema-word` today edits YAML; post-cutover the slash command
+   keeps its name but its body migrates to rulebook-row edits with the
+   same universal invariants. (Worth testing the prompt against both
+   shapes early so the cutover doesn't surprise.)
+5. Documents the .gitignore convention itself as a *protocol* (not an
+   accident), so future contributors know that `sema/CLAUDE.md` is a
+   personal override slot, not a missing or forgotten file.
+
+**Why:** carrying two lenses with no relationship spelled out invites
+either (a) Claude loading whichever lens happens to be at the default
+`CLAUDE.md` path that day and silently ignoring the other, or (b) jess
+and Claude diverging session-to-session on which discipline applies. Both
+failure modes break the harmonization goal of the `ej-dev` branch.
+Naming the pattern + mapping it to migration phases resolves the
+ambiguity once.
+
+**When:** before any further rulebook touches on `jm/effortless`. The
+integration is a prerequisite for working coherently across both rituals.
+
+---
+
 ## 2026-05-26 — Practice ERB pair-programming with Claude before resuming the audit
 
 **Action:** before continuing the open audit threads (F5 TypeHelpers

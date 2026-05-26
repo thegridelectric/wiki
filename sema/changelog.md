@@ -9,6 +9,63 @@ Newest at the top.
 
 ---
 
+## 2026-05-26 — swap claudes
+
+**What:** Pure rename (R100, 0 line changes) of the committed
+`sema/CLAUDE.md` to `sema/effortless_CLAUDE.md`. The file content — EJ's
+ERB-lens framing of sema (rulebook-as-SSoT, `effortless build` discipline,
+effortless skill suite) — is unchanged. Done on the `jm/effortless`
+branch.
+
+**Why:** sema's `.gitignore` already ignores `CLAUDE.md`, so renaming the
+committed copy out of that slot lets each developer keep their preferred
+*local* `CLAUDE.md` (a personal working-frame override) without touching
+the team-shared recipe. The team-shared recipe for the ERB-pipeline side
+now lives at the explicit name `effortless_CLAUDE.md`, and individual
+devs (jess, ej, …) can layer their own gitignored `CLAUDE.md` on top —
+e.g. jess's local copy uses the dev-branch sema-vocabulary lens (axiom /
+registry / `/make-sema-word` discipline). See
+[research/findings.md](research/findings.md) "Integrate the two sema
+CLAUDE.mds" for the integration plan.
+
+## 2026-05-26 — move sema-pg from host port 5433 to 5434
+
+**What:** Eight files in sema/ updated to point local Postgres at host port
+5434 instead of 5433 (and unify the lingering 5432 defaults that drifted
+from the script): `start-db.sh` (PORT + header rationale),
+`postgres/init-db.sh` (DEFAULT_CONN), `app/api/db.py` (default fallback),
+`app/api/.env.example`, `app/README.md` (rationale paragraph + Docker
+snippet + DB-connection blurb), `DEPLOY.md` (two URL references),
+`postgres/migrations/README.md`, and `CLAUDE.md` (DB connection line +
+note on what occupies 5432/5433).
+
+**Why:** First step of harmonizing ej-dev sema with the rest of the
+GridWorks dev fleet. `gw-data-pg` (the analytics TimescaleDB container,
+see `gridworks-data/README.md`) holds host port 5433 unconditionally; a
+dev who runs both gets a port collision today. The two systems are
+sufficiently separate (different code paths, different teams, sema doesn't
+need TimescaleDB) that consolidating into one container is the wrong
+move — see Brian's earlier pushback. Moving sema to 5434 lets a native
+Homebrew Postgres (5432), gw-data-pg (5433), and sema-pg (5434) all
+coexist on one dev box. While in there, swept the stale 5432 defaults
+that the original f34a4e4 script-add missed.
+
+## 2026-05-22 — add a script for starting postgres in docker
+
+**What:** New top-level `start-db.sh` (+69 lines, no other files touched).
+Idempotent orchestration of a local `sema-pg` container (`postgres:16`)
+mapped to host port **5433** → container 5432, with `POSTGRES_DB=sema` and
+`POSTGRES_HOST_AUTH_METHOD=trust`. Waits on `pg_isready`, then dispatches
+to `postgres/init-db.sh` based on flag (default: init if schema absent;
+`--no-init` skips; `--reinit` rebuilds). Fails fast if Docker isn't running.
+
+**Why:** Local dev needed a one-command DB bring-up that plays nicely with a
+native Homebrew Postgres on 5432 (hence 5433) and is safe to re-run — the
+prior workflow was hand-rolled `docker run` invocations, which drifted
+between developers and silently re-created containers under varying flags.
+Centralising the container shape here also gives the ej-dev/dev
+harmonization a single chokepoint to edit when the port or image moves.
+
 <!-- pending commit -->
 ## 2026-05-26 — Wrap-up: highlight bijective MD↔ERB thesis (sema-specific) + queue ERB practice finding
 
