@@ -17,6 +17,24 @@ Newest at the top.
 
 ---
 
+## 2026-05-25 — Add weather (sema snapshot refresh: weather v000)
+
+**Why:** gjk consumes types via
+`SemaMessagePersistor.all_known_message_types()`, so a type doesn't
+become consumable here until it lands in gjk's local sema snapshot.
+With `weather` v000 in the sema repo (alongside two new format words
+`non.empty.string` and `positive.int.as.str`), the snapshot needed
+regenerating here so the live AMQP bind picks up `weather` and the
+persistor knows how to decode + store it. The incidental changes to
+`channel.readings/002`, `gw1.tank.temp.calibration.map/000`, and
+`relay.actor.config/002+003` are the regen reaching coherence with
+the new format words — sema's reverse-dependency closure refreshes
+those so existing types stop hand-rolling what the format word now
+expresses. Removing `types/gw1_tank_temp_calibration_map.py`
+(hand-impl) was part of the same coherence pass; the regenerated form
+supersedes it. No live-path code changed — the actor binds the new
+type automatically.
+
 ## 2026-05-23 — drop obsolete tests; add JournalKeeper smoke tests
 
 **Why:** Most of the existing test suite (`tests/types/`,
