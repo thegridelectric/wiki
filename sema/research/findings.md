@@ -1,6 +1,6 @@
 # Findings — sema actions we will take
 
-Status: Draft · Pass 0 · Updated 2026-05-26
+Status: Draft · Pass 0 · Updated 2026-05-26 (Pass 1 turn this session: rename landed)
 
 What this is: a chronological log of decisions and follow-up actions
 *we* (jess + Claude) will take on sema or sema-adjacent tooling, surfaced
@@ -12,6 +12,36 @@ This file is the action log on our side.
 Entries are newest-at-top. Each entry says what, why, and when it should
 land. Entries can be marked done (✅) or removed once the action is
 complete; the doc itself stays as a running ledger.
+
+---
+
+## 2026-05-26 — Practice ERB pair-programming with Claude before resuming the audit
+
+**Action:** before continuing the open audit threads (F5 TypeHelpers
+alignment, F6 Templates table, p axiom-DSL feasibility, r round-trip
+empirical run), spend a session or more with full effortless tooling
+loaded (effortless MCP server, effortless CLI, local Postgres mirror
+of ej's rulebook, a friendly Postgres GUI of jess's choice), and use
+that environment to pair on small rulebook touches with Claude. The
+goal is to *internalize how ej used Claude to build a 28K-line rulebook
+in days* — the action loop, the kind of prompts ej drove with, the way
+the structured action-space (calc-fields, OpKind enums, FK columns)
+turns LLM output into something that lands first try.
+
+**Why:** jess does not yet have a firsthand feel for the ej + Claude
+workflow that produced the existing rulebook so rapidly. The audit
+and synergy thesis both implicitly assume that workflow is real and
+reproducible. Until jess has independently experienced it, she can't
+properly evaluate the strong CMCC thesis or judge whether ej's
+pipeline is something she'd want to drive herself (vs. consume).
+Doing the audit first without that experience risks reasoning about
+ergonomics jess hasn't actually felt. Doing the practice first builds
+the calibration needed to interpret the audit findings correctly.
+
+**When this lands:** the next session, per
+[[queued-next-session-effortless-setup]]. After enough practice that
+jess can confidently describe what the ej + Claude rapid-rulebook loop
+*feels* like, return to the audit threads.
 
 ---
 

@@ -1,6 +1,6 @@
 # Automated MD ↔ ERB structure-preserving map
 
-Status: Draft · Pass 0 · Updated 2026-05-24
+Status: Draft · Pass 0 · Updated 2026-05-26
 
 What this is: a proposal for tooling that maintains a wiki-style
 hub-and-spoke Markdown mirror of the Effortless Rulebook (ERB) schema —
@@ -10,6 +10,44 @@ a human/LLM-readable artifact for wiki-style review and refactor.
 This is a research note, not a spec; the canonical ERB integration
 question is still open (see `sema-and-domain-protocols.md` and the
 WIP `ej-dev` branch of sema for the upstream pipeline ej is building).
+
+## Core thesis (sema-specific)
+
+**Find a bijective, code-gen-only refactor that maps ej's monolithic
+ERB long form ↔ a hub-and-spoke MD form, for sema's rulebook
+specifically.**
+
+- *Bijective*: the two representations carry identical information; a
+  round-trip in either direction is exact. CI gates enforce parity.
+- *Code-gen only*: the conversion is mechanical (two emitters + a
+  diff-checker), not a hand-curated translation. No human prose is
+  introduced or lost across the bridge.
+- *Sema-specific*: this is **not** a general-purpose ERB refactor.
+  Sema's particular shape — a per-word vocabulary registry with
+  axioms, examples, formats, and upgrade chains — admits a clean
+  hub-and-spoke decomposition (one MD per table-cluster, ≤500 lines
+  each, around a `primary.md` hub). A general ERB-refactor pipeline
+  would have to cover arbitrary rulebook shapes; that's likely
+  infeasible. Sema is a tractable special case.
+
+**Why this thesis matters for sema:** the load-bearing requirement is
+**unbounded ability to add new axioms** (and probably upgrades) over
+sema's lifetime. Axioms are where sema gets semantically rich, and
+the corpus will only grow — possibly to hundreds of structured rules
+spanning every type. If the only way to add or review an axiom is to
+open a 28K-line JSON file (or, worse, navigate it via a web UI
+without git diffs), the maintenance loop chokes. A bijective MD
+mirror keeps axiom authoring inside the same git-native,
+small-doc hub-and-spoke workflow that already governs everything else
+in the wiki, while ERB keeps its queryable DAG and lifecycle
+machinery on the long-form side. Bijection guarantees neither side
+falls behind.
+
+If this bijection is achievable for sema, the strong CMCC thesis
+gains a concrete bridge: structured rules (axiom-kinds, upgrade-ops)
+live in ERB rows; the prose narrative and motivational context live
+in MD; everything round-trips and stays in sync without humans
+arbitrating drift.
 
 ## The problem this targets
 

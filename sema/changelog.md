@@ -9,6 +9,50 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-05-26 — Wrap-up: highlight bijective MD↔ERB thesis (sema-specific) + queue ERB practice finding
+
+**What:** Two wiki/sema/research/ doc updates closing this investigation
+as work-in-progress.
+
+`erb-md-mirror.md` — new §"Core thesis (sema-specific)" lifted to the
+top of the doc. Makes three properties of the proposed refactor
+explicit and load-bearing: *bijective* (round-trip exact, CI-gated),
+*code-gen only* (mechanical, no curated translation), and
+*sema-specific* (a general ERB-refactor pipeline would be infeasible;
+sema's per-word + axioms + upgrades shape admits a clean hub-and-spoke
+decomposition that a generic rulebook does not). Adds the motivation:
+the load-bearing requirement is **unbounded ability to add new
+axioms** (and probably upgrades) over sema's lifetime — axioms-as-
+prose-in-28K-JSON does not scale, and a bijective MD mirror keeps
+axiom authoring inside the git-native hub-and-spoke workflow without
+giving up ERB's queryable DAG. Bumped Updated stamp to 2026-05-26.
+
+`findings.md` — new dated entry: "Practice ERB pair-programming with
+Claude before resuming the audit." Action: load full effortless
+toolchain (CLI + MCP + Postgres mirror + Postgres GUI) and pair on
+small rulebook touches so jess internalizes the ej + Claude rapid-
+rulebook loop firsthand before continuing the audit threads (F5, F6,
+p, r). Rationale: jess doesn't yet have a firsthand feel for the
+workflow that produced ej's 28K-line rulebook so quickly; until she
+does, she can't properly calibrate the strong CMCC thesis or judge
+whether to drive vs consume ej's pipeline. Entry references the
+queued-next-session-effortless-setup memory.
+
+**Why:** The investigation hit a natural pause point with the
+`active` → `published` rename landed and the audit's first-pass
+findings recorded. Jess's stated next move is to set up tooling and
+practice the workflow before pushing further on synergy analysis; the
+remaining open audit threads (F5 TypeHelpers alignment, F6 Templates
+table, p axiom-DSL feasibility, r round-trip empirical run) are best
+re-engaged after that calibration. These two doc updates capture the
+sharpest distillation of the thesis we have today (bijective refactor
++ unbounded axioms) and the explicit next-step action (practice
+before more theory), so the work picks up cleanly in the next
+session.
+
+---
+
 ## 2026-05-26 — sema lifecycle: rename `active` → `published` (`fa42333`)
 
 **What:** Replace the lifecycle status word `"active"` with `"published"`
