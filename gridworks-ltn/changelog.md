@@ -17,7 +17,7 @@ Newest at the top.
 
 ---
 
-## 2026-05-24 — bootstrap wiki/gridworks-ltn/ at acceptable-minimum <!-- pending commit -->
+## 2026-05-24 — bootstrap wiki/gridworks-ltn/ at acceptable-minimum
 
 **Why:** The journalkeeper-on-base-0.4.0 prod-broker integration test
 (see `wiki/gridworks-journalkeeper/research/refactor-to-base-0.4.2.md`
