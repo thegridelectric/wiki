@@ -33,7 +33,7 @@ in-place edit (no version bump) per `feedback_schema_fix_protocol`.
 
 ---
 
-## 2026-05-25 — Add weather type v000 (`01821ce`)
+## 2026-05-25 — Add weather type v000 (`656c3c0`)
 
 **What:** New `definitions/types/weather/000.yaml` (literal versioning).
 `registry.yaml` entry added with `latest_version: 000`, deps closure
