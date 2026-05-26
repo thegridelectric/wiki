@@ -45,7 +45,7 @@ fi
 # For each code repo:domain pair, if the repo has dirty files but no
 # pending changelog entry exists, flag it.
 flagged=""
-for pair in $REPO_DOMAIN_PAIRS; do
+while IFS= read -r pair; do
   [ -z "$pair" ] && continue
   repo="${pair%%:*}"
   domain="${pair##*:}"
@@ -58,7 +58,7 @@ for pair in $REPO_DOMAIN_PAIRS; do
     flagged="${flagged}- $repo: $dirty_count dirty files, no <!-- pending commit --> in wiki/$domain/changelog.md
 "
   fi
-done
+done <<< "$REPO_DOMAIN_PAIRS"
 
 [ -z "$flagged" ] && exit 0
 

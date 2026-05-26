@@ -59,7 +59,7 @@ esac
 
 matched_repo=""
 matched_domain=""
-for pair in $REPO_DOMAIN_PAIRS; do
+while IFS= read -r pair; do
   [ -z "$pair" ] && continue
   repo="${pair%%:*}"
   domain="${pair##*:}"
@@ -70,7 +70,7 @@ for pair in $REPO_DOMAIN_PAIRS; do
       break
       ;;
   esac
-done
+done <<< "$REPO_DOMAIN_PAIRS"
 
 # Not in any known code repo → silent (e.g. starter-scripts, tlayouts,
 # anything outside the cluster-checked set).
