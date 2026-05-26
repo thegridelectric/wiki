@@ -9,6 +9,75 @@ Newest at the top.
 
 ---
 
+## 2026-05-26 — sema lifecycle: rename `active` → `published` (`fa42333`)
+
+**What:** Replace the lifecycle status word `"active"` with `"published"`
+across `spec/` and the Python tooling that reads/writes the `status:`
+field. Touches:
+
+- `spec/primary.md` glossary entry (draft vs published, with cleaner
+  "mutable vs immutable" framing).
+- `spec/registry/structure.md` §Status Field — full section rewritten:
+  allowed values, defaults, lifecycle prose, `created`-after-promotion
+  rule. Drops "under active development" phrasing (mutability is the
+  property that matters, not "active development").
+- `spec/registry/types.md` — status field schema and 5 references.
+- `src/sema/tools/build_public_registry.py` — `is_active()` →
+  `is_published()` (renamed; all 5 call sites updated), `active_versions`
+  variable → `published_versions`, docstring updates.
+- `src/sema/interfaces/cli/snapshot.py` — comment update.
+- `tests/registry/test_registry_status_consistency.py` — `ALLOWED` set,
+  `DEFAULT_STATUS` constant, `_schema_status()` default, docstrings.
+- `tests/registry/test_registry_schema_file_layout.py` — `_registry_*_status()`
+  defaults, `expected_*_id_line()` default-arg values.
+- `tests/registry/test_registry_yaml_correctness.py` — literal `"active"`
+  occurrences, variable names (`active_version_keys` →
+  `published_version_keys`, `active_versions` → `published_versions`,
+  `latest_active` → `latest_published`), test function name
+  (`..._matches_latest_active_schema` → `..._matches_latest_published_schema`),
+  error message strings.
+- `tests/registry/test_public_registry_consistency.py` — literals + 2
+  comments.
+- `tests/registry/test_structural_dependency_consistency.py` — 2 literals.
+- `tests/registry/test_identity_consistency.py` — 1 default value.
+- `tests/registry/conftest.py` — 2 docstring lines.
+
+`definitions/registry.yaml` and `definitions/*` schema files needed no
+edits: pre-rename, no entry carried the literal word `"active"` —
+status was always default-via-absence. Post-rename, the default value
+is now `"published"` but the registry data is unchanged.
+
+Three sema source files contain `active` in **non-lifecycle**
+contexts and are deliberately left alone: `spec/primary.md:11`
+("in active context" = LLM working context), `spec/authoring/types.md:384`
+("under active schema evolution" = ongoing), and the runtime axiom
+templates for `layout.lite/*` and `fis.authority.manifest/000`
+("active ActorClass", "active count" = SCADA runtime semantics).
+
+Full `pytest` run: 159 passed, 1 xpassed (pre-existing, unrelated).
+
+**Why:** "Published" is unambiguous (committed to
+`https://schemas.electricity.works/...` and immutable). "Active" was
+overloaded — read as "currently used," "not deprecated," or "latest"
+depending on context, and the spec text already said "active is
+published and immutable," which itself signals the better word. The
+rename aligns sema's vocabulary with ej's ERB out of the box (his
+`TypeVersions.Status` already uses `'published' | 'draft'`), with
+industry norms (npm, crates, PyPI, semver tooling), and with the
+mutable-vs-immutable dichotomy that is what the lifecycle is actually
+*about*. Migration cost was zero in registry data because the old
+`"active"` value was default-via-absence — no entry needed touching.
+The reason for the full clean (renaming the internal `is_active()`
+function, the test variable names, etc.) rather than a literal-only
+replacement: leaving `is_active()` as a function name when the value
+it tests is `"published"` would be a permanent semantic landmine.
+
+This commit lands per the queued
+`queued-sema-active-to-published-rename` memory from the prior
+(tame-raven) session.
+
+---
+
 ## 2026-05-25 — `new.command.tree/000`: allow union over multiple `spaceheat.node.gt` versions (`3286294`)
 
 **What:** `definitions/types/new.command.tree/000.yaml` —
