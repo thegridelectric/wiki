@@ -17,6 +17,88 @@ Newest at the top.
 
 ---
 
+## 2026-05-27 — minor script added (point_at_prod_observe.py)
+
+**Why:** Companion to `point_at_dev_hack.py`, narrower scope: bind
+catch-all on prod broker, count distinct `type_name`s seen over a
+fixed window, exit. Used to take an inventory of what journalkeeper
+actually receives on prod — the data behind the
+"What gjk stores (and doesn't)" section of
+`wiki/gridworks-journalkeeper/executor/primary.md` (3-tier breakdown:
+stored / degraded / routing-key-rejected). Same temporary-scaffolding
+shape as the dev runner; both promote to a library helper when the
+test harness lands (see findings F-005). Generic regex-based
+password redaction in the URL log line — never hardcode the secret
+as a literal even for masking purposes.
+
+## 2026-05-26 — dev-rabbit integration scaffolding
+
+**Why:** Closing out the Stage 1 refactor surfaced a few discrete
+chunks that travel together as "post-port polish + a working dev-test
+runner":
+
+- **README + template.env rewrite, Makefile delete.** The old
+  README/Makefile assumed pre-0.4.0 gwbase + the in-tree
+  `weather_service.py`; the env template pointed at the wrong
+  postgres port and used `<PASSWORD>` placeholders inconsistently.
+  The new README documents the gw-data-pg + dev-rabbit recipe; the
+  env template aligns with gridworks-data's port-5433 default and the
+  gw_writer role.
+- **`scripts/point_at_dev_hack.py`** — the catch-all dev consumer
+  used to verify the 2026-05-26 gwwf→gjk weather flow on dev rabbit.
+  Binds catch-all on `_consume_exchange`, wraps `dispatch_message` to
+  log + capture each body, try/excepts around persistence so receipt
+  stays visible if the persistor breaks. Companion to gwwf's
+  hack-fictitious mode (now reverted there; F-002 in
+  `research/findings.md`). Promote to a library helper
+  (`gjk.testing.catchall_runner`) when the harness lands.
+- **`g_node.json`** — synthesized dev identity (`d1.journal.dev.…`).
+  Transient: gjk is **not** a GNode actor, so this file exists only
+  because gwbase 0.4.x's `ActorBase.__init__` requires GNode identity
+  fields on disk. Removed once F-004 in
+  `wiki/gridworks-base/research/findings.md` lands the
+  `ServiceSettings` split. A `_note` field in the JSON itself
+  captures the same reason for anyone who finds the file before
+  reading the wiki.
+- **`sema_seed_request.yaml` → `src/gjk/sema_seed_request.yaml`.**
+  Same move as gwwf's: snapshot-adjacent in the package, outside the
+  regen-managed directory. Proposed sema-wide convention so consumers
+  don't litter their repo roots.
+- **`journal_keeper.py` + `tests/test_journal_keeper.py` micro-tweaks**
+  — small polish that fell out of the integration test (no behaviour
+  change to the live AMQP path).
+
+The integration test that motivated this scaffolding (22 weather
+messages flowing gwwf → weathermic_tx → ear_tx → JournalKeeper →
+`messages` table) is captured in detail at
+`wiki/gridworks-journalkeeper/research/findings.md` (F-001 through
+F-007) — including the harness recipe this `point_at_dev_hack` is a
+template for.
+
+## 2026-05-26 — drop the legacy named_types cluster (Stage 2)
+
+**Why:** Stage 1 ported `journal_keeper.py` onto `SemaCodec +
+SemaMessagePersistor`, which made the entire `gjk.named_types` /
+`gjk.old_types` / hand-rolled SQLAlchemy `gjk.models` cluster
+unreferenced by the live path. The live path now goes
+`journal_keeper → sema_message_persistor → {layout_lite_persistor,
+report_event_persistor} → gw_data.db.models (sibling) + gjk.sema.*
+(snapshot) + gjk.pseudo_channels + gjk.message_persistence_info +
+gjk.config`. Everything else in `src/gjk/` was dead weight — a
+mutually-dependent legacy island the live path doesn't touch.
+
+Specifically removed: `codec.py`, `property_format.py`, `utils.py`,
+`weather_service.py` (ported to gridworks-weather-forecast),
+`journal_keeper_hack.py`, `s3_message_importer.py`, `named_types/`,
+`old_types/`, `type_helpers/`, `first_season/`, `models/`, `enums/`.
+The sema snapshot under `gjk/sema/` stays — that's the live decode
++ DB-shape vocabulary.
+
+This closes the divergence between the live AMQP path and the
+backfill path that Stage 1 started to converge: now both go through
+the same sema runtime + sibling-repo SQLAlchemy models, and there's
+no second copy of message decoding floating in the codebase.
+
 ## 2026-05-25 — Add weather (sema snapshot refresh: weather v000)
 
 **Why:** gjk consumes types via
