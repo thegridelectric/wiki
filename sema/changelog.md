@@ -147,7 +147,6 @@ between developers and silently re-created containers under varying flags.
 Centralising the container shape here also gives the ej-dev/dev
 harmonization a single chokepoint to edit when the port or image moves.
 
-<!-- pending commit -->
 ## 2026-05-26 — Wrap-up: highlight bijective MD↔ERB thesis (sema-specific) + queue ERB practice finding
 
 **What:** Two wiki/sema/research/ doc updates closing this investigation
@@ -306,7 +305,6 @@ ships usable without it (the axiom slot is reserved for a future
 
 ---
 
-<!-- pending commit -->
 ## 2026-05-26 — Three new research docs: MD↔ERB mirror + no-degradation audit + findings log
 
 **What:** Three new docs under `wiki/sema/research/`, all Pass 0 Draft.

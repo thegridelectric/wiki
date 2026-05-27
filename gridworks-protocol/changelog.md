@@ -1,6 +1,5 @@
 # Changelog: gridworks-protocol
 
-<!-- pending commit -->
 ## 2026-05-26 · Open gridworks-protocol wiki domain + first design-spec
 
 Created `wiki/gridworks-protocol/` with `executor/primary.md`
