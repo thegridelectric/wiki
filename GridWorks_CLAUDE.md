@@ -63,6 +63,11 @@ protocol** lives in that file below the table.
 
 ## Sub-CLAUDE.md protocols
 
+- **Do NOT create a new `CLAUDE.md` in a sub-repo or sub-folder unless
+  the human asks.** Sub-CLAUDE.md files are *operative* — they encode
+  protocol Claude is expected to follow when working in that area. New
+  ones proliferate easily and burden every future session with
+  discovery + load. The human decides when one is genuinely warranted.
 - **Adding or modifying a sema word** → suggest the user run
   `/make-sema-word`. Before any edit, **Read `sema/CLAUDE.md`** and follow
   its protocol verbatim.
@@ -79,7 +84,10 @@ may be live (mirror your active-claims Scope). For Karan-style autonomy
 
 Code-repo edits are organised into **clusters**: one pending changelog
 entry (`<!-- pending commit -->`) in `wiki/<domain>/changelog.md` = one
-cluster. Wiki changes are not cluster-checked. Enforced structurally by
+cluster. Wiki changes are not cluster-checked. **Changelogs are a
+per-domain artifact only** — cross-cutting wiki folders (`wiki/designs/`,
+`wiki/tests/`, `wiki/tools/`, etc.) SHALL NOT have their own
+`changelog.md`; wiki-convention changes live in git history only. Enforced structurally by
 hooks in `tools/` — `precheck-pending-changelog.sh`,
 `precheck-claim-on-dirty.sh`, `precheck-bulk-on-dirty-tree.sh`,
 `stop-cluster-coherence.sh`. If a hook fires, cache any in-flight plan
@@ -133,6 +141,33 @@ domain. When a repo has substantial code but a poor/missing `executor/`, the
 highest-value first move is to bring its `executor/primary.md` to an
 **acceptable minimum** (overview + invariants + glossary + TOC), marking the
 rest "Open." Acceptable-minimum first, depth later.
+
+**Where content lives across designs / concerns / executor / Linear** —
+the canonical disambiguation is in [`glossary.md`](glossary.md) "Where
+content lives". The discriminator is clarity, not "architectural":
+open architectural *questions* live in `research/concerns/`; settled
+architectural *patterns* live in `executor/`; ratified change plans
+(full content) live in `designs/`; workflow state (status / owner /
+priority) lives in Linear.
+
+**Design-specs (`designs/`)** — ratified design-specs live in
+`wiki/<domain>/designs/<slug>.md` (per-domain) or `wiki/designs/<slug>.md`
+(cross-cutting / tooling). A single fixed location per design; files do
+NOT move between folders as status changes. **Linear is the authority on
+status** (backlog / todo / doing / done) — at most **8 designs in "doing"
+status across GridWorks** at any time (focus discipline; enforced at the
+Linear layer once wired). Each design file MUST carry a status stamp;
+`Accepted` maturity requires `Pass ≥ 1` (enforced by
+[`tests/test_doc_health.py`](tests/test_doc_health.py)). On completion,
+the design's durable distillate updates `executor/primary.md` (or a
+sub-spec); the `designs/<slug>` file is deleted. Per-domain `findings.md`
+registers are legacy and SHALL NOT be created in new domains — items
+become Linear issues (if actionable work), become `research/concerns/`
+entries (if there's no clarity yet), or update `executor/primary.md`
+(if they're durable facts about the domain). Full convention in
+[`designs-process.md`](designs-process.md); Linear interface in
+[`designs/linear-integration.md`](designs/linear-integration.md);
+live aggregated view in [`DESIGN_INDEX.md`](DESIGN_INDEX.md).
 
 **Write boundary** — code repos are authoritative for the *what*; `wiki/` is the
 home for *why* + specs. Confirm before editing code repos' non-wiki files when

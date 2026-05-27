@@ -155,8 +155,16 @@ report.
 
 **Open (Draft):**
 
-- Where the frontier ledger + cross-cutting findings live (a dedicated tracker
-  vs. per-domain `findings.md`).
+- ~~Where the frontier ledger + cross-cutting findings live (a dedicated tracker
+  vs. per-domain `findings.md`).~~ **Resolved 2026-05-26:** ratified
+  design-specs live in `wiki/<domain>/designs/` (per-domain) or
+  `wiki/designs/` (cross-cutting), in a single fixed location per
+  design. **Linear is the authority on doing-vs-todo status** (cap-8 on
+  "doing" enforced at the Linear layer). Open investigations stay in
+  `research/concerns/`. Shipped designs distill into `executor/`. See
+  [`designs-process.md`](designs-process.md) +
+  [`designs/linear-integration.md`](designs/linear-integration.md) +
+  live view at [`DESIGN_INDEX.md`](DESIGN_INDEX.md).
 - Whether "looking for trouble" stays the name.
 - Validate by running one real walk before promoting past Draft.
 

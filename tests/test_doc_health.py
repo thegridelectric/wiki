@@ -19,15 +19,22 @@ WIKI = Path(__file__).resolve().parent.parent
 
 # Status-stamp line: "Status: ... Draft|Accepted|Verified ... Pass <n> ..."
 STAMP_RE = re.compile(r"Status:.*\b(Draft|Accepted|Verified)\b.*\bPass\s*\d+")
+MATURITY_RE = re.compile(r"Status:[^\n]*\b(Draft|Accepted|Verified)\b")
+PASS_RE = re.compile(r"\bPass\s*(\d+)\b")
 MAX_LINES = 1000
 
 # Docs under these directory names must carry a status stamp (the convention's
 # scope). Top-level meta docs, changelogs, and domain-root navigation are exempt.
-STAMP_SCOPE_DIRS = {"research", "executor"}
+STAMP_SCOPE_DIRS = {"research", "executor", "designs"}
 
 
 def _md_files() -> list[Path]:
     return sorted(p for p in WIKI.rglob("*.md") if ".git" not in p.parts)
+
+
+## Files in a status-stamp scope dir but exempt from the stamp requirement
+## (changelogs are by convention not status-stamped; READMEs are nav, not content).
+STAMP_EXEMPT_NAMES = {"changelog.md", "README.md"}
 
 
 def _stamp_scope() -> list[Path]:
@@ -35,6 +42,16 @@ def _stamp_scope() -> list[Path]:
         p
         for p in _md_files()
         if STAMP_SCOPE_DIRS & set(p.relative_to(WIKI).parts[:-1])
+        and p.name not in STAMP_EXEMPT_NAMES
+    ]
+
+
+def _designs_scope() -> list[Path]:
+    return [
+        p
+        for p in _md_files()
+        if "designs" in p.relative_to(WIKI).parts[:-1]
+        and p.name not in STAMP_EXEMPT_NAMES
     ]
 
 
@@ -43,11 +60,30 @@ def _rel(p: Path) -> str:
 
 
 @pytest.mark.parametrize("doc", _stamp_scope(), ids=_rel)
-def test_research_and_executor_docs_have_status_stamp(doc: Path) -> None:
+def test_research_executor_and_designs_docs_have_status_stamp(doc: Path) -> None:
     text = doc.read_text(encoding="utf-8", errors="replace")
     assert STAMP_RE.search(text), (
         f"{_rel(doc)} is missing a status stamp "
         "(Status: Draft|Accepted|Verified · Pass <n> · Updated <date>)"
+    )
+
+
+@pytest.mark.parametrize("doc", _designs_scope(), ids=_rel)
+def test_accepted_designs_have_pass_at_least_one(doc: Path) -> None:
+    """Per designs-process.md: a design ratified to Accepted (or Verified)
+    requires Pass >= 1 — at least one meaningful human-LLM iteration. Pass 0
+    Claude-solo designs may only sit in Draft maturity.
+    """
+    text = doc.read_text(encoding="utf-8", errors="replace")
+    m_mat = MATURITY_RE.search(text)
+    if not m_mat:
+        return  # missing-stamp case already caught by the stamp test
+    if m_mat.group(1) not in ("Accepted", "Verified"):
+        return
+    m_pass = PASS_RE.search(text)
+    assert m_pass and int(m_pass.group(1)) >= 1, (
+        f"{_rel(doc)}: maturity {m_mat.group(1)} requires Pass >= 1 "
+        "(at least one human-LLM iteration). Either bump Pass or demote to Draft."
     )
 
 

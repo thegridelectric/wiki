@@ -12,6 +12,10 @@ follows live in [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md)). New to the repo?
 See [Setup](#setup) for how this wiki is meant to sit in a GridWorks umbrella
 folder next to the code repos.
 
+> **Looking for what's actively being worked on?** Go to
+> [`DESIGN_INDEX.md`](DESIGN_INDEX.md) — the L0 hub aggregating current designs across
+> domains. README is for structure / setup; DESIGN_INDEX is for live work.
+
 > **Editing?** Read [`active-claims.md`](active-claims.md) first and **claim your
 > area** — multiple Claude sessions run at once. Launch Claude from the
 > GridWorks **umbrella directory** (not inside one repo) so project memory +
@@ -21,20 +25,45 @@ folder next to the code repos.
 
 | I want to… | Go to |
 | --- | --- |
+| See what's actively being worked on across GridWorks | [`DESIGN_INDEX.md`](DESIGN_INDEX.md) |
 | Understand a domain's design / rebuild spec | that domain's `executor/primary.md` (see **Domains** below) |
+| Understand a ratified design that's queued / in flight | that domain's `designs/<slug>.md` (or `wiki/designs/` for cross-cutting); see [`designs-process.md`](designs-process.md) for the lifecycle |
 | Understand the conventions / how we work with Claude | [`working-with-llms.md`](working-with-llms.md) (+ [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) for the rules) |
 | Edit safely while other sessions are running | [`active-claims.md`](active-claims.md) — claim your area, start from a clean tree |
 | Look up a term or a legacy→current name | [`glossary.md`](glossary.md) |
-| Work the SCADA cleanup effort | [`gridworks-scada/PROCESS.md`](gridworks-scada/PROCESS.md) + [`gridworks-scada/research/map.md`](gridworks-scada/research/map.md) |
 | Rebuild / understand gridworks-base | [`gridworks-base/executor/primary.md`](gridworks-base/executor/primary.md) |
 | Find / understand the LTN (per-house transactive agent) | [`gridworks-ltn/executor/primary.md`](gridworks-ltn/executor/primary.md) — code currently lives in `gridworks-scada/gw_spaceheat/actors/ltn/`, not a standalone repo |
 | Understand Sema | [`sema/primary.md`](sema/primary.md) → the in-repo spec it points to |
 | See heating / Polstein lifecycle economics | [`heating-system-design/research/polstein-design.md`](heating-system-design/research/polstein-design.md) |
 | Trace *why* a change was made | the domain's `changelog.md` |
 
+## Domain shape
+
+Within each `wiki/<domain>/`:
+
+- `executor/` — the long-lived **rebuild-spec tree** for the domain.
+  `executor/primary.md` is the *hub* (≤ ~250–300L: one-line "what this is",
+  cross-cutting invariants, glossary, TOC); the substantive content fans out
+  into sibling sub-specs (`transport.md`, `codec.md`, `actors.md`, …),
+  one concern per file (~300–500L each, 1000L hard cap). The spec is the
+  whole tree, not the hub. Authoritative once `Verified`.
+- `research/concerns/` — open architectural questions still under investigation.
+- `research/` (loose md) — raw notes, pre-spec thinking, principles.
+- `designs/<slug>.md` — ratified design-specs that haven't shipped yet
+  (lifecycle in [`designs-process.md`](designs-process.md); status tracked by
+  Linear once wired).
+- `changelog.md` — one entry per commit; *why* + brief *what*, paired with the
+  commit title.
+
+Cross-cutting / tooling design-specs live at the wiki root in
+[`designs/`](designs/), alongside meta convention docs like
+[`designs-process.md`](designs-process.md) and
+[`designs/linear-integration.md`](designs/linear-integration.md).
+
 ## Domains
 
-Each top-level folder is a **domain** — a service, mechanism, or design area.
+Each top-level folder under `wiki/` is a **domain** — a service, mechanism, or
+design area.
 
 | Domain | What it is |
 | --- | --- |
@@ -52,6 +81,9 @@ Each top-level folder is a **domain** — a service, mechanism, or design area.
 
 ## Cross-cutting
 
+- [`DESIGN_INDEX.md`](DESIGN_INDEX.md) — L0 hub of active work: current `designs/` entries across all domains, open concerns, conventions. Read this every session.
+- [`designs-process.md`](designs-process.md) — the `designs/` lifecycle (status stamps, Pass discipline, fractal expansion, when to ship/distill to `executor/`).
+- [`designs/linear-integration.md`](designs/linear-integration.md) — Linear ↔ wiki interface (epic + sub-issue templates, port/pull recipes, status-flow).
 - [`working-with-llms.md`](working-with-llms.md) — how we work with Claude and the wiki conventions: how Claude operates, source precedence, the maturity-stamp dial, signaling vocabulary, the research→executor loop, memory-vs-wiki. The *why* behind the conventions.
 - [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) — the canonical `CLAUDE.md` for the umbrella directory: the rules Claude follows, incl. the wiki authoring conventions ("Wiki essentials") and source precedence (see Setup).
 - [`glossary.md`](glossary.md) — vocabulary + legacy→current naming (`atn`→LTN, `ASL`→Sema); defers to Sema for formal types.
