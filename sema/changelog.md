@@ -9,6 +9,36 @@ Newest at the top.
 
 ---
 
+## 2026-05-27 — tweak base g node class (`ced7cec`)
+
+**What:** Narrow the `Logical` value description in
+`definitions/enums/base.g.node.class/000.yaml`. Replace
+*"purely logical or service-level nodes such as SCADA, forecasting
+services, market-maker actors, simulation nodes, or organizational
+microservices..."* with *"Used by GridWorks for SCADA and forecasting
+services."* Removes "market-maker actors", "simulation nodes", and
+"organizational microservices" from the named examples.
+
+**Why:** Aligns Sema's lexicon with the architectural distinction
+emerging in `gridworks-base`: GNodes (Physical + Logical) are
+production control-plane participants; services that use the gwbase
+rabbit+sema toolkit without joining the production GNode system
+(journalkeeper, ear's actor-side, future analytics consumers) are
+explicitly NOT Logical GNodes. The prior description's
+"organizational microservices" phrasing invited the journalkeeper-
+as-Logical-GNode reading the design is moving away from. Narrowing
+to *only* SCADA + forecasting services removes the ambiguity.
+Supports the in-flight `wiki/gridworks-base/designs/support-non-gnode-actors/`
+design (ServiceSettings vs GNodeSettings split).
+
+Side-effect to track separately: Supervisor and TimeCoordinator —
+both in `TransportClass`, both control-plane participants, neither
+in `base.g.node.class` — are now also outside Logical's scope. They
+were never strictly GNodes, but the design implications surface
+during the gwbase refactor (see `wiki/gridworks-base/designs/support-non-gnode-actors/`).
+
+---
+
 ## 2026-05-27 — migrate findings.md → designs/ + research/concerns/ (`aa3112f`)
 
 **What:** Retire `wiki/sema/research/findings.md` (legacy under the new
