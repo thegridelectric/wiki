@@ -9,8 +9,7 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-05-27 — migrate findings.md → designs/ + research/concerns/
+## 2026-05-27 — migrate findings.md → designs/ + research/concerns/ (`aa3112f`)
 
 **What:** Retire `wiki/sema/research/findings.md` (legacy under the new
 designs-process). Items broken out:
@@ -44,8 +43,7 @@ content accretes. Two items had enough shape to be designs (concrete
 plans, exit criteria); three remain concerns (modeling questions
 without clarity).
 
-<!-- pending commit -->
-## 2026-05-26 — merge dev
+## 2026-05-26 — merge dev (`0d07927`)
 
 **What:** Merge commit `0d07927` bringing `origin/dev` into the local
 `ej-dev` line. Brings in a large batch of dev-landed changes:

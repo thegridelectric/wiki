@@ -159,5 +159,5 @@ The right answer depends on facts not yet decided:
 - [`research/erb-md-mirror.md`](../erb-md-mirror.md) — the
   bijective-MD proposal touches similar code-gen-direction questions.
 - [`research/erb-no-degradation-audit.md`](../erb-no-degradation-audit.md)
-  — the audit items (F5, F6, axiom-DSL feasibility) feed into the
-  feasibility of (B) more broadly.
+  — the audit threads (tracked in Linear) feed into the feasibility of
+  (B) more broadly.

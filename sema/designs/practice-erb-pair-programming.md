@@ -3,11 +3,11 @@
 Status: Draft · Pass 0 · Updated 2026-05-26
 
 > A focused setup-and-practice arc to give jess firsthand experience of
-> the ej+Claude rapid-rulebook loop **before** continuing the open audit
-> threads (F5 TypeHelpers alignment, F6 Templates table, axiom-DSL
-> feasibility, round-trip empirical run). Most of the setup has already
-> landed in this session; the design captures the remaining shape and
-> the exit criterion.
+> the ej+Claude rapid-rulebook loop **before** continuing the open
+> ERB↔Sema audit threads (tracked as Linear issues — see
+> [`../research/erb-no-degradation-audit.md`](../research/erb-no-degradation-audit.md)).
+> Most of the setup has already landed in this session; the design
+> captures the remaining shape and the exit criterion.
 
 ## TL;DR
 
@@ -74,11 +74,45 @@ What we're trying to internalize:
   produces bad SQL, broken FKs, or a snapshot-format diff that fights
   a consumer's pre-commit.
 
+## Candidate first-turn tasks (varied by kind)
+
+Sample a few different *kinds* of touches so it's not all schema or all
+data. Each candidate is reversible.
+
+- **Schema (add a column).** E.g., extend `TypeAxioms` with a new
+  field (a tag, a category, a difficulty marker).
+- **Data (add a row).** E.g., scaffold a new `Projection` row for a
+  quantity conversion that doesn't exist yet.
+- **Calc-field (write a formula).** E.g., "count published types per
+  owner," or a derived field on an existing table.
+- **DAG / FK constraint (add a relationship).** E.g., add an FK column
+  that ties two existing tables together.
+- **Free-text fill-in.** E.g., backfill `example_count=0` rows in
+  `cli_commands` / `cli_flags` with worked examples.
+
+Drive Claude to propose the change *in rulebook terms* — a row, a
+formula, an FK column — and watch how the constrained action-space
+shapes the LLM output. Run `effortless build`, see what lands,
+iterate. Note which kinds feel easy and which feel forced.
+
 ## Out of scope for this design
 
-- The audit itself (F5, F6, axiom-DSL feasibility, round-trip
-  empirical). Picked up *after* practice converges.
-- The Words→Types refactor — separate design, separately scoped.
+- The audit itself — picked up *after* practice converges. Open
+  threads tracked in Linear; topical summary (current shape, not
+  authoritative labels):
+  - TypeHelpers rule alignment.
+  - Templates table — integration loose end.
+  - Axiom-DSL feasibility classification — identified as the linchpin
+    for the strong CMCC thesis.
+  - Empirical round-trip run of `yaml_round_trip_check.py` against
+    `ej-dev` to surface actual coverage gaps.
+  - The bijective MD↔ERB refactor in
+    [`../research/erb-md-mirror.md`](../research/erb-md-mirror.md)
+    §Core thesis.
+  - The parked R1/R2/R3 wiki↔ERB register-discipline thread
+    (see memory `queued-wiki-erb-register-discipline`).
+- The Words→Types refactor — separate design, separately scoped
+  ([`web-app-words-to-types.md`](web-app-words-to-types.md)).
 - Any structural rulebook changes that aren't reversible — practice is
   on changes we'd be happy to revert.
 
@@ -107,6 +141,35 @@ Linear closes; design file deletes.
   description typo. (a) gives the most signal because it exercises a
   table with relationships and a downstream API; (c) gives the least.
 - **MCP server wiring.** Worth doing now or after practice converges?
-  Argument for now: more tools = more realistic ej+Claude experience.
-  Argument for later: keeps the variable count low, isolates "did the
-  loop work because of the loop or because of the MCP tooling."
+  Argument for now: more tools = more realistic ej+Claude experience
+  (gives Claude `effortless_ping`, `effortless_build`, `query_rulebook`,
+  `validate_dag` natively + skill resources at `effortless://skills/...`,
+  so it can introspect the rulebook structurally instead of via
+  Python-jq-Bash gymnastics). Argument for later: keeps the variable
+  count low, isolates "did the loop work because of the loop or
+  because of the MCP tooling."
+
+## Background — why this exists
+
+Per the wrap-up of the valiant-raccoon session (2026-05-26), the
+ERB↔Sema synergy investigation is on hold as work-in-progress. Before
+resuming the audit threads, jess wants to **practice the ej+Claude
+rapid-rulebook loop firsthand** so she can calibrate her judgment on
+the synergy thesis. The strong CMCC reading
+([memory `erb-is-an-llm-interpretation`](../../../.claude/projects/-Users-jessica-GridWorks/memory/erb-is-an-llm-interpretation.md))
+casts ej's rulebook as a generative prior; this practice arc is
+partly testing whether that reading is *operationally* true for jess
+as it apparently is for ej.
+
+## Related
+
+- [`../research/erb-md-mirror.md`](../research/erb-md-mirror.md) —
+  bijective MD↔ERB refactor proposal (sema-specific).
+- [`../research/erb-no-degradation-audit.md`](../research/erb-no-degradation-audit.md)
+  — the audit; open threads tracked in Linear.
+- [`../research/concerns/two-claudes.md`](../research/concerns/two-claudes.md)
+  — the dev-lens / effortless-lens CLAUDE.md tension that this
+  practice will surface.
+- [`../research/concerns/rulebook-source-drift.md`](../research/concerns/rulebook-source-drift.md)
+  — the `cli_commands` drift question, candidate first-turn
+  exercise.
