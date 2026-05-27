@@ -17,6 +17,46 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-05-27 — wiki: retire research/findings.md; split into 5 designs (1 fractal)
+
+**Why:** the per-domain `research/findings.md` register was legacy
+(replaced GridWorks-wide by the `designs/` lifecycle in
+`wiki/designs-process.md`). Converted the 7 `F-NNN` entries into
+discrete design-specs under `wiki/gridworks-base/designs/`, each at
+`Status: Draft · Pass 0`:
+
+- `decouple-amq-topic.md` (was F-001)
+- `neutral-message-metadata.md` (was F-002; also folds in the
+  "explicitly NOT recommended" notes about full `MessageTransport` ABC
+  / speculative second-transport adapters)
+- `mock-transport-for-tests.md` (was F-003)
+- `routingclass-wire-aliases.md` (was F-007)
+- `support-non-gnode-actors/` — **fractal subfolder** combining
+  F-004 + F-005 + F-006 into one design with three sub-specs
+  (`service-settings.md`, `xdg-paths.md`, `init-json-validation.md`)
+  plus a `primary.md` hub. The three were always interlocking and
+  ship as one.
+
+Deleted `wiki/gridworks-base/research/findings.md` (the
+`research/` dir is now empty; left in place for future use). The
+XDG-paths sub-spec was sharpened on review: we want the XDG
+*convention*, not proactor's full `Paths` class abstraction.
+
+All five new designs registered in `wiki/DESIGN_INDEX.md` "Designs"
+section.
+
+## 2026-05-22 — release 0.4.2: fix CI publish step + bump version (`50633e8`)
+
+**Why:** the release CI was wedged. `pypa/gh-action-pypi-publish@v1.10.0`'s
+bundled twine cannot parse the Metadata-Version 2.4 that `uv build` now
+emits (`"Metadata is missing required fields: Name, Version"`), which
+is why both 0.4.0 and 0.4.1 CI publishes failed — 0.4.0 had to be
+published by hand, 0.4.1 was tagged but never reached PyPI. Swapping
+publish from the gh-action to `uv publish` lands on a path that
+handles 2.4 natively. Bumped to 0.4.2 (skipping 0.4.1's unreached
+slot).
+
 ## Roadmap — Drift-proof generated rabbit topology; infra owns the exchange fabric
 
 > Lands across several commits (the `uv` migration below was the first).

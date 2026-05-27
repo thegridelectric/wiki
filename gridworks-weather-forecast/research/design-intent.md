@@ -17,6 +17,23 @@ new repo replaces `gridworks-journalkeeper/src/gjk/weather_service.py`
 > trajectory" below are the **eventual** state, not what hits the
 > wire on day one. The repo name reflects the eventual goal.
 
+## Stack + framework facts
+
+- Built on **`gridworks-base` (gwbase)** — the rabbit-transport actor
+  framework + sema codec. See `wiki/gridworks-base/executor/primary.md`.
+- This is a **GNode service**: `TransportClass.WeatherForecastService`.
+  The `WeatherActor` subclasses **`gwbase.GridworksActor`** (not the
+  transport-only `ActorBase`) — it participates in the control plane.
+- **Routing-class long form** (see
+  [`wiki/gridworks-base/designs/routingclass-wire-aliases.md`](../../gridworks-base/designs/routingclass-wire-aliases.md)).
+  This service's routing class is `weather` (long form), NOT the
+  legacy short `ws`. A regression to `ws` breaks the prod broker
+  fabric. The actor's `_consume_exchange = "ws_tx"` override exists
+  *only* to match a legacy prod exchange name and SHALL be revisited
+  when that fabric is rebuilt — it is not the gwbase-canonical
+  routing (canonical is `<rc>mic_tx`; see
+  `wiki/gridworks-base/executor/primary.md` §7).
+
 ## Goals
 
 **Primary.** Provide **weather forecasts** to the LTNs in the form

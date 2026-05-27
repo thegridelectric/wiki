@@ -17,6 +17,18 @@ Newest at the top.
 
 ---
 
+## 2026-05-27 — get ci tests working
+
+**Why:** Stage 2 deleted `Makefile`, but `.github/workflows/tests.yml`
+still called `make venv` / `make dev` / `make test` — CI broke on the
+first push with `make: *** No rule to make target 'venv'`. Replaced
+with `uv sync --all-extras --all-groups --locked` + `uv run pytest`.
+The `--all-extras` is load-bearing: gjk's pyproject splits dev deps
+across `[project.optional-dependencies]` (where pytest lives) and
+`[dependency-groups]`; `--all-groups` alone doesn't pull pytest.
+Matches gwwf's working pattern; switched `Install uv` to the official
+`astral-sh/setup-uv@v6` action while at it.
+
 ## 2026-05-27 — minor script added (point_at_prod_observe.py)
 
 **Why:** Companion to `point_at_dev_hack.py`, narrower scope: bind
@@ -55,9 +67,9 @@ runner":
 - **`g_node.json`** — synthesized dev identity (`d1.journal.dev.…`).
   Transient: gjk is **not** a GNode actor, so this file exists only
   because gwbase 0.4.x's `ActorBase.__init__` requires GNode identity
-  fields on disk. Removed once F-004 in
-  `wiki/gridworks-base/research/findings.md` lands the
-  `ServiceSettings` split. A `_note` field in the JSON itself
+  fields on disk. Removed once
+  [`wiki/gridworks-base/designs/support-non-gnode-actors/service-settings.md`](../gridworks-base/designs/support-non-gnode-actors/service-settings.md)
+  lands the `ServiceSettings` split. A `_note` field in the JSON itself
   captures the same reason for anyone who finds the file before
   reading the wiki.
 - **`sema_seed_request.yaml` → `src/gjk/sema_seed_request.yaml`.**

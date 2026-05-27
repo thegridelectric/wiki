@@ -150,9 +150,9 @@ gjk currently uses `gwbase.GNodeSettings` directly, which defaults
 `g_node_path` to `/etc/gridworks/g_node.json` — a system-level path
 that requires root to provision and doesn't follow XDG.
 
-This is the same gap the framework-level finding
-**`wiki/gridworks-base/research/findings.md` F-005** calls out: the
-proactor `Paths` class
+This is the same gap the framework-level design
+[**`wiki/gridworks-base/designs/support-non-gnode-actors/xdg-paths.md`**](../../gridworks-base/designs/support-non-gnode-actors/xdg-paths.md)
+calls out: the proactor `Paths` class
 (`gridworks-proactor/gwproactor/config/paths.py`) already implements
 the right pattern (`~/.config/gridworks/<service>/…`), and
 **`wiki/gridworks-ltn/executor/primary.md`** confirms the LTN already

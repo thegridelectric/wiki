@@ -17,7 +17,7 @@ Newest at the top.
 
 ---
 
-## 2026-05-24 — scaffold gwwf with WeatherActor + sema snapshot + dev-rabbit CI
+## 2026-05-26 — port actual weather out of journalkeeper
 
 **Why:** The legacy `weather_service.py` lived inside
 `gridworks-journalkeeper` — wrong home (journalkeeper is a persistence
@@ -43,9 +43,12 @@ What's on the wire is **like-for-like with the legacy service**: same
 `weather.gov.kmlt` channel name. The type definition lives in sema
 (added in the same session via `/make-sema-word` — `weather` v000 with
 axiom WindSpeedNonNegative) and the runtime is consumed via a sema
-snapshot at `src/gwwf/sema/` driven by `sema_seed_request.yaml` at
-the repo root. No vendored `named_types` in this repo — boundary
-types belong to sema; consumers consume snapshots.
+snapshot at `src/gwwf/sema/` driven by
+`src/gwwf/sema_seed_request.yaml` (the seed file is package-bound,
+snapshot-adjacent — proposed as a sema-wide convention so consumers
+don't litter their repo roots with regen ingredients). No vendored
+`named_types` in this repo — boundary types belong to sema; consumers
+consume snapshots.
 
 The `_consume_exchange = "ws_tx"` override is a deliberate concession
 to the prod broker (its exchange fabric uses short forms; F-007

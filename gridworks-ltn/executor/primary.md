@@ -71,12 +71,12 @@ production broker mgmt API on 2026-05-24, in
 Stage 5a notes). Same pattern for every `*mic_tx → ear_tx` binding.
 A gwbase journalkeeper binding `#` on ear_tx therefore CAN see LTN
 traffic — provided ActorBase's `RoutingClass` parser doesn't drop
-the messages first (see F-007 in
-`../gridworks-base/research/findings.md`).
+the messages first (see
+[`../gridworks-base/designs/routingclass-wire-aliases.md`](../gridworks-base/designs/routingclass-wire-aliases.md)).
 
 **Paths:** the LTN already follows the XDG `Paths` convention from
 gwproactor (see
-`../gridworks-base/research/findings.md` F-005):
+[`../gridworks-base/designs/support-non-gnode-actors/xdg-paths.md`](../gridworks-base/designs/support-non-gnode-actors/xdg-paths.md)):
 
 - Config dir: `~/.config/gridworks/ltn/`
 - Certs:      `~/.config/gridworks/ltn/certs/scada_mqtt/`
@@ -181,10 +181,12 @@ cleanup commit when this domain becomes active:
    `gridworks-scada/gw_spaceheat/actors/ltn/` until callers update.
 2. **Migrate framework from gwproactor to gwbase.** The LTN is the
    flagship gwbase object — its needs should drive any gaps in
-   gwbase. Likely surfaces several findings in
-   `../gridworks-base/research/findings.md` (F-004 ServiceSettings,
-   F-005 paths, F-007 routing classes) that need to land first or
-   alongside.
+   gwbase. Likely surfaces several gwbase designs that need to land
+   first or alongside:
+   [`support-non-gnode-actors`](../gridworks-base/designs/support-non-gnode-actors/primary.md)
+   (the ServiceSettings / XDG-paths / Sema-validate-init-JSON trio)
+   and
+   [`routingclass-wire-aliases`](../gridworks-base/designs/routingclass-wire-aliases.md).
 3. Make the FLO interface a named ABC in `ltn.py` and have
    `gridworks-flo/` provide concrete implementations — so optimizer
    swaps don't ripple through LTN.

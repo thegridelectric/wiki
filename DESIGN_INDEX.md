@@ -15,6 +15,11 @@ Status: Accepted · Pass 1 · Updated 2026-05-27
 _(every file under a `designs/` folder, anywhere in the wiki)_
 
 - (cross-cutting) [`designs/linear-integration.md`](designs/linear-integration.md)
+- **gridworks-base** — [`designs/decouple-amq-topic.md`](gridworks-base/designs/decouple-amq-topic.md)
+- **gridworks-base** — [`designs/mock-transport-for-tests.md`](gridworks-base/designs/mock-transport-for-tests.md)
+- **gridworks-base** — [`designs/neutral-message-metadata.md`](gridworks-base/designs/neutral-message-metadata.md)
+- **gridworks-base** — [`designs/routingclass-wire-aliases.md`](gridworks-base/designs/routingclass-wire-aliases.md)
+- **gridworks-base** — [`designs/support-non-gnode-actors/primary.md`](gridworks-base/designs/support-non-gnode-actors/primary.md) (fractal: service-settings + xdg-paths + init-json-validation)
 - **gridworks-protocol** — [`designs/gwproto-shrink.md`](gridworks-protocol/designs/gwproto-shrink.md)
 - **sema** — [`designs/practice-erb-pair-programming.md`](sema/designs/practice-erb-pair-programming.md)
 - **sema** — [`designs/web-app-words-to-types.md`](sema/designs/web-app-words-to-types.md)

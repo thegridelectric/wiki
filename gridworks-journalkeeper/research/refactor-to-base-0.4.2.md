@@ -262,9 +262,10 @@ offline development, not the primary smoke target.
   traffic uses routing classes that ActorBase drops (see F-007 below).
 - **Zero weather messages caught** despite the operator-reported
   10-minute cadence and runs spanning the expected window. Root cause
-  surfaced (and filed as F-007 in
-  `../../gridworks-base/research/findings.md`): ActorBase's
-  `RoutingClass` enum lacks the short forms production actually uses
+  surfaced (and now tracked as
+  [`../../gridworks-base/designs/routingclass-wire-aliases.md`](../../gridworks-base/designs/routingclass-wire-aliases.md)):
+  ActorBase's `RoutingClass` enum lacks the short forms production
+  actually uses
   (`ws`, `s`); every `rjb.hw1-isone-ws.ws.weather` and
   `gw.<scada>.to.s.*` message is dropped at parse. 48 such drops in
   the 5-minute window.
