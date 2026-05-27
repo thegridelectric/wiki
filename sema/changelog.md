@@ -9,6 +9,59 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-05-27 — migrate findings.md → designs/ + research/concerns/
+
+**What:** Retire `wiki/sema/research/findings.md` (legacy under the new
+designs-process). Items broken out:
+
+- **`designs/practice-erb-pair-programming.md`** (Draft · Pass 0) —
+  setup-and-practice arc for jess to feel the ej+Claude rapid-rulebook
+  loop before resuming the ERB↔Sema audit. Captures current setup
+  status (CLI, port-5434 mirror, Postico) and a concrete exit
+  criterion.
+- **`designs/web-app-words-to-types.md`** (Draft · Pass 0) — rename
+  "Word"→"Type" through `sema/app/api/models.py` + `sema/app/web/src/`
+  and tear out the "Vocabulary" framing entirely. Rulebook untouched.
+  Gated on a "publish the dashboard?" decision.
+- **`research/concerns/dashboard-vocabulary-modeling.md`** — open
+  modeling question for if/when Vocabulary is reintroduced as a
+  first-class concept (application-scoped, snapshot-based, tag-cut).
+- **`research/concerns/two-claudes.md`** — the dev-lens
+  (`CLAUDE.md`, gitignored) vs effortless-lens (`effortless_CLAUDE.md`,
+  committed) tension, with phase-mapping working theses.
+- **`research/concerns/rulebook-source-drift.md`** — the architectural
+  question raised by `cli_commands`: code-canonical-with-check (A) vs
+  rulebook-canonical-with-codegen (B) vs code-canonical-with-introspection
+  (C). Status quo is (A) with no drift-check yet.
+
+**Why:** Under the new `designs-process.md`, per-domain `findings.md`
+registers are legacy. New items go to **Linear** (when wired, for
+actionable work) or **`research/concerns/`** (architectural and still
+under investigation) or **`designs/<slug>.md`** (ratified). Migrating
+the live items now lets us stop using the legacy file before more
+content accretes. Two items had enough shape to be designs (concrete
+plans, exit criteria); three remain concerns (modeling questions
+without clarity).
+
+<!-- pending commit -->
+## 2026-05-26 — merge dev
+
+**What:** Merge commit `0d07927` bringing `origin/dev` into the local
+`ej-dev` line. Brings in a large batch of dev-landed changes:
+`active`→`published` lifecycle rename, new format definitions
+(`non.empty.string`, `positive.int.as.str`), several type-version
+adjustments, the new top-level `spec/` folder, deletion of the old
+`docs/` tree (content relocated to wiki), regenerated indexes, and
+the dev-branch sema-vocabulary CLAUDE.md.
+
+**Why:** Sync point so the `jm/effortless` work (port move, swap
+claudes, eventual web-app refactor) sits on top of current dev rather
+than the older ej-dev branch base. Brings the dev-lens authoring
+conventions into reach on this branch — required for the two-lens
+CLAUDE.md pattern (effortless_CLAUDE.md committed + gitignored
+personal CLAUDE.md) to be meaningful.
+
 ## 2026-05-26 — swap claudes
 
 **What:** Pure rename (R100, 0 line changes) of the committed
