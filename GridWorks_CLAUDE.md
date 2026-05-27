@@ -1,5 +1,7 @@
 # GridWorks — working conventions for Claude
 
+Status: Draft · Pass 0 · Updated 2026-05-27
+
 > Canonical at `wiki/GridWorks_CLAUDE.md`; symlink setup in
 > [`README.md`](README.md#setup). Paths below are relative to the umbrella dir
 > (parent of `wiki/` + the sibling code repos: `gridworks-base`,
@@ -28,10 +30,21 @@ Resolve conflicts in this order:
 
 ## Status stamps
 
-Every non-trivial doc carries a one-line stamp; `##` sections carry their own
-where they diverge (not deeper). Applies to `research/` and `executor/`:
+Every non-trivial wiki doc carries a one-line stamp at the top.
+Applies to **all wiki markdown** except: `README.md`, `changelog.md`,
+`DESIGN_INDEX.md`, `glossary.md`, `active-claims*.md`, and files under
+`wiki/tests/` and `wiki/tools/`. Enforced by
+`wiki/tests/test_doc_health.py`.
 
 `Status: <maturity> · Pass <n> · Updated <date>[ · Reviewed <date>@<commit>]`
+
+**The doc-level stamp is a floor.** No section in the doc may have
+*lower* maturity than the doc-level stamp. A `##` section MAY carry
+its own stamp *only when it is more mature than the doc-level stamp*
+— e.g., a settled glossary or already-`Verified` list of invariants
+inside an otherwise-`Draft` design. If a section would be *less*
+mature than the doc, demote the doc instead. Section stamps live at
+`##`, never deeper.
 
 - **Maturity** `Draft → Accepted → Verified` — `Verified` = validated against
   reality (code, tests, or experiments; the `Reviewed` field records which).

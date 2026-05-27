@@ -3,9 +3,13 @@
 Run from the wiki root:  `uv run pytest`  (or `pytest`).
 
 Checks:
-- every `research/` and `executor/` doc carries a status stamp
-  (`Status: <Draft|Accepted|Verified> · Pass <n> · Updated <date>[ · Reviewed ...]`)
-- no doc exceeds the 1000-line cap (split it into a hub + sub-specs)
+- every wiki markdown doc carries a status stamp
+  (`Status: <Draft|Accepted|Verified> · Pass <n> · Updated <date>[ · Reviewed ...]`),
+  except for a small exempt set: changelogs, READMEs, the live navigation
+  hubs (DESIGN_INDEX), vocabulary canon (glossary), operational state
+  (active-claims*), and the test infra itself.
+- a design at Accepted or Verified maturity has Pass >= 1.
+- no doc exceeds the 1000-line cap (split it into a hub + sub-specs).
 
 Each doc is its own parametrized case, so a failure names the exact file.
 """
@@ -23,30 +27,50 @@ MATURITY_RE = re.compile(r"Status:[^\n]*\b(Draft|Accepted|Verified)\b")
 PASS_RE = re.compile(r"\bPass\s*(\d+)\b")
 MAX_LINES = 1000
 
-# Docs under these directory names must carry a status stamp (the convention's
-# scope). Top-level meta docs, changelogs, and domain-root navigation are exempt.
-STAMP_SCOPE_DIRS = {"research", "executor", "designs"}
+# Files exempt from the stamp requirement:
+#   - changelog.md: per-domain commit narrative; its own format.
+#   - README.md:    navigation / cold entry; not designed content.
+#   - DESIGN_INDEX.md: live navigation hub; not designed content.
+#   - glossary.md:  vocabulary canon; no Draft→Verified arc.
+#   - active-claims*.md: operational state.
+STAMP_EXEMPT_NAMES = {
+    "changelog.md",
+    "README.md",
+    "DESIGN_INDEX.md",
+    "glossary.md",
+    "active-claims.md",
+    "active-claims-template.md",
+}
+
+# Top-level directories whose contents are exempt entirely from stamp
+# requirements (test infrastructure + operational tool scripts are not
+# designed content).
+STAMP_EXEMPT_TOPLEVEL = {"tests", "tools"}
 
 
 def _md_files() -> list[Path]:
     return sorted(p for p in WIKI.rglob("*.md") if ".git" not in p.parts)
 
 
-## Files in a status-stamp scope dir but exempt from the stamp requirement
-## (changelogs are by convention not status-stamped; READMEs are nav, not content).
-STAMP_EXEMPT_NAMES = {"changelog.md", "README.md"}
-
-
 def _stamp_scope() -> list[Path]:
-    return [
-        p
-        for p in _md_files()
-        if STAMP_SCOPE_DIRS & set(p.relative_to(WIKI).parts[:-1])
-        and p.name not in STAMP_EXEMPT_NAMES
-    ]
+    """All wiki markdown that must carry a status stamp.
+
+    Universal scope minus the explicit name exemptions above and the
+    top-level dir exemptions (tests/).
+    """
+    out: list[Path] = []
+    for p in _md_files():
+        if p.name in STAMP_EXEMPT_NAMES:
+            continue
+        parts = p.relative_to(WIKI).parts
+        if parts and parts[0] in STAMP_EXEMPT_TOPLEVEL:
+            continue
+        out.append(p)
+    return out
 
 
 def _designs_scope() -> list[Path]:
+    """Designs only — for the Accepted-requires-Pass>=1 check."""
     return [
         p
         for p in _md_files()
@@ -60,11 +84,13 @@ def _rel(p: Path) -> str:
 
 
 @pytest.mark.parametrize("doc", _stamp_scope(), ids=_rel)
-def test_research_executor_and_designs_docs_have_status_stamp(doc: Path) -> None:
+def test_wiki_docs_have_status_stamp(doc: Path) -> None:
     text = doc.read_text(encoding="utf-8", errors="replace")
     assert STAMP_RE.search(text), (
         f"{_rel(doc)} is missing a status stamp "
-        "(Status: Draft|Accepted|Verified · Pass <n> · Updated <date>)"
+        "(Status: Draft|Accepted|Verified · Pass <n> · Updated <date>). "
+        "Stamps now apply to all wiki markdown except the exempt set in "
+        "tests/test_doc_health.py."
     )
 
 

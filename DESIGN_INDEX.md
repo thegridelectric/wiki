@@ -1,6 +1,5 @@
 # GridWorks designs + concerns index
 
-Status: Accepted · Pass 1 · Updated 2026-05-27
 
 > Flat directory of every file under any `designs/` or `concerns/`
 > folder across the wiki. Maturity / workflow state are NOT encoded

@@ -1,5 +1,7 @@
 # Working with LLMs — guiding principles
 
+Status: Draft · Pass 0 · Updated 2026-05-27
+
 > For humans (Jessica + collaborators) to understand *how* we work with Claude on
 > GridWorks and *why* the wiki is built the way it is. This is the **rationale**;
 > the operative rules Claude follows live in
