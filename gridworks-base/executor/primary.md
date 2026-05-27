@@ -176,6 +176,18 @@ invariants are load-bearing — preserve them.
 11. `scada` is MQTT-only (no AMQP exchanges); reached via `amq.topic`.
     Broadcasts are subscriber-bound, not forwarded by the direct fabric.
 
+**Dev brokers vs prod broker.** The above invariants describe what
+**gwbase** declares. Actors **only** publish to `<rc>mic_tx` and
+passively assert their consume `<rc>_tx` exists — nothing else. A
+fresh dev broker (e.g. `gw-dev-rabbit`) is *empty* until you stand up
+the fabric (consume exchanges + cross-class bindings) yourself. The
+deployed **prod broker** additionally carries a set of legacy /
+temporary exchanges (`ws_tx`, etc.) and bindings that **are not part
+of the gwbase contract**; treat them as broker-fabric infra to be
+re-thought, not as canonical routing. If a consumer needs traffic
+from a publisher, the canonical move is to bind directly to the
+publisher's `<rc>mic_tx`.
+
 **Codec:**
 
 12. Wire JSON keys are PascalCase; null fields are omitted.
