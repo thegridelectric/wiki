@@ -111,7 +111,7 @@ lands in the section noted.
 
 ## H — Full project context
 
-`[fills from initial-stuff.md + design-options.md]`
+`[fills from design-options.md (project context) + versant.md (Versant tariff backdrop) + regulatory-precedent.md (Title 35-A path framing)]`
 
 - Versant Bangor Hydro District backdrop; Penobscot County, north of
   ISO-NE's Keene Road constraint
@@ -289,6 +289,6 @@ See companion docs for full citation lists:
   Buxton context, BTM track record, strategy notes
 - [`local-players.md`](local-players.md) — Our Katahdin / One North,
   Winn EMEC, Brookfield
-- [`initial-stuff.md`](initial-stuff.md) — Versant / wholesale-market
+- [`versant.md`](versant.md) — Versant Bangor Hydro rate classes and
   backdrop, Title 35-A microgrid rationale
 - [`design-options.md`](design-options.md) — canonical decision axes
