@@ -1,50 +1,16 @@
 # Changelog
 
-A reverse-chronological log of WHY we made each commit. The matching git
-commit holds the WHAT (the diff). Each entry's date and one-line title
-should mirror the corresponding commit so the two can be cross-referenced.
+A reverse-chronological log of WHY we made each commit **in the
+`gridworks-base` code repo**. The matching git commit (in
+`gridworks-base`) holds the WHAT (the diff). Each entry's date and
+one-line title mirror the corresponding code-repo commit.
 
-Format:
-
-```
-## YYYY-MM-DD — <commit subject line>
-
-**Why:** <the motivation — what problem, constraint, or decision drove
-this change; what alternatives were considered; what this unblocks>
-```
+This changelog does NOT track wiki edits — those live in the wiki
+repo's git history.
 
 Newest at the top.
 
 ---
-
-<!-- pending commit -->
-## 2026-05-27 — wiki: retire research/findings.md; split into 5 designs (1 fractal)
-
-**Why:** the per-domain `research/findings.md` register was legacy
-(replaced GridWorks-wide by the `designs/` lifecycle in
-`wiki/designs-process.md`). Converted the 7 `F-NNN` entries into
-discrete design-specs under `wiki/gridworks-base/designs/`, each at
-`Status: Draft · Pass 0`:
-
-- `decouple-amq-topic.md` (was F-001)
-- `neutral-message-metadata.md` (was F-002; also folds in the
-  "explicitly NOT recommended" notes about full `MessageTransport` ABC
-  / speculative second-transport adapters)
-- `mock-transport-for-tests.md` (was F-003)
-- `routingclass-wire-aliases.md` (was F-007)
-- `support-non-gnode-actors/` — **fractal subfolder** combining
-  F-004 + F-005 + F-006 into one design with three sub-specs
-  (`service-settings.md`, `xdg-paths.md`, `init-json-validation.md`)
-  plus a `primary.md` hub. The three were always interlocking and
-  ship as one.
-
-Deleted `wiki/gridworks-base/research/findings.md` (the
-`research/` dir is now empty; left in place for future use). The
-XDG-paths sub-spec was sharpened on review: we want the XDG
-*convention*, not proactor's full `Paths` class abstraction.
-
-All five new designs registered in `wiki/DESIGN_INDEX.md` "Designs"
-section.
 
 ## 2026-05-22 — release 0.4.2: fix CI publish step + bump version (`50633e8`)
 

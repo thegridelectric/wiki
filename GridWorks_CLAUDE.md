@@ -115,8 +115,9 @@ the hooks; I MUST NOT create that file myself.
 **Structure** — each top-level `wiki/<domain>/` is a service/mechanism/design
 area. Within a domain: `research/` (pre-spec notes, not normative), `executor/`
 (the **faithful-rebuild spec** — complete enough to rebuild the domain from the
-docs alone), and `changelog.md` (one entry per commit; date + one-line title
-mirror the actual git commit; git = the *what*, changelog = the *why*).
+docs alone), and `changelog.md` (one entry per commit **in the corresponding
+code repo**; code-repo git = the *what*, changelog = the *why*). Wiki edits
+live in the wiki repo's own git history, not here.
 
 **Hub-and-spoke** — the hub document of each `executor/` folder is always named
 **`primary.md`**. Keep it **short** (≤ ~250–300 lines): overview, cross-cutting
@@ -138,16 +139,17 @@ doc may exceed **1000 lines** — split it.)
 
 **Commit + changelog convention:**
 
-- Git commits SHALL be **title-only** — a single concise summary line, no
-  body. The diff is the authoritative *what*; bodies risk drift from the
-  diff and duplicate what belongs in the changelog.
-- The corresponding `wiki/<domain>/changelog.md` entry SHALL contain a
-  brief *what* and the *why*. Date + title mirror the commit so the two
-  can be cross-referenced (`git = the pointer; changelog = the narrative`).
-- **Before writing a changelog entry, you SHALL verify it against the
-  actual diff** (`git show <hash>` or `git diff <hash>^ <hash>`), not your
-  memory of the change. Drift between the diff and the changelog is the
-  failure mode this convention exists to prevent.
+- Code-repo git commits SHALL be **title-only** — a single concise
+  summary line, no body. The diff is the authoritative *what*.
+- The corresponding `wiki/<domain>/changelog.md` entry SHALL contain
+  a brief *what* and the *why*. Date + title mirror the code-repo
+  commit (`code-repo git = the pointer; changelog = the narrative`).
+- **Before writing a changelog entry, you SHALL verify it against
+  the actual diff** (`git show <hash>` in the code repo), not your
+  memory of the change.
+- Pending entries (`<!-- pending commit -->`) get written ONLY when
+  the next planned commit is in the **code repo**. Wiki-only edits
+  earn no pending entries.
 
 **Where to start** — `executor/` specs are a work in progress across every
 domain. When a repo has substantial code but a poor/missing `executor/`, the

@@ -1,13 +1,57 @@
 # Changelog
 
-A reverse-chronological log of WHY we made each commit. The matching git
-commit (in the `sema` repo) holds the WHAT (the diff). Each entry's date and
-one-line title should mirror the corresponding commit so the two can be
-cross-referenced.
+A reverse-chronological log of WHY we made each commit **in the
+`sema` code repo**. The matching git commit (in `sema`) holds the
+WHAT (the diff). Each entry's date and one-line title mirror the
+corresponding code-repo commit.
+
+This changelog does NOT track wiki edits — those live in the wiki
+repo's git history.
 
 Newest at the top.
 
 ---
+
+## 2026-05-29 — Adjust GNodeClass concepts (`b843710`)
+
+**What:** Two enum edits:
+
+- `definitions/enums/gw.g.node.class/000.yaml` — remove
+  `TimeCoordinator` from the enum AND its value-description block.
+  The enum is unpublished, so removal is permissible (per Sema's
+  "enums are additive only" MUST, which binds only after publication).
+- `definitions/enums/base.g.node.class/000.yaml` — port the
+  `ced7cec` tightening of the `Logical` value-description from the
+  `jm/effortless` branch onto `dev`. Replace
+  *"purely logical or service-level nodes such as SCADA, forecasting
+  services, market-maker actors, simulation nodes, or organizational
+  microservices..."* with *"Used by GridWorks for SCADA and forecasting
+  services."*
+
+**Why:** Both edits land the same architectural distinction that's
+emerging in `gridworks-base`: GNodes are grid entities (physical +
+logical) participating in the production control plane; system
+services (Supervisor, TimeCoordinator, journalkeeper, ear actor-side)
+are NOT GNodes even if they ride the same rabbit+sema toolkit.
+
+TimeCoordinator specifically: its role is "maintaining simulation
+time or orchestrated test time across actors." That's a system
+service, not a grid entity. The tightened `base.g.node.class/Logical`
+explicitly excludes "simulation nodes" and "organizational
+microservices." TimeCoordinator fits both excluded categories.
+Symmetry with Supervisor (also non-GNode but a control-plane
+orchestrator) becomes clean after this change.
+
+The base.g.node.class fix-forward closes a branch-discipline issue:
+the tightening was made on `jm/effortless` (which hasn't merged to
+dev) but the lexicon-level distinction is dev-applicable.
+
+Supports the in-flight
+`wiki/gridworks-base/designs/support-non-gnode-actors/` design —
+specifically the `orchestrator.md` (formerly `control-plane-tier.md`)
+sub-spec, which lifts the heartbeat + sim.timestep machinery into a
+middle `Orchestrator` tier that both Supervisor and TimeCoordinator
+can extend without GNode identity.
 
 ## 2026-05-29 — ignore top level seed_request.yaml (`ce5e770`)
 
@@ -48,42 +92,6 @@ both in `TransportClass`, both control-plane participants, neither
 in `base.g.node.class` — are now also outside Logical's scope. They
 were never strictly GNodes, but the design implications surface
 during the gwbase refactor (see `wiki/gridworks-base/designs/support-non-gnode-actors/`).
-
----
-
-## 2026-05-27 — migrate findings.md → designs/ + research/concerns/ (`aa3112f`)
-
-**What:** Retire `wiki/sema/research/findings.md` (legacy under the new
-designs-process). Items broken out:
-
-- **`designs/practice-erb-pair-programming.md`** (Draft · Pass 0) —
-  setup-and-practice arc for jess to feel the ej+Claude rapid-rulebook
-  loop before resuming the ERB↔Sema audit. Captures current setup
-  status (CLI, port-5434 mirror, Postico) and a concrete exit
-  criterion.
-- **`designs/web-app-words-to-types.md`** (Draft · Pass 0) — rename
-  "Word"→"Type" through `sema/app/api/models.py` + `sema/app/web/src/`
-  and tear out the "Vocabulary" framing entirely. Rulebook untouched.
-  Gated on a "publish the dashboard?" decision.
-- **`research/concerns/dashboard-vocabulary-modeling.md`** — open
-  modeling question for if/when Vocabulary is reintroduced as a
-  first-class concept (application-scoped, snapshot-based, tag-cut).
-- **`research/concerns/two-claudes.md`** — the dev-lens
-  (`CLAUDE.md`, gitignored) vs effortless-lens (`effortless_CLAUDE.md`,
-  committed) tension, with phase-mapping working theses.
-- **`research/concerns/rulebook-source-drift.md`** — the architectural
-  question raised by `cli_commands`: code-canonical-with-check (A) vs
-  rulebook-canonical-with-codegen (B) vs code-canonical-with-introspection
-  (C). Status quo is (A) with no drift-check yet.
-
-**Why:** Under the new `designs-process.md`, per-domain `findings.md`
-registers are legacy. New items go to **Linear** (when wired, for
-actionable work) or **`research/concerns/`** (architectural and still
-under investigation) or **`designs/<slug>.md`** (ratified). Migrating
-the live items now lets us stop using the legacy file before more
-content accretes. Two items had enough shape to be designs (concrete
-plans, exit criteria); three remain concerns (modeling questions
-without clarity).
 
 ## 2026-05-26 — merge dev (`0d07927`)
 

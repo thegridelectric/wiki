@@ -1,17 +1,13 @@
 # Changelog
 
-A reverse-chronological log of WHY we made each commit. The matching git
-commit holds the WHAT (the diff). Each entry's date and one-line title
-should mirror the corresponding commit so the two can be cross-referenced.
+A reverse-chronological log of WHY we made each commit **in the
+`gridworks-weather-forecast` code repo**. The matching git commit
+(in `gridworks-weather-forecast`) holds the WHAT (the diff). Each
+entry's date and one-line title mirror the corresponding code-repo
+commit.
 
-Format:
-
-```
-## YYYY-MM-DD — <commit subject line>
-
-**Why:** <the motivation — what problem, constraint, or decision drove
-this change; what alternatives were considered; what this unblocks>
-```
+This changelog does NOT track wiki edits — those live in the wiki
+repo's git history.
 
 Newest at the top.
 

@@ -1,21 +1,104 @@
 # Changelog
 
-A reverse-chronological log of WHY we made each commit. The matching git
-commit holds the WHAT (the diff). Each entry's date and one-line title
-should mirror the corresponding commit so the two can be cross-referenced.
+A reverse-chronological log of WHY we made each commit **in the
+`gridworks-journalkeeper` code repo**. The matching git commit (in
+`gridworks-journalkeeper`) holds the WHAT (the diff). Each entry's
+date and one-line title mirror the corresponding code-repo commit.
 
-Format:
-
-```
-## YYYY-MM-DD — <commit subject line>
-
-**Why:** <the motivation — what problem, constraint, or decision drove
-this change; what alternatives were considered; what this unblocks>
-```
+This changelog does NOT track wiki edits — those live in the wiki
+repo's git history.
 
 Newest at the top.
 
 ---
+
+## 2026-05-29 — test deterministic uuid5 message ids (`4c437ae`)
+
+**What:** Add `tests/test_uuid5_message_id.py` + a `tests/data/` fixture (a real
+captured `gridworks.ack` S3 object). Asserts `persist_message_default` mints a
+deterministic `uuid5` — same `from_alias|type|persisted_ms` → same id (matches
+the explicit formula), and a different `persisted_ms` → a different id. Hermetic
+(no DB/AWS; persistor built via `__new__`).
+
+**Why:** locks in the idempotency guarantee from `7308766` so a re-imported date
+stays a true no-op.
+
+## 2026-05-29 — s3 importer: empty-date guard + log-and-continue (`56d2455`)
+
+**What:** `s3_message_importer.py` — (A) `page.get("Contents", [])` so an
+empty/missing date folder no longer `KeyError`s; (B) the per-message failure
+path `continue`s instead of `return`ing, so one bad object no longer aborts the
+whole run.
+
+**Why:** a `Feb 1 → present` backfill will hit empty days (A) and the occasional
+undecodable object (B) — either currently kills the importer mid-run. Lifted from
+`jm/s3_hack` as a standalone PR for Joe; the C/E/F items and the
+`s3_analytics_import` wrapper are intentionally **not** included.
+
+Adds hermetic `tests/test_s3_message_importer.py` (no AWS/DB): A — a page with
+no `Contents` yields nothing (no `KeyError`) + a positive parse; B — driving
+`main()` with fakes where every download fails, asserting **both** messages are
+attempted (the loop `continue`s rather than `return`ing; pre-fix this would be 1).
+
+## 2026-05-29 — deterministic uuid5 message ids for idempotent re-import (`7308766`)
+
+**What:** In `sema_message_persistor.py`, `persist_message_default` now derives
+the message `id` as `uuid5(MESSAGE_ID_NAMESPACE, "{from_alias}|{type}|{persisted_ms}")`
+instead of `uuid4()` when there is no `MSG_ID_FIELDS` id; `time_received` is
+threaded into the default persistor and the `persist_message` dispatch is
+restructured; drop the now-unused `Callable` import.
+
+**Why:** `uuid4()` made re-importing a date **duplicate** rows for any type
+without a deterministic id (most types) — the `(id, timestamp)` PK +
+`on_conflict_do_nothing` can't dedupe a random id. The S3 filename triple is
+unique per object, so `uuid5` over it makes re-import a true no-op. No
+schema/model change. Lifted from `jm/s3_hack` as a standalone PR for Joe — the
+importer A–F changes and the `s3_analytics_import` wrapper are intentionally
+**not** included here.
+
+## 2026-05-29 — fix bug (`b19e8c6`) — export MarketTypeName from sema enums __init__
+
+**What:** Add `from gjk.sema.enums.market_type_name import MarketTypeName` and
+`"MarketTypeName"` to `__all__` in `src/gjk/sema/enums/__init__.py`.
+
+**Why:** `49c7cb3` vendored `market_type_name.py` and pointed
+`property_format.py`'s lazy import at `gjk.sema.enums`, but the generated
+`__init__.py` re-export was dropped during the snapshot restore — so
+`from gjk.sema.enums import MarketTypeName` raised `ImportError` the moment a
+`market.slot.name` value (e.g. inside an `atn.bid`) was validated. Adding the
+re-export unblocks decoding `atn.bid` / any `market.slot.name`. Self-corrects on
+a clean `sema snapshot build` (the generator emits the export).
+
+## 2026-05-29 — Add market type name (`49c7cb3`)
+
+**What:** Vendor the `market.type.name` enum into the gjk sema snapshot —
+`definitions/enums/market.type.name/000.yaml` + generated
+`sema/enums/market_type_name.py` — and point `property_format.py`'s
+`_market_type_name_enum()` lazy import at `gjk.sema.enums` (was the un-vendored
+`sema.runtime.enums`).
+
+**Why:** The `market.slot.name` format's validator (`is_market_name`) needs the
+`MarketTypeName` enum, but that's an axiom/validator dependency the `$ref`
+closure can't see (formats can't reference vocabulary), so `sema snapshot
+prepare` never pulled it — leaving the snapshot importing a non-existent
+`sema.runtime` and crashing the importer (`ModuleNotFoundError`) the moment an
+`atn.bid` / `latest.price` (both `$ref` `market.slot.name`) is decoded. Seeding
+the enum + fixing the import lets those types decode. Deeper fixes — threading
+`import_root` through the format generator, and whether a format may reference an
+enum at all — are tracked separately. (An earlier two-mode CLI / uuid5 /
+take-everything exploration was reverted and is not part of this commit.)
+
+## 2026-05-28 — add back accidentally deleted s3 message importer
+
+**Why:** `src/gjk/s3_message_importer.py` (Joe's S3 event-store → `gw_data`
+backfill importer) was lost when `6f93126` ("drop the legacy named_types
+cluster") removed it; it survived on `jds/db_v2`. Restored **verbatim** onto
+`jm/db_v2` so it's present in jm's PR in working form *before* any change —
+the APIs it depends on (`gjk.sema.SemaCodec`/`SemaType`,
+`SemaMessagePersistor.all_known_message_types()` / `persist_message()`) still
+resolve on this branch. Deliberately unmodified: a two-mode CLI variant
+(explicit date-range + rolling N-day-delayed) will be added as a *separate*
+module so Joe's original stays his.
 
 ## 2026-05-27 — get ci tests working
 

@@ -1,20 +1,15 @@
-# Changelog: gridworks-protocol
+# Changelog
 
-## 2026-05-26 · Open gridworks-protocol wiki domain + first design-spec
+A reverse-chronological log of WHY we made each commit **in the
+`gridworks-protocol` code repo**. The matching git commit (in
+`gridworks-protocol`) holds the WHAT (the diff). Each entry's date
+and one-line title mirror the corresponding code-repo commit.
 
-Created `wiki/gridworks-protocol/` with `executor/primary.md`
-(acceptable-minimum spec) and `designs/gwproto-shrink.md` (the full
-keep/migrate/delete plan based on import audit of proactor + scada on
-`dev`, 2026-05-26). The design originated as a research finding
-(`research/removing-unused-sema-from-gwproto.md`) and was migrated to
-the `designs/` location when the wiki-wide design-spec lifecycle
-convention was established same day (see `wiki/designs/changelog.md`).
+This changelog does NOT track wiki edits — those live in the wiki
+repo's git history.
 
-Status: `designs/gwproto-shrink.md` is at `Draft · Pass 0` — content
-is detailed but not yet ratified or formally iterated.
+Newest at the top.
 
-Why: gwproto had no wiki entry despite being a long-standing PyPI
-package; the README still uses pre-Sema "Application Shared Language"
-framing. The audit found that ~90% of gwproto's type surface is
-duplicated in gwsproto, with scada as the only blocker — surfaces a
-concrete cleanup path to shrink gwproto to just what proactor needs.
+---
+
+_No code commits to log yet under this convention._
