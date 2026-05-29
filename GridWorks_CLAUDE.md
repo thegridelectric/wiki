@@ -182,6 +182,17 @@ entries (if there's no clarity yet), or update `executor/primary.md`
 [`designs/linear-integration.md`](designs/linear-integration.md);
 live aggregated view in [`DESIGN_INDEX.md`](DESIGN_INDEX.md).
 
+**Implementation gate** — a design SHALL NOT begin implementation
+(code-repo edits matching its scope) until **every spoke** of the
+design — `primary.md` and all sub-specs in its folder — is at
+`Accepted` maturity with `Pass ≥ 1`. The hub-and-spoke pattern
+explicitly permits hub > spoke maturity during drafting (e.g. an
+Accepted `primary.md` with Draft sub-specs while individual sub-specs
+catch up — the doc-level *floor* rule applies within a doc, not
+across the hub-spoke relationship); the implementation gate is the
+moment everything must converge. Rationale: writing code against a
+Draft spec is the antipattern this convention exists to prevent.
+
 **Write boundary** — code repos are authoritative for the *what*; `wiki/` is the
 home for *why* + specs. Confirm before editing code repos' non-wiki files when
 the task is documentation.
@@ -194,3 +205,12 @@ SHALL NOT reference the wiki. Exempt: the wiki's own `README.md` and a repo's
 volatile specifics with `file:line`. Update the one canonical doc, don't
 duplicate; delete what's wrong. Open each doc with a one-line "what this is"
 for cheap recall.
+
+**Sema-typed JSON files** — on-disk JSON instances of a Sema type SHALL
+be named `<sema-type-name>.json`, where `<sema-type-name>` is the Sema
+`TypeName` verbatim with dots preserved (e.g. `g.node.gt.json`,
+`weather.channel.json`, `synced.readings.bundle.json`). NOT
+`g_node_gt.json` (Python-style transformation) and NOT `g_node.json`
+(half-snake legacy). The dot↔underscore transformation belongs at the
+code boundary only — Python module names for the same type stay
+snake-cased per Python convention (`g_node_gt.py`).
