@@ -19,8 +19,13 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **gridworks-base** — [`designs/neutral-message-metadata.md`](gridworks-base/designs/neutral-message-metadata.md)
 - **gridworks-base** — [`designs/routingclass-wire-aliases.md`](gridworks-base/designs/routingclass-wire-aliases.md)
 - **gridworks-base** — [`designs/support-non-gnode-actors/primary.md`](gridworks-base/designs/support-non-gnode-actors/primary.md) (fractal: service-settings + xdg-paths + init-json-validation)
+- **gridworks-data** — [`designs/gw-data-analytics-deployment.md`](gridworks-data/designs/gw-data-analytics-deployment.md)
+- **gridworks-journalkeeper** — [`designs/layered-test-harness.md`](gridworks-journalkeeper/designs/layered-test-harness.md)
+- **gridworks-journalkeeper** — [`designs/s3-importer-improvements.md`](gridworks-journalkeeper/designs/s3-importer-improvements.md)
 - **gridworks-protocol** — [`designs/gwproto-shrink.md`](gridworks-protocol/designs/gwproto-shrink.md)
 - **sema** — [`designs/practice-erb-pair-programming.md`](sema/designs/practice-erb-pair-programming.md)
+- **sema** — [`designs/snapshot-improvement.md`](sema/designs/snapshot-improvement.md)
+- **sema** — [`designs/untangle-market-type-name.md`](sema/designs/untangle-market-type-name.md)
 - **sema** — [`designs/web-app-words-to-types.md`](sema/designs/web-app-words-to-types.md)
 
 ## Concerns
