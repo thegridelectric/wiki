@@ -1,12 +1,41 @@
 # analytics-broker-shovel
 
-Status: Draft · Pass 0 · Updated 2026-05-27
+Status: Draft · Pass 0 · Updated 2026-05-29
 
 > Stand up a second RabbitMQ broker — the **analytics broker** —
 > separate from the production control broker (`hw1__1`). All audit /
 > analytics consumers (journalkeeper, dashboards, partner exports) move
 > to the analytics broker. The prod broker shovels its `ear_tx` traffic
 > there. The prod broker locks down to control-plane participants only.
+
+## Status — deferred (2026-05-29)
+
+Per a 2026-05-29 discussion (Joe pushed back; quick-gull grill), the
+analytics broker is **deferred** in favor of a simpler near-term
+arrangement: journalkeeper (and any single early analytics consumer)
+reads `ear_tx` directly on the prod broker via:
+
+- **Non-durable, auto-delete queue** — no disk persistence, no leak if
+  journalkeeper crashes, no broker-side state to manage.
+- **Dedicated read-only RMQ user** with permissions scoped to
+  `read="ear_tx"`, `write=""`, `configure=""`. Even if the cred leaks,
+  the worst the holder can do is read the audit-tap stream — they
+  cannot publish or disrupt control-plane traffic.
+
+Throughput-wise this is fine: fanout to one extra consumer on prod is
+incremental cost, and an auto-delete queue avoids the memory leak
+risk of a crashed consumer.
+
+The analytics broker remains the right end-state when the
+*consumer count* grows (dashboards, partner exports, multiple
+analytics services) or when the *trust-realm separation* concern
+bites operationally — most acutely when external (partner) consumers
+need access. The design below stays as the path for that future.
+
+For the deferred-near-term arrangement, the gwbase
+[`support-non-gnode-actors`](../../gridworks-base/designs/support-non-gnode-actors/primary.md)
+design's `ServiceSettings` shape covers journalkeeper either way —
+only the broker URL it points at differs.
 
 ## Why
 
