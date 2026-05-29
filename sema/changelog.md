@@ -9,6 +9,18 @@ Newest at the top.
 
 ---
 
+## 2026-05-29 — ignore top level seed_request.yaml (`ce5e770`)
+
+**What:** Add `seed_request.yaml` to the repo-root `.gitignore`.
+
+**Why:** The repo-root `seed_request.yaml` is a scratch seed for exercising
+`sema snapshot prepare` locally (e.g. validating that the
+gridworks-journalkeeper closure pulls `market.slot.name` → `market.type.name`).
+It is distinct from the canonical per-consumer seed
+(`gridworks-journalkeeper/src/gjk/sema_seed_request.yaml`) and the committed
+`template_seed_request.yaml`; ignoring it keeps ad-hoc snapshot experiments out
+of version control.
+
 ## 2026-05-27 — tweak base g node class (`ced7cec`)
 
 **What:** Narrow the `Logical` value description in
