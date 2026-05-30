@@ -80,6 +80,17 @@ which mints a cert + principal row together for both kinds.
 
 ## Open
 
+- **`validated-user-id` broker plugin** — to give consumers a
+  trustworthy publisher identity on every message, the prod broker
+  should run RabbitMQ's `validated-user-id` plugin (or equivalent),
+  which enforces that `properties.user_id` on every publish matches
+  the AMQP connection's authenticated identity (cert subject for
+  mTLS connections). With it enabled, a SCADA consuming an admin
+  routing key can trust `properties.user_id` for audit attribution
+  on the fat-client path. **Triggered by:** the admin design's
+  audit-attribution requirement
+  ([`../../../gridworks-admin/executor/primary.md`](../../../gridworks-admin/executor/primary.md)
+  "Operator identity for audit"). FIS team + rmqbot team decision.
 - **Service `single_writer` defaults** — FALSE by default, but some
   services (e.g., a single canonical ear-actor process) may opt in.
   Per-principal config decision.
