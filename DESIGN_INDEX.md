@@ -20,6 +20,7 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **gridworks-base** — [`designs/pika-thread-safe-publish.md`](gridworks-base/designs/pika-thread-safe-publish.md) (ActorBase publish thread-safety; decided: always-marshal via add_callback_threadsafe)
 - **gridworks-base** — [`designs/routingclass-wire-aliases.md`](gridworks-base/designs/routingclass-wire-aliases.md)
 - **gridworks-data** — [`designs/gw-data-analytics-deployment.md`](gridworks-data/designs/gw-data-analytics-deployment.md)
+- **gridworks-journalkeeper** — [`designs/custom-persistor-idempotency.md`](gridworks-journalkeeper/designs/custom-persistor-idempotency.md)
 - **gridworks-journalkeeper** — [`designs/layered-test-harness.md`](gridworks-journalkeeper/designs/layered-test-harness.md)
 - **gridworks-journalkeeper** — [`designs/s3-importer-improvements.md`](gridworks-journalkeeper/designs/s3-importer-improvements.md)
 - **gridworks-protocol** — [`designs/gwproto-shrink.md`](gridworks-protocol/designs/gwproto-shrink.md)
