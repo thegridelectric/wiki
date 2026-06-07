@@ -1,6 +1,6 @@
 # gridworks-journalkeeper — rebuild spec
 
-Status: Draft · Pass 0 · Updated 2026-05-27
+Status: Draft · Pass 0 · Updated 2026-06-07
 
 > Acceptable-minimum hub. Marks the load-bearing facts about what
 > journalkeeper IS after Stages 1+2 of the 2026-05 refactor; sub-spec
@@ -21,6 +21,25 @@ table.
 > journalkeeper migrates off prod and consumes from the analytics
 > broker's mirrored `ear_tx` instead. No analytics-tier service
 > should hold prod-broker credentials.
+
+## Deployment: two stacks run in parallel (transition)
+
+During the db_v2 transition we run **two journalkeepers at once**, each
+off its own branch:
+
+- **`main`** — Joe's (jds) new code against his **new database**. This is
+  the db_v2 line: the converged `SemaCodec + SemaMessagePersistor` path
+  with the custom persistors (`flo.params.house0`, `weather.forecast`)
+  fanning telemetry into `gw_data` `readings`. `main` was cut at the head
+  of `jds/db_v2`.
+- **`legacy`** — the **old journalkeeper**, kept running unchanged so the
+  established stack and its database stay live while the new one is
+  validated.
+
+Both consume the same bus traffic; they persist to **separate databases**.
+The parallel run is the safety net — `legacy` is the fallback of record
+until `main` + the new DB are trusted. Do not assume a single deployment
+when reasoning about gjk in this window.
 
 ## The central commitment
 

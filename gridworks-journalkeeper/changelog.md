@@ -12,6 +12,67 @@ Newest at the top.
 
 ---
 
+## 2026-06-05 — merge jm idempotent-msg-id + importer-robustness PRs (`0e51f9d`, `968216a`)
+
+**What:** PR #157 (`jm/idempotent-msg-id`) and PR #158
+(`jm/importer-robustness`) merged onto the integration branch. No new
+source beyond the already-logged feature commits — #157 carries `7308766`
+(deterministic uuid5 ids) + `4c437ae` (its test); #158 carries `56d2455`
+(empty-date guard + log-and-continue).
+
+**Why:** Recorded here only so the branch HEAD (`968216a`) resolves to a
+changelog entry. The substance lives in the three feature-commit entries
+below; these are the PR merge bubbles, no behaviour change of their own.
+
+## 2026-06-05 — flo.params.house0 + weather.forecast use the pseudo-channel pattern (`e45f197`)
+
+**What:** Reworked `flo_params_house0_persistor.py` and
+`weather_forecast_persistor.py` so both follow one division of labour with
+`pseudo_channels.py`: **`LayoutLitePersistor` syncs the registered
+pseudo-channels into the DB; every other persistor queries the
+pseudo-channels back out of the DB and writes readings against them**
+(comment in `pseudo_channels.py` rewritten to state this). Also comments
+out `new.command.tree` in `MSG_CREATED_AT_FIELDS_MS` until that type
+decodes correctly in SEMA.
+
+**Why:** `57f5340` introduced the two custom persistors but each managed
+its own pseudo-channel registration inline, duplicating the channel-sync
+logic LayoutLite already owns and risking divergent channel rows. Routing
+all registration through LayoutLite and making the readings-persistors
+read-only consumers of the channel table makes pseudo-channel identity
+single-sourced. `new.command.tree` was emitting under a broken SEMA shape,
+so it's parked rather than persisted half-formed.
+
+## 2026-06-05 — Fixed a bad SEMA merge (`95d3b89`)
+
+**What:** Removed two stray lines from `src/gjk/sema/enums/__init__.py`.
+
+**Why:** The sema-snapshot merge folded into `57f5340` left a duplicated /
+dangling enum re-export in the generated `__init__.py`. Trimmed by hand to
+restore a clean import surface; self-corrects on the next `sema snapshot
+build`.
+
+## 2026-06-05 — Custom persistence for flo.params.house0 and weather.forecast (`57f5340`)
+
+**What:** Adds `FloParamsHouse0Persistor` and `WeatherForecastPersistor`
+and registers them in `SemaMessagePersistor.custom_persistor_lookup`
+(keyed by `target_message_type`), joining `LayoutLitePersistor` and
+`ReportEventPersistor`. Both new persistors declare their own
+`PseudoChannel`s (e.g. `forecast-ws`, `forecast-oat`) and fan their
+payloads out into `gw_data` `readings`. Carries a sema-snapshot regen
+(drops the `weather` v000 type, `non.empty.string` / `positive.int.as.str`
+formats, and the `market.type.name` enum; adds `gw1.unit/002`) plus an s3
+importer date-range widening (`2026-01-09 → 2026-06-01`).
+
+**Why:** `flo.params.house0` and `weather.forecast` carry telemetry that
+belongs in `readings` keyed by channel, not as opaque JSON blobs in
+`messages` — the default persistor can't shape that, so each needs a custom
+handler the way `report.event` already has one. Registering them in
+`custom_persistor_lookup` means `all_known_message_types()` now binds and
+decodes them automatically. The snapshot regen is the vocabulary catching
+up to the types these persistors decode. (The pseudo-channel ownership in
+this commit is then cleaned up in `e45f197` above.)
+
 ## 2026-05-29 — test deterministic uuid5 message ids (`4c437ae`)
 
 **What:** Add `tests/test_uuid5_message_id.py` + a `tests/data/` fixture (a real

@@ -12,4 +12,12 @@ Newest at the top.
 
 ---
 
-_No code commits to log yet._
+## 2026-03-04 — Initial commit (`4686986`)
+
+**What:** Repo genesis — `.gitignore` (standard Python ignore set),
+`LICENSE`, and a 2-line `README.md`. No application code yet.
+
+**Why:** Stands the `gridworks-fleet-index-service` repository up as an
+empty scaffold so subsequent work has a home. Logged only to mark the
+repo's starting point; the first substantive code commit will carry the
+real *why*.

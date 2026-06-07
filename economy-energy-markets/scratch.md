@@ -183,15 +183,59 @@ When all source rows are DONE and Phase 3 has run, this scratch can
 be archived — the durable content has moved into the spec spokes
 and `heritage.md`.
 
-## High-priority reads (do these first)
+## High-priority reads — status
 
-1. `legacy/g-node-factory/docs/wiki/market-maker.md` — direct ancestor
-2. `legacy/g-node-factory/docs/wiki/ta-deed.md` and
-   `legacy/g-node-factory/docs/wiki/ta-validator.md` — direct ancestors
-3. `legacy/g-node-factory/docs/wiki/lexicon.md` — heritage glossary
-4. `legacy/g-node-factory/docs/wiki/atomic-metering-node.md` — possible
-   ancestor of Meter Reader
-5. `legacy/old_words/flo.md` — unknown but small, quick to assess
+Completed in P2B1–P2B3 (see source-list DONE rows):
+- g-node-factory/wiki/market-maker.md (empty), ta-deed.md (stub),
+  ta-validator.md (empty), atomic-metering-node.md (empty),
+  lexicon.md (empty); real-source ta-deed.rst, ta-validator.rst,
+  atomic-metering-node.md, lexicon.rst (TOC-only); TER Initiative
+  Section 2 PDF.
+
+Next priority candidates:
+- TER Initiative Section 1 DRAFT.pdf — Five Design Principles +
+  745 / 2222 critiques
+- TER Initiative Intro.pdf — short, frames the why
+- Redefining Demand Response.pdf — Algorand grant; Stetson
+  Mountain story + AMM-OPF vision
+- legacy/old_words/flo.md — unknown but small, quick to assess
+- legacy/old_words/market-bid.rst, market-slot.rst, market-type.rst
+  — market-mechanics ancestors; relevant when cleared-market.md
+  spoke gets seeded
+- Heritage-lexicon opportunistic walk per Batch 2's "lexicon
+  expansion" decision: pull per-term files when their concept is
+  invoked by a primary source under triage
+
+### The big heritage corpus at `legacy/gridworks/docs/`
+
+64 files — the real ReadTheDocs source set that the (mostly
+empty) `legacy/g-node-factory/docs/wiki/` stubs point at. NOT in
+the source list above; the per-term files get pulled
+opportunistically (per Batch 2's expansion decision) when a
+batch's primary source invokes them. Notable subsets:
+
+- **Actor ancestors:** `atomic-t-node.md` (LTN), `aggregated-t-node.md`
+  (TaAggregator), `terminal-asset.md`, `transactive-device.md`,
+  `g-node-factory.rst` (TaReader ancestor), `market-maker.md`
+  (the real one — distinct from the empty g-node-factory/ stub).
+- **Market mechanics ancestors:** `market-bid.rst`, `market-slot.rst`,
+  `market-type.rst`, `dispatch-contract.rst`, `price-service.md`,
+  `atn-market-maker-contract-state-management.md`.
+- **Topology + addressing:** `conductor-topology-node.md`
+  (copper-tree ancestor), `g-node-alias.md`, `g-node-role.rst`,
+  `core-g-node-role.rst`, `g-node-instance.rst`,
+  `g-node-registry.md`, `g-node-status.rst`.
+- **Infrastructure:** `gridworks-broker.md`,
+  `message-delivery-architecture.md`, `persistence-mechanism.md`,
+  `scada.md`, `supervisor.rst`, `time-coordinator.md`,
+  `weather-service.md`.
+- **Deployment heritage:** `millinocket-demo.md`,
+  `millinocket-tutorial.rst` — the original Millinocket work.
+- **Philosophical / vision pieces:** `economics.md`,
+  `sacred-economics.md`, `physics.md`, `universe.rst`,
+  `world-role.md`.
+- **Implementation detail:** `blockchain.md`, `code-generation.md`,
+  `data-classes.rst`, `enums.rst`, `sdk-types.rst`, `sals.rst`.
 
 ## Parallel track — `gridworks-marketmaker/` repo evaluation
 
