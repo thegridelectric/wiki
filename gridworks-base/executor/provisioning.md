@@ -1,5 +1,7 @@
 # gridworks-base — Provisioning & delivery (§3.6)
 
+Status: Draft · Pass 0 · Updated 2026-05-22
+
 Sub-spec of the gridworks-base rebuild spec — **start at
 [`primary.md`](primary.md)**. Section numbers are global; this file holds
 §3.6 (the broker's dev/prod home). The topology it provisions is described

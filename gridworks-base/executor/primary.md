@@ -1,5 +1,7 @@
 # gridworks-base — Rebuild Specification (primary)
 
+Status: Draft · Pass 0 · Updated 2026-06-06
+
 This is the **faithful-rebuild specification** for `gridworks-base`: the
 authoritative, language-agnostic account of the system, intended to be
 complete enough that someone (or Claude) could rebuild the entire package —
@@ -7,9 +9,8 @@ with all its intended features — from these docs alone. It describes WHAT
 the system is and HOW its layers compose, not the particulars of Python or
 pika.
 
-> Status: converging. Items marked "Open" flag decisions still being
-> resolved or features not yet built; everything else is intended as
-> normative.
+> Items marked "Open" flag decisions still being resolved or features not
+> yet built; everything else is intended as normative.
 
 This is the **hub** document — short by design. Depth lives in the
 sub-specs below; section numbers are **global** across all of them (so a
@@ -23,7 +24,7 @@ sub-specs below; section numbers are **global** across all of them (so a
 | §3 (excl. §3.6) | [`transport.md`](transport.md) | TransportClass/RoutingClass, routing-key grammar, RoutingEnvelopes, AMQP topology, scada/MQTT bridge, message properties, threading/lifecycle |
 | §3.6 | [`provisioning.md`](provisioning.md) | Topology generation, dev/prod delivery, GHCR, identities |
 | §4 | [`codec.md`](codec.md) | SemaType, SemaCodec, versioning, property formats, the `gw` envelope + wrap/unwrap |
-| §5–§6 | [`actors.md`](actors.md) | ActorBase, GridworksActor, the hello example, diagnostics |
+| §5–§6 | [`actors.md`](actors.md) | ActorBase / Orchestrator / GridworksActor tiers; settings, XDG file locations & logging; the hello example; diagnostics |
 
 ## The central commitment
 
@@ -57,7 +58,7 @@ them already lives here in `gwbase` (§3.1).
 
 ```
 +---------------------------------------------------------------+
-| Application layer  (subclasses of ActorBase / GridworksActor)
+| Application layer  (ActorBase / Orchestrator / GridworksActor subclasses)
 |   - owns its own SemaCodec instance (registry of message types)
 |   - decides how to dispatch on envelope.type_name
 +--- process_message(envelope, body)  <----- send(envelope, body)
@@ -84,8 +85,9 @@ The contract:
 
 - **Receive:** transport parses the routing key into a `RoutingEnvelope`,
   ACKs the delivery to the broker, and calls `dispatch_message(envelope,
-  body)` — which `GridworksActor` resolves to `process_message` for
-  application traffic. The application decodes `body` with whatever codec
+  body)` — which `Orchestrator` resolves to `process_message` for
+  application traffic (a bare `ActorBase` tap implements `dispatch_message`
+  itself). The application decodes `body` with whatever codec
   it holds.
 - **Send:** application constructs a typed message, encodes it to bytes
   with its codec, builds a `RoutingEnvelope`, and calls
@@ -102,21 +104,33 @@ without changing the other.
 
 Every actor has identifiers that together place it in the system:
 
-| Field                 | Lifetime    | Source                                      | Purpose                                       |
-| --------------------- | ----------- | ------------------------------------------- | --------------------------------------------- |
-| `alias`               | Durable     | `g_node.json` file (`Alias` field)          | Routable address (e.g. `d1.hello`)            |
-| `g_node_id`           | Durable     | `g_node.json` file (`GNodeId` field, UUID)  | Stable identity across reboots                |
-| `g_node_class`        | Durable     | `g_node.json` file (`GNodeClass` field)     | Free-form Sema class (e.g. `Scada`)           |
-| `g_node_instance_id`  | Per-process | Freshly generated UUID at construction time | Identifies one process lifetime (FIS uses it) |
-| `transport_class`     | Per-process | Application config                          | Routing taxonomy (closed enum — §3.1)         |
+Identity scope matches base-class scope across the three tiers
+(`ActorBase` → `Orchestrator` → `GridworksActor`):
 
-The `g_node.json` file is provisioned externally and read verbatim at
-construction time. The actor does not validate it; whatever placed the
-file is responsible for that.
+| Field                 | Lifetime    | Tier            | Source                                            | Purpose                                       |
+| --------------------- | ----------- | --------------- | ------------------------------------------------- | --------------------------------------------- |
+| `alias`               | Durable     | ActorBase       | `ServiceSettings.service_alias` (`LeftRightDot`)  | Routable address (e.g. `d1.hello`)            |
+| `instance_id`         | Per-process | ActorBase       | `ServiceSettings.instance_id`, else fresh UUID    | Identifies one process lifetime (FIS uses it) |
+| `transport_class`     | Per-process | Orchestrator    | `Orchestrator.__init__` param (intrinsic to role) | Routing taxonomy (closed enum — §3.1)         |
+| `g_node_id`           | Durable     | GridworksActor  | `g.node.gt.json` (`GNodeId`, UUID; Sema-validated)| Stable GNode identity across reboots          |
+| `g_node_class`        | Durable     | GridworksActor  | `g.node.gt.json` (`GNodeClass`; Sema-validated)   | Free-form Sema class (e.g. `Scada`)           |
 
-At broker connect, the actor advertises `g_node_alias`,
-`g_node_instance_id`, and `g_node_class` as AMQP client properties so the
-broker's auth backend (FIS) can authorize the connection.
+A non-GNode actor (journalkeeper, ear actor-side, audit-tap) rides
+`ActorBase` with **only** `alias` + `instance_id` — no GNode file, no
+`transport_class`. `GridworksActor` loads its `g.node.gt.json` and
+**Sema-validates it as a `GNodeGt`** (axioms enforced) at construction,
+asserting `GNodeGt.alias == service_alias` (provisioning-drift guard) — it is
+no longer read verbatim. `g_node_alias` / `g_node_instance_id` survive as
+back-compat property aliases for `alias` / `instance_id`.
+
+At broker connect, every actor advertises `ServiceAlias` + `ServiceInstanceId`
+as AMQP client properties; a `GridworksActor` additionally advertises
+`GNodeClass`. The presence of `GNodeClass` is the broker auth backend's (FIS)
+discriminator between a GNode and a plain service.
+
+The `ServiceSettings` / `GNodeSettings` shapes (one `GWBASE_` env prefix), the
+XDG file locations (config / data / state, keyed on `service_name`), and the
+per-actor logger are detailed in [`actors.md`](actors.md) §5.5.
 
 ---
 
@@ -138,8 +152,10 @@ broker's auth backend (FIS) can authorize the connection.
   "who may talk to whom" policy.
 - **ear / `ear_tx`** — the universal passive audit tap (§3.5; full spec in
   [`../../ear/executor/broker-tap.md`](../../ear/executor/broker-tap.md)).
-- **ActorBase / GridworksActor** — the transport-only base and the
-  canonical control-plane-aware default actor (§5).
+- **ActorBase / Orchestrator / GridworksActor** — the three actor tiers:
+  the transport-only ear-tap base (non-GNode services ride it directly), the
+  class-routing + control-plane orchestrator (Supervisor, TimeCoordinator),
+  and the GNode-identity actor (§5, [`actors.md`](actors.md)).
 - **`dispatch_message` / `process_message`** — the transport-level
   framework hook (ActorBase) and the application hook (GridworksActor)
   respectively.
@@ -171,8 +187,10 @@ invariants are load-bearing — preserve them.
    failed attempt, capped at 30 seconds.
 8. ACK immediately on delivery; the application owns retry semantics.
 9. `send` never throws; it returns a diagnostic.
-10. AMQP `client_properties` advertise `g_node_alias`,
-    `g_node_instance_id`, `g_node_class` at connect time.
+10. AMQP `client_properties` advertise `ServiceAlias` +
+    `ServiceInstanceId` at connect time (every actor); a GNode
+    (`GridworksActor`) additionally advertises `GNodeClass`. The presence of
+    `GNodeClass` is FIS's GNode-vs-service discriminator.
 11. `scada` is MQTT-only (no AMQP exchanges); reached via `amq.topic`.
     Broadcasts are subscriber-bound, not forwarded by the direct fabric.
 
@@ -212,13 +230,15 @@ publisher's `<rc>mic_tx`.
 19. `ActorBase` knows nothing about codecs; the application owns its
     codec.
 20. The two framework methods are `dispatch_message` (abstract on
-    `ActorBase`, implemented by intermediate layers) and
-    `process_message` (abstract on `GridworksActor`, implemented by
-    final application classes). Applications implement
-    `process_message` and do not touch `dispatch_message`.
-21. `GridworksActor` privately handles `heartbeat.a` and
-    `sim.timestep` for its configured supervisor and time coordinator;
-    a subclass's codec does not need those types registered.
+    `ActorBase`, implemented by `Orchestrator`) and `process_message`
+    (abstract on `Orchestrator`, implemented by final application
+    classes). Applications implement `process_message` and do not touch
+    `dispatch_message`. A bare `ActorBase` tap implements
+    `dispatch_message` directly (it has no control plane).
+21. `Orchestrator` privately handles `heartbeat.a` and `sim.timestep`
+    for its configured supervisor and time coordinator; a subclass's
+    codec does not need those types registered. (`GridworksActor`
+    inherits this.)
 22. A `sim.timestep` whose value rewinds is dropped; one whose value
     repeats is surfaced with `is_new = false`.
 23. A `heartbeat.a` from `my_super_alias` is handled internally (pong +

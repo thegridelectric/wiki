@@ -2,11 +2,10 @@
 
 Status: Draft · Pass 0 · Updated 2026-05-29
 
-> Open architectural question. Once the
-> [`support-non-gnode-actors`](../../designs/support-non-gnode-actors/primary.md)
-> design lands as gwbase 0.5.0 (the three-tier
-> `ActorBase` / `Orchestrator` / `GridworksActor` refactor + XDG paths +
-> Sema-validated `g.node.gt.json` + Wave-1 logger prereqs), what
+> Open architectural question. Now that the three-tier actor model has
+> landed as gwbase 0.5.0 ([`../../executor/actors.md`](../../executor/actors.md) —
+> the `ActorBase` / `Orchestrator` / `GridworksActor` refactor + XDG paths +
+> Sema-validated `g.node.gt.json` + Wave-1 logger), what
 > further functional additions to gwbase are most valuable for a
 > 100-house and eventually 1000+ fleet?
 >
@@ -39,10 +38,29 @@ half-done.
 
 ### A. Logging that's bijective with sema events
 
-Wave-1 ships `ActorBase.logger` writing a bijective human-readable
-format that maps 1:1 onto a future `observability.log-entry/000`
-Sema type (see
-[`../../designs/support-non-gnode-actors/logging.md`](../../designs/support-non-gnode-actors/logging.md)).
+Wave-1 ships `ActorBase.logger` writing a bijective human-readable format
+that maps 1:1 onto a future `observability.log-entry/000` Sema type. The
+as-built logger is specified in
+[`../../executor/actors.md`](../../executor/actors.md) §5.5; the field-level
+bijection it is designed to satisfy:
+
+Per-record format: `<iso-ts> <LEVEL> <alias> > <message>[ key=val ...]`,
+preceded by a `=== gwbase log: alias=… instance=… started=… ===` header and
+followed by `  | …` continuation lines for exceptions.
+
+| Format slot | `observability.log-entry/000` field |
+|---|---|
+| File header `alias=` | `Alias` |
+| File header `instance=` | `InstanceId` |
+| `<iso-ts>` | `TimestampMs` (ISO ↔ epoch_ms) |
+| `<LEVEL>` | `Level` |
+| `<alias>` (per-line) | `Alias` (redundant with header; for grep-ability) |
+| `<message>` (up to first ` key=` or EOL) | `Message` |
+| Trailing `key=val key=val` | `Extra` (dict) |
+| Following `  \| …` continuation lines | `ExcInfo` |
+
+The downstream release ships `gwbase log-to-sema <file>` / `gwbase sema-to-log`
+to round-trip the two representations losslessly.
 
 What still needs to converge:
 

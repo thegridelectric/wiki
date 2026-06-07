@@ -1,5 +1,7 @@
 # gridworks-base — Codec layer / Sema (§4)
 
+Status: Draft · Pass 0 · Updated 2026-05-21
+
 Sub-spec of the gridworks-base rebuild spec — **start at
 [`primary.md`](primary.md)**. Section numbers are global; this file holds
 §4. The codec is wholly independent of the transport

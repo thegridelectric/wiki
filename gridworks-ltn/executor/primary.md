@@ -75,8 +75,8 @@ the messages first (see
 [`../gridworks-base/designs/routingclass-wire-aliases.md`](../gridworks-base/designs/routingclass-wire-aliases.md)).
 
 **Paths:** the LTN already follows the XDG `Paths` convention from
-gwproactor (see
-[`../gridworks-base/designs/support-non-gnode-actors/xdg-paths.md`](../gridworks-base/designs/support-non-gnode-actors/xdg-paths.md)):
+gwproactor (see the XDG file locations in
+[`../../gridworks-base/executor/actors.md`](../../gridworks-base/executor/actors.md) §5.5):
 
 - Config dir: `~/.config/gridworks/ltn/`
 - Certs:      `~/.config/gridworks/ltn/certs/scada_mqtt/`
@@ -183,10 +183,11 @@ cleanup commit when this domain becomes active:
    flagship gwbase object — its needs should drive any gaps in
    gwbase. Likely surfaces several gwbase designs that need to land
    first or alongside:
-   [`support-non-gnode-actors`](../gridworks-base/designs/support-non-gnode-actors/primary.md)
-   (the ServiceSettings / XDG-paths / Sema-validate-init-JSON trio)
-   and
-   [`routingclass-wire-aliases`](../gridworks-base/designs/routingclass-wire-aliases.md).
+   the three-tier actor model — ServiceSettings / XDG-paths /
+   Sema-validate-init-JSON, shipped in gwbase 0.5.0
+   ([`../../gridworks-base/executor/actors.md`](../../gridworks-base/executor/actors.md))
+   — and
+   [`routingclass-wire-aliases`](../../gridworks-base/designs/routingclass-wire-aliases.md).
 3. Make the FLO interface a named ABC in `ltn.py` and have
    `gridworks-flo/` provide concrete implementations — so optimizer
    swaps don't ripple through LTN.

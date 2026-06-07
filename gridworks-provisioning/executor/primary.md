@@ -215,15 +215,13 @@ Carried forward from the legacy design + extended:
    (TaDeed).** Replacing hardware doesn't change the asset; replacing
    the asset doesn't repurpose the hardware.
 5. **Installation isn't complete until broker connectivity is
-   demonstrated** (per `wiki/gridworks-base/designs/support-non-gnode-actors/gwbase-v-next-functional-research.md`'s
-   discussion + the user's installer-must-test-brokers requirement).
+   demonstrated** (the user's installer-must-test-brokers requirement).
 
 ## Cross-references
 
 - [`../../sema/research/where-meaning-lives-in-gridworks.md`](../../sema/research/where-meaning-lives-in-gridworks.md) — the gem as canonical seed
 - [`../../gridworks-fleet-index-service/research/design.md`](../../gridworks-fleet-index-service/research/design.md) — FIS auth model (Invariants #2, #3, #4 generalize to operator certs and installer certs)
 - [`../../gridworks-scada/research/concerns/non-gnode-interfaces.md`](../../gridworks-scada/research/concerns/non-gnode-interfaces.md) — original framing of provisioning as an open concern
-- [`../../gridworks-base/designs/support-non-gnode-actors/gwbase-v-next-functional-research.md`](../../gridworks-base/designs/support-non-gnode-actors/gwbase-v-next-functional-research.md) — installer-must-test-brokers requirement + observability framing
 - Legacy code reference: `~/Claude/GNodeRegistry/` (gnf.gnf_db.py, gnf.django.models.py, gnf.basegnode_scada_create.py, gnf.rest_api.py)
 - Legacy whitepaper docs: `~/Claude/Algorand/` (PDFs / PPTXs — read with poppler / office-tooling when needed for deeper trust-model history)
 

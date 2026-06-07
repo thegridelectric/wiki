@@ -219,7 +219,7 @@ Rationale:
 - Logs are high-volume; sending each line as a broker event would
   swamp the broker
 - The bijective-human-format gwbase logger
-  ([`../../gridworks-base/designs/support-non-gnode-actors/logging.md`](../../gridworks-base/designs/support-non-gnode-actors/logging.md))
+  ([`../../gridworks-base/executor/actors.md`](../../gridworks-base/executor/actors.md) §5.5)
   is round-trippable to Sema events; the forwarder converts at the
   log-collector ingress, not the broker
 - Broker stays focused on event-stream traffic (problem-events,
@@ -333,8 +333,10 @@ flexibly per gwbase release planning.
 - [`../../gridworks-base/research/concerns/logging-for-observability.md`](../../gridworks-base/research/concerns/logging-for-observability.md)
   — the gwbase-side concern this design pairs with (Sema types,
   ActorBase hooks, verbosity-request)
-- [`../../gridworks-base/designs/support-non-gnode-actors/logging.md`](../../gridworks-base/designs/support-non-gnode-actors/logging.md)
-  — Wave-1 logging substrate (bijective format)
+- [`../../gridworks-base/executor/actors.md`](../../gridworks-base/executor/actors.md) §5.5
+  — Wave-1 logging substrate (bijective format); the field-level Sema
+  bijection lives in
+  [`../../gridworks-base/research/concerns/logging-for-observability.md`](../../gridworks-base/research/concerns/logging-for-observability.md)
 - [`../../rmqbot/designs/analytics-broker-shovel.md`](../../rmqbot/designs/analytics-broker-shovel.md)
   — analytics broker deferred; alerter consumes prod broker for
   now

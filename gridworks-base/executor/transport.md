@@ -1,5 +1,7 @@
 # gridworks-base — Transport layer (§3)
 
+Status: Draft · Pass 0 · Updated 2026-06-06
+
 Sub-spec of the gridworks-base rebuild spec — **start at
 [`primary.md`](primary.md)**. Section numbers are global across the spec
 (this file holds §3 except §3.6, which is in
@@ -311,9 +313,9 @@ properties = pika.BasicProperties(
     type=envelope.category.value,         # rj / rjb / gw
     correlation_id=correlation_id or str(uuid.uuid4()),
     headers={
-        "g_node_instance_id": self.g_node_instance_id,
+        "ServiceInstanceId": self.instance_id,
         # optional message signing — non-repudiation beyond connection mTLS:
-        "sig":     signature,             # signature over (routing_key + body + g_node_instance_id)
+        "sig":     signature,             # signature over (routing_key + body + instance_id)
         "sig_alg": "ed25519",             # or the cert's key algorithm
         "sig_kid": self.g_node_id,        # key id → look up the GNode's public cert
     },
@@ -344,12 +346,18 @@ lock must protect these with atomics or a mutex.
 **Lifecycle:**
 
 ```
-construct  -> read g_node.json, allocate identifiers, build queue name
+construct  -> identity from ServiceSettings (alias, instance_id); build
+              queue name; build logger. (Orchestrator additionally sets its
+              class exchanges from transport_class; GridworksActor loads +
+              Sema-validates g.node.gt.json — see actors.md §5.)
 start()    -> local_start() hook
               spawn consumer thread, which:
-                  connect -> open channel -> assert exchange (passive)
-                  -> declare queue -> bind direct pattern -> set QoS
+                  connect -> open channel -> assert consume exchange (passive)
+                  -> declare queue -> bind_queue() -> set QoS
                   -> begin consuming -> local_rabbit_startup() hook
+              (bind_queue() is tier-dependent: a tap binds nothing — it
+               subscribes to its ear_tx slice in local_rabbit_startup;
+               Orchestrator binds the direct-to-me pattern on its <rc>_tx.)
 stop()     -> set shutting_down
               cancel consumer, close channel, close connection
               local_stop() hook
@@ -369,13 +377,15 @@ consume resets the delay to 0.
 3. Parse the routing key into a `RoutingEnvelope`. On parse failure, log
    and return.
 4. Call `dispatch_message(envelope, body)` on the application
-   (`GridworksActor` filters control-plane types, then forwards to
-   `process_message`; see [`actors.md`](actors.md) §5).
+   (`Orchestrator` filters control-plane types, then forwards to
+   `process_message`; a bare tap implements `dispatch_message` directly;
+   see [`actors.md`](actors.md) §5).
 
 **Send** (`send(envelope, body, correlation_id?)`):
 
 1. If stopping/stopped, return a diagnostic and do nothing.
-2. If wrapped envelope, target `amq.topic`; else target
+2. If wrapped envelope, target `amq.topic`; else if there is no publish
+   exchange (a tap has none), return `NO_PUBLISH_EXCHANGE`; else target
    `<routing-code>mic_tx`.
 3. If the channel is not open, return `CHANNEL_NOT_OPEN`.
 4. Publish with `BasicProperties` as in §3.7.

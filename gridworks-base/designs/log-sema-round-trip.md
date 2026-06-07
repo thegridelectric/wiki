@@ -4,7 +4,7 @@ Status: Draft · Pass 0 · Updated 2026-05-30
 
 > Two CLI tools shipped with gwbase that round-trip between the
 > bijective human-readable log format (per
-> [`support-non-gnode-actors/logging.md`](support-non-gnode-actors/logging.md))
+> [`../executor/actors.md`](../executor/actors.md) §5.5)
 > and `observability.log-entry/000` Sema events: `gwbase log-to-sema`
 > parses the human format into Sema events; `gwbase sema-to-log`
 > goes the reverse. Lossless by design — the human format was
@@ -41,15 +41,13 @@ gwbase sema-to-log  <file> [--out -|<file>]
 - Streaming: both tools process line-by-line; safe to pipe through
   unix tools without buffering the whole file
 
-Both subcommands sit under the existing `gwbase` CLI namespace
-(see [`support-non-gnode-actors/`](support-non-gnode-actors/) for
-how the package organizes its CLI).
+Both subcommands sit under the existing `gwbase` CLI namespace.
 
 ## Bijection contract
 
 The exact field mapping lives in
-[`support-non-gnode-actors/logging.md`](support-non-gnode-actors/logging.md)
-"Bijection to `observability.log-entry/000`". Both tools MUST
+[`../research/concerns/logging-for-observability.md`](../research/concerns/logging-for-observability.md)
+("Bijection to `observability.log-entry/000`"). Both tools MUST
 satisfy:
 
 ```
@@ -106,7 +104,7 @@ CI test asserts both directions on a fixture corpus.
 
 ## Cross-references
 
-- [`support-non-gnode-actors/logging.md`](support-non-gnode-actors/logging.md)
+- [`../executor/actors.md`](../executor/actors.md) §5.5
   — the bijective format this tool round-trips
 - [`../research/concerns/logging-for-observability.md`](../research/concerns/logging-for-observability.md)
   — the v-next concern that names these tools in its shipping list

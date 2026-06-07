@@ -297,9 +297,9 @@ per-device cert install.
   — same-reasoning analytics-broker deferral
 - [`../../gridworks-scada/research/concerns/non-gnode-interfaces.md`](../../gridworks-scada/research/concerns/non-gnode-interfaces.md)
   — original framing of admin as an open concern
-- [`../../gridworks-base/designs/support-non-gnode-actors/primary.md`](../../gridworks-base/designs/support-non-gnode-actors/primary.md)
-  — gwbase Wave-1; admin runs as a non-GNode actor on the rabbit
-  toolkit (operator-side may not use gwbase at all)
+- [`../../gridworks-base/executor/actors.md`](../../gridworks-base/executor/actors.md)
+  — gwbase 0.5.0; admin runs as a non-GNode actor (`ActorBase` ear-tap) on
+  the rabbit toolkit (operator-side may not use gwbase at all)
 - Legacy code: `gridworks-scada/packages/gridworks-admin/` (the
   `gwa` CLI), `gridworks-scada/gw_spaceheat/actors/scada.py:287-487`
   (the AdminDispatch / AdminKeepAlive / AdminReleaseControl

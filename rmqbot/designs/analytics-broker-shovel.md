@@ -33,8 +33,8 @@ bites operationally — most acutely when external (partner) consumers
 need access. The design below stays as the path for that future.
 
 For the deferred-near-term arrangement, the gwbase
-[`support-non-gnode-actors`](../../gridworks-base/designs/support-non-gnode-actors/primary.md)
-design's `ServiceSettings` shape covers journalkeeper either way —
+[`ServiceSettings`](../../gridworks-base/executor/actors.md) shape
+(gwbase 0.5.0) covers journalkeeper either way —
 only the broker URL it points at differs.
 
 ## Why

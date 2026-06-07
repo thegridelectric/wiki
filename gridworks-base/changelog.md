@@ -12,6 +12,81 @@ Newest at the top.
 
 ---
 
+## Roadmap — gwbase 0.5.0: support non-GNode actors
+
+> Lands across the five commits below (one PR). Each carries its own dated
+> entry; this block is the motivating roadmap. As-built spec distilled into
+> `wiki/gridworks-base/executor/` (actors.md §5 + primary.md §2).
+
+## 2026-06-06 — version 0.5.0 (`64bd1ba`)
+
+**Why:** release commit for the support-non-gnode-actors PR — bumps the
+package version `0.4.2 → 0.5.0`. Also lands the README's "Actor tiers,
+settings & file locations" section (tier table, `GWBASE_` settings, the XDG
+path layout incl. the Pi log path, and a runnable `uv run python` snippet) —
+standalone, no wiki references.
+
+**Why:** `ActorBase` forced *every* gwbase consumer to present a
+`g.node.gt`-shaped JSON at construction, even when the service is not a
+GNode — so `gridworks-journalkeeper` had to synthesize a fake 3-field
+`g_node.json` just to start. The Sema tightening of `Logical` means
+journalkeeper et al. cannot be GNodes even in principle. The fix is to stop
+requiring the file: split the class hierarchy and the settings shape so
+identity scope matches base-class scope, and land four interlocking
+sharpenings that touch the same constructor (XDG paths, Sema-validated
+`g.node.gt.json`, the FIS handshake, a logging substrate).
+
+## 2026-06-06 — Migrate tests to three-tier API + add tier showcase tests (`41de4a0`)
+
+**Why:** fixtures/stubs move to the new constructor shapes; the Supervisor
+and TimeCoordinator stubs become `Orchestrator`-based with `ServiceSettings`
+(no `g.node.gt.json` — the exact fake-GNode antipattern this work removes),
+while only the real GNode stays a `GridworksActor`. Fixtures now emit
+Sema-valid `GNodeGt` files. New `test_tiers.py` documents the three tiers as
+runnable examples: a tap built with no GNode file, an Orchestrator
+class-routing without GNode identity, and `GridworksActor` validation with
+drift / malformed / missing-file all rejected at boot.
+
+## 2026-06-06 — Three-tier actors: ActorBase ear-tap, Orchestrator, GridworksActor sema-validate (`b3fa2c4`)
+
+**Why:** refactor into `ActorBase → Orchestrator → GridworksActor` so
+non-GNode rabbit+sema consumers ride the base deliberately. `ActorBase` is
+now a passive ear-tap (consumes `ear_tx`, no auto-bind — subclass binds its
+slice, no `mic_tx`, `ServiceSettings`, no GNode file read); it sends wrapped
+to `amq.topic` but returns the new `NO_PUBLISH_EXCHANGE` diagnostic for a
+Direct/Broadcast it cannot class-route. `Orchestrator` adds class-routing
+(`transport_class` as an `__init__` param → `<rc>_tx`/`<rc>mic_tx` + a
+direct-to-me bind) plus the heartbeat / sim-timestep rhythm moved down from
+`GridworksActor`. `GridworksActor` loads + **Sema-validates** its
+`g.node.gt.json` as a `GNodeGt` at boot (axioms fire) and asserts
+`GNodeGt.alias == service_alias` (provisioning-drift guard). FIS handshake
+renamed: `ServiceAlias` + `ServiceInstanceId` always, `GNodeClass` iff GNode.
+
+## 2026-06-06 — Add per-actor logging substrate (`f6f1ea8`)
+
+**Why:** `ActorBase` gains a contextualized `RotatingFileHandler` logger
+that writes a bijective human-readable format to the XDG state-home,
+designed to map 1:1 onto a future `observability.log-entry/000` Sema type so
+a downstream broker-forwarding handler can attach without any actor-side
+code change. Substrate only — no broker forwarding, no verbosity hooks
+(downstream concern).
+
+## 2026-06-06 — Split settings (ServiceSettings/GNodeSettings) + XDG paths + transport_format (`c2a6cca`)
+
+**Why:** identity scope now matches base-class scope. New `ServiceSettings`
+holds the generic rabbit+sema fields (`service_alias`, `instance_id`,
+`service_name`, `log_*`); `GNodeSettings` extends it adding only
+`g_node_path`. One unified `GWBASE_` env prefix for every service. Default
+file locations move from system `/etc/gridworks/...` to per-service XDG
+directories via a small inline `config/paths.py` helper (the `g_node_path`
+default derives from it) — provisioning no longer needs root.
+`transport_class` is removed from settings — it is intrinsic to an actor's
+role, not deployment config, and becomes an `Orchestrator` `__init__` param.
+New `transport_format` provides `LeftRightDot` / `UUID4Str` so the
+config/transport layer types aliases without importing the sema codec
+(mirrors `property_format`; sema stays the authority). Adds the `xdg`
+dependency.
+
 ## 2026-05-22 — release 0.4.2: fix CI publish step + bump version (`50633e8`)
 
 **Why:** the release CI was wedged. `pypa/gh-action-pypi-publish@v1.10.0`'s

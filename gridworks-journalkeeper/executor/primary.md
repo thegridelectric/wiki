@@ -178,11 +178,13 @@ question — gjk's job is to persist what reaches it.
 ## Cross-refs
 
 - `wiki/gridworks-base/executor/primary.md` — the framework.
-- [`wiki/gridworks-base/designs/`](../gridworks-base/designs/) — the
-  framework-level designs (formerly the same F-numbers): notably
-  [`support-non-gnode-actors/`](../gridworks-base/designs/support-non-gnode-actors/primary.md)
-  (ServiceSettings split + XDG paths + Sema-validate init JSON) and
-  [`routingclass-wire-aliases.md`](../gridworks-base/designs/routingclass-wire-aliases.md).
+- [`wiki/gridworks-base/designs/`](../../gridworks-base/designs/) — the
+  framework-level designs (formerly the same F-numbers): notably the
+  three-tier actor model now in
+  [`../../gridworks-base/executor/actors.md`](../../gridworks-base/executor/actors.md)
+  (ServiceSettings split + XDG paths + Sema-validate init JSON, gwbase 0.5.0)
+  and
+  [`routingclass-wire-aliases.md`](../../gridworks-base/designs/routingclass-wire-aliases.md).
 - `wiki/gridworks-data/` — sibling models + the retention question
   proper home.
 - `wiki/sema/primary.md` — type runtime; the snapshot under

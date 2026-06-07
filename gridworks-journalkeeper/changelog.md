@@ -151,8 +151,8 @@ runner":
   Transient: gjk is **not** a GNode actor, so this file exists only
   because gwbase 0.4.x's `ActorBase.__init__` requires GNode identity
   fields on disk. Removed once
-  [`wiki/gridworks-base/designs/support-non-gnode-actors/service-settings.md`](../gridworks-base/designs/support-non-gnode-actors/service-settings.md)
-  lands the `ServiceSettings` split. A `_note` field in the JSON itself
+  [`wiki/gridworks-base/executor/actors.md`](../gridworks-base/executor/actors.md) §5.5
+  lands the `ServiceSettings` split (gwbase 0.5.0). A `_note` field in the JSON itself
   captures the same reason for anyone who finds the file before
   reading the wiki.
 - **`sema_seed_request.yaml` → `src/gjk/sema_seed_request.yaml`.**
