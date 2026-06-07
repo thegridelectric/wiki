@@ -32,31 +32,29 @@ and TaValidator concepts.
   expressed TaDeeds as Algorand Standard Assets (ASAs) or
   Smart Signatures, with multi-signature creation between the
   GNodeFactory administrative account and a TaValidator
-  account. The current spec (invariant 14) commits to
-  *framework-agnostic* Participation Requirements; the
-  cryptographic-NFT expression is one mechanism among
-  several, not the architecture.
+  account. The current spec commits to *framework-agnostic*
+  Participation Requirements; the cryptographic-NFT expression
+  is one mechanism among several, not the architecture.
 - **"Link of trust" framing.** HERITAGE. The 2021 ReadTheDocs
   source described TaValidators as establishing "links of
   trust" between Transactive Devices and TerminalAssets,
   reducing counterparty risk in market transactions. The
-  current spec calls this Participation Requirements
-  (invariant 14) plus the three-item architectural
-  attestation (invariant 8 / `actors.md`). The 2021 framing
-  is the conceptual ancestor.
+  current spec calls this Participation Requirements plus the
+  three-item architectural attestation (see `actors.md`
+  TaValidator). The 2021 framing is the conceptual ancestor.
 - **Algorand-specific TaDeed mechanics.** HERITAGE. ASA vs
   SmartSig variants, 32-character GNodeAlias length limit on
   ASA TaDeeds, the Algorand multi-sig conventions. These are
   blockchain-platform implementation details; the
-  framework-agnostic commitment (invariant 14) supersedes
-  them as the architectural posture.
+  framework-agnostic Participation Requirements commitment
+  supersedes them as the architectural posture.
 - **GNodeFactory as central registry.** SUPERSEDED. The
   2021–2022 architecture placed a "GNodeFactory" at the
   center, co-creating TaDeeds with TaValidators via
   multi-signature. The current spec assigns the per-NEPOOL
-  trust-anchor role to the **TaReader** (invariants 4 + 5);
-  the joint-signature pattern survives in spirit at the
-  TaReader ↔ TaValidator boundary.
+  trust-anchor role to the **TaReader**; the joint-signature
+  pattern survives in spirit at the TaReader ↔ TaValidator
+  boundary.
 - **Triangle of Validation** (GNodeFactory ↔ TaValidator ↔
   TaOwner). HERITAGE. Conceptual ancestor of the current
   TaReader ↔ TaValidator ↔ TaOwner trust triangle. The
@@ -73,10 +71,34 @@ and TaValidator concepts.
   HERITAGE (not in current spec). The 2021 design required
   100 Algos to be staked in the TaOwner multi-signature
   account as financial assurance, scaling with monthly
-  transaction size. The current spec uses the SLA as the
-  contract instrument (invariants 10 + 16) and does not
-  have an explicit financial-assurance mechanism at the
+  transaction size. The current spec uses the SLA between the
+  TaOwner and TaAggregator as the contract instrument and does
+  not have an explicit financial-assurance mechanism at the
   TaDeed level.
+
+## Batch 2 heritage items (Pass 2, 2026-06-07)
+
+Triaged from `legacy/gridworks/docs/atomic-metering-node.md`.
+(Skipped: `legacy/g-node-factory/docs/wiki/lexicon.md` +
+`atomic-metering-node.md` — both empty files;
+`legacy/gridworks/docs/lexicon.rst` is a Sphinx TOC of per-term
+files, no substantive index content. The heritage lexicon will be
+walked opportunistically: when a future Batch reads a primary
+source that invokes a heritage term, the corresponding per-term
+file gets pulled in as supporting heritage for that batch.)
+
+- **AtomicMeteringNode — "larval AtomicTNode."** SUPERSEDED. The
+  2021 G-Node Factory architecture modeled an `AtomicMeteringNode`
+  as a metering GNode that existed as the *parent* of a
+  TerminalAsset at creation, and became an `AtomicTNode` (the
+  market participant) once it owned the `TaTradingRights` for the
+  TerminalAsset. The current spec collapses this two-stage
+  pattern: the **LTN** (Leaf Transactive Node) sits at the meter
+  location, IS the market participant, and gains
+  market-participation authority via SLA-mediated TaTradingRights
+  delegation — not via a state transition between two different
+  GNode types. The "larval" intermediate role does not exist in
+  the current architecture.
 
 ## Pending heritage from upcoming Batches
 
@@ -89,9 +111,8 @@ g-node-factory wiki concepts not yet triaged. See
 
 - [`../scratch.md`](../scratch.md) — Pass 2 source list and
   per-batch triage memos
-- Invariant 14 in [`primary.md`](primary.md) — framework-
-  agnostic Participation Requirements (supersedes
-  Algorand-specific TaDeed implementations)
-- Invariant 4 in [`primary.md`](primary.md) — TaReader as
-  trust anchor (supersedes GNodeFactory central-registry
-  role)
+- [`primary.md`](primary.md) — current architectural
+  commitments, including the framework-agnostic Participation
+  Requirements posture (supersedes Algorand-specific TaDeed
+  implementations) and the TaReader as per-NEPOOL trust anchor
+  (supersedes the GNodeFactory central-registry role)

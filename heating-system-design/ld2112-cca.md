@@ -39,18 +39,20 @@ procurement of the same product). It is a **bug** for transactive-
 storage aggregation:
 
 1. **Only storage-equipped customers can capture the value.** The
-   DERA value-capture mechanism — the bilateral between the CEP
-   and the DERA brokered by the GridWorks Market Maker, with the
-   customer rebate funded out of the DERA's share — only generates
-   surplus from customers whose load can actually be shifted.
-   Forcing a non-storage customer into the cohort produces no
+   DERA value-capture mechanism — the **Cleared Market** operated
+   by the GridWorks Market Maker, where the CEP brings its
+   profile-shape position and the LTNs bring per-asset
+   actual-delivery positions, with the customer rebate funded out
+   of the TaAggregator's share — only generates surplus from
+   customers whose load can actually be shifted. Forcing a
+   non-storage customer into the cohort produces no
    storage-shifting and no rebate; they'd be no better off than on
    Standard Offer and arguably worse if the cohort's CEP charges a
-   slightly higher flat rate to cover the bilateral's
-   administrative overhead.
+   slightly higher flat rate to cover the cohort's administrative
+   overhead.
 2. **Rate A-1 already provides the eligibility filter.** The bonus
    meter + sized-storage-device requirement self-selects exactly
-   the cohort that benefits from the DERA bilateral arrangement.
+   the cohort that benefits from Cleared Market participation.
 3. **Cohort coherence matters operationally.** Diluting a
    storage-controlled cohort with non-controllable customers
    degrades the wholesale market signal and the

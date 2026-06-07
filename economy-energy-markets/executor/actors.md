@@ -196,7 +196,7 @@ registration with ISO-NE for the corresponding Aggregation.
 
 **Structural commitments:**
 
-- Separate legal entity from day one (per primary.md invariant 7).
+- Separate legal entity from day one (per the three-separate-entities commitment in `primary.md`).
 - **The TaAggregator and DERA are conceptually separable.** The
   TaAggregator role is GridWorks-defined: customer-facing
   fiduciary, SLA holder, LTN operator, financial aggregator. The
@@ -257,7 +257,7 @@ run a competitive market in these services for 25+ years; we adopt
 the structural separation and combine the HHDC + HHDA roles into
 the TaReader.
 
-**The TaReader does NOT audit itself.** Per primary.md invariant 8,
+**The TaReader does NOT audit itself.** Per the TaValidator commitment in `primary.md`,
 the TaValidator is fully third-party and performs independent
 audits of the TaReader's data integrity. The TaReader cannot mark
 its own homework; the TaValidator's randomized spot checks are
@@ -305,9 +305,9 @@ what makes the data path trustworthy at scale.
 
 **Structural commitments:**
 
-- Separate legal entity from day one (per primary.md invariant 7).
-- NEPOOL-wide scope (per primary.md invariant 5).
-- Open standard for the role (per primary.md invariant 5) — the
+- Separate legal entity from day one (per the three-separate-entities commitment in `primary.md`).
+- NEPOOL-wide scope (per the TaReader commitments in `primary.md`).
+- Open standard for the role (per the TaReader commitments in `primary.md`) — the
   TaReader's protocol, software, and operational standards are
   open-source, so future TaNotaries (potentially run by other
   entities in other regions, or by alternative providers) can
@@ -417,7 +417,7 @@ standalone product company.
 
 **Structural commitments:**
 
-- Separate legal entity from day one (per primary.md invariant 7).
+- Separate legal entity from day one (per the three-separate-entities commitment in `primary.md`).
 - **Open standard.** The clearing protocol, the data formats, the
   Appliance Profile interface, and the clearing-routing mechanics
   are all open-source. The GridWorks Market Maker is one

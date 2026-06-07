@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-06-06
+Status: Draft · Pass 0 · Updated 2026-06-07
 
 > What this is: the hub for the **GridWorks Economy Energy Market
 > System** — the architecture that lets aggregations of heat-pump
@@ -10,14 +10,90 @@ Status: Draft · Pass 0 · Updated 2026-06-06
 > III.6.4 (effective Nov 1, 2026). This hub is intentionally short;
 > depth lives in the sub-specs.
 
-## How to read the spec
+## Why this architecture exists
 
-The architecture works within three layers of constraints we don't
-control (ISO-NE Tariff III.6.4, FERC Orders 745 / 2222, Maine MPUC
-Chapter 305 / 322), and makes specific GridWorks design choices
-within those constraints. The glossary partitions terms by ownership
-so it is always clear which is which. See
-[`glossary.md`](glossary.md) for the canonical vocabulary.
+Maine's Bangor Hydro District has substantial wind generation
+behind the **Keene Road Export interface** — Stetson I/II,
+Rollins, Bull Hill et al. When the interface binds, ISO-NE LMPs
+at the wind nodes go deeply negative; some of those projects
+have seen ~20% curtailment in a single year, with the
+curtailment happening at deeply negative local prices.
+
+The 100-home **Knifes Edge** development (Matt Polstein) sits
+exactly behind that constraint. Heat-pump thermal storage gives
+each home a flexible load that can absorb electricity during
+those negative-price windows. The wholesale-market mechanism
+that monetizes this flexibility — at the homeowner's pocket and
+at the grid's benefit — is what this architecture builds.
+
+**The opening:** ISO-NE Tariff Section III.6.4, effective
+2026-11-01, lets a Distributed Energy Resource Aggregation
+self-designate as Assigned Meter Reader. Under that path the
+cohort can be settled at LMP × Actual at the wholesale level
+without Versant Power changing anything operationally — the
+master economy meter sits on a parallel service entrance per
+III.6.4(d), and the CEP serving the cohort settles via the
+TaReader's interval submission. The **Cleared Market** operated
+by the GridWorks Market Maker routes the load-shifting value
+from the CEP-side profile position to the per-asset
+actual-delivery positions of the LTNs. Customers receive a
+rebate from the TaAggregator proportional to the flexibility
+their participation enabled.
+
+**The vision beyond Knifes Edge.** Each MarketMaker is fractal:
+runs its own internal markets at multiple timeframes, bids
+outward into the next-higher-level MarketMaker, ends with
+participation in ISO-NE wholesale markets. As the architecture
+grows, MarketMakers sprout up at every grid constraint point —
+panel-level inside a home (see
+[Economy Panel](../../economy-panel/executor/primary.md)),
+feeder-level, transformer-level, substation-level,
+transmission-level — building out the collaborative low-voltage
+grid map by agreeing on shared GNode aliases.
+
+**The constraint frame.** The architecture works within three
+layers of constraints we don't control (ISO-NE Tariff III.6.4,
+FERC Orders 745 / 2222, Maine MPUC Chapter 305 / 322) and makes
+specific GridWorks design choices within them. See
+[`glossary.md`](glossary.md) for vocabulary partitioned by
+ownership.
+
+## The seven actors (one-line summary)
+
+| Actor | Origin | Role |
+| --- | --- | --- |
+| **Customer** | generic | Homeowner with heat-pump thermal storage. Pays flat retail rate to CEP. Receives Customer Rebate from TaAggregator. Owns and can move TaTradingRights. |
+| **CEP** | ME (industry, Ch. 305) | Supplier of record. Flat-rate retail. Net wholesale cost = LMP × Profile (structural guarantee). Commits to TaReader-exclusivity per-territory and Market Maker participation. |
+| **TaAggregator** | GW | Fiduciary aggregator. Holds customer SLAs. Operates LTNs. Aggregates LTN financials. Routes Customer Rebates. May also hold the III.6.4 DERA registration (does in our Maine launch). |
+| **TaReader** | GW | NEPOOL-wide trust anchor. Validates Participation Requirements (TaDeeds, TaTradingRights). Acts as agent-AMR for one or more DERAs per III.6.4(f). Submits to ISO-NE and to the Market Maker. |
+| **LTN** (Leaf Transactive Node) | GW | Per-asset cryptographic identity. Holds delegated TaTradingRights. Bids in the Cleared Market. SCADA-honored dispatch authority. |
+| **Market Maker** | GW | Fractal market operator anchored at a copper-sub-tree constraint point. Runs internal markets at multiple timeframes. Bids outward into the next-higher MarketMaker, ending at ISO-NE. |
+| **TaValidator** | GW (independent) | Third-party (NOT GridWorks). On-site physical verification of installations. Signs TaDeeds. Randomized re-checks. Working candidate: Ridgeline Energy. |
+
+Plus one ISO-NE designation:
+
+- **DERA** (Distributed Energy Resource Aggregation; III.6.4) — the
+  ISO-NE-registered Aggregation entity. NOT a separate actor in our
+  architecture; in our deployment, the GridWorks TaAggregator for
+  Versant territory also holds the DERA registration.
+
+See [`actors.md`](actors.md) for full role definitions, boundaries,
+and what each commits to.
+
+## Glossary
+
+See [`glossary.md`](glossary.md). Five sections:
+
+1. **GridWorks vocabulary (active)** — GridWorks-coined and
+   GridWorks-controlled terms. We define and refine these.
+2. **GridWorks heritage vocabulary** — earlier work (TER, TEM, GNode,
+   VCharge, AMM-OPF) preserved for provenance.
+3. **ISO-NE / NEPOOL / FERC industry vocabulary** — given to us; we
+   use as is.
+4. **Maine-specific industry vocabulary** — MPUC, Versant, Maine
+   statute; given to us.
+5. **UK Elexon precedent** — cited as architectural precedent for
+   TaReader's role separation.
 
 ## Architectural invariants
 
@@ -155,19 +231,33 @@ is tagged with its origin: **GW** (GridWorks design choice), **ISO**
     separately. The architecture does not pre-commit to how those
     sub-meters are realized (panel-side, appliance-embedded, or
     hybrid) — see [`metering.md`](metering.md).
+    (b.1) **No metering-by-inference.** Reported energy MUST come
+    from physical measurement by a meter that measures the
+    TerminalAsset and only the TerminalAsset. Inferring energy
+    from control signals plus a device's nameplate power rating
+    is NOT permitted — that path was an explicit failure mode of
+    pre-2022 DR/aggregation schemes and would undercut the
+    Cleared Market's integrity.
     (c) **CEP-exclusivity is structurally forced, not chosen.**
     You cannot split a single master economy meter across two CEPs
-    without breaking the LMP × Actual settlement rule (invariant 2).
-    Invariant 2 captures the *rule*; this clause captures *why* it
-    is structurally forced.
+    without breaking the LMP × Actual settlement rule. The rule
+    appears as the CEP-settlement commitment; this clause captures
+    *why* it is structurally forced — the master meter is the
+    physical seam that admits exactly one CEP.
+    (d) **Telemetry-capable, not obligated.** The architecture is
+    capable of publishing meter telemetry to the host utility
+    (Versant) on request, supporting future distribution-side
+    visibility scenarios. There is no current operational
+    obligation to do so; the "Versant changes nothing" property
+    remains the v1 posture.
 16. **Consumer protection runs through the SLA, not the regulator.**
     (**GW**)
     (a) **Voluntary, contractual.** Each TaOwner participates
     voluntarily and contracts with a TaAggregator via a Service
     Level Agreement that defines rebate share, performance
     obligations, dispute resolution, opt-out, and clawback. The
-    TaOwner holds the TaDeed and TaTradingRights (invariant 10)
-    and can claw back at any time per SLA terms.
+    TaOwner holds the TaDeed and TaTradingRights and can claw
+    back at any time per SLA terms.
     (b) **Office of Consumer Advocate is not a stakeholder for
     Economy Energy.** Economy Energy is a voluntary parallel
     sub-economy, not a regulated retail service. The OCA's
@@ -183,43 +273,67 @@ is tagged with its origin: **GW** (GridWorks design choice), **ISO**
     regulator-mediated rate cases. Captive ratepayers need
     regulatory protection; voluntary participants with clawback
     need a well-designed contract.
-
-## The seven actors (one-line summary)
-
-| Actor | Origin | Role |
-| --- | --- | --- |
-| **Customer** | generic | Homeowner with heat-pump thermal storage. Pays flat retail rate to CEP. Receives Customer Rebate from TaAggregator. Owns and can move TaTradingRights. |
-| **CEP** | ME (industry, Ch. 305) | Supplier of record. Flat-rate retail. Net wholesale cost = LMP × Profile (structural guarantee). Commits to TaReader-exclusivity per-territory and Market Maker participation. |
-| **TaAggregator** | GW | Fiduciary aggregator. Holds customer SLAs. Operates LTNs. Aggregates LTN financials. Routes Customer Rebates. May also hold the III.6.4 DERA registration (does in our Maine launch). |
-| **TaReader** | GW | NEPOOL-wide trust anchor. Validates Participation Requirements (TaDeeds, TaTradingRights). Acts as agent-AMR for one or more DERAs per III.6.4(f). Submits to ISO-NE and to the Market Maker. |
-| **LTN** (Leaf Transactive Node) | GW | Per-asset cryptographic identity. Holds delegated TaTradingRights. Bids in the Cleared Market. SCADA-honored dispatch authority. |
-| **Market Maker** | GW | Operates the Cleared Market. Computes CEP bulk profile positions and LTN actual-delivery positions. Clears every settlement period. Routes net flows. |
-| **TaValidator** | GW (independent) | Third-party (NOT GridWorks). On-site physical verification of installations. Signs TaDeeds. Randomized re-checks. Working candidate: Ridgeline Energy / Dave Korn. |
-
-Plus one ISO-NE designation:
-
-- **DERA** (Distributed Energy Resource Aggregation; III.6.4) — the
-  ISO-NE-registered Aggregation entity. NOT a separate actor in our
-  architecture; in our deployment, the GridWorks TaAggregator for
-  Versant territory also holds the DERA registration.
-
-See [`actors.md`](actors.md) for full role definitions, boundaries,
-and what each commits to.
-
-## Glossary
-
-See [`glossary.md`](glossary.md). Five sections:
-
-1. **GridWorks vocabulary (active)** — GridWorks-coined and
-   GridWorks-controlled terms. We define and refine these.
-2. **GridWorks heritage vocabulary** — earlier work (TER, TEM, GNode,
-   VCharge, AMM-OPF) preserved for provenance.
-3. **ISO-NE / NEPOOL / FERC industry vocabulary** — given to us; we
-   use as is.
-4. **Maine-specific industry vocabulary** — MPUC, Versant, Maine
-   statute; given to us.
-5. **UK Elexon precedent** — cited as architectural precedent for
-   TaReader's role separation.
+17. **Settlement at the local Node LMP, not Zonal.** (**ISO/GW**)
+    (a) The architecture commits to settlement at the local
+    ISO-NE **Node LMP** (or **Apnode** weighted average for
+    multi-nodal cohorts) covering the cohort's electrical home
+    substation — NOT at the Maine Load Zone LMP. Local price
+    volatility behind binding constraints — specifically the
+    **Keene Road Export interface** in Versant's Bangor Hydro
+    District, where wind generation at Stetson I/II, Rollins,
+    Bull Hill et al. drives LMPs deeply negative when the
+    interface binds — is the economic motivation for this
+    deployment. Settling at the Maine Zonal LMP would forfeit
+    that signal.
+    (b) **Two ISO-NE registration paths give us this access.**
+    Both are worth pursuing in parallel:
+    (i) **III.6.4(f) DERA Load Asset** — the path described in
+    the 2026-06-05 letter to ISO-NE. ISO-NE permits multi-nodal
+    DER aggregations to settle at the weighted average of
+    constituent Node LMPs. *Open follow-up:* verify the as-filed
+    III.6.4 Load-Asset-flavored settlement-location wording
+    (`mr1_append_a.pdf`) confirms Node-level (not Zonal) settlement.
+    (ii) **Dispatchable Asset Related Demand (DARD)** —
+    definitively settles at its own Node LMP per M-11. Our
+    heat-pump-thermal-storage cohort is *very dispatchable*
+    (load can be modulated, paused, scheduled on minute-to-hour
+    timescales) and structurally fits the DARD pattern. Jon
+    Lowell (ISO-NE contact) has expressed confidence that
+    GridWorks can qualify. **Chasing down DARD qualification
+    is a load-bearing open work item** — it bypasses the
+    III.6.4(f) Load-Asset settlement-location ambiguity entirely.
+    (c) Open follow-ups tracked in `dera-stand-up/` (operational)
+    and (when seeded) `regulatory-posture.md` (architectural).
+18. **MarketMaker is fractal, runs internal markets, and
+    co-optimizes across timeframes.** (**GW**)
+    (a) **Each MarketMaker runs its own internal markets** at
+    multiple timeframes — not just a clearing house for one
+    external market, but a market operator in its own right.
+    Internal markets typically span day-ahead, hour-ahead,
+    intra-hour, real-time, and ancillary-service timescales,
+    with the specific set determined by the MarketMaker's
+    constraint-point context.
+    (b) **MarketMakers are fractal.** Each MarketMaker
+    participates as a bidder in the next-higher-level
+    MarketMaker; the hierarchy ends with participation in the
+    ISO-NE wholesale markets. The same architectural primitive —
+    a MarketMaker anchored at a copper-sub-tree constraint
+    point, running internal markets, bidding outward — repeats
+    self-similarly at every scale (e.g., panel-level MarketMaker
+    → cohort-level MarketMaker behind Keene Road → ISO-NE).
+    (c) **LTNs participate in multiple market structures
+    simultaneously.** An LTN may bid into energy, regulation,
+    ancillary services, and capacity at once via its
+    panel/cohort MarketMaker. Coordinating across markets so a
+    single control action is not double-counted is a structural
+    requirement of LTN and MarketMaker design.
+    (d) **No accountability gaps across markets.** A load
+    participating in any market structure (e.g., regulation)
+    that also affects another market's balancing mechanism
+    (e.g., energy in the same hour) MUST be accountable in all
+    of them. This is what prevents arbitrage between markets
+    and what keeps the books-clear property holding at every
+    level of the fractal hierarchy.
 
 ## Connections
 
@@ -343,8 +457,9 @@ that the deployment implements.
 
 ## Status
 
-- 2026-06-06 · Architectural core: 14 invariants locked,
-  seven-actor structure with Customer / CEP / TaAggregator / TaReader
-  / LTN / Market Maker / TaValidator. Glossary partitioned by
-  ownership (GridWorks vs industry vs precedent). Open spokes
-  queued in TOC.
+- 2026-06-07 · Architectural core: 18 invariants locked. Reading
+  flow restructured (Why → Actors → Glossary → Invariants →
+  Connections). Seven-actor structure with Customer / CEP /
+  TaAggregator / TaReader / LTN / Market Maker / TaValidator.
+  Glossary partitioned by ownership (GridWorks vs industry vs
+  precedent). Open spokes queued in TOC.

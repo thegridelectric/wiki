@@ -88,26 +88,42 @@ Terms GridWorks coins and controls.
   a leaf of the copper sub-tree — typically the location of the
   TerminalAsset's meter.**
 - **[MarketMaker](../../glossary.md#gridworks-concepts)** — in the
-  EEM context: the GridWorks-built clearing-house infrastructure
-  that operates the Cleared Market. Computes CEP bulk profile-shape
-  positions and LTN actual-delivery positions; clears every
-  settlement period; routes net flows. One of the three separately-
-  incorporated GridWorks-affiliated entities (alongside TaAggregator
-  and TaReader). **Every MarketMaker is a GNode anchored to a
-  physical constraint point on the copper sub-tree** — a feeder
-  constraint, transformer limit, substation, transmission
-  constraint, or eventually even a panel-level constraint inside
-  a single home. The initial GridWorks Market Maker for our Maine
-  launch sits at the cohort-level grid constraint behind Keene
-  Road. As the architecture grows, additional MarketMaker GNodes
-  sprout up at other constraints, building out the collaborative
-  low-voltage grid map. **Forward-looking example:** a panel-level
-  MarketMaker inside a single home — clearing local price signals
-  among multiple TerminalAssets behind one residential panel — is
-  a structurally clean way to avoid panel upgrades when a home's
-  flexible-load count exceeds nameplate ampacity. The same
-  constraint-point pattern, just at the smallest grid scale. The
-  proposed open-source architecture for this scale lives at
+  EEM context: a **market operator anchored at a copper-sub-tree
+  constraint point**, with three structural properties:
+  (a) **Runs internal markets at multiple timeframes** —
+  day-ahead, hour-ahead, intra-hour, real-time, ancillary services
+  — not just a clearing house for one external market.
+  (b) **Fractal.** Each MarketMaker participates as a bidder in
+  the next-higher-level MarketMaker; the hierarchy ends with
+  participation in ISO-NE wholesale markets. The same primitive
+  repeats self-similarly at every scale (panel-level → cohort-level
+  → ISO-NE).
+  (c) **Cleared Market for its scope.** At the cohort level, the
+  MarketMaker clears CEP profile-shape positions against LTN
+  actual-delivery positions (and any other participants in scope).
+  This is the Cleared Market that routes the load-shifting value
+  from the CEP to the TaAggregator via per-LTN positions.
+
+  One of the three separately-incorporated GridWorks-affiliated
+  entities (alongside TaAggregator and TaReader). **Every
+  MarketMaker is a GNode anchored to a physical constraint point
+  on the copper sub-tree** — a feeder constraint, transformer
+  limit, substation, transmission constraint, or eventually even
+  a panel-level constraint inside a single home. The initial
+  GridWorks Market Maker for our Maine launch sits at the
+  cohort-level grid constraint behind the **Keene Road Export
+  interface** (where Stetson I/II, Rollins, Bull Hill et al.
+  drive local LMPs negative when the interface binds — the
+  economic motivation for the deployment). As
+  the architecture grows, additional MarketMaker GNodes sprout up
+  at other constraints, building out the collaborative low-voltage
+  grid map. **Forward-looking example:** a panel-level MarketMaker
+  inside a single home — clearing local price signals among
+  multiple TerminalAssets behind one residential panel — is a
+  structurally clean way to avoid panel upgrades when a home's
+  flexible-load count exceeds nameplate ampacity. Same primitive,
+  smallest scale. The proposed open-source architecture for this
+  scale lives at
   [`../../economy-panel/executor/primary.md`](../../economy-panel/executor/primary.md)
   (the "Economy Panel"). (The `base.g.node.class` value `MarketMaker`
   names this physical-constraint-point identity in the conductor

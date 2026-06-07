@@ -1,11 +1,12 @@
 Status: Draft · Pass 0 · Updated 2026-06-07
 
 > What this is: the sub-spec for **metering topology** in the
-> Economy Energy Market System. Refines invariant 15 in
-> [`primary.md`](primary.md) with the placement-evolution path,
-> cost-engineering targets, lower-friction-onboarding consequences,
-> and the deliberately-open question of how per-TerminalAsset
-> sub-metering is realized for multi-TA homes.
+> Economy Energy Market System. Refines the metering-topology
+> commitment in [`primary.md`](primary.md) with the
+> placement-evolution path, cost-engineering targets,
+> lower-friction-onboarding consequences, and the deliberately-open
+> question of how per-TerminalAsset sub-metering is realized for
+> multi-TA homes.
 
 ## Three things this domain meters
 
@@ -68,7 +69,7 @@ a **lower-friction operation** than the legacy alternative:
 
 - Install a sub-meter for the new TerminalAsset.
 - TaValidator attests to the three architectural facts (asset
-  type, GPS location, meter accuracy — see invariant 8 / actors.md).
+  type, GPS location, meter accuracy — see the TaValidator section in [`actors.md`](actors.md)).
 - The new TerminalAsset is now a distinct market participant
   via its own LTN.
 
@@ -121,11 +122,11 @@ just enables an analytics overlay.
 
 ## See also
 
-- Invariant 15 in [`primary.md`](primary.md) — the architectural
-  commitment this sub-spec refines.
+- The metering-topology invariant in [`primary.md`](primary.md) —
+  the architectural commitment this sub-spec refines.
 - [`../../economy-panel/executor/primary.md`](../../economy-panel/executor/primary.md)
   — the open-source residential smart panel architecture, which
   encloses an EKM Omnimeter and (for v2+) provides whichever
   panel-side sub-metering approach gets adopted.
-- Invariant 2 in [`primary.md`](primary.md) — the CEP-settlement
+- The CEP-settlement invariant in [`primary.md`](primary.md) — the CEP-settlement
   rule that the master economy meter feeds.
