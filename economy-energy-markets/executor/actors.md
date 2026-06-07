@@ -442,7 +442,40 @@ randomized re-verification of installed assets, and (3) **independent
 audit of the TaReader's data integrity** — randomized spot checks
 of the TaReader's reported submissions against physical reality.
 Fully third-party from day one — never GridWorks. Working candidate:
-Ridgeline Energy / Dave Korn.
+Ridgeline Energy.
+
+**The role is an open standard.** Any qualified entity may become
+a TaValidator after meeting the certification requirements; no
+single entity holds a monopoly. This is anti-regulatory-hijacking —
+capture of the role by a single utility or a single company would
+defeat the architecture.
+
+**A TaValidator's operational scope is localized to one or more
+MarketMakers' sub-trees** — the copper sub-tree(s) under specific
+MarketMaker GNodes, where on-site verification is practically
+executable. A TaValidator may serve multiple MarketMaker sub-trees;
+multiple TaValidators may serve overlapping sub-trees.
+
+**The three architectural attestations.** The TaValidator's
+on-site verification produces a signed TaDeed attesting to three
+load-bearing facts — what the entire downstream trust chain rests
+on:
+
+1. **Asset type** — what the TerminalAsset *is* (heat pump +
+   thermal storage configuration, hot water heater, EV charger,
+   residential battery, etc.).
+2. **GPS location** — where the TerminalAsset *physically lives*
+   (lat/lon), so the GNode address corresponds to a real place on
+   the copper sub-tree.
+3. **Meter accuracy** — that the meter reads the TerminalAsset's
+   electrical consumption *accurately and exclusively* (the meter
+   measures the TerminalAsset and nothing else).
+
+These three are the trust surface of the architecture. The
+broader on-site checklist (serial numbers, installer identity,
+photo evidence, timestamp) lives in operational practice; the
+three architectural attestations are what every downstream
+market action depends on.
 
 **Why this role exists separately from the TaReader.** It is
 essential that the entity validating asset reality and auditing the
@@ -486,6 +519,10 @@ moral hazard.
 
 - Genuinely independent of GridWorks. Separate ownership, governance,
   operational chain of command. NOT a wholly-owned GridWorks entity.
+- **Open standard, not single-license.** Any qualified entity may
+  certify as a TaValidator; no entity has a monopoly on the role.
+- **Operational scope localized to one or more MarketMaker sub-trees.**
+  Geographic locality is required for practical on-site verification.
 - Verification keys held under the TaValidator's exclusive control;
   GridWorks-affiliated entities cannot forge TaDeed signatures.
 - The TaValidator's signature is the authoritative physical-reality

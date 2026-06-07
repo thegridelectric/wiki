@@ -79,10 +79,25 @@ is tagged with its origin: **GW** (GridWorks design choice), **ISO**
    day one, (b) permits clean spin-off of any of the three later
    without regulatory or data-ownership transitions, and (c) follows
    the role-separation pattern established under UK Elexon.
-8. **The TaValidator is fully third-party, never GridWorks.**
-   (**GW**) Physical on-site verification and signed TaDeeds come
-   from an independent entity (Ridgeline Energy / Dave Korn is the
-   working candidate).
+8. **The TaValidator role: third-party, open standard,
+   MarketMaker-sub-tree-scoped.** (**GW**) Three clauses, all
+   load-bearing:
+   (a) **Third-party, never GridWorks.** Physical on-site
+   verification and signed TaDeeds come from an independent
+   entity (Ridgeline Energy is the working candidate).
+   (b) **Open standard — anti-regulatory-hijacking.** Any
+   qualified entity may become a TaValidator after meeting
+   the certification requirements; no single entity holds
+   a monopoly on the role. Regulatory capture of the role
+   (granting only utilities, or only one company, the right
+   to validate) would defeat the architecture.
+   (c) **Scoped to one or more MarketMakers' sub-trees.** A
+   TaValidator's operational scope is geographically localized
+   to the copper sub-tree(s) under specific MarketMakers,
+   where on-site verification is practically executable.
+   See [`actors.md`](actors.md) "TaValidator" for the
+   three-item attestation duties (asset type, GPS location,
+   meter accuracy).
 9. **The LTN is the structural unit of market participation.**
    (**GW**) Each metered load has its own LTN with a cryptographic
    identity. The LTN holds TaTradingRights delegated by the
@@ -124,6 +139,50 @@ is tagged with its origin: **GW** (GridWorks design choice), **ISO**
     evidence mechanisms (signed certificates, public ledgers, etc.)
     may be substituted as long as they meet the underlying
     requirements.
+15. **Metering topology: master economy meter + per-TerminalAsset
+    for market participation.** (**GW**)
+    (a) **Master economy meter.** The TaReader reads a single
+    revenue-grade (ANSI C12) master economy meter that captures
+    the total economy-energy load behind a TaOwner's installation.
+    Its interval data is what the TaReader submits to ISO-NE for
+    III.6.4(f) AMR settlement. Working v1 choice: the EKM Omnimeter
+    (committed externally in the 2026-06-05 ISO-NE letter).
+    (b) **Per-TerminalAsset metering is required for per-asset
+    market participation.** When a home has one TerminalAsset, the
+    master economy meter is the per-TA meter. When a home has
+    multiple TerminalAssets behind one master meter, each must
+    have its own sub-meter so the Cleared Market can bid them
+    separately. The architecture does not pre-commit to how those
+    sub-meters are realized (panel-side, appliance-embedded, or
+    hybrid) — see [`metering.md`](metering.md).
+    (c) **CEP-exclusivity is structurally forced, not chosen.**
+    You cannot split a single master economy meter across two CEPs
+    without breaking the LMP × Actual settlement rule (invariant 2).
+    Invariant 2 captures the *rule*; this clause captures *why* it
+    is structurally forced.
+16. **Consumer protection runs through the SLA, not the regulator.**
+    (**GW**)
+    (a) **Voluntary, contractual.** Each TaOwner participates
+    voluntarily and contracts with a TaAggregator via a Service
+    Level Agreement that defines rebate share, performance
+    obligations, dispute resolution, opt-out, and clawback. The
+    TaOwner holds the TaDeed and TaTradingRights (invariant 10)
+    and can claw back at any time per SLA terms.
+    (b) **Office of Consumer Advocate is not a stakeholder for
+    Economy Energy.** Economy Energy is a voluntary parallel
+    sub-economy, not a regulated retail service. The OCA's
+    jurisdiction over the standard Versant retail relationship
+    is unchanged; their jurisdiction does NOT extend to Economy
+    Energy market participation. This is what lets the
+    architecture move without consumer-advocate intervenor
+    processes.
+    (c) **Structurally sound *because* participation is
+    voluntary with immediate clawback.** The architecture's
+    consumer-protection burden lives in the SLA design (which
+    MUST be fair, accessible, and audit-friendly), not in
+    regulator-mediated rate cases. Captive ratepayers need
+    regulatory protection; voluntary participants with clawback
+    need a well-designed contract.
 
 ## The seven actors (one-line summary)
 
@@ -268,6 +327,7 @@ Second-pass (refine the architecture; written or being written):
 - [`market-maker.md`](market-maker.md) (Open) — Market Maker internals
 - [`settlement.md`](settlement.md) (Open) — ISO-NE side, III.6.4(f) dependency
 - [`settlement-cadence.md`](settlement-cadence.md) (Open) — 2-stage Cleared Market settlement (hourly forecast → daily true-up → monthly)
+- [`metering.md`](metering.md) (Open) — master economy meter, per-TA sub-metering options for multi-TA homes, placement evolution, cost engineering
 - [`regulatory-posture.md`](regulatory-posture.md) (Open) — asks of ISO-NE, MPUC, Versant
 - [`supply-partner.md`](supply-partner.md) (Open) — MMWEC + mission-aligned candidates
 - [`cep-partnership.md`](cep-partnership.md) (Open) — CEP deal pitch + personality fit

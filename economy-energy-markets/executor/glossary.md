@@ -95,12 +95,21 @@ Terms GridWorks coins and controls.
   incorporated GridWorks-affiliated entities (alongside TaAggregator
   and TaReader). **Every MarketMaker is a GNode anchored to a
   physical constraint point on the copper sub-tree** — a feeder
-  constraint, transformer limit, substation, or transmission
-  constraint. The initial GridWorks Market Maker for our Maine
+  constraint, transformer limit, substation, transmission
+  constraint, or eventually even a panel-level constraint inside
+  a single home. The initial GridWorks Market Maker for our Maine
   launch sits at the cohort-level grid constraint behind Keene
   Road. As the architecture grows, additional MarketMaker GNodes
   sprout up at other constraints, building out the collaborative
-  low-voltage grid map. (The `base.g.node.class` value `MarketMaker`
+  low-voltage grid map. **Forward-looking example:** a panel-level
+  MarketMaker inside a single home — clearing local price signals
+  among multiple TerminalAssets behind one residential panel — is
+  a structurally clean way to avoid panel upgrades when a home's
+  flexible-load count exceeds nameplate ampacity. The same
+  constraint-point pattern, just at the smallest grid scale. The
+  proposed open-source architecture for this scale lives at
+  [`../../economy-panel/executor/primary.md`](../../economy-panel/executor/primary.md)
+  (the "Economy Panel"). (The `base.g.node.class` value `MarketMaker`
   names this physical-constraint-point identity in the conductor
   topology.)
 - **Mission-Aligned Supply Partner** — the role of the wholesale
