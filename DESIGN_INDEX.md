@@ -26,6 +26,7 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **gridworks-journalkeeper** — [`designs/s3-importer-improvements.md`](gridworks-journalkeeper/designs/s3-importer-improvements.md)
 - **gridworks-protocol** — [`designs/gwproto-shrink.md`](gridworks-protocol/designs/gwproto-shrink.md)
 - **gridworks-scada** — [`designs/circulator-pump-0-10v-models.md`](gridworks-scada/designs/circulator-pump-0-10v-models.md) (pump make/model + 0–10 V response representation; Linear OPS-27)
+- **gridworks-scada** — [`designs/simulated-test-environment.md`](gridworks-scada/designs/simulated-test-environment.md) (simulated terminal assets + drivers over dev Rabbit; Linear OPS-40)
 - **observability** — [`designs/consolidate-from-infra-scada-jk.md`](observability/designs/consolidate-from-infra-scada-jk.md)
 - **rmqbot** — [`designs/analytics-broker-shovel.md`](rmqbot/designs/analytics-broker-shovel.md)
 - **rmqbot** — [`designs/conf-template.md`](rmqbot/designs/conf-template.md)

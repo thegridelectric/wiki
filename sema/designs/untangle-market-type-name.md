@@ -69,15 +69,20 @@ and never with the structure scattered into a separate database. GridWorks adopt
    use in Versant territory). Each MarketMaker defines its own product vocabulary;
    the fractal architecture expects exactly this. "Open" = *multiplicity of
    structured enums*, NOT an open pattern.
-3. **`market.product`** — the coupled sema **type**; its `Name` is a **plain
-   string** (so it can hold a value from any territory's structured enum), plus
-   every attribute **not expressed in the name**: settlement interval, dispatch
-   interval, response time, price-formation, etc.
+3. **`market.product`** — the coupled sema **type**, kept **minimal for now**:
+   - `Name` — plain string; a value from some `*.market.product.name` enum
+     (e.g. `rt60gate5`).
+   - `ProductNameEnum` — string naming **which** structured enum `Name` belongs
+     to (e.g. `gw.versant.market.product.name`). Disambiguates the namespaced
+     enums and encodes ownership/context (here: GridWorks-in-Versant).
+   - `MarketProductId` (proposed) — a UUID for stable identity.
 
-**Split rule:** if an attribute is decodable from the name token → it sits on the
-structured-enum value; if it is not in the name → it sits on the `market.product`
-type. (So slot-duration-minutes is on the enum; settlement interval is on the
-type.)
+   **No** settlement / dispatch / response / price attributes yet — those get
+   added to the type **as we design each market**, not now.
+
+**Split rule (applies when attributes *are* added):** decodable from the name
+token → on the structured-enum value; not in the name → on the `market.product`
+type. (Slot-duration-minutes on the enum; settlement interval on the type, later.)
 
 `market.slot.name` keeps its job — an obvious unique name per market slot —
 embedding the product name + maker alias (location) + slot start. Location stays
@@ -109,6 +114,71 @@ primary mechanism:**
 - the `market.product` type (`Name`: string) + the `market.type.name →
   market.product.name` rename;
 - the `templates/format.py` hardcoded-import-root fix (needed regardless).
+
+## Proposed word sketches (capability-dependent)
+
+> These are **proposals**, not yet authorable as live sema words: the
+> `value_attributes` block below is **not permitted by current
+> `authoring/enums.md:113-132`** (x-gridworks allows only `owner`, `version`,
+> `value_descriptions`, `extended_description`). They become valid once the
+> **structured-enum capability** lands. Authored here so the target is concrete.
+
+### Proposed structured enum: `gw.versant.market.product.name` v000
+
+```yaml
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.electricity.works/enums/gw.versant.market.product.name/000"
+title: "gw.versant.market.product.name"
+type: "string"
+description: >
+  Market products GridWorks offers within Versant territory. Each token decodes
+  directly to its slot timing — timeframe class, slot minutes, gate minutes, and
+  quantity-unit variant.
+enum:
+  - "unknown"
+  - "da60"
+  - "rt60gate5"
+  - "rt60gate30"
+  - "rt60gate30b"
+  - "rt30gate5"
+  - "rt15gate5"
+  - "rt5gate5"
+default: "unknown"
+x-gridworks:
+  owner: "gridworks-energy"
+  version: "000"
+  value_descriptions:
+    "da60": "Day-ahead energy, 60-minute slots"
+    "rt60gate5": "Real-time energy, 60-min slots, gate 5 min prior"
+    "rt60gate30": "Real-time energy, 60-min slots, gate 30 min prior"
+    "rt60gate30b": "As rt60gate30 but QuantityUnit = average kW"
+    "rt30gate5": "Real-time energy, 30-min slots, gate 5 min prior"
+    "rt15gate5": "Real-time energy, 15-min slots, gate 5 min prior"
+    "rt5gate5": "Real-time energy, 5-min slots, gate 5 min prior"
+  # PROPOSED structured extension — NOT legal under current authoring/enums.md.
+  # name-decodable attributes only (the "split rule"):
+  value_attributes:
+    da60:        { timeframe: da, slot_minutes: 60, gate_minutes: null, quantity_unit: AvgkWh }
+    rt60gate5:   { timeframe: rt, slot_minutes: 60, gate_minutes: 5,    quantity_unit: AvgkWh }
+    rt60gate30:  { timeframe: rt, slot_minutes: 60, gate_minutes: 30,   quantity_unit: AvgkWh }
+    rt60gate30b: { timeframe: rt, slot_minutes: 60, gate_minutes: 30,   quantity_unit: AvgkW  }
+    rt30gate5:   { timeframe: rt, slot_minutes: 30, gate_minutes: 5,    quantity_unit: AvgkWh }
+    rt15gate5:   { timeframe: rt, slot_minutes: 15, gate_minutes: 5,    quantity_unit: AvgkWh }
+    rt5gate5:    { timeframe: rt, slot_minutes: 5,  gate_minutes: 5,    quantity_unit: AvgkWh }
+    # "unknown" carries no attributes
+```
+
+### Proposed type: `market.product` v000 (conceptual — real shape per `authoring/types.md`)
+
+Kept minimal: identity + which-enum context only. Market-specific attributes
+(settlement, dispatch, response, price-formation) are added later, per market.
+
+```
+TypeName: market.product   Version: "000"
+  MarketProductId : UUID    # proposed — stable identity
+  ProductNameEnum : string  # which structured enum, e.g. "gw.versant.market.product.name"
+  Name            : string  # a value in that enum, e.g. "rt60gate5"
+```
 
 ## Versioned property formats (sema-mechanics path — SUPERSEDED)
 

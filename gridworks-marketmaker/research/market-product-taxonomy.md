@@ -104,11 +104,14 @@ Chosen direction (authoritative version in the sema design:
    maker / territory** — e.g. `gw.versant.market.product.name`. The fractal
    architecture expects each MarketMaker to define its own product vocabulary;
    "open" = multiplicity of structured enums, not an open pattern.
-3. **`market.product`** — a coupled sema **type** with `Name`: string (any
-   territory's product name) + every attribute **not in the name** (settlement
-   interval, dispatch interval, response time, price-formation, …).
+3. **`market.product`** — a coupled sema **type**, kept minimal for now: `Name`
+   (string, a product token) + `ProductNameEnum` (which structured enum, e.g.
+   `gw.versant.market.product.name`) + a proposed `MarketProductId` (UUID).
+   Market-specific attributes (settlement, dispatch, response, price-formation)
+   are added to the type **as each market is designed**, not now.
 
-**Split rule:** decodable from the name → enum value; not in the name → the type.
+**Split rule (when attributes are added):** decodable from the name → enum value;
+not in the name → the type.
 
 This mirrors the industry pattern — a **named product** (ISO/OpenADR style)
 whose name carries **structured attributes** (EMIX/TeMIX style) — while keeping

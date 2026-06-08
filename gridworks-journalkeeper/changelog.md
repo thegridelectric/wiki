@@ -12,8 +12,7 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-06-07 — Resolve gw_data from PyPI instead of local path source
+## 2026-06-07 — Resolve gw_data from PyPI instead of local path source (`3631471`)
 
 **What:** Remove the `[tool.uv.sources] gw_data = { path =
 "../gridworks-data/" }` override from `pyproject.toml` and relock so
