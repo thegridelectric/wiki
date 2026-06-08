@@ -42,79 +42,89 @@ Layered causes:
   `$ref`. In Sema's own glossary this is the shape of an **axiom dependency**
   ("required to implement an axiom… but not referenced via `$ref`").
 
-## Options
-
-1. **Allow a format to declare an enum dependency** (amend the `SHALL NOT`).
-   - *Pro:* makes the real dependency explicit → closure pulls the enum
-     automatically for every consumer; codegen imports it correctly; DRY.
-   - *Con:* breaks the dependency-free-leaf invariant; **immutability vs. versioning
-     puzzle** — formats are immutable+unversioned but enums are versioned+additive,
-     so a format would need a written rule (reference the enum *word*, rely on
-     additive-only monotonicity, never pin a version); slippery slope (then
-     formats→formats? →types?); blurs the format/type/axiom layering; tooling
-     ripple (closure, reverse-deps, published-can't-depend-on-draft checks).
-2. **Keep formats purely syntactic; move enum-membership to a type-level axiom
-   dependency** (closure already tracks axiom deps).
-   - *Pro:* preserves the invariant; uses an existing declared-dependency
-     mechanism; keeps the wire shape (string).
-   - *Con:* validation logic moves out of the format into each consuming type;
-     membership check no longer automatic everywhere the format is used.
-3. **Make `market.slot.name` a type, not a format** — types may `$ref` enums.
-   - *Con:* changes the wire shape from a string to an object. Almost certainly a
-     non-starter.
-
 ## Current-spec answer
 **Not allowed today.** `authoring/formats.md:16` ("Formats SHALL NOT reference
 other Sema vocabulary") + formats are immutable/unversioned/primitive-refining.
-So Option 1 is a normative spec amendment, not a tweak.
+So the chosen direction below is a normative spec amendment, not a tweak.
 
 ## Decision (ratified 2026-06-07)
 
-**Sema SHALL allow versioned property formats.** The default for a format stays
-**unversioned + immutable** (status quo for the vast majority). Versions are
-added **exactly to those formats whose validator depends on `market.type.name`**
-— right now that is **only `market.slot.name`**.
+Sema SHALL allow **versioned property formats**. Default stays unversioned +
+immutable. Add versions only to formats whose validator depends on an enum —
+today only `market.slot.name` (→ `market.type.name`). A format that must track an
+evolving enum becomes versioned: each market-type change lands as a new format
+version instead of mutating an immutable leaf.
 
-This adopts **Option 1** (a format may carry an enum dependency) and resolves
-its blocking "con" — the immutability-vs-versioning puzzle, the *decisive
-question* flagged above — by answering it directly: a format that must track an
-evolving enum becomes **versioned**, so each market-type evolution can land as a
-new format version rather than mutating an immutable leaf.
+**Mechanism.** Declare the enum dependency as a registry **axiom dependency** on
+the versioned format (closure already tracks axiom deps for types). The format
+*schema* stays a pure pattern — no in-schema `$ref` — so "formats SHALL NOT
+`$ref`" survives; only the immutable / unversioned / dependency-free rules change.
 
-**Rationale (user, 2026-06-07).** Markets are a foundational aspect of GridWorks.
-We want simple mechanisms for decoding core information about the market slot one
-is bidding into **directly from the name itself** (the `market.slot.name` string
-carries the commodity class, the market-type token, the maker alias, and the slot
-start). Making that work over time requires an explicit acknowledgement that the
-**market type names will evolve** — hence the format that decodes them must be
-allowed to evolve, with versions, in lockstep with `market.type.name`.
+**Rationale (user).** Markets are foundational. We want to decode core market-slot
+info (commodity class, market-type token, maker alias, slot start) directly from
+the `market.slot.name` string. That requires acknowledging market type names will
+evolve, so the decoding format must version in lockstep with `market.type.name`.
 
-### What this entails (implementation plan — not yet built)
-- **Normative spec amendment.** `authoring/formats.md:16` ("Formats SHALL NOT
-  reference other Sema vocabulary") and the immutable/unversioned framing — plus
-  the universal MUST **"Treat formats as immutable"** in `sema/CLAUDE.md` — must
-  be revised to permit (a) **versioned** formats and (b) a **declared enum
-  dependency** on a format. This is a spec change, not a tweak; it must spell out
-  the rule (a versioned format MAY `$ref`/declare a versioned enum; default
-  remains unversioned-immutable).
-- **`market.slot.name` becomes versioned** — move the flat
-  `definitions/formats/market.slot.name.yaml` to a versioned form
-  (`market.slot.name/000.yaml`, mirroring `enums/market.type.name/000.yaml`) and
-  **declare its dependency on `market.type.name`** so the snapshot closure pulls
-  the enum automatically for every consumer (killing the gjk
-  `ModuleNotFoundError` at its root, not via the seed stopgap).
-- **Tooling.** Closure / reverse-deps / regen must understand versioned formats;
-  the `import_root` generator fix (see Regression note above /
-  [`snapshot-improvement.md`](snapshot-improvement.md)) lands as part of this so
-  the generated import is correct and durable.
-- **Everything else stays unversioned.** No other format gains a version unless it
-  too grows an enum-validation dependency.
+## Implementation checklist (not yet built)
+
+Three must-fixes the recon surfaced as load-bearing:
+- `build_versions.py` emits **no `formats:` section** — `indexes/versions.yaml` is
+  types/enums only today; versioned formats must appear there.
+- `runtime_generation/templates/format.py:143-146` **hardcodes**
+  `from sema.runtime.enums import MarketTypeName` — must use the snapshot
+  `import_root` (this is the gjk `ModuleNotFoundError` root cause).
+- `build_seed_expanded.py` `absorb_closure` (~208-218) adds formats but never
+  expands *their* deps — the one spot where `market.type.name` gets pulled once
+  the format declares it.
+
+### Spec (`spec/`) — do first
+- [ ] `spec/primary.md:161` — format glossary row ("Immutable, unversioned … Cannot reference other Sema vocabulary").
+- [ ] `spec/authoring/formats.md:81-88` — "## Immutability / Formats do not have versions" → versions allowed, immutable *per version*.
+- [ ] `spec/authoring/formats.md:67-73` — drop "SHALL NOT include a Version field" for versioned formats (keep "SHALL NOT `$ref`").
+- [ ] `spec/authoring/formats.md:16` — "SHALL NOT reference other Sema vocabulary" → carve out a registry axiom dep on an enum.
+- [ ] `spec/registry/formats.md:12,25` — "immutable and unversioned" / "SHALL NOT include version-related information" → allow `versions:`/`latest_version:`/`direct_dependencies.axiom`.
+- [ ] `spec/registry/structure.md:78-80` — versioned formats carry per-version status (not word-level).
+- [ ] `spec/registry/types.md:340,352,388` — dep-ref syntax: permit `name:###` for versioned formats.
+- [ ] `sema/CLAUDE.md` universal MUST "Treat formats as immutable" → "immutable per version".
+
+### Definitions
+- [ ] `definitions/registry.yaml` (`market.slot.name`) — add `versions:`/`latest_version:` + `direct_dependencies.axiom: [market.type.name:000]`.
+- [ ] `definitions/formats/market.slot.name.yaml` → versioned layout `definitions/formats/market.slot.name/000.yaml`.
+
+### Index / registry build tools (`src/sema/tools/`)
+- [ ] `build_versions.py:78-144` — add `formats:` section (absent today).
+- [ ] `build_lookup.py:79-80` — version map / versioned path for formats.
+- [ ] `build_dependency_closure.py:27-46,99-100` — `classify()`: bare dep ≠ always format; versioned-format bucket.
+- [ ] `build_reverse_dependencies.py:48-60,98-133` — same classify fix; per-version reverse-dep storage + output.
+- [ ] `build_public_registry.py:37-60,73-75,146` — per-version status validation + publish filtering for versioned formats.
+- [ ] `build_seed_dag.py:17-28,99-107,186-209,260-282` — `FORMAT_REF_PATTERN` optional version; expand format axiom deps; resolve format node version.
+- [ ] `runtime_generation/formats.py:50,123-179,182-209` — version-aware codegen + generated test paths.
+- [ ] `runtime_generation/templates/format.py:143-146` — parameterize import root.
+- [ ] `runtime_generation/generate_runtime.py:70` — pass `import_root` into format codegen.
+
+### Snapshot CLI + seed closure (`src/sema/`)
+- [ ] `interfaces/cli/snapshot.py:113,154-161` — format deps flow into closure; versioned formats reach codegen.
+- [ ] `tools/build_seed_expanded.py:28-30,208-218,280-283` — versioned format lookup; expand format axiom deps; versioned worklist entries.
+- [ ] `tools/build_seed_definitions.py:121-122,312-354,373-419,528-550` — restricted registry/lookup versioned; closure expands format deps; `_classify_dep` versioned formats.
+- [ ] `tools/seed_requests.py:32-34` — versioned format paths.
+
+### Tests (`tests/`)
+- [ ] `registry/test_registry_yaml_correctness.py:12-15,225-229,235-236,250-262` — drop "formats must not have versions/deps" asserts; add versioned-format + URL-version validation.
+- [ ] `registry/test_registry_schema_file_layout.py:25,54,103-189` — versioned path/URL helpers; iterate versions.
+- [ ] `registry/test_registry_status_consistency.py:45,62,96-97` — per-version status for versioned formats.
+- [ ] `registry/test_structural_dependency_consistency.py:84-87` — `normalize_ref` keeps version suffix on formats.
+- [ ] `registry/test_ref_values.py:56-58` — stop skipping formats once they carry declared deps.
+- [ ] `registry/conftest.py:61` — also glob `formats/*/*.yaml`.
+- [ ] `runtime/test_property_formats.py:41,51` — glob versioned formats.
+- [ ] `runtime/test_runtime_generation_property_format.py:20,25-27,66` — versioned paths.
+- [ ] `test_build_seed_expanded.py:77-89` — keep "no formats in initial_targets"; add a versioned-format transitive-pull case.
+- [ ] Regen + green: `scripts/build_indexes.sh`, `scripts/regenerate_runtime.py`, `pytest`.
 
 > **Divergence flag (source precedence).** This decision overrides current sema
 > spec invariants (formats immutable/unversioned/dependency-free). Until the spec
 > amendment lands, `spec/authoring/formats.md` + `sema/CLAUDE.md` still say
 > otherwise — implementers MUST carry this decision into those documents rather
-> than let the record drift. Supersedes the earlier "lean Option 2" recommendation.
+> than let the record drift.
 
 ## Notes / facts established
 - `MarketTypeName.values()` works on the generated enum — the validator's enum

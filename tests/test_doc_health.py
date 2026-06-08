@@ -119,3 +119,68 @@ def test_no_doc_exceeds_line_cap(doc: Path) -> None:
     assert n <= MAX_LINES, (
         f"{_rel(doc)} has {n} lines (cap {MAX_LINES}); split it into a hub + sub-specs."
     )
+
+
+# --- DESIGN_INDEX.md ↔ filesystem -----------------------------------------
+# DESIGN_INDEX.md is a hand-maintained flat directory of every file under a
+# designs/ or concerns/ folder anywhere in the wiki. These tests fail if it
+# drifts from what's actually on disk — a design/concern added, removed, or
+# renamed without updating the index (or an index entry pointing at nothing).
+# When the regen-design-index.sh tool lands these become its conformance check.
+
+INDEX = WIKI / "DESIGN_INDEX.md"
+_LINK_TARGET_RE = re.compile(r"\]\(([^)]+)\)")
+
+
+def _index_section_targets(header: str) -> set[str]:
+    """First markdown link target on each bullet under a '## <header>' section
+    of DESIGN_INDEX.md (the canonical path), up to the next '## ' header."""
+    text = INDEX.read_text(encoding="utf-8", errors="replace")
+    targets: set[str] = set()
+    in_section = False
+    for line in text.splitlines():
+        if line.startswith("## "):
+            in_section = line.strip() == f"## {header}"
+            continue
+        if in_section and line.lstrip().startswith("- "):
+            m = _LINK_TARGET_RE.search(line)
+            if m:
+                targets.add(m.group(1))
+    return targets
+
+
+def _fs_under_dir(dirname: str) -> set[str]:
+    """Rel-path of every file that is an index entry under a `<dirname>/`
+    folder: a flat `.../<dirname>/<slug>.md`, or a fractal hub
+    `.../<dirname>/<slug>/primary.md`."""
+    out: set[str] = set()
+    for p in _md_files():
+        if p.parent.name == dirname:
+            out.add(_rel(p))  # flat: <dirname>/<slug>.md
+        elif p.name == "primary.md" and p.parent.parent.name == dirname:
+            out.add(_rel(p))  # fractal: <dirname>/<slug>/primary.md
+    return out
+
+
+def _index_drift(header: str, dirname: str) -> tuple[set[str], set[str]]:
+    on_disk = _fs_under_dir(dirname)
+    in_index = _index_section_targets(header)
+    return on_disk - in_index, in_index - on_disk
+
+
+def test_design_index_designs_match_filesystem() -> None:
+    missing, extra = _index_drift("Designs", "designs")
+    assert not missing and not extra, (
+        "DESIGN_INDEX.md '## Designs' is out of sync with the filesystem.\n"
+        f"  on disk but NOT in the index (add them):        {sorted(missing)}\n"
+        f"  in the index but NOT on disk (remove/rename):   {sorted(extra)}"
+    )
+
+
+def test_design_index_concerns_match_filesystem() -> None:
+    missing, extra = _index_drift("Concerns", "concerns")
+    assert not missing and not extra, (
+        "DESIGN_INDEX.md '## Concerns' is out of sync with the filesystem.\n"
+        f"  on disk but NOT in the index (add them):        {sorted(missing)}\n"
+        f"  in the index but NOT on disk (remove/rename):   {sorted(extra)}"
+    )

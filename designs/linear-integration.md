@@ -1,264 +1,280 @@
 # Linear integration
 
-Status: Draft · Pass 0 · Updated 2026-05-26
+Status: Draft · Pass 0 · Updated 2026-06-07
 
 > What this is: how `designs/` files in the wiki interface with Linear for
 > work tracking. Companion: [`../designs-process.md`](../designs-process.md).
-> **Linear is not yet wired into Claude sessions; specifics will evolve once
-> it is.**
+> **Linear is now wired** into Claude sessions via the official remote MCP
+> server (see "How Claude reads + writes Linear"). This doc is written to
+> the team's *current* Linear usage — start minimal, grow conventions only
+> as a concrete need appears.
+
+## Workspace facts (observed 2026-06-07)
+
+Snapshot so future sessions don't re-discover. Re-verify before relying.
+
+- **Two teams.**
+  - **Ops** (`OPS-*`) — the **live tracker**. All real operational +
+    design work flows here as flat issues (bugs, data/COP analysis, infra,
+    refactors). ~377 issues. Active: tdefauw, gbaker, jmillar, joe@2040energy.
+  - **GridWorks** (`GRI-*`) — effectively a **house registry**. Only durable
+    content is GRI-6…10 = the Keene installs (beech/fir/maple/elm/oak) as
+    reference cards; plus the GRI-1…4 onboarding tutorials. Not used for
+    active work. Leave as-is.
+- **Workflow states** (Ops): `Backlog → Todo → In Progress → In Review →
+  Done`, plus `Canceled` / `Duplicate`. Both **In Progress** and **In
+  Review** are `started`-type — this matters for cap-8.
+- **No projects, milestones, or cycles** in use. Work is flat issues in a
+  team. We do **not** introduce projects for designs (see below).
+- **Labels** are organic + inconsistent: house tags as `keene.elm`
+  (GridWorks team) but `elm` / `Elm` / `Maple` / `spruce` (Ops, mixed case);
+  plus `software`, `security`, `ltn`, `scada`, `refactor`, `alerts`,
+  `Data Analysis`, `open-source`. No maturity labels exist yet.
+- **Members:** jmillar (admin), gbaker, tdefauw, joe@2040energy, + Linear bot.
 
 ## Principle
 
-- **Linear = organizing + cross-linking.** Title (the slug),
-  status, owner, priority, labels, parent/child links, dates.
+- **Linear = organizing + cross-linking.** Title (the slug), status, owner,
+  priority, labels, parent/child links, dates.
 - **Wiki = the details.** The design file at
-  `wiki/<domain>/designs/<slug>.md` (or `<slug>/primary.md` for
-  fractal designs) holds rationale, invariants, decisions,
-  alternatives — everything substantive.
-- **Shared: the slug and the link.** Linear knows the wiki path;
-  the wiki knows the Linear epic ID. **No design content is
-  mirrored.** Linear is not a copy of the wiki.
-- **Status flows from Linear to the wiki**, not the other way
-  around. The wiki design file in `designs/` does not move when
-  the Linear ticket's status changes.
-  [`DESIGN_INDEX.md`](../DESIGN_INDEX.md) aggregates by querying
-  Linear (once wired) or by reading the design's `Status:` line
-  (until wired).
-- **Bijection is enforced by a generated script**, not by Claude
-  eyeballing. See `designs-process.md` "Linear interaction — the
-  rules" for the normative version of these rules.
+  `wiki/<domain>/designs/<slug>.md` (or `<slug>/primary.md` for fractal
+  designs) holds rationale, invariants, decisions, alternatives —
+  everything substantive.
+- **Shared: the slug and the link.** Linear knows the wiki path; the wiki
+  knows the Linear issue ID. **No design content is mirrored.** Linear is
+  not a copy of the wiki.
+- **Status flows from Linear to the wiki**, not the other way around. The
+  wiki design file in `designs/` does not move when the Linear issue's
+  status changes. [`DESIGN_INDEX.md`](../DESIGN_INDEX.md) aggregates by
+  reading each design's `Status:` line (and, optionally, the linked Linear
+  issue's status).
 
-## Epic template (one per design)
+## How a design maps to Linear (decided)
 
-```
-Title:  <slug>   (or a display-friendly variant that contains the slug
-                  or trivially normalizes to it — see "Naming alignment
-                  + bijection" below)
+Match current usage — no new structure:
 
-Body:
+- **A design = one Linear Issue in the Ops team**, carrying the **`design`
+  label**. Not a Project, not a Linear "epic" (the workspace uses neither).
+- **Sub-work = child issues** (Linear native parent/child) under that design
+  issue, created only when the need is concrete (see "Sub-issues").
+- **The design issue title === the wiki slug** (or a display-friendly
+  variant that trivially normalizes to it — see "Naming + bijection").
+- **The design issue body is thin** — just the wiki link + optional
+  cross-refs. The wiki holds the substance:
 
-**Design:** wiki/<domain>/designs/<slug>.md   ← required while design file is alive
-**Concern (if applicable):** wiki/<domain>/research/concerns/<name>.md
-**Active-claims session:** {session-name} (if known)
-```
+  ```
+  **Design:** wiki/<domain>/designs/<slug>.md   ← required while the design file is alive
+  **Concern (if applicable):** wiki/<domain>/research/concerns/<name>.md
+  **Active-claims session:** {session-name} (if known)
+  ```
 
-The epic body is **just the slug + the wiki link** (plus optional
-cross-references like concern / session). It is NOT a copy of the
-design content, NOT a summary, NOT an acceptance list. The wiki
-holds the substance.
+## Status mapping (decided)
 
-## Sub-issues — to investigate
+Linear (Ops) state → GridWorks meaning:
 
-How sub-issues should work (whether to use Linear's native parent/
-child, how their titles align with sub-file slugs or sub-section
-anchors, how their bodies stay thin, whether they're created at
-port-time vs. ad-hoc during execution) is **deferred to when Linear
-is actually wired**. The decision will be informed by what Linear's
-native features look like in practice + how the human-team uses
-sub-issues today.
+| Linear state | Type | GridWorks meaning |
+| --- | --- | --- |
+| `Backlog` | backlog | scratch / not ratified |
+| `Todo` | unstarted | ratified + queued |
+| `In Progress` | started | actively doing |
+| `In Review` | started | doing, under review |
+| `Done` | completed | shipped |
+| `Canceled` | canceled | shelved without shipping |
+| `Duplicate` | duplicate | folded into another issue |
 
-For now: assume the epic alone is enough; design at the
-file-or-folder grain and break into sub-issues only when the
-need is concrete.
+**"Started" = In Progress *or* In Review.** Any count of active work
+(cap-8 below) counts both.
+
+## Cap-8 = my started issues (decided)
+
+The focus-discipline cap is a **personal WIP limit on the current user's own
+assigned issues**, not a global designs-doing count:
+
+- **cap-8 = the number of issues assigned to me (jmillar) in a `started`
+  state (In Progress + In Review).** Warn at 7, stop at 8.
+- It spans **all** my issues — design and operational alike — because the
+  scarce resource is *my attention*, not a design slot.
+- **Today: 4/8** (OPS-219, OPS-313, OPS-324, OPS-334).
+- Query: issues where `assignee = me` AND `state.type = started`.
+- Until a hook enforces it (see Hooks), it's honor-system; I surface the
+  count when I move one of my issues into a started state.
+
+> Note: this supersedes the earlier draft notion of "cap-8 on designs in
+> the doing column." The cap is per-person WIP; it is not about designs
+> specifically.
+
+## Labels + priority (decided, minimal)
+
+> Full label inventory + meanings + the consolidation plan live in
+> [`../linear-tags.md`](../linear-tags.md). This section covers only the
+> two integration-specific labels.
+
+
+- **`design`** — marks a design issue (the one ↔ a `wiki/**/designs/`
+  file). The bijection hook keys on this label. *To create.*
+- **`nit`** — sub-threshold items (one-line cleanups). *To create.*
+- **Priority** — use Linear's native `Urgent / High / Medium / Low /
+  No priority` directly. No parallel scheme.
+- **Maturity labels** (`draft` / `accepted` / `verified`) — **deferred.**
+  The doc's `Status:` line is already the maturity source of truth; mirror
+  it to a Linear label only if/when the bijection hook needs to assert on
+  it. Don't pre-create taxonomy we won't query.
+- **House / domain labels** — leave the existing organic set alone for now;
+  normalizing them is a separate cleanup (see "Cleanup backlog").
+
+## Cross-references both ways (decided)
+
+- Wiki design `Status:` line → Linear issue ID, e.g.
+  `Status: Accepted · Pass 2 · Updated 2026-06-10 · Linear: OPS-142`.
+- Linear design issue body → wiki path (`Design:` field above) **while the
+  design file is alive**. After cleanup the link rots; that's expected.
+- Every `executor/primary.md` update that descends from a shipped design
+  **should** note the issue ID for traceability.
+
+## Naming + bijection
+
+**Bijection (normative).** Every `wiki/<domain>/designs/<slug>.md` (or
+`<slug>/` folder) corresponds to **exactly one** Linear issue tagged
+`design`; every `design`-tagged issue corresponds to **exactly one** wiki
+design. Both sides cross-reference (links above).
+
+**Canonical name = wiki slug.** The Linear issue title MAY be
+display-friendly ("Shrink gwproto to proactor surface") but SHALL contain
+the slug or trivially normalize to it (lowercase, hyphenated). When in
+doubt, make them identical.
+
+**Why a bijection.** Without it, work drifts: two issues for one design, or
+two designs sharing one issue, both let intent fragment silently. The 1:1
+rule lets either side resolve to the other unambiguously.
+
+## Sub-issues
+
+Use Linear native parent/child. Create a child issue only when the work is
+concrete — don't decompose a design into sub-issues at port-time on spec.
+Child issue title === a sub-section anchor or sub-spec filename in the
+design where possible. Stay literal.
 
 ## Port from `designs/` to Linear — at ratification
 
-Procedure when the user says "just do it":
+When the user says "just do it":
 
-1. I draft the epic description + sub-issue list (acceptance criteria
-   included) for review.
-2. **I ask the human for the Linear-side metadata** that I can't
-   decide myself:
-   - **Priority** (Linear's `Urgent / High / Medium / Low / No priority`,
-     or whatever scheme the workspace uses).
-   - **Owner** — Linear assignee for the epic. Sub-issues may have
-     different owners; I'll ask per sub-issue if it's not obvious.
-   - **Initial status** — `todo` (queued; not counted against the
-     cap-8) or `doing` (active; counts). Defaults to `todo` unless
-     the user is starting work immediately.
-   - **Tags / labels** — any workspace labels (e.g.,
-     `boundary-cleanup`, `summer-mvp`, `infra`, repo-scope tags). I
-     propose; user confirms.
-3. User reviews + adjusts the draft + metadata.
-4. I create the epic + sub-issues in Linear (once Linear is wired)
-   with the agreed metadata. Each Linear issue carries the wiki path
-   link.
+1. I draft the design issue (thin body + the wiki link) for review.
+2. **I ask for the metadata I can't decide:**
+   - **Priority** (Linear's Urgent / High / Medium / Low / No priority).
+   - **Owner** — assignee. (Counts against *that person's* cap-8.)
+   - **Initial state** — `Todo` (queued) or `In Progress` (starting now).
+   - **Extra labels** beyond `design`.
+3. User reviews + adjusts.
+4. I create the issue in Ops with the agreed metadata + `design` label +
+   the wiki link.
 5. The wiki `designs/<slug>` file **stays put** — never moved between
-   folders. Linear's status field (todo / doing / done) is the
-   authority on lifecycle state from here on.
-6. I add the epic ID to the wiki `designs/<slug>` `Status:` stamp or
-   frontmatter so the link goes both ways.
+   folders. Linear's state is the authority on lifecycle from here on.
+6. I add the issue ID to the wiki `designs/<slug>` `Status:` line so the
+   link goes both ways.
 
 ## Resume from Linear
 
-When we want to re-engage a shelved design (closed Linear issue, or
-just one in backlog/todo we hadn't touched):
+To re-engage a shelved design:
 
-1. Open the Linear epic and read its description + sub-issues.
+1. Open the Linear design issue; read its body + child issues.
 2. Open the matching `designs/<slug>` (if still in the wiki) OR the
-   `executor/primary.md` of the affected domain(s) (if the design
-   already shipped and was distilled there).
+   affected `executor/primary.md` (if already shipped + distilled).
 3. Open any matching `research/concerns/<name>.md`.
-4. Run `/grill-me` + `/plan` to regenerate or update the design — may
-   produce a fresh `designs/<slug>` if one isn't there.
-5. New / updated design counts against the cap-8 from the moment its
-   Linear status flips to "doing".
+4. Run `/grill-me` + `/plan` to regenerate or update the design.
+5. The work counts against the assignee's cap-8 from the moment its state
+   flips to a started state.
 
-## Clean up — on epic completion
+## Clean up — on design completion
 
-When all sub-issues are closed:
+When the design ships (issue → Done):
 
-1. Update the relevant `executor/primary.md` (or a sub-spec under it)
-   with the durable architectural distillate from the design — the
-   invariants, vocabulary, contracts that now hold.
+1. Update the relevant `executor/primary.md` (or a sub-spec) with the
+   durable architectural distillate — invariants, vocabulary, contracts.
 2. Delete `wiki/<domain>/designs/<slug>.md` (or the folder).
-3. The Linear epic's `Design:` link now points to a deleted path —
-   that's fine; the description body carries the design summary, and
-   git history is the deep record if anyone needs it.
+3. The Linear issue's `Design:` link now points to a deleted path — fine;
+   git history is the deep record.
 
-## Cross-references both ways
+## How Claude reads + writes Linear (decided)
 
-- Every `wiki/<domain>/designs/<slug>.md` **should** list its Linear
-  epic ID at the top once Linear is wired.
-- Every `executor/primary.md` update that descends from a shipped
-  epic **should** include the epic ID for traceability.
-- Every Linear issue **must** include the path to its wiki
-  `designs/` file *while alive*. After cleanup, the link rots;
-  that's expected.
+- **Official remote MCP server.** `https://mcp.linear.app/mcp` (HTTP),
+  added at **local (project) scope** — private to this user in
+  `/Users/jessica/GridWorks`. OAuth (`read write`), token persists across
+  sessions.
+- **Add (one-time):** `claude mcp add --transport http linear
+  https://mcp.linear.app/mcp`, then `/mcp` → linear → Authenticate.
+- A server added mid-session needs a **session restart** before its tools
+  load.
+- **Reconnect / token rot:** `claude mcp remove linear -s local` then re-add.
+- The MCP exposes `list_*` / `get_*` / `save_*` for teams, issues, labels,
+  states, projects, comments, documents — enough for the bijection +
+  cap-8 hooks to query and for porting designs.
 
-## Naming alignment + bijection
+## Hooks (script-enforced, not AI-checked)
 
-**Bijection (normative).** Every `wiki/<domain>/designs/<slug>.md` (or
-`<slug>/` folder) corresponds to **exactly one** Linear epic; every
-Linear epic representing a design corresponds to **exactly one** wiki
-design. Both sides SHALL cross-reference:
+Wiki-side halves can land now; Linear-side queries now have a live MCP/API
+to call.
 
-- Linear epic body → wiki path link (`Design:` field in the template).
-- Wiki design `Status:` line → Linear epic ID (e.g.,
-  `Status: Accepted · Pass 2 · Updated 2026-06-10 · Linear: GRID-142`).
+### `wiki/tools/precheck-design-bijection.sh`
 
-**Canonical name = wiki slug.** The wiki slug is the canonical name
-(`gwproto-shrink`, `transactive-mvp-clearing`, etc.). The Linear epic
-title MAY be a display-friendly variant ("Shrink gwproto to proactor
-surface"), but it SHALL contain the slug, or trivially normalize to
-it (lowercase, hyphenated). When in doubt, make them identical.
+Enforces slug ↔ `design`-issue-title bijection.
 
-**Sub-issue alignment.** Linear sub-issue title === a sub-section
-anchor or sub-spec filename in the design where possible. Stay literal.
+- **Trigger:** `UserPromptSubmit` (early sweep); `PreToolUse` on Write/Edit
+  to `wiki/**/designs/**` (catch a mis-named new file at write-time);
+  on first Linear MCP call in a session (catch cross-session drift).
+- **Logic:** walk every `wiki/<domain>/designs/<slug>.md` (+ `<slug>/primary.md`)
+  and `wiki/designs/<slug>.md`; extract slug + `Status:` line. For each
+  slug, query Linear for a `design`-labeled issue whose title equals or
+  trivially normalizes to the slug. **Flag:** (a) wiki slug with no issue;
+  (b) `design` issue with no wiki slug; (c) slug collisions; (d) — *deferred
+  until maturity labels exist* — `Status:` vs maturity-label mismatch.
+- **Wiki-side-only mode** (no Linear): duplicate/malformed slug checks across
+  `wiki/**/designs/**`.
 
-**Why a bijection.** Without it, work drifts: two Linear epics for the
-same design, or two designs sharing one epic, both let intent fragment
-silently. The 1:1 rule lets either side resolve to the other
-unambiguously.
+### `wiki/tools/precheck-cap-8.sh`
 
-## Planned hooks (script-enforced, not AI-checked)
+Enforces the personal WIP cap.
 
-These two hooks formalize the hard rules in `designs-process.md`
-"Linear interaction — the rules" so they're checked
-deterministically, not eyeballed by an LLM. **Wiki-side
-implementation can land now; Linear-side queries land when Linear is
-wired.**
+- **Trigger:** `UserPromptSubmit` (warn early); before any action that would
+  move one of *my* issues into a started state.
+- **Logic:** query Linear for issues where `assignee = me` AND
+  `state.type = started` (In Progress + In Review). **Warn at 7, fail at 8.**
+- **No-Linear mode:** once-per-session honor-system reminder.
 
-### 1. `wiki/tools/precheck-design-bijection.sh`
+### `wiki/tools/regen-design-index.sh` (later)
 
-Enforces the slug ↔ Linear-epic-title bijection **AND** the
-maturity ↔ Linear-label bijection (`Status: Draft` in the wiki
-matches a `draft` label on the Linear epic).
+Auto-regenerate [`DESIGN_INDEX.md`](../DESIGN_INDEX.md) from the filesystem
+(walk `wiki/**/{designs,research/concerns}/**.md`, read each `Status:`
+line) + optionally decorate with the linked Linear issue's state. Deferred:
+most useful once we routinely carry Linear IDs in `Status:` lines.
 
-- **Trigger:**
-  - `UserPromptSubmit` (early-session sweep) — runs wiki-side
-    checks + (once Linear is wired) the full bijection query.
-  - **On Linear-connect** (first time Claude opens a Linear
-    session in a given Claude session, e.g., the first MCP call
-    to Linear) — runs the full bijection query so any
-    drift accumulated between sessions surfaces immediately.
-  - `PreToolUse` on Write/Edit when the target path matches
-    `wiki/**/designs/**` — re-check just that slug's bijection
-    so a mis-named new file is caught at write-time.
-- **Logic:**
-  - Walk every `wiki/<domain>/designs/<slug>.md` (and
-    `wiki/<domain>/designs/<slug>/primary.md` for fractal
-    designs) — extract the slug + read its `Status:` line.
-  - Walk every `wiki/designs/<slug>.md` similarly (cross-cutting
-    designs).
-  - For each slug, query Linear for an epic whose title equals
-    the slug or trivially normalizes to it (case-insensitive,
-    hyphens ↔ spaces, same letters in same order).
-  - **Flag, per design:**
-    - (a) wiki slug with no matching Linear epic;
-    - (b) Linear epic in the designs project with no matching
-      wiki slug;
-    - (c) slug collisions on either side;
-    - (d) wiki `Status: Draft` but the Linear epic has no `draft`
-      label (or vice versa: epic has `draft` but the wiki is
-      already `Accepted`).
-- **Until Linear is wired:** the hook runs the wiki-side half
-  only — checks for duplicate slugs and malformed slugs across
-  `wiki/**/designs/**`, no Linear query, no label check.
+## Cleanup backlog (Linear-side data hygiene)
 
-### 3. `wiki/tools/regen-design-index.sh` (consider during Linear integration)
+Not blocking the integration; queue as `nit`/small issues when touched:
 
-Auto-regenerate [`DESIGN_INDEX.md`](../DESIGN_INDEX.md) from the
-file system rather than hand-maintaining its entries.
+- **Normalize house/domain labels** — collapse `elm`/`Elm`, `Maple`/`maple`,
+  `keene.elm` etc. into one consistent scheme across Ops + GridWorks teams.
+- **Decide the GRI team's role** — keep as house registry (current de-facto)
+  or fold the house cards elsewhere. Low priority; it's harmless as-is.
+- **Create the `design` + `nit` labels** in Ops before the first design port
+  or the bijection hook goes live.
 
-- **What it does:**
-  - Walks `wiki/**/{designs,research/concerns}/**.md`.
-  - Reads each file's `Status:` line (maturity + Pass).
-  - (Once Linear is wired) queries the matching Linear epic's status
-    + labels for each design.
-  - Emits a refreshed `DESIGN_INDEX.md`: same two sections (Designs +
-    Concerns), each entry decorated with `Status: Draft · P0`
-    inline + (optionally) the Linear status.
-- **Trigger:** pre-commit hook on the wiki, plus on-demand
-  invocation. Could piggyback on `precheck-design-bijection.sh`
-  (same walk, same Status reads).
-- **Why deferred to Linear-integration time:** the script is more
-  useful when it can also surface Linear's workflow status (doing /
-  todo / done) alongside wiki maturity. Hand-maintaining
-  DESIGN_INDEX with status info before then would create the drift
-  problem the current flat-directory design is built to avoid; the
-  auto-gen path gets us scanability without dual-write.
-- **Until then:** DESIGN_INDEX stays a flat directory of paths.
-  Maturity lives in each file; readers click through if they need it.
+## Reconciliation note (out of this session's scope)
 
-### 2. `wiki/tools/precheck-cap-8.sh`
+[`../designs-process.md`](../designs-process.md) "Linear interaction — the
+rules" still describes the older **epic / designs-project / designs-doing
+cap-8** model. That top-level file needs a follow-up pass (under its own
+active-claims claim) to align with the decisions here:
+design = **issue** (not epic), tracked in **Ops** (no designs project),
+cap-8 = **my started issues** (not designs-in-doing).
 
-Enforces the cap-8 on designs in Linear "doing" status.
+## Still open / deferred
 
-- **Trigger:** `UserPromptSubmit` (warn early in a session) and
-  before any action that would flip a Linear ticket into "doing".
-- **Logic:**
-  - Query Linear's "In Progress" view for the designs project;
-    count epics there.
-  - Warn at 7, fail at 8 (block the flip to "doing" until one
-    is moved back to "todo" or closed).
-- **Until Linear is wired:** the hook is a no-op stub (or
-  optionally emits a once-per-session reminder that the cap is
-  on the honor-system). `DESIGN_INDEX.md` is a flat directory,
-  not a doing-state board, so no count is derivable from it.
-
-## Open (until Linear is wired)
-
-- **Workspace / project shape.** One project per code repo? One per
-  active design? One umbrella with labels? Decide when wiring.
-- **Status names.** Linear's defaults are
-  `Backlog / Todo / In Progress / Done / Canceled`. Map to GridWorks:
-  `backlog` = scratch, `todo` = ratified+queued, `in progress` = doing
-  (counts cap-8), `done` = shipped, `canceled` = shelved without
-  shipping.
-- **Labels / priority conventions.** Map onto the Type/Severity/Effort
-  fields the legacy `findings.md` registers used.
-- **Cross-repo issue numbering.** Linear IDs are workspace-scoped;
-  one workspace = one numbering. Multi-workspace would need a
-  path-style identifier.
-- **How Claude reads + writes Linear.** MCP server vs. direct API.
-  Until set up, this doc describes the model; nothing executes.
-- **Session ↔ Linear coupling.** Should a Linear issue surface which
-  `active-claims.md` session is currently on it? Probably useful;
-  defer to first real use.
-- **What about items below the Linear-ticket threshold** — one-line
-  nits a contributor would mop up on a slow afternoon? Default:
-  tiny Linear issues with a `nit` label. The wiki SHALL NOT carry
-  a separate todo/queue list — "queue" is a Linear concept, not a
-  wiki concept. Nits do NOT go to `concerns/` either — concerns are
-  for genuine open design questions, not work-tracking spillover.
+- **Maturity → label mirroring** — create `draft`/`accepted`/`verified`
+  labels only when the bijection hook actually asserts on them.
+- **Session ↔ Linear coupling** — the design issue body's "Active-claims
+  session" line is optional today; formalize if it proves useful.
+- **Sub-issue conventions** — title alignment + thin bodies are the rule;
+  finer mechanics decided ad-hoc as real sub-issues appear.
+- **Cross-repo numbering** — single workspace, OPS numbering; the wiki slug
+  (not the issue number) is the canonical cross-link, so multi-team
+  numbering is a non-issue unless designs ever split across teams.
