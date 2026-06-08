@@ -41,10 +41,11 @@ Read this first if you are implementing. The plan is execution-ready for the
   2. **Versioned-property-format capability** — the "Versioned-format capability"
      checklist below (incl. the relax → migrate → re-constrain spec sequencing).
   3. **Market application** (§3) — the renames, `market.product`, `ltn.bid`,
-     `bid`/`latest.price` v001, the `frozen` status.
+     `bid`/`latest.price` v001, the `frozen_at` field.
 - **Resolve these up front (ask the user — they don't block the architecture but
-  do block authoring):** registry option A vs B (spoke); the `frozen` status name
-  (§4); confirm integer structured enums stay out of v1 (spoke).
+  do block authoring):** registry option A vs B (spoke; **resolved → A**);
+  confirm integer structured enums stay out of v1 (spoke). (The `frozen`
+  question is **resolved** — see §4: word-level `frozen_at`.)
 - **Confirm the `rt60gate30b` row against MarketMaker reality** before authoring —
   the legacy description is internally contradictory (§3); MarketMaker is the
   source of truth, not this doc.
@@ -438,28 +439,55 @@ additionalProperties: false
     `indexes/public_registry.yaml:384-391`) and
     `scripts/regenerate_runtime.py`.
 
-### 4. Registry status — `frozen` (no new versions)
+### 4. Frozen words — `frozen_at` (closed version lineage)
 
 `atn.bid` is superseded by `ltn.bid` but **cannot be deleted**: historical
 messages + stored data carry `TypeName: atn.bid`, and consumers still decode
 them. We want it to **stay decodable forever** while signalling that **no new
-version will ever be cut**. Proposal: a registry status meaning exactly that.
+version will ever be cut**. Decision (resolved 2026-06-08):
 
-- **New status value — `frozen`** (name TBD; alternatives: `terminal`,
-  `closed`, `no-successor`). Applies to a *word* (a type/enum), distinct from
-  per-version publish status. Semantics: the word remains valid + published at
-  its existing version(s); authoring a new version is a **registry-validation
-  error**.
-- **Why not just stop touching it?** Silence is not a contract. `frozen` makes
-  "this is done, build `ltn.bid` instead" machine-checkable (a lint can point
-  new work away from `atn.bid`) and self-documenting in the registry.
-- **Spec touch.** Adds a status to `spec/registry/structure.md`'s status
-  vocabulary + a validation rule. Small, orthogonal to the format/enum work —
-  could land independently. **`needs-decision`:** the status name, and whether
-  `frozen` also forbids *description* edits (lean: no — clarifications still
-  allowed, same as a versioned word's latest version).
-- **Applies here to:** `atn.bid` (→ `frozen`, successor `ltn.bid`). Candidate
-  for any other legacy words later; out of scope to sweep now.
+- **A word-level `frozen_at` field — NOT a new `status` value.** `frozen` is a
+  *different axis* than `status`: `status` (`draft`/`published`) answers "is
+  *this version* published?" and is **per-version** for versioned words;
+  frozen-ness answers "will *this word* ever get another version?" and is
+  **per-word**. Modelling frozen as a `status` value would conflate the two
+  (a frozen word's existing versions are still `published`). So frozen is a
+  **separate word-entry field**.
+- **Date-as-marker.** The field is `frozen_at: "<RFC 3339>"` (seconds-precision
+  UTC, matching the registry Timestamp Rules). **Presence ⇒ frozen**; absence ⇒
+  not frozen. This avoids a redundant `frozen: true` boolean *and* records the
+  audit fact "when the lineage was closed," mirroring `created`.
+- **Semantics.** A word with `frozen_at` remains valid and its existing
+  published versions stay decodable forever; **authoring a new version is a
+  registry-validation error.** `frozen_at` gates *only* new versions — it says
+  nothing about description edits, which stay governed by the existing
+  published-immutability rules (so the earlier "does frozen forbid description
+  edits?" question resolves to **no, automatically**). For structurally
+  single-version words (versionless formats, literal enums, versionless types)
+  "no new versions" is already automatic, so `frozen_at` there is a retirement
+  *signal* rather than a new gate.
+- **Orthogonal to `replaced_by`; NOT coupled.** `replaced_by` (already in
+  `spec/registry/structure.md`) is the advisory *successor* hint and explicitly
+  "does not create a lifecycle state." `frozen_at` is the lifecycle gate. They
+  **compose**, neither subsumes the other:
+  - `frozen_at` without `replaced_by` is legitimate (retire a concept with no
+    successor);
+  - `replaced_by` without `frozen_at` is legitimate during a migration window
+    (the old lineage may still be hotfixed while the successor matures);
+  - forcing `replaced_by ⇒ frozen_at` (a MUST) would make `replaced_by` carry
+    lifecycle meaning, contradicting its current spec. So **no MUST**; at most a
+    **SHOULD** + a lint *warning* if a `replaced_by` word lacks `frozen_at`.
+  - `atn.bid` simply carries **both** (`replaced_by: [ltn.bid]` *and*
+    `frozen_at`).
+- **Why not just stop touching it?** Silence is not a contract. `frozen_at`
+  makes "this is done, build `ltn.bid` instead" machine-checkable and
+  self-documenting in the registry.
+- **Spec touch.** `spec/registry/structure.md` gains the `frozen_at` field
+  definition (alongside `status` and `replaced_by`) + a registry-validation
+  rule: no version may be authored on a word once `frozen_at` is present.
+  Small and orthogonal to the format/enum work — could land independently.
+- **Applies here to:** `atn.bid` (→ `frozen_at` + `replaced_by: [ltn.bid]`).
+  Candidate for other legacy words later; out of scope to sweep now.
 
 ### Active-path implementation checklist
 
@@ -487,7 +515,7 @@ are owned by the spoke; the **versioned-property-format** changes are below
 - [ ] Confirm `market.product` needs no `spec/` change (a type referencing an
       enum is already legal — but here `Name`/`ProductNameEnum` are strings, so
       not even that).
-- [ ] Add the **`frozen`** word-status (§4) to `registry/structure.md`.
+- [ ] Add the **`frozen_at`** word field (§4) to `registry/structure.md`.
 
 **Definitions (`sema/definitions/`)**
 - [ ] Author `enums/gw.market.product.name/000.yaml` as a **structured** enum
@@ -522,7 +550,7 @@ are owned by the spoke; the **versioned-property-format** changes are below
       `gw.market.slot.name`'s declared axiom dep (no `ModuleNotFoundError`).
 - [ ] `market.product` (type) seeded alone pulls **no** product enum (open
       model) — decode is opt-in.
-- [ ] `frozen` status: authoring a new `atn.bid` version is a registry error.
+- [ ] `frozen_at`: authoring a new `atn.bid` version is a registry error.
 - [ ] Regen + green: `scripts/build_indexes.sh`,
       `scripts/regenerate_runtime.py`, `pytest`.
 
