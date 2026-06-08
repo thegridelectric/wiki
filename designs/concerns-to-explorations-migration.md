@@ -1,6 +1,6 @@
 # Concerns → explorations migration
 
-Status: Draft · Pass 0 · Updated 2026-06-08
+Status: Accepted · Pass 1 · Updated 2026-06-08
 
 > What this is: the change plan to rename the wiki's `concerns/` folders to
 > **`explorations/`** and **promote them to the domain root** (peer of

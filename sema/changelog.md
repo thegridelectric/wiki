@@ -12,105 +12,58 @@ Newest at the top.
 
 ---
 
-## 2026-06-08 — Add versioned property formats and author gw.market.slot.name (`e1f2723`)
+## 2026-06-08 — Untangle market.type.name into structured gw.market.product.name + market.product type (`<squash-hash>`)
 
-**What:** Unit 2 of the `untangle-market-type-name` design (OPS-378). Adds a
-second Sema capability — **versioned property formats** — and authors the first
-one, `gw.market.slot.name`:
+**What:** The complete `untangle-market-type-name` work (OPS-378), squashed.
+Two reusable Sema capabilities applied to the market vocabulary, while keeping
+the universal market messages uniform across makers:
 
-- **Spec.** Formats are versionless + immutable *by default* but MAY be **born
-  versioned** (versioned-ness fixed at creation — no promotion, so no grandfather
-  exception); `$ref` stays forbidden but a versioned format MAY declare a
-  registry **axiom dependency** on an enum. Touched `authoring/formats.md`,
-  `registry/formats.md` (versioned-format entry shape), `registry/structure.md`
-  (per-version status), `registry/types.md` (dep-ref `name:###` for versioned
-  formats), `primary.md` glossary, and the `CLAUDE.md` "immutable per version"
-  MUST.
-- **The word.** `formats/gw.market.slot.name/000.yaml` (versioned layout) +
-  registry entry declaring `direct_dependencies.axiom: [gw.market.product.name:000]`.
-  Its generated validator decodes the product token against `GwMarketProductName`
-  and reads slot duration from `.attrs.slot_minutes` (the Unit-1 structured
-  enum), with distinct symbols so it coexists with the untouched legacy
-  `market.slot.name`.
-- **Tooling.** Versioned formats now flow through the whole pipeline:
-  `seed_requests`, `build_lookup`, `build_versions` (new `formats:` section),
-  `build_dependency_closure` (classify + **recurse a versioned format's axiom
-  dep**), `build_reverse_dependencies`, `build_seed_dag` (versioned format
-  nodes/paths/refs/axiom expansion), and `load_schema_for_node`.
-- **gjk import-root fix (folded in).** Format codegen now threads `import_root`
-  via a placeholder, so the lazy enum import follows a snapshot's own package
-  root instead of a hardcoded `sema.runtime` — the documented
-  `ModuleNotFoundError` root cause (see `designs/snapshot-improvement.md`, now
-  marked landed).
-- **Tests.** Relaxed the "formats have no versions/deps" assertions to branch on
-  versioned vs versionless across three registry tests; new
-  `test_versioned_format.py` covers import-root parameterization, the runtime
-  validator round-trip, index presence, and the closure axiom-dep pull.
+- **Structured enums** (`spec/authoring/enums.md` "Structured Enums") — enum
+  values may carry a fixed, typed row of primitive attributes
+  (`value_attribute_schema` + `value_attributes`), codegen'd as a frozen
+  `…Attrs` dataclass + a `.attrs` accessor (deferred module-level table so the
+  Enum metaclass doesn't absorb it). Zero closure edges (attributes are
+  primitives, never `$ref`). Authored `enums/gw.market.product.name/000.yaml` —
+  GridWorks's product vocabulary; each token decodes to
+  `timeframe / slot_minutes / gate_minutes / quantity_unit`; `unknown` is the
+  row-less default sentinel.
+- **`market.product` type** — an open, maker-agnostic product object
+  (`MarketProductId` uuid · `ProductNameEnum` left.right.dot · `Name` bare
+  token). It names *which* maker's product vocabulary a token belongs to without
+  pinning one, so one shared type scales across thousands of makers; the decode
+  is opt-in, consumer-side.
+- **`frozen_at` word-status** (`spec/registry/structure.md`) — a word-level
+  RFC-3339 marker closing a version lineage (no new versions), orthogonal to
+  `replaced_by`. Used to retire-in-place: `market.type.name` →
+  `replaced_by gw.market.product.name`; `atn.bid` → `replaced_by bid`. Legacy
+  words stay valid and decodable forever; they are not deleted.
+- **`market.slot.name` kept maker-agnostic & shape-only** — de-tangled to a
+  self-contained, versionless leaf whose single regex enforces commodity
+  `[erd]` · a `spaceheat.name`-shaped product token · a `left.right.dot` maker
+  alias · 10-digit slot start. It no longer reaches any enum. So `bid` and
+  `latest.price` stay **uniform across all market makers** (no per-maker bid
+  types); product-token validity and slot-start alignment are decoded opt-in,
+  receiver-side, against that maker's structured product enum.
 
-**Why:** Markets are foundational and we want to decode core market-slot info
-(commodity class, product token, maker alias, slot start) directly from the slot
-name. That validator genuinely depends on an evolving enum
-(`gw.market.product.name`) — a dependency that, before this change, lived only in
-validator code and was invisible to `sema snapshot prepare`'s `$ref`-following
-closure (the gridworks-journalkeeper import failure). Rather than mutate an
-immutable leaf or stand up a second source of truth, a versioned format declares
-that edge as a **registry axiom dependency**: the schema stays a pure pattern
-("formats SHALL NOT `$ref`" survives) while closure can now follow the edge, so a
-consumer seeding a type that reaches the format transitively pulls the enum. This
-is the second of the design's two complementary capabilities (structured enums +
-versioned formats); `market.slot.name` and its consumers are deliberately left in
-place until the Unit 3 rename.
+**Why:** `market.type.name` conflated a market *product* (a named, decodable
+thing) with the *type of market*, and the legacy `market.slot.name` validator
+reached the `MarketTypeName` enum through an edge the dependency closure couldn't
+see — the gridworks-journalkeeper `ModuleNotFoundError`. The fix puts product
+semantics in a structured enum (decodable in the vocabulary, not a side table),
+keeps the shared slot-name format shape-only so it carries no hidden vocabulary
+edge (that class of bug is gone **by removal**), and retires the old words in
+place via `frozen_at`/`replaced_by` rather than deleting them. Keeping the slot
+format maker-agnostic is what lets `bid`/`latest.price` stay a single shared
+contract; each market owner instead publishes its own
+`<ns>.market.product.name` structured enum (see
+`wiki/gridworks-marketmaker/explorations/market-product-and-uniform-bids.md`).
 
----
-
-## 2026-06-08 — add structured enums (`8d260a0`)
-
-**What:** Unit 1 of the `untangle-market-type-name` design (OPS-378).
-Adds a new Sema capability — the **structured enum** — and authors the
-first real one:
-
-- **Spec.** `spec/authoring/enums.md` gains a *Structured Enums* section:
-  two new `x-gridworks` keys (`value_attribute_schema` declaring typed
-  columns once; `value_attributes` carrying one primitive row per value)
-  plus four invariants (Totality, Primitive/dependency-free attributes,
-  per-cell Immutability, Additive attribute schema), and the
-  within-`x-gridworks` allow-list grows by those two keys.
-  `spec/registry/enums.md` records that structured-ness is **schema-file
-  authoritative** (no registry field — Option A); `spec/primary.md`
-  glossary and the `CLAUDE.md` "enums additive only" MUST are updated to
-  match.
-- **Codegen.** `runtime_generation/enums.py` emits a `StructuredEnum`
-  base and, for a string enum carrying `value_attribute_schema`, a frozen
-  `…Attrs` dataclass + a module-level `_ATTRS` table read by an `.attrs`
-  property (deferred-assignment pattern so the Enum metaclass doesn't
-  absorb the table as a member). Integer structured enums are rejected
-  for v1.
-- **The word.** `enums/gw.market.product.name/000.yaml` — 8 tokens, each
-  decoding to `timeframe / slot_minutes / gate_minutes / quantity_unit`;
-  `unknown` is the row-less default sentinel (`.attrs is None`).
-- **Tests.** Build-time totality/primitive/conformance validation in
-  `test_enum_schema_correctness.py`; codegen + runtime round-trip
-  (`GwMarketProductName.rt60gate5.attrs.slot_minutes == 60`) in
-  `test_runtime_generation_enums.py`.
-
-**Why:** The design moves market-product semantics **into the
-vocabulary** rather than into a format validator (which can't `$ref`) or
-a separate catalog (a second source of truth). A structured enum makes
-the name→timing decode structural, typed, and codegen'd — consumers read
-`.attrs.slot_minutes` instead of parsing the token or reaching a side
-table. Crucially it adds **zero closure edges** (attributes are
-primitives, never `$ref`), so it cannot recreate the hidden format→enum
-edge that caused the original gridworks-journalkeeper import failure this
-whole effort exists to remove. This is the load-bearing capability the
-later units (versioned property formats; the `market.type.name` rename +
-`market.product`/`ltn.bid` types) build on; `market.type.name` is
-deliberately left untouched until that rename.
-
-Note: `gw.market.product.name`'s `rt60gate30b` row was authored from the
-design's decode (60-min slot / gate 30 / AvgkW); the legacy
-`market.type.name` description for that token is internally contradictory
-and MarketMaker remains the source of truth — confirm before relying on
-that token's decode.
+Note: an interim "versioned property formats" approach (a slot-name format
+declaring a registry axiom dependency on the product enum) was prototyped and
+then reverted in favor of this simpler maker-agnostic shape-only format — it
+nets to zero in this squash. `gw.market.product.name`'s `rt60gate30b` row uses
+the design's decode (60-min slot / gate 30 / AvgkW); MarketMaker remains the
+source of truth — confirm before relying on that token's decode.
 
 ---
 

@@ -72,15 +72,16 @@ JSON instance under `samples/`:
 - These are the fixtures the build-time round-trip (#2) consumes. (Optional
   later: also emit `counterexamples` for negative tests.)
 
-### Related fix to fold in — ✅ LANDED (2026-06-08)
-The format generator hardcoded `from sema.runtime.enums import …` instead of
-threading `import_root` (was `templates/format.py:144`) — a correctness bug for
-consumer snapshots. **Fixed** as part of the versioned-property-formats unit of
-[`untangle-market-type-name/`](untangle-market-type-name/primary.md): the format
-templates now write the lazy enum import against an `IMPORT_ROOT_PLACEHOLDER`
-that `generate_property_format` substitutes with the snapshot's own
-`import_root` (see `runtime_generation/formats.py` +
-`runtime_generation/templates/format.py`). No longer pending here.
+### Related fix to fold in — now MOOT (2026-06-08)
+The format generator hardcoded `from sema.runtime.enums import MarketTypeName`
+in the `market.slot.name` validator template — a consumer-snapshot correctness
+bug. The `untangle-market-type-name` work resolved this **by removal**:
+`market.slot.name` was de-tangled into a self-contained, shape-only leaf
+(structure only — no enum import), so **no format imports vocabulary anymore**
+and there is no hardcoded import left to thread. (A short-lived `import_root`
+threading was added then reverted along with the versioned-property-format
+capability.) If a future format ever needs to import vocabulary, thread
+`import_root` through `generate_property_format` at that point.
 
 ## Verification
 - `scripts/regenerate_runtime.sh` → `ruff`/`mypy` clean; a **second** regen
