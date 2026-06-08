@@ -12,6 +12,23 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-06-07 — Resolve gw_data from PyPI instead of local path source
+
+**What:** Remove the `[tool.uv.sources] gw_data = { path =
+"../gridworks-data/" }` override from `pyproject.toml` and relock so
+`uv.lock` pins `gw-data 0.3.0` from the PyPI registry. (Branch
+`jm/gw-data-from-pypi`.)
+
+**Why:** The local path source resolved gw_data from a sibling checkout,
+which works on a dev machine but breaks CI: `tests.yml` runs `uv sync
+--all-extras --all-groups --locked`, and in CI only this repo is checked
+out — there is no `../gridworks-data`, so the locked sync failed before
+tests could run. Now that gw_data is published
+(https://pypi.org/project/gw-data/, 0.3.0), the dependency
+`gw_data>=0.3.0` resolves from PyPI in both CI and local installs.
+Verified: `uv sync --locked` resolves and `pytest tests/` → 13 passed.
+
 ## 2026-06-07 — custom persistors: deterministic (uuid5) message ids (`fa08423`, merged `af06ef0` / PR #160)
 
 **What:** Route the `flo.params.house0` and `weather.forecast` custom

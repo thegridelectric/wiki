@@ -12,6 +12,51 @@ Newest at the top.
 
 ---
 
+## 2026-06-07 — Add Release workflow to publish gw_data to PyPI
+
+**Why:** gw_data had no publish pipeline and had never been on PyPI —
+the only consumer (gridworks-journalkeeper) pulled it via a local
+`[tool.uv.sources]` path (`../gridworks-data`), which works on a dev
+machine but breaks journalkeeper's CI (`uv sync --locked` finds no
+sibling checkout). To let downstream repos resolve `gw_data` from PyPI,
+we need it published. This adds `.github/workflows/release.yml`, modeled
+on gridworks-base's release workflow but trimmed to the PyPI path only
+(no TestPyPI dev-release, no release-drafter): on a push to `main`,
+`salsify/detect-and-tag` compares the pyproject version against existing
+git tags and — only when the version is new — tags `vX.Y.Z`, builds, and
+`uv publish`es to PyPI. Requires one repo secret, `PYPI_TOKEN`. First
+publish (0.3.0) landed at https://pypi.org/project/gw-data/.
+
+## 2026-06-05 — Bump version to 0.3.0
+
+**Why:** Cut the first published release. 0.3.0 carries the prod-schema
+changes below and is the first version pushed to PyPI, so downstream
+repos can depend on `gw_data>=0.3.0` instead of a local path source.
+
+## 2026-06-04 — Prod changes: private `gridworks` schema, `tsdb` database, superuser-free setup
+
+**Why:** Make gw_data deployable on a managed Tiger Cloud instance (and
+align local dev with prod). Three coupled changes:
+
+- **Private schema.** All tables, enums, indexes, FKs, and the alembic
+  version table move from `public` to a dedicated `gridworks` schema
+  (`Base.metadata = MetaData(schema="gridworks")`; `alembic/env.py` gains
+  `version_table_schema` + an `include_name` filter so autogenerate only
+  tracks our schema; the initial migration is rewritten fully
+  schema-qualified, with enums marked `inherit_schema=True`). Keeps our
+  objects out of `public` on a shared managed server. New migration
+  revision `1220f2f941dd` supersedes `fa719a767a1e`.
+- **`tsdb` database.** The target DB is renamed `gridworks` → `tsdb`
+  (Tiger Cloud's default database name), so the same connection string
+  shape works locally and managed.
+- **Superuser-free setup.** The single interactive `0_server_init.psql`
+  is split into a numbered sequence runnable without superuser: a
+  local-only `0_db_create`, then `1_db_user_setup` /
+  `2_db_schema_setup` / `3_db_alembic_upgrade.sh` / `4_db_seed` that run
+  as `gw_admin` (or Tiger Cloud's `tsdbadmin`). Roles are renamed by
+  consumer: `gw_writer` → `gw_journalkeeper`, `gw_reader` →
+  `gw_visualizer`. README rewritten to cover both local and Tiger Cloud.
+
 ## 2026-05-23 — README: clarify postgres setup walkthrough
 
 **Why:** First end-to-end walkthrough of the setup (during the
