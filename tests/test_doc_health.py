@@ -113,6 +113,58 @@ def test_accepted_designs_have_pass_at_least_one(doc: Path) -> None:
     )
 
 
+LINEAR_ID_RE = re.compile(r"Linear:\s*[A-Z]+-\d+")
+
+
+def _slugify(title: str) -> str:
+    """Canonical projection from a Linear issue title to a wiki design slug:
+    lowercase, replace every run of non-alphanumeric chars with one hyphen,
+    strip leading/trailing hyphens. A design's Linear issue title MUST project
+    to the design's file slug (the design↔issue bijection). The live check
+    (apply this to each stamped design's actual Linear title) belongs in
+    precheck-design-bijection.sh once a Linear API token is wired; here we pin
+    the projection itself.
+    """
+    return re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+
+
+@pytest.mark.parametrize(
+    "title,slug",
+    [
+        ("Untangle market.type.name", "untangle-market-type-name"),
+        ("Simulated test environment", "simulated-test-environment"),
+        ("Circulator pump 0-10V models", "circulator-pump-0-10v-models"),
+        ("Shrink gwproto to proactor surface!", "shrink-gwproto-to-proactor-surface"),
+        ("  Leading/trailing -- junk  ", "leading-trailing-junk"),
+    ],
+)
+def test_slug_normalization(title: str, slug: str) -> None:
+    assert _slugify(title) == slug
+
+
+@pytest.mark.parametrize("doc", _designs_scope(), ids=_rel)
+def test_accepted_designs_have_linear_id(doc: Path) -> None:
+    """Per designs/linear-integration.md: a design MUST have a Linear issue by
+    the time it is Accepted. The bijection is REQUIRED at Accepted/Verified
+    (optional at Draft, where it would sit in Linear Backlog). This enforces the
+    wiki side — the design's Status line carries `· Linear: <ID>` (e.g.
+    `· Linear: OPS-142`). The Linear-side half (the issue exists and is
+    `design`-tagged) is checked by a script when a Linear API token is wired.
+    """
+    text = doc.read_text(encoding="utf-8", errors="replace")
+    m_mat = MATURITY_RE.search(text)
+    if not m_mat or m_mat.group(1) not in ("Accepted", "Verified"):
+        return  # Draft designs may be doc-only or in Linear Backlog.
+    status_line = next(
+        (ln for ln in text.splitlines() if ln.startswith("Status:")), ""
+    )
+    assert LINEAR_ID_RE.search(status_line), (
+        f"{_rel(doc)}: an Accepted/Verified design MUST carry a Linear id in its "
+        "Status line (e.g. '· Linear: OPS-142'). Add it to Linear (Todo) and "
+        "stamp the id, or demote to Draft."
+    )
+
+
 @pytest.mark.parametrize("doc", _md_files(), ids=_rel)
 def test_no_doc_exceeds_line_cap(doc: Path) -> None:
     n = sum(1 for _ in doc.open(encoding="utf-8", errors="replace"))

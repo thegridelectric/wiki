@@ -35,7 +35,7 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **rmqbot** — [`designs/prod-tls-fix.md`](rmqbot/designs/prod-tls-fix.md)
 - **sema** — [`designs/practice-erb-pair-programming.md`](sema/designs/practice-erb-pair-programming.md)
 - **sema** — [`designs/snapshot-improvement.md`](sema/designs/snapshot-improvement.md)
-- **sema** — [`designs/untangle-market-type-name.md`](sema/designs/untangle-market-type-name.md)
+- **sema** — [`designs/untangle-market-type-name/primary.md`](sema/designs/untangle-market-type-name/primary.md) (hub-and-spoke; spoke: structured-enums)
 - **sema** — [`designs/web-app-words-to-types.md`](sema/designs/web-app-words-to-types.md)
 
 ## Concerns

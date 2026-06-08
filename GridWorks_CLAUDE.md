@@ -169,10 +169,14 @@ priority) lives in Linear.
 `wiki/<domain>/designs/<slug>.md` (per-domain) or `wiki/designs/<slug>.md`
 (cross-cutting / tooling). A single fixed location per design; files do
 NOT move between folders as status changes. **Linear is the authority on
-status** (backlog / todo / doing / done) — at most **8 designs in "doing"
-status across GridWorks** at any time (focus discipline; enforced at the
-Linear layer once wired). Each design file MUST carry a status stamp;
-`Accepted` maturity requires `Pass ≥ 1` (enforced by
+status** (backlog / todo / doing / done). Designs are tracked as **Ops-team
+issues tagged `design`**. A design **MAY** enter Linear at Draft (sitting in
+**Backlog**) and **MUST** be in Linear once **Accepted** (moved to **Todo**);
+see [`designs/linear-integration.md`](designs/linear-integration.md). The focus
+**cap-8** is a **personal WIP limit** — at most 8 issues assigned to you in a
+*started* state — not a count of designs in "doing". Each design file MUST carry
+a status stamp; `Accepted` maturity requires `Pass ≥ 1`, and an Accepted
+design's stamp MUST carry its `· Linear: <id>` (all enforced by
 [`tests/test_doc_health.py`](tests/test_doc_health.py)). On completion,
 the design's durable distillate updates `executor/primary.md` (or a
 sub-spec); the `designs/<slug>` file is deleted. Per-domain `findings.md`

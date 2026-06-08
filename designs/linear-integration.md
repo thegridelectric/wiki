@@ -138,21 +138,91 @@ assigned issues**, not a global designs-doing count:
 `design`; every `design`-tagged issue corresponds to **exactly one** wiki
 design. Both sides cross-reference (links above).
 
-**Canonical name = wiki slug.** The Linear issue title MAY be
-display-friendly ("Shrink gwproto to proactor surface") but SHALL contain
-the slug or trivially normalize to it (lowercase, hyphenated). When in
-doubt, make them identical.
+**The wiki is authoritative for slugs; Linear follows.** The slug **is** the
+wiki design file name. The Linear issue title is derived from it, not the other
+way around. Normal flow: decide the name → name the wiki file → set the Linear
+title to match. (OPS-40 → `simulated-test-environment` followed exactly this and
+is correct — naming it well in the wiki and updating Linear is the intended use
+of both tools, not a violation.)
+
+**The bijection is a normalization, not string equality.** Project a Linear
+issue title to a slug by: **lowercase → replace every run of non-alphanumeric
+characters with a single hyphen → strip leading/trailing hyphens.** The result
+MUST equal the wiki design's file slug. Examples:
+
+- `Untangle market.type.name` → `untangle-market-type-name`
+- `Simulated test environment` → `simulated-test-environment`
+- `Circulator pump 0-10V models` → `circulator-pump-0-10v-models`
+
+The Linear title MAY be more display-friendly than the slug **only insofar as
+the projection still lands on the slug** — so `SCADA simulated test environment`
+is NOT allowed for slug `simulated-test-environment` (it projects to
+`scada-…`). The canonical normalization lives in
+`tests/test_doc_health.py::_slugify` (unit-tested); the future
+`precheck-design-bijection.sh` applies it to live Linear titles.
+
+**Default to the EXISTING slug — never invent one.** Keep the slug that already
+exists. To rename: (1) discuss with the user; (2) if agreed, rename the wiki
+**file** first (`git mv` — the file slug is canonical); (3) then update the
+Linear title to re-satisfy the projection. Coining a fresh slug also mis-labels
+scope (e.g. `structured-enums` for a capability that also covers *versioned
+names*). When unsure whether to split one design into two, **ask** rather than
+spawning a second slug + issue.
+
+**Exception — Linear-first capture.** Sometimes an issue is jotted into Linear
+first (e.g. distractedly, during a meeting). Fine: when it becomes a design,
+reconcile its title to the wiki slug — the wiki still wins, and the name is open
+to re-contemplation at that point.
 
 **Why a bijection.** Without it, work drifts: two issues for one design, or
 two designs sharing one issue, both let intent fragment silently. The 1:1
 rule lets either side resolve to the other unambiguously.
 
-## Sub-issues
+## Sub-issues and hub-and-spoke designs
 
-Use Linear native parent/child. Create a child issue only when the work is
-concrete — don't decompose a design into sub-issues at port-time on spec.
-Child issue title === a sub-section anchor or sub-spec filename in the
-design where possible. Stay literal.
+**A hub-and-spoke (fractal) design is ONE design → ONE Linear issue.** When a
+design is a folder (`designs/<slug>/primary.md` + sub-spec spokes), the Linear
+issue corresponds to the **hub**; its title projects to the **folder** slug. The
+hub `primary.md` **and every spoke** carry that one issue's `· Linear: <id>` in
+their Status line. Spokes are parts of one design, **not** separate Linear
+issues — this keeps the bijection 1:1 and the doc-health tests simple (each
+spoke already carries the id, so `test_accepted_designs_have_linear_id` passes
+without per-spoke issues). In `DESIGN_INDEX.md` only the hub `primary.md` is
+listed, not each spoke.
+
+**Linear sub-issues are for concrete work, not for spokes.** Use Linear native
+parent/child only when execution decomposes into distinct work items, created
+ad-hoc when the need is concrete — never auto-created per spoke. Child issue
+title === a sub-section anchor or sub-spec filename where natural. Stay literal.
+
+## When a design enters Linear (decided)
+
+Timing rule:
+
+- **Draft (Pass 0) → Linear optional.** A draft design MAY get a Linear issue
+  early when it helps (parking it, sharing it, remembering it), but it is not
+  required — drafts are cheap and many won't survive. If present, it sits in
+  Linear **Backlog** (matches the status mapping: Backlog = scratch / not
+  ratified).
+- **Accepted (Pass ≥ 1) → Linear required.** By the time a design is Accepted it
+  MUST have a Linear issue, moved to **Todo** (ratified + queued) or In Progress.
+  An Accepted design with no Linear issue is untracked ratified work — exactly
+  the gap to forbid. Acceptance is also when the implementation gate, cap, and
+  ownership start to matter.
+- **Reverse case** (an existing Linear issue reframed into a design, e.g.
+  OPS-27/OPS-40): the issue already exists — just tag `design` + cross-link at
+  whatever maturity. No new issue needed; move it to Backlog while the design
+  is Draft.
+
+One-liner: **Draft → Linear optional (Backlog if present); Accepted → Linear
+required (Todo).**
+
+**Enforcement (tests, not hooks).** The wiki-side half is enforced by
+`tests/test_doc_health.py::test_accepted_designs_have_linear_id`: every
+Accepted/Verified design's `Status:` line must carry `· Linear: <ID>`. The
+Linear-side half (the issue exists and is `design`-tagged) needs a Linear API
+token and stays a future script (`precheck-design-bijection.sh`), not a git
+hook.
 
 ## Port from `designs/` to Linear — at ratification
 

@@ -12,7 +12,7 @@ Newest at the top.
 
 ---
 
-## 2026-06-07 — Add Release workflow to publish gw_data to PyPI
+## 2026-06-07 — Add Release workflow to publish gw_data to PyPI (`0a41d0c`, merged `29194a1` / PR #4)
 
 **Why:** gw_data had no publish pipeline and had never been on PyPI —
 the only consumer (gridworks-journalkeeper) pulled it via a local
