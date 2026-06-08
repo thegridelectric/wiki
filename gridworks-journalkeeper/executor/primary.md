@@ -73,6 +73,22 @@ decoded + persisted.
    wants every message; per-type narrowing happens at the persistor,
    not at the broker. The consume exchange comes from gwbase defaults
    (`ear_tx` for the universal-tap class).
+6. **Message ids are deterministic so re-import is idempotent.** A
+   message with no natural id field gets `uuid5` over the
+   unique-per-object triple `{from_alias}|{type_name}|{persisted_ms}`
+   (matches the S3 filename), so re-importing a date is a true no-op via
+   the `(timestamp, id)` PK + `on_conflict_do_nothing`. The **default
+   path and every custom persistor** mint the id through the single
+   shared `default_message_id(...)` in `message_persistence_info.py` —
+   **`uuid4()` MUST NOT be used for a message id** (random ids dodge the
+   dedupe and duplicate `messages` rows on re-import). Because custom
+   persistors need `persisted_ms`, `persist_message` threads
+   `time_received` into the custom dispatch
+   (`custom_fn(from_alias, time_received, payload)`). The same id is
+   reused as `reading.message_id`, so derived-reading provenance stays
+   intact and deterministic. (Regression history: `57f5340` shipped the
+   `flo.params.house0` / `weather.forecast` custom persistors using
+   `uuid4()`; `fa08423` converged them onto the shared helper.)
 
 ## Live path (after Stage 2)
 
@@ -81,16 +97,20 @@ broker (ear_tx, "#")
   └─ ActorBase consume → RoutingEnvelope + body bytes
        └─ JournalKeeper.dispatch_message
             └─ SemaCodec.from_dict(json.loads(body))
-                 └─ SemaMessagePersistor.persist
-                      ├─ LayoutLitePersistor.handle (layout.lite types)
-                      ├─ ReportEventPersistor.handle (report.event)
+                 └─ SemaMessagePersistor.persist_message
+                      ├─ custom persistor (by target_message_type):
+                      │    layout.lite · report.event ·
+                      │    flo.params.house0 · weather.forecast
+                      │    → MessageSql + fanned-out gw_data.readings
                       └─ default: insert MessageSql(payload=jsonb)
                            └─ gw_data.messages
+   (id via shared default_message_id → idempotent re-import; see Invariant 6)
 ```
 
-The 12 surviving modules under `src/gjk/` are exactly this path:
+The surviving modules under `src/gjk/` are exactly this path:
 `journal_keeper`, `sema_message_persistor`, `layout_lite_persistor`,
-`report_event_persistor`, `message_persistence_info`,
+`report_event_persistor`, `flo_params_house0_persistor`,
+`weather_forecast_persistor`, `message_persistence_info`,
 `pseudo_channels`, `config`, `sema/` (snapshot),
 `sema_seed_request.yaml`, `__init__.py`, `py.typed`, `start_api.sh`.
 

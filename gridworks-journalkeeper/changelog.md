@@ -12,6 +12,28 @@ Newest at the top.
 
 ---
 
+## 2026-06-07 — custom persistors: deterministic (uuid5) message ids (`fa08423`, merged `af06ef0` / PR #160)
+
+**What:** Route the `flo.params.house0` and `weather.forecast` custom
+persistors through a shared `default_message_id(from_alias, type_name,
+time_received)` helper (new, in `message_persistence_info.py`) instead of
+`uuid.uuid4()`. Thread `time_received` through the dispatch seam
+(`SemaMessagePersistor.persist_message` → `custom_fn(from_alias,
+time_received, payload)`) and update both persistors' `persist_vNNN`
+signatures accordingly. Adds `tests/test_custom_persistor_idempotency.py`
+(hermetic: id determinism per persistor + a dispatch-seam regression guard).
+
+**Why:** `57f5340` added the two custom persistors minting `messages.id`
+with `uuid4()`, which dodges the `(timestamp, id)` dedupe and **duplicates
+the `messages` row** on any re-import — re-introducing for these two types
+the exact bug `7308766` fixed for the default path. The custom persistors
+couldn't compute the deterministic id because the dispatch never passed them
+`time_received`, hence the seam change. The shared helper means a future
+third custom persistor can't reintroduce the gap. No schema/model change, no
+sema version bump; the `reading.message_id → messages.id` provenance link is
+preserved and now deterministic. See
+[`designs/custom-persistor-idempotency.md`](designs/custom-persistor-idempotency.md).
+
 ## 2026-06-05 — merge jm idempotent-msg-id + importer-robustness PRs (`0e51f9d`, `968216a`)
 
 **What:** PR #157 (`jm/idempotent-msg-id`) and PR #158
