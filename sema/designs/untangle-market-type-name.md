@@ -4,12 +4,15 @@
 
 What this is: the problem statement + analysis for a structural Sema question
 surfaced by a gridworks-journalkeeper import failure — **a property format whose
-*validator* needs an enum, which the dependency closure can't see.** A direction
-is now **ratified** (see *Decision*, 2026-06-07): allow **versioned property
-formats**. This file is therefore now the **change plan**; it stays here until the
-spec amendment + `market.slot.name` versioning are implemented, at which point the
-durable rule folds into the `spec/` (formats authoring + closure) and this file is
-deleted.
+*validator* needs an enum, which the dependency closure can't see.** Direction
+**refined 2026-06-07 (post-research** — see
+[`../../gridworks-marketmaker/research/market-product-taxonomy.md`](../../gridworks-marketmaker/research/market-product-taxonomy.md)):
+split the concept into a simple, decodable **`market.product.name`** plus a
+coupled **`market.product` type** that carries the settlement/response attributes
+— the heavy logic leaves the format. This file is the **change plan**; it stays
+until implemented, at which point the durable rule folds into `spec/` + the
+marketmaker executor and this file is deleted. The earlier "versioned property
+formats" path (below) becomes **contingent** under the refined model.
 
 ## The incident
 
@@ -47,7 +50,77 @@ Layered causes:
 other Sema vocabulary") + formats are immutable/unversioned/primitive-refining.
 So the chosen direction below is a normative spec amendment, not a tweak.
 
-## Decision (ratified 2026-06-07)
+## Decision — refined (2026-06-07, post-research)
+
+Grounded in
+[`../../gridworks-marketmaker/research/market-product-taxonomy.md`](../../gridworks-marketmaker/research/market-product-taxonomy.md):
+every mature framework (EMIX/TeMIX, ISO products, OpenADR) models a market
+product as **a named token carrying structured attributes** — never a bare token,
+and never with the structure scattered into a separate database. GridWorks adopts:
+
+1. **`market.product.name` stays a STRUCTURED enum** — each value carries **only
+   the attributes already implicit in the name token** (a faithful decode of the
+   name): commodity class, slot duration (minutes), gate offset, and quantity
+   unit where the name encodes it (e.g. the `…b` variant). The token (e.g.
+   `rt60gate5`) is the obvious, unique, decodable product name embedded in
+   `market.slot.name`. These name-decodable semantics live **in the vocabulary**.
+2. **Open the enum by allowing MANY structured enums, namespaced per market maker
+   / territory** — e.g. `gw.versant.market.product.name` (the one GridWorks would
+   use in Versant territory). Each MarketMaker defines its own product vocabulary;
+   the fractal architecture expects exactly this. "Open" = *multiplicity of
+   structured enums*, NOT an open pattern.
+3. **`market.product`** — the coupled sema **type**; its `Name` is a **plain
+   string** (so it can hold a value from any territory's structured enum), plus
+   every attribute **not expressed in the name**: settlement interval, dispatch
+   interval, response time, price-formation, etc.
+
+**Split rule:** if an attribute is decodable from the name token → it sits on the
+structured-enum value; if it is not in the name → it sits on the `market.product`
+type. (So slot-duration-minutes is on the enum; settlement interval is on the
+type.)
+
+`market.slot.name` keeps its job — an obvious unique name per market slot —
+embedding the product name + maker alias (location) + slot start. Location stays
+out of the product (it lives in the slot name), matching EMIX/CAISO.
+
+**"Keep the enum flat?" → no.** The semantics stay *in* the (structured) enum —
+that is the point. What changes vs one global list is that the enum is **opened by
+namespacing**: many structured enums, one per maker/territory.
+
+**Why not the open-pattern + catalog route (rejected).** An open pattern would
+push product validity + semantics into a separate `market.product` catalog —
+*another entire source of truth* (a database). The structured-enum route
+**encapsulates the semantics in versioned, closure-tracked, codegen'd
+vocabulary**, where they belong. Not adding a second source of truth is the
+deciding factor.
+
+**Effect on the original gjk problem.** `market.slot.name` validation becomes
+shape-only at the format layer; the product token is interpreted against the
+relevant maker's structured enum (selected by the maker-alias segment) where that
+enum is in scope — so the format validator no longer reaches a single global enum,
+and the original failure mode dissolves.
+
+**Implications (sema mechanics) — this REPLACES the versioned-formats path as the
+primary mechanism:**
+- a **structured-enum capability** in sema — enum values carry typed per-value
+  metadata that codegen emits (the "special kind of enum" / rich enum);
+- a **namespacing convention** for multiple `*.market.product.name` structured
+  enums;
+- the `market.product` type (`Name`: string) + the `market.type.name →
+  market.product.name` rename;
+- the `templates/format.py` hardcoded-import-root fix (needed regardless).
+
+## Versioned property formats (sema-mechanics path — SUPERSEDED)
+
+> **Superseded by the structured-enum decision above.** This path treated the
+> problem as "a format validator must reach an enum." Under the chosen model the
+> semantics live in namespaced **structured enums**, not in a format validator, so
+> `market.slot.name` becomes shape-only and the format→enum dependency disappears.
+> Kept below as the fallback analysis and because the `templates/format.py`
+> import-root bug it documents is real and still needs fixing. The implementation
+> checklist that follows is for THIS (superseded) path; the active path's
+> checklist — structured-enum capability + enum namespacing + the `market.product`
+> type + the rename — is TBD.
 
 Sema SHALL allow **versioned property formats**. Default stays unversioned +
 immutable. Add versions only to formats whose validator depends on an enum —
