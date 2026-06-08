@@ -25,6 +25,7 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **gridworks-homeassistant** — [`designs/btu-meter-integration.md`](gridworks-homeassistant/designs/btu-meter-integration.md) (BTU meter → HA via HACS integration; Linear OPS-47)
 - **gridworks-journalkeeper** — [`designs/layered-test-harness.md`](gridworks-journalkeeper/designs/layered-test-harness.md)
 - **gridworks-journalkeeper** — [`designs/s3-importer-improvements.md`](gridworks-journalkeeper/designs/s3-importer-improvements.md)
+- **gridworks-journalkeeper** — [`designs/upgrade-gjk-sema-snapshot.md`](gridworks-journalkeeper/designs/upgrade-gjk-sema-snapshot.md) (regen vendored sema snapshot post-untangle; nit; Linear OPS-379; blocked by OPS-378)
 - **gridworks-protocol** — [`designs/gwproto-shrink.md`](gridworks-protocol/designs/gwproto-shrink.md)
 - **gridworks-scada** — [`designs/circulator-pump-0-10v-models.md`](gridworks-scada/designs/circulator-pump-0-10v-models.md) (pump make/model + 0–10 V response representation; Linear OPS-27)
 - **gridworks-scada** — [`designs/simulated-test-environment.md`](gridworks-scada/designs/simulated-test-environment.md) (simulated terminal assets + drivers over dev Rabbit; Linear OPS-40)

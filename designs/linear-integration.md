@@ -183,12 +183,14 @@ rule lets either side resolve to the other unambiguously.
 **A hub-and-spoke (fractal) design is ONE design → ONE Linear issue.** When a
 design is a folder (`designs/<slug>/primary.md` + sub-spec spokes), the Linear
 issue corresponds to the **hub**; its title projects to the **folder** slug. The
-hub `primary.md` **and every spoke** carry that one issue's `· Linear: <id>` in
-their Status line. Spokes are parts of one design, **not** separate Linear
-issues — this keeps the bijection 1:1 and the doc-health tests simple (each
-spoke already carries the id, so `test_accepted_designs_have_linear_id` passes
-without per-spoke issues). In `DESIGN_INDEX.md` only the hub `primary.md` is
-listed, not each spoke.
+**hub** (`primary.md`) carries that one issue's `· Linear: <id>` in its Status
+line; **spokes carry NO id of their own** — they reference the hub by link/prose,
+since a spoke's own `Linear:` stamp would imply a second issue for one design and
+break the 1:1. The doc-health linear-id check runs over design **roots** only —
+a flat `<slug>.md` or a fractal `<slug>/primary.md` (see
+`tests/test_doc_health.py::_design_roots`) — so a spoke is *structurally* never
+required to carry an id (no name-matching on spokes). In `DESIGN_INDEX.md` only
+the hub `primary.md` is listed, not each spoke.
 
 **Linear sub-issues are for concrete work, not for spokes.** Use Linear native
 parent/child only when execution decomposes into distinct work items, created
