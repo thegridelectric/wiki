@@ -241,10 +241,6 @@ def _index_drift(header: str, dirname: str) -> tuple[set[str], set[str]]:
     return on_disk - in_index, in_index - on_disk
 
 
-@pytest.mark.skip(
-    reason="DESIGN_INDEX maintenance paused momentarily during cross-session "
-    "design churn; re-enable when regen-design-index.sh lands."
-)
 def test_design_index_designs_match_filesystem() -> None:
     missing, extra = _index_drift("Designs", "designs")
     assert not missing and not extra, (
@@ -254,10 +250,6 @@ def test_design_index_designs_match_filesystem() -> None:
     )
 
 
-@pytest.mark.skip(
-    reason="DESIGN_INDEX maintenance paused momentarily during cross-session "
-    "design churn; re-enable when regen-design-index.sh lands."
-)
 def test_design_index_concerns_match_filesystem() -> None:
     missing, extra = _index_drift("Concerns", "concerns")
     assert not missing and not extra, (

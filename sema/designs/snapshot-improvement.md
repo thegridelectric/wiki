@@ -72,12 +72,15 @@ JSON instance under `samples/`:
 - These are the fixtures the build-time round-trip (#2) consumes. (Optional
   later: also emit `counterexamples` for negative tests.)
 
-### Related fix to fold in
-The format generator hardcodes `from sema.runtime.enums import …` instead of
-threading `import_root` (`templates/format.py:144`) — a correctness bug for
-consumer snapshots. Detailed in
-[`untangle-market-type-name.md`](untangle-market-type-name.md); fix belongs in
-this pipeline work.
+### Related fix to fold in — ✅ LANDED (2026-06-08)
+The format generator hardcoded `from sema.runtime.enums import …` instead of
+threading `import_root` (was `templates/format.py:144`) — a correctness bug for
+consumer snapshots. **Fixed** as part of the versioned-property-formats unit of
+[`untangle-market-type-name/`](untangle-market-type-name/primary.md): the format
+templates now write the lazy enum import against an `IMPORT_ROOT_PLACEHOLDER`
+that `generate_property_format` substitutes with the snapshot's own
+`import_root` (see `runtime_generation/formats.py` +
+`runtime_generation/templates/format.py`). No longer pending here.
 
 ## Verification
 - `scripts/regenerate_runtime.sh` → `ruff`/`mypy` clean; a **second** regen

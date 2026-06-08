@@ -69,15 +69,16 @@ vocabularies throughout the wiki.) Alphabetical.
 
 ## Where content lives
 
-The five homes for GridWorks content. **Each has a distinct purpose;
+The six homes for GridWorks content. **Each has a distinct purpose;
 don't route content out of one into another just to keep file sizes
 down.** This table is the canonical disambiguation.
 
 | Location | What lives here | What does NOT live here |
 |---|---|---|
-| `wiki/vision/` | The **why and the dream** — the orientation the specs, plans, and explorations serve. The fifth home, above the others; when it crystallizes it descends into explorations and design. See [`vision/primary.md`](vision/primary.md). | Anything concrete enough to *do*: specs, change plans, open explorations, workflow state. |
+| `wiki/vision/` | The **why and the dream** — the orientation the code, designs, explorations and research serve.  See [`vision/primary.md`](vision/primary.md). | Anything concrete enough to *do*: specs, change plans, open explorations, workflow state. |
 | `wiki/<domain>/executor/` | The **long-lived rebuild spec** for the domain: durable architectural patterns, invariants, glossary, TOC. Hub at `primary.md`, sub-specs beside it. Authoritative once `Verified`. | Time-bounded change plans; open explorations. |
-| `wiki/<domain>/research/explorations/` | **Open explorations** — design questions WITHOUT clarity yet. A curiosity / uncertainty surface (the "exploration" framing replaces the old "concern" — curiosity, not dread). May graduate to a design via /grill-me when clarity emerges. *(Renamed from `concerns/`; folder migration staged.)* | Resolved insights (those distill into `executor/`); ratified plans (those go to `designs/`); workflow state (Linear); work-tracking nits. |
+| `wiki/<domain>/research/` | **Pre-spec learning** — free-floating exploratory notes, gathered understanding, component descriptions, maps, findings. *Not normative.* The loosest, earliest net — the start of the research→exploration→design ladder. | Named open questions ripe enough to frame (`explorations/`); ratified plans (`designs/`); durable settled patterns (`executor/`). |
+| `wiki/<domain>/explorations/` (peer of `designs/`) | **Open explorations** — a specific open question that has coalesced enough to *name and frame*, but is not yet actionable. A curiosity surface (the "exploration" framing replaces the old "concern" — curiosity, not dread). Graduates to a design via /grill-me when clarity emerges. See the research→exploration→design ladder below. *(Renamed from `concerns/` and promoted from `research/concerns/` to the domain root; folder migration in progress.)* | Resolved insights (those distill into `executor/`); ratified plans (those go to `designs/`); workflow state (Linear); work-tracking nits. |
 | `wiki/<domain>/designs/` and `wiki/designs/` | **Ratified change plans** (full content): rationale, alternatives, decision tree, classification matrices, sequencing, execution plan — everything about the change stays here. If it grows past ~500L, split into a fractal subfolder; do NOT route content out. | Workflow state (Linear); durable architectural patterns (`executor/`); open explorations (`explorations/`). |
 | Linear | **Workflow state**: status (backlog/todo/doing/done), owner, priority, labels, parent/child links, dates. Holds the slug + the wiki path link only. | Design content; vocabulary; rebuild specs; explorations. |
 
@@ -85,6 +86,22 @@ The fixed point that resolves most confusion: **"architectural" is
 not the discriminator** — clarity is. An open architectural
 *question* lives in `explorations/`; a settled architectural *pattern*
 lives in `executor/`. They are opposites on the clarity axis.
+
+### The research → exploration → design ladder
+
+Three stages of an idea's maturity, increasing in focus and commitment:
+
+- **`research/`** — *learning new things.* Free-floating, exploratory notes;
+  gathering understanding with no particular target yet. Not normative; the
+  widest, earliest net.
+- **`explorations/`** (domain root, peer of `designs/`) — *an idea heaving into
+  view.* A specific open question that has coalesced enough to name and frame,
+  but is not yet actionable. (Renamed from `concerns/`.)
+- **`designs/`** — *becoming actionable.* A ratified change plan: decisions,
+  alternatives, sequencing — ready (or nearly) to implement.
+
+`research/` stays the loose scratch space; `explorations/` is where a question
+sharpens into focus; `designs/` is where it commits.
 
 ## How to extend
 

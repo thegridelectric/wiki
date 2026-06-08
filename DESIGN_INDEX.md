@@ -13,6 +13,7 @@
 
 _(every file under a `designs/` folder, anywhere in the wiki)_
 
+- (cross-cutting) [`designs/concerns-to-explorations-migration.md`](designs/concerns-to-explorations-migration.md) (rename concerns/ → domain-root explorations/; deferred to a fresh session)
 - (cross-cutting) [`designs/linear-integration.md`](designs/linear-integration.md)
 - **gridworks-base** — [`designs/decouple-amq-topic.md`](gridworks-base/designs/decouple-amq-topic.md)
 - **gridworks-base** — [`designs/log-sema-round-trip.md`](gridworks-base/designs/log-sema-round-trip.md)
