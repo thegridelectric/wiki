@@ -1,9 +1,10 @@
 # Design: Structured Enums (per-value typed attributes in Sema vocabulary)
 
-> Status: Draft · Pass 0 · Updated 2026-06-07
->
+Status: Accepted · Pass 1 · Updated 2026-06-08
+
 > Spoke of the [`untangle-market-type-name`](primary.md) fractal design
-> (Linear: OPS-378). Reusable beyond markets; tracked under the hub's issue.
+> (issue OPS-378). A spoke, **not** a standalone design — it has no own Linear
+> id; it shares the hub's issue, per the design↔issue bijection.
 
 What this is: the change plan for a new Sema capability — an **enum whose
 values each carry a fixed, typed set of attributes** (a faithful, machine-
@@ -288,7 +289,8 @@ same eight tokens plus the attribute rows above. The rename + the `market.produc
 type are owned by `primary.md`; this design owns only the
 *structured-enum mechanism* that makes the new word authorable. Sequencing: land
 this capability first (so the word is authorable and codegen'd), then the
-untangle rename/type/`market.slot.name`-shape-only changes.
+untangle renames + the `market.product`/`ltn.bid` types (`gw.market.slot.name`
+becomes a versioned format declaring an axiom dep on this enum — `primary.md` §3).
 
 ## Implementation checklist (not yet built)
 

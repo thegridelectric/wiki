@@ -1,7 +1,7 @@
 # Design: Untangle `market.slot.name` → `market.type.name` (format referencing an enum)
 
-> Status: Draft · Pass 1 · Updated 2026-06-07 · Linear: OPS-378
->
+Status: Accepted · Pass 1 · Updated 2026-06-08 · Linear: OPS-378
+
 > Fractal design hub. Spoke: [`structured-enums.md`](structured-enums.md)
 > (the reusable Sema capability this plan depends on).
 
@@ -21,6 +21,38 @@ the **change plan**; it stays until implemented, at which point the durable rule
 fold into `spec/` + the marketmaker executor and this file is deleted. (The
 "versioned property formats" path, once shelved as superseded, is **active** —
 see below.)
+
+## Execution notes (handoff to a fresh session)
+
+Read this first if you are implementing. The plan is execution-ready for the
+**sema-side** work, with these guardrails:
+
+- **Re-grep every `file:line`.** All line numbers here were grep'd 2026-06-07/08
+  and WILL drift. Treat them as "look near here for X," re-locate by symbol, and
+  never edit by line number alone.
+- **Follow `sema/CLAUDE.md`.** Read `spec/primary.md` + the relevant
+  `spec/registry/` + `spec/authoring/` spokes first; use `/make-sema-word` for
+  each word add/change; obey the universal MUSTs (CamelCase serialized fields,
+  enums additive-only, bump type versions, `pytest` + registry validation green).
+- **Land in three independently-green units, in this order — do NOT do it all in
+  one diff:**
+  1. **Structured-enum capability** — spoke checklist
+     ([`structured-enums.md`](structured-enums.md) "Implementation checklist").
+  2. **Versioned-property-format capability** — the "Versioned-format capability"
+     checklist below (incl. the relax → migrate → re-constrain spec sequencing).
+  3. **Market application** (§3) — the renames, `market.product`, `ltn.bid`,
+     `bid`/`latest.price` v001, the `frozen` status.
+- **Resolve these up front (ask the user — they don't block the architecture but
+  do block authoring):** registry option A vs B (spoke); the `frozen` status name
+  (§4); confirm integer structured enums stay out of v1 (spoke).
+- **Confirm the `rt60gate30b` row against MarketMaker reality** before authoring —
+  the legacy description is internally contradictory (§3); MarketMaker is the
+  source of truth, not this doc.
+- **Out of scope — separate follow-ups, not this sema design:** the downstream
+  consumers. The **MarketMaker app** (`MarketTypeName → GwMarketProductName`) and
+  the **gjk snapshot regen** (remove the stopgap once the real fix lands) each
+  need their own change in their own repo. This design is sema-only; it makes the
+  fix *possible*, it does not carry the consumer edits.
 
 ## The incident
 
@@ -99,7 +131,7 @@ out of the product (it lives in the slot name), matching EMIX/CAISO.
 
 **"Keep the enum flat?" → no.** The semantics stay *in* the (structured) enum —
 that is the point. What changes vs one global list is that the enum is **opened by
-namespacing**: many structured enums, one per maker/territory.
+namespacing**: many structured enums, one per maker/org.
 
 **Why not the open-pattern + catalog route (rejected).** An open pattern would
 push product validity + semantics into a separate `market.product` catalog —
@@ -150,9 +182,10 @@ $id: "https://schemas.electricity.works/enums/gw.market.product.name/000"
 title: "gw.market.product.name"
 type: "string"
 description: >
-  Market products GridWorks offers within Versant territory. Each token decodes
-  directly to its slot timing — timeframe class, slot minutes, gate minutes, and
-  quantity-unit variant.
+  GridWorks's own market-product vocabulary (the maker's products, across
+  whatever territories GridWorks operates in). Each token decodes directly to its
+  slot timing — timeframe class, slot minutes, gate minutes, and quantity-unit
+  variant.
 enum:
   - "unknown"
   - "da60"
@@ -201,28 +234,29 @@ TypeName: market.product   Version: "000"
 
 ## Active path — detailed change plan
 
-The three pieces the refined decision leaves for this hub (the
-structured-enum *capability* is owned by the spoke
-[`structured-enums.md`](structured-enums.md) — referenced, not respecced
-here). Sequencing across all three: **land the capability spoke first**
-(so the structured word is authorable + codegen'd), **then** the rename
-below, **then** the `market.product` type. The `templates/format.py`
-import-root fix (under the superseded checklist) is orthogonal and lands
-whenever.
+The pieces this hub owns (the structured-enum *capability* is owned by the
+spoke [`structured-enums.md`](structured-enums.md) — referenced, not respecced
+here; the **versioned-property-format capability** is detailed in its own
+section below). Sequencing: **land both capability specs first** (structured
+enums in the spoke; versioned formats below), **then** the renames + the
+`market.product`/`ltn.bid` types. The `templates/format.py` import-root fix
+(in the versioned-format checklist below) is orthogonal and lands whenever.
 
 ### 1. Enum namespacing convention
 
 Grounded in **Principle 5** (`sema/spec/primary.md:109` — vocabulary is
 namespace-scoped; orgs define their own under distinct namespaces, `gw.*`,
 `acme.*`, …). The product vocabulary is opened **by multiplicity**, not by
-an open pattern: many structured enums, one per market maker / territory.
+an open pattern: many structured enums, one per market maker / owning org —
+**not per territory** (territory is carried in the slot name's maker-alias
+segment, not the vocabulary name; this matches EMIX/CAISO — location lives in
+the slot, not the product).
 
 - **Name pattern.** `<ns>.market.product.name`, where `<ns>` is the
-  maker/territory namespace (`gw.versant`, …). The GridWorks-in-Versant
-  enum is `gw.market.product.name`. The segment after the
-  namespace is fixed (`market.product.name`); only `<ns>` varies. Tokens
-  inside each enum are the decodable product names (`rt60gate5`, `da60`, …)
-  embedded in `market.slot.name`.
+  **maker/org** namespace (`gw`, `acme`, …). GridWorks's own enum is
+  `gw.market.product.name`. The segment after the namespace is fixed
+  (`market.product.name`); only `<ns>` varies. Tokens inside each enum are the
+  decodable product names (`rt60gate5`, `da60`, …) embedded in the slot name.
 - **Consumer selection (which enum applies).** Two coordinated signals:
   1. **Authoritative — the `market.product` type's `ProductNameEnum`
      field** (§2): a `market.product` instance names its own enum
@@ -320,7 +354,7 @@ additionalProperties: false
   type, later.) Adding a required field later is a new type version
   (`registry/types.md:221-228`) with an upgrade path.
 
-### 3. The `market.type.name → gw.market.product.name` rename + migration
+### 3. The renames + migration (`market.type.name → gw.market.product.name` enum; `market.slot.name → gw.market.slot.name` versioned format)
 
 `market.type.name` is today a `versioned` enum
 (`sema/definitions/registry.yaml:463-472`,
@@ -346,50 +380,57 @@ additionalProperties: false
   `scripts/regenerate_runtime.py`, not hand-edited.
 - **Every referencing site that must update** (verified by grep over
   `sema/`):
-  - **Type `$ref`s to `market.slot.name`** (the *format*, unchanged in
-    name) on `atn.bid` (`definitions/types/atn.bid/002.yaml:26-27`),
-    `bid` (`bid/000.yaml:26-27`), `latest.price`
-    (`latest.price/000.yaml:32-33`). These reference the **format**, not
-    the enum, so the `$ref` URL is untouched — but their docstrings say
-    "the MarketType associated with MarketSlotName"
-    (`atn.bid/002.yaml:56,62,99`; `bid/000.yaml:105,111,117`); update the
-    *prose* to "market product" to match the rename (no version bump — a
-    description clarification, `registry/types.md:293-294`).
-  - **The `market.slot.name` format validator** — generated
-    `is_market_name` / market-minutes lookup in
-    `src/sema/runtime/property_format.py:83-143` and its template
-    `src/sema/tools/runtime_generation/templates/format.py:120-185`,
-    which today import `MarketTypeName` and key a duration dict off its
-    members. Under the refined model **this validator becomes shape-only**
-    (the product token is interpreted against the maker's structured enum,
-    not re-validated in the format), so the `_market_type_name_enum()`
-    helper + the hardcoded `from sema.runtime.enums import MarketTypeName`
-    (`format.py:144`, `property_format.py:102` — the gjk
-    `ModuleNotFoundError` root) are **removed**, not merely renamed. The
-    slot-duration decode, if still needed, reads it off the structured
-    enum's `.attrs.slot_minutes` (spoke) instead of the in-format dict.
-  - **Registry** `definitions/registry.yaml:463` (the
-    `market.type.name:` key → `gw.market.product.name:`) and the
-    enum dir `definitions/enums/market.type.name/` →
-    `definitions/enums/gw.market.product.name/`.
+  - **Types with a `MarketSlotName` field** (`$ref` the slot-name format):
+    `atn.bid` (`atn.bid/002.yaml:26-27`), `bid` (`bid/000.yaml:26-27`),
+    `latest.price` (`latest.price/000.yaml:32-33`). The format is **renamed**
+    `market.slot.name → gw.market.slot.name`, so these `$ref` URLs **do**
+    change. Disposition per type:
+    - **`atn.bid` → replaced by `ltn.bid`** (ATN is the legacy name for Leaf
+      Transactive Node). Do **not** bump `atn.bid`; author **`ltn.bid` v000**
+      (the modern type) with the `MarketSlotName` field `$ref`ing
+      `gw.market.slot.name` (so it transitively pulls `gw.market.product.name`
+      via the format's axiom dep), and mark `atn.bid` **frozen** — no new
+      versions (see §4).
+    - **`bid`, `latest.price` → new versions** (`001`) repointing
+      `MarketSlotName` to `gw.market.slot.name` (a `$ref` change is structural
+      → version bump). Docstrings ("the MarketType associated with
+      MarketSlotName") update to "market product".
+  - **The slot-name format validator** — generated `is_market_name` /
+    market-minutes lookup in `src/sema/runtime/property_format.py:83-143` and
+    its template `templates/format.py:120-185`, which import `MarketTypeName`
+    and key a duration dict off its members. Under the chosen model
+    `gw.market.slot.name` is a **versioned format that declares an axiom
+    dependency** on `gw.market.product.name` (registry), so the validator may
+    keep checking the embedded token against the enum — but because the
+    dependency is now **declared**, the closure carries the enum into consumer
+    snapshots (this is the gjk fix). The hardcoded
+    `from sema.runtime.enums import MarketTypeName` (`format.py:144`,
+    `property_format.py:102` — the gjk `ModuleNotFoundError` root) is replaced
+    by the snapshot `import_root` + the renamed `GwMarketProductName`. The
+    slot-duration lookup can read `.attrs.slot_minutes` off the structured
+    enum (spoke) rather than a hand-maintained in-format dict.
+  - **Registry + files.** Enum: `registry.yaml:463` key
+    `market.type.name: → gw.market.product.name:`; dir
+    `enums/market.type.name/ → enums/gw.market.product.name/`. Format:
+    `registry.yaml:25` key `market.slot.name: → gw.market.slot.name:`, now
+    **versioned** (`latest_version: "000"`, `versions:` block,
+    `direct_dependencies.axiom: [gw.market.product.name:000]`); file
+    `formats/market.slot.name.yaml → formats/gw.market.slot.name/000.yaml`
+    (versioned layout).
 - **Closure / index / codegen consequences.**
-  - `market.slot.name` does **not** currently declare a `$ref` or
-    dependency on `market.type.name` (the hidden edge that caused the
-    incident — confirmed: `market.slot.name`'s registry entry
-    `definitions/registry.yaml:25-27` lists no enum dep). Making the
-    format shape-only **removes the hidden edge entirely** — there is
-    nothing to migrate into a closure dep; the format goes back to being
-    a true dependency-free leaf.
-  - **No edge replaces the removed hidden one — by design.** Under the
-    open `market.product` model (§2) nothing in the type machinery `$ref`s
-    a product-name enum, so closure pulls **no** product enum
-    automatically. That is correct now that the format is shape-only:
-    nothing *validates* against the enum at the boundary anymore, so
-    nothing *needs* it forced into every snapshot. A consumer that wants
-    to **decode** a product token (read `.attrs.slot_minutes` off the
-    maker's structured enum) opts in by seeding that specific enum. The
-    gjk failure class is gone (no hidden edge); the trade is that token
-    validity is consumer-side, not boundary-enforced (§2).
+  - The incident's **hidden** edge (`market.slot.name`'s validator reaching
+    `market.type.name` with no declared dep — `registry.yaml:25-27` lists
+    none) becomes a **declared axiom dependency** on the versioned
+    `gw.market.slot.name`. `sema snapshot prepare` follows declared deps, so
+    any consumer seeding a type with a `MarketSlotName` field (e.g. `ltn.bid`)
+    transitively pulls `gw.market.product.name` — the enum is in the snapshot
+    and the gjk `ModuleNotFoundError` class is gone at the root.
+  - **The `market.product` *type* path is separate and stays open** (§2): it
+    does not `$ref` any product enum, so a consumer holding only
+    `market.product` pulls no enum automatically and decodes opt-in. The two
+    paths coexist by design: the **slot-name format** carries the declared
+    dependency (the bid path); the **`market.product` type** stays
+    string-open (the thousands-of-makers scale path).
   - Re-run `scripts/build_indexes.sh` (rebuilds `lookup`,
     `public_registry`, `dependency_closure`, `reverse_dependencies`,
     `versions` — all carry stale `market.type.name` rows:
@@ -397,76 +438,122 @@ additionalProperties: false
     `indexes/public_registry.yaml:384-391`) and
     `scripts/regenerate_runtime.py`.
 
+### 4. Registry status — `frozen` (no new versions)
+
+`atn.bid` is superseded by `ltn.bid` but **cannot be deleted**: historical
+messages + stored data carry `TypeName: atn.bid`, and consumers still decode
+them. We want it to **stay decodable forever** while signalling that **no new
+version will ever be cut**. Proposal: a registry status meaning exactly that.
+
+- **New status value — `frozen`** (name TBD; alternatives: `terminal`,
+  `closed`, `no-successor`). Applies to a *word* (a type/enum), distinct from
+  per-version publish status. Semantics: the word remains valid + published at
+  its existing version(s); authoring a new version is a **registry-validation
+  error**.
+- **Why not just stop touching it?** Silence is not a contract. `frozen` makes
+  "this is done, build `ltn.bid` instead" machine-checkable (a lint can point
+  new work away from `atn.bid`) and self-documenting in the registry.
+- **Spec touch.** Adds a status to `spec/registry/structure.md`'s status
+  vocabulary + a validation rule. Small, orthogonal to the format/enum work —
+  could land independently. **`needs-decision`:** the status name, and whether
+  `frozen` also forbids *description* edits (lean: no — clarifications still
+  allowed, same as a versioned word's latest version).
+- **Applies here to:** `atn.bid` (→ `frozen`, successor `ltn.bid`). Candidate
+  for any other legacy words later; out of scope to sweep now.
+
 ### Active-path implementation checklist
 
-Distinct from the superseded checklist below. For the **structured-enum
+Distinct from the versioned-format checklist below. For the **structured-enum
 capability itself** (spec/codegen/tests for `value_attribute_schema` etc.)
 see the spoke's checklist — [`structured-enums.md`](structured-enums.md)
 "Implementation checklist"; **not duplicated here**.
 
-**Spec (`sema/spec/`)** — light; the capability spoke owns the
-`authoring/enums.md` changes.
-- [ ] Confirm no `spec/` change is needed for the `market.product` type
-      beyond what `authoring/types.md` / `registry/types.md` already
-      permit (a type `$ref`-ing an enum is already legal — verify, don't
-      amend).
+**Spec (`sema/spec/`)** — the structured-enum `authoring/enums.md` changes
+are owned by the spoke; the **versioned-property-format** changes are below
+(now active). Sequence the format-immutability rule carefully (user, 2026-06-08):
+1. [ ] **Relax first.** Remove the blanket "formats are immutable & unversioned
+       / SHALL NOT have a version" rules (`authoring/formats.md:67-73,81-88`,
+       `registry/formats.md:12,25`). Do **NOT** yet add any
+       "versionless-stays-versionless" constraint.
+2. [ ] **Migrate** `market.slot.name → gw.market.slot.name` to a versioned
+       format (definitions step below) — legal precisely because no rule
+       forbids the promotion in this window.
+3. [ ] **Re-constrain after.** Add the rule: a **versionless (immutable) format
+       SHALL remain versionless** — a format's versioned-ness is fixed at
+       creation; no later promotion. This locks the door behind the one needed
+       migration, so the final rule is clean (no grandfather exception).
+- [ ] `authoring/formats.md:16` — carve out a registry **axiom dependency** on
+      an enum for versioned formats (keep "SHALL NOT `$ref`").
+- [ ] Confirm `market.product` needs no `spec/` change (a type referencing an
+      enum is already legal — but here `Name`/`ProductNameEnum` are strings, so
+      not even that).
+- [ ] Add the **`frozen`** word-status (§4) to `registry/structure.md`.
 
 **Definitions (`sema/definitions/`)**
-- [ ] Author `enums/gw.market.product.name/000.yaml` as a
-      **structured** enum (8 tokens + attribute rows per spoke); rename
-      from `enums/market.type.name/`.
-- [ ] Registry: rename `market.type.name:` → `gw.market.product.name:`
+- [ ] Author `enums/gw.market.product.name/000.yaml` as a **structured** enum
+      (8 tokens + attribute rows per spoke); rename from `enums/market.type.name/`.
+- [ ] Registry: rename `market.type.name: → gw.market.product.name:`
       (`registry.yaml:463`); keep `enum_type: versioned`.
-- [ ] Author `types/market.product/000.yaml` (§2 shape) + its versioned
-      registry entry with `direct_dependencies.structural:
-      [gw.market.product.name:000, uuid4.str]`.
-- [ ] `market.slot.name` → shape-only: drop the embedded market-type
-      enum lookup; confirm it declares no enum dependency.
-- [ ] Update `atn.bid`/`bid`/`latest.price` docstring prose
-      ("MarketType" → "market product"); no version bump.
+- [ ] `formats/market.slot.name.yaml → formats/gw.market.slot.name/000.yaml`
+      (versioned layout); registry entry gains `latest_version`/`versions:` +
+      `direct_dependencies.axiom: [gw.market.product.name:000]`.
+- [ ] Author `types/market.product/000.yaml` (§2 shape, open) + registry entry
+      with `direct_dependencies.structural: [uuid4.str]` (no enum dep).
+- [ ] Author `types/ltn.bid/000.yaml` (modern replacement for `atn.bid`) —
+      `MarketSlotName` `$ref`s `gw.market.slot.name`; mark `atn.bid` **frozen**.
+- [ ] `bid` → `001`, `latest.price` → `001`: repoint `MarketSlotName` to
+      `gw.market.slot.name`; docstrings "MarketType" → "market product".
 
 **Tools / codegen (`sema/src/sema/`)**
-- [ ] `runtime_generation/templates/format.py:120-185` — remove the
-      `_market_type_name_enum()` helper + hardcoded `MarketTypeName`
-      import from the `market.slot.name` path (becomes shape-only).
-- [ ] Regenerate: `MarketTypeName` runtime file/re-export
-      (`runtime/enums/__init__.py:31,72`) replaced by
-      `GwMarketProductName` (structured, via the spoke's codegen).
+- [ ] Versioned-format machinery (the un-superseded checklist below): closure +
+      indexes must track a format's axiom dep and per-version layout.
+- [ ] `runtime_generation/templates/format.py:120-185` — replace the hardcoded
+      `MarketTypeName` import with `import_root` + `GwMarketProductName`; keep
+      the token-vs-enum check (now backed by the declared axiom dep).
+- [ ] Regenerate: `MarketTypeName` runtime/re-export
+      (`runtime/enums/__init__.py:31,72`) → `GwMarketProductName` (structured,
+      via the spoke's codegen).
 - [ ] `scripts/build_indexes.sh` + `scripts/regenerate_runtime.py` — clear
-      stale `market.type.name` rows from all five indexes.
+      stale `market.type.name`/`market.slot.name` rows from all five indexes.
 
 **Tests (`sema/tests/`)**
-- [ ] `runtime/test_property_formats.py:17` — `market.slot.name` validator
-      is shape-only (no enum reach).
-- [ ] Add a consumer-snapshot guard: a snapshot seeding `market.product`
-      pulls **no** product-name enum automatically (`Name`/`ProductNameEnum`
-      are bare strings — open model), and `market.slot.name` pulls **nothing**
-      extra (the gjk regression guard); a consumer that opts into decoding by
-      seeding `gw.market.product.name` gets it cleanly (cf. the spoke's
-      snapshot test).
+- [ ] Consumer-snapshot regression guard (the gjk root case): a snapshot
+      seeding `ltn.bid` **does** pull `gw.market.product.name` transitively via
+      `gw.market.slot.name`'s declared axiom dep (no `ModuleNotFoundError`).
+- [ ] `market.product` (type) seeded alone pulls **no** product enum (open
+      model) — decode is opt-in.
+- [ ] `frozen` status: authoring a new `atn.bid` version is a registry error.
 - [ ] Regen + green: `scripts/build_indexes.sh`,
       `scripts/regenerate_runtime.py`, `pytest`.
 
-## Versioned property formats (sema-mechanics path — SUPERSEDED)
+## Versioned property formats (sema-mechanics path — ACTIVE)
 
-> **Superseded by the structured-enum decision above.** This path treated the
-> problem as "a format validator must reach an enum." Under the chosen model the
-> semantics live in namespaced **structured enums**, not in a format validator, so
-> `market.slot.name` becomes shape-only and the format→enum dependency disappears.
-> Kept below as the fallback analysis and because the `templates/format.py`
-> import-root bug it documents is real and still needs fixing. The implementation
-> checklist that follows is for THIS (superseded) path; the active path's
-> checklist — structured-enum capability + enum namespacing + the `market.product`
-> type + the rename — is partly specced: the **structured-enum capability** now
-> has its own change plan in [`structured-enums.md`](structured-enums.md)
-> (incl. its implementation checklist); enum namespacing + the `market.product`
-> type + the rename remain to be detailed here.
+> **ACTIVE — runs alongside structured enums, not instead of them** (reframed
+> 2026-06-08). Earlier shelved as superseded on the assumption that the
+> slot-name format would go shape-only and the format→enum edge would
+> *disappear*. The chosen direction instead makes the edge **declared**:
+> `gw.market.slot.name` is a versioned property format that declares an axiom
+> dependency on the structured enum `gw.market.product.name`. Both capabilities
+> are needed — structured enums for the typed decode
+> ([`structured-enums.md`](structured-enums.md)), versioned property formats for
+> the slot-name format below. The implementation checklist that follows is for
+> THIS (versioned-format) capability and is **active**; the structured-enum
+> capability's own checklist lives in the spoke.
 
 Sema SHALL allow **versioned property formats**. Default stays unversioned +
 immutable. Add versions only to formats whose validator depends on an enum —
-today only `market.slot.name` (→ `market.type.name`). A format that must track an
-evolving enum becomes versioned: each market-type change lands as a new format
-version instead of mutating an immutable leaf.
+today only `gw.market.slot.name` (→ `gw.market.product.name`). A format that must
+track an evolving enum becomes versioned: each product-set change lands as a new
+format version instead of mutating an immutable leaf.
+
+**Migration sequencing for the immutability rule (user, 2026-06-08).** To avoid
+a grandfather exception, order the spec changes: (1) **relax** — drop the blanket
+"formats SHALL NOT have versions / are immutable" rule, adding **no** replacement
+constraint yet; (2) **migrate** `market.slot.name → gw.market.slot.name` to a
+versioned format (legal in this window); (3) **re-constrain** — add "a
+versionless format SHALL remain versionless" (versioned-ness fixed at creation).
+The one needed promotion happens before the final rule exists, so the final rule
+is clean and uniform.
 
 **Mechanism.** Declare the enum dependency as a registry **axiom dependency** on
 the versioned format (closure already tracks axiom deps for types). The format
@@ -474,11 +561,15 @@ the versioned format (closure already tracks axiom deps for types). The format
 `$ref`" survives; only the immutable / unversioned / dependency-free rules change.
 
 **Rationale (user).** Markets are foundational. We want to decode core market-slot
-info (commodity class, market-type token, maker alias, slot start) directly from
-the `market.slot.name` string. That requires acknowledging market type names will
-evolve, so the decoding format must version in lockstep with `market.type.name`.
+info (commodity class, product token, maker alias, slot start) directly from the
+`gw.market.slot.name` string. That requires acknowledging product names will
+evolve, so the decoding format must version in lockstep with
+`gw.market.product.name`.
 
-## Implementation checklist (not yet built)
+## Versioned-format capability — implementation checklist (not yet built)
+
+The sema-mechanics checklist for the versioned-property-format capability itself
+(distinct from §3's market-specific application above, which consumes it).
 
 Three must-fixes the recon surfaced as load-bearing:
 - `build_versions.py` emits **no `formats:` section** — `indexes/versions.yaml` is
@@ -487,10 +578,10 @@ Three must-fixes the recon surfaced as load-bearing:
   `from sema.runtime.enums import MarketTypeName` — must use the snapshot
   `import_root` (this is the gjk `ModuleNotFoundError` root cause).
 - `build_seed_expanded.py` `absorb_closure` (~208-218) adds formats but never
-  expands *their* deps — the one spot where `market.type.name` gets pulled once
-  the format declares it.
+  expands *their* deps — the one spot where `gw.market.product.name` gets pulled
+  once `gw.market.slot.name` declares the axiom dep.
 
-### Spec (`spec/`) — do first
+### Spec (`spec/`) — do first (in the relax → migrate → re-constrain order, §3)
 - [ ] `spec/primary.md:161` — format glossary row ("Immutable, unversioned … Cannot reference other Sema vocabulary").
 - [ ] `spec/authoring/formats.md:81-88` — "## Immutability / Formats do not have versions" → versions allowed, immutable *per version*.
 - [ ] `spec/authoring/formats.md:67-73` — drop "SHALL NOT include a Version field" for versioned formats (keep "SHALL NOT `$ref`").
@@ -501,8 +592,8 @@ Three must-fixes the recon surfaced as load-bearing:
 - [ ] `sema/CLAUDE.md` universal MUST "Treat formats as immutable" → "immutable per version".
 
 ### Definitions
-- [ ] `definitions/registry.yaml` (`market.slot.name`) — add `versions:`/`latest_version:` + `direct_dependencies.axiom: [market.type.name:000]`.
-- [ ] `definitions/formats/market.slot.name.yaml` → versioned layout `definitions/formats/market.slot.name/000.yaml`.
+- [ ] `definitions/registry.yaml` (`gw.market.slot.name`) — add `versions:`/`latest_version:` + `direct_dependencies.axiom: [gw.market.product.name:000]`.
+- [ ] `definitions/formats/market.slot.name.yaml` → versioned layout `definitions/formats/gw.market.slot.name/000.yaml`.
 
 ### Index / registry build tools (`src/sema/tools/`)
 - [ ] `build_versions.py:78-144` — add `formats:` section (absent today).
