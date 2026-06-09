@@ -3,9 +3,8 @@
 Status: Draft · Pass 0 · Updated 2026-05-26
 
 > What this is: how design-specs live in the wiki across all domains.
-> Companion: [`designs/linear-integration.md`](designs/linear-integration.md)
-> for the Linear interface. Aggregated live view:
-> [`DESIGN_INDEX.md`](DESIGN_INDEX.md).
+> Companion: [`linear.md`](linear.md) for the Linear interface. Aggregated
+> live view: [`DESIGN_INDEX.md`](DESIGN_INDEX.md).
 
 ## Where designs live
 
@@ -122,19 +121,17 @@ fortnight?" to be answerable. Warn at 7, stop at 8.
 
 **Source of truth: Linear** — query `assignee = me AND state.type =
 started`. The full definition (states, the "started = In Progress *or* In
-Review" rule, the planned `precheck-cap-8.sh` hook) lives in
-[`designs/linear-integration.md`](designs/linear-integration.md)
-"Cap-8". Until the hook lands, the cap is honor-system.
+Review" rule, the `precheck-cap-8.sh` hook) lives in
+[`linear.md`](linear.md) "Cap-8 — a personal WIP limit".
 
 ## Linear interaction — the rules
 
-[`designs/linear-integration.md`](designs/linear-integration.md) is the
-**authority on the Linear interface** — it holds the workspace facts,
-status mapping, port/resume recipes, tooling, and planned hooks, written to
-the team's *current* Linear usage. The handful of rules below are the
-normative core; for anything more specific, that doc wins (this section
-defers to it deliberately, so the Linear mechanics live in one place and
-don't drift across two).
+[`linear.md`](linear.md) is the **authority on the Linear interface** — it
+holds the workspace facts, status mapping, labels, port/resume recipes, and
+the enforcement tooling. The handful of rules below are the normative core;
+for anything more specific, that doc wins (this section defers to it
+deliberately, so the Linear mechanics live in one place and don't drift
+across two).
 
 ### Division of responsibility
 
@@ -158,9 +155,9 @@ don't drift across two).
    exactly one `design`-tagged issue, and vice versa. The `<slug>` is
    canonical — the issue **title MUST normalize to the slug** (lowercase →
    non-alphanumeric runs → single hyphen → strip ends). No two designs with
-   the same slug; no two issues for one slug. *(Maturity-as-label
-   propagation is deferred — the doc's `Status:` line is the maturity
-   source of truth; see linear-integration.md "Labels + priority".)*
+   the same slug; no two issues for one slug. *(Maturity labels are not used
+   — the design's `Status:` line is the sole maturity source; see
+   [`linear.md`](linear.md) "Labels and tags".)*
 
 2. **Linear → wiki link.** Every design issue body MUST carry the wiki path
    to its design (`wiki/<domain>/designs/<slug>.md` or the fractal-folder
@@ -176,9 +173,8 @@ don't drift across two).
 
 ### Metadata Claude asks the human for at port-time
 
-Per the port recipe in
-[`designs/linear-integration.md`](designs/linear-integration.md):
-**priority**, **owner/assignee**, **initial state** (`Todo` = queued, or
+Per the port recipe in [`linear.md`](linear.md) "Design lifecycle in
+Linear": **priority**, **owner/assignee**, **initial state** (`Todo` = queued, or
 `In Progress` = starting now — a started state counts against that person's
 cap-8), and any **extra labels** beyond `design` (Claude proposes; human
 confirms).
@@ -260,21 +256,10 @@ doc anyway.
 
 ## Open
 
-- **Linear conventions** — defined. Linear is wired (official MCP);
-  workspace shape, labels, and status mapping are settled in
-  [`designs/linear-integration.md`](designs/linear-integration.md) (the live
-  Linear label set is the source of truth — the wiki does not mirror it).
-  The `wiki/tools/link-design-linear.sh` helper already wires a design to
-  its issue.
-- **Bijection-enforcement hook** (`wiki/tools/precheck-design-bijection.sh`)
-  — verify that every `wiki/<domain>/designs/<slug>` has a `design`-labeled
-  Linear issue whose title normalizes to the slug, and vice versa. A
-  wiki-side-only mode (no duplicates, no malformed slugs) can land now; the
-  Linear-querying half uses the live MCP. Spec in
-  [`designs/linear-integration.md`](designs/linear-integration.md) "Hooks".
-- **Cap-8 enforcement hook** (`wiki/tools/precheck-cap-8.sh`) — warn at 7,
-  fail at 8, over *my started issues* (`assignee = me AND state.type =
-  started`), not designs-in-doing. Wire as a `UserPromptSubmit` hook in the
-  umbrella `~/.claude/settings.json`.
+- **Linear interface — settled.** Linear is wired (official MCP); the
+  workspace shape, labels, status mapping, bijection, and enforcement hooks
+  (`precheck-design-bijection.sh`, `precheck-cap-8.sh`, wired into
+  `.claude/settings.json`) are all live. Full reference:
+  [`linear.md`](linear.md).
 - **Verified by experiment.** Aspirational — needs the test/chaos
   framework to exist first. Track separately.

@@ -124,7 +124,7 @@ effort. Two integration-specific tags: **`design`** ↔ a `wiki/**/designs/`
 file (the bijection), and **`nit`** = sub-threshold software not worth a wiki
 design (so `nit` and `design` are mutually exclusive); **`bite-size`** is a
 small effort that **may** still be a design. Full convention in
-[`designs/linear-integration.md`](designs/linear-integration.md).
+[`linear.md`](linear.md).
 
 ## Working-tree hygiene
 
@@ -205,7 +205,10 @@ NOT move between folders as status changes. **Linear is the authority on
 status** (backlog / todo / doing / done). Designs are tracked as **Ops-team
 issues tagged `design`**. A design **MAY** enter Linear at Draft (sitting in
 **Backlog**) and **MUST** be in Linear once **Accepted** (moved to **Todo**);
-see [`designs/linear-integration.md`](designs/linear-integration.md). The focus
+see [`linear.md`](linear.md). **Create a design issue with its assignee
+(default: me), state, and priority set** — a hook blocks a `design` create
+that omits them — and **move it to In Progress when you start executing it**.
+The focus
 **cap-8** is a **personal WIP limit** — at most 8 issues assigned to you in a
 *started* state — not a count of designs in "doing". Each design file MUST carry
 a status stamp; `Accepted` maturity requires `Pass ≥ 1`, and an Accepted
@@ -218,7 +221,7 @@ become Linear issues (if actionable work), become `explorations/`
 entries (if there's no clarity yet), or update `executor/primary.md`
 (if they're durable facts about the domain). Full convention in
 [`designs-process.md`](designs-process.md); Linear interface in
-[`designs/linear-integration.md`](designs/linear-integration.md);
+[`linear.md`](linear.md);
 live aggregated view in [`DESIGN_INDEX.md`](DESIGN_INDEX.md).
 
 **Implementation gate** — a design SHALL NOT begin implementation
