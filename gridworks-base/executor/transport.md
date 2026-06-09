@@ -343,6 +343,24 @@ implementation relies on the GIL and write-once-then-read patterns; a
 faithful reimplementation in a language without a global interpreter
 lock must protect these with atomics or a mutex.
 
+**Publishing is thread-confined to the ioloop.** The AMQP client (pika) is
+**not thread-safe**: the connection and channel may only be touched from the
+thread running their event loop (the consumer thread). But `send` is called
+from *any* thread — an actor's own timer/sensor loop, a Supervisor initiating
+heartbeats, the main thread. So `send` MUST NOT publish on the caller's thread;
+it **marshals the actual publish onto the ioloop thread** (pika:
+`connection.ioloop.add_callback_threadsafe`). Every publish — including
+control-plane sends already on the ioloop — goes through this one uniform path;
+all publishes are thus serialized on the ioloop with the loop's own socket I/O.
+Publishing directly from the caller's thread corrupts the shared connection
+under load — empirically ~100% delivery loss with a pika-internal error inside
+`basic_publish`, and it breaks *consuming* too (the connection is shared), not
+just the one message. **Trade-off:** marshaling removes the inline backpressure
+a synchronous publish gave, so a sustained publish rate above the ioloop's drain
+rate grows the callback queue (frames buffer in memory). Bounded by gwbase's
+low-rate traffic; if it ever bites under a high-throughput load, the answer is a
+*bounded* publish queue, not a different threading model.
+
 **Lifecycle:**
 
 ```
@@ -381,15 +399,32 @@ consume resets the delay to 0.
    `process_message`; a bare tap implements `dispatch_message` directly;
    see [`actors.md`](actors.md) §5).
 
-**Send** (`send(envelope, body, correlation_id?)`):
+**Send** (`send(envelope, body, correlation_id?)`) — runs the cheap checks
+synchronously on the caller's thread, then *schedules* the publish on the
+ioloop (see "Publishing is thread-confined" above):
 
 1. If stopping/stopped, return a diagnostic and do nothing.
 2. If wrapped envelope, target `amq.topic`; else if there is no publish
    exchange (a tap has none), return `NO_PUBLISH_EXCHANGE`; else target
    `<routing-code>mic_tx`.
-3. If the channel is not open, return `CHANNEL_NOT_OPEN`.
-4. Publish with `BasicProperties` as in §3.7.
-5. Return `MESSAGE_SENT` (or an error diagnostic).
+3. **Synchronous channel-open pre-check** — if the channel is obviously closed,
+   return `CHANNEL_NOT_OPEN` now (the common case; this is the diagnostic a
+   caller can act on).
+4. Build the `BasicProperties` (§3.7) and **schedule** a callback on the ioloop
+   that will do the actual `basic_publish`. Guard the *schedule* call itself
+   (the connection may be closed/reconnecting) so `send` never raises.
+5. Return `MESSAGE_SENT` — meaning **scheduled**, not confirmed.
 
-`send` is **synchronous and best-effort** from the application's
-perspective: it returns a diagnostic, never raises on transport failure.
+The scheduled callback, running on the ioloop thread, **re-checks** the channel
+is open (state may have changed since scheduling), publishes, and swallows any
+error (log + drop) — it must never raise into the ioloop. The dual check (sync
+pre-check + in-callback re-check) is deliberate: the pre-check gives callers the
+`CHANNEL_NOT_OPEN` signal for free, the re-check is the authoritative one.
+
+`send` is **fire-and-forget and best-effort** from the application's
+perspective: it returns a diagnostic, never raises on transport failure, and
+`MESSAGE_SENT` means the publish was *scheduled* (delivery is best-effort by
+contract — invariant #9; critical paths use end-to-end application acks, not
+broker publisher-confirms). Validated under load: many non-ioloop threads
+publishing concurrently leave the connection healthy with full delivery
+(the same blast corrupts the pre-fix direct-publish path).

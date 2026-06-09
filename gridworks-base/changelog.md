@@ -12,6 +12,39 @@ Newest at the top.
 
 ---
 
+## <!-- pending commit --> 2026-06-09 — Thread-safe ActorBase.send: marshal publishes onto the ioloop (OPS-383)
+
+**Why:** `ActorBase.send` called `basic_publish` on the *caller's* thread, but
+pika is not thread-safe and the `SelectConnection` + channel are owned by the
+consumer thread's ioloop. So any send off the ioloop thread (an actor's timer /
+sensor loop, a Supervisor initiating heartbeats, a main-thread caller) raced the
+loop on the shared socket — corrupting the connection under load and breaking
+*consuming* too, not just the one publish. The fix routes **every** publish onto
+the ioloop via `connection.ioloop.add_callback_threadsafe` (single connection;
+canonical pika guidance — the rejected alternative, a second publisher
+connection, re-adds the lifecycle surface behind the original instability). The
+cheap pre-checks (STOPPED/STOPPING, NO_PUBLISH_EXCHANGE, a sync channel-open
+pre-check) stay synchronous; the scheduled callback re-checks open + publishes;
+both the schedule call and the callback are guarded so `send` never raises
+(invariant #9). `send` is now genuinely fire-and-forget — `MESSAGE_SENT` means
+*scheduled*. Distilled into `executor/transport.md` §3.8 + `primary.md`
+invariant #9. Design `pika-thread-safe-publish` (Accepted, OPS-383) was ratified off this; its
+distillate now lives in the executor spec, so the `designs/` file is deleted when
+this fix merges (and OPS-383 moves to Done) per the designs-process.
+
+**Validated** by a throwaway pressure harness (built, run, then deleted in this
+same change — never committed, never in CI): on the pre-fix code, 48 non-ioloop
+threads × 128 KB–512 KB bodies × a 10 µs GIL switch interval gave **~100 %
+delivery loss** with a pika-internal `AttributeError` inside `basic_publish` and
+a forced reconnect; the identical concurrency on the fixed code delivered
+**72 000 / 72 000** with zero errors / zero reconnects.
+
+**Caveat recorded** (transport.md §3.8): marshaling removes the inline
+backpressure synchronous publish gave, so a sustained publish rate above the
+ioloop drain rate grows the callback queue (frames buffer in memory). Bounded by
+gwbase's low-rate traffic; if it ever bites, the answer is a *bounded* publish
+queue, not a different threading model.
+
 ## Roadmap — gwbase 0.5.0: support non-GNode actors
 
 > Lands across the five commits below (one PR). Each carries its own dated

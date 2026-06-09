@@ -186,7 +186,12 @@ invariants are load-bearing — preserve them.
 7. Reconnect backoff: 0 on a known-good prior consume; otherwise +1 per
    failed attempt, capped at 30 seconds.
 8. ACK immediately on delivery; the application owns retry semantics.
-9. `send` never throws; it returns a diagnostic.
+9. `send` never throws; it returns a diagnostic. It does **not** publish on
+   the caller's thread — the AMQP client is not thread-safe, so the actual
+   publish is **marshaled onto the ioloop thread** (pika:
+   `add_callback_threadsafe`); `MESSAGE_SENT` means *scheduled*, not confirmed.
+   (Publishing from the caller's thread corrupts the shared connection under
+   load — it breaks consuming too. See transport.md §3.8.)
 10. AMQP `client_properties` advertise `ServiceAlias` +
     `ServiceInstanceId` at connect time (every actor); a GNode
     (`GridworksActor`) additionally advertises `GNodeClass`. The presence of
