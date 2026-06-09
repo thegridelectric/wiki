@@ -1,6 +1,6 @@
 # Design: Sema snapshot generation improvements
 
-> Status: Draft · Pass 1 · Updated 2026-05-29
+> Status: Accepted · Pass 2 · Updated 2026-06-08 · Linear: OPS-380
 
 What this is: upgrades for the `sema snapshot prepare`/`build` pipeline that
 emits a restricted Sema runtime into a consumer package (e.g. `gjk.sema`).

@@ -1,6 +1,6 @@
 # Linear integration
 
-Status: Draft · Pass 1 · Updated 2026-06-08
+Status: Accepted · Pass 2 · Updated 2026-06-08
 
 > What this is: how `designs/` files in the wiki interface with Linear for
 > work tracking. Companion: [`../designs-process.md`](../designs-process.md).
@@ -65,7 +65,6 @@ Match current usage — no new structure:
   ```
   **Design:** wiki/<domain>/designs/<slug>.md   ← required while the design file is alive
   **Exploration (if applicable):** wiki/<domain>/explorations/<name>.md
-  **Active-claims session:** {session-name} (if known)
   ```
 
 ## Status mapping (decided)
@@ -124,10 +123,9 @@ assigned issues**, not a global designs-doing count:
   `design` + `nit` is a contradiction.
 - **Priority** — use Linear's native `Urgent / High / Medium / Low /
   No priority` directly. No parallel scheme.
-- **Maturity labels** (`draft` / `accepted` / `verified`) — **deferred.**
-  The doc's `Status:` line is already the maturity source of truth; mirror
-  it to a Linear label only if/when the bijection hook needs to assert on
-  it. Don't pre-create taxonomy we won't query.
+- **Maturity labels** (`draft` / `accepted` / `verified`) — **we do NOT use
+  them.** The design's `Status:` line is the sole maturity source of truth;
+  it is not mirrored to Linear.
 - **House / domain labels** — leave the existing organic set alone for now;
   normalizing them is a separate cleanup (see "Cleanup backlog").
 
@@ -187,7 +185,7 @@ to re-contemplation at that point.
 two designs sharing one issue, both let intent fragment silently. The 1:1
 rule lets either side resolve to the other unambiguously.
 
-## Sub-issues and hub-and-spoke designs
+## Hub-and-spoke designs
 
 **A hub-and-spoke (fractal) design is ONE design → ONE Linear issue.** When a
 design is a folder (`designs/<slug>/primary.md` + sub-spec spokes), the Linear
@@ -201,10 +199,12 @@ a flat `<slug>.md` or a fractal `<slug>/primary.md` (see
 required to carry an id (no name-matching on spokes). In `DESIGN_INDEX.md` only
 the hub `primary.md` is listed, not each spoke.
 
-**Linear sub-issues are for concrete work, not for spokes.** Use Linear native
-parent/child only when execution decomposes into distinct work items, created
-ad-hoc when the need is concrete — never auto-created per spoke. Child issue
-title === a sub-section anchor or sub-spec filename where natural. Stay literal.
+**Sub-issues are a purely Linear-side concern — the wiki tracks NOTHING about
+them.** Linear native parent/child is used ad-hoc for execution as the team
+sees fit; there is no wiki convention for sub-issue titles, anchors, or
+bodies, and **sub-issues are unrelated to the hub-and-spoke pattern** (a spoke
+is not a sub-issue; a sub-issue is not a spoke). Do not mirror or register them
+anywhere in the wiki.
 
 ## When a design enters Linear (decided)
 
@@ -347,7 +347,7 @@ Enforces the slug ↔ `design`-issue-title bijection. Slug projection matches
   `<slug>/primary.md`); spokes excluded.
 - **Linear-side (with `LINEAR_API_KEY`):** query `design`-labeled issues and
   flag (d) a wiki slug with no issue; (e) a `design` issue with no wiki slug.
-  Maturity-label assertions remain deferred (no maturity labels exist yet).
+  No maturity-label assertions — maturity labels are not used.
 
 ### `wiki/tools/precheck-cap-8.sh` (exists)
 
@@ -405,15 +405,3 @@ design = **issue** (not epic), tracked in **Ops** (no designs project),
 cap-8 = **my started issues** (not designs-in-doing). That doc's Linear
 section now defers to this one as the authority, so the mechanics live in a
 single place.
-
-## Still open / deferred
-
-- **Maturity → label mirroring** — create `draft`/`accepted`/`verified`
-  labels only when the bijection hook actually asserts on them.
-- **Session ↔ Linear coupling** — the design issue body's "Active-claims
-  session" line is optional today; formalize if it proves useful.
-- **Sub-issue conventions** — title alignment + thin bodies are the rule;
-  finer mechanics decided ad-hoc as real sub-issues appear.
-- **Cross-repo numbering** — single workspace, OPS numbering; the wiki slug
-  (not the issue number) is the canonical cross-link, so multi-team
-  numbering is a non-issue unless designs ever split across teams.

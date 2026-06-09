@@ -112,6 +112,20 @@ may be live (mirror your active-claims Scope). For Karan-style autonomy
 (Claude doing commits/merges with merge-safety guardrails) see
 `working-with-llms.md` "Karan's commit rules" — reference, not active.
 
+## Linear issue tags
+
+When creating a Linear issue, **first review the existing label set**
+(`list_issue_labels` on the **Ops** team) and reuse a fitting tag; coin a new
+one only after a moment's deliberation — tags proliferate easily, and the
+**live Linear set (not the wiki) is the source of truth** (the MCP is
+create-only for labels, so the wiki deliberately keeps no glossary). Tags
+cluster on five axes: house · component/domain · work-kind · cross-cutting ·
+effort. Two integration-specific tags: **`design`** ↔ a `wiki/**/designs/`
+file (the bijection), and **`nit`** = sub-threshold software not worth a wiki
+design (so `nit` and `design` are mutually exclusive); **`bite-size`** is a
+small effort that **may** still be a design. Full convention in
+[`designs/linear-integration.md`](designs/linear-integration.md).
+
 ## Working-tree hygiene
 
 Code-repo edits are organised into **clusters**: one pending changelog
