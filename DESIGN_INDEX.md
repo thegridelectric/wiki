@@ -18,7 +18,7 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **gridworks-base** — [`designs/log-sema-round-trip.md`](gridworks-base/designs/log-sema-round-trip.md)
 - **gridworks-base** — [`designs/mock-transport-for-tests.md`](gridworks-base/designs/mock-transport-for-tests.md)
 - **gridworks-base** — [`designs/neutral-message-metadata.md`](gridworks-base/designs/neutral-message-metadata.md)
-- **gridworks-base** — [`designs/pika-thread-safe-publish.md`](gridworks-base/designs/pika-thread-safe-publish.md) (ActorBase publish thread-safety; decided: always-marshal via add_callback_threadsafe)
+- **gridworks-base** — [`designs/publish-backpressure.md`](gridworks-base/designs/publish-backpressure.md) (bound the marshaled-send queue; backlog follow-up to OPS-383; Linear OPS-384)
 - **gridworks-base** — [`designs/routingclass-wire-aliases.md`](gridworks-base/designs/routingclass-wire-aliases.md)
 - **gridworks-data** — [`designs/dev-branch-and-pr-gate.md`](gridworks-data/designs/dev-branch-and-pr-gate.md)
 - **gridworks-data** — [`designs/gw-data-analytics-deployment.md`](gridworks-data/designs/gw-data-analytics-deployment.md)
@@ -37,8 +37,6 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **rmqbot** — [`designs/prod-4x-upgrade.md`](rmqbot/designs/prod-4x-upgrade.md)
 - **rmqbot** — [`designs/prod-tls-fix.md`](rmqbot/designs/prod-tls-fix.md)
 - **sema** — [`designs/practice-erb-pair-programming.md`](sema/designs/practice-erb-pair-programming.md)
-- **sema** — [`designs/snapshot-improvement.md`](sema/designs/snapshot-improvement.md)
-- **sema** — [`designs/untangle-market-type-name/primary.md`](sema/designs/untangle-market-type-name/primary.md) (hub-and-spoke; spoke: structured-enums)
 - **sema** — [`designs/web-app-words-to-types.md`](sema/designs/web-app-words-to-types.md)
 
 ## Explorations

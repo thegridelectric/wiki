@@ -36,6 +36,17 @@ example mandate + decode-own-version coverage (the `atn.bid`-class check) intact
 `scada.control.capabilities/000` (in the thread-4 backfill set) is the version
 that forced this.
 
+## 2026-06-09 — drop rolled-back structured-enum residue (`6f68508`)
+
+**What:** `CLAUDE.md` Universal MUSTs — removed the `(for structured enums this
+extends to attribute rows/columns…)` parenthetical from the enums-are-additive
+bullet. Structured enums were rolled back (`0bf8f0f`), so the clause referenced a
+capability that no longer exists.
+
+**Why:** Stale residue left by the structured-enums rollback; surfaced while
+closing out the `untangle-market-type-name` design (OPS-378). Keeps the operative
+instructions honest.
+
 ## 2026-06-08 — backfill: examples on 20 superseded versions, flip gate, fold snapshot spoke (`be72b40`)
 
 **What:** (1) A minimal, schema-valid, axiom-consistent `examples:` block on each

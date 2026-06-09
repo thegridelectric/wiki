@@ -7,8 +7,8 @@ Status: Draft · Pass 0 · Updated 2026-06-08
 > "untangle market.type.name" work. Not a normative spec — for the rationale +
 > industry landscape see
 > [`../research/market-product-taxonomy.md`](../research/market-product-taxonomy.md);
-> for authoring the structured enum see the sema spec at
-> `spec/authoring/enums.md` ("Structured Enums").
+> for the `market.product` type's typed fields see
+> `sema/definitions/types/market.product/000.yaml`.
 
 ## What a market product is
 
@@ -37,25 +37,29 @@ built. v000 commits only to identity + the product-name discriminator.
 
 ## Each market owner brings its own product-name enum
 
-A market maker / owning org defines a **structured enum** named
-`<ns>.market.product.name`. GridWorks's own is `gw.market.product.name`
-(`sema/definitions/enums/gw.market.product.name/000.yaml`).
+A market maker / owning org defines a versioned enum named
+`<ns>.market.product.name` — a closed set of product-name tokens. GridWorks's own
+is `gw.market.product.name`
+(`sema/definitions/enums/gw.market.product.name/000.yaml`): tokens like `da60`,
+`rt60gate5`, `rt60gate30`, `rt5gate5`.
 
-It is a *structured* enum — each token decodes via typed per-value attributes:
+The token is a human-decodable name (`rt60gate5` reads as real-time, 60-minute
+slot, gate 5), but the **authoritative decode lives on the `market.product`
+type**, not the enum: one `market.product` instance per token carries the typed
+attributes — `SlotDurationMinutes`, `GateClosingSeconds`, `QuantityUnit`
+(`sema/definitions/types/market.product/000.yaml`). The enum is the names; the
+type is the per-product data.
 
-- `timeframe` (`da` / `rt`), `slot_minutes`, `gate_minutes`, `quantity_unit`.
-- e.g. `rt60gate5` → `{ timeframe: rt, slot_minutes: 60, gate_minutes: 5,
-  quantity_unit: AvgkWh }`.
-
-So the **name-decodable dimensions live IN the vocabulary** — the token is a
-faithful, decodable encoding of its own slot timing, not an opaque label.
+> An earlier draft modeled these as a *structured enum* whose tokens decoded via
+> a typed `.attrs` accessor. That capability was rolled back (`0bf8f0f`) — the
+> attributes are plain typed fields on the `market.product` type instead. The
+> split is now simply: the enum holds names, the type holds attributes.
 
 Tokens MUST conform to the single-token `spaceheat.name` shape: lowercase,
-starting with a letter, internal hyphens allowed, no dots. To author or extend
-one, see the sema spec section `spec/authoring/enums.md` "Structured Enums"
-(append-only: never mutate a published attribute cell).
+starting with a letter, internal hyphens allowed, no dots. The enum is
+append-only per Sema's additive-enum rule.
 
-"Open the enum" here means *multiplicity of namespaced structured enums*, one
+"Open the enum" here means *multiplicity of namespaced product-name enums*, one
 per maker — not an open / freeform pattern. Each maker may carry its own
 `*.market.product.name`.
 
@@ -85,8 +89,9 @@ product's slot duration. Keeping it maker-agnostic is exactly what lets
 
 Whether a product token is *real*, and whether the slot start *aligns* to that
 product's slot duration, is the **receiving market maker's** concern. It decodes
-opt-in against *its own* `*.market.product.name` structured enum — e.g. via the
-generated `GwMarketProductName.<token>.attrs.slot_minutes`.
+opt-in by resolving the token against *its own* `*.market.product.name` enum and
+the matching `market.product` instance — e.g. checking the slot start against
+that product's `SlotDurationMinutes`.
 
 This is the same grain as `market.product.Name`: a **bare token carried on the
 wire, decode is an opt-in consumer-side step.** A single shared `market.product`

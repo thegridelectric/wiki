@@ -42,7 +42,7 @@ Stop filtering by the hardcoded known-type allowlist; let the SemaCodec/snapshot
 be the authority on what's storable, and *notice* (log once) any type with no
 special handling. **Deferred because** it's a coverage/design choice (the
 allowlist works for today's types) entangled with the format→enum spec question
-([`../../sema/designs/untangle-market-type-name/primary.md`](../../sema/designs/untangle-market-type-name/primary.md))
+(`sema/spec/authoring/formats.md` — the format→enum closure rule)
 and the "notice new types" goal. Decide alongside the snapshot/samples work.
 
 ### 2. boto3 region
@@ -81,5 +81,5 @@ only when a sort is requested. *Further (unspecced):* resumable checkpoint
   assertion (re-run → no dup) is what lets item 4 batch safely.
 - [`../../gridworks-data/designs/gw-data-analytics-deployment.md`](../../gridworks-data/designs/gw-data-analytics-deployment.md)
   — backfill/deployment context (and the 5→14 day lag reconcile).
-- [`../../sema/designs/untangle-market-type-name/primary.md`](../../sema/designs/untangle-market-type-name/primary.md)
+- `sema/spec/authoring/formats.md` (the format→enum closure rule)
   — gates item 1's "store everything" decision.

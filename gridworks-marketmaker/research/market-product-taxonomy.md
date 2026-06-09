@@ -5,9 +5,9 @@ Status: Draft · Pass 0 · Updated 2026-06-07
 > What this is: a cited landscape survey of how transactive-energy efforts,
 > demand-response programs, and ISOs/RTOs name and structure market *products*,
 > plus the design implication for GridWorks' MarketMaker vocabulary
-> (`market.product.name` + a coupled `market.product` type). Source for the
-> design decision recorded in
-> [`../../sema/designs/untangle-market-type-name/primary.md`](../../sema/designs/untangle-market-type-name/primary.md).
+> (`market.product.name` + a coupled `market.product` type). The design decision
+> shipped as `gw.market.product.name` + the `market.product` type in
+> `sema/definitions/` (spec: `sema/spec/`).
 > Pre-spec research, not normative. Claims below were adversarially verified
 > (3-vote; "killed" claims are listed as caveats, not used).
 
@@ -92,26 +92,29 @@ rich **product type** that carries the attributes.
 
 ## Design implication for GridWorks
 
-Chosen direction (authoritative version in the sema design:
-[`../../sema/designs/untangle-market-type-name/primary.md`](../../sema/designs/untangle-market-type-name/primary.md)):
+Chosen direction (authoritative version is the shipped vocabulary in
+`sema/definitions/` + `sema/spec/`):
 
-1. **`market.product.name` is a STRUCTURED enum** carrying **only the attributes
-   implicit in the name** (a faithful decode): commodity class, slot duration
-   (minutes), gate offset, quantity unit where encoded (e.g. `…b`). The token
-   (e.g. `rt60gate5`) is the unique, decodable product name embedded in
-   `market.slot.name`. These name-decodable semantics live **in the vocabulary**.
-2. **Open the enum by allowing MANY structured enums, namespaced per market
+1. **`market.product.name` is a plain versioned enum** of product-name tokens —
+   the closed set of valid names (e.g. `da60`, `rt60gate5`). The token is a
+   human-decodable encoding of its slot timing, but the enum carries only the
+   names.
+2. **Open the enum by allowing MANY product-name enums, namespaced per market
    maker / territory** — e.g. `gw.versant.market.product.name`. The fractal
    architecture expects each MarketMaker to define its own product vocabulary;
-   "open" = multiplicity of structured enums, not an open pattern.
-3. **`market.product`** — a coupled sema **type**, kept minimal for now: `Name`
-   (string, a product token) + `ProductNameEnum` (which structured enum, e.g.
-   `gw.versant.market.product.name`) + a proposed `MarketProductId` (UUID).
-   Market-specific attributes (settlement, dispatch, response, price-formation)
-   are added to the type **as each market is designed**, not now.
+   "open" = multiplicity of namespaced enums, not an open pattern.
+3. **`market.product`** — a coupled sema **type** that carries the per-product
+   attributes as typed fields: `Name` (the token) + `ProductNameEnum` (which
+   enum) + `MarketProductId` (UUID) + `SlotDurationMinutes` + `GateClosingSeconds`
+   + `QuantityUnit`. Further market-specific attributes (settlement, dispatch,
+   response, price-formation) are added to the type **as each market is designed**.
 
-**Split rule (when attributes are added):** decodable from the name → enum value;
-not in the name → the type.
+**Where attributes live:** all per-product attributes — even those decodable
+from the token name — live on the `market.product` **type**, not the enum.
+
+> An earlier draft split them (name-decodable → a *structured enum* value, else →
+> the type). The structured-enum capability was rolled back (`0bf8f0f`); the
+> `market.product` type is now the single home for product attributes.
 
 This mirrors the industry pattern — a **named product** (ISO/OpenADR style)
 whose name carries **structured attributes** (EMIX/TeMIX style) — while keeping

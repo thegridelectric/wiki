@@ -68,5 +68,5 @@ transport adapters, not the codec.
 - Layer 2: a published sample lands as a `messages` row.
 
 ## Cross-refs
-- [`../../sema/designs/snapshot-improvement.md`](../../sema/designs/snapshot-improvement.md) — samples emission + build-time round-trip.
-- [`../../sema/designs/untangle-market-type-name/primary.md`](../../sema/designs/untangle-market-type-name/primary.md) — the bug class Layer 0 guards.
+- `sema/spec/snapshot.md` — samples emission + build-time round-trip (design folded here, OPS-380).
+- `sema/spec/authoring/formats.md` (the format→enum closure rule) — the bug class Layer 0 guards (design folded, OPS-378).
