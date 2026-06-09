@@ -61,6 +61,11 @@ Status: Accepted · Pass 2 · Updated 2026-06-08 · Linear: OPS-381
 - [ ] *(optional, decide later)* **Wire `LINEAR_API_KEY`** so the hooks' live Linear-side
   checks run instead of the wiki-side / honor-system fallback (see
   [`../linear.md`](../linear.md) "Enforcement").
+- [ ] **Fix `precheck-design-bijection.sh` stamp parsing** — it locates the
+  stamp with `grep '^Status:'`, so it silently skips a design whose stamp is
+  blockquoted/indented (e.g. `> Status:`) and misses the Accepted-missing-id
+  check that `tests/test_doc_health.py` catches. Detect maturity with the
+  test's lenient `STAMP_RE`; keep the bare-`Status:` rule for the id.
 
 ## Retirement
 
