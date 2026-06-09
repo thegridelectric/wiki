@@ -12,6 +12,24 @@ Newest at the top.
 
 ---
 
+## 2026-06-08 — drop snapshot.built_at from the restricted registry (`c1d9dad`)
+
+**What:** Removed the wall-clock `built_at` field (and the now-empty `snapshot:`
+section) that `build_restricted_registry` injected into the snapshot's
+`registry.yaml` (`src/sema/tools/build_seed_definitions.py`); dropped the
+now-unused `datetime`/`timezone` import; updated `_is_top_level_sections_mapping`
+to expect `[metadata, formats, enums, types]`.
+
+**Why:** `built_at` was non-deterministic — it made every snapshot regen diff on
+`registry.yaml` regardless of generated-code formatting, blocking the zero-diff
+goal (OPS-380, thread #1). Nothing reads it; snapshot provenance is already
+carried by the copied `metadata.registry_version` + `last_updated`. Dropping the
+`snapshot:` key also makes the restricted registry conform to the spec's
+top-level structure — `metadata/formats/enums/types`, which has no `snapshot`
+section (`spec/registry/structure.md`). Part of OPS-380.
+
+---
+
 ## 2026-06-08 — remove structured enums. market slots must be divisible by 300 (`0bf8f0f`)
 
 **What:** Removed the unpublished structured-enum capability from the prior

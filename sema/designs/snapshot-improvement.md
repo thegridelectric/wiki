@@ -142,15 +142,31 @@ Old versions exist precisely to be **upgraded**, and the
 decode-old → `upgrade()` → decode-current path is where restricted-snapshot
 bugs concentrate (the `atn.bid` class). A round-trip is only as good as the
 fixtures, so:
-- **Spec change (authoring rule): every *superseded* type version MUST carry at
-  least one `examples:` entry.** This is a *targeted* mandate — it does not
-  apply to latest versions (#3 keeps those optional); it binds only once a
-  version has a successor (i.e., once an `upgrade()` exists to exercise). Lands
-  in the sema authoring spec spoke on completion.
+
+**Immutability is not a blocker — adding examples to published old versions is
+permitted (decision 2026-06-08, option (a)).** `examples` are non-normative:
+the spec defines them as developer guidance / validation fixtures / contract
+clarity, requires only that they be structurally valid and not contradict
+axioms (`authoring/types.md` "Examples (Optional)"), and they alter no
+validation behavior. So adding one to a published version does **not** "change
+validation behavior or semantics" — the bar set by `registry/types.md`
+"Immutability → General Rules". It falls in the same family as the already-
+permitted *"Clarification of descriptive text"* (`registry/types.md`
+"Permitted Changes (All Types)"): an improved description, in effect.
+
+- **Spec change 1 — permission** (`registry/types.md`, Permitted Changes): add
+  *"Addition or improvement of non-normative `examples` (does not alter
+  validation behavior or semantics)"* to the permitted-changes list, so
+  backfilling published old versions is explicitly sanctioned, not a grey area.
+- **Spec change 2 — mandate** (`authoring/types.md`, currently "Examples
+  (Optional)"): every *superseded* type version MUST carry at least one
+  `examples:` entry. Targeted — latest versions stay optional (#3); the mandate
+  binds only once a version has a successor (i.e., an `upgrade()` exists to
+  exercise).
 - **Work item — backfill now:** author `examples:` for **all existing old type
   versions** that lack one, so the mandate holds across the current registry
   the day it ships. Enumerate the gaps from #3's coverage report; this is a
-  one-time authoring pass over `definitions/types/.../` old versions.
+  one-time authoring pass over the old-version schemas under `definitions/types/`.
 - The round-trip (#2) then covers, per old version: decode the sample at its
   own version → `upgrade()` to current → decode-validate the result.
 
