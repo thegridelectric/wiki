@@ -135,6 +135,17 @@ def test_accepted_designs_have_pass_at_least_one(doc: Path) -> None:
 LINEAR_ID_RE = re.compile(r"Linear:\s*[A-Z]+-\d+")
 
 
+def _stamp_line(text: str) -> str:
+    """The doc's Status-stamp line, tolerating a `> ` blockquote prefix and
+    leading indentation. Returns the original line (framing intact) so callers
+    can regex its content; returns "" if there is no stamp line.
+    """
+    return next(
+        (ln for ln in text.splitlines() if ln.lstrip("> \t").startswith("Status:")),
+        "",
+    )
+
+
 def _slugify(title: str) -> str:
     """Canonical projection from a Linear issue title to a wiki design slug:
     lowercase, replace every run of non-alphanumeric chars with one hyphen,
@@ -161,6 +172,21 @@ def test_slug_normalization(title: str, slug: str) -> None:
     assert _slugify(title) == slug
 
 
+@pytest.mark.parametrize(
+    "stamp",
+    [
+        "Status: Accepted · Pass 1 · Updated 2026-06-08 · Linear: OPS-1",
+        "> Status: Accepted · Pass 2 · Updated 2026-06-08 · Linear: OPS-380",
+        "  Status: Verified · Pass 3 · Updated 2026-06-08 · Linear: GRI-9",
+    ],
+)
+def test_stamp_line_tolerates_blockquote(stamp: str) -> None:
+    """A blockquoted or indented stamp is still found, and its Linear id read —
+    regression for a false negative where `> Status:` defeated the lookup."""
+    doc = f"# Title\n\n{stamp}\n\nbody text\n"
+    assert LINEAR_ID_RE.search(_stamp_line(doc))
+
+
 @pytest.mark.parametrize("doc", _design_roots(), ids=_rel)
 def test_accepted_designs_have_linear_id(doc: Path) -> None:
     """Per designs/linear-integration.md: a design MUST have a Linear issue by
@@ -176,9 +202,7 @@ def test_accepted_designs_have_linear_id(doc: Path) -> None:
     m_mat = MATURITY_RE.search(text)
     if not m_mat or m_mat.group(1) not in ("Accepted", "Verified"):
         return  # Draft designs may be doc-only or in Linear Backlog.
-    status_line = next(
-        (ln for ln in text.splitlines() if ln.startswith("Status:")), ""
-    )
+    status_line = _stamp_line(text)
     assert LINEAR_ID_RE.search(status_line), (
         f"{_rel(doc)}: an Accepted/Verified design MUST carry a Linear id in its "
         "Status line (e.g. '· Linear: OPS-142'). Add it to Linear (Todo) and "

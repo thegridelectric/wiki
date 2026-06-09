@@ -13,6 +13,7 @@
 
 _(every file under a `designs/` folder, anywhere in the wiki)_
 
+- (cross-cutting) [`designs/design-execution-economics.md`](designs/design-execution-economics.md) (subagent-spawn nudge for tighter prompts + coupling-aware fan-out)
 - (cross-cutting) [`designs/linear-integration.md`](designs/linear-integration.md)
 - **gridworks-base** — [`designs/decouple-amq-topic.md`](gridworks-base/designs/decouple-amq-topic.md)
 - **gridworks-base** — [`designs/log-sema-round-trip.md`](gridworks-base/designs/log-sema-round-trip.md)

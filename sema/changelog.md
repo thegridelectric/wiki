@@ -12,6 +12,99 @@ Newest at the top.
 
 ---
 
+## 2026-06-08 — fix: layout.lite 007→008 upgrade lifts ShNodes 200→300 (<!-- pending commit -->)
+
+**What:** `templates/upgrades/layout_lite_007_to_008.py.jinja2` (and its
+regenerated output `runtime/types/old_versions/layout_lite_007.py`) now lifts the
+embedded `ShNodes` list through `spaceheat.node.gt` `200 → 300` during the
+`007 → 008` upgrade: `data["sh_nodes"] = [node.upgrade() for node in self.sh_nodes]`,
+plus the matching docstring line. No schema/registry changes.
+
+**Why:** `layout.lite/007` declares `ShNodes: spaceheat.node.gt/200`, but
+`LayoutLite008` accepts only `300` — the `007 → 008` upgrade bumped the version
+and added the new top-level fields yet never lifted the embedded nodes, so any
+`007` instance carrying nodes raised a `literal_error` on upgrade. The gap had
+gone unnoticed because no old-version `layout.lite` fixture exercised the chain
+(fixtures start at v011, whose nodes are already `301`). Surfaced by the OPS-380
+thread-4 backfill: a realistic `layout.lite/007` example must round-trip
+`decode-old → upgrade() → decode-current`, which is exactly the path this gate
+exists to protect (the `atn.bid` class). The sibling steps in the chain
+(`009→010` ha1 guard, `011→012` sub-type lifts, `012→013` i2c None-guard) were
+audited against the per-version field types and are correct.
+
+## 2026-06-08 — spec: superseded type versions MUST carry examples (`ee5bd53`)
+
+**What:** Two spec edits + a new (xfail) enforcement test, no schema/data
+changes. `spec/registry/types.md` "Permitted Changes (All Types)": added a
+bullet explicitly permitting *addition or improvement of non-normative
+`examples`* on a published version (same family as "clarification of descriptive
+text" — alters no validation behavior). `spec/authoring/types.md`: retitled
+"Examples (Optional)" → "Examples" and added a "Superseded versions" rule — a
+type version that has a successor MUST carry at least one `examples:` entry;
+latest versions and versionless types stay optional. New
+`tests/registry/test_superseded_examples.py` enforces the mandate by walking
+`definitions/types/`; marked `xfail` (non-strict) until the one-time backfill of
+existing old versions lands (OPS-380 thread 4), at which point it xpasses and
+the marker is removed.
+
+**Why:** Superseded versions exist to be **upgraded**, and the
+`decode-old → upgrade() → decode-current` path is where restricted-snapshot bugs
+concentrate (the `atn.bid` class). The snapshot round-trip can only exercise a
+version it has a fixture for, and the fixture is the authored `examples:` entry
+(→ a generated sample). So every superseded version needs an example for
+old-version round-trip coverage to be total. Permitting examples on published
+versions removes the immutability grey area that would otherwise block the
+backfill — examples are non-normative guidance, not validation behavior. Part of
+OPS-380 (thread 4, spec half; the example backfill itself follows separately).
+
+## 2026-06-08 — snapshot: round-trip gate + generated samples + lint-gated atomic build (`bea9846`)
+
+**What:** Reworked `sema snapshot build` (`src/sema/interfaces/cli/snapshot.py`)
+to generate into a **staged** tree, gate it, and swap into place only on green —
+a failed gate is a no-op (the previous snapshot is left untouched), replacing the
+old clear-then-write that could half-write on failure. New gates:
+
+- **`samples/`** (OPS-380 thread 3) — `src/sema/tools/snapshot_check.py` runs in a
+  subprocess against the staged package and, for every type version under
+  `definitions/` with an `examples:` block, feeds the first example through the
+  snapshot codec (`from_dict → to_dict`) and writes the canonical serialized form
+  to `samples/<type.name>[.<version>].json` (old versions included). Writes a
+  coverage `samples/README.md`. Samples are the exact wire bytes the runtime
+  emits, so they double as the round-trip's expected output and don't churn.
+- **Round-trip gate** (OPS-380 thread 2) — a new shipped, pydantic-only
+  `roundtrip.py` harness (`templates/roundtrip.py.jinja2`, emitted by
+  `generate_runtime.py`) walks `samples/`, decodes each at its own version,
+  re-encodes (deep-equal), and upgrades superseded versions to latest. Run
+  build-time over the staged tree (raises → no-op) and re-runnable consumer-side.
+  This is the check that catches a word missing only from the *restricted*
+  snapshot (the `atn.bid` class). `tests/test_snapshot_roundtrip.py` proves it
+  flags a non-decoding sample.
+- **Lint gate** (OPS-380 thread 1) — `src/sema/tools/snapshot_lint.py` runs
+  `ruff format` in place (the generator already sorts output, so format makes a
+  re-build a zero diff) and reports `ruff check` / `mypy` (fatal only under
+  `--strict-lint`, because the generator emits known pre-existing violations
+  that are a tracked cleanup). New `scripts/regenerate_runtime.sh` applies the
+  same gates to the in-repo runtime.
+
+Stopped vendoring `tests/` into snapshots: removed the `write_tests` path
+(`generate_runtime.py`, `formats.py` — deleted `generate_property_format_test`)
+and its emission at the build call site; snapshots now ship `samples/` +
+`roundtrip.py` instead of generated test code. Updated `test_snapshot_cli.py`
+(asserts no `tests/`, presence of `samples/` + `roundtrip.py`) and dropped the
+obsolete `write_tests` unit test.
+
+**Why:** Standing up the gridworks-journalkeeper snapshot surfaced four
+frictions: formatting-only regen churn that buries real diffs; generated test
+*code* leaking into the consumer package; no per-type decode test (the gap that
+let the `atn.bid` closure bug ship); and no ready JSON fixtures per type. The
+round-trip gate makes "does the emitted runtime decode its own types" a
+build-time invariant against the *restricted* vocabulary — exactly where a
+sema-runtime test can't see the bug. Atomic staging means a failing gate can
+never corrupt a consumer's snapshot. `ruff format` + the generator's existing
+sorting make a second regen a zero diff. Part of OPS-380 (threads 1–3).
+
+---
+
 ## 2026-06-08 — drop snapshot.built_at from the restricted registry (`c1d9dad`)
 
 **What:** Removed the wall-clock `built_at` field (and the now-empty `snapshot:`

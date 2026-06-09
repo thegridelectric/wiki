@@ -43,6 +43,7 @@ mkdir -p "$HOME/.claude" && : > "$marker"
 CTX="Your active-claims Scope includes sema. Before reasoning about or editing anything sema, you MUST read the sema canon — do not answer sema questions (casing, TypeName/Version, formats, enums, versioning) from memory or by grepping for an answer the spec already fixes:
 
   1. Read \`sema/CLAUDE.md\` (Universal MUSTs) and \`sema/spec/primary.md\` (the contract), plus the relevant \`sema/spec/{registry,authoring}/\` spoke for the kind of work.
+  2. READ-RECEIPT — before any other sema work this session, post the user a 3-5 line summary of \`sema/CLAUDE.md\`'s key MUSTs (in your own words). This is mandatory: it both forces a real read (you cannot summarize what you did not open) and gives the user a visible confirmation the canon was loaded. Do not skip or defer it.
 
 Settled rules to anchor on now:
   - Serialized JSON field names use CamelCase/PascalCase, recursively (spec Principle 2).

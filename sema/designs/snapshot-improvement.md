@@ -1,8 +1,8 @@
 # Design: Sema snapshot generation improvements
 
-> Status: Accepted · Pass 2 · Updated 2026-06-08 · Linear: OPS-380
+Status: Accepted · Pass 2 · Updated 2026-06-08 · Linear: OPS-380
 
-What this is: upgrades for the `sema snapshot prepare`/`build` pipeline that
+>What this is: upgrades for the `sema snapshot prepare`/`build` pipeline that
 emits a restricted Sema runtime into a consumer package (e.g. `gjk.sema`).
 Four threads: (1) lint + atomically regenerate generated code (and drop the
 non-deterministic `built_at`); (2) replace vendored tests with a build-time
@@ -12,6 +12,38 @@ existing `examples:`; (4) require examples on superseded type versions and
 backfill them. On completion the durable bits fold into the relevant `spec/`
 spoke (snapshot / runtime-generation) and this file is deleted (per
 `designs-process.md`).
+
+## Implementation status (2026-06-08)
+
+- **Threads 1–3: DONE** (machinery landed, full suite green). `built_at` dropped
+  (`c1d9dad`). Snapshot build now stages → lint-gates (`ruff format` in place;
+  `ruff check`/`mypy` reported, fatal only under `--strict-lint`) → generates
+  `samples/` + runs the per-type round-trip gate → swaps on green (failed gate =
+  no-op). New: `src/sema/tools/snapshot_check.py`, `snapshot_lint.py`,
+  `runtime_generation/templates/roundtrip.py.jinja2`, `scripts/regenerate_runtime.sh`.
+  Vendored `tests/` dropped (the `write_tests` path removed).
+- **Thread 4 — spec half: DONE.** `registry/types.md` permits non-normative
+  examples on published versions; `authoring/types.md` mandates examples on
+  superseded versions. `tests/registry/test_superseded_examples.py` enforces it,
+  marked `xfail` until the backfill lands.
+- **Thread 4 — backfill: REMAINING (next session).** Author `examples:` for the
+  20 superseded type versions that lack one (enumerate via
+  `tests/registry/test_superseded_examples.py` or the snapshot
+  `samples/README.md` coverage report); each MUST be schema-valid, axiom-
+  consistent, canonical JSON. Then remove the `xfail` marker (promote to a hard
+  gate) and confirm the round-trip exercises every old version. These 20 are
+  independent per-schema authoring tasks — fan out. On completion, fold the
+  durable bits into `spec/` and delete this file.
+
+### Known follow-up (deferred, tracked)
+
+The generator emits a small set of pre-existing lint violations the new gate now
+surfaces: 3 `ruff check` errors (over-/under-tracked `typing` imports —
+`Self`/`Any` in `connectivity_edge_gt`, `gw1_tank_temp_calibration_map`, and the
+`Any`-undefined `synced_readings_bundle_001` upgrade body) and ~12 `mypy` errors
+(enum `_missing_` Liskov in `gw_str_enum`, `yaml` stubs, `scada_params` upgrade
+typing). Fixing these at the generator (deriving imports from the rendered module
+text) lets `--strict-lint` become the default. Until then lint is report-only.
 
 ## Context
 
