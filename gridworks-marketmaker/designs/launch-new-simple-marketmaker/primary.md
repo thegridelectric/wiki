@@ -55,9 +55,14 @@ Status: Draft · Pass 0 · Updated 2026-06-09
 
 - Exact **cumulative-bid / queue-ordering / ack** semantics (sequence,
   supersession, what the binding ack asserts; per-bid vs amortized admission).
-- **Credential substrate** — signed, distributed, non-hijackable; framework-
-  agnostic (econ-markets inv. 14); blockchain a candidate (micro-contract per
-  slot), **not** committed.
+- **Trust + market substrate** — signed, distributed, non-hijackable (a chain's
+  real draw is *anti-capture*, not throughput); framework-agnostic (econ-markets
+  inv. 14), **not** committed. Two roles, likely different answers: credentials /
+  rights are **NFT-like** (TaDeeds, TaTradingRights); the market machinery could
+  be a *distributed web of interactive smart contracts* (the *Redefining Demand
+  Response* vision). Open question is **layering** — what goes on-chain (binding
+  ack / settlement / deeds / rights) vs off-chain (the fast cumulative bid
+  stream, which fees/latency make a poor on-chain fit). See the evaluate spoke.
 - **5-min slot** binding: maker-agnostic format axiom vs maker-side check.
 - Whether the maker needs a real **offer/supply curve** at launch or sets price
   from an external signal.

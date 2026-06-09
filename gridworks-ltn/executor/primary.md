@@ -71,8 +71,8 @@ production broker mgmt API on 2026-05-24, in
 Stage 5a notes). Same pattern for every `*mic_tx → ear_tx` binding.
 A gwbase journalkeeper binding `#` on ear_tx therefore CAN see LTN
 traffic — provided ActorBase's `RoutingClass` parser doesn't drop
-the messages first (see
-[`../gridworks-base/designs/routingclass-wire-aliases.md`](../../gridworks-base/designs/routingclass-wire-aliases.md)).
+the messages first (tracked by the gridworks-base design
+`must-accept-current-ltn-messages`).
 
 **Paths:** the LTN already follows the XDG `Paths` convention from
 gwproactor (see the XDG file locations in
@@ -186,8 +186,7 @@ cleanup commit when this domain becomes active:
    the three-tier actor model — ServiceSettings / XDG-paths /
    Sema-validate-init-JSON, shipped in gwbase 0.5.0
    ([`../../gridworks-base/executor/actors.md`](../../gridworks-base/executor/actors.md))
-   — and
-   [`routingclass-wire-aliases`](../../gridworks-base/designs/routingclass-wire-aliases.md).
+   — and the gridworks-base design `must-accept-current-ltn-messages`.
 3. Make the FLO interface a named ABC in `ltn.py` and have
    `gridworks-flo/` provide concrete implementations — so optimizer
    swaps don't ripple through LTN.

@@ -1,6 +1,6 @@
 # GridWorks vision (primary)
 
-Status: Draft · Pass 0 · Updated 2026-06-07
+Status: Draft · Pass 0 · Updated 2026-06-09
 
 > What this is: the hub for the GridWorks *vision* — the why beneath the specs,
 > the dream the architecture is in service of.
@@ -42,3 +42,7 @@ into a design; the residue of direction stays here.
   [`transactive-grid.md`](transactive-grid.md) (the
   concrete GNode taxonomy lives in
   [`../gridworks-marketmaker/research/gnode-taxonomy.md`](../gridworks-marketmaker/research/gnode-taxonomy.md)).
+- **Data, meaning, and sovereignty** — formal enough to compose, open enough to
+  keep growing, built so the past stays legible; the EAR keeps everything while
+  downstream stores stay opinionated; shared meaning, owned facts. See
+  [`data-meaning-sovereignty.md`](data-meaning-sovereignty.md).

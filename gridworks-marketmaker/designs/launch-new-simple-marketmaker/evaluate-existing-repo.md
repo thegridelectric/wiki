@@ -52,11 +52,26 @@ this vision and the legacy implementation conflict, the vision wins.
 - **Trust substrate is an open choice — blockchain a strong candidate, not
   over-committed.** Per economy-energy-markets invariant 14 the Participation-
   Requirement evidence mechanism is framework-agnostic (signed certs, public
-  ledgers, …). Blockchain may in fact be an excellent fit — there is a micro-
-  contract per market slot, i.e. *many* tiny exchanges — but the design SHALL
-  keep the contract/credential model substrate-independent and **not lock to
-  Algorand (or any chain) prematurely.** The legacy Algorand code is plumbing to
-  discard; the signed-contract principle it served is to keep.
+  ledgers, …). The deepest argument *for* a chain is not throughput but
+  **anti-capture**: a distributed, tamper-evident ledger with no single owner
+  *is* the "non-hijackable by any one organization" property the whole trust
+  design reaches for. Two distinct roles, likely different answers:
+  - **Credentials / rights — NFT-like.** TaDeeds and TaTradingRights are
+    naturally **non-fungible tokens** (identity + delegable rights): low-
+    frequency, high-value, exactly what a chain secures well.
+  - **The market machinery itself — a web of smart contracts.** Running the
+    markets could naturally be a *massive distributed collaborative set of
+    interactive smart contracts* (fractal makers, a micro-contract per slot) —
+    the original *Redefining Demand Response* vision.
+
+  The counter, and why **not** to over-commit: putting the **high-frequency,
+  cumulative bid stream** on-chain fights "fast + cheap + cumulative" (fees /
+  latency at 5-min × thousands of nodes). So the real question is *layering* —
+  which layers go on-chain (binding ack / settlement / deeds / rights) vs stay
+  off-chain (the live bid stream) — not chain-or-not. Keep the contract /
+  credential model substrate-independent and **do not lock to Algorand (or any
+  chain) prematurely.** The legacy Algorand code is plumbing to discard; the
+  signed-contract principle it served is to keep.
 - **Adoption is by published rules, not bilateral deals.** The maker advertises
   *"here is the market and here are the rules — go"*; participants join by
   adopting the open tools, not by negotiating leverage. The maker is the concrete

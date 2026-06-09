@@ -232,7 +232,13 @@ a status stamp; `Accepted` maturity requires `Pass ≥ 1`, and an Accepted
 design's stamp MUST carry its `· Linear: <id>` (all enforced by
 [`tests/test_doc_health.py`](tests/test_doc_health.py)). On completion,
 the design's durable distillate updates `executor/primary.md` (or a
-sub-spec); the `designs/<slug>` file is deleted. Per-domain `findings.md`
+sub-spec); the `designs/<slug>` file is deleted. **Because designs are
+ephemeral — deleted on completion — NOTHING SHALL link to a design** (any
+markdown link to a `designs/` file rots into a dangler the moment that design
+is deleted); reference a design by name in prose instead. Links are for
+durable targets (`executor/`, code, external refs). The sole exception is
+[`DESIGN_INDEX.md`](DESIGN_INDEX.md), the aggregator that indexes every
+design by definition. Per-domain `findings.md`
 registers are legacy and SHALL NOT be created in new domains — items
 become Linear issues (if actionable work), become `explorations/`
 entries (if there's no clarity yet), or update `executor/primary.md`

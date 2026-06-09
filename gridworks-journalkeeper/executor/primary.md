@@ -1,236 +1,212 @@
 # gridworks-journalkeeper — rebuild spec
 
-Status: Draft · Pass 0 · Updated 2026-06-07
+Status: Draft · Pass 0 · Updated 2026-06-09
 
-> Acceptable-minimum hub. Marks the load-bearing facts about what
-> journalkeeper IS after Stages 1+2 of the 2026-05 refactor; sub-spec
-> depth left "Open" for later passes.
+> Faithful-rebuild hub: enough to build journalkeeper from scratch.
+> **Part I — Functional specification** is the durable contract (what gjk
+> must be). **Part II — Implementation today** is the contingent snapshot
+> (modules, current coverage, the in-flight transition) and will drift.
+> Keep the two from bleeding into each other.
 
-## What gjk is (one line)
+## What journalkeeper is (one line)
 
-A non-GNode broker consumer that decodes a SELECT collection of Sema
-messages that cross the bus and persists them to the `gw_data.messages`
-table.
+A non-GNode broker consumer that decodes a selected set of Sema messages
+crossing the bus and persists them to the `gw_data` `messages` table, fanning
+some out into `readings`.
 
-> **Tier:** journalkeeper belongs to the **analytics / UI part of the
-> GridWorks ecosystem, NOT the production control plane.** Today it
-> consumes directly from `ear_tx` on the production broker
-> (`hw1__1`) — that arrangement is a transitional accident, not the
-> target architecture. Once the **analytics broker** stands up
-> ([`../../rmqbot/designs/analytics-broker-shovel.md`](../../rmqbot/designs/analytics-broker-shovel.md)),
-> journalkeeper migrates off prod and consumes from the analytics
-> broker's mirrored `ear_tx` instead. No analytics-tier service
-> should hold prod-broker credentials.
+---
 
-## Deployment: two stacks run in parallel (transition)
+# Part I — Functional specification
 
-During the db_v2 transition we run **two journalkeepers at once**, each
-off its own branch:
+## Role & tier
 
-- **`main`** — Joe's (jds) new code against his **new database**. This is
-  the db_v2 line: the converged `SemaCodec + SemaMessagePersistor` path
-  with the custom persistors (`flo.params.house0`, `weather.forecast`)
-  fanning telemetry into `gw_data` `readings`. `main` was cut at the head
-  of `jds/db_v2`.
-- **`legacy`** — the **old journalkeeper**, kept running unchanged so the
-  established stack and its database stay live while the new one is
-  validated.
-
-Both consume the same bus traffic; they persist to **separate databases**.
-The parallel run is the safety net — `legacy` is the fallback of record
-until `main` + the new DB are trusted. Do not assume a single deployment
-when reasoning about gjk in this window.
+journalkeeper is an **analytics / audit tap**, not part of the production
+control plane. It is a pure consumer: it holds no authority, makes no control
+decisions, and owns no meaning — it records an interpretable copy of bus
+traffic for query, audit, and analytics. (Where meaning *does* live — Sema +
+the authority seeds — see `wiki/sema/research/where-meaning-lives-in-gridworks.md`
+and `wiki/vision/data-meaning-sovereignty.md`.) No analytics-tier service
+should hold production-broker credentials.
 
 ## The central commitment
 
 `ActorBase` (transport) + `SemaCodec` (decode) + `SemaMessagePersistor`
-(persist) — three things, no in-tree type registry. **New Sema types
-flow through with zero code edits in this repo**: the bind list is
-`SemaMessagePersistor.all_known_message_types()`, which is the single
-source of truth for what gets bound on the broker AND what gets
-decoded + persisted.
+(persist) — three things, no in-tree type registry.
+`SemaMessagePersistor.all_known_message_types()` is the **single source of
+truth** for what gjk binds on the broker AND what it persists. Adding a Sema
+type to that set (plus the snapshot) extends coverage with no per-type handler
+code.
+
+## The capture contract — four gates
+
+A message reaches `gw_data.messages` iff it passes all four gates. This is the
+model to reason from when deciding coverage, and it must **expand as the
+ecosystem adds actors and types**.
+
+1. **Bind** — gjk binds one routing key per type in
+   `all_known_message_types()` (`#.<type-with-dashes>`) on the consume
+   exchange. Only those types are delivered. (Per-type, by design — not a
+   catch-all.)
+2. **Deliver without routing-metadata gatekeeping** — a message that reaches
+   the consumer MUST be handed to dispatch regardless of whether its routing
+   key parses into structured class/alias metadata. Delivery and persistence
+   depend on the *type*, never on routing-class bookkeeping. (This is a
+   requirement gjk places on its transport; the current gwbase violation is in
+   Part II.)
+3. **Decode** — `SemaCodec.from_dict(..., mode="degraded")` decodes against
+   gjk's restricted Sema snapshot. A type outside the snapshot vocabulary
+   decodes as degraded and is skipped (a coverage gap, never a crash).
+4. **Persist** — `SemaMessagePersistor` routes by `target_message_type` to a
+   custom persistor (which may fan telemetry into `readings`) else a default
+   path that stores the payload as jsonb. The persist set is the same
+   `all_known_message_types()`, so bind and persist stay in lockstep.
 
 ## Invariants
 
-1. **Not a GNode.** Inherits `gwbase.ActorBase`, not `GridworksActor` —
-   no heartbeat / time-coordinator participation, no participation in
-   GNode roles on the grid. The `g_node.json` that today's
-   `ActorBase.__init__` still requires is a workaround; see
-   gridworks-base **F-004** (`ServiceSettings` split is the proposed
-   fix that lets gjk drop the file).
-2. **SQLAlchemy models live in `gw_data`, not here.** The persistor
-   writes via `gw_data.db.models.MessageSql` (and `ReadingChannelSql`
-   / `ReadingSql` for `report.event`). Stage 2 deleted the in-tree
-   `gjk.models/` precisely to enforce single-source.
-3. **Sema runtime is a snapshot under `src/gjk/sema/`.** Driven by
-   `src/gjk/sema_seed_request.yaml` (package-bound, snapshot-adjacent —
-   see gwwf for the matching convention). No vendored `named_types`.
-4. **`dispatch_message` errors are logged + swallowed.** The live
-   actor MUST keep running across malformed JSON or unknown types;
-   the S3 importer is the loud-fail counterpart (`scripts/`
-   territory, different contract).
-5. **Catch-all queue binding on the consume exchange.** Journalkeeper
-   wants every message; per-type narrowing happens at the persistor,
-   not at the broker. The consume exchange comes from gwbase defaults
-   (`ear_tx` for the universal-tap class).
-6. **Message ids are deterministic so re-import is idempotent.** A
-   message with no natural id field gets `uuid5` over the
-   unique-per-object triple `{from_alias}|{type_name}|{persisted_ms}`
-   (matches the S3 filename), so re-importing a date is a true no-op via
-   the `(timestamp, id)` PK + `on_conflict_do_nothing`. The **default
-   path and every custom persistor** mint the id through the single
-   shared `default_message_id(...)` in `message_persistence_info.py` —
-   **`uuid4()` MUST NOT be used for a message id** (random ids dodge the
-   dedupe and duplicate `messages` rows on re-import). Because custom
-   persistors need `persisted_ms`, `persist_message` threads
-   `time_received` into the custom dispatch
-   (`custom_fn(from_alias, time_received, payload)`). The same id is
-   reused as `reading.message_id`, so derived-reading provenance stays
-   intact and deterministic. (Regression history: `57f5340` shipped the
-   `flo.params.house0` / `weather.forecast` custom persistors using
-   `uuid4()`; `fa08423` converged them onto the shared helper.)
+1. **Not a GNode.** gjk is a tap — `ActorBase`, not `GridworksActor`. No
+   heartbeat, no time-coordinator role, no GNode identity on the grid.
+2. **Meaning/models live upstream, not here.** Persistence targets are the
+   `gw_data` SQLAlchemy models (`MessageSql`, `ReadingChannelSql`,
+   `ReadingSql`); gjk defines none of its own. The Sema runtime is a
+   **restricted snapshot regenerated from `sema`**, never hand-edited.
+3. **The live path is resilient.** `dispatch_message` logs and swallows
+   malformed JSON, degraded types, and persist failures — the actor stays up.
+   (The S3 backfill importer is the loud-fail counterpart: it halts on first
+   failure, a deliberately different contract.)
+4. **Binding is per-type, from the persistor** — narrowing happens at the
+   broker by type, sourced from `all_known_message_types()`.
+5. **Idempotent re-import.** Every message id is deterministic: a natural id
+   field when present, else `uuid5` over `{from_alias}|{type_name}|{persisted_ms}`
+   (the S3 filename triple). With the `(timestamp, id)` PK +
+   `on_conflict_do_nothing`, re-importing a window is a true no-op. **A random
+   id (`uuid4`) MUST NOT be used** — it defeats dedupe. The default path and
+   every custom persistor mint ids through one shared `default_message_id(...)`;
+   the same id becomes `reading.message_id`, keeping derived-reading provenance
+   deterministic.
+6. **Delivery is not gated on routing metadata** (the contract of Gate 2,
+   restated as an invariant): gjk persists what it receives, by type.
 
-## Live path (after Stage 2)
+## Data model (what it writes)
 
-```
-broker (ear_tx, "#")
-  └─ ActorBase consume → RoutingEnvelope + body bytes
-       └─ JournalKeeper.dispatch_message
-            └─ SemaCodec.from_dict(json.loads(body))
-                 └─ SemaMessagePersistor.persist_message
-                      ├─ custom persistor (by target_message_type):
-                      │    layout.lite · report.event ·
-                      │    flo.params.house0 · weather.forecast
-                      │    → MessageSql + fanned-out gw_data.readings
-                      └─ default: insert MessageSql(payload=jsonb)
-                           └─ gw_data.messages
-   (id via shared default_message_id → idempotent re-import; see Invariant 6)
-```
-
-The surviving modules under `src/gjk/` are exactly this path:
-`journal_keeper`, `sema_message_persistor`, `layout_lite_persistor`,
-`report_event_persistor`, `flo_params_house0_persistor`,
-`weather_forecast_persistor`, `message_persistence_info`,
-`pseudo_channels`, `config`, `sema/` (snapshot),
-`sema_seed_request.yaml`, `__init__.py`, `py.typed`, `start_api.sh`.
+- **`messages`** — one row per persisted message: id (uuid), timestamp,
+  from_alias, persisted_at, message_type_name, payload (jsonb).
+- **`readings`** / **`reading_channels`** — derived rows fanned out by the
+  custom persistors (telemetry reports → readings; layouts → channels), keyed
+  back to the originating message id.
 
 ## Glossary
 
 - **JournalKeeper** — the live `ActorBase` subclass; one method
-  (`dispatch_message`) that bridges transport to persistor.
-- **SemaMessagePersistor** — the converged parse + persist entry
-  point; replaces the hand-maintained `if/elif` over `gjk.named_types`
-  that lived in journal_keeper before Stage 1.
-- **LayoutLitePersistor** — sub-persistor for `layout.lite` family
-  (versioned); maintains `reading_channels` rows derived from the
-  layout.
-- **ReportEventPersistor** — sub-persistor for `report.event`;
-  fans the embedded telemetry events out into `readings` and
-  registers `pseudo_channels` along the way.
-- **MessagePersistenceInfo** — small dataclass carrying the
-  per-message metadata (uuid, from_alias, type_name, persisted_at,
-  timestamp) the persistors share.
-- **PseudoChannel** — channels derived from telemetry rather than
-  declared in the layout; registered lazily as report events arrive.
-- **`messages` table** — `gw_data.public.messages`: id (uuid),
-  timestamp, from_alias, persisted_at, message_type_name,
-  payload (jsonb). Indexed by `(from_alias, message_type_name,
-  persisted_at)`.
+  (`dispatch_message`) bridging transport to persistor.
+- **SemaMessagePersistor** — the converged parse + persist entry point; owns
+  `all_known_message_types()` and the custom-persistor lookup.
+- **custom persistor** — a per-type handler that does more than store the
+  payload (e.g. fans a report's telemetry into `readings`, or maintains
+  `reading_channels` from a layout).
+- **PseudoChannel** — a channel derived from telemetry rather than declared in
+  a layout; registered lazily as reports arrive.
+- **degraded** — a decode result for a type absent from the snapshot; carries
+  type_name/version but is not a usable `SemaType`, so it is skipped.
 
-## What gjk stores (and doesn't)
+---
 
-> Inventory from a 10-minute observation run against the prod broker
-> on 2026-05-27 (`scripts/point_at_prod_observe.py 600`, catch-all on
-> `ear_tx`, fleet = 5 `keene.*.scada` instances). Counts are a
-> snapshot — types and rates drift as the fleet grows. The
-> **structural** distinction below (stored vs degraded vs
-> routing-rejected) is stable.
+# Part II — Implementation today (contingent)
 
-### Stored — 5 types persisted to `gw_data.messages`
+> This section is a snapshot of the running code and the live fleet; it drifts
+> and is expected to. Nothing here is a contract.
 
-| `message_type_name` | Count (10 min) | Notes |
-|---|---|---|
-| `snapshot.spaceheat` | 95 | ~19 per scada — the high-volume real-time-state stream |
-| `gridworks.event.problem` | 10 | Operational forensics — error / glitch reports |
-| `report.event` | 10 | Telemetry batch; the persistor fans embedded events out into `readings` |
-| `heating.forecast` | 5 | LTN forward-looking forecast |
-| `weather.forecast` | 5 | LTN weather forecast (the eventual `weather` v000 replacement) |
+## Modules (`src/gjk/`)
 
-These are the types `SemaMessagePersistor.all_known_message_types()`
-both **binds** on the broker AND knows how to **decode + persist**.
-The list grows when new types land in gjk's sema snapshot.
+`journal_keeper`, `sema_message_persistor`, `layout_lite_persistor`,
+`report_event_persistor`, `flo_params_house0_persistor`,
+`weather_forecast_persistor`, `message_persistence_info`, `pseudo_channels`,
+`config`, `s3_message_importer`, `sema/` (the snapshot),
+`sema_seed_request.yaml`. Custom persistors today: `layout.lite`,
+`report.event`, `flo.params.house0`, `weather.forecast`.
 
-### Received but DEGRADED — never persisted
-
-| Type (version) | Count | Why degraded |
-|---|---|---|
-| `gridworks.ack` (no version) | 39 | Type not in gjk's sema snapshot at all; degraded SEMA at codec level |
-| `slow.contract.heartbeat` (v001) | 23 | Version drift — gjk's snapshot likely has an older or differently-versioned variant |
-
-The persistor's behaviour is **received → decoded as degraded →
-logged as warning → skipped**. The actor stays up; no row in
-`messages`. These are candidates for inclusion in a future sema-snapshot
-regen if we decide we want them.
-
-### Routing-key REJECTED at ActorBase — never reached dispatch
-
-| Routing class | Types observed | Count | Reason |
-|---|---|---|---|
-| `s` | `s.gridworks-ping` (48), `s.slow-contract-heartbeat` (34), `s.gridworks-ack` (20) | 102 | Legacy short form for `scada`. The gwbase enum is `['ta','cn','ltn','mm','scada','price','weather','time','super']`; `s` isn't in it. Same F-007 family as the `ws`-instead-of-`weather` drift. |
-| `broadcast` | `broadcast.glitch` (3), `broadcast.flo-next-hour-plans` (2) | 5 | `broadcast` is not a routing class in the gwbase enum at all — this is a new routing pattern the prod fabric has invented without a matching gwbase declaration. |
-| `ws` | `ws.weather` (1) | 1 | Legacy short for `weather` (F-007). |
-
-These messages get parsed by ActorBase, the routing-class lookup
-fails, and they're rejected before reaching `dispatch_message`.
-**They're real traffic gjk could be persisting but isn't, because
-the framework can't even look at them.** Fixing requires either:
-- adding `s`, `broadcast`, `ws` to the gwbase `RoutingClass` enum
-  (matches the prod fabric, perpetuates the drift), OR
-- migrating producers to emit canonical long-form routing classes
-  (matches gwbase, requires a coordinated rollout across the fleet).
-
-### Traffic mix at a glance (10 min, 5-scada fleet)
+## Live path
 
 ```
-~295 msgs total on ear_tx
-├─ 125  stored      (42%) — 5 known types, decoded and persisted
-├─  62  degraded    (21%) — 2 known type-names but unusable versions, skipped
-└─ 108  rejected    (37%) — 3 routing classes the framework doesn't speak
+broker (consume exchange; per-type binds: #.report, #.glitch, …)
+  └─ ActorBase consume → on_message: parse routing key  ── parse fails ─▶ DROP*
+       └─ JournalKeeper.dispatch_message
+            └─ SemaCodec.from_dict(json.loads(body))   ── degraded ─▶ skip
+                 └─ SemaMessagePersistor.persist_message
+                      ├─ custom persistor → MessageSql + fanned readings
+                      └─ default → MessageSql(payload=jsonb)
+                           └─ gw_data.messages
+*DROP is the current gwbase bug (Gate 2 violation) — see below.
 ```
 
-That 37% routing-rejected slice is the load-bearing observation: gjk
-today sees less than half of the addressable bus traffic *as decoded
-messages*. Closing that gap is a gwbase / rollout question, not a gjk
-question — gjk's job is to persist what reaches it.
+The consume exchange today is `ear_tx` (the universal audit tap); gjk consumes
+directly from the **production** broker (`hw1__1`) — a transitional accident,
+not the target tier.
 
-## Sub-specs (Open)
+## Current coverage and gaps
 
-- **`persistor.md`** (Open) — the persistor stack in depth: how the
-  three persistors compose, idempotency model, error semantics,
-  pseudo_channel registration.
-- **`retention.md`** (Open) — see `explorations/scale-strategy-starter.md`
-  for the seed insights; the question is mostly a `gridworks-data`
-  schema decision, so the proper spec home is likely there.
-- **`operational.md`** (Open) — start/stop, supervisor wiring, log
-  destinations, restart semantics.
+> Full per-type capture matrix (handlers, versions, id/created_at sources):
+> [`captured-types.md`](captured-types.md).
+
+From a 10-min catch-all (`#`) survey on `ear_tx` (2026-05-27, 5
+`keene.*.scada`): the catch-all sees more than the live (narrow-bound) JK
+receives — it's a bus survey.
+
+- **Stored** (passes all gates): `snapshot.spaceheat`,
+  `gridworks.event.problem`, `report.event`, `heating.forecast`,
+  `weather.forecast`.
+- **Degraded — absent from the snapshot:** e.g. `gridworks.ack`,
+  `slow.contract.heartbeat`. Real Sema types; candidates for a snapshot regen
+  if we decide to capture them.
+- **Route-rejected at gwbase (the Gate 2 bug):** short-form class tokens the
+  gwbase `RoutingClass` enum rejects — `s.*` (scada), `ws.weather`,
+  `broadcast.*` (incl. `glitch`). Two of these — `glitch` and the weather
+  broadcast — are types gjk *wants* but never sees. Tracked by the
+  gridworks-base design `must-accept-current-ltn-messages`. (~37% of the
+  surveyed traffic fell here.)
+
+The current persist set omits `atn.bid` (commented "until bid works in SEMA")
+while keeping `latest.price`, `power.watts`, and the telemetry/forecast types.
+
+## db_v2 transition (legacy, time-boxed)
+
+Two journalkeepers run in parallel, persisting to **separate databases**:
+**`main`** (the converged `SemaCodec + SemaMessagePersistor` line, cut from
+`jds/db_v2`) and **`legacy`** (the prior journalkeeper, kept live as fallback
+of record until `main` + the new DB are trusted). Do not assume a single
+deployment while this window is open.
+
+---
+
+## Open questions
+
+- **Scope.** Today's set already spans more than scada state (forecasts,
+  `latest.price`, `energy.instruction`). Is gjk the journal for **all**
+  archival-worthy bus traffic (LTN ↔ MarketMaker bids/acks/instructions, all
+  forecasts, contract heartbeats), or scoped to scada telemetry? It is a
+  *projection*, not an authority, which argues for journaling broadly. This
+  decides how `all_known_message_types()` and the snapshot grow.
+- **`broadcast.*` (incl. `glitch`).** `glitch` is wanted but arrives under a
+  `broadcast` routing pattern gwbase can't parse — fix in gwbase
+  (`must-accept-current-ltn-messages`) and/or clean up how scada emits it.
+- **Which degraded types to capture** — follows from the scope decision and
+  drives the next snapshot regen.
+
+## Sub-specs
+
+- [`persistor.md`](persistor.md) — the persistor stack in depth: the channel
+  model (rigorous data/derived vs. pseudo) and the lossy `readings` projection.
+- [`captured-types.md`](captured-types.md) — the per-type capture matrix.
+- **`retention.md`** (Open) — largely a `gridworks-data` schema decision; see
+  `explorations/scale-strategy-starter.md`.
+- **`operational.md`** (Open) — start/stop, supervisor wiring, restart.
 
 ## Cross-refs
 
-- `wiki/gridworks-base/executor/primary.md` — the framework.
-- [`wiki/gridworks-base/designs/`](../../gridworks-base/designs/) — the
-  framework-level designs (formerly the same F-numbers): notably the
-  three-tier actor model now in
-  [`../../gridworks-base/executor/actors.md`](../../gridworks-base/executor/actors.md)
-  (ServiceSettings split + XDG paths + Sema-validate init JSON, gwbase 0.5.0)
-  and
-  [`routingclass-wire-aliases.md`](../../gridworks-base/designs/routingclass-wire-aliases.md).
-- `wiki/gridworks-data/` — sibling models + the retention question
-  proper home.
-- `wiki/sema/primary.md` — type runtime; the snapshot under
-  `src/gjk/sema/` is the consumer slice.
-- `research/findings.md` — F-001…F-007 from the 2026-05-26 gwwf→gjk
-  dev-rabbit integration test (live-path verification, hack pattern
-  fragility, broker fabric notes, harness shape, XDG gap).
-- `research/refactor-to-base-0.4.2.md` — the planning doc behind
-  Stages 0–3 of the refactor.
+- `wiki/gridworks-base/executor/primary.md` — the framework; three-tier actor
+  model in [`../../gridworks-base/executor/actors.md`](../../gridworks-base/executor/actors.md).
+- `wiki/gridworks-data/` — the schema gjk writes into.
+- `wiki/sema/primary.md` — the type runtime; `src/gjk/sema/` is the consumer
+  slice.
+- `wiki/world/` — standing up a GridWorks World (real / simulated / hybrid) to
+  run gjk against.
 - `changelog.md` — the WHY of each landed commit.

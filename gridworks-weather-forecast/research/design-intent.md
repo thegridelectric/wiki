@@ -24,8 +24,8 @@ new repo replaces `gridworks-journalkeeper/src/gjk/weather_service.py`
 - This is a **GNode service**: `TransportClass.WeatherForecastService`.
   The `WeatherActor` subclasses **`gwbase.GridworksActor`** (not the
   transport-only `ActorBase`) — it participates in the control plane.
-- **Routing-class long form** (see
-  [`wiki/gridworks-base/designs/routingclass-wire-aliases.md`](../../gridworks-base/designs/routingclass-wire-aliases.md)).
+- **Routing-class long form** (tracked by the gridworks-base design
+  `must-accept-current-ltn-messages`).
   This service's routing class is `weather` (long form), NOT the
   legacy short `ws`. A regression to `ws` breaks the prod broker
   fabric. The actor's `_consume_exchange = "ws_tx"` override exists
