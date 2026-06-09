@@ -1,5 +1,7 @@
 # Fleet Index Service (FIS) — Design Research
 
+Status: Draft · Pass 0 · Updated 2026-05-21
+
 > Pre-executor research notes for the Fleet Index Service. Captures the
 > authority model, normative invariants, and open brainstorming. Not yet
 > the faithful-rebuild spec — that lands in `../executor/` once this

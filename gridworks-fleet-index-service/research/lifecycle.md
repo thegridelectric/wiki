@@ -1,5 +1,7 @@
 # Day in the Life of a SCADA Runtime Instance
 
+Status: Draft · Pass 0 · Updated 2026-05-21
+
 
 ## Pre-condition: 
 SCADA device has
