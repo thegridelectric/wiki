@@ -12,6 +12,57 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-06-09 — Add prod-persist live-test runner (live-test infra)
+
+**What:** Add `scripts/point_at_prod_persist.py` — boots the *real*
+`JournalKeeper` (true `local_rabbit_startup` slice-binding + the real
+`dispatch_message → SemaMessagePersistor` path) against the production
+broker and persists into a fresh local `gw_data` Postgres. Companion to the
+observe-only `point_at_prod_observe.py`; seed for the eventual layered test
+harness (L4). NOT committed (kept dev-local): a `[tool.uv.sources]` editable
+repoint of `gridworks-base` to the sibling checkout + the `uv.lock` relock,
+needed only while gridworks-base 0.5.x is unpublished — mirrors the CI-break
+reasoning of the 2026-06-07 gw_data entry, so these revert before any merge.
+
+**Why:** Validate end-to-end that the upgraded JournalKeeper reads the live
+fleet and persists it from a clean slate, exercising the unpublished
+`gridworks-base` 0.5.x three-tier `ServiceSettings`/`ActorBase` and the
+`gridworks-data` `main` schema convention (`tsdb` db, non-public `gridworks`
+schema). This run surfaced the report.event/layout.lite persistor regression
+fixed in `3ac3749`, plus three follow-ups: (1) JK `Settings` predate the
+3-tier base and need the new required `service_alias` (supplied via `.env`
+for now); (2) the upgraded gwbase routing parser rejects routing class `s`
+(prod emits `…to.s.gridworks-ping/-ack/slow-contract-heartbeat`); (3)
+`gridworks.ack` arrives as a degraded/versionless SEMA type and is skipped.
+
+## 2026-06-09 — Fix report.event & layout.lite custom-persistor signatures (`3ac3749`, merged `5cd5199` / PR #162)
+
+**What:** Add the `time_received: datetime` parameter to
+`ReportEventPersistor.persist_v002/v003` and
+`LayoutLitePersistor.persist_v007…v013` so their signatures match the
+dispatch seam, which calls every custom persistor as
+`persist_vNNN(from_alias, time_received, payload)`
+(`sema_message_persistor.py:152`). The two persistors key their id off the
+payload's `message_id`, so they accept `time_received` without using it. Add
+a real-signature regression guard
+(`test_every_custom_persist_method_accepts_time_received`) that asserts each
+real custom persistor's `persist_vNNN` third positional param is
+`time_received` (the existing seam test used a `MagicMock`, so it could not
+catch un-migrated real signatures). Drive-by: ruff removed an unused
+`from typing import List`.
+
+**Why:** PR #160 (`fa08423`, 2026-06-07) threaded `time_received` through the
+seam but migrated only the `flo.params.house0` and `weather.forecast`
+persistors — `report.event` and `layout.lite` were missed. Every live
+`report.event` therefore raised `TypeError: persist_vNNN() takes 3 positional
+arguments but 4 were given` and was dropped; because `report.event`'s
+`additional_db_operations` is what populates `readings`/`reading_channels`,
+the telemetry write path has been broken on `dev` since 2026-06-07. Found by
+live-testing the updated JournalKeeper against the production broker into a
+fresh local `gw_data` DB. Verified: `pytest tests/` → 17 passed (the 4 new
+guard cases fail without this fix).
+
 ## 2026-06-07 — Resolve gw_data from PyPI instead of local path source (`3631471`, merged `21e5895` / PR #161)
 
 **What:** Remove the `[tool.uv.sources] gw_data = { path =

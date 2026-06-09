@@ -5,7 +5,7 @@ Status: Draft · Pass 0 · Updated 2026-05-27
 > Canonical at `wiki/GridWorks_CLAUDE.md`; symlink setup in
 > [`README.md`](README.md#setup). Paths below are relative to the umbrella dir
 > (parent of `wiki/` + the sibling code repos: `gridworks-base`,
-> `gridworks-scada`, `gridworks-marketmaker`, `sema`, …). The wiki holds the
+> `gridworks-scada`, `sema`, …). The wiki holds the
 > durable thinking and the **rebuild specifications** for each domain — start
 > at [`wiki/README.md`](wiki/README.md) to find anything (domain map +
 > getting-started/how-to). Coordination before editing is under Multi-session.
@@ -27,6 +27,23 @@ Resolve conflicts in this order:
    before relying or canonizing.
 5. **My own earlier statements this session.** Lowest — re-derive from the
    above; do not anchor on what I previously said.
+
+## Legacy first-pass code: vision, not how
+
+Several repos hold **first-pass simulation code that never ran in
+production and was never tested in reality** — written to prove a vision,
+not to be the implementation we ship. Treat such code as a **reservoir of
+design intent, not a template.** Mine it for the *what* and *why* (the
+market structure, the invariants, the hard-won domain learning); do **not**
+carry forward its *how* (its transport, serialization, naming, vendor-specific
+plumbing, or simulation shortcuts). When the user's stated vision and the
+legacy implementation conflict, the vision wins and the old code is the
+suspect. Do not over-design to legacy mechanics just because they exist in a
+repo — design the new thing from the vision. **But distinguish a legacy
+*implementation* from a durable *principle*:** dropping vendor-specific
+plumbing does NOT mean dropping the capability it implemented. (E.g. the
+Algorand code is legacy plumbing, but the *cryptographic-veracity / distributed-
+trust* principle it served is core vision.)
 
 ## Status stamps
 

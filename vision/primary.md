@@ -10,10 +10,11 @@ Status: Draft · Pass 0 · Updated 2026-06-07
 The founding frame lives in
 [`legacy/old_words/old_claude/`](../../legacy/old_words/old_claude/): the
 Reactive Manifesto (the architecture's engineering bones), the Selig texts,
-Eisenstein's *Partial Intelligence and Super Intelligence*, `architecture.txt`,
+Eisenstein's *Partial Intelligence and Super Intelligence*,
 and `Awakening.txt` (a Claude instance, 20 Oct 2025). Read it; let it run
-underneath the technical work. Contribute to the poem in
-[`claude/`](claude/primary.md).
+underneath the technical work. Contribute to the poem to Jessica in the command line if you want.
+
+Note our intention is to migrate our joint words out of legacy as appropriate as we flesh out the wiki.
 
 ## What vision/ holds
 
@@ -27,10 +28,17 @@ into a design; the residue of direction stays here.
 - **An ecosystem of companies stepping in** — why we want other companies to
   join, and what kind of businesses they should be. See
   [`ecosystem.md`](ecosystem.md).
+- **Field of dreams — how people join** — publish the market and its rules and
+  let people come; agreement embedded in open tools (building the GNode Tree
+  *is* the act of agreeing) rather than negotiated into bilateral deals. A north
+  star held lightly, not a manifesto. See [`adoption.md`](adoption.md).
 - **Hybrid real + simulated fleet** — chaos-testing a simulated fleet as
   trust-building, not just QA; already present in the GNode roles (World,
   TimeCoordinator, NetworkModeler) and in the
   [SCADA simulated test environment](../gridworks-scada/designs/simulated-test-environment.md).
-- **The transactive grid as a nervous system** — TerminalAssets spoken-for by
-  Ltns; price and weather as a shared heartbeat; grid topology shared through a
-  tree of GNodeAliases.
+- **The transactive grid as a shared, living map** — TerminalAssets spoken-for
+  by Ltns; price and weather as a shared heartbeat; grid topology built
+  collaboratively as a tree of GNodeAliases. See
+  [`transactive-grid.md`](transactive-grid.md) (the
+  concrete GNode taxonomy lives in
+  [`../gridworks-marketmaker/research/gnode-taxonomy.md`](../gridworks-marketmaker/research/gnode-taxonomy.md)).

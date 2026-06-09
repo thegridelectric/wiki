@@ -26,7 +26,7 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **gridworks-journalkeeper** — [`designs/layered-test-harness.md`](gridworks-journalkeeper/designs/layered-test-harness.md)
 - **gridworks-journalkeeper** — [`designs/s3-importer-improvements.md`](gridworks-journalkeeper/designs/s3-importer-improvements.md)
 - **gridworks-journalkeeper** — [`designs/upgrade-gjk-sema-snapshot.md`](gridworks-journalkeeper/designs/upgrade-gjk-sema-snapshot.md) (regen vendored sema snapshot post-untangle; nit; Linear OPS-379; blocked by OPS-378)
-- **gridworks-marketmaker** — [`designs/evaluate-existing-repo.md`](gridworks-marketmaker/designs/evaluate-existing-repo.md)
+- **gridworks-marketmaker** — [`designs/launch-new-simple-marketmaker/primary.md`](gridworks-marketmaker/designs/launch-new-simple-marketmaker/primary.md) (launch a new simple MarketMaker; hub + `evaluate-existing-repo` spoke)
 - **gridworks-protocol** — [`designs/gwproto-shrink.md`](gridworks-protocol/designs/gwproto-shrink.md)
 - **gridworks-scada** — [`designs/circulator-pump-0-10v-models.md`](gridworks-scada/designs/circulator-pump-0-10v-models.md) (pump make/model + 0–10 V response representation; Linear OPS-27)
 - **gridworks-scada** — [`designs/simulated-test-environment.md`](gridworks-scada/designs/simulated-test-environment.md) (simulated terminal assets + drivers over dev Rabbit; Linear OPS-40)
