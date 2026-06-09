@@ -73,7 +73,7 @@ a. Create `wiki/<domain>/designs/<slug>.md` (or
 b. **Register the slug in `DESIGN_INDEX.md` under `## Drafts`**
    with the slug + a one-line topic description + the path. This
    makes the slug visible across sessions immediately and gives the
-   bijection hook something to match against once Linear is wired.
+   bijection hook something to match against.
 
 When the output is "exploration" (no-clarity branch):
 
@@ -113,81 +113,75 @@ done) lives in Linear.
 
 ## The cap-8
 
-**At most 8 designs in "doing" state across GridWorks at any time.**
-A focus discipline: it forces "what are we actually working on this
-fortnight?" to be answerable.
+**A personal WIP limit: at most 8 issues assigned to *me* in a
+`started` state (In Progress + In Review) at any time.** It is **not** a
+count of designs in "doing" — the scarce resource is my attention, not a
+design slot, so the cap spans all my issues (design and operational
+alike). A focus discipline: it forces "what am I actually working on this
+fortnight?" to be answerable. Warn at 7, stop at 8.
 
-**Source of truth: Linear** (once wired) — query the "In Progress"
-view for the designs project. Until Linear is wired, the cap is
-honor-system; [`DESIGN_INDEX.md`](DESIGN_INDEX.md) is a flat
-directory of *what designs exist*, not a workflow-state board, so it
-doesn't track doing-vs-todo. Enforced by a planned script-driven
-hook — see the **Open** section.
+**Source of truth: Linear** — query `assignee = me AND state.type =
+started`. The full definition (states, the "started = In Progress *or* In
+Review" rule, the planned `precheck-cap-8.sh` hook) lives in
+[`designs/linear-integration.md`](designs/linear-integration.md)
+"Cap-8". Until the hook lands, the cap is honor-system.
 
 ## Linear interaction — the rules
 
-Full templates, port/pull recipes, and open questions in
-[`designs/linear-integration.md`](designs/linear-integration.md). The
-**rules** below are normative.
+[`designs/linear-integration.md`](designs/linear-integration.md) is the
+**authority on the Linear interface** — it holds the workspace facts,
+status mapping, port/resume recipes, tooling, and planned hooks, written to
+the team's *current* Linear usage. The handful of rules below are the
+normative core; for anything more specific, that doc wins (this section
+defers to it deliberately, so the Linear mechanics live in one place and
+don't drift across two).
 
 ### Division of responsibility
 
-- **Linear = organizing + cross-linking.** Title (the slug),
-  status, owner, priority, labels, parent/child relationships,
-  dates. Linear is where work is tracked, sorted, queried, and
-  assigned.
+- **Linear = organizing + cross-linking.** Title (the slug), status,
+  owner, priority, labels, parent/child relationships, dates. Linear is
+  where work is tracked, sorted, queried, and assigned.
 - **Wiki = the details.** The design file at
-  `wiki/<domain>/designs/<slug>.md` (or `<slug>/primary.md` for
-  fractal designs) holds rationale, invariants, decisions,
-  alternatives, classification tables — everything that's the
-  "what we're going to do and why."
-- **Shared between the two: the slug (the topic) and the link.**
-  Linear knows the wiki path; the wiki knows the Linear epic ID.
-  **No design content is mirrored.** Linear is not a copy of the
-  wiki and the wiki is not a copy of Linear.
+  `wiki/<domain>/designs/<slug>.md` (or `<slug>/primary.md` for fractal
+  designs) holds rationale, invariants, decisions, alternatives,
+  classification tables — the "what we're going to do and why."
+- **Shared between the two: the slug (the topic) and the link.** Linear
+  knows the wiki path; the wiki knows the Linear issue ID. **No design
+  content is mirrored** — Linear is not a copy of the wiki, nor vice versa.
 
-### Hard rules (script-enforced, not AI-checked)
+### Hard rules
 
-1. **Bijection on names AND draft-state.** Every
-   `wiki/<domain>/designs/<slug>.md` (or
-   `wiki/<domain>/designs/<slug>/` folder) SHALL correspond to
-   **exactly one** Linear epic, and every Linear epic representing
-   a design SHALL correspond to **exactly one** wiki design. The
-   `<slug>` is canonical — the Linear epic **title MUST equal the
-   slug** (or trivially normalize to it: same letters in the same
-   order, hyphens ↔ spaces, case-insensitive). No two designs with
-   the same slug; no two epics for the same slug. Additionally,
-   **maturity propagates as a Linear label**: a wiki design at
-   `Status: Draft` SHALL have a `draft` label on its Linear epic;
-   when the wiki flips to `Accepted` the `draft` label SHALL be
-   removed. (Linear's native *status* field — Backlog / Todo /
-   In Progress / Done — tracks workflow state, not maturity; we
-   carry maturity in a label so both can be queried independently.)
-   *Enforced by a generated script run as a hook (see Open) — not
-   by Claude eyeballing.*
+1. **A design = one Linear *issue* in the Ops team, carrying the `design`
+   label.** Not a Project, not a Linear "epic" (the workspace uses
+   neither). The slug ↔ issue is a **bijection**: every
+   `wiki/<domain>/designs/<slug>.md` (or `<slug>/` folder) corresponds to
+   exactly one `design`-tagged issue, and vice versa. The `<slug>` is
+   canonical — the issue **title MUST normalize to the slug** (lowercase →
+   non-alphanumeric runs → single hyphen → strip ends). No two designs with
+   the same slug; no two issues for one slug. *(Maturity-as-label
+   propagation is deferred — the doc's `Status:` line is the maturity
+   source of truth; see linear-integration.md "Labels + priority".)*
 
-2. **Linear → wiki link.** Every Linear epic body MUST carry the
-   wiki path to its design (`wiki/<domain>/designs/<slug>.md` or
-   the fractal-folder `primary.md`). This and the slug are the
-   only required content in the epic body.
+2. **Linear → wiki link.** Every design issue body MUST carry the wiki path
+   to its design (`wiki/<domain>/designs/<slug>.md` or the fractal-folder
+   `primary.md`) while the design file is alive. The
+   `wiki/tools/link-design-linear.sh` helper emits the exact line to paste.
 
-3. **Wiki → Linear link.** Every wiki design's `Status:` line MUST
-   carry the Linear epic ID once the epic exists.
+3. **Wiki → Linear link.** Every wiki design's `Status:` line MUST carry
+   the Linear issue ID (`· Linear: OPS-NNN`) once the issue exists.
+   Enforced for Accepted/Verified designs by
+   `tests/test_doc_health.py::test_accepted_designs_have_linear_id`.
 
-4. **Cap-8 on doing.** At most **8 designs** GridWorks-wide may be
-   in Linear "doing" status at one time. *Enforced by a generated
-   script run as a hook (see Open).* Source of truth: Linear "In
-   Progress" view for the designs project. Interim signal until
-   Linear is wired: entries under `## Doing` in
-   [`DESIGN_INDEX.md`](DESIGN_INDEX.md).
+4. **Cap-8 is personal WIP, not designs-in-doing** — see "The cap-8" above.
 
 ### Metadata Claude asks the human for at port-time
 
 Per the port recipe in
 [`designs/linear-integration.md`](designs/linear-integration.md):
-**priority**, **owner/assignee**, **initial status** (`todo` or
-`doing` — `doing` counts cap-8; defaults to `todo`), and any
-**workspace labels/tags** (Claude proposes; human confirms).
+**priority**, **owner/assignee**, **initial state** (`Todo` = queued, or
+`In Progress` = starting now — a started state counts against that person's
+cap-8), and any **extra labels** beyond `design` (Claude proposes; human
+confirms).
 
 ## Status stamps — required for all designs/
 
@@ -242,7 +236,7 @@ in `designs/`**. On completion:
 - The **architectural distillate** (≤ ~100L: "here's the invariant we
   now hold") → updates `executor/primary.md` (or a sub-spec).
 - The **wiki design file/folder** is deleted.
-- The **Linear epic** is closed (status: Done). Its title (the slug)
+- The **Linear issue** is closed (status: Done). Its title (the slug)
   + the wiki path it once linked to preserve the historical record
   that this design existed and shipped.
 - The **verbose detail** is **not preserved in the wiki**. Git
@@ -266,22 +260,21 @@ doc anyway.
 
 ## Open
 
-- **Linear conventions** (workspace shape, labels, status names,
-  epic naming) — to be defined when Linear is wired. See
-  [`designs/linear-integration.md`](designs/linear-integration.md).
+- **Linear conventions** — defined. Linear is wired (official MCP);
+  workspace shape, labels, and status mapping are settled in
+  [`designs/linear-integration.md`](designs/linear-integration.md) (the live
+  Linear label set is the source of truth — the wiki does not mirror it).
+  The `wiki/tools/link-design-linear.sh` helper already wires a design to
+  its issue.
 - **Bijection-enforcement hook** (`wiki/tools/precheck-design-bijection.sh`)
-  — verify that every `wiki/<domain>/designs/<slug>` has a Linear
-  epic whose title equals (or trivially normalizes to) the slug,
-  and vice versa. Until Linear is wired, the hook only checks the
-  wiki-side (no duplicates, no malformed slugs); after Linear is
-  wired, it queries Linear and flags missing/mismatched epics. Spec
-  in [`designs/linear-integration.md`](designs/linear-integration.md)
-  "Planned hooks".
-- **Cap-8 enforcement hook** (`wiki/tools/precheck-cap-8.sh`) —
-  warn at 7 designs in doing, fail at 8. Until Linear is wired,
-  the hook is a no-op stub (cap is honor-system). Linear-integrated:
-  query Linear's "In Progress" view for the designs project. Wire
-  as a `UserPromptSubmit` hook in the umbrella
-  `~/.claude/settings.json`.
+  — verify that every `wiki/<domain>/designs/<slug>` has a `design`-labeled
+  Linear issue whose title normalizes to the slug, and vice versa. A
+  wiki-side-only mode (no duplicates, no malformed slugs) can land now; the
+  Linear-querying half uses the live MCP. Spec in
+  [`designs/linear-integration.md`](designs/linear-integration.md) "Hooks".
+- **Cap-8 enforcement hook** (`wiki/tools/precheck-cap-8.sh`) — warn at 7,
+  fail at 8, over *my started issues* (`assignee = me AND state.type =
+  started`), not designs-in-doing. Wire as a `UserPromptSubmit` hook in the
+  umbrella `~/.claude/settings.json`.
 - **Verified by experiment.** Aspirational — needs the test/chaos
   framework to exist first. Track separately.

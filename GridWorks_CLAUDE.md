@@ -74,6 +74,25 @@ when extending into a new path or area. The SessionStart hook auto-claims
 your session there (friendly name + first-6 hash); the **normative
 protocol** lives in that file below the table.
 
+**Focus shorthand — design lookup.** When the user states a Focus as loose
+words that read like a design name (e.g. "sema snapshot improvement",
+"gridworks-scada relay timing", "linear integration"), resolve it to a design
+file before doing anything else. Kebab-case the words and match fuzzily against
+file names. Try **both** of these and take whichever hits:
+
+- **Cross-cutting** — the *whole* phrase as the slug in **`wiki/designs/`**
+  ("linear integration" → `wiki/designs/linear-integration.md`).
+- **Per-domain** — if the first word names a `wiki/` domain folder, treat it as
+  `<subfolder>` and the *remaining* words as the slug in
+  **`wiki/<subfolder>/designs/`** ("sema snapshot improvement" → domain `sema`,
+  slug `snapshot-improvement` → `wiki/sema/designs/snapshot-improvement.md`).
+  (`<subfolder>` is the bare domain name; prepend `wiki/`.)
+
+Don't assume the first word is always a domain — for a cross-cutting design the
+first word is part of the slug. Open the matched design and treat it as the
+session's anchor. If both interpretations miss, list what you found in the
+candidate folders and ask rather than guessing.
+
 ## Sub-CLAUDE.md protocols
 
 - **Do NOT create a new `CLAUDE.md` in a sub-repo or sub-folder unless

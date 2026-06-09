@@ -1,5 +1,7 @@
 # sema — domain (pointer)
 
+Status: Draft · Pass 0 · Updated 2026-06-08
+
 > **Intentionally minimal.** `sema/` is self-describing and **designed as a
 > source of truth**, so this wiki domain does not duplicate it — it points back.
 > There is **no wiki `executor/` for sema**: the in-repo spec *is* the rebuild

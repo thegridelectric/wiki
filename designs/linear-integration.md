@@ -1,6 +1,6 @@
 # Linear integration
 
-Status: Draft · Pass 0 · Updated 2026-06-07
+Status: Draft · Pass 1 · Updated 2026-06-08
 
 > What this is: how `designs/` files in the wiki interface with Linear for
 > work tracking. Companion: [`../designs-process.md`](../designs-process.md).
@@ -105,14 +105,23 @@ assigned issues**, not a global designs-doing count:
 
 ## Labels + priority (decided, minimal)
 
-> Full label inventory + meanings + the consolidation plan live in
-> [`../linear-tags.md`](../linear-tags.md). This section covers only the
-> two integration-specific labels.
-
+> The **live Linear label set is the source of truth** — the wiki no longer
+> mirrors it (the MCP is create-only for labels, so a wiki copy was doomed
+> to drift). When making an issue, review the existing labels and reuse a
+> fitting one; coin a new tag only after a moment's thought. This section
+> covers only the two **integration-specific** labels.
 
 - **`design`** — marks a design issue (the one ↔ a `wiki/**/designs/`
-  file). The bijection hook keys on this label. *To create.*
-- **`nit`** — sub-threshold items (one-line cleanups). *To create.*
+  file). The bijection hook keys on this label. *Created 2026-06-07.*
+- **`nit`** — sub-threshold software cleanup **not worth a wiki design**.
+  *Created 2026-06-07.* So `nit` and `design` are **mutually exclusive** —
+  a nit is by definition the work that doesn't earn a design.
+- **`design` vs. size.** Size labels (`nit`, `bite-size`) say *how big*;
+  `design` says *worth designing first*. `bite-size` (small — ~under 10 min
+  of Claude time) **may still be a `design`** — small things are often worth
+  designing. `nit` is the exception: it is explicitly the sub-threshold
+  bucket that is *not* a design. So `design` + `bite-size` is valid;
+  `design` + `nit` is a contradiction.
 - **Priority** — use Linear's native `Urgent / High / Medium / Low /
   No priority` directly. No parallel scheme.
 - **Maturity labels** (`draft` / `accepted` / `verified`) — **deferred.**
@@ -277,40 +286,93 @@ When the design ships (issue → Done):
 - A server added mid-session needs a **session restart** before its tools
   load.
 - **Reconnect / token rot:** `claude mcp remove linear -s local` then re-add.
-- The MCP exposes `list_*` / `get_*` / `save_*` for teams, issues, labels,
+- The MCP exposes `list_*` / `get_*` / `save_*` for teams, issues,
   states, projects, comments, documents — enough for the bijection +
   cap-8 hooks to query and for porting designs.
+- **Labels are create-only over MCP.** `create_issue_label` exists; there
+  is **no** update/delete-label tool. So a label's `name`/`description`/
+  `color` can only be *set at creation*; later edits (renames, merges,
+  description backfills) are **Linear-UI-only**. This is why the wiki does
+  **not** maintain a label glossary — the live Linear set is the source of
+  truth; manage label names/descriptions directly in the Linear UI.
+
+## Tooling (current) + hooks (planned)
+
+The wiki-side halves can run today; the Linear-side queries now have a live
+MCP to call. One helper already exists; the enforcement hooks are still specs.
+
+### `wiki/tools/link-design-linear.sh` (exists)
+
+The **current** way to wire a design to its issue — a manual helper, not a
+hook (the MCP is Claude-facing, so a shell script can't call Linear). Given a
+design path + an `OPS-NNN`, it:
+
+- validates the file is under a `designs/` folder and checks the wiki →
+  Linear back-link (the `· Linear: OPS-NNN` on the `Status:` line);
+- prints the exact `**Design:** [path](GitHub-URL)` line to paste as the
+  Linear → wiki half of the bijection, plus a reminder to set the `design`
+  label and a title that normalizes to the slug.
+
+```
+wiki/tools/link-design-linear.sh <design-path-relative-to-wiki> <OPS-id>
+```
+
+It does **not** call Linear; Claude (or the human) does the Linear-side write
+via MCP/UI. Once a Linear API token is wired, its query half (does the
+`OPS-NNN` issue exist + carry `design`?) can fold into
+`precheck-design-bijection.sh`. (Note: the script hardcodes the
+`thegridelectric/wiki` GitHub remote for the paste URL.)
 
 ## Hooks (script-enforced, not AI-checked)
 
-Wiki-side halves can land now; Linear-side queries now have a live MCP/API
-to call.
+Both hooks below **exist** (written 2026-06-08). They run wiki-side checks
+unconditionally and add a **Linear-side** depth when a `LINEAR_API_KEY` is
+present in the environment — the MCP is Claude-facing (not shell-callable),
+so the scripts hit the Linear GraphQL API directly via a token. No key →
+wiki-side-only / honor-system mode. **Not yet wired** in
+`GridWorks/.claude/settings.json`; wiring snippet below.
 
-### `wiki/tools/precheck-design-bijection.sh`
+### `wiki/tools/precheck-design-bijection.sh` (exists)
 
-Enforces slug ↔ `design`-issue-title bijection.
+Enforces the slug ↔ `design`-issue-title bijection. Slug projection matches
+`tests/test_doc_health.py::_slugify` exactly.
 
-- **Trigger:** `UserPromptSubmit` (early sweep); `PreToolUse` on Write/Edit
-  to `wiki/**/designs/**` (catch a mis-named new file at write-time);
-  on first Linear MCP call in a session (catch cross-session drift).
-- **Logic:** walk every `wiki/<domain>/designs/<slug>.md` (+ `<slug>/primary.md`)
-  and `wiki/designs/<slug>.md`; extract slug + `Status:` line. For each
-  slug, query Linear for a `design`-labeled issue whose title equals or
-  trivially normalizes to the slug. **Flag:** (a) wiki slug with no issue;
-  (b) `design` issue with no wiki slug; (c) slug collisions; (d) — *deferred
-  until maturity labels exist* — `Status:` vs maturity-label mismatch.
-- **Wiki-side-only mode** (no Linear): duplicate/malformed slug checks across
-  `wiki/**/designs/**`.
+- **Trigger:** `UserPromptSubmit` (early sweep, advisory `additionalContext`);
+  `PreToolUse` on Write/Edit/NotebookEdit to `wiki/**/designs/**` (catch a
+  mis-named / colliding new file at write-time → `permissionDecision: "ask"`).
+- **Wiki-side (always):** (a) malformed slug — file slug not already
+  canonical; (b) slug collisions across all design roots; (c)
+  Accepted/Verified root missing `· Linear: OPS-NNN` (live mirror of the
+  pytest check). Design *roots* only (flat `<slug>.md` or fractal
+  `<slug>/primary.md`); spokes excluded.
+- **Linear-side (with `LINEAR_API_KEY`):** query `design`-labeled issues and
+  flag (d) a wiki slug with no issue; (e) a `design` issue with no wiki slug.
+  Maturity-label assertions remain deferred (no maturity labels exist yet).
 
-### `wiki/tools/precheck-cap-8.sh`
+### `wiki/tools/precheck-cap-8.sh` (exists)
 
-Enforces the personal WIP cap.
+Surfaces the personal WIP cap.
 
-- **Trigger:** `UserPromptSubmit` (warn early); before any action that would
-  move one of *my* issues into a started state.
-- **Logic:** query Linear for issues where `assignee = me` AND
-  `state.type = started` (In Progress + In Review). **Warn at 7, fail at 8.**
-- **No-Linear mode:** once-per-session honor-system reminder.
+- **Trigger:** `UserPromptSubmit` (warn early).
+- **Linear-side (with `LINEAR_API_KEY`):** query `assignee = me` AND
+  `state.type = started` (In Progress + In Review). **Warn at 7, flag at 8**
+  — advisory only. It is **not** a hard block: blocking every prompt at the
+  cap would wedge the session. The hard "stop at 8" belongs at the moment an
+  action would *start* a 9th issue — a future `PreToolUse` gate on the Linear
+  `save_issue` call that sets a started state.
+- **No-Linear mode:** once-per-session honor-system reminder (then Claude
+  surfaces the live count via MCP when starting an issue).
+
+### Wiring (add to `GridWorks/.claude/settings.json`)
+
+```jsonc
+// UserPromptSubmit → both sweeps
+{ "matcher": "*", "hooks": [
+  { "type": "command", "command": ".../wiki/tools/precheck-design-bijection.sh" },
+  { "type": "command", "command": ".../wiki/tools/precheck-cap-8.sh" } ] }
+// PreToolUse "Edit|Write|NotebookEdit" → add precheck-design-bijection.sh
+//   (write-time slug guard, alongside the existing prechecks)
+```
 
 ### `wiki/tools/regen-design-index.sh` (later)
 
@@ -323,21 +385,26 @@ most useful once we routinely carry Linear IDs in `Status:` lines.
 
 Not blocking the integration; queue as `nit`/small issues when touched:
 
-- **Normalize house/domain labels** — collapse `elm`/`Elm`, `Maple`/`maple`,
-  `keene.elm` etc. into one consistent scheme across Ops + GridWorks teams.
+- **~~Create the `design` + `nit` labels~~** — *done 2026-06-07* (both
+  created via MCP).
+- **~~Normalize house/domain Ops labels~~** — *largely done 2026-06-07*
+  (`Maple→maple`, `sieg→process-control`, `automate→ops-automate`,
+  `CI-CD→ci-cd`, merges of `forensics`/`scada-control`/`field-support`).
+  Remaining: the GridWorks-team `keene.*` house labels are untouched (left
+  as the house registry). Label names/descriptions are managed directly in
+  the Linear UI (MCP is create-only).
 - **Decide the GRI team's role** — keep as house registry (current de-facto)
   or fold the house cards elsewhere. Low priority; it's harmless as-is.
-- **Create the `design` + `nit` labels** in Ops before the first design port
-  or the bijection hook goes live.
 
-## Reconciliation note (out of this session's scope)
+## Reconciliation note (done 2026-06-08)
 
 [`../designs-process.md`](../designs-process.md) "Linear interaction — the
-rules" still describes the older **epic / designs-project / designs-doing
-cap-8** model. That top-level file needs a follow-up pass (under its own
-active-claims claim) to align with the decisions here:
+rules" and "The cap-8" formerly described the older **epic / designs-project
+/ designs-doing cap-8** model. Reconciled to the decisions here:
 design = **issue** (not epic), tracked in **Ops** (no designs project),
-cap-8 = **my started issues** (not designs-in-doing).
+cap-8 = **my started issues** (not designs-in-doing). That doc's Linear
+section now defers to this one as the authority, so the mechanics live in a
+single place.
 
 ## Still open / deferred
 
