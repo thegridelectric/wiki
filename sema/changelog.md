@@ -12,13 +12,88 @@ Newest at the top.
 
 ---
 
-## 2026-06-08 — fix: layout.lite 007→008 upgrade lifts ShNodes 200→300 (<!-- pending commit -->)
+## 2026-06-08 — feat: UpgradeRequiresContext for context-dependent upgrades (`701495c`)
+
+**What:** New `UpgradeRequiresContext(SemaError, ValueError)` in the
+runtime base (`templates/base.py.jinja2`) + a `SemaType.upgrade_requires_context()`
+factory so an upgrade body raises it via the already-imported `SemaType` (no new
+per-file import). The three upgrades that legitimately cannot run on a standalone
+instance — `scada.control.capabilities/000→001`, `send.layout/000→001`,
+`linear.one.dimensional.calibration/000→001` — now raise it instead of a bare
+`ValueError`. The shipped round-trip gate (`templates/roundtrip.py.jinja2`) and
+the build-time check catch `UpgradeRequiresContext` in the decode-old→upgrade
+step and treat it as an **expected pass** (the sample still must round-trip at its
+own version). Runtime regenerated; spec `authoring/type-semantics.md` Upgrade
+Discipline documents the contract.
+
+**Why:** OPS-380 thread 4 mandates an example on every superseded version and the
+gate upgrades each sample to latest — but some `old→new` transforms need
+out-of-band context (layout handles/ids, source message) an isolated message
+can't carry, so their `upgrade()` correctly refuses. A bare `ValueError` made
+"refuses by design" indistinguishable from "broke." The typed exception lets the
+gate exempt exactly those versions from the upgrade round-trip while keeping the
+example mandate + decode-own-version coverage (the `atn.bid`-class check) intact.
+`scada.control.capabilities/000` (in the thread-4 backfill set) is the version
+that forced this.
+
+## 2026-06-08 — backfill: examples on 20 superseded versions, flip gate, fold snapshot spoke (`be72b40`)
+
+**What:** (1) A minimal, schema-valid, axiom-consistent `examples:` block on each
+of the 20 superseded type versions that lacked one (enumerated by
+`tests/registry/test_superseded_examples.py`): `channel.readings/001`,
+`flo.params.house0/003-006`, `fsm.full.report/000`,
+`i2c.multichannel.dt.relay.component.gt/002-003`, `layout.lite/007-012`,
+`report.event/002-003`, `scada.control.capabilities/000`, `scada.params/004`,
+`spaceheat.node.gt/200,300`. Each round-trips at its own version and, where the
+upgrade is runnable, along `decode-old → upgrade() → decode-current`
+(`scada.control.capabilities/000` is upgrade-exempt via `UpgradeRequiresContext`,
+`701495c`). Several were mined from existing field/test fixtures (the `layout.lite`,
+`report.event`, `i2c`, `spaceheat.node.gt/300` instances); the rest authored
+minimal. (2) The `xfail` marker is removed from `test_superseded_examples.py`,
+promoting it to a hard gate. (3) Folds the design's durable architecture into a
+new language-neutral `spec/snapshot.md` spoke (determinism/zero-diff, atomic
+build, `samples/`, the round-trip gate + context-dependent-upgrade exemption),
+linked from `spec/primary.md`; Python tool specifics stay in the
+`src/sema/tools/` docstrings per the in-repo-spec / wiki-pointer split.
+
+**Why:** OPS-380 thread 4 — completes the mandate landed in `ee5bd53` so the
+snapshot round-trip exercises every old version along the upgrade path where
+restricted-snapshot bugs concentrate (the `atn.bid` class; this same pass already
+surfaced the `layout.lite/007→008` ShNodes-lift bug fixed in `0169b47`). Folding
+the durable architecture into `spec/` is the prerequisite to deleting
+`wiki/sema/designs/snapshot-improvement.md` (per designs-process); the design
+file is removed once this lands.
+
+## 2026-06-08 — test: enforce upgrade docstring ↔ registry summary mirror (`653a152`)
+
+**What:** New `tests/registry/test_upgrade_summary_matches_template.py` asserts
+that for every `templates/upgrades/<type>_<a>_to_<b>.py.jinja2`, the upgrade
+docstring equals `registry.yaml` → `types.<type>.versions.<b>.summary` (modulo
+whitespace) — true for all 30 upgrade templates today. Plus a `CLAUDE.md`
+"Upgrade deltas live in three coupled places" note naming the
+template-body+docstring / registry-summary / `direct_dependencies` triple and
+pointing at the spec's "Nested Upgrades" rule.
+
+**Why:** The `007→008` ShNodes omission drifted silently because the prose
+summary and the upgrade docstring (mirror copies) were maintained by hand with
+no gate, while the machine `direct_dependencies` stayed correct. The test turns
+that mirror into an enforced invariant — editing one side without the other now
+fails CI — and the `CLAUDE.md` note makes the coupling discoverable so a future
+session checks the registry when it touches an upgrade.
+
+## 2026-06-08 — fix: layout.lite 007→008 upgrade lifts ShNodes 200→300 (`0169b47`)
 
 **What:** `templates/upgrades/layout_lite_007_to_008.py.jinja2` (and its
 regenerated output `runtime/types/old_versions/layout_lite_007.py`) now lifts the
 embedded `ShNodes` list through `spaceheat.node.gt` `200 → 300` during the
 `007 → 008` upgrade: `data["sh_nodes"] = [node.upgrade() for node in self.sh_nodes]`,
-plus the matching docstring line. No schema/registry changes.
+plus the matching docstring line. The same change-line was missing from the
+registry's prose record, so `registry.yaml` → `layout.lite.versions.008.summary`
+gains `- ShNodes[]: spaceheat.node.gt:200 -> 300` (the version's
+`direct_dependencies` already carried `spaceheat.node.gt:300` — only the summary
+had drifted); `indexes/public_registry.yaml` + `indexes/versions.yaml` rebuilt to
+match. (No version bump — completing a non-normative summary is a permitted
+descriptive correction.)
 
 **Why:** `layout.lite/007` declares `ShNodes: spaceheat.node.gt/200`, but
 `LayoutLite008` accepts only `300` — the `007 → 008` upgrade bumped the version

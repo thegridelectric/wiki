@@ -12,9 +12,11 @@ Newest at the top.
 
 ---
 
-## <!-- pending commit --> 2026-06-09 — Thread-safe ActorBase.send: marshal publishes onto the ioloop (OPS-383)
+## 2026-06-09 — Thread-safe ActorBase.send: marshal publishes onto the ioloop (`0f0dc28`)
 
-**Why:** `ActorBase.send` called `basic_publish` on the *caller's* thread, but
+**Why:** lands as its **own patch release** (`0.5.0 → 0.5.1`), separate from the
+0.5.0 non-GNode-actors work — a focused thread-safety fix. `ActorBase.send`
+called `basic_publish` on the *caller's* thread, but
 pika is not thread-safe and the `SelectConnection` + channel are owned by the
 consumer thread's ioloop. So any send off the ioloop thread (an actor's timer /
 sensor loop, a Supervisor initiating heartbeats, a main-thread caller) raced the
