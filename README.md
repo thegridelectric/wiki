@@ -34,7 +34,7 @@ folder next to the code repos.
 | Rebuild / understand gridworks-base | [`gridworks-base/executor/primary.md`](gridworks-base/executor/primary.md) |
 | Find / understand the LTN (per-house transactive agent) | [`gridworks-ltn/executor/primary.md`](gridworks-ltn/executor/primary.md) — code currently lives in `gridworks-scada/gw_spaceheat/actors/ltn/`, not a standalone repo |
 | Understand Sema | [`sema/primary.md`](sema/primary.md) → the in-repo spec it points to |
-| See heating / Polstein lifecycle economics | [`heating-system-design/research/polstein-design.md`](heating-system-design/research/polstein-design.md) |
+| See heating / Polstein lifecycle economics | [`heating-system-design/knifes-edge-development/reference-materials/polstein-design.md`](heating-system-design/knifes-edge-development/reference-materials/polstein-design.md) |
 | Trace *why* a change was made | the domain's `changelog.md` |
 
 ## Domain shape
@@ -47,7 +47,7 @@ Within each `wiki/<domain>/`:
   into sibling sub-specs (`transport.md`, `codec.md`, `actors.md`, …),
   one concern per file (~300–500L each, 1000L hard cap). The spec is the
   whole tree, not the hub. Authoritative once `Verified`.
-- `research/concerns/` — open architectural questions still under investigation.
+- `explorations/` — open architectural questions still under investigation.
 - `research/` (loose md) — raw notes, pre-spec thinking, principles.
 - `designs/<slug>.md` — ratified design-specs that haven't shipped yet
   (lifecycle in [`designs-process.md`](designs-process.md); status tracked by
@@ -81,7 +81,7 @@ design area.
 
 ## Cross-cutting
 
-- [`DESIGN_INDEX.md`](DESIGN_INDEX.md) — L0 hub of active work: current `designs/` entries across all domains, open concerns, conventions. Read this every session.
+- [`DESIGN_INDEX.md`](DESIGN_INDEX.md) — L0 hub of active work: current `designs/` entries across all domains, open explorations, conventions. Read this every session.
 - [`designs-process.md`](designs-process.md) — the `designs/` lifecycle (status stamps, Pass discipline, fractal expansion, when to ship/distill to `executor/`).
 - [`designs/linear-integration.md`](designs/linear-integration.md) — Linear ↔ wiki interface (epic + sub-issue templates, port/pull recipes, status-flow).
 - [`working-with-llms.md`](working-with-llms.md) — how we work with Claude and the wiki conventions: how Claude operates, source precedence, the maturity-stamp dial, signaling vocabulary, the research→executor loop, memory-vs-wiki. The *why* behind the conventions.

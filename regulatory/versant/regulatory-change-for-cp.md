@@ -8,10 +8,9 @@ Status: Draft · Pass 0 · Updated 2026-05-30
 > Knifes Edge HaaS economics; under the default NCP, transmission
 > demand is unavoidable by TOU shifting and effectively kills the
 > economic case (see
-> [`scenarios/boe-delivery.md`](scenarios/boe-delivery.md)).
-> Companion docs: [`versant.md`](versant.md) (the tariff
-> baseline), [`todd-griset.md`](todd-griset.md) (the legal
-> ecosystem).
+> [`boe-delivery.md`](../../heating-system-design/knifes-edge-development/scenarios/boe-delivery.md)).
+> Companion docs: [`tariffs.md`](tariffs.md) (the tariff
+> baseline).
 
 ## The policy ask
 

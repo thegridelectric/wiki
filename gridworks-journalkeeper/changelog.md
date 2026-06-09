@@ -48,7 +48,7 @@ couldn't compute the deterministic id because the dispatch never passed them
 third custom persistor can't reintroduce the gap. No schema/model change, no
 sema version bump; the `reading.message_id → messages.id` provenance link is
 preserved and now deterministic. See
-[`designs/custom-persistor-idempotency.md`](designs/custom-persistor-idempotency.md).
+`designs/custom-persistor-idempotency.md` (design since shipped + removed).
 
 ## 2026-06-05 — merge jm idempotent-msg-id + importer-robustness PRs (`0e51f9d`, `968216a`)
 

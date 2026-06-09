@@ -182,7 +182,7 @@ $0.02213 / kWh flat across TOU periods.
 
 This is the load-bearing distortion. Policy ask to expand the
 eligible-technology list to include thermal storage:
-[`../../knifes-edge-development/regulatory-change-for-cp.md`](../../knifes-edge-development/regulatory-change-for-cp.md).
+[`regulatory-change-for-cp.md`](regulatory-change-for-cp.md).
 
 ### Billing demand floor
 
@@ -256,7 +256,3 @@ or small-commercial applications, but documented for completeness.
   coincident with monthly BHD system peak; the rest use 15-min NCP).
 - 500 kW floor (same as D-4).
 - No explicit multi-month ratchet.
-
-For the analysis of whether direct transmission-voltage
-interconnection is viable for a 1–3 MW transactive-load project,
-see [`../transmission-direct.md`](../transmission-direct.md).

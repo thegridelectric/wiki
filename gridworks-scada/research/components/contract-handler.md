@@ -28,7 +28,7 @@ traced**. Behavioral claims are `inferred` unless marked otherwise.
   `YourLastDigit` echoing the peer's last digit (`:236-237`, `:312-313`) — a
   ping-pong continuity/liveness token between SCADA and LTN. This is the
   code-level realization of the SCADA↔LTN liveness commitment in
-  [[../concerns/liveness-and-sla]].
+  [[../../explorations/liveness-and-sla]].
 - `FromNode` attributes each heartbeat to its author (SCADA or `H0N.ltn`),
   which is how termination/completion is attributed to a party.
 
@@ -88,4 +88,4 @@ ended unresolved, manufactures a `CompletedUnknownOutcome` to send up on reboot.
   anywhere) SLA-breach termination is triggered.
 - Confirm F-004 against the reboot/persistence test before treating it as a bug.
 - Map `SlowContractHeartbeat` / `SlowDispatchContractStatus` in `gwsproto`
-  (Sema boundary types) — feeds [[../concerns/sema-style]].
+  (Sema boundary types) — feeds [[../../explorations/sema-style]].

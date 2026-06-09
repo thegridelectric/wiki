@@ -157,10 +157,10 @@ highest-value first move is to bring its `executor/primary.md` to an
 **acceptable minimum** (overview + invariants + glossary + TOC), marking the
 rest "Open." Acceptable-minimum first, depth later.
 
-**Where content lives across designs / concerns / executor / Linear** —
+**Where content lives across designs / explorations / executor / Linear** —
 the canonical disambiguation is in [`glossary.md`](glossary.md) "Where
 content lives". The discriminator is clarity, not "architectural":
-open architectural *questions* live in `research/concerns/`; settled
+open architectural *questions* live in `explorations/`; settled
 architectural *patterns* live in `executor/`; ratified change plans
 (full content) live in `designs/`; workflow state (status / owner /
 priority) lives in Linear.
@@ -181,7 +181,7 @@ design's stamp MUST carry its `· Linear: <id>` (all enforced by
 the design's durable distillate updates `executor/primary.md` (or a
 sub-spec); the `designs/<slug>` file is deleted. Per-domain `findings.md`
 registers are legacy and SHALL NOT be created in new domains — items
-become Linear issues (if actionable work), become `research/concerns/`
+become Linear issues (if actionable work), become `explorations/`
 entries (if there's no clarity yet), or update `executor/primary.md`
 (if they're durable facts about the domain). Full convention in
 [`designs-process.md`](designs-process.md); Linear interface in

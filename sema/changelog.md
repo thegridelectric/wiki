@@ -214,7 +214,7 @@ now lives at the explicit name `effortless_CLAUDE.md`, and individual
 devs (jess, ej, …) can layer their own gitignored `CLAUDE.md` on top —
 e.g. jess's local copy uses the dev-branch sema-vocabulary lens (axiom /
 registry / `/make-sema-word` discipline). See
-[research/findings.md](research/findings.md) "Integrate the two sema
+the "Integrate the two sema
 CLAUDE.mds" for the integration plan.
 
 ## 2026-05-26 — move sema-pg from host port 5433 to 5434

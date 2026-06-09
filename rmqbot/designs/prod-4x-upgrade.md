@@ -44,4 +44,4 @@ both.
 
 - [`prod-tls-fix.md`](prod-tls-fix.md).
 - [`analytics-broker-shovel.md`](analytics-broker-shovel.md).
-- [`../research/concerns/mtls-fis-auth.md`](../research/concerns/mtls-fis-auth.md).
+- [`../explorations/mtls-fis-auth.md`](../explorations/mtls-fis-auth.md).

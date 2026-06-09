@@ -74,7 +74,7 @@ The asymmetry matters operationally because of two distinct workflows:
   shape to help. **Catastrophic without intervention.**
 
 EJ's design optimizes for the first case — under the working
-[[erb-is-an-llm-interpretation]] (interpretation C, rulebook-as-
+"ERB is an LLM" interpretation (interpretation C, rulebook-as-
 generative-prior), LLMs are expected to add rows / edit YAML, not to
 refactor schema. Schema-refactor is human + admin-UI work in his
 implicit model. The wiki/Claude collaboration pattern we use at

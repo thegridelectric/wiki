@@ -59,11 +59,11 @@ Last updated: 2026-05-21.
 | `CLAUDE.md` | current | accurate architecture summary; good evidence |
 | `docs/architecture-overview.md` | **stale** | references "winter 2022-2023", Nolan house — F-001 |
 | `docs/*` (hardware-layout, hierarchical-state-machines, representation-contract, …) | unknown | not yet assessed |
-| top-level `old_words/` | historical | Algorand-era vocabulary; superseded by mTLS direction — context for [[../concerns/deeds-and-trading-rights]] |
+| top-level `old_words/` | historical | Algorand-era vocabulary; superseded by mTLS direction — context for [[../explorations/deeds-and-trading-rights]] |
 
 ## Open questions parked for later
 
 - Is the LTN (`ltn_app.py`, `actors/ltn/`) in scope for this wiki, or does it get
   its own `wiki/gridworks-ltn/` once split to native rabbit? (User: LTN is being
-  separated and moved to native rabbit; see [[../concerns/transport-and-links]].)
+  separated and moved to native rabbit; see [[../explorations/transport-and-links]].)
 - Which `scratch*.py` files at `gw_spaceheat/` root are live vs. dead?

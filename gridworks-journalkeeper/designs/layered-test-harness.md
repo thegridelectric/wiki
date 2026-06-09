@@ -69,4 +69,4 @@ transport adapters, not the codec.
 
 ## Cross-refs
 - [`../../sema/designs/snapshot-improvement.md`](../../sema/designs/snapshot-improvement.md) — samples emission + build-time round-trip.
-- [`../../sema/designs/untangle-market-type-name.md`](../../sema/designs/untangle-market-type-name.md) — the bug class Layer 0 guards.
+- [`../../sema/designs/untangle-market-type-name/primary.md`](../../sema/designs/untangle-market-type-name/primary.md) — the bug class Layer 0 guards.

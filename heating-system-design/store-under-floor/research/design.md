@@ -12,7 +12,7 @@ hydronic engineer; this document captures the GridWorks side of the design
 work and is **not yet reviewed by Siegenthaler**.
 
 The hydronic topology lives in
-[`../two-layer-floor.jpg`](../two-layer-floor.jpg): P1 charges the store from
+[`../../two-layer-floor.jpg`](../../two-layer-floor.jpg): P1 charges the store from
 the heat pump, P2 circulates store→floor, V1 bypasses the store for direct
 HP→floor, and Z4 is an independent HP-fed zone (likely a fan coil, if AC is
 in scope).

@@ -4,10 +4,10 @@ Status: Draft · Pass 0 · Updated 2026-05-26
 
 > **Note on convention.** `findings.md` is now flagged as a legacy
 > register in `wiki/GridWorks_CLAUDE.md` (preferred: Linear for
-> actionable items, `concerns/` for architectural ones). This file
+> actionable items, `explorations/` for architectural ones). This file
 > exists by explicit user request to capture what was learned in the
 > 2026-05-26 gwwf→gjk dev-rabbit integration test as input to a real
-> test harness. Items here SHOULD migrate to Linear / `concerns/`
+> test harness. Items here SHOULD migrate to Linear / `explorations/`
 > when they get touched.
 
 ---
@@ -198,7 +198,7 @@ but not a convergence.
 
 ---
 
-## Open items (TODO migrate to Linear or `concerns/`)
+## Open items (TODO migrate to Linear or `explorations/`)
 
 1. The 22 captured `messages` rows on dev-pg are real-but-test data
    from this session. We didn't clean them up. Future tests need

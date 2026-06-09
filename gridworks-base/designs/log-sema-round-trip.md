@@ -14,7 +14,7 @@ Status: Draft · Pass 0 · Updated 2026-05-30
 
 - **`log-to-sema`** is the load-bearing one. Use cases:
   - The future broker-forwarding handler
-    ([`logging-for-observability`](../research/concerns/logging-for-observability.md))
+    ([`logging-for-observability`](../explorations/logging-for-observability.md))
     publishes one Sema event per log record — internally it calls
     the same parser
   - Ops imports a captured `.log` file into the analytics-broker
@@ -46,7 +46,7 @@ Both subcommands sit under the existing `gwbase` CLI namespace.
 ## Bijection contract
 
 The exact field mapping lives in
-[`../research/concerns/logging-for-observability.md`](../research/concerns/logging-for-observability.md)
+[`../explorations/logging-for-observability.md`](../explorations/logging-for-observability.md)
 ("Bijection to `observability.log-entry/000`"). Both tools MUST
 satisfy:
 
@@ -106,7 +106,7 @@ CI test asserts both directions on a fixture corpus.
 
 - [`../executor/actors.md`](../executor/actors.md) §5.5
   — the bijective format this tool round-trips
-- [`../research/concerns/logging-for-observability.md`](../research/concerns/logging-for-observability.md)
+- [`../explorations/logging-for-observability.md`](../explorations/logging-for-observability.md)
   — the v-next concern that names these tools in its shipping list
 - [`../../observability/designs/consolidate-from-infra-scada-jk.md`](../../observability/designs/consolidate-from-infra-scada-jk.md)
   — the observability design where the broker-forwarding handler

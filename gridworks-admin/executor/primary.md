@@ -32,7 +32,7 @@ it:
 2. **Trust model** — tailscale-membership-authed admin doesn't
    compose with the mTLS+FIS Principal model we want for all
    prod-broker connections (see
-   [`../../gridworks-fleet-index-service/research/concerns/principal-model.md`](../../gridworks-fleet-index-service/research/concerns/principal-model.md)).
+   [`../../gridworks-fleet-index-service/explorations/principal-model.md`](../../gridworks-fleet-index-service/explorations/principal-model.md)).
 
 Admin needs its own design domain because its trust model, audit
 requirements, and operational shape differ from both the control
@@ -84,7 +84,7 @@ operator→SCADA traffic.
 Rationale: we have to trust the prod broker anyway (it carries the
 control plane); standing up a second broker doesn't reduce the
 trust surface. The Principal model
-([principal-model](../../gridworks-fleet-index-service/research/concerns/principal-model.md))
+([principal-model](../../gridworks-fleet-index-service/explorations/principal-model.md))
 gives per-cert isolation between principal kinds (gnode / service /
 operator) — trust-realm separation is enforced at the cert and
 permission-map level, not at the broker boundary. This parallels
@@ -102,7 +102,7 @@ typed response, idempotent where possible, one audit event per
 call — even though the carrier is AMQP. The HTTPS gateway path
 (see "Client form factor" below) consumes the same operation
 contracts. See
-[`../research/concerns/when-to-add-grpc.md`](../research/concerns/when-to-add-grpc.md)
+[`../explorations/when-to-add-grpc.md`](../explorations/when-to-add-grpc.md)
 for the related gRPC question.
 
 ## Client form factor
@@ -147,7 +147,7 @@ typically covers field-tech needs at far lower build cost than
 iOS/Android native.
 
 The gateway is its own design surface — see
-[`../research/concerns/admin-gateway-service.md`](../research/concerns/admin-gateway-service.md).
+[`../explorations/admin-gateway-service.md`](../explorations/admin-gateway-service.md).
 
 ### Why both, and why the gateway is non-optional eventually
 
@@ -218,10 +218,10 @@ Depends on the client form factor:
   operator proxy.
 
 The broker-side `validated-user-id` decision is captured in
-[`../../gridworks-fleet-index-service/research/concerns/principal-model.md`](../../gridworks-fleet-index-service/research/concerns/principal-model.md)
+[`../../gridworks-fleet-index-service/explorations/principal-model.md`](../../gridworks-fleet-index-service/explorations/principal-model.md)
 (needs the plugin enabled). Gateway-side custom-header attribution
 mechanism details in
-[`../research/concerns/admin-gateway-service.md`](../research/concerns/admin-gateway-service.md).
+[`../explorations/admin-gateway-service.md`](../explorations/admin-gateway-service.md).
 
 ## Audit
 
@@ -263,7 +263,7 @@ per-device cert install.
 - **Q6.4 Cert lifecycle for operator certs** — FIS-issued. Rotation
   cadence, revocation triggers, MFA gating for high-impact
   operations. Captured in
-  [principal-model](../../gridworks-fleet-index-service/research/concerns/principal-model.md)
+  [principal-model](../../gridworks-fleet-index-service/explorations/principal-model.md)
   Open list.
 - **Q6.7 First-MVP-shipped operations** — recommend: `ReadState`,
   enter-admin (via first `AdminDispatch`), `AdminReleaseControl`,
@@ -276,7 +276,7 @@ per-device cert install.
   removes the admin client's coupling to the SCADA repo's release
   cadence.
 - **Admin gateway** — design decisions captured in
-  [`../research/concerns/admin-gateway-service.md`](../research/concerns/admin-gateway-service.md):
+  [`../explorations/admin-gateway-service.md`](../explorations/admin-gateway-service.md):
   SSO provider, MFA gating, audit-attribution shape, gateway
   high-availability, where it deploys (cloud-side; alongside FIS?).
 - **Per-method routing-key naming** — kebab-case (`analog-dispatch`)
@@ -289,13 +289,13 @@ per-device cert install.
 
 ## Cross-references
 
-- [`../research/concerns/when-to-add-grpc.md`](../research/concerns/when-to-add-grpc.md)
+- [`../explorations/when-to-add-grpc.md`](../explorations/when-to-add-grpc.md)
   — when to add a gRPC pathway alongside the broker substrate
-- [`../../gridworks-fleet-index-service/research/concerns/principal-model.md`](../../gridworks-fleet-index-service/research/concerns/principal-model.md)
+- [`../../gridworks-fleet-index-service/explorations/principal-model.md`](../../gridworks-fleet-index-service/explorations/principal-model.md)
   — FIS-side auth model; operator is one Principal kind
 - [`../../rmqbot/designs/analytics-broker-shovel.md`](../../rmqbot/designs/analytics-broker-shovel.md)
   — same-reasoning analytics-broker deferral
-- [`../../gridworks-scada/research/concerns/non-gnode-interfaces.md`](../../gridworks-scada/research/concerns/non-gnode-interfaces.md)
+- [`../../gridworks-scada/explorations/non-gnode-interfaces.md`](../../gridworks-scada/explorations/non-gnode-interfaces.md)
   — original framing of admin as an open concern
 - [`../../gridworks-base/executor/actors.md`](../../gridworks-base/executor/actors.md)
   — gwbase 0.5.0; admin runs as a non-GNode actor (`ActorBase` ear-tap) on

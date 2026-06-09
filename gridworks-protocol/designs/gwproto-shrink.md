@@ -240,9 +240,9 @@ the web-server + REST-poller plumbing, `ActorClass`, `SchemaError`,
 "what `gridworks-proactor` needs to wire its MQTT actors together."
 
 When `gridworks-proactor` is refactored (see
-[[../research/concerns/proactor-link-and-addressing]] — TBD; today
+[[../explorations/proactor-link-and-addressing]] (Open) — today
 the issue is captured in
-[[../../gridworks-scada/research/concerns/transport-and-links]]), the
+[[../../gridworks-scada/explorations/transport-and-links]]), the
 question of whether this residual surface migrates into proactor
 itself, into a renamed package, or stays in gwproto can be settled
 then. For now, gwproto becomes a small, honest, proactor-scoped

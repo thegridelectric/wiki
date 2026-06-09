@@ -7,7 +7,7 @@ Status: Draft · Pass 0 · Updated 2026-05-26
 > generated SQL **do not change**. Scope is two concrete fixes:
 > (1) rename "Word" to "Type" everywhere it actually means type,
 > (2) tear out the "Vocabulary" framing entirely (deferred — see
-> [`research/concerns/dashboard-vocabulary-modeling.md`](../research/concerns/dashboard-vocabulary-modeling.md)
+> [`explorations/dashboard-vocabulary-modeling.md`](../explorations/dashboard-vocabulary-modeling.md)
 > for the deeper modeling question).
 
 ## TL;DR
@@ -156,7 +156,7 @@ Drop the duplicate `owners/:owner` → `OwnerView` route alongside
 
 - The rulebook (untouched).
 - Reintroducing Vocabulary as a first-class concept (deferred to
-  [`research/concerns/dashboard-vocabulary-modeling.md`](../research/concerns/dashboard-vocabulary-modeling.md)).
+  [`explorations/dashboard-vocabulary-modeling.md`](../explorations/dashboard-vocabulary-modeling.md)).
 - Any backend logic changes other than DTO field renames + path param
   renames.
 

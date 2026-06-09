@@ -196,8 +196,8 @@ def test_no_doc_exceeds_line_cap(doc: Path) -> None:
 
 # --- DESIGN_INDEX.md ↔ filesystem -----------------------------------------
 # DESIGN_INDEX.md is a hand-maintained flat directory of every file under a
-# designs/ or concerns/ folder anywhere in the wiki. These tests fail if it
-# drifts from what's actually on disk — a design/concern added, removed, or
+# designs/ or explorations/ folder anywhere in the wiki. These tests fail if it
+# drifts from what's actually on disk — a design/exploration added, removed, or
 # renamed without updating the index (or an index entry pointing at nothing).
 # When the regen-design-index.sh tool lands these become its conformance check.
 
@@ -250,10 +250,32 @@ def test_design_index_designs_match_filesystem() -> None:
     )
 
 
-def test_design_index_concerns_match_filesystem() -> None:
-    missing, extra = _index_drift("Concerns", "concerns")
+def test_design_index_explorations_match_filesystem() -> None:
+    missing, extra = _index_drift("Explorations", "explorations")
     assert not missing and not extra, (
-        "DESIGN_INDEX.md '## Concerns' is out of sync with the filesystem.\n"
+        "DESIGN_INDEX.md '## Explorations' is out of sync with the filesystem.\n"
         f"  on disk but NOT in the index (add them):        {sorted(missing)}\n"
         f"  in the index but NOT on disk (remove/rename):   {sorted(extra)}"
+    )
+
+
+# --- intra-wiki link resolution -------------------------------------------
+# Every relative `](path)` / `[[wikilink]]` that should resolve inside the wiki
+# must. External, cross-repo, `wiki/`-prefixed (umbrella-relative),
+# `(Open)`/`(TBD)`-marked, and code-span links are excluded by the shared
+# resolver (tools/check_wiki_links.py — also used by the session-end hook).
+# A planned-but-unwritten spoke must carry an `(Open)` marker after the link.
+def test_no_intra_wiki_danglers() -> None:
+    import sys as _sys
+
+    _tools = str(WIKI / "tools")
+    if _tools not in _sys.path:
+        _sys.path.insert(0, _tools)
+    from check_wiki_links import find_danglers
+
+    danglers = find_danglers(WIKI)
+    assert not danglers, (
+        "Intra-wiki links that don't resolve — fix the path, or mark a "
+        "planned-but-unwritten target `(Open)`:\n"
+        + "\n".join(f"  [{kind}] {rel}  ->  {target}" for rel, kind, target in danglers)
     )

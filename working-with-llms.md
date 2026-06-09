@@ -163,7 +163,7 @@ report.
   `wiki/designs/` (cross-cutting), in a single fixed location per
   design. **Linear is the authority on doing-vs-todo status** (cap-8 on
   "doing" enforced at the Linear layer). Open investigations stay in
-  `research/concerns/`. Shipped designs distill into `executor/`. See
+  `explorations/`. Shipped designs distill into `executor/`. See
   [`designs-process.md`](designs-process.md) +
   [`designs/linear-integration.md`](designs/linear-integration.md) +
   live view at [`DESIGN_INDEX.md`](DESIGN_INDEX.md).

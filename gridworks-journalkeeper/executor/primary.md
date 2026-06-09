@@ -208,7 +208,7 @@ question — gjk's job is to persist what reaches it.
 - **`persistor.md`** (Open) — the persistor stack in depth: how the
   three persistors compose, idempotency model, error semantics,
   pseudo_channel registration.
-- **`retention.md`** (Open) — see `concerns/scale-strategy-starter.md`
+- **`retention.md`** (Open) — see `explorations/scale-strategy-starter.md`
   for the seed insights; the question is mostly a `gridworks-data`
   schema decision, so the proper spec home is likely there.
 - **`operational.md`** (Open) — start/stop, supervisor wiring, log

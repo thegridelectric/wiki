@@ -72,7 +72,7 @@ Stage 5a notes). Same pattern for every `*mic_tx → ear_tx` binding.
 A gwbase journalkeeper binding `#` on ear_tx therefore CAN see LTN
 traffic — provided ActorBase's `RoutingClass` parser doesn't drop
 the messages first (see
-[`../gridworks-base/designs/routingclass-wire-aliases.md`](../gridworks-base/designs/routingclass-wire-aliases.md)).
+[`../gridworks-base/designs/routingclass-wire-aliases.md`](../../gridworks-base/designs/routingclass-wire-aliases.md)).
 
 **Paths:** the LTN already follows the XDG `Paths` convention from
 gwproactor (see the XDG file locations in

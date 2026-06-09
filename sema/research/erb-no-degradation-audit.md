@@ -166,7 +166,7 @@ remains authoritative; ERB adds derived lifecycle gates on top.**
 `created` already carries for published versions (per
 `spec/registry/structure.md:100-103`, `created` is overwritten to the
 publication moment on promotion). We've recorded the action to drop it
-in our findings log → see [`findings.md`](findings.md). Not a (ii)
+in our findings log. Not a (ii)
 blocker.
 
 ### F4. Coverage gap — unfinished migration

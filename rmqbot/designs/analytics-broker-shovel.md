@@ -136,7 +136,7 @@ Three landable chunks:
   doesn't retain `ear_tx` messages — they fly past. The analytics
   side can choose to queue-with-retention to give consumers a replay
   window. Coupled with the
-  [scale-strategy](../../gridworks-journalkeeper/concerns/scale-strategy-starter.md)
+  [scale-strategy](../../gridworks-journalkeeper/explorations/scale-strategy-starter.md)
   question about test-isolation discipline.
 
 ## Cross-refs

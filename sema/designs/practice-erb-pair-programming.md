@@ -36,7 +36,7 @@ Status: Draft · Pass 0 · Updated 2026-05-26
 - ✅ Local `sema/CLAUDE.md` (gitignored) running the dev-lens
   vocabulary-author frame; team-shared `effortless_CLAUDE.md` carrying
   ej's ERB-pipeline frame. See
-  [`research/concerns/two-claudes.md`](../research/concerns/two-claudes.md).
+  [`explorations/two-claudes.md`](../explorations/two-claudes.md).
 - 🟡 **Effortless MCP server** — not yet wired into Claude Code. The
   user-level `~/.claude.json` does not include `effortless-mcp`. Deferred
   because the practice doesn't strictly need it; useful later for
@@ -167,9 +167,9 @@ as it apparently is for ej.
   bijective MD↔ERB refactor proposal (sema-specific).
 - [`../research/erb-no-degradation-audit.md`](../research/erb-no-degradation-audit.md)
   — the audit; open threads tracked in Linear.
-- [`../research/concerns/two-claudes.md`](../research/concerns/two-claudes.md)
+- [`../explorations/two-claudes.md`](../explorations/two-claudes.md)
   — the dev-lens / effortless-lens CLAUDE.md tension that this
   practice will surface.
-- [`../research/concerns/rulebook-source-drift.md`](../research/concerns/rulebook-source-drift.md)
+- [`../explorations/rulebook-source-drift.md`](../explorations/rulebook-source-drift.md)
   — the `cli_commands` drift question, candidate first-turn
   exercise.

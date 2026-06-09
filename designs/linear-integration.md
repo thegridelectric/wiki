@@ -64,7 +64,7 @@ Match current usage — no new structure:
 
   ```
   **Design:** wiki/<domain>/designs/<slug>.md   ← required while the design file is alive
-  **Concern (if applicable):** wiki/<domain>/research/concerns/<name>.md
+  **Exploration (if applicable):** wiki/<domain>/explorations/<name>.md
   **Active-claims session:** {session-name} (if known)
   ```
 
@@ -251,7 +251,7 @@ To re-engage a shelved design:
 1. Open the Linear design issue; read its body + child issues.
 2. Open the matching `designs/<slug>` (if still in the wiki) OR the
    affected `executor/primary.md` (if already shipped + distilled).
-3. Open any matching `research/concerns/<name>.md`.
+3. Open any matching `explorations/<name>.md`.
 4. Run `/grill-me` + `/plan` to regenerate or update the design.
 5. The work counts against the assignee's cap-8 from the moment its state
    flips to a started state.
@@ -315,7 +315,7 @@ Enforces the personal WIP cap.
 ### `wiki/tools/regen-design-index.sh` (later)
 
 Auto-regenerate [`DESIGN_INDEX.md`](../DESIGN_INDEX.md) from the filesystem
-(walk `wiki/**/{designs,research/concerns}/**.md`, read each `Status:`
+(walk `wiki/**/{designs,explorations}/**.md`, read each `Status:`
 line) + optionally decorate with the linked Linear issue's state. Deferred:
 most useful once we routinely carry Linear IDs in `Status:` lines.
 

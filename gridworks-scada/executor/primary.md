@@ -7,7 +7,7 @@ language-agnostic account complete enough to rebuild the SCADA from these docs.
 > load-bearing architecture from the repo's current `CLAUDE.md` and code, and
 > marks everything unresolved or unbuilt as **Open**. It is **not yet
 > authoritative**. Design questions still converging live in
-> [`../research/concerns/`](../research/concerns/); component descriptions and the
+> [`../explorations/`](../explorations/); component descriptions and the
 > bug/cleanup register live in [`../research/`](../research/). Provenance of
 > claims here: mostly `told` (from `CLAUDE.md`) / `inferred` — verify against
 > code before relying. See [`../PROCESS.md`](../PROCESS.md).
@@ -61,7 +61,7 @@ Three MQTT links (gwproactor): `gridworks_mqtt` (upstream, to the LTN),
 **Open:** the proactor link can't model multiple downstream SCADA; the LTN is
 moving off the proactor to rabbit-native; the SCADA↔LTN transport may itself
 become rabbit-native. See
-[`../research/concerns/transport-and-links.md`](../research/concerns/transport-and-links.md).
+[`../explorations/transport-and-links.md`](../explorations/transport-and-links.md).
 
 ### Hardware layout
 
@@ -79,7 +79,7 @@ infrastructure** (CamelCase, `TypeName`/`Version`, named formats, append-only
 enums). Sema does **not** govern runtime architecture or internal object
 models; in-process actor-to-actor messages are plain Python objects. The SCADA
 is a **legacy** Sema implementation — modernizing it is a tracked concern
-([`../research/concerns/sema-style.md`](../research/concerns/sema-style.md)).
+([`../explorations/sema-style.md`](../explorations/sema-style.md)).
 
 ### Packages
 
@@ -101,7 +101,7 @@ Normative across the domain — full statements in
   / asset-type / metering) and **TradingRights** certificate (homeowner→
   aggregator, with clawback; required by both MarketMaker and SCADA from the
   LTN). See
-  [`../research/concerns/deeds-and-trading-rights.md`](../research/concerns/deeds-and-trading-rights.md).
+  [`../explorations/deeds-and-trading-rights.md`](../explorations/deeds-and-trading-rights.md).
 
 ## Map of the spec
 
@@ -112,8 +112,8 @@ Normative across the domain — full statements in
 | Actor model & message bus | sub-spec **Open** | Open |
 | Hardware layout / actor graph | sub-spec **Open** | Open |
 | Boundary types (gwsproto / Sema) | sub-spec **Open** | Open |
-| Transport & links | design converging in [`../research/concerns/transport-and-links.md`](../research/concerns/transport-and-links.md) | Open |
-| Non-GNode interfaces (provisioning, certs, admin) | [`../research/concerns/non-gnode-interfaces.md`](../research/concerns/non-gnode-interfaces.md) | Open |
+| Transport & links | design converging in [`../explorations/transport-and-links.md`](../explorations/transport-and-links.md) | Open |
+| Non-GNode interfaces (provisioning, certs, admin) | [`../explorations/non-gnode-interfaces.md`](../explorations/non-gnode-interfaces.md) | Open |
 
 ## Open (top-level)
 

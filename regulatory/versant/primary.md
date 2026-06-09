@@ -2,14 +2,12 @@ Status: Draft · Pass 0 · Updated 2026-05-30
 
 > What this is: hub document for the **Versant Bangor Hydro District
 > (BHD)** tariff analysis. Versant BHD is the closest in-territory
-> case study for the transactive-load-pricing question framed in
-> [`../primary.md`](../primary.md). Many findings apply to Versant's
-> parallel district (Maine Public) and to other Northeast utilities
-> with similar demand-charge / NCP transmission structures.
+> case study for the transactive-load-pricing question. Many
+> findings apply to Versant's parallel district (Maine Public) and
+> to other Northeast utilities with similar demand-charge / NCP
+> transmission structures.
 > Companion docs:
-> [`tariffs.md`](tariffs.md) (the detailed rate schedules),
-> [`../transmission-direct.md`](../transmission-direct.md) (the
-> bypass option).
+> [`tariffs.md`](tariffs.md) (the detailed rate schedules).
 
 ## Versant BHD as case study
 
@@ -39,7 +37,7 @@ practice:
 | Rate M-2 | ≥ 25 kW, < 500 kW | secondary | Flat NCP demand. Available without the D-4 floor. |
 | Rate M-1 | ≥ 25 kW, < 500 kW | primary | Same as M-2 at primary voltage. |
 | Rate D-4 | **≥ 500 kW** | primary, customer-owned transformer | TOU demand + 500 kW floor in every period + NCP transmission. **The distortion-heavy commercial tariff.** |
-| Rate T-1 | ≥ 500 kW | transmission ≥ 34.5 kV | Lower distribution component, but interconnect capex is multi-million — see [`../transmission-direct.md`](../transmission-direct.md). |
+| Rate T-1 | ≥ 500 kW | transmission ≥ 34.5 kV | Lower distribution component, but interconnect capex is multi-million. |
 
 ## The headline findings
 
@@ -55,12 +53,12 @@ practice:
    moderate scale (100s of homes / 500 kW–2 MW). The 500 kW
    peak-period demand floor + NCP transmission bills the load as
    firm even when it's not. See
-   [`../../knifes-edge-development/scenarios/boe-delivery.md`](../../knifes-edge-development/scenarios/boe-delivery.md)
+   [`boe-delivery.md`](../../heating-system-design/knifes-edge-development/scenarios/boe-delivery.md)
    for what this costs in concrete numbers.
 3. **The CP transmission election is gated to "Battery Storage"
    only** — explicitly not thermal storage. **The policy ask** to
    expand this is documented in
-   [`../../knifes-edge-development/regulatory-change-for-cp.md`](../../knifes-edge-development/regulatory-change-for-cp.md).
+   [`regulatory-change-for-cp.md`](regulatory-change-for-cp.md).
 4. **No public retail interruptible tariff** in BHD's rate book for
    loads in the 0.5–2.5 MW range. Versant's retail path for "I can
    drop on signal" is participation in the **Maine statewide

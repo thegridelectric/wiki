@@ -9,7 +9,7 @@ Status: Draft · Pass 0 · Updated 2026-05-30
 | Date | Filing / Order | Docket | What's in it | Direct PDF |
 | --- | --- | --- | --- | --- |
 | **May 23, 2024** | FERC rehearing order **187 FERC ¶ 61,100** — sustained the policy that the DER Aggregator (not the host utility) is responsible for providing metering information to ISO-NE | **ER22-983-006** | [PDF](https://www.iso-ne.com/static-assets/documents/100011/order_on_rehearing_er22-983-006.pdf) | |
-| Sept 13, 2024 | ISO-NE MRWG slide deck — paraphrases the AMR-designation rule + confirms Nov 1, 2026 effective date | informational | [PDF](https:/2/www.iso-ne.com/static-assets/documents/100015/20240913-mrwg-a07-order-2222-overview-and-update.pdf) | |
+| Sept 13, 2024 | ISO-NE MRWG slide deck — paraphrases the AMR-designation rule + confirms Nov 1, 2026 effective date | informational | [PDF](https://www.iso-ne.com/static-assets/documents/100015/20240913-mrwg-a07-order-2222-overview-and-update.pdf) | |
 | Mar 30, 2026 | ISO-NE establishment-of-service filing — confirms Nov 1, 2026 effective date for new Section III.6 | — | [PDF](https://www.iso-ne.com/static-assets/documents/100033/rev_related_to_establishment_of_service_for_der_participation.pdf) | |
 
 **ISO-NE Tariff Section III.6 hub:**
@@ -54,9 +54,7 @@ this on **November 1, 2026**.
 
 Independent of the DERA AMR work, **a qualified Competitive
 Electricity Provider (CEP)** needs to be in place as the supplier
-of record for the cohort under MPUC Chapter 305 — see
-[`../campus-interval-settlement.md`](../campus-interval-settlement.md)
-for the retail-supply side of the structure.
+of record for the cohort under MPUC Chapter 305.
 
 WORKING WITH VERSANT:
   What Versant already does for industrial customers

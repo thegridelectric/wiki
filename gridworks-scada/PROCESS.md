@@ -34,7 +34,7 @@ consciously deferred. Do not start it early.
 | Artifact | Owns | Size | Example |
 |---|---|---|---|
 | `components/*.md` | **Description** — what the code does today | — | `contract-handler.md` |
-| `concerns/*.md` | **Design epics** — big cross-cutting questions / large refactors | **big** | remove/replace the proactor; modernize Sema |
+| `explorations/*.md` | **Design epics** — big cross-cutting questions / large refactors | **big** | remove/replace the proactor; modernize Sema |
 | `findings.md` | **Actionable backlog** — specific bugs + small/medium cleanups | **small–med** | a typo, an inconsistent field, a dropped-state bug |
 
 The split by *size* is deliberate: **big work is a concern; small work is a
@@ -49,7 +49,7 @@ other* — the only coupling is by ID/link:
 - A concern does **not** hand-maintain a list of its findings (that list would
   drift). Instead it says *"open findings: search `findings.md` for
   `Concern: [[this]]`."* Nothing to keep in sync but the tag.
-- `findings.md` owns finding **status**; `concerns/` owns the **design
+- `findings.md` owns finding **status**; `explorations/` owns the **design
   narrative**. Neither restates the other.
 - **Reconciliation checkpoint:** when a pass closes a finding or resolves a
   concern, update the *tag/link*, not a duplicated list. At milestones, grep
@@ -80,7 +80,7 @@ Bounded scope is what keeps passes finishable and the quality high. Each pass:
    questions, record the date.
 6. **Add a `changelog.md` entry** describing the pass (WHY, mirrors the commit).
 7. **Link** anything that touches a cross-cutting concern back to the relevant
-   `research/concerns/*.md` file (and vice versa).
+   `explorations/*.md` file (and vice versa).
 
 A pass that produces only findings (no description) or only description (no
 findings) is fine — not every component is buggy, not every read is complete.
@@ -119,7 +119,7 @@ with the commit rather than deleting it — the register is also a history.
 *docs*) so a session can grab a localized batch.
 
 **`Effort: large`** is the signal that something is really a **concern** (an
-epic), not a finding — promote it to `concerns/` and leave the finding as a
+epic), not a finding — promote it to `explorations/` and leave the finding as a
 pointer, or don't file it as a finding at all.
 
 ### Cleanup-session workflow

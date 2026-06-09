@@ -240,7 +240,7 @@ future `observability.log-entry/000` Sema type, so a downstream
 broker-forwarding handler can attach to the same logger with **no**
 actor-side change. That downstream work (broker forwarding, verbosity
 requests) is out of scope here — see
-[`../research/concerns/logging-for-observability.md`](../research/concerns/logging-for-observability.md).
+[`../explorations/logging-for-observability.md`](../explorations/logging-for-observability.md).
 
 ---
 

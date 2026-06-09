@@ -1,19 +1,18 @@
-# GridWorks designs + concerns index
+# GridWorks designs + explorations index
 
 
-> Flat directory of every file under any `designs/` or `concerns/`
+> Flat directory of every file under any `designs/` or `explorations/`
 > folder across the wiki. Maturity / workflow state are NOT encoded
 > here — each file's own `Status:` line carries maturity; Linear
 > carries workflow (status / owner / priority). For the lifecycle
 > convention, see [`designs-process.md`](designs-process.md). For
-> "what lives where" across designs / concerns / executor / Linear,
+> "what lives where" across designs / explorations / executor / Linear,
 > see [`glossary.md`](glossary.md) "Where content lives".
 
 ## Designs
 
 _(every file under a `designs/` folder, anywhere in the wiki)_
 
-- (cross-cutting) [`designs/concerns-to-explorations-migration.md`](designs/concerns-to-explorations-migration.md) (rename concerns/ → domain-root explorations/; deferred to a fresh session)
 - (cross-cutting) [`designs/linear-integration.md`](designs/linear-integration.md)
 - **gridworks-base** — [`designs/decouple-amq-topic.md`](gridworks-base/designs/decouple-amq-topic.md)
 - **gridworks-base** — [`designs/log-sema-round-trip.md`](gridworks-base/designs/log-sema-round-trip.md)
@@ -27,6 +26,7 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **gridworks-journalkeeper** — [`designs/layered-test-harness.md`](gridworks-journalkeeper/designs/layered-test-harness.md)
 - **gridworks-journalkeeper** — [`designs/s3-importer-improvements.md`](gridworks-journalkeeper/designs/s3-importer-improvements.md)
 - **gridworks-journalkeeper** — [`designs/upgrade-gjk-sema-snapshot.md`](gridworks-journalkeeper/designs/upgrade-gjk-sema-snapshot.md) (regen vendored sema snapshot post-untangle; nit; Linear OPS-379; blocked by OPS-378)
+- **gridworks-marketmaker** — [`designs/evaluate-existing-repo.md`](gridworks-marketmaker/designs/evaluate-existing-repo.md)
 - **gridworks-protocol** — [`designs/gwproto-shrink.md`](gridworks-protocol/designs/gwproto-shrink.md)
 - **gridworks-scada** — [`designs/circulator-pump-0-10v-models.md`](gridworks-scada/designs/circulator-pump-0-10v-models.md) (pump make/model + 0–10 V response representation; Linear OPS-27)
 - **gridworks-scada** — [`designs/simulated-test-environment.md`](gridworks-scada/designs/simulated-test-environment.md) (simulated terminal assets + drivers over dev Rabbit; Linear OPS-40)
@@ -41,24 +41,29 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **sema** — [`designs/untangle-market-type-name/primary.md`](sema/designs/untangle-market-type-name/primary.md) (hub-and-spoke; spoke: structured-enums)
 - **sema** — [`designs/web-app-words-to-types.md`](sema/designs/web-app-words-to-types.md)
 
-## Concerns
+## Explorations
 
-_(every file under a `concerns/` folder, anywhere in the wiki)_
+_(every file under an `explorations/` folder, anywhere in the wiki)_
 
-- **gridworks-admin** — [`research/concerns/admin-gateway-service.md`](gridworks-admin/research/concerns/admin-gateway-service.md)
-- **gridworks-admin** — [`research/concerns/when-to-add-grpc.md`](gridworks-admin/research/concerns/when-to-add-grpc.md)
-- **gridworks-base** — [`research/concerns/logging-for-observability.md`](gridworks-base/research/concerns/logging-for-observability.md)
-- **gridworks-fleet-index-service** — [`research/concerns/principal-model.md`](gridworks-fleet-index-service/research/concerns/principal-model.md)
-- **gridworks-journalkeeper** — [`concerns/scale-strategy-starter.md`](gridworks-journalkeeper/concerns/scale-strategy-starter.md)
-- **gridworks-provisioning** — [`research/concerns/principal-kinds-extension.md`](gridworks-provisioning/research/concerns/principal-kinds-extension.md)
-- **gridworks-scada** — [`research/concerns/deeds-and-trading-rights.md`](gridworks-scada/research/concerns/deeds-and-trading-rights.md)
-- **gridworks-scada** — [`research/concerns/layout-axiom-complexity.md`](gridworks-scada/research/concerns/layout-axiom-complexity.md)
-- **gridworks-scada** — [`research/concerns/liveness-and-sla.md`](gridworks-scada/research/concerns/liveness-and-sla.md)
-- **gridworks-scada** — [`research/concerns/non-gnode-interfaces.md`](gridworks-scada/research/concerns/non-gnode-interfaces.md)
-- **gridworks-scada** — [`research/concerns/sema-style.md`](gridworks-scada/research/concerns/sema-style.md)
-- **gridworks-scada** — [`research/concerns/transport-and-links.md`](gridworks-scada/research/concerns/transport-and-links.md)
-- **rmqbot** — [`research/concerns/granular-permissions-and-web-admin.md`](rmqbot/research/concerns/granular-permissions-and-web-admin.md)
-- **rmqbot** — [`research/concerns/mtls-fis-auth.md`](rmqbot/research/concerns/mtls-fis-auth.md)
-- **sema** — [`research/concerns/dashboard-vocabulary-modeling.md`](sema/research/concerns/dashboard-vocabulary-modeling.md)
-- **sema** — [`research/concerns/rulebook-source-drift.md`](sema/research/concerns/rulebook-source-drift.md)
-- **sema** — [`research/concerns/two-claudes.md`](sema/research/concerns/two-claudes.md)
+- (cross-cutting) [`explorations/aris-collaboration.md`](explorations/aris-collaboration.md)
+- (cross-cutting) [`explorations/home-assistant-ltn.md`](explorations/home-assistant-ltn.md)
+- (cross-cutting) [`explorations/primary.md`](explorations/primary.md)
+- **gridworks-admin** — [`explorations/admin-gateway-service.md`](gridworks-admin/explorations/admin-gateway-service.md)
+- **gridworks-admin** — [`explorations/when-to-add-grpc.md`](gridworks-admin/explorations/when-to-add-grpc.md)
+- **gridworks-base** — [`explorations/logging-for-observability.md`](gridworks-base/explorations/logging-for-observability.md)
+- **gridworks-fleet-index-service** — [`explorations/principal-model.md`](gridworks-fleet-index-service/explorations/principal-model.md)
+- **gridworks-journalkeeper** — [`explorations/scale-strategy-starter.md`](gridworks-journalkeeper/explorations/scale-strategy-starter.md)
+- **gridworks-marketmaker** — [`explorations/launch-intentions.md`](gridworks-marketmaker/explorations/launch-intentions.md)
+- **gridworks-marketmaker** — [`explorations/market-product-and-uniform-bids.md`](gridworks-marketmaker/explorations/market-product-and-uniform-bids.md)
+- **gridworks-provisioning** — [`explorations/principal-kinds-extension.md`](gridworks-provisioning/explorations/principal-kinds-extension.md)
+- **gridworks-scada** — [`explorations/deeds-and-trading-rights.md`](gridworks-scada/explorations/deeds-and-trading-rights.md)
+- **gridworks-scada** — [`explorations/layout-axiom-complexity.md`](gridworks-scada/explorations/layout-axiom-complexity.md)
+- **gridworks-scada** — [`explorations/liveness-and-sla.md`](gridworks-scada/explorations/liveness-and-sla.md)
+- **gridworks-scada** — [`explorations/non-gnode-interfaces.md`](gridworks-scada/explorations/non-gnode-interfaces.md)
+- **gridworks-scada** — [`explorations/sema-style.md`](gridworks-scada/explorations/sema-style.md)
+- **gridworks-scada** — [`explorations/transport-and-links.md`](gridworks-scada/explorations/transport-and-links.md)
+- **rmqbot** — [`explorations/granular-permissions-and-web-admin.md`](rmqbot/explorations/granular-permissions-and-web-admin.md)
+- **rmqbot** — [`explorations/mtls-fis-auth.md`](rmqbot/explorations/mtls-fis-auth.md)
+- **sema** — [`explorations/dashboard-vocabulary-modeling.md`](sema/explorations/dashboard-vocabulary-modeling.md)
+- **sema** — [`explorations/rulebook-source-drift.md`](sema/explorations/rulebook-source-drift.md)
+- **sema** — [`explorations/two-claudes.md`](sema/explorations/two-claudes.md)

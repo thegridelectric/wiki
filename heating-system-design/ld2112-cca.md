@@ -6,9 +6,7 @@ Status: Draft · Pass 0 · Updated 2026-05-30
 > use-case explored elsewhere in heating-system-design. Captured
 > for completeness; the CCA mechanism is relevant to other Maine
 > energy-supply substitution stories but does not apply to the
-> narrow self-selected storage-cohort case. Cross-reference:
-> [`tariffs/campus-interval-settlement.md`](tariffs/campus-interval-settlement.md)
-> (the mechanism we are using instead).
+> narrow self-selected storage-cohort case.
 
 ## What LD 2112 does
 

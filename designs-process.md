@@ -42,7 +42,7 @@ A design legitimately contains everything about the change:
 rationale, alternatives, decision tree, invariants, classification
 matrices, sequencing, execution plan. All of it stays in the
 design. For the canonical "what lives where" across designs vs
-concerns vs executor vs Linear, see
+explorations vs executor vs Linear, see
 [`glossary.md`](glossary.md) "Where content lives".
 
 ## Triage
@@ -60,7 +60,7 @@ Once triage is invoked, run this gate **before writing anything**:
    - **No** → ask the person to clarify. Do not write a file yet.
    - **Yes** → continue.
 2. **Is the solution direction clear?**
-   - **No** → investigate it as a *concern*.
+   - **No** → investigate it as an *exploration*.
    - **Yes** → write it up as a *design*.
 
 When the output is "design" (clarity branch), Triage performs **both
@@ -75,11 +75,11 @@ b. **Register the slug in `DESIGN_INDEX.md` under `## Drafts`**
    makes the slug visible across sessions immediately and gives the
    bijection hook something to match against once Linear is wired.
 
-When the output is "concern" (no-clarity branch):
+When the output is "exploration" (no-clarity branch):
 
-a. Create `wiki/<domain>/research/concerns/<name>.md` (Status stamp
+a. Create `wiki/<domain>/explorations/<name>.md` (Status stamp
    per the convention).
-b. Register the concern in `DESIGN_INDEX.md` under `## Open concerns`
+b. Register the exploration in `DESIGN_INDEX.md` under `## Explorations`
    with name + one-line description + path.
 
 Output of triage is **where to write + the corresponding INDEX
@@ -96,7 +96,7 @@ new ask / observation / problem
    ┌────┴────────────────┐
    │                     │
    ▼                     ▼
-concerns/              designs/
+explorations/          designs/
 (no clarity yet)       (clarity; Linear tracks status; file stays put)
    │                     │
    │ /grill-me +         │ executes, ships
@@ -219,16 +219,16 @@ Status: <Draft|Accepted|Verified> · Pass <n> · Updated <YYYY-MM-DD>[ · Review
 - **Aspirationally:** a Verified design with an attached experiment / chaos
   run that demonstrates the design held under failure modes.
 
-## Concerns vs. designs
+## Explorations vs. designs
 
-Both `concerns/` (under `research/`) and `designs/` live alongside
-`executor/` in a domain. Triage decides which one a new item lands
-in; afterwards the difference is:
+Both `explorations/` and `designs/` live alongside
+`executor/` in a domain (both at the domain root). Triage decides
+which one a new item lands in; afterwards the difference is:
 
-- **Concern** — an investigation with **no clarity yet**. Open
+- **Exploration** — an investigation with **no clarity yet**. Open
   design questions, not ratified plans. Pure uncertainty surface.
-  A concern may *graduate* to a design via /grill-me + /plan once
-  clarity emerges. Concerns do NOT receive content from shipped
+  An exploration may *graduate* to a design via /grill-me + /plan once
+  clarity emerges. Explorations do NOT receive content from shipped
   designs — durable patterns land in `executor/`, not here.
 - **Design** — clarity reached, ratification on the table, Linear
   will track the work.
@@ -258,7 +258,7 @@ doc anyway.
 
 - `wiki/doing/` and `wiki/todo/` (the earlier two-folder model). Deleted.
 - Per-domain `findings.md` registers. Items either become Linear
-  issues (if actionable work), become `concerns/` entries (if
+  issues (if actionable work), become `explorations/` entries (if
   there's no clarity yet on the right move), or update
   `executor/primary.md` (if it's a durable fact about the domain).
 - The "where does the frontier ledger live" open question in

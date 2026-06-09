@@ -39,12 +39,12 @@
 | [`prod-4x-upgrade`](../designs/prod-4x-upgrade.md) | Upgrade prod broker 3.9→4.x after dev validation. |
 | [`analytics-broker-shovel`](../designs/analytics-broker-shovel.md) | Stand up analytics broker; shovel `ear_tx` from prod; migrate analytics consumers (incl. gridworks-journalkeeper). |
 
-## Concerns (still investigating — `./concerns/`)
+## Explorations (still investigating — `../explorations/`)
 
 | Concern | Topic |
 |---|---|
-| [`mtls-fis-auth`](./concerns/mtls-fis-auth.md) | Phase 0 — password → mTLS migration; foundation for FIS auth. |
-| [`granular-permissions-and-web-admin`](./concerns/granular-permissions-and-web-admin.md) | Phases 2–3 — cert-derived publish/consume rights, web admin UI. |
+| [`mtls-fis-auth`](../explorations/mtls-fis-auth.md) | Phase 0 — password → mTLS migration; foundation for FIS auth. |
+| [`granular-permissions-and-web-admin`](../explorations/granular-permissions-and-web-admin.md) | Phases 2–3 — cert-derived publish/consume rights, web admin UI. |
 
 ## Sequence (read top → bottom)
 

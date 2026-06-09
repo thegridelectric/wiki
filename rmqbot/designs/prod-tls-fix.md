@@ -5,7 +5,7 @@ Status: Draft · Pass 0 · Updated 2026-05-27
 > Fix the broken TLS configuration on the prod broker `hw1__1`. Today
 > the broker is **not using TLS correctly** (per `authority/certbot`
 > notes). Encryption-only is the immediate goal; mutual TLS auth is a
-> later track (see [`../research/concerns/mtls-fis-auth.md`](../research/concerns/mtls-fis-auth.md)).
+> later track (see [`../explorations/mtls-fis-auth.md`](../explorations/mtls-fis-auth.md)).
 
 ## Why
 

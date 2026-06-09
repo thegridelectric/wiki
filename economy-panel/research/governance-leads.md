@@ -5,9 +5,7 @@ Status: Draft · Pass 0 · Updated 2026-06-07
 > open question — "GridWorks-incubated through critical-mass
 > adoption, or steward-led from day one?" — is unresolved.
 > See [`../executor/primary.md`](../executor/primary.md) "Why
-> this is open-source and not a startup" and the (Open)
-> [`../executor/stewardship.md`](../executor/stewardship.md)
-> spoke.
+> this is open-source and not a startup".
 
 ## EKM Metering — externally committed for v1 master economy meter
 
