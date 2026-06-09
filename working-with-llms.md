@@ -81,6 +81,16 @@ durable choices get captured while fresh instead of slipping by. Other moves —
 *pressure-test this*, *override the wiki on Y*, *retract that canon* — work as
 plain English under the source-precedence rule and don't need registered verbs.
 
+**Economical delegation.** When you spawn a subagent, scope the prompt to the
+load-bearing slice — name the boundary ("only the X↔Y path", "just files that do
+Z") and ask for conclusions, not file dumps, so an over-broad map doesn't sit in
+context for the rest of the session. And check coupling: route independent
+fan-out work to a `Workflow` (or a fresh lean session) rather than running it
+inline in an already-heavy context; reserve inline for tightly-coupled work that
+shares one mental model. A `PreToolUse` hook
+([`tools/spawn-economy-nudge.sh`](tools/spawn-economy-nudge.sh)) fires this
+reminder once per session on the first broad-looking spawn.
+
 ## Converging research → executor (the design loop)
 
 A spec is only as good as the thinking behind it. Before promoting `research/`
