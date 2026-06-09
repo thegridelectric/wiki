@@ -26,7 +26,7 @@ up the gridworks-journalkeeper snapshot:
 - **No round-trip validation.** The only generated test covers format
   examples; there is **no per-type decode test**. That is exactly the gap that
   let the `atn.bid` closure bug ship (see
-  [`untangle-market-type-name.md`](untangle-market-type-name.md)).
+  [`untangle-market-type-name/primary.md`](untangle-market-type-name/primary.md)).
 - **No typed fixtures.** Downstream repos want ready JSON instances per type.
 
 ## Plan

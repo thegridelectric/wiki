@@ -7,7 +7,7 @@ Status: Draft · Pass 0 · Updated 2026-06-07
 > plus the design implication for GridWorks' MarketMaker vocabulary
 > (`market.product.name` + a coupled `market.product` type). Source for the
 > design decision recorded in
-> [`../../sema/designs/untangle-market-type-name.md`](../../sema/designs/untangle-market-type-name.md).
+> [`../../sema/designs/untangle-market-type-name/primary.md`](../../sema/designs/untangle-market-type-name/primary.md).
 > Pre-spec research, not normative. Claims below were adversarially verified
 > (3-vote; "killed" claims are listed as caveats, not used).
 
@@ -93,7 +93,7 @@ rich **product type** that carries the attributes.
 ## Design implication for GridWorks
 
 Chosen direction (authoritative version in the sema design:
-[`../../sema/designs/untangle-market-type-name.md`](../../sema/designs/untangle-market-type-name.md)):
+[`../../sema/designs/untangle-market-type-name/primary.md`](../../sema/designs/untangle-market-type-name/primary.md)):
 
 1. **`market.product.name` is a STRUCTURED enum** carrying **only the attributes
    implicit in the name** (a faithful decode): commodity class, slot duration

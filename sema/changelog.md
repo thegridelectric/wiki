@@ -12,7 +12,40 @@ Newest at the top.
 
 ---
 
-## 2026-06-08 — Untangle market.type.name into structured gw.market.product.name + market.product type (`<squash-hash>`)
+## 2026-06-08 — remove structured enums. market slots must be divisible by 300 (`0bf8f0f`)
+
+**What:** Removed the unpublished structured-enum capability from the prior
+commit. Reverted `spec/authoring/enums.md`, `spec/registry/enums.md`, and the
+`spec/primary.md` enum-glossary line (drops the "Structured Enums" section +
+`value_attribute_schema`/`value_attributes` rules); restored the codegen path
+(`src/sema/tools/runtime_generation/enums.py`) and runtime base
+(`src/sema/runtime/enums/gw_str_enum.py`) to pre-capability; demoted
+`gw.market.product.name` to a plain versioned enum (`value_descriptions` only).
+Kept the rest of the untangle — the `market.type.name → gw.market.product.name`
+rename, the `market.product` type, the pure-pattern `market.slot.name` format,
+and `frozen_at`. Added a one-line clarification to `spec/authoring/formats.md`
+that the no-reference rule binds a format's validation behaviour / generated
+validator, not just its schema `$ref`. Same cluster, two additions: (1) enrich
+`market.product` with the name-encoded fields it now carries as validated data —
+`SlotDurationMinutes`, `GateClosingSeconds`, and `QuantityUnit` (`$ref`
+`market.quantity.unit`, a power unit so quantities compare across slot
+durations); `Timeframe` deferred. (2) Bake the 5-minute grid invariant into the
+`market.slot.name` validator (slot start MUST be divisible by 300) — a
+vocabulary-free arithmetic check, so it does not reintroduce the format→enum
+edge the gjk fix removed.
+
+**Why:** `market.slot.name` became a pure structural pattern (the real gjk fix),
+removing the slot-start/period alignment check — the only in-vocabulary consumer
+of the structured enum's per-product `slot_minutes`. With no consumer left, the
+capability was complexity for nothing: a fragile hand-rolled codegen path (its
+integer case stubbed with a `raise`) and a third home for semantics with weaker
+guarantees (primitive-only, unvalidated free-text units). Name-decodable
+semantics belong on the `market.product` **type** (real `$ref`'d fields) and in
+axioms — mirroring the legacy `MarketTypeGt` and the market-product taxonomy's
+"name + rich type" verdict. Unpublished, so the rollback is clean. See OPS-378 +
+`wiki/sema/designs/untangle-market-type-name/rollback-structured-enums.md`.
+
+## 2026-06-08 — Untangle market.type.name into structured gw.market.product.name + market.product type (`8190fdb`)
 
 **What:** The complete `untangle-market-type-name` work (OPS-378), squashed.
 Two reusable Sema capabilities applied to the market vocabulary, while keeping

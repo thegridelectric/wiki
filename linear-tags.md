@@ -15,13 +15,14 @@ house reference cards — out of scope here.
 
 ## Axes
 
-Every label belongs to one of four axes. A typical issue carries one house +
-one component + (optionally) one work-kind / cross-cutting tag.
+Every label belongs to one of five axes. A typical issue carries one house +
+one component + (optionally) one work-kind / cross-cutting / effort tag.
 
 1. **House** — which installation.
 2. **Component / domain** — which subsystem or repo.
 3. **Work-kind** — what kind of work this is.
 4. **Cross-cutting** — themes that span components.
+5. **Effort** — a rough size estimate (orthogonal to work-kind).
 
 ## House
 
@@ -104,6 +105,13 @@ one component + (optionally) one work-kind / cross-cutting tag.
 | `data-sharing` | Sharing data with external parties (e.g. LBL). |
 | `open-source` | Open-source-facing work. |
 | `non-electric-backup` | The oil-boiler / non-electric failsafe heat path. |
+| `semantics` | **(new)** Work about *where meaning lives* — the placement of semantics across vocabulary, types, and axioms (vs. cramming it into clever tokens). Spans `sema`, marketmaker, and the ERB/effortless threads. Scope it to the placement question, not all sema work. |
+
+## Effort
+
+| Tag | Meaning |
+| --- | --- |
+| `bite-size` | **(new)** Estimated at roughly **under 10 minutes of Claude time** — bigger than a one-line `nit`, smaller than a design; a single tight pass. An effort *estimate*, not a work-kind (and Claude-time, which can differ sharply from human review time). |
 
 ## Consolidation actions — ✅ applied 2026-06-07
 
