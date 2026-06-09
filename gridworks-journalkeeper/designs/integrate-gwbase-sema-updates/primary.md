@@ -29,31 +29,89 @@ standing it up — so JK is the natural first consumer of the merged work.
 
 ## Plan — what comes next
 
-**1. Regenerate JK's sema snapshot from the merged sema `dev` — unblocked,
-high value, recommended first step.** (Folds in the former
+**1. Regenerate JK's sema snapshot following sema's snapshot-generation rules
+— unblocked, high value, recommended first step.** (Folds in the former
 `upgrade-gjk-sema-snapshot` design, ex-OPS-379.)
 `src/gjk/sema` is a restricted sema snapshot, and OPS-380 was literally built
-for it. Now that #21 is in, rebuild JK's snapshot to pull in:
+for it. The regen is **not** a hand-edit: run sema's snapshot build from a seed
+request (`seed request → sema snapshot build → round-trip gate + samples`, per
+`sema/spec/snapshot.md`). A clean regen pulls in:
 - the `layout.lite` 007→008 ShNodes fix (directly relevant — JK persists
   `layout.lite` + `report.event`),
 - the round-trip gate + `samples/` (so JK's vendored snapshot self-verifies),
-- and drop the vendored `tests/` (snapshots no longer ship generated test
+- and drops the vendored `tests/` (snapshots no longer ship generated test
   code — clears the failing `test_property_format.py` and the long-standing
   "drop vendored sema tests from gjk" cleanup).
 
-Also **remove the hand-applied `market.type.name` stopgap** the snapshot
-carries today (hand-seeded `market.type.name` enum + patched
-`property_format.py` import + `enums/__init__.py` re-export) — a clean regen
-reverts it (the 2026-06-07 regression), and sema's `untangle-market-type-name`
-work (ex-OPS-378: structured `gw.market.product.name`, versioned
-`gw.market.slot.name` with an axiom dep, `import_root` codegen fix) fixes it at
-the root. **Confirm OPS-378 shipped to the sema release we regen from.** Keep
-seeding `atn.bid` (frozen in sema, still published/decodable) so historical
-`atn.bid` S3 messages decode; new code paths use `ltn.bid`.
+**The `market.type.name` stopgap disappears automatically.** The current
+snapshot carries hand-patches (a hand-seeded `market.type.name` enum + a
+patched `property_format.py` import + an `enums/__init__.py` re-export); a
+clean regen never reproduces them. Sema's `untangle-market-type-name` work
+(structured `market.product`, the versioned market-slot type declaring an axiom
+dependency on it, and the `import_root` codegen fix) means the market enum is
+pulled into the snapshot **structurally via the `bid`/`atn.bid` type
+dependencies** — no manual market seeding, and no `ModuleNotFoundError`.
 
-**Done when:** snapshot regenerated from post-untangle sema, no hand-patches
-remain, `pytest tests/` green, and the live/S3 paths decode both legacy
-`atn.bid` and current `ltn.bid`. Then re-run the live-test to confirm the
+**Bid coverage:** seed **both** `atn.bid` (historical, frozen — so old S3
+messages still decode) **and `bid`** (current). There is **no `ltn.bid`**.
+`latest.price` is already in the seed (keep it).
+
+Recommended `src/gjk/sema_seed_request.yaml` (current seed + `bid`; the market
+enum is intentionally NOT listed — it arrives via the bid types' deps):
+
+```yaml
+initial_targets:
+  types:
+    report.event:
+      versions: ["002","003"]
+    layout.lite:
+      include_all_versions: true
+    glitch:
+      include_all_versions: true
+    flo.params.house0:
+      include_all_versions: true
+    gridworks.event.problem:
+      include_all_versions: true
+    power.watts:
+      include_all_versions: true
+    heating.forecast:
+      include_all_versions: true
+    weather.forecast:
+      include_all_versions: true
+    energy.instruction:
+      include_all_versions: true
+    new.command.tree:
+      include_all_versions: true
+    snapshot.spaceheat:
+      include_all_versions: true
+    scada.params:
+      include_all_versions: true
+    ticklist.reed.report:
+      include_all_versions: true
+    ticklist.hall.report:
+      include_all_versions: true
+    report:
+      include_all_versions: true
+    atn.bid:            # historical (frozen)
+      include_all_versions: true
+    bid:                # current
+      include_all_versions: true
+    latest.price:
+      include_all_versions: true
+  enums:
+    gw1.unit: {}
+    gw1.main.auto.state: {}
+    gw1.lc.top.state: {}
+    gw1.leaf.ally.all.tanks.state: {}
+    gw1.leaf.ally.buffer.only.state: {}
+    gw1.local.control.all.tanks.state: {}
+    gw1.local.control.buffer.only.state: {}
+    gw1.local.control.standby.top.state: {}
+```
+
+**Done when:** snapshot regenerated per sema's rules from a post-untangle sema,
+no hand-patches remain, `pytest tests/` green, and the live/S3 paths decode
+`atn.bid`, `bid`, and `latest.price`. Then re-run the live-test to confirm the
 refreshed snapshot still reads prod cleanly.
 
 **2. gwbase 0.5.x integration into JK — needs one decision first, and is

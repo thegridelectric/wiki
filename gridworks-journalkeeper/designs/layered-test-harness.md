@@ -67,6 +67,14 @@ transport adapters, not the codec.
   an empty/missing date folder does **not** crash.
 - Layer 2: a published sample lands as a `messages` row.
 
+## Keep the coverage doc honest
+While the test infra is being built, add a tiny **generator** for
+`executor/captured-types.md`'s capture matrix — emit it from
+`SemaMessagePersistor.all_known_message_types()` + `gjk.sema.codec.get_current_types()`
++ the custom persistors' `persist_vNNN` signatures, so the hand-maintained doc
+can't drift from the code. Cheap (introspection only), and a natural companion
+to Layer 0.
+
 ## Cross-refs
 - `sema/spec/snapshot.md` — samples emission + build-time round-trip (design folded here, OPS-380).
 - `sema/spec/authoring/formats.md` (the format→enum closure rule) — the bug class Layer 0 guards (design folded, OPS-378).

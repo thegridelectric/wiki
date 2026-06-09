@@ -61,8 +61,10 @@ Notes:
 In the snapshot vocabulary (Gate 3 would decode them) but **not** in the
 capture set (not bound) — so they never persist:
 
-- **`atn.bid`** — deliberately omitted ("until bid works in SEMA"); `atn.bid`
-  is frozen/decodable, new paths use `ltn.bid`.
+- **`atn.bid`** (historical, frozen) and **`bid`** (current) — both decodable
+  once seeded; `atn.bid` is currently omitted from the persist set ("until bid
+  works in SEMA"). There is no `ltn.bid`. The snapshot regen
+  (`integrate-gwbase-sema-updates`) seeds both.
 - Plus the broader snapshot vocabulary (≈39 types as of 2026-06-09:
   `channel.readings`, `data.channel.gt`, `machine.states`,
   `snapshot.spaceheat`, … — see `get_current_types()`) that exists to support
