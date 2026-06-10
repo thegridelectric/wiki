@@ -87,6 +87,31 @@ is a **legacy** Sema implementation — modernizing it is a tracked concern
 `packages/gridworks-admin` (`gwadmin`, the textual admin UI) are separate
 `uv`-managed PyPI distributions, editable-installed into the scada venv.
 
+### Sieg loop posture (HP-off valve default)
+
+The `SiegLoop` actor (`actors/sieg_loop.py`) drives a mixing valve via its own
+relay pair, running a control state machine (`SiegControlState`:
+`Blind`/`HpOff`/`HpStartingUp`/`HpHasLift`) alongside a separate valve state
+machine. Its only world-awareness is HpBoss state messages.
+
+**HP-off posture** (decided on the transition *into* `HpOff`):
+- **Heating** → `full_keep` (loop CLOSED) — protects tank stratification while
+  the heat pump is off.
+- **Standby** → `full_send` (loop OPEN) — summer/off-season default; the loop
+  is put in full send rather than left closed.
+
+Posture is read from the **static startup config** `settings.system_mode` (env
+`SCADA_SYSTEM_MODE`), so switching a SCADA to Standby is a restart-time change
+(the restart also rebuilds the LocalControl tree). Verified against code
+2026-06-10 (scada `e6ba4f51`).
+
+**Known caveats (→ OPS-400 `sieg-semantic-harmonization`, not yet resolved):**
+control state `HpOff` no longer uniquely determines valve posture and valve
+telemetry isn't emitted (the valve `SingleMachineState` is still TODO);
+default-when-off is per-heat-pump (Maple Mitsubishi vs Beech LG) and not yet
+parameterized; flow-meter location differs across houses (inside vs outside the
+loop → direct vs derived primary-pump-speed channel).
+
 ## Cross-cutting commitments
 
 Normative across the domain — full statements in
@@ -112,6 +137,7 @@ Normative across the domain — full statements in
 | Actor model & message bus | sub-spec **Open** | Open |
 | Hardware layout / actor graph | sub-spec **Open** | Open |
 | Boundary types (gwsproto / Sema) | sub-spec **Open** | Open |
+| Sieg loop (hydronic posture, HSM state) | brief account above; full eval **Open** (OPS-400) | acceptable-minimum |
 | Transport & links | design converging in [`../explorations/transport-and-links.md`](../explorations/transport-and-links.md) | Open |
 | Non-GNode interfaces (provisioning, certs, admin) | [`../explorations/non-gnode-interfaces.md`](../explorations/non-gnode-interfaces.md) | Open |
 | Dev/test environment (venv, `tools/`, by-hand bits) | [`environment.md`](environment.md) | Draft |

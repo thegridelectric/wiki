@@ -1,6 +1,6 @@
 # gridworks-base — Transport layer (§3)
 
-Status: Draft · Pass 0 · Updated 2026-06-06
+Status: Draft · Pass 0 · Updated 2026-06-10
 
 Sub-spec of the gridworks-base rebuild spec — **start at
 [`primary.md`](primary.md)**. Section numbers are global across the spec
@@ -60,9 +60,18 @@ Where `<from-class>` and `<to-class>` are RoutingClass tokens.
 `<radio-channel>` (optional) is one or more extra dotted segments
 appended to a broadcast routing key.
 
-Parsing is strict: unknown categories, unknown RoutingClass tokens, or
-malformed alias tokens raise an error and the message is dropped (after
-ACK) with a diagnostic.
+Parsing is **tolerant of class tokens**. The `<from-class>` / `<to-class>`
+slots are read as **opaque short_names** and resolved to a `TransportClass`
+*best-effort* — `None` when the token is not a known RoutingClass (e.g. a
+proactor **short_name** like `s`=scada, `a`=atn, `ws`=weather that rides in the
+class slot of current production keys). Parse still raises on an unknown
+**category**, wrong **arity**, or a malformed **alias** token — but **never on
+a class token**. Rationale: a consumer only receives a message because it
+subscribed, so a key it cannot fully classify must not be silently dropped.
+(History: an earlier strict parser raised on any unknown RoutingClass and
+`on_message` acked-then-`return`ed — silent data loss of every production
+message whose class slot used a short_name, ~48 dropped in one 5-min prod run.
+Fixed in 0.5.2; see §3.6 receive callback and the class-token note in §3.4.)
 
 ### 3.4 RoutingEnvelope
 
@@ -120,6 +129,30 @@ Worked examples:
   pattern (§3.5).
 - **Wrapped (`gw`):** published to `amq.topic`, which reaches MQTT
   subscribers (scada) and the ear tap.
+
+**Class tokens: load-bearing for `rj`, advisory for `gw`.** This is the key
+asymmetry. For a **Direct** message the broker's cross-class fabric routes on
+the `<from-class>` / `<to-class>` slots (binding filter
+`*.*.<from-class>.*.<to-class>.*`), so those tokens **determine delivery** —
+they are load-bearing, and gwbase emits them in long form. For a **Wrapped
+(`gw`)** message the `to`-class is **just a semantic indicator**: delivery
+happens because the consumer subscribed to `amq.topic` (or the MQTT peer to its
+own topic), never because the broker matched the class — so gwbase resolves it
+best-effort and never depends on it. A `gw` consumer already knows who it is
+talking to, so it needs the `to`-class neither for routing nor to disambiguate
+partners. This asymmetry is *why* tolerant class-token parsing (§3.3) is safe:
+the only slot that is load-bearing for routing — the `rj` cross-class fabric —
+always carries gwbase's own long-form tokens; the short_name tokens that need
+tolerance only ever appear in `gw` `to` / `rjb` `from` slots, where the class is
+advisory.
+
+**Storage representation.** Each class slot is stored as the **raw wire token**
+(`from_class_token` / `to_class_token`, a `str`); `from_class` / `to_class` are
+**derived** best-effort `TransportClass | None` views (`None` for an unresolved
+short_name). Build-side constructors — `DirectRoutingEnvelope.from_classes(...)`,
+`WrappedRoutingEnvelope.from_classes(...)`, etc. — take typed `TransportClass`
+values and emit long-form tokens, so construction stays type-safe while parsing
+stays tolerant.
 
 **Critical property:** `category` and `routing_key` are **derived**, not
 stored. They are pure functions of the structural fields. This means a
@@ -392,8 +425,15 @@ consume resets the delay to 0.
 1. Record the routing key.
 2. ACK the delivery immediately (fire-and-forget at the broker level;
    the application is responsible for any retry semantics).
-3. Parse the routing key into a `RoutingEnvelope`. On parse failure, log
-   and return.
+3. Parse the routing key into a `RoutingEnvelope`. On parse failure (now rare
+   — only a bad category / arity / alias, never an unknown class token, §3.3),
+   call the overridable `on_routing_key_parse_error(routing_key, body, error)`
+   hook **instead of silently returning**. The delivery is already ACKed and the
+   body is handed in, so an override can salvage it. Default = log + drop
+   (historical behavior); a consumer MAY override to recover the body — e.g.
+   JournalKeeper's permanent `legacy_hack` that persists the LTN's legacy
+   `broadcast.*` keys (which gwbase's main parser deliberately does *not* learn
+   as a category).
 4. Call `dispatch_message(envelope, body)` on the application
    (`Orchestrator` filters control-plane types, then forwards to
    `process_message`; a bare tap implements `dispatch_message` directly;

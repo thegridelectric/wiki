@@ -168,6 +168,13 @@ design (so `nit` and `design` are mutually exclusive); **`bite-size`** is a
 small effort that **may** still be a design. Full convention in
 [`linear.md`](linear.md).
 
+**Reflect on labels on *every* issue create — not from memory.** I call
+`list_issue_labels` (Ops) each time and tag across the **relevant axes** — at
+minimum a **component/domain** tag *and* a **work-kind** tag, not just one. A
+`design` also gets its component (`gwbase` / `scada` / `ltn` / …); a `nit` also
+gets component + work-kind (`testing` / `ci-cd` / …). Tagging on a single axis
+(e.g. just `design`) is the defect this rule exists to prevent.
+
 **No issue-to-issue relations.** I **SHALL NOT** add Linear issue relations —
 not `blocks`/`blockedBy`, not `relatedTo`, not `duplicateOf`, nor any other
 issue-to-issue link — via the MCP or otherwise. These links proliferate and
@@ -265,7 +272,14 @@ a status stamp; `Accepted` maturity requires `Pass ≥ 1`, and an Accepted
 design's stamp MUST carry its `· Linear: <id>` (all enforced by
 [`tests/test_doc_health.py`](tests/test_doc_health.py)). On completion,
 the design's durable distillate updates `executor/primary.md` (or a
-sub-spec); the `designs/<slug>` file is deleted. **Because designs are
+sub-spec); the `designs/<slug>` file is deleted. **The same completion step
+SHALL finalize the Linear issue:** (1) **strip the now-dangling design
+hyperlink** from the issue description (the file is gone — the link would rot,
+per the no-links rule below), (2) **add a short final-writeup comment** — what
+shipped, where the distillate now lives (`executor/…`), and any carried-forward
+caveat (e.g. an interim hack's revert condition) — so the issue stays the
+durable workflow record after the file is gone, and (3) move it to **Done**.
+**Because designs are
 ephemeral — deleted on completion — NOTHING SHALL link to a design** (any
 markdown link to a `designs/` file rots into a dangler the moment that design
 is deleted); reference a design by name in prose instead. Links are for

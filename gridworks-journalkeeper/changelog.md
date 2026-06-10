@@ -12,6 +12,41 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-06-10 — Regenerate sema snapshot from untangled sema dev
+
+**What:** Rebuild `src/gjk/sema` cleanly via `sema snapshot prepare <seed>` →
+`sema snapshot build --package-name gjk` from current sema dev (now carrying
+`gw1.unit` **version 002**), replacing the hand-patched vendored snapshot. Drops
+the vendored `tests/` (clears the long-standing `test_property_format.py`
+failure), ships the round-trip gate + `samples/`, and removes the
+`market.type.name` / `property_format.py` hand-patches. Broad diff (~67 files):
+the snapshot was stale, so the regen also syncs JK to the OPS-380
+canonical-formatting landing, not just the 3 new units. Also adds
+`scripts/regen_sema_snapshot.sh` (a one-command runbook wiring the gjk-specific
+glue — seed path, `--package-name gjk`, the `output/sema` → `src/gjk/sema`
+mirror — around the sema CLI) and a header pointer to it on the seed, so the
+recipe isn't rediscovered by archaeology next time.
+
+**Why:** First consumer of the merged sema snapshot-improvement (OPS-380 / PR
+#21); part of OPS-386. The clean regen needed 3 `gw1.unit` members the persistors
+hard-reference at class-definition time (`KilowattHoursX1000`, `DollarsX1000`,
+`MilesPerHourX1000`), which had only ever been hand-patched into the old
+snapshot. Those are now canonical in sema via the additive `gw1.unit/002`
+(replays Joe's `jds/dollarsX1000` schema delta onto dev), so the regen carries
+them honestly. **Green:** JK suite `17 passed`, round-trip OK on 35 samples.
+
+## 2026-06-10 — Update gwbase (`828d0dc`)
+
+**What:** Bump the `gridworks-base` dependency `>=0.4.0 → >=0.5.2` and `uv lock`.
+
+**Why:** The `legacy_hack` (`2156a31`) overrides
+`ActorBase.on_routing_key_parse_error`, a hook that exists only in gwbase 0.5.2.
+Pinning 0.5.2 makes the override bind to the real base hook and lets the
+previously-`skipif`-skipped fallback test run — JK suite now 8/8 green against
+real gwbase 0.5.2. Independent of the JK sema-snapshot regen (OPS-386), which is
+deliberately not touched here.
+
 ## 2026-06-09 — JournalKeeper legacy_hack: persist pre-gwbase broadcast.* keys (`2156a31`)
 
 **What:** Override `ActorBase.on_routing_key_parse_error` (the new gwbase

@@ -1,6 +1,6 @@
 # Integrate gwbase + sema updates into JournalKeeper
 
-Status: Draft · Pass 0 · Updated 2026-06-09 · Linear: OPS-386
+Status: Draft · Pass 0 · Updated 2026-06-10 · Linear: OPS-386
 
 > What this is: the **hub** of the design to finish moving
 > `gridworks-journalkeeper` onto the upgraded **gwbase 0.5.x** (three-tier
@@ -23,6 +23,17 @@ This design crystallizes work already in flight this session:
 - ✅ **sema snapshot-improvement merged** (PR #21, `8293b4e`) — deterministic
   zero-diff builds, the shipped round-trip gate, `samples/`, the example
   mandate on superseded versions, and the `layout.lite` 007→008 ShNodes fix.
+- ✅ **gwbase 0.5.2 published to PyPI** — and the **routing-key data-loss bug is
+  fixed** (`must-accept-current-ltn-messages`, OPS-388, **done**; distilled into
+  `gridworks-base/executor/transport.md` §3.3–§3.6, design file deleted). This
+  was the hard prerequisite that gated #2 below — **now cleared.** JK is already
+  pinned to `gridworks-base>=0.5.2` (`828d0dc`).
+- ✅ **JK `legacy_hack`** (verified 8/8, merge-pending on `jm/legacy-hack-broadcast`)
+  — overrides `on_routing_key_parse_error` to recover the LTN's legacy
+  `broadcast.*` keys (same prod-data-loss theme; the scada-side fix that stops
+  *new* `broadcast.*` shipped as OPS-387). Independent of the snapshot regen,
+  but note: for the recovered types to fully decode, the snapshot (#1) must
+  cover them (e.g. `flo.next.hour.plans`, `glitch`).
 
 `src/gjk/sema` **is** a restricted sema snapshot, and OPS-380 was motivated by
 standing it up — so JK is the natural first consumer of the merged work.
@@ -114,8 +125,8 @@ no hand-patches remain, `pytest tests/` green, and the live/S3 paths decode
 `atn.bid`, `bid`, and `latest.price`. Then re-run the live-test to confirm the
 refreshed snapshot still reads prod cleanly.
 
-**2. gwbase 0.5.x integration into JK — needs one decision first, and is
-gated by a gwbase data-loss bug.**
+**2. gwbase 0.5.x integration into JK — NOW UNBLOCKED (0.5.2 published,
+data-loss bug fixed); the tier-model migration is the remaining work.**
 Migrate JK's `Settings` to the new tier model (JK is a *tap* →
 `ServiceSettings` + `ActorBase`; drop the GNode-only fields; make
 `service_alias` first-class instead of the `.env` hack). **Adopt the XDG

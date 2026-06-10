@@ -62,6 +62,17 @@ for pair in $PAIRS; do
     *' '*) continue ;;
   esac
 
+  # Exempt mechanical / tooling commits — pure formatting, lint, lockfile,
+  # whitespace, etc. carry no narrative worth a changelog entry. Matched by
+  # subject prefix (case-insensitive). NOTE: `version …` is deliberately NOT
+  # here — release bumps still get an entry (the release rationale).
+  subj_lc=$(printf '%s' "$subject" | tr '[:upper:]' '[:lower:]')
+  case "$subj_lc" in
+    lint*|ruff*|format*|fmt*|style*|chore*|pyupgrade*|pre-commit*|precommit*|\
+    relock*|whitespace*|typo*|"fix lint"*|"fix linting"*|"fix format"*|\
+    "fix style"*|"fix whitespace"*|"fix typo"*|"fix imports"*) continue ;;
+  esac
+
   if ! grep -qF "$hash" "$changelog" 2>/dev/null \
      && ! grep -qF "$subject" "$changelog" 2>/dev/null; then
     flags="${flags}- $repo HEAD ($hash \"$subject\") not in wiki/$domain/changelog.md

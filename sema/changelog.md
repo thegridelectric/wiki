@@ -12,6 +12,43 @@ Newest at the top.
 
 ---
 
+## 2026-06-10 — gw1.unit/002 + regenerate_runtime.sh hygiene-report (`a4a8b83`)
+
+Landed as one commit ("Various — gw1.unit/002 from Joe and various cleanups").
+Two distinct changes:
+
+**(1) Add `gw1.unit` version 002** (`DollarsX1000`, `MilesPerHourX1000`,
+`KilowattHoursX1000`). `registry.yaml` (`latest_version: 002` + the `002` entry)
+and the new `definitions/enums/gw1.unit/002.yaml`, then regenerated indexes +
+runtime. Additive only; `000`/`001` preserved verbatim (frozen
+`runtime/enums/old_versions/gw1_unit_001.py`). The runtime regen wired the new
+member into the three types that reference `gw1.unit` (`derived_channel_gt`,
+`gw1_unit_quantity_projection`, `synced_readings_bundle`).
+
+*Why:* makes those 3 members canonical, so the gridworks-journalkeeper snapshot
+regen (OPS-386) no longer drops units its persistors use — they had been
+hand-patched into JK's old snapshot. This *replays* Joe's reviewed schema delta
+(`jds/dollarsX1000`) onto current `dev` rather than merging his stale branch;
+merging the 29-commits-behind branch produced generator/formatting drift (4
+`test_runtime_generation_*` failures), whereas replaying the delta and
+regenerating with `dev`'s own generator is clean.
+
+**(2) `regenerate_runtime.sh` reports hygiene, never mutates the runtime.**
+Change `ruff format` from an in-place rewrite to `ruff format --check` (report
+only), alongside the already report-only `ruff check` / `mypy`; `--strict` still
+makes any finding fatal.
+
+*Why:* the canonical runtime is the *raw* `regenerate_runtime.py` output — what
+the committed tree is and what the `test_runtime_generation_*` drift guards pin.
+The in-place `ruff format` rewrote the runtime into a *different* form (it wraps
+the over-long `e.compile(...)` line in `property_format.py`), so a regen via the
+`.sh` silently diverged from canonical and turned the drift guards red — a trap
+that cost real time. Report-only converges the `.sh` with the `.py` (the
+generator is deterministic, so no formatting step is needed for zero-diff), so
+**either entrypoint is now safe.** Making the generated runtime ruff-clean *at
+the source* (so `--check` passes clean and the trap cannot recur) is the next
+step.
+
 ## 2026-06-09 — Merge pull request #21 — jm/ops-380-snapshot-improvement (`8293b4e`)
 
 **What:** Merge landing the OPS-380 snapshot-improvement branch on `dev`. The
