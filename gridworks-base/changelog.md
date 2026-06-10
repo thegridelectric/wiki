@@ -12,8 +12,20 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-06-09 — Tolerant routing-key parse: accept short-form class tokens; on_message parse-error hook
+## 2026-06-10 — version 0.5.2 (bump + uv.lock relock)
+
+**What:** Bump gwbase `0.5.1 → 0.5.2`, plus a `uv lock` relock so CI's
+`uv sync --locked` accepts the new version (the bump alone left `uv.lock`
+pinning `0.5.1`, failing the locked sync).
+
+**Why:** Cut the release that carries the tolerant routing-key parse +
+`on_routing_key_parse_error` hook (`724ea52`, design `must-accept-current-ltn-messages`,
+OPS-388) so downstream consumers can adopt it — JournalKeeper's `legacy_hack`
+(`2156a31`) and the scada `ltn-sends-gw-wrapped` (OPS-387) both wait on this
+publish (OPS-389). Backward-compatible patch: the hook is additive and the
+routing-key envelope API is consumed, not constructed, outside gwbase.
+
+## 2026-06-09 — Tolerant routing-key parse: accept short-form class tokens; on_message parse-error hook (`724ea52`)
 
 **Why:** a gwbase consumer was **silently dropping** current-production messages
 whose routing-key class slot carries a proactor **short_name** (`s`=scada,

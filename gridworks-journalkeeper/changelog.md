@@ -12,8 +12,7 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-06-09 — JournalKeeper legacy_hack: persist pre-gwbase broadcast.* keys
+## 2026-06-09 — JournalKeeper legacy_hack: persist pre-gwbase broadcast.* keys (`2156a31`)
 
 **What:** Override `ActorBase.on_routing_key_parse_error` (the new gwbase
 parse-error hook) so a routing key carrying a `broadcast` token — the
