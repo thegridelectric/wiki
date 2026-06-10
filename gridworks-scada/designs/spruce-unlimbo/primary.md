@@ -64,9 +64,16 @@ bit during the afternoon shoulder. Constraints:
 - **Chunk D — Nolan local control scheme.** New in cool ways: electric
   resistive backup, a heat exchanger (so an extra pump), radiant floor +
   fan coil units not used before — a bunch of heat-management complexity.
-  Same in spirit as House0's "simple method for staying warm," but radiant
-  floors behave very differently from tanks of water; expect partial reuse,
-  not a copy.
+  Plus: mechanical thermostats + wired thermistors (the only site without
+  Honeywell Z-Wave/Hubitat), sensed via opto/white-wire; Thomas's setpoint
+  calculation. Same in spirit as House0's "simple method for staying warm,"
+  but radiant floors behave very differently from tanks of water; expect
+  partial reuse, not a copy. **Written against the ShNodeActor capability
+  surface from day one** — see the capability-protocol-and-verify design
+  (OPS-394); the maple standby incident (OPS-393) is what relay-level
+  control does when a new layout arrives. Input data: Thomas's nolan-layout fixture
+  sketch (`bb3a6ec6`, decoded in OPS-392's update note) — mine it, then
+  delete it when the generated layout lands.
 - **Chunk E — minimal AC path by July 15.** The smallest subset of A–D that
   honors the commitment. Tension to resolve explicitly: Jessica wants B
   (layout) done before controls run, and July 15 is fixed — the analysis

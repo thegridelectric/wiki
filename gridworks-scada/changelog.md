@@ -12,18 +12,6 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-06-10 — scada pytest: add pythonpath=gw_spaceheat (self-contained collection)
-
-**What:** Add `pythonpath = ["gw_spaceheat"]` to `[tool.pytest.ini_options]` in
-`pyproject.toml`.
-
-**Why:** The suite imports top-level `gw_spaceheat` modules (`show_layout`,
-`ltn_app`, …), so it only collected when `gw_spaceheat` was on `PYTHONPATH` via
-the `gw` shell alias — which broke after the `Coding`→`GridWorks` checkout move
-(and a split `export`/`PYTHONPATH` alias bug). Declaring `pythonpath` makes
-pytest self-contained, no external env needed. OPS-390 (`nit`).
-
 ## 2026-06-09 — ltn sends correct scada wrapped (`981f0939`)
 
 **What:** Replace the five `Message(..., Dst="broadcast", ...)` publishes in
