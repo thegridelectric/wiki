@@ -114,6 +114,9 @@ Normative across the domain — full statements in
 | Boundary types (gwsproto / Sema) | sub-spec **Open** | Open |
 | Transport & links | design converging in [`../explorations/transport-and-links.md`](../explorations/transport-and-links.md) | Open |
 | Non-GNode interfaces (provisioning, certs, admin) | [`../explorations/non-gnode-interfaces.md`](../explorations/non-gnode-interfaces.md) | Open |
+| Dev/test environment (venv, `tools/`, by-hand bits) | [`environment.md`](environment.md) | Draft |
+| Testing LTN↔SCADA (in-process harness) | [`testing.md`](testing.md) | Draft |
+| Experimentation rig (real-broker experiments) | [`experimentation-rig.md`](experimentation-rig.md) | Draft |
 
 ## Open (top-level)
 

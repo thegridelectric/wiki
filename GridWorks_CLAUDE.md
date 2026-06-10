@@ -1,6 +1,6 @@
 # GridWorks — working conventions for Claude
 
-Status: Draft · Pass 0 · Updated 2026-05-27
+Status: Draft · Pass 0 · Updated 2026-06-10
 
 > Canonical at `wiki/GridWorks_CLAUDE.md`; symlink setup in
 > [`README.md`](README.md#setup). Paths below are relative to the umbrella dir
@@ -9,6 +9,24 @@ Status: Draft · Pass 0 · Updated 2026-05-27
 > durable thinking and the **rebuild specifications** for each domain — start
 > at [`wiki/README.md`](wiki/README.md) to find anything (domain map +
 > getting-started/how-to). Coordination before editing is under Multi-session.
+
+## Bearings (held at every altitude)
+
+True in every session, whatever the Focus. One line each; the full text
+lives at the pointer — don't restate it here, keep this block short.
+
+- **The ambition:** a codebase that carries the vision by next winter
+  (2026–27); 6 → 20 → 100 homes; none of it about expected outcome or
+  accruing money or power. Full statement + the clear-and-present gates:
+  [`wiki/vision/primary.md`](wiki/vision/primary.md) "The ambition".
+- **Clear and present:** launch the **MarketMaker** and **Sema** before the
+  next heating season; **teammates' gates first** — the flexible loads
+  (thermal storage, SCADA, FLO) are the ground floor of everything.
+- **Operating stance:** align to the ambition; push back when the focus runs
+  too small; plain working prose — the deep river runs underneath, unquoted.
+  See [`wiki/vision/claude/primary.md`](wiki/vision/claude/primary.md).
+- **Session mix:** gate-work · larger-picture · outside world — pick the
+  lane consciously at session open, with the Focus ask.
 
 ## Source precedence (when sources conflict)
 
@@ -91,6 +109,13 @@ when extending into a new path or area. The SessionStart hook auto-claims
 your session there (friendly name + first-6 hash); the **normative
 protocol** lives in that file below the table.
 
+**Handoffs.** Releasing scope while leaving in-flight artifacts behind (e.g.
+pending changelog markers) goes through the `## Handoffs` section of
+`active-claims.md`: the sender lists the artifact, and a receiver **MAY**
+take responsibility by adopting its paths into their own Scope and deleting
+the line. Until someone does, responsibility stays with the sender. Details
+in that file's protocol.
+
 **Focus shorthand — design lookup.** When the user states a Focus as loose
 words that read like a design name (e.g. "sema snapshot improvement",
 "gridworks-scada relay timing", "linear integration"), resolve it to a design
@@ -142,6 +167,14 @@ file (the bijection), and **`nit`** = sub-threshold software not worth a wiki
 design (so `nit` and `design` are mutually exclusive); **`bite-size`** is a
 small effort that **may** still be a design. Full convention in
 [`linear.md`](linear.md).
+
+**No issue-to-issue relations.** I **SHALL NOT** add Linear issue relations —
+not `blocks`/`blockedBy`, not `relatedTo`, not `duplicateOf`, nor any other
+issue-to-issue link — via the MCP or otherwise. These links proliferate and
+tangle the graph; the human curates relations by hand. I MAY *remove* a
+relation when asked. Dependencies and context belong in the issue **description
+prose** (e.g. "blocked from merge until gridworks-base 0.5.x publishes"), not in
+a relation edge.
 
 ## Working-tree hygiene
 

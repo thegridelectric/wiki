@@ -48,6 +48,39 @@ fleet".)
    between them. A from-scratch broker MUST declare its own exchanges +
    bindings — do not rely on a baked image's fabric.
 
+## Experiments (vs tests)
+
+A core use of a World is the **experiment**: run real actor code against a
+**real broker** and watch what happens. The defining rule is the inverse of a
+unit test's convenience — **messages MUST traverse the broker, never a
+same-process backdoor.** An in-process harness that links proactors directly
+(e.g. scada's `ScadaLiveTest`) is a *test*: fast, hermetic, and blind to the
+wire. An experiment puts the message on `amq.topic` and lets the fabric route
+it.
+
+Experiments are **often a better simulation of reality than tests.** Worked
+example (2026-06-09): a patched LTN emitting `gw.<src>.to.s.…` / `to.mm.…` over
+`gw-dev-rabbit` into a JournalKeeper proved the
+`must-accept-current-ltn-messages` tolerant-parse fix and the `broadcast.*`
+`legacy_hack` end to end — a class of routing-key bug the in-process scada test
+**could not** see, because it never built a wire key. That is the justification
+for the World's "play together" methods: the broker is the point.
+
+Two standing requirements follow:
+
+- **Every repo provides a natural broker-participation harness** — a documented,
+  one-call way to bring its actor up against a World's broker (seeds today:
+  `LtnApp.get_repl_app`, gjk's `point_at_*` scripts). No repo should require an
+  afternoon of bespoke glue to join an experiment.
+- **The World provides replicable experiment tooling** — a broker-coordinates
+  profile, a generic observer/tap, a single-emit driver, branch-pinning,
+  capture/replay, one-script orchestration. The backlog for this is the design
+  `experimentation-harness` (in `designs/`); the as-is scada rig is in
+  [`../gridworks-scada/executor/experimentation-rig.md`](../gridworks-scada/executor/experimentation-rig.md).
+
+Replicability is what makes a simulated World **trust-building** rather than a
+one-off demo.
+
 ## Recipes (Open)
 
 The concrete "how to run it" recipes (to be written as spokes under

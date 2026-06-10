@@ -12,6 +12,37 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-06-10 — scada pytest: add pythonpath=gw_spaceheat (self-contained collection)
+
+**What:** Add `pythonpath = ["gw_spaceheat"]` to `[tool.pytest.ini_options]` in
+`pyproject.toml`.
+
+**Why:** The suite imports top-level `gw_spaceheat` modules (`show_layout`,
+`ltn_app`, …), so it only collected when `gw_spaceheat` was on `PYTHONPATH` via
+the `gw` shell alias — which broke after the `Coding`→`GridWorks` checkout move
+(and a split `export`/`PYTHONPATH` alias bug). Declaring `pythonpath` makes
+pytest self-contained, no external env needed. OPS-390 (`nit`).
+
+## 2026-06-09 — ltn sends correct scada wrapped (`981f0939`)
+
+**What:** Replace the five `Message(..., Dst="broadcast", ...)` publishes in
+`gw_spaceheat/actors/ltn/ltn.py` with real proactor-peer addressing: `Bid` → the
+MarketMaker (`Dst="mm"`); `FloNextHourPlans`, `Glitch`, and both
+`FloParamsHouse0` sends → the scada (`Dst=self.scada.name`, i.e. `"s"`). Each
+site carries a HACK comment to revert to a real `rjb` broadcast once the LTN is a
+gwbase actor (it leaves the scada lexicon).
+
+**Why:** `Dst="broadcast"` is a magic string the proactor turns into a wire
+routing key with no valid GridWorks envelope, so a gwbase consumer
+(JournalKeeper) drops it at parse — silent data loss (prod saw `broadcast.glitch`
+/ `broadcast.flo-next-hour-plans`). Addressing a real peer makes a valid
+`gw.<src>.to.<peer>.<type>` key that gwbase parses (tolerant short-form parse,
+gridworks-base design `must-accept-current-ltn-messages`). `"mm"` is deliberately
+the gwbase `RoutingClass.MarketMaker` token, so the key already matches the
+new/future rabbit structure. Design `ltn-sends-gw-wrapped`, OPS-387; depends on
+the gridworks-base parser change publishing.
+
 ## 2026-05-14 — Add back a much-pruned docs folder (`c05a7625`, merged `6734aa0f` / PR #562)
 
 **What:** Restores a `docs/` folder to the scada repo with three focused,

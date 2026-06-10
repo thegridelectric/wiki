@@ -66,6 +66,16 @@ Status: Draft · Pass 0 · Updated 2026-06-09
 - **5-min slot** binding: maker-agnostic format axiom vs maker-side check.
 - Whether the maker needs a real **offer/supply curve** at launch or sets price
   from an external signal.
+- **REST storefront process model.** gwbase is deliberately silent on serving
+  HTTP — the spine is its whole job; a storefront is service-level
+  composition, not a base-class capability. Rule to hold: **nothing binding
+  crosses REST** (the ack lives on the bus) and **the maker actor is the
+  single writer of the market book**; REST serves derived, read-only
+  projections. Named anti-pattern from the legacy repo: FastAPI + Redis as
+  shared *authoritative* state — slot books (and even sim time) fetched from
+  an `aiocache` Redis by a separate process, with TODOs admitting the books
+  had no single home. State of record must not live in a cache; under the
+  single-writer rule a cache becomes unnecessary rather than replaced.
 
 ## Enables next: the hybrid simulated fleet
 
@@ -87,6 +97,8 @@ rebuild):
   `TimeCoordinatorStubRecorder`.
 - **Fleet identity at scale:** FIS —
   [`../../../gridworks-fleet-index-service/research/design.md`](../../../gridworks-fleet-index-service/research/design.md).
-- **Vision:** [`../../../vision/primary.md`](../../../vision/primary.md) "Hybrid real +
-  simulated fleet"; [`../../../vision/transactive-grid.md`](../../../vision/transactive-grid.md)
+- **Vision:** [`../../../vision/primary.md`](../../../vision/primary.md) "The hybrid
+  game — one world, real + simulated" (spoke:
+  [`../../../vision/hybrid-game.md`](../../../vision/hybrid-game.md));
+  [`../../../vision/transactive-grid.md`](../../../vision/transactive-grid.md)
   "One fabric, real and simulated."

@@ -54,6 +54,14 @@ for pair in $PAIRS; do
   subject=$(git -C "$repo_path" log -1 --pretty=format:'%s' 2>/dev/null || true)
   [ -z "$hash" ] && continue
 
+  # Exempt PR / branch merge commits (2+ parents): the substantive commit they
+  # merge carries its own changelog entry, so the merge commit itself is noise.
+  # A squash-merge (single parent) IS the change and is still checked.
+  parents=$(git -C "$repo_path" log -1 --pretty=format:'%P' 2>/dev/null || true)
+  case "$parents" in
+    *' '*) continue ;;
+  esac
+
   if ! grep -qF "$hash" "$changelog" 2>/dev/null \
      && ! grep -qF "$subject" "$changelog" 2>/dev/null; then
     flags="${flags}- $repo HEAD ($hash \"$subject\") not in wiki/$domain/changelog.md

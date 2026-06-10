@@ -13,28 +13,27 @@ Newest at the top.
 ---
 
 <!-- pending commit -->
-## 2026-06-09 — Add prod-persist live-test runner (live-test infra)
+## 2026-06-09 — JournalKeeper legacy_hack: persist pre-gwbase broadcast.* keys
 
-**What:** Add `scripts/point_at_prod_persist.py` — boots the *real*
-`JournalKeeper` (true `local_rabbit_startup` slice-binding + the real
-`dispatch_message → SemaMessagePersistor` path) against the production
-broker and persists into a fresh local `gw_data` Postgres. Companion to the
-observe-only `point_at_prod_observe.py`; seed for the eventual layered test
-harness (L4). NOT committed (kept dev-local): a `[tool.uv.sources]` editable
-repoint of `gridworks-base` to the sibling checkout + the `uv.lock` relock,
-needed only while gridworks-base 0.5.x is unpublished — mirrors the CI-break
-reasoning of the 2026-06-07 gw_data entry, so these revert before any merge.
+**What:** Override `ActorBase.on_routing_key_parse_error` (the new gwbase
+parse-error hook) so a routing key carrying a `broadcast` token — the
+pre-gwbase LTN's `Dst="broadcast"` shape, which is not a valid GridWorks
+envelope and which gwbase's parser raises on — is recognized and persisted
+rather than dropped. The source alias comes from the wrapped body's
+`Header.Src` (the legacy key has no from-alias slot), with a sentinel
+fallback. Refactor the decode→persist path out of `dispatch_message` into a
+shared `_persist_body(from_alias, body)` used by both the normal path and the
+hack. Add unit tests for the broadcast path, the header-missing fallback, and
+(skipped until the gwbase branch installs) the non-broadcast log+drop fallback.
 
-**Why:** Validate end-to-end that the upgraded JournalKeeper reads the live
-fleet and persists it from a clean slate, exercising the unpublished
-`gridworks-base` 0.5.x three-tier `ServiceSettings`/`ActorBase` and the
-`gridworks-data` `main` schema convention (`tsdb` db, non-public `gridworks`
-schema). This run surfaced the report.event/layout.lite persistor regression
-fixed in `3ac3749`, plus three follow-ups: (1) JK `Settings` predate the
-3-tier base and need the new required `service_alias` (supplied via `.env`
-for now); (2) the upgraded gwbase routing parser rejects routing class `s`
-(prod emits `…to.s.gridworks-ping/-ack/slow-contract-heartbeat`); (3)
-`gridworks.ack` arrives as a degraded/versionless SEMA type and is skipped.
+**Why:** Live-testing against prod showed `broadcast.glitch` and
+`broadcast.flo-next-hour-plans` silently dropped at the gwbase parse step — the
+same data-loss class as the short-form `…to.s` keys, but one step earlier
+(token[0] is not even a MessageCategory). The durable fix removes the hack at
+the LTN source (scada design 'ltn-sends-gw-wrapped'); this `legacy_hack` is kept
+**permanently** so historical and replayed `broadcast.*` data still loads.
+Depends on the gridworks-base on_message parse-error hook (design
+'must-accept-current-ltn-messages') and merges only once that publishes.
 
 ## 2026-06-09 — Fix report.event & layout.lite custom-persistor signatures (`3ac3749`, merged `5cd5199` / PR #162)
 

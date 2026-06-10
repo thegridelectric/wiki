@@ -12,6 +12,32 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-06-09 — Tolerant routing-key parse: accept short-form class tokens; on_message parse-error hook
+
+**Why:** a gwbase consumer was **silently dropping** current-production messages
+whose routing-key class slot carries a proactor **short_name** (`s`=scada,
+`a`=atn, `ws`=weather) instead of a long-form `RoutingClass`. `parse_routing_key`
+ran the class token through the closed `RoutingClass` enum, raised `ValueError`,
+and `on_message` (which acks *before* parsing) then `return`ed — ack-then-drop,
+silent data loss (48 msgs lost in one 5-min prod run; weather forecasts never
+captured). The two namespaces — proactor short_names and gwbase `RoutingClass` —
+are independent; their overlap (`ltn`, `scada`) was coincidental, so anything
+addressed to `s`/`a`/`ws` died. The proactor grammar can't change, so the fix
+lives entirely in gwbase: parse the class slot as an **opaque token**, derive
+`from_class`/`to_class` best-effort (`TransportClass | None`, `None` when
+unresolvable) — safe because a message already reached *this* consumer's queue,
+so its own class is redundant for dispatch (it's never needed for routing nor to
+disambiguate partners). Build still emits long forms via `*.from_classes(...)`.
+`on_message` now routes a parse failure to an overridable
+`on_routing_key_parse_error(routing_key, body, error)` hook (default = log+drop)
+instead of an inline silent `return` — the seam a consumer (JournalKeeper) can
+override to salvage the body. The parser deliberately does **not** learn the
+LTN's legacy `broadcast.*` keys as a category — that is fixed at the source
+(scada design `ltn-sends-gw-wrapped`) plus a permanent JK `legacy_hack` for
+replay. Design `must-accept-current-ltn-messages`. Not yet distilled into
+`executor/transport.md` (lands when this merges).
+
 ## 2026-06-09 — Thread-safe ActorBase.send: marshal publishes onto the ioloop (`0f0dc28`)
 
 **Why:** lands as its **own patch release** (`0.5.0 → 0.5.1`), separate from the

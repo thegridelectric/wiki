@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-06-09
+Status: Accepted · Pass 1 · Updated 2026-06-09 · Linear: OPS-388
 
 # gwbase MUST accept current LTN/SCADA routing keys
 
@@ -80,6 +80,31 @@ while anything addressed to `s` (scada short_name), `a` (atn), `s2`, admin,
 etc. is dropped. The two namespaces — proactor short_names and gwbase
 `RoutingClass` — are independent; the overlap is accidental.
 
+## Scope: three drop-classes; gwbase owns one
+
+Live diagnosis surfaced **three distinct shapes** that a gwbase consumer drops,
+with different right-fixes. This design (gwbase) owns only the first:
+
+1. **Short-form class token** — `gw.<src>.to.s.<type>` (scada liveness),
+   `rjb.<src>.ws.weather` (weather). Valid envelope (`gw`/`rjb`), but the
+   class-token slot carries a proactor **short_name** (`s`, `ws`) that the
+   closed `RoutingClass` rejects. **gwbase's job** — tolerate it (below).
+2. **`Dst="broadcast"` magic string** — `broadcast.<type>` (e.g.
+   `broadcast.glitch`, `broadcast.flo-next-hour-plans`). The LTN emits these
+   with no valid envelope at all; the leading token is not even a
+   `MessageCategory`, so parse fails on token[0]. **NOT gwbase's job** — the
+   fix is at the source: the LTN must emit a real `gw`-wrapped message (see the
+   gridworks-scada design *ltn-sends-gw-wrapped*). gwbase's main parser SHALL
+   NOT learn `broadcast` as a category.
+3. **Legacy `broadcast.*` replay** — historical messages of shape (2) that must
+   still load for backfill. Handled by a permanent, clearly-named `legacy_hack`
+   in the **gridworks-journalkeeper** consumer, kept off the fast path. Not a
+   gwbase-base concern either.
+
+So gwbase's whole responsibility here is class (1) — short-form class tokens —
+plus removing the ack-then-drop data-loss order, which protects against *all*
+parse failures regardless of class.
+
 ## Constraint
 
 The proactor/scada side **cannot change** — reworking the routing-key grammar
@@ -108,11 +133,24 @@ because the routing key uses the current production short_name grammar.** The
 fix lives entirely in gwbase — no proactor/scada change, no ShNode renames, no
 historical patch.
 
+## Implementation (landed on branch `jm/accept-current-ltn-messages`, unmerged)
+
+`transport_encoding.py`: each envelope now **stores the raw class token** and
+derives `from_class`/`to_class` as a best-effort `TransportClass | None`
+property (`transport_class_or_none`; `None` for an unknown short_name). Parse
+never raises on a class token — only on structural arity / unknown category /
+malformed alias. Build keeps emitting long forms via `*.from_classes(...)`
+classmethods. `actor_base.on_message` routes a parse `ValueError` to a new
+overridable `on_routing_key_parse_error(routing_key, body, error)` hook (default
+= log+drop) instead of an inline silent `return` — the seam JK's `legacy_hack`
+overrides. Covered by `tests/test_short_form_class_tokens.py`.
+
 ## Open questions
 
 - Full inventory of prod routing keys that currently fail to parse (which
-  types, which senders).
+  types, which senders) — still worth a wide-`#` mgmt-API audit.
 - Is the `to` short_name ever needed for JK's slice binding, or is the
   type-name suffix (`#.<type>`) sufficient? (JK binds by type suffix, so the
-  body still arrives — the only loss is at `on_message` parse.)
-- Decide the gwbase API shape for an unparseable/short_name `to` token.
+  body still arrives — the only loss was at `on_message` parse, now fixed.)
+- ~~gwbase API shape for an unparseable/short_name class token~~ — **resolved**:
+  raw token stored, `TransportClass | None` derived best-effort (above).

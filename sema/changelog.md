@@ -12,6 +12,20 @@ Newest at the top.
 
 ---
 
+## 2026-06-09 — Merge pull request #21 — jm/ops-380-snapshot-improvement (`8293b4e`)
+
+**What:** Merge landing the OPS-380 snapshot-improvement branch on `dev`. The
+constituent commits each have their own entries below (`bea9846`, `ee5bd53`,
+`0169b47`, `653a152`, `701495c`, `be72b40`, `6f68508`).
+
+**Why:** Collectively: snapshot builds became deterministic (zero-diff regen
+via canonical formatting + stable ordering), atomic (failed gate = no-op), and
+gated (round-trip over generated samples, with the context-dependent-upgrade
+exemption), with the contract canonized in `spec/snapshot.md`. Consumers
+regenerating a snapshot no longer fight cosmetic formatter drift — this
+resolves the 2026-05-25 finding where ~75% of a gjk snapshot-refresh diff was
+ruff-format noise.
+
 ## 2026-06-08 — feat: UpgradeRequiresContext for context-dependent upgrades (`701495c`)
 
 **What:** New `UpgradeRequiresContext(SemaError, ValueError)` in the

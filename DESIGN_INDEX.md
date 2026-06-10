@@ -14,6 +14,7 @@
 _(every file under a `designs/` folder, anywhere in the wiki)_
 
 - (cross-cutting) [`designs/linear-integration.md`](designs/linear-integration.md)
+- (cross-cutting) [`designs/substrate-fit.md`](designs/substrate-fit.md) (parked brainstorm: blockchain/substrate fit for crypto / validation / market-running layers; focus AFTER the launch; Linear OPS-391)
 - **gridworks-base** — [`designs/decouple-amq-topic.md`](gridworks-base/designs/decouple-amq-topic.md)
 - **gridworks-base** — [`designs/log-sema-round-trip.md`](gridworks-base/designs/log-sema-round-trip.md)
 - **gridworks-base** — [`designs/mock-transport-for-tests.md`](gridworks-base/designs/mock-transport-for-tests.md)
@@ -29,7 +30,9 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **gridworks-marketmaker** — [`designs/launch-new-simple-marketmaker/primary.md`](gridworks-marketmaker/designs/launch-new-simple-marketmaker/primary.md) (launch a new simple MarketMaker; hub + `evaluate-existing-repo` spoke)
 - **gridworks-protocol** — [`designs/gwproto-shrink.md`](gridworks-protocol/designs/gwproto-shrink.md)
 - **gridworks-scada** — [`designs/circulator-pump-0-10v-models.md`](gridworks-scada/designs/circulator-pump-0-10v-models.md) (pump make/model + 0–10 V response representation; Linear OPS-27)
+- **gridworks-scada** — [`designs/ltn-sends-gw-wrapped.md`](gridworks-scada/designs/ltn-sends-gw-wrapped.md) (LTN stops the `Dst="broadcast"` hack, emits a real gw-wrapped message to scada; interim until LTN is a gwbase actor; pairs with gwbase short-form tolerance)
 - **gridworks-scada** — [`designs/simulated-test-environment.md`](gridworks-scada/designs/simulated-test-environment.md) (simulated terminal assets + drivers over dev Rabbit; Linear OPS-40)
+- **gridworks-scada** — [`designs/spruce-unlimbo/primary.md`](gridworks-scada/designs/spruce-unlimbo/primary.md) (seed: un-limbo spruce scada integration — i2c relays, layout pipeline, branch merge, Nolan control, July-15 AC path)
 - **observability** — [`designs/consolidate-from-infra-scada-jk.md`](observability/designs/consolidate-from-infra-scada-jk.md)
 - **rmqbot** — [`designs/analytics-broker-shovel.md`](rmqbot/designs/analytics-broker-shovel.md)
 - **rmqbot** — [`designs/conf-template.md`](rmqbot/designs/conf-template.md)
@@ -38,6 +41,7 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **rmqbot** — [`designs/prod-tls-fix.md`](rmqbot/designs/prod-tls-fix.md)
 - **sema** — [`designs/practice-erb-pair-programming.md`](sema/designs/practice-erb-pair-programming.md)
 - **sema** — [`designs/web-app-words-to-types.md`](sema/designs/web-app-words-to-types.md)
+- **world** — [`designs/experimentation-harness.md`](world/designs/experimentation-harness.md) (tooling for replicable real-broker experiments; per-repo participate harness + observer/emit/branch-pin/capture-replay; driven by the LTN→JK run)
 
 ## Explorations
 
