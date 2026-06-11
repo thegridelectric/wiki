@@ -36,7 +36,8 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **gridworks-scada** — [`designs/poison-messages.md`](gridworks-scada/designs/poison-messages.md) (dead-letter the reupload loop; report via glitch, not ack-required — if it flaps, skip the acks; ack-timeout loosening rides along)
 - **gridworks-scada** — [`designs/sieg-semantic-harmonization.md`](gridworks-scada/designs/sieg-semantic-harmonization.md) (sieg valve defaults OPEN in summer/Standby, reversing heating-season HP-off-closed; valve posture semantics + telemetry; Linear OPS-400)
 - **gridworks-scada** — [`designs/sieg-valve-exercise.md`](gridworks-scada/designs/sieg-valve-exercise.md) (stub: scheduled valve motion over summer against seizure; actors/procedural family; Linear OPS-396)
-- **gridworks-scada** — [`designs/simulated-test-environment.md`](gridworks-scada/designs/simulated-test-environment.md) (simulated terminal assets + drivers over dev Rabbit; Linear OPS-40)
+- **gridworks-scada** — [`designs/simulated-test-environment/primary.md`](gridworks-scada/designs/simulated-test-environment/primary.md) (hub: simulated terminal assets + drivers over dev Rabbit — harness elevated to top, comms-first; spokes simulated-actors.md, experimentation-tools.md; Linear OPS-40)
+- **gridworks-terminalasset** — [`designs/hello-world.md`](gridworks-terminalasset/designs/hello-world.md) (bite-size: repo scaffold as hello-world gwbase uv project; heartbeat to dev rabbit; NO new sema types — those ride the simulation work)
 - **gridworks-scada** — [`designs/spruce-unlimbo/primary.md`](gridworks-scada/designs/spruce-unlimbo/primary.md) (seed: un-limbo spruce scada integration — i2c relays, layout pipeline, branch merge, Nolan control, July-15 AC path)
 - **observability** — [`designs/consolidate-from-infra-scada-jk.md`](observability/designs/consolidate-from-infra-scada-jk.md)
 - **rmqbot** — [`designs/analytics-broker-shovel.md`](rmqbot/designs/analytics-broker-shovel.md)
@@ -46,7 +47,6 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **rmqbot** — [`designs/prod-tls-fix.md`](rmqbot/designs/prod-tls-fix.md)
 - **sema** — [`designs/practice-erb-pair-programming.md`](sema/designs/practice-erb-pair-programming.md)
 - **sema** — [`designs/web-app-words-to-types.md`](sema/designs/web-app-words-to-types.md)
-- **world** — [`designs/experimentation-harness.md`](world/designs/experimentation-harness.md) (tooling for replicable real-broker experiments; per-repo participate harness + observer/emit/branch-pin/capture-replay; driven by the LTN→JK run)
 
 ## Explorations
 

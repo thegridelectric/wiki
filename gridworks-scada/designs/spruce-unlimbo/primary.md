@@ -1,6 +1,6 @@
 # Spruce un-limbo (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-06-10 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-392
 
 > What this is: the hub for un-limboing the spruce scada integration —
 > getting the branch that runs Matt Polstein's house (the Nolan layout)
@@ -11,6 +11,9 @@ Status: Accepted · Pass 1 · Updated 2026-06-10 · Linear: OPS-392
 > local control for both house cases); `hello-world.md` (first plan
 > step: LTN ↔ SCADA over dev rabbit, consumed by a dev JK);
 > `admin-for-nolan.md` (admin UI sees and operates a Nolan house).
+> The simulated-actors spoke moved to the simulated-test-environment
+> design (2026-06-11, harness elevated to the top); the merge gate's
+> "testing green for BOTH" now rides that harness.
 
 ## The commitment (the deadline driver)
 

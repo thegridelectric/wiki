@@ -1,13 +1,14 @@
 # Simulated actors: relays + i2c thermistor reader
 
-Status: Accepted · Pass 1 · Updated 2026-06-10 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-40
 
-> What this is: spruce-unlimbo spoke — simulated relays and a simulated
-> i2c thermistor reader so the Nolan scada runs fully locally (and the
-> House0 case after it), exercising Thomas's setpoint evaluation in test
-> mode. Executed here for momentum; the durable distillate ports to the
-> simulated-test-environment design (and `executor/`) on completion —
-> recorded in session memory so it isn't dropped.
+> What this is: simulated-test-environment spoke — simulated relays and a
+> simulated i2c thermistor reader so the Nolan scada runs fully locally
+> (and the House0 case after it), exercising Thomas's setpoint evaluation
+> in test mode. Began life as a spruce-unlimbo spoke (OPS-392), executed
+> there for momentum; moved here 2026-06-11 when the simulation harness
+> was elevated to the top. Still serves spruce-unlimbo's merge gate
+> (testing green for both layouts).
 
 ## Live baseline (verified 2026-06-10)
 

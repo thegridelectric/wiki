@@ -74,8 +74,9 @@ Two standing requirements follow:
   afternoon of bespoke glue to join an experiment.
 - **The World provides replicable experiment tooling** — a broker-coordinates
   profile, a generic observer/tap, a single-emit driver, branch-pinning,
-  capture/replay, one-script orchestration. The backlog for this is the design
-  `experimentation-harness` (in `designs/`); the as-is scada rig is in
+  capture/replay, one-script orchestration. The backlog for this lives in the
+  scada `simulated-test-environment` design (spoke `experimentation-tools`,
+  absorbed from this domain 2026-06-11); the as-is scada rig is in
   [`../gridworks-scada/executor/experimentation-rig.md`](../gridworks-scada/executor/experimentation-rig.md).
 
 Replicability is what makes a simulated World **trust-building** rather than a

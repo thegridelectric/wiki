@@ -1,6 +1,6 @@
-# SCADA simulated test environment
+# SCADA simulated test environment (hub)
 
-Status: Draft · Pass 0 · Updated 2026-06-10 · Linear: OPS-40
+Status: Draft · Pass 0 · Updated 2026-06-11 · Linear: OPS-40
 
 > What this is: a design for a robust simulated test environment for the SCADA —
 > simple simulated terminal assets plus simulated sensor drivers (with a "cheat"
@@ -8,7 +8,61 @@ Status: Draft · Pass 0 · Updated 2026-06-10 · Linear: OPS-40
 > Rabbit broker, with the simulated terminal assets built on gridworks-base.
 > Ported from Linear **OPS-40** (which began as a narrower "run dev scada
 > without crashing / `gen_orange` layout" task — mostly done — and is reframed
-> here into the broader goal).
+> here into the broader goal). Spokes: `simulated-actors.md` (simulated relays
+> + i2c thermistor reader; moved here from spruce-unlimbo 2026-06-11, where it
+> had been executing for momentum — this design now leads) and
+> `experimentation-tools.md` (replicable real-broker experiment toolset;
+> absorbed from world/designs/experimentation-harness 2026-06-11 — all
+> simulation/experimentation work consolidates here).
+
+## Elevated to the top — comms-first (Jessica, 2026-06-11)
+
+The simulation harness is now the top of the scada work. The reason: the
+big projects ahead (the AllyLink / proactor-link redo — see
+`../executor/scada-ltn-link-state.md`) need testing by experiment, the way
+we want to test, so the harness comes first. And we might as well set up
+the MVP the way it will work when we are really modeling terminal assets.
+For now, most of what we will want to test is comms infrastructure.
+
+**Start: a terminal asset on gwbase emitting to the dev rabbit broker.**
+The MVP's "physics" is a traffic generator with a seam:
+
+- A `GridworksActor`-based GNode (GNodeClass `TerminalAsset`) that connects
+  to dev rabbit and emits a couple of synthetic channels at a fixed cadence
+  — constant or sawtooth, no thermodynamics. The value source is the seam
+  where real modeling lands later.
+- The comms-test knobs are first-class features, not extras: tunable
+  cadence/volume, scriptable silence (provoke `awaiting_peer` and the
+  keepalive paths), burst mode, optionally deliberate poison payloads.
+  These are the experiment levers for evaluating the old proactor link
+  against the new AllyLink, on the same rig.
+- Harness wiring: `ScadaLiveTest` already brings up LTN + SCADA on a real
+  rabbit broker; the terminal asset joins as the third participant.
+
+**The hybrid scenario.** One dev rabbit broker, two protocol faces: gwbase
+actors (terminal assets, LTNs, later aggregators) are AMQP-native on the
+routing fabric; scadas — real or simulated — ride the MQTT plugin, exactly
+as prod does on gw-dev-rabbit. A sim scada is not a mock: it is the real
+scada process with an all-sim layout, connecting the way a house does. Per
+simulated house: one terminal-asset GNode + one sim scada + one LTN. Hybrid
+means real houses' scadas land on the same broker beside the sim houses.
+Note the rig exercises **both AllyLink tracks at once**: each sim scada is
+a plain 1:1 child against a real rabbit broker, while the LTN side of the
+same broker has many parents talking to many children — FULL-AllyLink
+territory.
+
+**The harness is also the spec-building instrument.** The 2026-06-10 live
+run (full ltn/scada on dev rabbit, ~5 minutes, wire capture + both process
+logs) produced essentially all the productive material in
+`../executor/scada-ltn-link-state.md` — observation-driven spec building.
+The rig makes that a one-command cadence: bring up the stack, capture,
+write what IS, let divergences drive design.
+
+**Deferred canonization (todo — NOT before the harness works):** after
+this simulation sprint ships, add one or two lines to `GridWorks_CLAUDE.md`
+defining **Verified as run against the test harness**, with a longer
+document elsewhere about what full test-harness runs actually mean.
+Canonize only after the sprint finishes.
 
 ## Problem
 
@@ -95,39 +149,34 @@ The gaps between today and a full sim environment:
 - Add the simulated terminal asset as a participant in `ScadaLiveTest`
   alongside LTN + SCADA, and expose the cheat-injection seam to tests.
 
-## First increment (Jessica, 2026-06-10): simulated temperature readers
+## Increments (reordered 2026-06-11)
 
-The first concrete slice, motivated by spruce-unlimbo's merge gate ("real
-tests of nolan AND house0"): **simulated temperature readers good enough
-to exercise the simple-falling-edge-setpoint evaluation in test mode.**
+1. **Terminal-asset comms rig** — the comms-first MVP above (gwbase GNode
+   emitting to dev rabbit; comms-test knobs; `ScadaLiveTest` third
+   participant). This is the start.
+2. **Simulated actors** — simulated relays + i2c thermistor reader +
+   scriptable heat-call, so the Nolan scada (then House0) runs fully
+   locally and the falling-edge setpoint evaluation can be exercised.
+   Full slice in the `simulated-actors.md` spoke (moved from
+   spruce-unlimbo 2026-06-11; still serves that design's merge gate —
+   "testing green for BOTH layouts" — which now rides this harness).
 
-- A simulated zone-temperature reader (the Nolan path: stands in for
-  `i2c_thermistor_reader.py`'s gw-temp channels) that **responds 70 °F
-  constant**, cheat-mode style — no broker required.
-- Built with the **broker hook from day one**: the reader's value source
-  is a seam that can later subscribe to synthetic telemetry on the dev
-  Rabbit broker (scope item 1's broker mode), but the first
-  implementation only stubs it.
-- Note: the setpoint evaluation *learns* at a heat-call **falling edge**
-  (gw-temp + heat-call are both inputs), so seeing it produce a setpoint
-  in tests also needs heat-call transitions — either a simulated
-  opto/GpioSensor with a scriptable square wave, or direct injection of
-  `zone-X-opto-input` readings in the test. Constant-70 °F alone proves
-  the plumbing, not the learning.
-- House0 side: tank temps already have a sim path
-  (`SimPicoTankModuleComponentGt` + the LTN's hardcoded 60 °F) — reuse,
-  don't duplicate.
-
-This slice should land as part of making the test suite run under BOTH
-layouts (see spruce-unlimbo's merge gate), not as a Nolan-only fixture.
+## Open questions
 
 - **Cheat vs broker as the default.** Is the common case direct value injection
   (fast, deterministic, no broker) with broker-mode reserved for true
   end-to-end tests? Likely yes — confirm and make cheat the unit-test default.
-- **Where the simulated terminal asset lives** — in `gridworks-base` proper (so
-  it's reusable beyond scada and beyond tests), vs in scada/base test utilities.
-  Leaning toward a real (non-test) gridworks-base component if we want it for a
-  live simulated fleet, not just CI.
+- **Where the simulated terminal asset lives** — leaning (2026-06-11) toward
+  **its own repo, `gridworks-terminalasset`**, built on gridworks-base: gwbase
+  stays the base library, domain GNode actors live in their own repos (the
+  MarketMaker pattern), and the terminal asset is the seed of the live
+  simulated fleet, not a test utility. Alternative considered: inside
+  gridworks-base proper (couples gwbase releases to sim iteration).
+- **Telemetry namespace.** The terminal asset's synthetic sensor stream is rig
+  plumbing, not parent/child contract traffic — lean toward a distinct sim
+  routing class on the fabric rather than the `gw/<src>/to/<dst>/<type>`
+  grammar, so rig wiring never masquerades as contract traffic (same principle
+  as keeping internal telemetry off the contract stream).
 - **How synthetic physics is specified** — hardcoded curves vs a small
   declarative model vs scripted scenarios (for chaos testing). Start hardcoded;
   design the seam for scenarios.

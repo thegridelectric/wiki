@@ -369,6 +369,37 @@ open question: how the MQTT-native scada is represented in the gwbase
 TransportClass/RoutingClass taxonomy across the bridge. (Scada↔Scada2
 staying mosquitto follows from the axiom — Pis run mosquitto.)
 
+## The AllyLink program — two tracks (decided 2026-06-11)
+
+The redone mechanism has a name: **AllyLink**. It comes in two builds,
+developed in tandem, split by fan-out requirement:
+
+- **Scada AllyLink** (the flat-in-scada rewrite above). What we NEED
+  from it: it works **one-to-one with a paired gwbase LTN, where the
+  broker is actually a rabbit broker** (the scada riding the MQTT
+  plugin — the critical scada↔LTN link), AND it works **one-to-many as
+  long as there is only one parent on the MQTT broker** — which is
+  exactly what a hierarchy of scadas on Pis in the home needs. The
+  one-parent-per-broker constraint is what keeps the scada-side
+  machinery simple; the multi-parent problem is not its job.
+- **FULL AllyLink in gwbase**, developed in parallel. FULL means
+  **multiple parents communicating with fleets of children on the same
+  broker** — the aggregator↔LTN case — including storing and sending
+  messages.
+
+In tandem, we will want to **lift some of the existing proactor
+functionality into gwbase** rather than rebuild it only scada-side:
+for example there may indeed be messages we want acked where they are
+stored until they have made it into some permanent store (the
+persist-until-acked idea, generalized to persist-until-landed-in-a-
+permanent-store).
+
+Process: once the design is nailed down, a **long-running fable
+session** runs the rewrite, with two standing charges: (1) use Andy's
+proactor as an inspiration for what it did WELL — capture is explicit,
+silence is not capture; (2) run experiments to keep evaluating what is
+working well and what is not, on both the old code and the new.
+
 ## Verdict and triage (decided 2026-06-10)
 
 **This is not what we want** - a solid start that's really kept all our data for us - but fails our actual needs in gating ways to scale. We cannot redo all of it now; the
@@ -420,7 +451,11 @@ acked unless it backs a contract; ping keeps its ack — it IS the
 keepalive), the upstream-stream principle, parent/child/ally
 vocabulary, and the sema ride-alongs (new versioned wrapper/header
 words with left.right.dot From; sema delivered as a zipped file;
-heartbeat.a canon wrinkle to resolve). Then trim this executor doc back
+heartbeat.a canon wrinkle to resolve). The extract also carries the
+AllyLink two-track program (scada AllyLink with the one-parent-per-
+MQTT-broker constraint; FULL AllyLink in gwbase; the lift-into-gwbase
+of persist-until-stored acks; the long-running fable session with its
+two standing charges). Then trim this executor doc back
 to the verified account of what IS — the spec moves to the design, and
 this doc points at no designs.
 
