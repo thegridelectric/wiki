@@ -63,19 +63,53 @@ unwittingly load-bearing for liveness, and makes the harness drive
 liveness *deliberately* at the same cadence — the timestep doubles as
 the keepalive trigger.
 
-**Primary concern: the proactor's watchdog pats.** The proactor has
-internal watchdog/"pat" machinery on wall-clock timers; a harness that
-pauses, steps, or outruns wall time can starve a watchdog and kill a
-process that is perfectly healthy in sim terms. The pat semantics are
-explicitly on the full-proactor-analysis capture list
-(`../../executor/scada-ltn-link-state.md` "DO THIS NEXT") — map every
-watchdog (what pats it, what timeout, what happens on starvation)
-BEFORE the harness runs the old stack on coordinated time. Open until
-that analysis lands.
+## The watchdog/pat map (verified 2026-06-11, gwproactor v4.1.13+jm1 — the installed stack both scada and the hack MQTT LTN run)
+
+- **WatchdogManager** (`gwproactor/watchdog.py:132-145`): each
+  monitored actor/thread registers its own `timeout_seconds`
+  (convention: 2.1 × its loop interval — e.g. a 40 s loop gets an
+  84 s deadline); pats are `PatInternalWatchdogMessage`s stamped with
+  `time.time()`; the manager samples every `_seconds_per_pat` (9 s;
+  monitored timeouts must exceed half that). **One expired name shuts
+  down the whole process** (`InternalShutdownMessage`). ~45 pat call
+  sites across scada actors (i2c bus 40 s, gpio/thermistor 120 s,
+  relay ~80 s, api modules 30 s).
+- **IOLoop + sync threads** (`io_loop.py:171-185`,
+  `sync_thread.py:233-271`): pat every `PAT_TIMEOUT/2` (10 s) from
+  their own run loops; 20 s timeout.
+- **External watchdog** (`external_watchdog.py:44-53`): every clean
+  `_check_pats` cycle also pats systemd (`systemd-notify WATCHDOG=1`)
+  — only active under `<NAME>_RUNNING_AS_SERVICE=1`; not in the
+  harness.
+- **Traffic-coupled timers** (not process-killing): 5 s ack timeout
+  per AckRequired send (`links/acks.py:38-73`) — unacked → re-send
+  loop (the poison-flap mechanism); 60 s MQTT link ping
+  (`link_manager.py:662-675`); 60 s LTN `SlowContractHeartbeat`
+  (`contract_handler.py:324`, hardcoded).
+
+**Verdict for the bridge: the internal watchdogs are loop-driven, not
+traffic-driven — so the bridge as proposed is watchdog-safe.** Actor
+loops keep iterating on their own wall-clock `asyncio.sleep` timers
+regardless of how the harness paces message traffic; pats keep
+flowing. What the bridge MUST NOT do: pause/SIGSTOP/step the
+processes (any monitored deadline blown kills the process), and it
+must keep both ends responsive enough that 5 s acks succeed (a dead
+or slow LTN turns AckRequired sends into the reupload flap). The
+1-minute timesteps then only need to do what Jessica's note says:
+trigger ping/ack both directions and align with the 1-minute snapshot
+cadence so link state and contract heartbeat stay fed.
+
+**Where the danger actually lives: the full conversion, not the
+bridge.** The moment cadence decoupling (mechanism 3) converts actor
+loops from `asyncio.sleep` to timestep-driven iteration, pats stop
+flowing on wall clock while WatchdogManager keeps judging on
+`time.time()` — process suicide by design. Watchdog conversion is
+therefore part of mechanism 3, not an afterthought: either pats and
+the manager's clock both move to sim time, or sim mode inflates
+monitored timeouts.
 
 ## Open
 
-- The watchdog/pat map (above) — the gating item for the bridge.
 - Whether the bridge's timestep→ping trigger lives in harness glue or
   a small scada-side hook.
 - Ready-barrier pacing (actors confirm processing before time
