@@ -12,6 +12,51 @@ Newest at the top.
 
 ---
 
+## 2026-06-10 — Bump nolan-layout config versions to match RelayActorConfig 003 / I2cThermistorChannelConfig 001 (`77d882ac`)
+
+**What:** In `tests/config/nolan-layout.json`: the
+`gw108.vdc.relay.component.gt` ConfigList entry 002→003
+(RelayActorConfig) and the `i2c.thermistor.reader.component.gt`
+component 000→001 + its two ConfigList entries 000→001
+(I2cThermistorChannelConfig). Version strings only; the bumped types
+added validators, no new required fields.
+
+**Why:** The `2b603cc0` glean cherry-pick bumped these type versions and
+updated `house0-layout.json`, but `nolan-layout.json` didn't exist on
+`jm/spruce-new`, so the pick couldn't touch it — leaving every
+nolan-layout load (and therefore `gws run` and the whole test suite,
+which conftest points at this file) failing pydantic validation. Found
+via `gws run --dry-run`; both scada and LTN dry-runs pass after the fix.
+
+## 2026-06-10 — Bump channel config versions for RelayActorConfig and I2cThermistorChannelConfig (`dab55d20`, cherry-pick of `2b603cc0` onto `jm/spruce-unlimbo`)
+
+**What:** Second of two cherry-picks gleaning `jm/spruce-new` onto
+`jm/spruce-unlimbo` (the spruce-unlimbo working branch, cut from
+`td/orig-pred-set`). Adds `ChannelConfigBase` type helper, bumps
+RelayActorConfig / I2cThermistorChannelConfig (+ related channel-config
+named types) versions, adds named-type tests, and adds the
+`airtable_pat` setting + `.env-template` lines. Conflict resolved in
+`.env-template` only (union of both sides; the pick's truncated
+real-prefix Airtable PAT replaced with an empty placeholder).
+
+**Why:** Branch-reconciliation step of the spruce-unlimbo design: these
+two commits were the only content in `jm/spruce-new` not already in
+`td/orig-pred-set` (which contains `jm/spruce` as an ancestor). After
+this lands, `jm/spruce` and `jm/spruce-new` are fully gleaned and can be
+deleted.
+
+## 2026-06-10 — docstring for actors/scada.py (`a5451f43`, cherry-pick of `62bc7218`)
+
+**What:** Replaces scada.py's one-line module docstring with one
+explaining that Scada is the prime actor in a gwproactor app: child
+actors load from the hardware layout + actor registry, so layout
+`ActorClass` values must resolve through `gw_spaceheat/actors/__init__.py`
+exports or the proactor cannot instantiate them.
+
+**Why:** First of the two `jm/spruce-new` glean cherry-picks onto
+`jm/spruce-unlimbo` (see entry above). The docstring captures the
+layout→registry coupling that bit during spruce bring-up.
+
 ## 2026-06-10 — OFI comment (`8a0e1689`)
 
 **What:** Add an OFI comment in `gw_spaceheat/actors/sieg_loop.py`

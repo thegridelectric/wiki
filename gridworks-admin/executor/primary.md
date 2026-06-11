@@ -1,6 +1,6 @@
 # gridworks-admin — primary
 
-Status: Draft · Pass 1 · Updated 2026-05-30
+Status: Draft · Pass 1 · Updated 2026-06-10
 
 > **What this is.** The acceptable-minimum hub for the GridWorks
 > admin domain — the operator-facing surface for incident-mode
@@ -104,6 +104,30 @@ call — even though the carrier is AMQP. The HTTPS gateway path
 contracts. See
 [`../explorations/when-to-add-grpc.md`](../explorations/when-to-add-grpc.md)
 for the related gRPC question.
+
+## The capabilities contract (what the admin client consumes today)
+
+The `gwa` TUI learns what it can operate from
+**`scada.control.capabilities`**, published by the scada. Its purpose
+(told, Jessica 2026-06-10): **decouple the admin's relay knowledge from
+`layout.lite`** — historically every flo-params change bumped
+layout.lite's version and broke the TUI until it was upgraded;
+capabilities is the stable, control-focused projection the admin can
+depend on across layout churn.
+
+- **v001 is sema canon**
+  (`sema/definitions/types/scada.control.capabilities/001.yaml`,
+  verified 2026-06-10): `RelayNodes`/`DacNodes` as
+  `spaceheat.node.gt/300`, `ControlChannels` as `data.channel.gt/001`,
+  plus four axioms (ActorClassConsistency, HandleTerminalMatchesName,
+  AboutNodesAreControlNodes, I2cRelayComponent↔RelayNodes consistency).
+- **Known muddles, evaluation in flight** (in the spruce-unlimbo
+  design's admin-for-nolan spoke, gridworks-scada domain): the admin's
+  channel keying never decided between `CapturedByNodeName` and
+  `AboutNodeName` (likely a lucky coincidence so far); and
+  `I2cRelayComponent` (the House0 Krida multiplexer) is a *required*
+  field, so a Nolan-scheme house cannot emit a valid instance — a v002
+  is expected from that work.
 
 ## Client form factor
 

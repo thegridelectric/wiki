@@ -12,6 +12,52 @@ Newest at the top.
 
 ---
 
+## 2026-06-10 — Runtime ruff-clean at source: generator formats, drift guards compare formatted (`cdeba05`)
+
+**What:** `generate_runtime_from_dag` now runs `ruff format` (`format_in_place`)
+as its final pass, so the committed `src/sema/runtime` is ruff-clean. The four
+`test_runtime_generation_*` drift guards format the generated output before
+comparing (so canonical = formatted on both sides). Regenerated the runtime —
+45 files reformatted once — and updated `regenerate_runtime.sh`'s header to
+state the new canonical (ruff-formatted) and that its `ruff format --check` now
+passes clean ("157 files already formatted").
+
+**Why:** Permanently closes the *format* half of the `regenerate_runtime` trap.
+Previously canonical was the *raw* generator output, so `ruff format` diverged
+from it — the reason an in-place format in the `.sh` broke the drift guards.
+Making ruff the single source of style (templates need not match it) means
+`--check` is green and the format trap cannot recur; it also unifies the in-repo
+runtime with the snapshot path, which already treated ruff-formatted as
+canonical. This is the deferred follow-up to `a4a8b83`. The remaining `ruff
+check` + `mypy` findings (over-/under-tracked typing imports; pydantic/enum
+dynamics) are a *separate* report-only generator-cleanup follow-up, untouched
+here.
+
+## 2026-06-10 — new.command.tree/000 axiom: PrefixClosedHandles via effective handle (`668f00f`)
+
+**What:** Rewrite `new.command.tree/000` axiom 1 from `PrefixClosedHierarchy`
+(two-part: ShNode `Handle` *and* `ActorHierarchyName` each prefix-closed) to
+**`PrefixClosedHandles`** — a single prefix-closure rule over each node's
+*effective handle* (its `Handle` if present, else its `Name`). Rewrites the
+axiom template + regenerated runtime enforcement, enriches the
+`extended_description` (command-authority chain, runtime bossable-actor
+`FromHandle`/`ToHandle` checks → `bad_boss` Glitch, dynamic handle reassignment,
+dormant/root nodes), and adds a real-world `real_maple.json` fixture + test. The
+`ShNodes` `oneOf [200, 300, 301]` widening was already on dev, so this commit is
+axiom-only (no registry/index change).
+
+**Why:** Captures what the SCADA↔LTN command tree actually does in the field.
+The effective-handle convention lets a root node omit `Handle` on the wire (its
+`Name` anchors children) while still participating in prefix-closure, and the
+single-rule axiom matches the runtime enforcement bossable actors already
+perform. **Modified `000` in place rather than bumping to `001`** — a deliberate
+source-precedence call (rule 1, explicit instruction): field reality before sema
+was well-structured is the higher truth, overriding the additive/version-bump
+MUST, since `000` is pre-production. Faithful replay of `jm/fix-new-command-tree`
+onto current dev: that branch forked from an ancient dev (~150-file divergence),
+so the substantive delta was replayed on a clean branch + regenerated, not
+merged.
+
 ## 2026-06-10 — gw1.unit/002 + regenerate_runtime.sh hygiene-report (`a4a8b83`)
 
 Landed as one commit ("Various — gw1.unit/002 from Joe and various cleanups").

@@ -1,6 +1,6 @@
 # gridworks-base — Application layer & diagnostics (§5–§6)
 
-Status: Draft · Pass 0 · Updated 2026-06-06
+Status: Draft · Pass 0 · Updated 2026-06-10
 
 Sub-spec of the gridworks-base rebuild spec — **start at
 [`primary.md`](primary.md)**. Section numbers are global; this file holds
@@ -228,7 +228,20 @@ extends it with `g_node_path`. All fields read from the `GWBASE_` env prefix
 With `XDG_*_HOME` unset these default under `~/.config`, `~/.local/share`,
 `~/.local/state` — so on a Pi a scada logs to
 `~/.local/state/gridworks/scada/log/<alias>.log`. A small inline helper
-(`gwbase.config.paths`) derives these; gwproactor keeps its own `Paths`.
+(`gwbase.config.paths`) derives these; tests redirect them by setting the bare
+`XDG_CONFIG_HOME` / `XDG_DATA_HOME` / `XDG_STATE_HOME` env vars.
+
+**Path convention — a cloud/edge boundary (normative).** gwbase uses **plain
+XDG** keyed on `service_name`; there is **no** `<PREFIX>_PATHS__BASE/NAME`
+nested-env path object. That nested form belongs to **gwproactor's** separate
+`Paths` class (`gwproactor/config/paths.py`), which the on-device proactor
+services (scada, the LTN) use. The two are distinct worlds and the split is
+deliberate: **all GridWorks *cloud* actors are gwbase** (journalkeeper,
+marketmaker, the weather/price services, …) and therefore uniformly plain-XDG;
+the on-**device** proactor fleet is `PATHS__`. So a gwbase service MUST NOT pull
+`gridworks-proactor` in merely to obtain `Paths` — that inverts the layering for
+one feature and imports the wrong convention. A new gwbase service's path
+template is *the other gwbase cloud actors*, never scada/LTN.
 
 **Logging.** `ActorBase` builds a per-actor `logger` at construction: a
 `RotatingFileHandler` (capped at `log_rotate_bytes` × `log_rotate_count`)

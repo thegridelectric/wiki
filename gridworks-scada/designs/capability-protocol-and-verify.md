@@ -74,10 +74,51 @@ Status: Draft · Pass 0 · Updated 2026-06-10 · Linear: OPS-394
   sieg-plumbed** (Jessica: "what about beech??") — the fleet sweep of
   use_sieg_loop belongs in this design's first verification pass.
 
+## Mined input — the `jm/scada-control` sketch
+
+Mined 2026-06-10 from the 3-commit WIP branch `jm/scada-control`
+(2026-05-07, deleted after mining). Two different standings:
+
+**Implementation of settled canon (not a proposal):**
+`scada.control.capabilities` **v001 already exists in sema**
+(`sema/definitions/types/scada.control.capabilities/001.yaml`, verified
+2026-06-10) — canonical `spaceheat.node.gt/300` / `data.channel.gt/001`
+refs (so capability declarations carry **Handles**: command-tree
+position, not just existence) and four axioms: ActorClassConsistency ·
+HandleTerminalMatchesName · AboutNodesAreControlNodes ·
+I2cRelayComponent↔RelayNodes consistency. The sketch was the scada-side
+implementation of that v001. The **targeted v002 update** (the
+CapturedByNodeName/AboutNodeName muddle, the required House0 Krida
+component blocking Nolan, the gwa-usage evaluation) lives in the
+spruce-unlimbo design's admin-for-nolan spoke — not here.
+
+**Heritage code moves (ideas tried, not yet ratified):**
+
+- **De-hardcode admin dispatch:** `Scada._process_admin_dispatch` on dev
+  carries a hard-coded hp-boss→relay6 translation; the sketch replaces
+  it with generic `layout.node_by_handle(event.ToHandle)` routing — the
+  admin speaks handles, no per-actuator special cases. Directly serves
+  principle 1 (surface calibrated to admin) and principle 4 (one
+  authority per actuator, structural).
+- **`node_by_handle` made strict:** from Optional-returning lookup over
+  explicit `.Handle`s to a KeyError-raising lookup over the *effective*
+  handle (`Handle or Name`) — every node addressable, unknown handles
+  fail loudly. The "refusals become loud" principle applied to
+  addressing.
+
 ## Relationship to other work
 
+**Sequencing (Jessica, 2026-06-10): admin-first.** This design is about
+**intra-scada dispatch** — control states speaking through the
+`ShNodeActor` capability surface. The spruce-unlimbo design's
+admin-for-nolan spoke is a **prerequisite**: getting admin working
+against a Nolan house *discovers* the field-proven capability vocabulary
+(admin is the calibration standard per principle 1); this design then
+carries that vocabulary into the control states. The
+`scada.control.capabilities` v002 work rides admin-for-nolan, not here.
+
 Nolan local control (spruce-unlimbo Chunk D) is **written against this
-protocol from day one** — this design and the spruce work co-evolve; neither
-gates the other's start, but the capability list should stabilize before
-Chunk D hardens. Implementation gate applies: this design reaches
-Accepted · Pass ≥ 1 before its code lands.
+protocol from day one** — this design and the spruce work co-evolve, but
+the capability list should stabilize before Chunk D hardens.
+Implementation gate applies: this design reaches Accepted · Pass ≥ 1
+before its code lands.

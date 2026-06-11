@@ -12,8 +12,31 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-06-10 — Regenerate sema snapshot from untangled sema dev
+## 2026-06-10 — Snapshot: seed `bid` (current) alongside `atn.bid` (`d189ba7`)
+
+**What:** Add `bid` to `src/gjk/sema_seed_request.yaml` and regenerate
+`src/gjk/sema`. Pulls in `bid` + its dependency closure — notably the
+`market_price_unit` / `market_quantity_unit` enums, **structurally via the bid
+deps** (no `market.type.name` hand-patch). JK suite green (20 passed).
+
+**Why:** the snapshot covered only the historical frozen `atn.bid`, so a current
+`bid` message decoded as degraded. Seeding both keeps old S3 (`atn.bid`) and
+current (`bid`) decoding strict. Per the OPS-386 design
+(`integrate-gwbase-sema-updates`), which calls for both.
+
+## 2026-06-10 — Update snapshot: new.command.tree effective-handle axiom (`fa27f1b`)
+
+**What:** Re-run `scripts/regen_sema_snapshot.sh` against the now-current sema
+dev. Tight 3-file delta — `new.command.tree/000.yaml`, the regenerated
+`new_command_tree.py` (now enforcing `PrefixClosedHandles` over the effective
+handle), and the seed index. Suite green at 20 passed.
+
+**Why:** The prior snapshot regen (`d5d2fc7`) predated sema's
+`new.command.tree/000` axiom rewrite (sema `668f00f`). This syncs JK to it so its
+vendored copy matches sema dev. First real use of the new `regen_sema_snapshot.sh`
+runbook — it worked end-to-end.
+
+## 2026-06-10 — Regenerate sema snapshot from sema dev (`d5d2fc7`)
 
 **What:** Rebuild `src/gjk/sema` cleanly via `sema snapshot prepare <seed>` →
 `sema snapshot build --package-name gjk` from current sema dev (now carrying

@@ -27,6 +27,7 @@ folder next to the code repos.
 | --- | --- |
 | See what's actively being worked on across GridWorks | [`DESIGN_INDEX.md`](DESIGN_INDEX.md) |
 | Understand a domain's design / rebuild spec | that domain's `executor/primary.md` (see **Domains** below) |
+| **Run / spin up a service** (not just read about it) | that domain's `executor/` how-to sub-specs — e.g. run an LTN + SCADA: [`gridworks-scada/executor/running.md`](gridworks-scada/executor/running.md) |
 | Understand a ratified design that's queued / in flight | that domain's `designs/<slug>.md` (or `wiki/designs/` for cross-cutting); see [`designs-process.md`](designs-process.md) for the lifecycle |
 | Understand the conventions / how we work with Claude | [`working-with-llms.md`](working-with-llms.md) (+ [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) for the rules) |
 | Edit safely while other sessions are running | [`active-claims.md`](active-claims.md) — claim your area, start from a clean tree |

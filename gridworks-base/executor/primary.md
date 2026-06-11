@@ -1,6 +1,6 @@
 # gridworks-base — Rebuild Specification (primary)
 
-Status: Draft · Pass 0 · Updated 2026-06-06
+Status: Draft · Pass 0 · Updated 2026-06-10
 
 This is the **faithful-rebuild specification** for `gridworks-base`: the
 authoritative, language-agnostic account of the system, intended to be
@@ -130,7 +130,11 @@ discriminator between a GNode and a plain service.
 
 The `ServiceSettings` / `GNodeSettings` shapes (one `GWBASE_` env prefix), the
 XDG file locations (config / data / state, keyed on `service_name`), and the
-per-actor logger are detailed in [`actors.md`](actors.md) §5.5.
+per-actor logger are detailed in [`actors.md`](actors.md) §5.5. gwbase uses
+**plain XDG** for those locations — the `<PREFIX>_PATHS__BASE/NAME` path object
+is gwproactor's, for the on-device (scada/LTN) world. **All cloud actors are
+gwbase ⇒ uniformly plain-XDG; a gwbase service never pulls in gwproactor for
+`Paths`** (the cloud/edge boundary — see §5.5).
 
 ---
 

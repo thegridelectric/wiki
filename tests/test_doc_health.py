@@ -132,6 +132,42 @@ def test_accepted_designs_have_pass_at_least_one(doc: Path) -> None:
     )
 
 
+# Markdown link target: the (...) part of [text](target), up to whitespace
+# or closing paren. Good enough for wiki-style relative links.
+MD_LINK_TARGET_RE = re.compile(r"\]\(([^)\s]+)")
+
+# A target that points INTO a designs/ folder (any depth). A bare folder
+# reference ("designs/") is allowed — folders are durable; design FILES are
+# not. External URLs are skipped.
+DESIGN_FILE_TARGET_RE = re.compile(r"(^|/)designs/.+")
+
+
+@pytest.mark.parametrize("doc", _md_files(), ids=_rel)
+def test_no_links_to_designs(doc: Path) -> None:
+    """Per GridWorks_CLAUDE.md: designs are ephemeral — deleted on
+    completion — so NOTHING may carry a markdown link to a design file.
+    Banned everywhere, including design→design and hub→spoke links
+    (Jessica, 2026-06-10: "ban them all" — simplicity over exceptions).
+    Reference a design by name in prose instead. Sole exception:
+    DESIGN_INDEX.md, the aggregator that indexes designs by definition.
+    """
+    if doc.name == "DESIGN_INDEX.md":
+        return
+    text = doc.read_text(encoding="utf-8", errors="replace")
+    violations = [
+        t
+        for t in MD_LINK_TARGET_RE.findall(text)
+        if not t.startswith(("http://", "https://"))
+        and DESIGN_FILE_TARGET_RE.search(t)
+    ]
+    assert not violations, (
+        f"{_rel(doc)} links into designs/ — designs are ephemeral; links "
+        f"to them rot on completion. Reference the design by name in prose "
+        f"(and restate any fact a durable doc needs). Offending targets: "
+        f"{violations}"
+    )
+
+
 LINEAR_ID_RE = re.compile(r"Linear:\s*[A-Z]+-\d+")
 
 

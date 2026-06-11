@@ -1,6 +1,6 @@
 # SCADA simulated test environment
 
-Status: Draft · Pass 0 · Updated 2026-06-07 · Linear: OPS-40
+Status: Draft · Pass 0 · Updated 2026-06-10 · Linear: OPS-40
 
 > What this is: a design for a robust simulated test environment for the SCADA —
 > simple simulated terminal assets plus simulated sensor drivers (with a "cheat"
@@ -95,7 +95,31 @@ The gaps between today and a full sim environment:
 - Add the simulated terminal asset as a participant in `ScadaLiveTest`
   alongside LTN + SCADA, and expose the cheat-injection seam to tests.
 
-## Open questions
+## First increment (Jessica, 2026-06-10): simulated temperature readers
+
+The first concrete slice, motivated by spruce-unlimbo's merge gate ("real
+tests of nolan AND house0"): **simulated temperature readers good enough
+to exercise the simple-falling-edge-setpoint evaluation in test mode.**
+
+- A simulated zone-temperature reader (the Nolan path: stands in for
+  `i2c_thermistor_reader.py`'s gw-temp channels) that **responds 70 °F
+  constant**, cheat-mode style — no broker required.
+- Built with the **broker hook from day one**: the reader's value source
+  is a seam that can later subscribe to synthetic telemetry on the dev
+  Rabbit broker (scope item 1's broker mode), but the first
+  implementation only stubs it.
+- Note: the setpoint evaluation *learns* at a heat-call **falling edge**
+  (gw-temp + heat-call are both inputs), so seeing it produce a setpoint
+  in tests also needs heat-call transitions — either a simulated
+  opto/GpioSensor with a scriptable square wave, or direct injection of
+  `zone-X-opto-input` readings in the test. Constant-70 °F alone proves
+  the plumbing, not the learning.
+- House0 side: tank temps already have a sim path
+  (`SimPicoTankModuleComponentGt` + the LTN's hardcoded 60 °F) — reuse,
+  don't duplicate.
+
+This slice should land as part of making the test suite run under BOTH
+layouts (see spruce-unlimbo's merge gate), not as a Nolan-only fixture.
 
 - **Cheat vs broker as the default.** Is the common case direct value injection
   (fast, deterministic, no broker) with broker-mode reserved for true
