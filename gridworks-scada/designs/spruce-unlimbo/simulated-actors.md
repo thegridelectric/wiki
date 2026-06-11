@@ -1,6 +1,6 @@
 # Simulated actors: relays + i2c thermistor reader
 
-Status: Draft · Pass 0 · Updated 2026-06-10
+Status: Accepted · Pass 1 · Updated 2026-06-10 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke — simulated relays and a simulated
 > i2c thermistor reader so the Nolan scada runs fully locally (and the

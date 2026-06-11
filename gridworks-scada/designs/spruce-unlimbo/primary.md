@@ -1,6 +1,6 @@
 # Spruce un-limbo (hub)
 
-Status: Draft · Pass 0 · Updated 2026-06-10
+Status: Accepted · Pass 1 · Updated 2026-06-10 · Linear: OPS-392
 
 > What this is: the hub for un-limboing the spruce scada integration —
 > getting the branch that runs Matt Polstein's house (the Nolan layout)

@@ -1,6 +1,6 @@
 # Admin works well for Nolan
 
-Status: Draft · Pass 0 · Updated 2026-06-10
+Status: Accepted · Pass 1 · Updated 2026-06-10 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke — make the gridworks-admin UI a
 > first-class way to see and hand-operate a Nolan-layout house, as it is

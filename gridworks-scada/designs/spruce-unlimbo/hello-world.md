@@ -1,6 +1,6 @@
 # Hello-world: LTN ↔ SCADA over dev rabbit, seen by a dev JK
 
-Status: Draft · Pass 0 · Updated 2026-06-10
+Status: Accepted · Pass 1 · Updated 2026-06-10 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke — the plan's first executable step.
 > Get a real LTN and a real SCADA, both on `jm/spruce-unlimbo` with the

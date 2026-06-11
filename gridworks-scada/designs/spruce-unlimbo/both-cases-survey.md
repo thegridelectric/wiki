@@ -1,6 +1,6 @@
 # Both-cases survey: layout gen · testing · local control
 
-Status: Draft · Pass 0 · Updated 2026-06-10
+Status: Accepted · Pass 1 · Updated 2026-06-10 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke — verified survey (2026-06-10, by
 > read-only inspection of `td/orig-pred-set` working tree vs `dev` via
