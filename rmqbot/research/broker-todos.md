@@ -25,19 +25,20 @@
   there, copied via `getkeys.py` + `rclone`, then deleted off certbot.
   CA + certbot ssh key in 1Password.
 - RabbitMQ **3.9.13** (EOL; upgrade tracked in
-  [`../designs/prod-4x-upgrade.md`](../designs/prod-4x-upgrade.md)).
+  `../designs/prod-4x-upgrade.md`).
 - TLS configuration **currently broken** (encryption-only intent;
-  tracked in [`../designs/prod-tls-fix.md`](../designs/prod-tls-fix.md)).
+  tracked in `../designs/prod-tls-fix.md`).
 
 ## Designs (clear solution direction — `../designs/`)
 
 | Design | Topic |
 |---|---|
-| [`prod-tls-fix`](../designs/prod-tls-fix.md) | Fix the broken TLS config on prod (encryption-only); blocks FIS + analytics shovel. |
-| [`identities-in-definitions`](../designs/identities-in-definitions.md) | Move users/vhosts/permissions out of conf, into generated definitions JSON. |
-| [`conf-template`](../designs/conf-template.md) | Collapse two near-identical conf files into one parameterized template (depends on `identities-in-definitions`). |
-| [`prod-4x-upgrade`](../designs/prod-4x-upgrade.md) | Upgrade prod broker 3.9→4.x after dev validation. |
-| [`analytics-broker-shovel`](../designs/analytics-broker-shovel.md) | Stand up analytics broker; shovel `ear_tx` from prod; migrate analytics consumers (incl. gridworks-journalkeeper). |
+| `prod-tls-fix` | Fix the broken TLS config on prod (encryption-only); blocks FIS + analytics shovel. |
+| `identities-in-definitions` | Move users/vhosts/permissions out of conf, into generated definitions JSON. |
+| *(direction, 2026-06-10 — no design file yet)* | **Total redo of broker topology definitions, canonical in gwbase**: gwbase declares exchanges/queues/bindings as code (the rabbit-actor contract; `provision_topology` already does this for dev) and any boot-time definitions JSON is *generated* from it, never hand-edited. The hand-maintained `rabbit_definitions.json` in gridworks-infra (its stale `sample_` twin deleted 2026-06-10) is the artifact this retires. Seam: broker-instance config (conf, TLS, plugins) stays infra; permissions eventually FIS's, per `identities-in-definitions`. |
+| `conf-template` | Collapse two near-identical conf files into one parameterized template (depends on `identities-in-definitions`). |
+| `prod-4x-upgrade` | Upgrade prod broker 3.9→4.x after dev validation. |
+| `analytics-broker-shovel` | Stand up analytics broker; shovel `ear_tx` from prod; migrate analytics consumers (incl. gridworks-journalkeeper). |
 
 ## Explorations (still investigating — `../explorations/`)
 

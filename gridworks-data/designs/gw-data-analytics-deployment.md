@@ -43,15 +43,15 @@ the box; no backfill. See the deployment phases below.
    date-range + rolling) with the **14-day** governance clamp — reference
    implementation on `jm/s3_hack` (`s3_analytics_import.py`), to be brought
    forward and bumped 5→14. *(Functional requirements, not necessarily a wrapper:
-   see [`../../gridworks-journalkeeper/designs/s3-importer-improvements.md`](../../gridworks-journalkeeper/designs/s3-importer-improvements.md).)*
+   see `../../gridworks-journalkeeper/designs/s3-importer-improvements.md`.)*
 3. **(Ideally) add bulk-import speed (G1, batch commits)** — the one *speed*
    (not correctness) item; may slip to post-launch if the basic backfill is fast
    enough. The 14-day-lag tool, by contrast, **must** be in before launch.
 4. **Launch**: deploy → backfill → rolling timer.
 
 The importer track (tooling + tests) is owned by the gjk designs
-([`s3-importer-improvements.md`](../../gridworks-journalkeeper/designs/s3-importer-improvements.md),
-[`layered-test-harness.md`](../../gridworks-journalkeeper/designs/layered-test-harness.md));
+(`s3-importer-improvements.md`,
+`layered-test-harness.md`);
 this doc owns **deployment**.
 
 ## Deployment plan

@@ -86,7 +86,7 @@ beat is **end-to-end, signed by the SCADA, and chained**. The reasoning:
 - **It survives transport changes** — as a `gw`-wrapped message it can traverse
   the MQTT↔AMQP bridge (gwbase `transport.md` shows `gw.…to.scada.heartbeat-a`),
   so the contract layer is decoupled from whether SCADA stays MQTT or goes
-  rabbit-native ([[transport-and-links]]).
+  rabbit-native (DECIDED: the LTN SHALL be gwbase / rabbit-native).
 
 ## The non-repudiation / umpire vision
 

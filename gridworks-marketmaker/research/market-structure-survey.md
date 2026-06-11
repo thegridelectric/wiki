@@ -8,8 +8,8 @@ Status: Draft · Pass 0 · Updated 2026-06-09
 > let them inform a **foundational** MarketMaker that supports **a lot of local
 > and regional variation** without privileging any one region's rules. Companion:
 > [`market-product-taxonomy.md`](market-product-taxonomy.md) (how products are
-> structured); design anchor: [`../designs/launch-new-simple-marketmaker/primary.md`](../designs/launch-new-simple-marketmaker/primary.md);
-> background eval: [`../designs/launch-new-simple-marketmaker/evaluate-existing-repo.md`](../designs/launch-new-simple-marketmaker/evaluate-existing-repo.md).
+> structured); design anchor: `../designs/launch-new-simple-marketmaker/primary.md`;
+> background eval: `../designs/launch-new-simple-marketmaker/evaluate-existing-repo.md`.
 
 ## The thesis to test
 

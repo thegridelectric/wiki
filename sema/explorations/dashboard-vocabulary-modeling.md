@@ -4,7 +4,7 @@ Status: Draft · Pass 0 · Updated 2026-05-26
 
 > An open modeling question, separated from the surface-level
 > Words→Types rename design
-> ([`designs/web-app-words-to-types.md`](../designs/web-app-words-to-types.md)).
+> (`designs/web-app-words-to-types.md`).
 > That design *removes* the Vocabulary framing from EJ's dashboard
 > without proposing a replacement. This concern holds the deeper
 > question: if vocabulary is ever reintroduced as a first-class concept,
@@ -101,7 +101,7 @@ Any one of:
 
 ## Related
 
-- [`designs/web-app-words-to-types.md`](../designs/web-app-words-to-types.md)
+- `designs/web-app-words-to-types.md`
   — the surface refactor that *removes* the current Vocabulary framing
   without proposing a replacement.
 - `src/sema/interfaces/cli/snapshot.py` — the seed-request +

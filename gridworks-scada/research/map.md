@@ -64,6 +64,7 @@ Last updated: 2026-05-21.
 ## Open questions parked for later
 
 - Is the LTN (`ltn_app.py`, `actors/ltn/`) in scope for this wiki, or does it get
-  its own `wiki/gridworks-ltn/` once split to native rabbit? (User: LTN is being
-  separated and moved to native rabbit; see [[../explorations/transport-and-links]].)
+  its own `wiki/gridworks-ltn/` once split to native rabbit? (DECIDED: the LTN
+  SHALL be gwbase / rabbit-native; the link mechanism gets redone — see
+  `executor/scada-ltn-link-state.md`.)
 - Which `scratch*.py` files at `gw_spaceheat/` root are live vs. dead?

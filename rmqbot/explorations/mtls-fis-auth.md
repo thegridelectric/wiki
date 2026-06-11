@@ -33,8 +33,8 @@ When these resolve, this graduates from `explorations/` to
 
 ## Cross-refs
 
-- [`../../designs/prod-tls-fix.md`](../designs/prod-tls-fix.md).
-- [`../../designs/prod-4x-upgrade.md`](../designs/prod-4x-upgrade.md).
+- `../../designs/prod-tls-fix.md`.
+- `../../designs/prod-4x-upgrade.md`.
 - [`../../../gridworks-fleet-index-service/research/lifecycle.md`](../../gridworks-fleet-index-service/research/lifecycle.md).
 - `authority/tls/tls-certs.md` (in `gridworks-infra`) — the original
   phase architecture.

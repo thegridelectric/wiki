@@ -42,5 +42,5 @@ the LTN's. Conflating it with the GNode path is a design risk.
 
 ## Links
 
-[[deeds-and-trading-rights]] · [[transport-and-links]] ·
+[[deeds-and-trading-rights]] ·
 [[../../../gridworks-fleet-index-service/research/design]] · [[../principles]]

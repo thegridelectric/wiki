@@ -93,6 +93,10 @@ mature than the doc, demote the doc instead. Section stamps live at
   = last checked against code/tests, with the commit. A `Verified`-but-stale
   stamp means re-verify before relying, then bump it.
 
+## Engineering maxims
+
+- **If it flaps, skip the acks** — never report on a comm path with messages that demand acks on that path.
+
 ## Weight signals
 
 - **musing** → not a decision; don't act, don't record.
@@ -317,6 +321,14 @@ SHALL NOT reference the wiki. Exempt: the wiki's own `README.md` and a repo's
 volatile specifics with `file:line`. Update the one canonical doc, don't
 duplicate; delete what's wrong. Open each doc with a one-line "what this is"
 for cheap recall.
+
+**Voice** — wiki prose is Jessica's voice: plain sentences she can align
+to. DO NOT use the AI-cadence drumroll — an em-dash setup resolved by a
+punchy verdict fragment ("there are only two honest options — X, or Y.
+No incremental third path."). Same family, also banned: ", full stop",
+"— X edition", one-fragment verdict sentences, antithesis flourishes
+("saves bytes, never trust"). Say the thing as an ordinary sentence.
+Her verbatim phrases stay verbatim.
 
 **Sema-typed JSON files** — on-disk JSON instances of a Sema type SHALL
 be named `<sema-type-name>.json`, where `<sema-type-name>` is the Sema

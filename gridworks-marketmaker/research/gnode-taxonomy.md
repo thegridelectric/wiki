@@ -95,7 +95,7 @@ GNode credentials — **TaDeeds** (asset reality) and **TaTradingRights** (marke
 participation) — anchor trust in who a node is and what it may do. The
 **substrate is an open choice** (framework-agnostic — economy-energy-markets
 invariant 14; see
-[`../designs/launch-new-simple-marketmaker/evaluate-existing-repo.md`](../designs/launch-new-simple-marketmaker/evaluate-existing-repo.md)).
+`../designs/launch-new-simple-marketmaker/evaluate-existing-repo.md`).
 The *principle* (signed, distributed, non-hijackable credentials) is kept; the
 vendor binding is not.
 

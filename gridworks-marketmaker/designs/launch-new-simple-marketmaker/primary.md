@@ -1,6 +1,6 @@
 # Launch a new simple MarketMaker
 
-Status: Draft · Pass 0 · Updated 2026-06-09
+Status: Draft · Pass 0 · Updated 2026-06-10
 
 > What this is: the **hub** of the design to launch a new, simple MarketMaker —
 > the locked decisions, scope, and open questions, as a tight seed for a fresh
@@ -33,6 +33,14 @@ Status: Draft · Pass 0 · Updated 2026-06-09
      orders it (**queue = ordering authority**) → **`market.maker.ack`** (the
      binding contract) → `latest.price` / dispatch out. Bids are fast +
      cumulative, so arrival mis-ordering is harmless.
+   - **The stored timestamped ack IS the contract** (decided 2026-06-10).
+     The maker sends the ack AND stores it timestamped; **storage is the
+     constitutive act** — the sent message is notice of the contract, not
+     the contract. The maker side is the sole source of truth for
+     obligations; nothing persisted on a device (scada/LTN) ever
+     constitutes one. (Consequence already cashed in elsewhere:
+     scadas wipe device event stores on version mismatch, provably
+     harmless to obligations.)
    - **REST = the storefront.** Advertise market products + rulebook + slot
      schedule + latest cleared prices ("here is the market and here are the
      rules — go").
@@ -54,7 +62,10 @@ Status: Draft · Pass 0 · Updated 2026-06-09
 ## Open for the task-list session
 
 - Exact **cumulative-bid / queue-ordering / ack** semantics (sequence,
-  supersession, what the binding ack asserts; per-bid vs amortized admission).
+  supersession, per-bid vs amortized admission). Partially settled
+  2026-06-10: the ack's *constitutive* nature is decided (stored
+  timestamped ack = the contract, above); what remains open is what the
+  ack *asserts* about quantity/price/slot and how supersession reads.
 - **Trust + market substrate** — signed, distributed, non-hijackable (a chain's
   real draw is *anti-capture*, not throughput); framework-agnostic (econ-markets
   inv. 14), **not** committed. Two roles, likely different answers: credentials /
@@ -91,7 +102,7 @@ rebuild):
   [`../../research/gnode-taxonomy.md`](../../research/gnode-taxonomy.md) (currently
   Logical).
 - **Per-node unit (already designed):** compose
-  [`../../../gridworks-scada/designs/simulated-test-environment.md`](../../../gridworks-scada/designs/simulated-test-environment.md)
+  `../../../gridworks-scada/designs/simulated-test-environment.md`
   (a single simulated house on gwbase) up to fleet scale.
 - **gwbase primitives:** `GridworksActor`, `GNodeStubRecorder`,
   `TimeCoordinatorStubRecorder`.

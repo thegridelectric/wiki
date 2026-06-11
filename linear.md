@@ -7,7 +7,7 @@ Status: Accepted · Pass 2 · Updated 2026-06-08
 > WIP rule, and the design↔issue bijection. Linear is wired into Claude
 > sessions via the official remote MCP server. Setup/cleanup tasks that are
 > still *in flight* live in the design checklist
-> [`designs/linear-integration.md`](designs/linear-integration.md), not here.
+> `designs/linear-integration.md`, not here.
 
 ## The split: Linear vs. the wiki
 

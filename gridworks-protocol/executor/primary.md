@@ -79,9 +79,11 @@ Per the GridWorks repo-categorization vocabulary (3 axes):
 - **`gridworks-proactor`** — the primary consumer of `gwproto` today.
   Proactor's `Link`/transport machinery uses `Message`, `Header`,
   `MQTTCodec`, etc. from `gwproto`. The proactor itself has known issues
-  (single-downstream `Link`, no direct-to-GNodeAlias addressing — see
-  `wiki/gridworks-scada/explorations/transport-and-links.md`) and a
-  larger refactor is anticipated.
+  (single-downstream `Link`, no direct-to-GNodeAlias addressing,
+  peer/broker conflation — see
+  `wiki/gridworks-scada/executor/scada-ltn-link-state.md`; DECIDED
+  2026-06-11: the LTN goes gwbase and the link mechanism gets redone)
+  and a larger refactor is anticipated.
 - **`gridworks-scada`** — the largest consumer by import count (153
   files), but most of those imports point at types that **already exist
   in `gwsproto`** and only need their import path flipped. See

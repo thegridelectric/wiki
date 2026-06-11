@@ -32,5 +32,5 @@ discovery effort over legacy code.
 ## Cross-references
 
 - Legacy naming (e.g. `atn`→LTN) is canon in [`../glossary.md`](../glossary.md).
-- The rabbit-transport contrast and the LTN migration: [`explorations/transport-and-links.md`](explorations/transport-and-links.md) ↔ [`../gridworks-base/executor/primary.md`](../gridworks-base/executor/primary.md).
+- Transport: DECIDED 2026-06-11 — the LTN SHALL be gwbase (rabbit-native); the scada↔LTN link mechanism gets redone. Findings + critique: [`executor/scada-ltn-link-state.md`](executor/scada-ltn-link-state.md) ↔ [`../gridworks-base/executor/primary.md`](../gridworks-base/executor/primary.md).
 - mTLS / connection authority: [`../gridworks-fleet-index-service/`](../gridworks-fleet-index-service/).

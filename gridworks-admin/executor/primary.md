@@ -88,7 +88,7 @@ trust surface. The Principal model
 gives per-cert isolation between principal kinds (gnode / service /
 operator) — trust-realm separation is enforced at the cert and
 permission-map level, not at the broker boundary. This parallels
-the analytics-broker deferral ([`../../rmqbot/designs/analytics-broker-shovel.md`](../../rmqbot/designs/analytics-broker-shovel.md))
+the analytics-broker deferral (`../../rmqbot/designs/analytics-broker-shovel.md`)
 which landed at the same conclusion for the same reason.
 
 A dedicated admin broker stays as a future option if compliance,
@@ -317,7 +317,7 @@ per-device cert install.
   — when to add a gRPC pathway alongside the broker substrate
 - [`../../gridworks-fleet-index-service/explorations/principal-model.md`](../../gridworks-fleet-index-service/explorations/principal-model.md)
   — FIS-side auth model; operator is one Principal kind
-- [`../../rmqbot/designs/analytics-broker-shovel.md`](../../rmqbot/designs/analytics-broker-shovel.md)
+- `../../rmqbot/designs/analytics-broker-shovel.md`
   — same-reasoning analytics-broker deferral
 - [`../../gridworks-scada/explorations/non-gnode-interfaces.md`](../../gridworks-scada/explorations/non-gnode-interfaces.md)
   — original framing of admin as an open concern

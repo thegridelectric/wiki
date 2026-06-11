@@ -151,7 +151,7 @@ What gwbase would need to ship for either to work well:
 - **Graceful shutdown** — drain-pending-messages contract for
   testable shutdowns.
 - **Test harness** — `mock-transport-for-tests` is a design in
-  flight ([`../../designs/mock-transport-for-tests.md`](../designs/mock-transport-for-tests.md));
+  flight (`../../designs/mock-transport-for-tests.md`);
   does it grow as part of v-next?
 - **Settings-discovery / `.env` conventions** — do we want a standard
   way for an actor to print its effective settings on demand?
@@ -266,7 +266,7 @@ Fixes      = code PRs, hardware visits, design changes.
   `ServiceSettings` cleanup, journalkeeper's next release covers
   both architectural moves at once.
 - **Substrate update (2026-05-29):** the analytics broker is
-  [deferred](../../rmqbot/designs/analytics-broker-shovel.md);
+  deferred;
   journalkeeper consumes `ear_tx` directly on the prod broker via a
   non-durable, auto-delete queue with a read-only RMQ user. The
   alerter-framework consumes that stream rather than journaldb

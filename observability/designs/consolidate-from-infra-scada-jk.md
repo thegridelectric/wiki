@@ -63,7 +63,7 @@ decisions needed to ship a coherent v1.
 - **Substrate** — alerter consumes the analytics-broker event
   stream (which is the prod broker today, per the analytics-broker
   deferral at
-  [`../../rmqbot/designs/analytics-broker-shovel.md`](../../rmqbot/designs/analytics-broker-shovel.md)).
+  `../../rmqbot/designs/analytics-broker-shovel.md`).
 - **Log forwarder choice** — decide between per-host forwarder
   (Loki / similar) vs. logs-via-broker. See Architectural decisions
   below.
@@ -337,7 +337,7 @@ flexibly per gwbase release planning.
   — Wave-1 logging substrate (bijective format); the field-level Sema
   bijection lives in
   [`../../gridworks-base/explorations/logging-for-observability.md`](../../gridworks-base/explorations/logging-for-observability.md)
-- [`../../rmqbot/designs/analytics-broker-shovel.md`](../../rmqbot/designs/analytics-broker-shovel.md)
+- `../../rmqbot/designs/analytics-broker-shovel.md`
   — analytics broker deferred; alerter consumes prod broker for
   now
 - [`../../gridworks-journalkeeper/`](../../gridworks-journalkeeper/)

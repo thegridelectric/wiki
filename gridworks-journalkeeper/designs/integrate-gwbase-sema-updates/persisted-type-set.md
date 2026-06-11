@@ -1,6 +1,6 @@
 # Spoke B — persisted type-set (what JK ingests + stores)
 
-Status: Accepted · Pass 1 · Updated 2026-06-10 · Linear: OPS-386
+Status: Accepted · Pass 1 · Updated 2026-06-10 · Linear: OPS-386 · Reviewed 2026-06-10 (scada↔ltn live capture)
 
 > What this is: spoke of `integrate-gwbase-sema-updates` (hub: `primary.md`,
 > OPS-386). The mechanism and plan for **which message types JournalKeeper
@@ -42,7 +42,20 @@ to be in JK's **restricted sema snapshot** so the codec decodes it *strict*.
 persisting", `:162-167`). So every persisted type needs **two** edits:
 seed + persistor.
 
-## The add recipe (per type — cheap and repeatable)
+## The add recipe — two classes of type
+
+**Precondition: the type must be a faithful sema word.** JK can only journal
+strict what sema can decode strict. That splits the captured types in two:
+
+- **Already-clean sema words** (`gridworks.ack`, `gridworks.ping`, and the
+  already-handled `report.event` / `layout.lite` / forecasts /
+  `gridworks.event.problem`) → the **cheap recipe** below applies directly.
+- **Not-yet-faithful types** (the `gridworks.event.comm.*` family,
+  `gridworks.event.startup/shutdown`, `send.layout`, and the new
+  `peer.inactive`) → **model first** (see "Sema words this session owns"),
+  *then* run the recipe.
+
+**Cheap recipe (clean words):**
 
 1. **Seed** — add the type to `src/gjk/sema_seed_request.yaml`
    `initial_targets.types`, then regen: `scripts/regen_sema_snapshot.sh`
@@ -89,20 +102,111 @@ type's empty options to its single `None` version
 Do **not** use `include_all_versions` / `versions: [...]` for these — the
 `versions` list requires 3-digit strings (`:131`) and would raise.
 
-## The "few more" — discovery via the live rig
+## The "few more" — enumerated from the live capture (2026-06-10)
 
-The full set of startup/liveness/disconnect control messages JK should journal
-is not yet enumerated. **Discovery method:** a separate session stands up a real
-**LTN + scada** pair; **this session operates the rig** (per instructions that
-session will leave) to:
+A separate session stood up a real **LTN + scada** pair on `gw-dev-rabbit` and
+captured the full startup + steady-state exchange (wire + both process logs).
+The verified record is `wiki/gridworks-scada/executor/scada-ltn-link-state.md`
+("Observed startup sequence"). Cross-referenced against what JK already handles,
+the **new candidate types** for JK's set are:
 
-- capture **every message exchanged at startup** (the handshake/announce set),
-- **stop one side** (LTN or scada) and capture **what the other emits on loss
-  of contact** (the disconnect/timeout set).
+| Type | Note | Likely bucket |
+|---|---|---|
+| `send.layout` | LTN→scada layout request | per-type (check id/ts fields) |
+| `gridworks.event.startup` | process lifecycle | per-type |
+| `gridworks.event.shutdown` | process lifecycle | per-type |
+| `gridworks.event.comm.mqtt.connect` | link lifecycle (×3, one per link) | per-type |
+| `gridworks.event.comm.mqtt.fully.subscribed` | link lifecycle (×3) | per-type |
+| `gridworks.event.comm.peer.active` | peer-up | per-type |
+| `gridworks.event.comm.response.timeout` | ack timeout | per-type |
 
-Each distinct type observed becomes a candidate for the add-recipe above. Record
-the captured type list here as it firms up; that list is what turns "a few more"
-into a closed set.
+Each is its own `gridworks.event.*` TypeName (distinct topic). Run each through
+the add-recipe; the bucket (BASIC vs `MSG_ID_FIELDS` vs `MSG_CREATED_AT_FIELDS_*`)
+depends on whether the payload carries a `MessageId` / time field — decide
+per-type at impl, same as `ack`/`ping`. (Already-handled by JK and therefore
+**not** new: `report.event`, `layout.lite`, `heating.forecast`,
+`weather.forecast`, `gridworks.event.problem`. `snapshot.spaceheat` is emitted
+but JK deliberately skips it — `sema_message_persistor.py:35` "performance"; a
+decision to revisit, not a gap.)
+
+### Two findings that shape what JK *can* journal
+
+**1. Arrival at `ear_tx` is CONFIRMED (2026-06-10).** The capture is the
+**scada↔LTN MQTT path** (`gw/<src>/to/<dst>/<type-kebab>` topics), and the
+question was whether that traffic is mirrored into the AMQP `ear_tx` audit
+exchange JK consumes. warm-thorn confirmed it **does** — observed directly on
+`ear_tx` with a **mosquitto** subscriber (not JK). So the ear tap is fed by the
+scada↔LTN traffic; the emit-list above is therefore also the *arrival* list. The
+MQTT topic `gw.<src>.to.<dst>.<type-kebab>` (`/`→`.`) ends in the type token, so
+JK's bind `#.{type_name.replace(".","-")}` matches the trailing token — JK will
+ingest each type once it is seeded + listed in the persistor. A JK-side run
+would only add end-to-end proof through JK's *own* decode/persist (trusted for
+now, not gating).
+
+**2. On link-down, nothing is emitted live — and the fix is deliberately NOT an
+event.** The proactor's `CommEvent`s (`MQTTDisconnectEvent`,
+`ResponseTimeoutEvent`, …) ride the **stored-until-acked** event path, so they
+reach the wire **only after the link is already back** (capture, "Link-down
+behavior — the gap"). So the captured `gridworks.event.comm.*` types JK
+journals are an **after-the-fact record**, not a live outage signal — JK
+receives them post-recovery (stale, duplicated under the flap pathology).
+
+The scada-side game plan ("Change now") adds a **`peer.inactive`** signal that
+**will NOT be a `gridworks.event.*` / will NOT be an Event** — that is the
+point. Being an Event is exactly what makes the comm types ride the persist-
+then-upload path and arrive too late. `peer.inactive` is instead
+**fire-and-forget, unpersisted, semantically-named** (covers MQTT drop AND
+response-timeout AND any future way a peer vanishes), **published the moment a
+peer goes dark, straight out the announcer's own broker connection** — which is
+independent of the (now-dead) path to that peer, so any third party hears it
+immediately. (Frame this as plain broker reachability, **not** in terms of
+proactor "links" — the 1:1 link FSM is the very abstraction under critique, and
+the announcer's ability to publish depends only on its broker connection, not on
+any "link" to the vanished peer.) It is therefore the **only** signal that lets
+a tap learn of an outage *while it is happening*.
+
+**This is squarely JK's job.** The capture calls `peer.inactive` "the single
+most important thing a **third-party referee** could hear" — and JK *is* that
+referee/journal. So when its TypeName is coined, JK should both **ingest and
+persist** it (it is unpersisted *at the emitter*; JK is the durable "who went
+dark, when" record). Add it via the recipe then — note it will land in a
+`MSG_*`/`BASIC` bucket like any other type, **not** alongside the event family,
+and it is the one outage type JK can stamp with a real (live) `time_received`.
+
+## Sema words this session owns
+
+This session holds the **sema** claim, so the modeling work for JK's not-yet-
+faithful types is in-scope here (not punted upstream). Two kinds:
+
+**A. `peer.inactive` — a NEW word, bequeathed to this session (2026-06-10).**
+The fire-and-forget live outage signal (finding 2) does not exist yet; coining
+it is mine. Intended shape (to be fixed via the ritual, not pre-frozen here): a
+**versioned** type (per the house preference for versioned over versionless),
+serialized **CamelCase** fields, `TypeName` `peer.inactive`, carrying at least
+the announcer's alias, the peer that went dark, the cause (covers MQTT-drop AND
+response-timeout AND any future vanishing), and an emit timestamp. JK then
+**ingests + persists** it (the durable "who went dark, when" record).
+*Emit-side wiring (scada/LTN actually publishing it) stays with warm-thorn;*
+*this session owns only the sema type.* When picked up, likely its own Ops issue.
+
+**B. Faithful modeling of the captured `gridworks.event.*` / `send.layout`
+types.** For each not-yet-clean type: **capture** the wire instance → **inspect**
+its form → **trace** its source in `gridworks-proactor` / `gridworks-protocol`
+→ **author or verify** a sema word that faithfully captures it → then run the
+cheap recipe. (Some may already be sema words; some are proactor-internal
+pydantic and need a faithful sema type coined.)
+
+**Sema protocol (MUST, for both A and B):** before any sema edit, read
+`sema/CLAUDE.md` + `spec/primary.md` and use `/make-sema-word` (the per-word
+ritual + a Task Prompt). Universal MUSTs apply: CamelCase serialized fields,
+`TypeName` left.right.dot, formats immutable, enums additive, correct dependency
+declarations, `pytest` + registry validation green.
+
+> Out of scope here: hardening the `gw` envelope / its `Header` to be versioned
+> and to enforce `LeftRightDot` on alias fields. That is a **separate
+> gridworks-proactor design** (the relaxed link-local short names — `ltn`, `s`
+> — are proactor-internal addressing, so enforcement can't sit naively "at the
+> bottom"). Not a dependency of this spoke; noted only so it isn't re-derived.
 
 ## Acceptance / done-when
 
@@ -111,11 +215,21 @@ into a closed set.
 - A live or replayed `ack`/`ping` persists to `MessageSql` with the right
   `message_type_name`; no "degraded … not persisting" warning.
 - JK suite green.
-- The live-rig-discovered types are enumerated here and added via the recipe.
+- The captured types are modeled (clean word verified, or coined per "Sema
+  words this session owns") and added via the recipe.
+- `peer.inactive` sema word coined (versioned, via `/make-sema-word`) and JK
+  ingests + persists it.
 
 ## Open questions
 
 - `ping` placement: `BASIC_MSG_TYPES` vs `MSG_ID_FIELDS` (§ immediate targets).
-- Final type-set from the live rig — pending the LTN+scada capture session.
+- ~~Which captured types reach the tap~~ — **resolved**: confirmed on `ear_tx`
+  via mosquitto (§ finding 1). End-to-end through JK's own decode/persist is
+  trusted-for-now, not gating.
+- Per-type bucket for each `gridworks.event.*` (id/ts fields) — at impl.
+- Which captured types are already sema words vs need one coined (modeling §B).
+- `peer.inactive` field set + version — fix via the ritual, not here.
+- `snapshot.spaceheat`: revisit the deliberate skip?
 
-_(Resolved: versionless seed syntax — bare `{}`, § immediate targets.)_
+_(Resolved: versionless seed syntax — bare `{}`. Emit-side type-set —
+enumerated from the 2026-06-10 scada↔ltn capture.)_

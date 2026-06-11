@@ -108,6 +108,6 @@ CI test asserts both directions on a fixture corpus.
   — the bijective format this tool round-trips
 - [`../explorations/logging-for-observability.md`](../explorations/logging-for-observability.md)
   — the v-next concern that names these tools in its shipping list
-- [`../../observability/designs/consolidate-from-infra-scada-jk.md`](../../observability/designs/consolidate-from-infra-scada-jk.md)
+- `../../observability/designs/consolidate-from-infra-scada-jk.md`
   — the observability design where the broker-forwarding handler
   (which uses this codec) lands

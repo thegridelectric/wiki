@@ -44,7 +44,7 @@ you can knock out — often several at once — in a daily cleanup session.
 **Will concerns and findings stay in sync?** They will *if they never copy each
 other* — the only coupling is by ID/link:
 
-- A finding tags its parent concern: `Concern: [[transport-and-links]]`. That
+- A finding tags its parent concern: `Concern: [[liveness-and-sla]]`. That
   backlink is the single source of truth for the relationship.
 - A concern does **not** hand-maintain a list of its findings (that list would
   drift). Instead it says *"open findings: search `findings.md` for

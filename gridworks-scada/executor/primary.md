@@ -58,10 +58,13 @@ The `Scada` PrimeActor owns:
 
 Three MQTT links (gwproactor): `gridworks_mqtt` (upstream, to the LTN),
 `local_mqtt` (to Scada2 on the LAN), `admin` (the gridworks-admin UI).
-**Open:** the proactor link can't model multiple downstream SCADA; the LTN is
-moving off the proactor to rabbit-native; the SCADA↔LTN transport may itself
-become rabbit-native. See
-[`../explorations/transport-and-links.md`](../explorations/transport-and-links.md).
+**DECIDED (2026-06-11): the LTN SHALL BE gwbase (rabbit-native); the scada
+stays MQTT native** (a scada may want to be a parent itself; Pis run
+mosquitto, not rabbit) — both are axioms for the link-mechanism redo, which
+is itself decided: the proactor link is 1:1 by design, conflates peer with
+broker, and can't carry the multi-child aggregation future. Verified
+link-mechanism behavior + critique:
+[`scada-ltn-link-state.md`](scada-ltn-link-state.md).
 
 ### Hardware layout
 
@@ -138,11 +141,12 @@ Normative across the domain — full statements in
 | Hardware layout / actor graph | sub-spec **Open** | Open |
 | Boundary types (gwsproto / Sema) | sub-spec **Open** | Open |
 | Sieg loop (hydronic posture, HSM state) | brief account above; full eval **Open** (OPS-400) | acceptable-minimum |
-| Transport & links | design converging in [`../explorations/transport-and-links.md`](../explorations/transport-and-links.md) | Open |
+| Transport & links (LTN→gwbase decided; redo pending) | [`scada-ltn-link-state.md`](scada-ltn-link-state.md) | Draft |
 | Non-GNode interfaces (provisioning, certs, admin) | [`../explorations/non-gnode-interfaces.md`](../explorations/non-gnode-interfaces.md) | Open |
 | Dev/test environment (venv, `tools/`, by-hand bits) | [`environment.md`](environment.md) | Draft |
 | **Running an LTN + SCADA from a checkout** (cold start) | [`running.md`](running.md) | Draft |
 | Admin (operator surface; code in this repo, domain elsewhere) | [`admin.md`](admin.md) → `wiki/gridworks-admin/` | pointer |
+| SCADA↔LTN link state machine (proactor linking) | [`scada-ltn-link-state.md`](scada-ltn-link-state.md) | Draft |
 | Testing LTN↔SCADA (in-process harness) | [`testing.md`](testing.md) | Draft |
 | Experimentation rig (real-broker experiments) | [`experimentation-rig.md`](experimentation-rig.md) | Draft |
 

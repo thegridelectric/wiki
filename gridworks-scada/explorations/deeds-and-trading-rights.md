@@ -48,6 +48,29 @@ without the blockchain. This dovetails with the FIS / mTLS work in
 single authorized instance per node). Open: is the TerminalAsset deed a separate
 cert from the connection cert, or layered on it?
 
+## Mechanism requirements (merged 2026-06-10 from gridworks-infra `ltn/ltn-trading-rights.md`, now deleted)
+
+TradingRights authorize the LTN to enter Dispatch contracts with the
+SCADA and market contracts on its behalf. The working notes' four
+requirements on the proof mechanism:
+
+1. **Single authoritative answer** to "who can control this SCADA" —
+   ideally a shared registry.
+2. **Unforgeable identity**: the SCADA verifies the caller holds a
+   specific private key (or equivalent), not just a string alias.
+3. **Easy to audit and rotate**: moving the asset to a different LTN is
+   a single-record update; a compromised LTN key is revocable.
+4. **Uniqueness**: one concrete entity may hold the Dispatch Contract at
+   a time, demonstrated by TaTradingRights ownership.
+
+The notes proposed **building on the gwproactor active link** for the
+uniqueness leg (the one-active-parent property doubling as
+one-counterparty enforcement). Caveat added at merge: that same 1:1
+property is the link mechanism's *structural limitation* for the
+aggregation future (see `executor/scada-ltn-link-state.md`) — if the
+transport goes fan-out, uniqueness needs its own enforcement rather than
+riding the link topology.
+
 ## Open questions
 
 - Who is the third-party validator of GPS / asset-type / metering, and what does

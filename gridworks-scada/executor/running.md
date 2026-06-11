@@ -5,11 +5,11 @@ Status: Draft · Pass 0 · Updated 2026-06-10
 What this is: the go-to recipe for standing up a SCADA process and an LTN
 process from a gridworks-scada checkout — the first stop for any Claude
 (or human) who needs the things *running*, not just tested. Dry-run path
-verified 2026-06-10 on `jm/spruce-unlimbo` (`dab55d20` + the
-nolan-layout version fix); live-broker steps are `told` from
-[`experimentation-rig.md`](experimentation-rig.md) and the README until
-the hello-world verification pass (tracked in the spruce-unlimbo design)
-confirms them end to end.
+AND the scada leg of the live-broker path verified 2026-06-10 on
+`jm/spruce-unlimbo` (see "Verified live run" below); the LTN leg is
+`told` from [`experimentation-rig.md`](experimentation-rig.md) and the
+README until the hello-world verification pass (in the spruce-unlimbo
+design) confirms the pair end to end.
 
 ## 0 · Environment
 
@@ -79,6 +79,25 @@ and `LTN_SCADA_MQTT__{…same…}`.
   only auto-isolates XDG dirs under pytest).
 - Without `LTN_SCADA_MQTT__TLS__USE_TLS=false` it resolves TLS cert
   paths under `~/.config/gridworks/ltn/certs/…`.
+
+## Verified live run (2026-06-10, scada leg)
+
+`gws run` on `jm/spruce-unlimbo`, nolan layout, `SCADA_IS_SIMULATED=true`,
+against `gw-dev-rabbit` (the **preferred dev broker for running** —
+mosquitto is for pytest): all three links connect and reach
+`awaiting_peer` (see [`scada-ltn-link-state.md`](scada-ltn-link-state.md));
+GpioSensor zone actors, DerivedGenerator, LeafAlly all run. Two
+current caveats:
+
+- **`LocalControlTouBase.main` crashes at startup** on the nolan layout
+  (`'NoneType' object has no attribute 'handle'` — a House0 relay node
+  the layout lacks), and ~3.5 min later the **watchdog shuts the whole
+  process down** (dead actor → keepalive stops → monitored-communication
+  shutdown, as designed for systemd restart). Fix in flight in the
+  spruce-unlimbo design (simulated-actors spoke).
+- A stale persisted `SlowContractHeartbeat` v000 in the state dir is
+  rejected loudly by the now-v001 literal and ignored — harmless; clear
+  `~/.local/share/gridworks/scada/event/` remnants if the noise bothers.
 
 ## Open
 
