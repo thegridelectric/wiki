@@ -13,7 +13,11 @@ Status: Draft · Pass 0 · Updated 2026-06-11 · Linear: OPS-40
 > had been executing for momentum — this design now leads) and
 > `experimentation-tools.md` (replicable real-broker experiment toolset;
 > absorbed from world/designs/experimentation-harness 2026-06-11 — all
-> simulation/experimentation work consolidates here).
+> simulation/experimentation work consolidates here);
+> `sim-sensor-words.md` (the sema vocabulary for simulated sensor data —
+> joint session pending; moved from the closed hello-world design); and
+> `sim-time.md` (scada on coordinator timesteps — code census, the
+> 1-minute bridge for the existing proactor stack, watchdog-pat gate).
 
 ## Elevated to the top — comms-first (Jessica, 2026-06-11)
 

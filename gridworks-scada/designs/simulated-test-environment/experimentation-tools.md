@@ -52,6 +52,12 @@ one-call way to join an experiment** (tool 2 below).
    "recorder persistor" so it runs without a DB. This is also the
    capture half of observation-driven spec building (the hub's
    wire-view/protocol-view discipline).
+   **Hello-world counterpart (Jessica, 2026-06-11):** the terminalasset
+   hello-world shipped with nothing watching it — its "done" was a send
+   with no witnessed receive. Future hello-worlds (every new repo gets
+   one) need a one-command counterpart to spin up: this observer at
+   minimum, ideally plus a minimal echo ally, so a hello-world's first
+   heartbeat is *seen heard*, not just sent.
 4. **Single-emit driver.** Inject one typed `Message` into a running
    actor to trigger a specific publish, bypassing the heavy machinery.
 5. **Branch-pinning.** Declare, per experiment, that actor X runs with
