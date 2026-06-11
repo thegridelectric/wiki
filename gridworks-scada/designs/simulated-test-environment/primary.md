@@ -1,6 +1,6 @@
 # SCADA simulated test environment (hub)
 
-Status: Draft · Pass 0 · Updated 2026-06-11 · Linear: OPS-40
+Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-40
 
 > What this is: a design for a robust simulated test environment for the SCADA —
 > simple simulated terminal assets plus simulated sensor drivers (with a "cheat"

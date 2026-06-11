@@ -1,6 +1,6 @@
 # Sim time — running the scada on coordinator timesteps
 
-Status: Draft · Pass 0 · Updated 2026-06-11
+Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-40
 
 > What this is: simulated-test-environment spoke — what it takes for the
 > scada to run its time from a time coordinator's `sim.timestep`
@@ -108,10 +108,32 @@ therefore part of mechanism 3, not an afterthought: either pats and
 the manager's clock both move to sim time, or sim mode inflates
 monitored timeouts.
 
+## The bridge listener (built 2026-06-11, branch `jm/sim-time-bridge`)
+
+The timestep→ping trigger lives in a **small scada-side hook** (the
+open question, resolved): `gw_spaceheat/sim_time.py`, a minimal paho
+listener created behind `is_simulated` in the Scada actor. It
+subscribes to the MQTT form of the broadcast key
+(`rjb/d1-tc/time/sim-timestep`), parses the JSON by hand (OFI
+docstring: deliberately bypasses the gwsproto codec; dies in the
+uv/AllyLink rebuild), keeps a monotonic latest-sim-time, and pings
+upstream on each timestep. Broker-less unit tests cover advance /
+monotonic-guard / garbage paths.
+
+**The crossing needs one harness-owned broker binding:**
+`timemic_tx → amq.topic` (the MQTT plugin's exchange) — without it the
+TC's AMQP broadcasts never reach the MQTT side. That binding is
+harness provisioning glue (experimentation-tools territory), not scada
+code. Not yet wired into `ScadaLiveTest`; first live bridge run =
+tc-hello + the binding + a sim scada, watching the link stay active.
+
 ## Open
 
-- Whether the bridge's timestep→ping trigger lives in harness glue or
-  a small scada-side hook.
+- Wire the `timemic_tx → amq.topic` binding + tc-hello into the
+  harness and do the first live bridge run.
+- The LTN side of "ping/ack in both directions" (the hack MQTT LTN
+  needs the symmetric trigger, or its own keepalive suffices — observe
+  first).
 - Ready-barrier pacing (actors confirm processing before time
   advances) — gwbase bundles `Ready`; semantics to mine from the
   timecoordinator `legacy` branch.

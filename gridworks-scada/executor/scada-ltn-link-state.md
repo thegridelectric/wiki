@@ -455,7 +455,16 @@ heartbeat.a canon wrinkle to resolve). The extract also carries the
 AllyLink two-track program (scada AllyLink with the one-parent-per-
 MQTT-broker constraint; FULL AllyLink in gwbase; the lift-into-gwbase
 of persist-until-stored acks; the long-running fable session with its
-two standing charges). Then trim this executor doc back
+two standing charges). One more rider for the rebuild design (Jessica,
+2026-06-11, noted-not-designed): **a simulated scada must find it HARD
+or close to impossible to acquire a real-world TaDeed / validation** —
+the sim/real trust boundary is enforced at the deed, not by good
+intentions. Not being designed now; it factors into rebuild design
+decisions (identity, provisioning, what a scada can claim about
+itself), so the rebuild carries it as a standing constraint. Since the
+scada is being REBUILT as uv with the new mechanisms anyway,
+scada-side simulated-time machinery stays minimal until then (the
+sim-time spoke's bridge). Then trim this executor doc back
 to the verified account of what IS — the spec moves to the design, and
 this doc points at no designs.
 

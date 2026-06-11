@@ -12,6 +12,38 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-06-11 — Sim-time bridge: scada-side sim.timestep listener (OFI)
+
+**What:** On branch `jm/sim-time-bridge` (off `jm/spruce-unlimbo`): a
+minimal listener that subscribes over MQTT to the time coordinator's
+`sim.timestep` broadcasts, parses the JSON directly (deliberately
+bypassing the gwsproto codec — OFI: interim, dies in the uv/AllyLink
+rebuild), tracks latest sim time, and triggers the link keepalive per
+the bridge plan (1-minute timesteps feed ping/ack; existing scada/LTN
+stay wall-clock).
+
+**Why:** the sim-time spoke of the simulated-test-environment design
+(OPS-40, hub + spoke Accepted · Pass 1 2026-06-11) — the simplest
+scada-side hook for the bridge, per the decision to keep scada sim-time
+machinery minimal until the rebuild.
+
+## 2026-06-11 — Merge branch 'dev' into jm/spruce-unlimbo (`bb4f6294`)
+
+**What:** Merge commit bringing the branch up to current dev (docs
+additions, standby/ltn/sieg_loop updates). One conflict,
+`tests/config/nolan-layout.json` (both-added): resolved keeping the
+branch's version-bumped copy — RelayActorConfig `003` /
+I2cThermistorChannelConfig `001` — over dev's stale `002`/`000`; only
+those four Version lines differed.
+
+**Why:** keep the spruce-unlimbo working branch current with dev per
+its own design ("merge dev forward regularly"), and as the base for
+the upcoming sim-time bridge work, which branches off
+`jm/spruce-unlimbo`. The branch's bumped config versions are the ones
+its post-glean code requires (the poison-message lesson: stale-version
+payloads against post-bump code).
+
 ## 2026-06-10 — Bump nolan-layout config versions to match RelayActorConfig 003 / I2cThermistorChannelConfig 001 (`77d882ac`)
 
 **What:** In `tests/config/nolan-layout.json`: the
