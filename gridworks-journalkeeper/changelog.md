@@ -12,8 +12,7 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-06-12 — README: document the docker-gated integration test
+## 2026-06-12 — README: document the docker-gated integration test (`e9086c2`)
 
 **What:** README "Run tests" — note the suite includes a Layer-2 liveness test
 (`tests/test_live_amqp.py`) that stands up an ephemeral RabbitMQ + TimescaleDB

@@ -12,6 +12,21 @@ Newest at the top.
 
 ---
 
+## 2026-06-12 — Finish the ActorClass cascade + fix an immutability slip (`cc3fac8`)
+
+**What:** New versions `layout.lite/014` and `new.command.tree/002` re-point ShNodes
+to `spaceheat.node.gt/302` — `new.command.tree/002` **drops the multi-version
+`oneOf`** for a single clean `/302` (upgrade lifts old nodes). **Reverted** the
+in-place edit to non-draft `scada.control.capabilities/001` (immutability
+violation); its `/302` bump is deferred to the planned admin-for-nolan v002. Added
+an `extended_description` "back-dated-traffic anti-pattern" note to 6 old `oneOf`
+schemas (`new.command.tree/000`, `layout.lite/009/010/011`, `scada.params/004`,
+`report/002`).
+
+**Why:** complete the actor-class ripple through the published embedders while
+respecting immutability (non-draft schema = no functional change → new version).
+The old `oneOf` unions are flagged as a sema-bring-up lenience, not propagated.
+
 ## 2026-06-12 — `spaceheat.node.gt/302` + ActorClass cascade (`2b9e099`)
 
 **What:** New `spaceheat.node.gt/302` re-points `ActorClass` to `gw1.actor.class/012`

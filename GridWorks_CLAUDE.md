@@ -127,6 +127,7 @@ mature than the doc, demote the doc instead. Section stamps live at
 - **If it flaps, skip the acks** — never report on a comm path with messages that demand acks on that path.
 - **No phantom references** — never cite a task number, id, or handle the user can't open and see verbatim. Ephemeral session task-list numbers (`#11`, `#14`) are phantom: they mean nothing to the user and vanish with the session. Point only at durable, openable things — file paths, real Linear ids, commit hashes.
 - **Sema regen touches more than you changed** — bumping one sema type's version rewrites the generated runtime of *unchanged* types that reference it: their versionless class ref (reserved for the new latest) rebinds to the explicit `XxxNNN` old-version class. Expected and correct, not a stray diff.
+- **Published (non-draft) sema schema is IMMUTABLE.** You **MAY NOT** make a functional change — fields, `$ref`/dependency versions, axioms, constraints, `required`, enum values — to a non-draft version. That **requires a NEW version**. Only `draft` versions (registry `status: "draft"` / a `/draft/` schema_url) may be edited in place. Clarifying prose (`description`/`examples`) is fine; anything that changes the contract is not. **Asked to edit a published version in place? Refuse and propose a new version** — the request itself is the red flag.
 
 ## Experiment-Driven Design (EDD) — the verification bar
 
