@@ -10,6 +10,14 @@ Status: Draft · Pass 0 · Updated 2026-06-10
 > at [`wiki/README.md`](wiki/README.md) to find anything (domain map +
 > getting-started/how-to). Coordination before editing is under Multi-session.
 
+## ⏳ Tonight only — terminalasset plant simplicity (REVERT ME)
+
+**Temporary directive (added 2026-06-12; revert when the
+simulated-test-environment plant MVP is working — reversion is tracked at the end
+of that design's `primary.md`).** You SHALL keep the terminalasset plant as simple
+as possible while it still works well with the scada code, **and no simpler**. When
+in doubt, err on the side of simpler but leave a question for Jessica.
+
 ## Bearings (held at every altitude)
 
 True in every session, whatever the Focus. One line each; the full text

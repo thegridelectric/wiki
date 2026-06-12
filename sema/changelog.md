@@ -12,6 +12,40 @@ Newest at the top.
 
 ---
 
+## <!-- pending commit --> 2026-06-12 — Mint `sim.plant.actuation/000` + `change.relay.pin/000` enum
+
+**What:** New type `sim.plant.actuation/000` — the actuation *event* a SimRelayActor
+sends to the plant: `RelayName` + `Action` (Energize/DeEnergize via the new
+`change.relay.pin` enum) + `ActuationTimeUnixMs` (sim time) + `ActualTimeUtc`
+(human-readable). New string enum `change.relay.pin` (DeEnergize/Energize),
+mirroring gwsproto's `ChangeRelayPin`. Regenerated indexes + runtime.
+
+**Why:** The inverse boundary of `sim.plant.flux`: a simulated relay sends its
+energize/de-energize event — the i2c multiplexer's atomic pin action, *not* the
+closed/open interpretation (which depends on wiring) — into the plant, which
+resolves the physical effect from the layout. Modeled as an event, not a state,
+because actuation is an event. `change.relay.pin` was minted because sema had only
+`change.relay.state` (CloseRelay/OpenRelay = the wiring-dependent closed/open
+framing) and `relay.energization.state` (a state).
+
+## 2026-06-12 — Mint `sim.plant.flux/000`, the simulated plant's source emission (`386ea55`)
+
+**What:** New versioned type `sim.plant.flux/000` (+ registry entry, regenerated
+indexes/runtime, filled `ListLengthConsistency` axiom template). Fields:
+`ChannelNameList` + `ValueList` (index-aligned), `ScadaReadTimeUnixMs` (sim time,
+`utc.milliseconds`), `ActualTimeUtc` (wall-clock, human-readable
+`utc.iso8601.millis`). No `Simulates*` identity fields. Bumped
+`metadata.last_updated` to 2026-06-12.
+
+**Why:** The simulated terminal asset (gwta) emits its physical state as
+`sim.plant.flux`; the scada-side sim sensor reads and *interprets* it into
+`synced.readings` (and electrical/other derived signals later). It is the
+plant-emits/sensor-reads boundary word of the SCADA simulated test environment
+(OPS-40). Two timestamps because under sped-up coordinator time the sim clock
+outruns the wall clock — `ActualTimeUtc` is human-readable provenance for CSVs,
+not consumed downstream. `Simulates*` was dropped deliberately: the plant's raw
+emission must not presume its destination.
+
 ## 2026-06-10 — Runtime ruff-clean at source: generator formats, drift guards compare formatted (`cdeba05`)
 
 **What:** `generate_runtime_from_dag` now runs `ruff format` (`format_in_place`)

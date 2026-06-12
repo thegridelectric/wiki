@@ -12,8 +12,29 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-06-11 — README: gwbase 0.5.2 + the vendored sema snapshot
+## 2026-06-12 — Settings: reparent JK onto gwbase ServiceSettings (tap tier) (`0b7c2e0`)
+
+**What:** `src/gjk/config.py` — `Settings(GNodeSettings)` → `Settings(ServiceSettings)`.
+Drop the GNode-only fields JK never used (`g_node_alias`, `g_node_id`,
+`world_instance_alias`); make `service_alias: LeftRightDot = "d1.journal"`
+first-class (overridable via `GJK_SERVICE_ALIAS`) and add
+`service_name = "journalkeeper"` (the XDG path segment for logs/state). Scrub the
+now-dead `GJK_G_NODE_PATH` plumbing from `template.env` (replaced with a
+`GJK_SERVICE_ALIAS` comment) and from the local `.env`. Delete the tracked
+`g_node.json` — a `ServiceSettings` tap has no GNode identity file to load.
+Drive-by: fix a `test_journal_keeper.py` docstring that still claimed
+`ActorBase.__init__` needs `g_node.json` on disk.
+
+**Why:** JK is a *tap*, not a GNode — its actor was already `ActorBase`, but its
+settings still inherited `GNodeSettings`, carrying GNode identity (and a
+`g.node.gt.json` file) it never loads usefully. `ServiceSettings` is the gwbase
+0.5.x tier for riding the rabbit + sema toolkit without GNode identity. This is
+OPS-386 hub item #2 (`integrate-gwbase-sema-updates`, spoke
+`gwbase-tier-migration`) — the last open remainder now that gwbase 0.5.2 is on
+PyPI and the snapshot regen has landed. Sheds `g_node.json` entirely; logs land
+under `state_dir("journalkeeper")`.
+
+## 2026-06-11 — README: gwbase 0.5.2 + the vendored sema snapshot (`8a08ac8`)
 
 **What:** README intro — note JK runs on `gridworks-base ≥ 0.5.2` and decodes
 with a restricted, vendored Sema runtime at `src/gjk/sema`, generated from

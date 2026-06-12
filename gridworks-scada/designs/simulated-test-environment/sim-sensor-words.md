@@ -1,6 +1,6 @@
 # Sim-sensor words — the vocabulary for simulated sensor data
 
-Status: Draft · Pass 0 · Updated 2026-06-11
+Status: Accepted · Pass 1 · Updated 2026-06-12 · Linear: OPS-40
 
 > What this is: simulated-test-environment spoke — choosing the initial
 > sema words a simulated terminal asset uses to report simulated sensor
@@ -94,3 +94,66 @@ snapshot-first lean below.
 The thread through all six: the simulated source should look like a
 **very honest pico** — the same reception pattern the scada already
 trusts, minus the hardware fictions.
+
+## Decided 2026-06-12: `sim.plant.flux`
+
+**The plant emits; the sensor reads.** Two roles, two words: the plant *is* the
+physical world (gwta physics) and radiates its own state; a **sensor** (the
+scada-side SimSensorActor) reads that and reports **`synced.readings`** to the
+ShNodes, exactly as a real sensor reads a thermistor. **Nothing is a "reading"
+until something has read it** — so the plant's word is explicitly *not*
+`sim.synced.readings`. (At full fidelity the plant emits *physics* — a depth at
+48.5 °C — and the sensor converts it to a channel + scaled-int; in the MVP the two
+collapse, but the role names keep the seam where it belongs.)
+
+**The word: `sim.plant.flux`.** Flux is never something a body *has* — it is always
+flux *through* a surface, defined by the coupling between what's radiated and the
+aperture it crosses. That builds the perceiver↔emitter exchange into the word: the
+reading is the flux the **sensor's aperture** couples to (its channels, its
+`AsyncCaptureDelta` — the surface it holds up to the plant). It avoids privileging
+one side the way "truth" would (the plant has truth, the sensor degrades it), and
+it dodges scada's overloaded FSM "state." Magnetic, relational, quantizable — and
+a deliberate **Tesla** nod (he was onto something). The chosen-over alternative,
+`sim.plant.state`, was easy but one-sided and collides with machine-state naming.
+**The sema `description` SHALL carry this rationale (the flux-is-coupling reasoning
++ the Tesla call-out)** so the word teaches itself when stared at.
+
+It is the terminal asset's native **source word** — paralleling the source words a
+real pico emits (`microvolts`, `multichannel.snapshot`) that the receiving actor
+*converts* into `synced.readings` (decision point 6, "a very honest pico"). Shape
+(settled):
+
+- `ChannelNameList`, `ValueList`, `ScadaReadTimeUnixMs` — `ScadaReadTimeUnixMs`
+  (unix ms) is the **sim time**, the source's truth-time, passing straight into
+  `synced.readings.ScadaReadTimeUnixMs` downstream;
+- **plus `ActualTimeUtc`** — the wall-clock time it crossed the wire, in
+  **human-readable ISO 8601, millisecond precision** (`utc.iso8601.millis`, Joe's
+  format). It is provenance for a human reading a sped-up-time CSV, not consumed
+  by the conversion — so it reads as a timestamp, not a number;
+- equal-length axiom (`len(ChannelNameList) == len(ValueList)`);
+- **No `Simulates*` fields.** An earlier draft pinned the word to
+  `synced.readings` via `SimulatesTypeName`/`SimulatesVersion` consts; dropped
+  (Jessica, 2026-06-12) — the plant's raw emission must not presume its
+  destination. The **reader interprets** the flux (into `synced.readings` now,
+  electrical and other derived signals later).
+
+**Why both times.** Under sped-up coordinator time the sim clock outruns the wall
+clock, so the emission has two honest timestamps: the sim time it represents and the
+real time it crossed the wire. Keeping both at the sim boundary is what lets a CSV
+produced under sped-up time be reordered/latency-checked against reality (the
+fidelity-ladder north star). The scada never sees the split: the **SimSensorActor
+ingests the word, keeps `ActualTimeUtc` for the log/CSV, and re-emits plain
+`synced.readings`** (`ScadaReadTimeUnixMs` = sim time) to the ShNodes — the real
+ingestion path untouched.
+
+**The word lives in both snapshots.** Because the scada's SimSensorActor must
+*decode* it to read it, the word is baked into **both** the gwta snapshot (to
+encode/emit) **and** the scada's gwsproto snapshot (to decode/read). It is a
+sim-**boundary** word carried by both carriers; what stays internal to the scada's
+ShNodes is `synced.readings`, not the source word.
+
+This settles decision point 4 (Timestamps — both kept, never conflated) and points
+"one word or two" at **plant source word → synced readings** (the actor converts),
+rather than the async-single spine the earlier hypothesis leaned toward. Minting
+runs through `/make-sema-word` (read `sema/CLAUDE.md` first); it lands in `sema/`,
+a separate claim from this session.

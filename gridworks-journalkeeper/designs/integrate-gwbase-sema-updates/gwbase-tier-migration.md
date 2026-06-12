@@ -1,6 +1,6 @@
 # Spoke A — gwbase tier-model migration
 
-Status: Accepted · Pass 1 · Updated 2026-06-10 · Linear: OPS-386
+Status: Accepted · Pass 1 · Updated 2026-06-12 · Linear: OPS-386
 
 > What this is: spoke of `integrate-gwbase-sema-updates` (hub: `primary.md`,
 > OPS-386). The concrete plan for hub item **#2** — moving JournalKeeper's
@@ -124,12 +124,20 @@ with no change. (The live-test repoint lived only in the runner scripts
 
 ## Acceptance / done-when
 
-- `Settings(ServiceSettings)`; no `g_node_*` / `world_instance_alias` fields.
-- `service_alias` defaulted + `GJK_SERVICE_ALIAS`-overridable; nothing reads
-  `g_node_alias`.
-- JK starts and persists against published `gridworks-base>=0.5.2` with no
-  sibling checkout (the hub's live-test, re-run from PyPI base).
-- JK suite green; logs land under `state_dir("journalkeeper")`.
+- ✅ `Settings(ServiceSettings)`; no `g_node_*` / `world_instance_alias` fields
+  (`config.py`). `g_node.json` deleted (tracked file removed).
+- ✅ `service_alias` defaulted (`"d1.journal"`) + `GJK_SERVICE_ALIAS`-overridable;
+  nothing reads `g_node_alias`. `template.env` / `.env` `GJK_G_NODE_PATH` scrubbed.
+- [ ] JK starts and persists against published `gridworks-base>=0.5.2` with no
+  sibling checkout (the hub's live-test, re-run from PyPI base). **Pending** —
+  a sanity re-run (hub item #4), not an experiment; the updated JK was already
+  live-tested against prod this session. In-process suite + `Settings()`
+  construction smoke are green (20 passed).
+- ✅ JK suite green (20 passed); logs land under `state_dir("journalkeeper")`.
+
+**Status:** code migration landed (in working tree, pending commit). The
+remaining done-when is the live-rig re-run against PyPI base — verification, not
+code.
 
 ## Open questions
 

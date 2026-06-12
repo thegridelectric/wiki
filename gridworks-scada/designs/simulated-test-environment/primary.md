@@ -4,8 +4,14 @@ Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-40
 
 **▶ Active spoke: `simulated-actors.md`.** SimSensor experiment **step 1
 passed** (a SimSensor output exactly the 20 sensor channels/units, witnessed).
-Current move: raise it onto the real path — real `SyncedReadings` on real
-topics, its own rabbit broker (data-outage test), plant-driven values, then the
+The **plant I/O contract is now specified** (2026-06-12): the closed loop with
+LocalControl — channels the plant emits, relay commands it consumes, the
+`usable`/`required` energy DAG. Two settled decisions: the plant's source word
+is **`sim.plant.flux`** (`sim-sensor-words` spoke — the plant emits, the sensor
+reads; SimSensorActor converts it to `synced.readings`), and the forecast inputs
+are **a secret weather file + `flo.params.house0.json`** (`heating_forecast` is
+derived from them, not supplied). Current move: mint `sim.plant.flux`
+(`/make-sema-word`), build the plant + SimSensor in gwta, then the
 10-min-no-watchdog scada + dashboard run. Detail in that spoke's "DO THIS NEXT".
 (Convention: while a design is active, its active spoke is highlighted here at
 the top of the hub, so it can't get lost across files.)
@@ -235,12 +241,14 @@ lost):**
 - **Cheat vs broker as the default.** Is the common case direct value injection
   (fast, deterministic, no broker) with broker-mode reserved for true
   end-to-end tests? Likely yes — confirm and make cheat the unit-test default.
-- **Where the simulated terminal asset lives** — leaning (2026-06-11) toward
-  **its own repo, `gridworks-terminalasset`**, built on gridworks-base: gwbase
-  stays the base library, domain GNode actors live in their own repos (the
-  MarketMaker pattern), and the terminal asset is the seed of the live
-  simulated fleet, not a test utility. Alternative considered: inside
-  gridworks-base proper (couples gwbase releases to sim iteration).
+- ~~Where the simulated terminal asset lives~~ — **decided (2026-06-11): its
+  own repo, `gridworks-terminalasset`**, built on gridworks-base, now scaffolded
+  (a hello terminal asset connecting to dev rabbit, on the `gwta` GNode pattern
+  that mirrors `gridworks-timecoordinator`'s `gwtc`). gwbase stays the base
+  library; domain GNode actors live in their own repos (the MarketMaker
+  pattern); the terminal asset is the seed of the live simulated fleet, not a
+  test utility. Alternative rejected: inside gridworks-base proper (would couple
+  gwbase releases to sim iteration).
 - **Telemetry namespace.** The terminal asset's synthetic sensor stream is rig
   plumbing, not parent/child contract traffic — lean toward a distinct sim
   routing class on the fabric rather than the `gw/<src>/to/<dst>/<type>`
@@ -268,3 +276,10 @@ lost):**
   component types).
 - Relationship: subsumes OPS-40's original `gen_orange` dev-layout checklist;
   related to **OPS-118** (Dev mosquitto in Docker — the dev broker).
+
+## TODO — revert the tonight-only CLAUDE.md directive
+
+A temporary directive was added to `GridWorks_CLAUDE.md` (2026-06-12): "keep the
+terminalasset plant as simple as possible … and no simpler; when in doubt err
+simpler and leave a question." **Revert that section from `GridWorks_CLAUDE.md`
+once the plant MVP (Phase A comms pipe + best-guess physics) is working.**

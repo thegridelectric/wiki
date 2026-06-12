@@ -52,7 +52,7 @@ strict what sema can decode strict. That splits the captured types in two:
   `gridworks.event.problem`) → the **cheap recipe** below applies directly.
 - **Not-yet-faithful types** (the `gridworks.event.comm.*` family,
   `gridworks.event.startup/shutdown`, `send.layout`, and the new
-  `peer.inactive`) → **model first** (see "Sema words this session owns"),
+  `ally.inactive`) → **model first** (see "Sema words this session owns"),
   *then* run the recipe.
 
 **Cheap recipe (clean words):**
@@ -151,10 +151,10 @@ behavior — the gap"). So the captured `gridworks.event.comm.*` types JK
 journals are an **after-the-fact record**, not a live outage signal — JK
 receives them post-recovery (stale, duplicated under the flap pathology).
 
-The scada-side game plan ("Change now") adds a **`peer.inactive`** signal that
+The scada-side game plan ("Change now") adds a **`ally.inactive`** signal that
 **will NOT be a `gridworks.event.*` / will NOT be an Event** — that is the
 point. Being an Event is exactly what makes the comm types ride the persist-
-then-upload path and arrive too late. `peer.inactive` is instead
+then-upload path and arrive too late. `ally.inactive` is instead
 **fire-and-forget, unpersisted, semantically-named** (covers MQTT drop AND
 response-timeout AND any future way a peer vanishes), **published the moment a
 peer goes dark, straight out the announcer's own broker connection** — which is
@@ -178,12 +178,12 @@ and it is the one outage type JK can stamp with a real (live) `time_received`.
 This session holds the **sema** claim, so the modeling work for JK's not-yet-
 faithful types is in-scope here (not punted upstream). Two kinds:
 
-**A. `peer.inactive` — a NEW word, bequeathed to this session (2026-06-10).**
+**A. `ally.inactive` — a NEW word, bequeathed to this session (2026-06-10).**
 The fire-and-forget live outage signal (finding 2) does not exist yet; coining
 it is mine. Intended shape (to be fixed via the ritual, not pre-frozen here): a
 **versioned** type (per the house preference for versioned over versionless),
-serialized **CamelCase** fields, `TypeName` `peer.inactive`, carrying at least
-the announcer's alias, the peer that went dark, the cause (covers MQTT-drop AND
+serialized **CamelCase** fields, `TypeName` `ally.inactive`, carrying at least
+the announcer's alias, the ally that went dark, the cause (covers MQTT-drop AND
 response-timeout AND any future vanishing), and an emit timestamp. JK then
 **ingests + persists** it (the durable "who went dark, when" record).
 *Emit-side wiring (scada/LTN actually publishing it) stays with warm-thorn;*
@@ -217,19 +217,6 @@ declarations, `pytest` + registry validation green.
 - JK suite green.
 - The captured types are modeled (clean word verified, or coined per "Sema
   words this session owns") and added via the recipe.
-- `peer.inactive` sema word coined (versioned, via `/make-sema-word`) and JK
+- `ally.inactive` sema word coined (versioned, via `/make-sema-word`) and JK
   ingests + persists it.
 
-## Open questions
-
-- `ping` placement: `BASIC_MSG_TYPES` vs `MSG_ID_FIELDS` (§ immediate targets).
-- ~~Which captured types reach the tap~~ — **resolved**: confirmed on `ear_tx`
-  via mosquitto (§ finding 1). End-to-end through JK's own decode/persist is
-  trusted-for-now, not gating.
-- Per-type bucket for each `gridworks.event.*` (id/ts fields) — at impl.
-- Which captured types are already sema words vs need one coined (modeling §B).
-- `peer.inactive` field set + version — fix via the ritual, not here.
-- `snapshot.spaceheat`: revisit the deliberate skip?
-
-_(Resolved: versionless seed syntax — bare `{}`. Emit-side type-set —
-enumerated from the 2026-06-10 scada↔ltn capture.)_

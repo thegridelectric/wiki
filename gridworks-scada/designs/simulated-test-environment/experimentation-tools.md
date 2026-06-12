@@ -1,6 +1,6 @@
 # Experimentation tools — replicable real-broker experiments
 
-Status: Draft · Pass 0 · Updated 2026-06-11
+Status: Accepted · Pass 1 · Updated 2026-06-12 · Linear: OPS-40
 
 > What this is: simulated-test-environment spoke — the toolset that makes
 > standing up a multi-actor, real-broker experiment a few lines instead of

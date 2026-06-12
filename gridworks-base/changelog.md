@@ -12,8 +12,7 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-06-11 — README: document the MQTT bridge tap
+## 2026-06-11 — README doc on MQTT bridge tap (`e1a5fdf`)
 
 **What:** README "Dev Rabbit Broker" — note that `gwbase.topology` bridges the
 TimeCoordinator publish exchange to the MQTT plugin's `amq.topic` (the `rjb.#`

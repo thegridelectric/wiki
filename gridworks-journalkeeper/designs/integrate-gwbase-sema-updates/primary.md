@@ -1,6 +1,6 @@
 # Integrate gwbase + sema updates into JournalKeeper
 
-Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-386
+Status: Accepted · Pass 1 · Updated 2026-06-12 · Linear: OPS-386
 
 > What this is: the **hub** of the design to finish moving
 > `gridworks-journalkeeper` onto the upgraded **gwbase 0.5.x** (three-tier
@@ -8,15 +8,14 @@ Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-386
 > toolchain (OPS-380), now that both upstreams have landed their relevant work.
 > Spokes split off this hub as the plan firms up (one per workstream).
 
-**▶ Active spoke: `gwbase-tier-migration.md` (hub item #2). DO THIS FIRST —**
-the gwbase **`ServiceSettings` tap-tier migration**: move JK off
-`Settings(GNodeSettings)` (`src/gjk/config.py`) onto `ServiceSettings` /
-`ActorBase` — first-class `service_alias`, plain-XDG paths, no GNode identity.
-**This is the one open remainder.** The other halves are done: the sema
-restricted-snapshot toolchain shipped, and the gwbase-0.5.2 PyPI prerequisite
-is cleared (JK is pinned `>=0.5.2`). So it's now actionable — and it is *why
-OPS-386 is still In Progress*. (Convention: while a design is active, its
-active spoke is highlighted here at the top of the hub.)
+**▶ Active spoke: `gwbase-tier-migration.md` (hub item #2). CODE LANDED
+(pending commit) —** the gwbase **`ServiceSettings` tap-tier migration** is done
+in the working tree: `Settings(GNodeSettings)` → `ServiceSettings`
+(`src/gjk/config.py`), first-class `service_alias`, `g_node.json` deleted, no
+GNode identity. JK suite green (20 passed) + `Settings()` construction smoke
+green. **Remaining: the live-rig re-run** against PyPI base (the only open
+done-when — verification, hub item #4), then commit. (Convention: while a design
+is active, its active spoke is highlighted here at the top of the hub.)
 
 ## Spokes
 
@@ -77,19 +76,18 @@ distilled into `gridworks-base/executor/transport.md`). JK is a *tap* whose
 actor is already `ActorBase`; only the settings class lags. **Detailed in spoke
 `gwbase-tier-migration.md`.** Summary:
 
-- [ ] Reparent `Settings` → `ServiceSettings` (drop `GNodeSettings`); remove the
-  GNode-only fields (`g_node_alias`, `g_node_id`, `world_instance_alias`).
-- [ ] Make `service_alias` first-class (replace the `g_node_alias`/`.env` hack).
-- [ ] **Paths — RESOLVED: plain XDG from gwbase** (`gwbase/config/paths.py`,
-  tests redirect via bare `XDG_*`). Dropping `GNodeSettings` means JK **sheds
-  the `g.node.gt.json` file entirely** — no g-node file to relocate. **Not**
-  proactor's `Paths` and **not** the `<PREFIX>_PATHS__BASE/NAME` idiom: that's
-  the on-device proactor world (scada/LTN); all *cloud* actors are gwbase, so
-  cloud = plain XDG. The old "pattern the LTN and scada use" wording was a
-  mis-anchor. The only sub-decision left is `.env` location (cwd vs XDG config
-  dir).
-- [ ] Point CI at the published `gridworks-base` (drop any sibling-checkout
-  assumption).
+- [x] Reparent `Settings` → `ServiceSettings` (drop `GNodeSettings`); remove the
+  GNode-only fields (`g_node_alias`, `g_node_id`, `world_instance_alias`). **Done**
+  (in working tree, pending commit) — also deletes the tracked `g_node.json`.
+- [x] Make `service_alias` first-class (replace the `g_node_alias`/`.env` hack).
+  **Done** — defaulted `"d1.journal"`, `GJK_SERVICE_ALIAS`-overridable; `.env` /
+  `template.env` `GJK_G_NODE_PATH` scrubbed.
+- [x] **Paths — plain XDG from gwbase.** Dropping `GNodeSettings` sheds the
+  `g.node.gt.json` file entirely (deleted). `service_name="journalkeeper"` set;
+  logs land under `state_dir("journalkeeper")`. `.env` stays at cwd for now
+  (the low-stakes sub-decision; not worth a relocation).
+- [x] CI — no change needed: `pyproject` already pins `gridworks-base>=0.5.2`
+  from PyPI, no sibling-checkout in CI (spoke §5).
 
 **3. JK persisted type-set — `gridworks.ack`, `gridworks.ping`, + more.**
 **Detailed in spoke `persisted-type-set.md`.** Both are versionless sema types;
@@ -105,9 +103,10 @@ runner script (`scripts/point_at_prod_persist.py`, reverting the dev-local
 
 ## Recommendation / sequencing
 
-**#1 is done.** Next is **#2 (gwbase tier-model migration)** — now fully
-unblocked (0.5.2 published, data-loss bug fixed). #3 can be filed in parallel;
-#4 closes the session.
+**#1 and #2's code are done** (#2 pending commit + the live-rig re-run). Next is
+**#3 (persisted type-set)** — fileable in parallel — and **#4** (live-test
+re-run against PyPI base, which also closes #2's last done-when, + session
+loose ends).
 
 ## Open questions / blockers
 

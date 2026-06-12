@@ -10,30 +10,28 @@ Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-40
 > was elevated to the top. Still serves spruce-unlimbo's merge gate
 > (testing green for both layouts).
 
-## DO THIS NEXT — the SimSensor experiment (2026-06-11)
+## The task — comms first, then the model (see the build spokes)
 
-**Step 1 — DONE (PASS).** A thin SimSensor, configured generically from
-`house0.imaginary`'s sensor channels, output **exactly** the 20 sensor
-channels/units (3 Power, 8 Temperature, 9 Voltage), witnessed by an
-independent observer — 0 missing, 0 extra, quantity-consistent. Reproducer
-`sim-time-experiment/sim_sensor_experiment.py`; worked example in
-`../../experiments/logbook.md`.
+Step 1 (SimSensor output shape) **passed** (a thin SimSensor output exactly the
+20 sensor channels/units, witnessed; reproducer
+`sim-time-experiment/sim_sensor_experiment.py`). The build now lives in two
+sibling spokes, done **concurrently** (the closed loop needs both ends):
 
-**Next move — build the real SimSensor in `gridworks-terminalasset`.** The
-SimSensor is a **native gwbase entity** in `gridworks-terminalasset/src/gwta`
-(the simulated terminal asset), publishing synthetic sensor telemetry over
-**rabbit** — *not* a scada actor (Jessica, 2026-06-11). The paho stand-in above
-proved the output shape; now make it real there, on the gwbase GNode pattern
-(cf. `gridworks-timecoordinator`'s `gwtc`). Then:
-1. Publish the **real `SyncedReadings`** type on the real channel topics.
-2. The terminal-asset stream is its **own rabbit broker/exchange** — killing it
-   is a one-command **data-outage** test (the field blackhole in
-   `executor/scada-ltn-link-state.md`).
-3. Drive values from the **plant** (the terminal asset's physics), not scripted
-   constants.
-4. **Scada side:** a `SimSensorActor` *ingests* that stream and relays to the
-   ShNodes — the producer lives in gwta, the ingestion lives in scada. Wire it
-   into the real scada + LTN dashboard (the **10-min-no-watchdog-death** run).
+- **`build-plant.md`** — the gwta TerminalAsset that emits `sim.plant.flux`.
+- **`sim-sensor-actor.md`** — the scada-side actor that reads it into
+  `synced.readings`.
+
+**The method — garbage values first, real plumbing.** First hack a plant that
+emits **format-correct `sim.plant.flux` with synthetic (random / constant /
+sawtooth) values** on the correct channels, and get the **whole message-passing
+loop working** — through the SimSensorActor, the ShNodes, derived energy,
+LocalControl, the relays, and the **10-min-no-watchdog dashboard run**. *Then*,
+once comms holds, follow EDD to build the plant's actual **physics model** (the
+first-pass thermocline below). Fidelity is earned against a working loop, not a
+prerequisite for it.
+
+This spoke keeps the physics **model** and the closed-loop **I/O contract**; the
+build steps live in the two spokes above.
 
 (Reuse, not rebuild — sensors publish the same reading types real sensor
 actors do; actuators reuse `SingleMachineState`. The generic config is bound
@@ -51,8 +49,8 @@ mining needed:**
   below, a thermocline boundary between them; charging pushes the thermocline
   *down* (hot fills from the top), discharging lets it rise. Each tank-depth
   temperature follows which side of the thermocline that depth is on.
-- **A heat pump that puts out a target water temperature matching the hottest
-  water in the store.** HP-on charges the store at that temp.
+- **A heat pump that always puts out 160 °F** (the imaginary scenario's fixed HP
+  output — no curve, no defrost). HP-on charges the store at 160 °F.
 - The buffer tank rides the same logic at the buffer level.
 - **Constant heat call**, with a **20° drop across the house at 2 gpm** (the
   distribution/load loop) and a **20° rise across the heat pump at 4 gpm** (the
@@ -72,6 +70,146 @@ charge/discharge relay state — without a thermodynamic model.
 - **The FLO / optimizer** — moved out of open source into the private
   **`gridworks-innovations`** repo (a `flo.py` stub remains at
   `actors/ltn/flo.py`); read the current optimizer there directly.
+
+## The plant's I/O contract — closed loop with LocalControl (2026-06-11)
+
+The plant is defined by the loop it closes with control: it **listens** to the
+relay commands LocalControl emits and **produces** exactly the sensor channels
+LocalControl reads back. Tracked through `local_control/` → `ShNodeActor` →
+`derived_generator.py` so the model is grounded, not guessed.
+
+**What the plant must EMIT (the channels control consumes).** All temps are
+`WaterTempCTimes1000` unless noted; names are `H0CN`:
+
+- **Store tank depth temps** — `tank{1..N}-depth{1,2,3}` (N = `TotalStoreTanks`,
+  3 for the store). These are the thermocline, and the *only* temperature input
+  to `usable-energy` in AllTanks mode (see the DAG below).
+- **Buffer depth temps** — `buffer-depth{1,2,3}`. Gate everything:
+  `buffer_temps_available` (`sh_node_actor.py:1340`) must be true or
+  `derived_generator` emits no energy at all. Also drive `is_buffer_empty/full`.
+- **Entering-water temp** — `store-cold-pipe` (or `hp-ewt`). The "can't charge
+  further" ceiling: `is_storage_ready` declares ready once it crosses
+  `params.MaxEwtF` (`all_tanks_tou.py:317-330`). Plus `store-hot-pipe`,
+  `buffer-cold-pipe`/`buffer-hot-pipe`, `dist-swt`/`dist-rwt`.
+- **HP power** — `hp-odu-pwr` (+ `hp-idu-pwr`), `PowerW`. Two readers:
+  `hp_in_defrost()` (`sh_node_actor.py:1319`) and the closed-loop verify the
+  capability design wants (below).
+- **Zone temps** — `zone{N}-...-temp`, `AirTempFTimes1000`. `is_system_cold`
+  compares critical zones to setpoint (the Normal→UsingNonElectricBackup gate).
+- **Pump powers** — `dist/primary/store-pump-pwr`, for the pump-health monitors.
+
+**What the plant must CONSUME (the commands control emits).** Per the settled
+"Actuators — plant listens (one-way)": the plant **subscribes to relay state**
+(`SingleMachineState`, `relay.py:358`) and folds it into physics — no down-injector.
+The load-bearing set, from `update_relays` / `initialize_actuators`:
+
+| Capability call | Relay (`H0N`) | Plant effect |
+| --- | --- | --- |
+| `turn_on_HP` / `turn_off_HP` | `hp-scada-ops-relay` (→ `hp-boss` under sieg) | HP draws `hp-odu-pwr`, charges store at target temp |
+| `valved_to_charge_store` / `..._discharge_store` | `store-charge-discharge-relay` | thermocline descends (charge) / rises (discharge) |
+| `turn_on_store_pump` / `turn_off_store_pump` | `store-pump-failsafe` + `store-010v` | store flow on/off |
+| `hp_failsafe_…`, `aquastat_ctrl_…`, `sieg_valve_dormant` | `hp-failsafe`, `aquastat-ctrl`, `hp-loop-on-off` | mode/secondary — first pass can stub |
+
+That closes the spoke's first-pass physics: HP-on + charge-valve drives the
+store-tank depth temps up (thermocline down); HP-off + the constant house draw
+discharges (thermocline up).
+
+### The energy DAG — and why the plant alone can't drive it
+
+`usable-energy` and `required-energy` are derived by `derived_generator.py`, and
+tracing them surfaced a real boundary: **the plant supplies temperatures, but
+the energy channels also need forecasts the plant does not produce.**
+
+- **`usable-energy`** (`compute_usable_energy_wh`, ~`:780-856`) — gates on
+  `system_mode==Heating`, `buffer_temps_available`, and `heating_forecast`.
+  Peels the hottest tank layer down to `rwt_f(hottest)`, accumulating
+  `mass·cp·ΔC`. **Leaves:** `tank{i}-depth{1,2,3}` (AllTanks) or
+  `buffer-depth{1,2,3}` (BufferOnly) — *plant-produced* — **plus** `rwt_f`
+  (`:1125`), which is forecast-constrained: it reads `heating_forecast.RswtF`
+  and the `rswt_quadratic` from `Ha1Params` (`IntermediateRswtF`, `DdRswtF`,
+  `DdDeltaTF`, `DdPowerKw`).
+- **`required-energy`** (`compute_required_energy_wh`, `:886-960`) — needs
+  `heating_forecast.Time`/`AvgPowerKw` (load summed over the 7–11/12–15/16–19
+  on-peak windows) **and** `weather_forecast.Time`/`OatF` (midday OAT → COP via
+  `params.CopMin`/`CopMinOatF`/`CopIntercept`/`CopOatCoeff`, `HpMaxKwEl`). No
+  plant temps at all — it's forecast + params + time-of-day.
+
+**DAG, leaves → derived:**
+
+```
+plant temps ─┐
+ tank*-depth*│→ usable-energy ─┐
+ buffer-depth┘   (+ rwt_f)     │
+                               ├→ is_storage_ready / is_storage_empty → LocalControl FSM → relays → plant
+heating_forecast ─┐            │
+ RswtF, AvgPowerKw│→ required-energy ┘
+weather_forecast ─┘
+ OatF
+```
+
+So the plant closes the *temperature* half of the loop; the **forecast half is a
+separate input** the harness must stand up. The inputs are exactly two: **a
+weather file** and **the params**. `get_forecasts` (`derived_generator.py:1084-1112`)
+turns `weather_forecast` (`OatF`, `WindSpeedMph`, `Time`) **plus the params** (the
+building model — `DdPowerKw`, the rswt quadratic, …) into `heating_forecast`
+(`AvgPowerKw`, `RswtF`, `RswtDeltaTF`); `heating_forecast` is **derived, not
+supplied**. **Decision (Jessica, 2026-06-12): start with a secret weather file**
+(→ `weather_forecast`) plus a **`flo.params.house0.json`** (→ `Ha1Params`), both
+out of git (the state/secret dir, like real credentials). The on-disk params file
+follows the Sema-typed-JSON convention — `flo.params.house0.json`, **no version
+suffix** (Version is a field; the `…house0.006.json` files are generated snapshot
+*samples*, a different convention). **OFI:** get the weather from a *simulated
+weather-forecast service* eventually, so the harness gets it the way prod does
+rather than from a fixture. Until then a fixed file is enough to make
+`usable`/`required` compute and the FSM turn over.
+
+### The sema snapshot is the plant's to choose
+
+Sema **decouples transport from semantics** ("Schemas are transport-agnostic",
+`sema/spec/primary.md`; capability design principle 3, "Sema at the wire only").
+A **snapshot** is a restricted vocabulary subset + generated codec baked into a
+consumer package (`sema/spec/snapshot.md`) — data, not a vendored test suite,
+zero-diff deterministic. So `gridworks-terminalasset` **gets to choose its own
+sema snapshot**: the subset of types it encodes, independent of scada's carrier
+and independent of scada's `gwproto` copies. Consequences:
+
+- gwta is **not** bound to `gwproto`'s hand-version of any reading type. It bakes
+  the **canonical sema** definitions into its snapshot instead.
+- **The plant's output word is `sim.plant.flux`** (the `sim-sensor-words` spoke,
+  decided 2026-06-12; minted + committed in `sema/`) — a sim **source word** the
+  plant emits: `ChannelNameList`/`ValueList`/`ScadaReadTimeUnixMs` (sim time) plus
+  `ActualTimeUtc` (human-readable ISO 8601 ms, `utc.iso8601.millis`). No
+  `Simulates*` fields — the plant's raw emission does not presume its destination;
+  the scada-side **SimSensorActor reads it and interprets it** into
+  `synced.readings` for the ShNodes (electrical and other derived signals later) —
+  the real ingestion path untouched. So gwta does **not** publish `SyncedReadings`
+  directly; it emits `sim.plant.flux`.
+- **Both snapshots carry `sim.plant.flux`:** gwta's (to emit) and the scada's
+  gwsproto snapshot (so the SimSensorActor can decode it). It is a sim-boundary
+  word; `synced.readings` is what stays internal to the ShNodes.
+- Prerequisite: `sim.plant.flux` must be **minted** (`/make-sema-word`, separate
+  `sema/` claim) and present in both snapshots before the publish step.
+
+### Capability-protocol consistency (evaluated 2026-06-11)
+
+Tracked `local_control` → relay commands against the `capability-protocol-and-verify`
+design (OPS-394). **Largely consistent:** control states drive actuators through
+the capability surface (`turn_on/off_HP`, `valved_to_charge/discharge_store`,
+`*_switch_to_scada`, `sieg_valve_dormant`), not raw-relay idiom, and `turn_on_HP`
+already routes HP authority to `hp-boss` under sieg — the maple-fix shape the
+design calls for (principle 2, layouts bind capabilities). **Two gaps the design
+itself predicts** (both fine for a Draft):
+
+- `initialize_actuators` (`tou_base.py:371`) still **de-energizes by iterating
+  relays** (`de_energize(relay)`) — relay-level, exactly the "residual raw-relay
+  idiom" its audit-scope targets.
+- The **closed-loop "intent vs observed power" watcher** (principle 7) is not
+  implemented — `hp-odu-pwr` is read only for defrost, not to catch "HP commanded
+  off but still drawing." **This is where the plant earns its keep:** because the
+  plant turns relay state into `hp-odu-pwr`, the harness can finally exercise
+  principle 7 and the principle-8 layout×state test matrix (which the design says
+  "likely rides OPS-40"). The plant is the instrument that makes capability-verify
+  testable.
 
 ## Live baseline (verified 2026-06-10)
 
