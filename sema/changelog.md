@@ -12,7 +12,18 @@ Newest at the top.
 
 ---
 
-## <!-- pending commit --> 2026-06-12 — Mint `sim.plant.actuation/000` + `change.relay.pin/000` enum
+## 2026-06-12 — Add `gw1.actor.class/012` — `SimSensorActor` + `SimRelayActor` (`a7aa496`)
+
+**What:** New enum version `gw1.actor.class/012` appends `SimSensorActor` and
+`SimRelayActor` (`011` preserved under `old_versions/`); registry + indexes +
+runtime regenerated. (The commit title reads "v011"; the diff adds `012`.)
+
+**Why:** The two scada-side actors of the simulated test environment need
+actor-class identities — `SimSensorActor` reads `sim.plant.flux` →
+`synced.readings`, `SimRelayActor` sends `sim.plant.actuation`. First step of the
+`ActorClass` cascade; the `spaceheat.node.gt/302` bump that picks up `012` follows.
+
+## 2026-06-12 — Mint `sim.plant.actuation/000` + `change.relay.pin/000` enum (`81005bc`)
 
 **What:** New type `sim.plant.actuation/000` — the actuation *event* a SimRelayActor
 sends to the plant: `RelayName` + `Action` (Energize/DeEnergize via the new

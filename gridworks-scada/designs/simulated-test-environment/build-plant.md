@@ -32,13 +32,24 @@ it real and physics-driven.
 ## What we build
 
 1. **`SimulatedPlant` — the physics object.** A single, flat object holding
-   physical state and advancing on a clock. First-pass model (the thermocline,
-   per `simulated-actors.md`): 3 store tanks × 3 depths + 1 buffer × 3 depths;
-   the heat pump puts out a target temp matching the hottest store; a constant
-   heat call with a 20 °F drop across the house at 2 gpm (load loop) and a 20 °F
-   rise across the HP at 4 gpm (source loop), so HP-on overproduces ~2:1 and
-   charges (thermocline descends), HP-off discharges (rises). No thermodynamic
-   model — enough to move the tank-depth temps in response to relay state.
+   physical state (3 store tanks × 3 depths + 1 buffer × 3 depths, a sharp
+   thermocline boundary, relay/pump states) and advancing on a clock.
+   **Flagrantly simple thermodynamics (Jessica, 2026-06-12):**
+   - **Heat pump:** always outputs **160 °F** (a Siegenthaler loop), **constant
+     COP = 2** regardless of output or outside temp. Assume a **fixed HP thermal
+     output `Q_hp`**, so HP flow follows from the entering water temp:
+     `ṁ_hp = Q_hp / (c · (160 − EWT))` — a warm return (small ΔT) means more gpm.
+   - **House = a SINGLE ZONE.** Distribution is **2 gpm when the zone calls, 0
+     otherwise**, with a 20 °F drop across the house (the load).
+   - **Charge/discharge:** the store thermocline descends when HP delivery exceeds
+     the house draw (charging), rises otherwise — driven by the flow imbalance,
+     not a thermodynamic model.
+   - **Open — flag, don't guess (per the simplicity directive):** the exact
+     buffer↔store↔house plumbing — what flows into the buffer vs. the house, and
+     where HP flow lands (store vs. buffer); and the value of `Q_hp`. Pick the
+     simplest topology that works with the scada code; leave a question if unsure.
+
+   Enough to move the tank-depth temps in response to relay state.
 2. **The flux emitter.** When the plant crosses a channel's `AsyncCaptureDelta`
    it emits **`sim.plant.flux`** (the committed sema type) on the plant's **own
    rabbit broker/exchange**: `ChannelNameList` / `ValueList` (scaled ints by
@@ -74,9 +85,9 @@ field blackhole in `executor/scada-ltn-link-state.md` — reproducible on demand
 
 ## The room thermal model (first pass)
 
-For this experiment, **don't use the full sim oak** — prune to **two rooms**, each
-carrying **Thomas' derived-setpoint channels** (Jessica, 2026-06-12). Per room,
-two simple pieces:
+For this experiment, **don't use the full sim oak** — prune to a **single zone /
+one room** carrying **Thomas' derived-setpoint channels** (Jessica, 2026-06-12).
+One zone means distribution is 2 gpm on / 0 off. The room needs two simple pieces:
 
 1. **Heat-need → room temperature.** From the room's heat need (derived from
    `flo.params` + weather) and a **per-room thermal mass**, integrate to a room
@@ -201,11 +212,11 @@ real physics — fidelity earned against a working loop, not blocking it.
 
 **In the MVP model:**
 
-- **A reasonable plant.** Simple thermal-storage + two-room thermal model behaving
+- **A reasonable plant.** Simple thermal-storage + single-zone room model behaving
   to a coherent model — every relay + sensor plumbed in, charge/discharge dynamics
   visible on the LTN dashboard.
-- **White-wire + simulated temp sensors, Thomas' derived setpoint.** The two-room
-  layout replaces the Hubitats with **simulated white-wire + temperature sensors**
+- **White-wire + simulated temp sensors, Thomas' derived setpoint.** The
+  single-zone layout replaces the Hubitats with **simulated white-wire + temperature sensors**
   and carries **Thomas' derived-setpoint channels**. "Running the falling-edge
   setpoint eval" is **purely a layout concern — no new control code from us**: make
   the layout carry the derived-setpoint channels and the right simulated sensor
@@ -217,6 +228,30 @@ real physics — fidelity earned against a working loop, not blocking it.
   sensors. The noise lives in the plant-truth↔sensor-reading gap the `flux` name
   was built around — the honest home for sensor imperfection. After the MVP loop
   works (Jessica, 2026-06-12).
+
+## Sema cascade — the `ActorClass` ripple (do first, on `jm/sim-vocab`)
+
+Adding the two sim actor classes (`gw1.actor.class/012` — **done, green**) ripples
+through every type that pins the enum or embeds a node. Plan:
+
+1. **`spaceheat.node.gt` 301 → 302** — re-point `ActorClass` to
+   `gw1.actor.class/012`. Trivial 1:1 upgrade (the enum is additive); the
+   three-places delta (upgrade template + registry summary + `direct_dependencies`);
+   `301` stays as superseded (keeps its example).
+2. **`layout.lite`** — embeds `spaceheat.node.gt`; bump to ref `:302`.
+3. **`scada.control.capabilities`** — also embeds `spaceheat.node.gt`. Its `001`
+   was **never drafted/published** (limbo), so **fold the actor-class update into
+   `001` in place** (pre-publication edits are allowed) rather than minting a new
+   version; then **update gridworks-admin** accordingly (Jessica, 2026-06-12).
+4. **Check `data.channel.gt` / `derived.channel.gt`** and any other
+   `spaceheat.node.gt` dependents — bump those that must carry sim-actor nodes.
+5. Regen + `pytest` green after each.
+
+**Smelly (noted, Jessica's latitude 2026-06-12):** one new actor class forces a
+version bump of `spaceheat.node.gt` and everything embedding it (layouts,
+capabilities, channels). A real coupling smell — recorded here, not silent.
+**Mitigation:** new actor classes are *rare*, so the cascade is paid infrequently;
+not worth re-architecting now.
 
 ## Questions about the real system's behavior (for tomorrow's DB access)
 

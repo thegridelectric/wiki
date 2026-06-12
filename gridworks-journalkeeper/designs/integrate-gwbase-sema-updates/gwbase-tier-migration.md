@@ -128,16 +128,17 @@ with no change. (The live-test repoint lived only in the runner scripts
   (`config.py`). `g_node.json` deleted (tracked file removed).
 - ✅ `service_alias` defaulted (`"d1.journal"`) + `GJK_SERVICE_ALIAS`-overridable;
   nothing reads `g_node_alias`. `template.env` / `.env` `GJK_G_NODE_PATH` scrubbed.
-- [ ] JK starts and persists against published `gridworks-base>=0.5.2` with no
-  sibling checkout (the hub's live-test, re-run from PyPI base). **Pending** —
-  a sanity re-run (hub item #4), not an experiment; the updated JK was already
-  live-tested against prod this session. In-process suite + `Settings()`
-  construction smoke are green (20 passed).
-- ✅ JK suite green (20 passed); logs land under `state_dir("journalkeeper")`.
+- ✅ JK boots and persists end-to-end against published `gridworks-base>=0.5.2`
+  with no sibling checkout — **verified by `tests/test_live_amqp.py`**: a real
+  `JournalKeeper` actor (executing the migrated `ActorBase.__init__` →
+  broker-consume) ingests a `scada.params` message off an ephemeral broker and
+  lands it in the DB. This closed the gap the unit suite couldn't (it skips
+  `ActorBase.__init__`).
+- ✅ JK suite green (21 passed incl. the live test); logs land under
+  `state_dir("journalkeeper")`.
 
-**Status:** code migration landed (in working tree, pending commit). The
-remaining done-when is the live-rig re-run against PyPI base — verification, not
-code.
+**Status:** migration landed (`0b7c2e0`) and **live-verified** by the Layer-2
+liveness test. Done.
 
 ## Open questions
 

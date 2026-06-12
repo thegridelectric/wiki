@@ -18,6 +18,14 @@ of that design's `primary.md`).** You SHALL keep the terminalasset plant as simp
 as possible while it still works well with the scada code, **and no simpler**. When
 in doubt, err on the side of simpler but leave a question for Jessica.
 
+## ⏳ Until spruce-unlimbo lands — branch `gridworks-scada` off `jm/spruce-unlimbo`
+
+**Temporary directive (added 2026-06-12; remove when the spruce-unlimbo epic is
+done).** While the spruce-unlimbo "unlimbo" epic is in flight, **new
+`gridworks-scada` branches SHALL be cut off `jm/spruce-unlimbo`** — not off
+`dev`/`main`. The layout-pipeline rework lives there and downstream work
+(including the simulated-test-environment actors) depends on it.
+
 ## Bearings (held at every altitude)
 
 True in every session, whatever the Focus. One line each; the full text

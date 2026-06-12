@@ -8,14 +8,17 @@ Status: Accepted · Pass 1 · Updated 2026-06-12 · Linear: OPS-386
 > toolchain (OPS-380), now that both upstreams have landed their relevant work.
 > Spokes split off this hub as the plan firms up (one per workstream).
 
-**▶ Active spoke: `gwbase-tier-migration.md` (hub item #2). CODE LANDED
-(pending commit) —** the gwbase **`ServiceSettings` tap-tier migration** is done
-in the working tree: `Settings(GNodeSettings)` → `ServiceSettings`
-(`src/gjk/config.py`), first-class `service_alias`, `g_node.json` deleted, no
-GNode identity. JK suite green (20 passed) + `Settings()` construction smoke
-green. **Remaining: the live-rig re-run** against PyPI base (the only open
-done-when — verification, hub item #4), then commit. (Convention: while a design
-is active, its active spoke is highlighted here at the top of the hub.)
+**✓ Item #2 (`gwbase-tier-migration.md`) DONE & live-verified.** The gwbase
+**`ServiceSettings` tap-tier migration** landed (`0b7c2e0`):
+`Settings(GNodeSettings)` → `ServiceSettings`, first-class `service_alias`,
+`g_node.json` deleted, no GNode identity. **Live-verified** by
+`tests/test_live_amqp.py` — a real `JournalKeeper` actor boots against an
+ephemeral broker + DB and persists a `scada.params` message end-to-end (Layer 2
+of the layered-test-harness; closes the boot-path gap the unit suite skips).
+
+**▶ Active spoke now: `persisted-type-set.md` (hub item #3)** — the narrowed
+type set (ack/ping + startup/shutdown/peer.active + `ally.inactive`) feeding
+through the same liveness harness.
 
 ## Spokes
 

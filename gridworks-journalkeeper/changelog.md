@@ -12,7 +12,27 @@ Newest at the top.
 
 ---
 
-## 2026-06-12 — Settings: reparent JK onto gwbase ServiceSettings (tap tier) (`0b7c2e0`)
+<!-- pending commit -->
+## 2026-06-12 — Live AMQP liveness test: emitter → broker → JournalKeeper → DB
+
+**What:** Add a docker-backed integration test (`tests/test_live_amqp.py` +
+`tests/conftest.py`) that stands up an ephemeral RabbitMQ **and** TimescaleDB
+(via `testcontainers`), boots a real `JournalKeeper` actor against them, publishes
+a `scada.params` sample to **`amq.topic`** (bridged to `ear_tx` by an
+exchange-to-exchange binding), and asserts the message routes through the broker,
+is consumed + decoded + persisted, and lands as a `gridworks.messages` row — then
+tears both containers down. Adds `testcontainers` to dev deps and registers an
+`integration` pytest marker; the fixtures self-skip when docker is unavailable.
+
+**Why:** The unit suite deliberately skips `ActorBase.__init__` (constructs JK via
+`__new__`), so nothing exercised the real boot → broker-consume → persist path —
+the very path the `ServiceSettings` migration (`0b7c2e0`) changed, and where the
+prod data-loss bugs lived. This is the first test that actually runs JournalKeeper
+end-to-end against a real broker + real DB (Layer 2 of the layered-test-harness
+design), and it doubles as the live verification of the tap-tier migration.
+`scada.params` is the fixture because its row id (`message_id`) and timestamp
+(`unix_time_ms`) are payload-fixed, so republish-until-landed is an idempotent
+no-op (`on_conflict_do_nothing`), sidestepping the bind/consume race.
 
 **What:** `src/gjk/config.py` — `Settings(GNodeSettings)` → `Settings(ServiceSettings)`.
 Drop the GNode-only fields JK never used (`g_node_alias`, `g_node_id`,

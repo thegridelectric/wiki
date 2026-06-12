@@ -102,32 +102,49 @@ type's empty options to its single `None` version
 Do **not** use `include_all_versions` / `versions: [...]` for these — the
 `versions` list requires 3-digit strings (`:131`) and would raise.
 
-## The "few more" — enumerated from the live capture (2026-06-10)
+## The narrowed set — keep the durable signals, drop the mechanism events (2026-06-12)
 
 A separate session stood up a real **LTN + scada** pair on `gw-dev-rabbit` and
 captured the full startup + steady-state exchange (wire + both process logs).
 The verified record is `wiki/gridworks-scada/executor/scada-ltn-link-state.md`
-("Observed startup sequence"). Cross-referenced against what JK already handles,
-the **new candidate types** for JK's set are:
+("Observed startup sequence"). The capture surfaced a fuller candidate list, but
+with the **proactor rewrite imminent**, modeling faithful sema words for the
+transport-mechanism events is throwaway work. The decision (2026-06-12):
 
-| Type | Note | Likely bucket |
+> **Keep the durable *semantic* signals; drop the proactor *mechanism* events the
+> rewrite will churn.**
+
+**Keep (the new types JK adds):**
+
+| Type | Why it's durable | Likely bucket |
 |---|---|---|
-| `send.layout` | LTN→scada layout request | per-type (check id/ts fields) |
-| `gridworks.event.startup` | process lifecycle | per-type |
+| `gridworks.event.startup` | process lifecycle — survives any transport rewrite | per-type (check id/ts fields) |
 | `gridworks.event.shutdown` | process lifecycle | per-type |
-| `gridworks.event.comm.mqtt.connect` | link lifecycle (×3, one per link) | per-type |
-| `gridworks.event.comm.mqtt.fully.subscribed` | link lifecycle (×3) | per-type |
-| `gridworks.event.comm.peer.active` | peer-up | per-type |
-| `gridworks.event.comm.response.timeout` | ack timeout | per-type |
+| `gridworks.event.comm.peer.active` | semantic peer-**up** | per-type |
+| `ally.inactive` | semantic peer-**down** (new word, see below) | `MSG_*`/`BASIC`, live `time_received` |
 
-Each is its own `gridworks.event.*` TypeName (distinct topic). Run each through
-the add-recipe; the bucket (BASIC vs `MSG_ID_FIELDS` vs `MSG_CREATED_AT_FIELDS_*`)
-depends on whether the payload carries a `MessageId` / time field — decide
-per-type at impl, same as `ack`/`ping`. (Already-handled by JK and therefore
-**not** new: `report.event`, `layout.lite`, `heating.forecast`,
-`weather.forecast`, `gridworks.event.problem`. `snapshot.spaceheat` is emitted
-but JK deliberately skips it — `sema_message_persistor.py:35` "performance"; a
-decision to revisit, not a gap.)
+**Drop (mechanism detail the proactor rewrite redefines):** `send.layout`,
+`gridworks.event.comm.mqtt.connect`, `gridworks.event.comm.mqtt.fully.subscribed`,
+`gridworks.event.comm.response.timeout`.
+
+Run each kept type through the add-recipe; the bucket (BASIC vs `MSG_ID_FIELDS`
+vs `MSG_CREATED_AT_FIELDS_*`) depends on whether the payload carries a
+`MessageId` / time field — decide per-type at impl, same as `ack`/`ping`.
+(Already-handled by JK and therefore **not** new: `report.event`, `layout.lite`,
+`heating.forecast`, `weather.forecast`, `gridworks.event.problem`.
+`snapshot.spaceheat` is emitted but JK deliberately skips it —
+`sema_message_persistor.py:35` "performance"; a decision to revisit, not a gap.)
+
+> **The up/down asymmetry is real friction, kept on purpose.** `peer.active`
+> (peer-up) is an existing proactor **Event** — it rides the stored-until-acked
+> path and arrives after-the-fact. `ally.inactive` (peer-down) is a new
+> **non-event** — fire-and-forget, arrives live. So peer-up and peer-down land
+> in JK via *different mechanisms* and *different names* ("peer" vs "ally").
+> That mismatch is not an oversight to paper over here — it points at real
+> friction in the codebase (the 1:1 link FSM) that the **proactor rewrite** will
+> attend to. Stay asymmetric for now (capture `peer.active` cheaply, coin
+> `ally.inactive` for the urgent down-signal); defer an `ally.active` / renaming
+> to that rewrite.
 
 ### Two findings that shape what JK *can* journal
 

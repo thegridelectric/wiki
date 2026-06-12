@@ -1,6 +1,16 @@
 # Design: Layered test harness for gridworks-journalkeeper
 
-> Status: Draft · Pass 0 · Updated 2026-05-29
+> Status: Draft · Pass 0 · Updated 2026-06-12
+
+**Layer 2 landed first (2026-06-12).** `tests/test_live_amqp.py` +
+`tests/conftest.py` implement the real-broker path ahead of Layers 0/1: an
+ephemeral RabbitMQ + TimescaleDB (`testcontainers`), a booted `JournalKeeper`
+actor, a `scada.params` sample published to `amq.topic` (bridged to `ear_tx`),
+asserted to land in `gridworks.messages`. It doubles as the **live verification
+of the gwbase ServiceSettings tap-tier migration** (it executes
+`ActorBase.__init__` → broker-consume, which the unit suite skips). Marked with
+the `integration` pytest marker; self-skips without docker. Layers 0/1 (codec
+coverage, S3 importer + idempotency) still to do.
 
 What this is: a plan to test gjk's two ingest paths — the **S3 message importer**
 (backfill) and **`journal_keeper.py`** (live AMQP) — which share a decode+persist
