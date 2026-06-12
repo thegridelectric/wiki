@@ -2,125 +2,72 @@
 
 Status: Accepted · Pass 1 · Updated 2026-06-12 · Linear: OPS-386
 
+**EDD: no** build-out/integration; verified by the test suite (incl. the Layer-2
+liveness test, `tests/test_live_amqp.py`), not gated on a standalone real-world
+experiment.
+
 > What this is: the **hub** of the design to finish moving
-> `gridworks-journalkeeper` onto the upgraded **gwbase 0.5.x** (three-tier
+> `gridworks-journalkeeper` onto upgraded **gwbase 0.5.x** (three-tier
 > `ServiceSettings`/`ActorBase`) and the updated **sema** restricted-snapshot
-> toolchain (OPS-380), now that both upstreams have landed their relevant work.
-> Spokes split off this hub as the plan firms up (one per workstream).
+> toolchain (OPS-380). Structure: **what to do next at the top, the ordered spoke
+> list, then notes.** Durable facts from completed items are distilled into
+> `executor/primary.md`; this hub is deleted when the last item lands.
 
-**✓ Item #2 (`gwbase-tier-migration.md`) DONE & live-verified.** The gwbase
-**`ServiceSettings` tap-tier migration** landed (`0b7c2e0`):
-`Settings(GNodeSettings)` → `ServiceSettings`, first-class `service_alias`,
-`g_node.json` deleted, no GNode identity. **Live-verified** by
-`tests/test_live_amqp.py` — a real `JournalKeeper` actor boots against an
-ephemeral broker + DB and persists a `scada.params` message end-to-end (Layer 2
-of the layered-test-harness; closes the boot-path gap the unit suite skips).
+## ▶ Do this now — item #3: persisted type-set
 
-**▶ Active spoke now: `persisted-type-set.md` (hub item #3)** — the narrowed
-type set (ack/ping + startup/shutdown/peer.active + `ally.inactive`) feeding
-through the same liveness harness.
+Add these types to JK's persisted set — the durable **semantic** signals (the
+proactor **mechanism** events are deliberately skipped; the rewrite will churn
+them):
 
-## Spokes
+- **Add:** `gridworks.ack`, `gridworks.ping`, `gridworks.event.startup`,
+  `gridworks.event.shutdown`, `gridworks.event.comm.peer.active`, and the new
+  `ally.inactive`.
+- **Skip:** `gridworks.event.comm.mqtt.connect` / `…fully.subscribed` /
+  `…response.timeout`, `send.layout`.
 
-- `gwbase-tier-migration.md` — hub item #2 (settings → `ServiceSettings`,
-  first-class `service_alias`, plain-XDG paths, CI on published base).
-- `persisted-type-set.md` — hub item #3 (what JK ingests + stores;
-  `gridworks.ack`/`gridworks.ping` + the live-rig-discovered set).
+For each: seed it in `src/gjk/sema_seed_request.yaml` → regen the snapshot
+(`scripts/regen_sema_snapshot.sh`) → add it to the right table in
+`sema_message_persistor.py` → confirm it flows through the liveness harness
+(`tests/test_live_amqp.py`). `ally.inactive` is a **new sema word**, coined first
+via `/make-sema-word` (branch `jm/proactor-link-vocab`); peer-up (`peer.active`,
+an Event) and peer-down (`ally.inactive`, a non-event) stay asymmetric **on
+purpose** — real friction for the proactor rewrite to resolve, not to paper over
+here. Full detail in spoke **`persisted-type-set.md`**.
 
-## Context — where we are
+Then **item #4 — close session loose ends:** commit/stash the prod-persist
+live-test runner.
 
-This design crystallizes work already in flight this session:
+## Spokes (in order)
 
-- ✅ **Live-test of the updated JK** — fresh empty local `gw_data` Postgres
-  (`gridworks-data` `main` convention: `tsdb` db, non-public `gridworks`
-  schema) + the unpublished `gridworks-base` 0.5.x sibling, reading and
-  persisting live messages off the **production** rabbit broker.
-- ✅ **Regression fix** — `report.event` / `layout.lite` custom-persistor
-  signatures migrated to the `time_received` dispatch seam (PR #162,
-  `5cd5199`); this had broken the telemetry write path on `dev` since
-  2026-06-07. Verified live: `report.event` persists, 0 errors.
-- ✅ **sema snapshot-improvement merged** (PR #21, `8293b4e`) — deterministic
-  zero-diff builds, the shipped round-trip gate, `samples/`, the example
-  mandate on superseded versions, and the `layout.lite` 007→008 ShNodes fix.
-- ✅ **gwbase 0.5.2 published to PyPI** — and the **routing-key data-loss bug is
-  fixed** (`must-accept-current-ltn-messages`, OPS-388, **done**; distilled into
-  `gridworks-base/executor/transport.md` §3.3–§3.6, design file deleted). This
-  was the hard prerequisite that gated #2 below — **now cleared.** JK is already
-  pinned to `gridworks-base>=0.5.2` (`828d0dc`).
-- ✅ **JK `legacy_hack`** (verified 8/8, merge-pending on `jm/legacy-hack-broadcast`)
-  — overrides `on_routing_key_parse_error` to recover the LTN's legacy
-  `broadcast.*` keys (same prod-data-loss theme; the scada-side fix that stops
-  *new* `broadcast.*` shipped as OPS-387). Independent of the snapshot regen,
-  but note: for the recovered types to fully decode, the snapshot (#1) must
-  cover them (e.g. `flo.next.hour.plans`, `glitch`).
+1. ✅ **DONE** — sema snapshot regen (item #1; folded in, no separate spoke).
+2. ✅ **DONE** — `gwbase-tier-migration.md` (item #2; landed + live-verified).
+3. **▶ `persisted-type-set.md` (item #3) — active** (see top).
+4. close session loose ends (item #4; no spoke).
 
-`src/gjk/sema` **is** a restricted sema snapshot, and OPS-380 was motivated by
-standing it up — so JK is the natural first consumer of the merged work.
+---
 
-## Plan — what comes next
+## Notes
 
-**1. Regenerate JK's sema snapshot following sema's snapshot-generation rules
-— ✅ DONE.** (Folded in the former `upgrade-gjk-sema-snapshot` design,
-ex-OPS-379.) `src/gjk/sema` is now a clean restricted-snapshot regen from
-current sema `dev` via `scripts/regen_sema_snapshot.sh`
-(`sema snapshot prepare` / `build --package-name gjk`, mirrored into
-`src/gjk/sema`). The `market.type.name` hand-patches are gone — the market
-enums (`market_price_unit`, `market_quantity_unit`) arrive **structurally via
-the `bid` / `atn.bid` deps**, no manual seeding, no `ModuleNotFoundError`. The
-round-trip gate + `samples/` ship, the vendored `tests/` are dropped, and both
-**`atn.bid`** (historical / frozen — old S3 still decodes) and **`bid`**
-(current) are seeded and decode; `latest.price` covered; there is no `ltn.bid`.
-JK suite green (20 passed). The seed lives at `src/gjk/sema_seed_request.yaml`;
-regenerate with `scripts/regen_sema_snapshot.sh`.
+What landed (durable facts distilled into `executor/primary.md` + `changelog.md`):
 
-**2. gwbase 0.5.x integration into JK — the tier-model migration.** Unblocked:
-gwbase 0.5.2 is on PyPI and the routing-key data-loss bug is fixed (OPS-388,
-distilled into `gridworks-base/executor/transport.md`). JK is a *tap* whose
-actor is already `ActorBase`; only the settings class lags. **Detailed in spoke
-`gwbase-tier-migration.md`.** Summary:
+- **#1 — sema snapshot regen** — clean restricted-snapshot from sema `dev` via
+  `scripts/regen_sema_snapshot.sh`; round-trip gate + `samples/` ship, vendored
+  `tests/` dropped; market enums arrive structurally via `bid`/`atn.bid`;
+  `atn.bid` + `bid` + `latest.price` decode. Seed at
+  `src/gjk/sema_seed_request.yaml`.
+- **#2 — gwbase tap-tier migration** (`0b7c2e0`) — `Settings(GNodeSettings)` →
+  `ServiceSettings`, `service_alias` first-class, `g_node.json` deleted, plain
+  XDG. Live-verified by `tests/test_live_amqp.py` (Layer-2: real actor boot →
+  broker-consume → persist — the path the unit suite skips).
+- **Liveness harness** (`603d8a9`) — ephemeral RabbitMQ + TimescaleDB via
+  `testcontainers`; the reusable vehicle #3's types flow through (Layer 2 of the
+  `layered-test-harness` design).
 
-- [x] Reparent `Settings` → `ServiceSettings` (drop `GNodeSettings`); remove the
-  GNode-only fields (`g_node_alias`, `g_node_id`, `world_instance_alias`). **Done**
-  (in working tree, pending commit) — also deletes the tracked `g_node.json`.
-- [x] Make `service_alias` first-class (replace the `g_node_alias`/`.env` hack).
-  **Done** — defaulted `"d1.journal"`, `GJK_SERVICE_ALIAS`-overridable; `.env` /
-  `template.env` `GJK_G_NODE_PATH` scrubbed.
-- [x] **Paths — plain XDG from gwbase.** Dropping `GNodeSettings` sheds the
-  `g.node.gt.json` file entirely (deleted). `service_name="journalkeeper"` set;
-  logs land under `state_dir("journalkeeper")`. `.env` stays at cwd for now
-  (the low-stakes sub-decision; not worth a relocation).
-- [x] CI — no change needed: `pyproject` already pins `gridworks-base>=0.5.2`
-  from PyPI, no sibling-checkout in CI (spoke §5).
+Upstream prerequisites that landed:
 
-**3. JK persisted type-set — `gridworks.ack`, `gridworks.ping`, + more.**
-**Detailed in spoke `persisted-type-set.md`.** Both are versionless sema types;
-each add = one seed-yaml entry + regen (decode gate) and a one-line
-`BASIC_MSG_TYPES` add (ingest + store), driven by the persistor's
-`all_known_message_types()`. The "few more" startup/liveness/disconnect types
-are discovered from a live LTN+scada rig (this session operates it; see the
-spoke).
-
-**4. Close out session loose ends:** the JK test-infra — commit the live-test
-runner script (`scripts/point_at_prod_persist.py`, reverting the dev-local
-`gridworks-base` repoint) or re-stash it; then tidy active-claims.
-
-## Recommendation / sequencing
-
-**#1 and #2's code are done** (#2 pending commit + the live-rig re-run). Next is
-**#3 (persisted type-set)** — fileable in parallel — and **#4** (live-test
-re-run against PyPI base, which also closes #2's last done-when, + session
-loose ends).
-
-## Open questions / blockers
-
-- **`gridworks.ack` seeding:** it IS a sema type — the only open question is
-  whether to add it to JK's seed so it decodes strict (degraded without).
-  Likely yes, alongside the `bid` add.
-- **`Paths` source:** bump the `gridworks-base` floor once base ships `Paths`
-  vs. depend on `gridworks-proactor` for `Paths` only (from #2).
-
-## Process notes
-
-- `Accepted · Pass 1` (OPS-386).
-- `wiki/DESIGN_INDEX.md` is currently claimed by another session — leave the
-  index update to whoever holds it, or do it when the claim clears.
+- Regression fix — `report.event`/`layout.lite` `time_received` seam (PR #162).
+- sema snapshot-improvement merged (PR #21, `8293b4e`).
+- gwbase 0.5.2 on PyPI + routing-key data-loss fix (OPS-388, distilled into
+  `gridworks-base/executor/transport.md`); JK pinned `gridworks-base>=0.5.2`.
+- JK `legacy_hack` — `on_routing_key_parse_error` recovers legacy `broadcast.*`
+  keys (the scada-side fix stopping *new* ones shipped as OPS-387).

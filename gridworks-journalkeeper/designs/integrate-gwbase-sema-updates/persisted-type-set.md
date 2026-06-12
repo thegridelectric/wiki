@@ -52,7 +52,7 @@ strict what sema can decode strict. That splits the captured types in two:
   `gridworks.event.problem`) → the **cheap recipe** below applies directly.
 - **Not-yet-faithful types** (the `gridworks.event.comm.*` family,
   `gridworks.event.startup/shutdown`, `send.layout`, and the new
-  `ally.inactive`) → **model first** (see "Sema words this session owns"),
+  `ally.inactive`) → **model first** (see "Sema words to coin here"),
   *then* run the recipe.
 
 **Cheap recipe (clean words):**
@@ -104,10 +104,10 @@ Do **not** use `include_all_versions` / `versions: [...]` for these — the
 
 ## The narrowed set — keep the durable signals, drop the mechanism events (2026-06-12)
 
-A separate session stood up a real **LTN + scada** pair on `gw-dev-rabbit` and
-captured the full startup + steady-state exchange (wire + both process logs).
-The verified record is `wiki/gridworks-scada/executor/scada-ltn-link-state.md`
-("Observed startup sequence"). The capture surfaced a fuller candidate list, but
+A real **LTN + scada** pair was stood up on `gw-dev-rabbit` and the full startup
++ steady-state exchange captured (wire + both process logs). The verified record
+is `wiki/gridworks-scada/executor/scada-ltn-link-state.md` ("Observed startup
+sequence"). The capture surfaced a fuller candidate list, but
 with the **proactor rewrite imminent**, modeling faithful sema words for the
 transport-mechanism events is throwaway work. The decision (2026-06-12):
 
@@ -151,7 +151,7 @@ vs `MSG_CREATED_AT_FIELDS_*`) depends on whether the payload carries a
 **1. Arrival at `ear_tx` is CONFIRMED (2026-06-10).** The capture is the
 **scada↔LTN MQTT path** (`gw/<src>/to/<dst>/<type-kebab>` topics), and the
 question was whether that traffic is mirrored into the AMQP `ear_tx` audit
-exchange JK consumes. warm-thorn confirmed it **does** — observed directly on
+exchange JK consumes. Confirmed it **does** — observed directly on
 `ear_tx` with a **mosquitto** subscriber (not JK). So the ear tap is fed by the
 scada↔LTN traffic; the emit-list above is therefore also the *arrival* list. The
 MQTT topic `gw.<src>.to.<dst>.<type-kebab>` (`/`→`.`) ends in the type token, so
@@ -190,21 +190,21 @@ dark, when" record). Add it via the recipe then — note it will land in a
 `MSG_*`/`BASIC` bucket like any other type, **not** alongside the event family,
 and it is the one outage type JK can stamp with a real (live) `time_received`.
 
-## Sema words this session owns
+## Sema words to coin here
 
-This session holds the **sema** claim, so the modeling work for JK's not-yet-
-faithful types is in-scope here (not punted upstream). Two kinds:
+Modeling JK's not-yet-faithful types is in-scope for this design (not punted
+upstream). Two kinds:
 
-**A. `ally.inactive` — a NEW word, bequeathed to this session (2026-06-10).**
-The fire-and-forget live outage signal (finding 2) does not exist yet; coining
-it is mine. Intended shape (to be fixed via the ritual, not pre-frozen here): a
+**A. `ally.inactive` — a NEW word to coin (2026-06-10).**
+The fire-and-forget live outage signal (finding 2) does not exist yet. Intended
+shape (to be fixed via the ritual, not pre-frozen here): a
 **versioned** type (per the house preference for versioned over versionless),
 serialized **CamelCase** fields, `TypeName` `ally.inactive`, carrying at least
 the announcer's alias, the ally that went dark, the cause (covers MQTT-drop AND
 response-timeout AND any future vanishing), and an emit timestamp. JK then
 **ingests + persists** it (the durable "who went dark, when" record).
-*Emit-side wiring (scada/LTN actually publishing it) stays with warm-thorn;*
-*this session owns only the sema type.* When picked up, likely its own Ops issue.
+*Emit-side wiring (scada/LTN actually publishing it) is out of scope here — this
+design owns only the sema type.* Likely its own Ops issue when picked up.
 
 **B. Faithful modeling of the captured `gridworks.event.*` / `send.layout`
 types.** For each not-yet-clean type: **capture** the wire instance → **inspect**
@@ -233,7 +233,7 @@ declarations, `pytest` + registry validation green.
   `message_type_name`; no "degraded … not persisting" warning.
 - JK suite green.
 - The captured types are modeled (clean word verified, or coined per "Sema
-  words this session owns") and added via the recipe.
+  words to coin here") and added via the recipe.
 - `ally.inactive` sema word coined (versioned, via `/make-sema-word`) and JK
   ingests + persists it.
 

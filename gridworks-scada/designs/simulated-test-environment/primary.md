@@ -2,17 +2,26 @@
 
 Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-40
 
-**▶ Active spoke: `simulated-actors.md`.** SimSensor experiment **step 1
-passed** (a SimSensor output exactly the 20 sensor channels/units, witnessed).
-The **plant I/O contract is now specified** (2026-06-12): the closed loop with
-LocalControl — channels the plant emits, relay commands it consumes, the
-`usable`/`required` energy DAG. Two settled decisions: the plant's source word
-is **`sim.plant.flux`** (`sim-sensor-words` spoke — the plant emits, the sensor
-reads; SimSensorActor converts it to `synced.readings`), and the forecast inputs
-are **a secret weather file + `flo.params.house0.json`** (`heating_forecast` is
-derived from them, not supplied). Current move: mint `sim.plant.flux`
-(`/make-sema-word`), build the plant + SimSensor in gwta, then the
-10-min-no-watchdog scada + dashboard run. Detail in that spoke's "DO THIS NEXT".
+**EDD: yes** The simulated-test-environment harness *is* the verification; spokes reach Verified only when an experiment runs against it (experiments/logbook.md).
+
+**▶ Active spoke: `build-plant.md`.** Where things stand (2026-06-12):
+
+- **Sema vocabulary minted + committed** — `sim.plant.flux`, `sim.plant.actuation`
+  + `change.relay.pin`, `gw1.actor.class/012` (SimSensorActor / SimRelayActor).
+- **Full ActorClass cascade done** — `spaceheat.node.gt/302` →
+  `layout.lite/014`, `new.command.tree/002` (clean single node version), and
+  `gw.nolan.layout` re-pointed; `scada.control.capabilities` v002 deferred to
+  admin-for-nolan. Recipe + cost: `../../executor/actor-class-upgrade.md`.
+- **SimulatedPlant async-flux trigger proven** in scratch (`experiments/logbook.md`).
+- **The plant + scada actors are NOT built yet** (Phase A not started).
+
+**DO THIS NOW — two fronts (fresh, lean sessions recommended):**
+1. **Close `gw.nolan.layout`** in sema — scada git history as authority, the
+   updated channels first.
+2. **Build Phase A** — the comms pipe with the two sim actors (gwta plant
+   emitting `sim.plant.flux` + scada-side SimSensorActor/SimRelayActor), toward
+   the 10-min-no-watchdog dashboard run. Detail in `build-plant.md`.
+
 (Convention: while a design is active, its active spoke is highlighted here at
 the top of the hub, so it can't get lost across files.)
 

@@ -1,6 +1,6 @@
 # designs-process — the `designs/` lifecycle
 
-Status: Draft · Pass 0 · Updated 2026-05-26
+Status: Draft · Pass 0 · Updated 2026-06-12
 
 > What this is: how design-specs live in the wiki across all domains.
 > Companion: [`linear.md`](linear.md) for the Linear interface. Aggregated
@@ -43,6 +43,43 @@ matrices, sequencing, execution plan. All of it stays in the
 design. For the canonical "what lives where" across designs vs
 explorations vs executor vs Linear, see
 [`glossary.md`](glossary.md) "Where content lives".
+
+### Hub `primary.md` layout (fractal designs)
+
+This layout applies to **every** design hub — experiment-driven or not. It is
+the structural form of "active spoke highlighted at the top of the hub" from
+[`working-with-llms.md`](working-with-llms.md) "The EDD working rhythm"; that
+section's capture → refactor → re-orient *rhythm* is general to all design work
+(only its re-orient-to-a-witnessable-**experiment** beat is EDD-specific).
+
+Right under the `Status:` stamp the hub **self-declares EDD-or-not** — a bold
+`**EDD: yes**` / `**EDD: no**` followed by the verifying clause (no separator
+hyphen), per GridWorks_CLAUDE "Experiment-Driven Design (EDD)" — the verification
+bar before the plan.
+
+Write the hub so the **next agent can open it and immediately act**. Order it:
+
+1. **What to do next, at the top** — the active item as concrete steps (the
+   files to touch, the recipe, the gotchas), not a status report. In an
+   experiment-driven design this "next move" is the next experiment; in a plain
+   build-out design (like a migration or integration) it's the next concrete
+   build step. Either way it leads the hub.
+2. **An ordered spoke list** — every workstream in sequence: done ones marked
+   `✅ DONE`, the active one **bold**, not-yet-started ones plain. One line each
+   — the at-a-glance map, not the detail.
+3. **Notes at the bottom** — what already landed (short pointers; the durable
+   facts live in `executor/`) and any carried caveats.
+
+**Keep ephemeral coordination OUT of the hub (and out of every design doc).** No
+session names (`warm-thorn`, `rosy-beaver`), no "another session" / "this
+session" / "this session owns X", no "BLOCKED" banner. Who-holds-what lives in
+[`active-claims.md`](active-claims.md); doing-vs-todo status lives in Linear.
+Two reasons: that state is stale the moment a claim clears, and a
+"do this now → BLOCKED" hub is *worse than none* — it stalls the next agent
+instead of enabling it. If the work is genuinely blocked, the next agent learns
+that from active-claims/Linear; the hub still tells them plainly what the work
+*is*. Write findings impersonally ("a real LTN+scada pair was stood up", not
+"warm-thorn stood up").
 
 ## Triage
 

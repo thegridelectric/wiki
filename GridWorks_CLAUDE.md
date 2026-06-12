@@ -1,6 +1,6 @@
 # GridWorks — working conventions for Claude
 
-Status: Draft · Pass 0 · Updated 2026-06-10
+Status: Draft · Pass 0 · Updated 2026-06-12
 
 > Canonical at `wiki/GridWorks_CLAUDE.md`; symlink setup in
 > [`README.md`](README.md#setup). Paths below are relative to the umbrella dir
@@ -153,6 +153,23 @@ design (`wiki/gridworks-scada/`, experimentation-tools spoke).
 capture → refactor → re-orient working rhythm is in
 [`working-with-llms.md`](working-with-llms.md#the-edd-working-rhythm--capture-refactor-re-orient).
 
+**Every design hub self-declares EDD-or-not** on one line directly under the
+`Status:` stamp, so the next agent knows the verification bar before reading the
+plan. Format: a **bold** `**EDD: yes**` / `**EDD: no**` immediately followed by
+the verifying clause — **no separator hyphen**. Examples:
+
+> **EDD: yes** the X harness *is* the verification; spokes reach Verified only
+> when an experiment runs against it (`experiments/…`).
+
+> **EDD: no** build-out/integration; verified by the suite (+ the key test),
+> not gated on a standalone real-world experiment.
+
+`EDD: yes` when confidence comes from an experiment; `EDD: no` for a build-out
+design (migration, integration, refactor). The general hub conventions (layout,
+refactor rhythm) apply either way; only the *verification bar* differs.
+(Single-file designs may put the line under their stamp too; it's the hub that
+must.)
+
 ## Weight signals
 
 - **musing** → not a decision; don't act, don't record.
@@ -187,6 +204,25 @@ Don't assume the first word is always a domain — for a cross-cutting design th
 first word is part of the slug. Open the matched design and treat it as the
 session's anchor. If both interpretations miss, list what you found in the
 candidate folders and ask rather than guessing.
+
+**Focus stays the design, never a spoke.** When the Focus is a design (a hub),
+the active-claims Focus cell names that **design** and holds it there for the
+whole session. I **SHALL NOT** rewrite the Focus to one of its spokes — the
+spoke is where today's *work* is, but the **design is the altitude**. Keeping
+the design in the Focus cell is what keeps the session on the big picture as the
+active spoke moves.
+
+**Before opening OR refactoring a design hub, READ the hub-layout convention.**
+Whenever I claim an existing design as Focus, **or** restructure / reorder a
+hub's `primary.md` (exactly the kind of refactor that prompts this — reordering
+sections, marking spokes done, trimming the hub), I **SHALL** first read
+[`designs-process.md`](designs-process.md) §"Hub `primary.md` layout (fractal
+designs)". It defines the ordering (what-to-do-next at the top, the ordered
+spoke list, notes at the bottom) and the rule that ephemeral coordination
+(session names, "BLOCKED") stays out of design docs. Re-laying-out a hub from
+memory instead of from that section is the mistake this pointer exists to
+prevent — it keeps every hub written to enable the next agent rather than stall
+it.
 
 ## Sub-CLAUDE.md protocols
 

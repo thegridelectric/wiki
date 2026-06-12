@@ -1,6 +1,6 @@
 # Working with LLMs — guiding principles
 
-Status: Draft · Pass 0 · Updated 2026-06-11
+Status: Draft · Pass 0 · Updated 2026-06-12
 
 > For humans (Jessica + collaborators) to understand *how* we work with Claude on
 > GridWorks and *why* the wiki is built the way it is. This is the **rationale**;
@@ -134,6 +134,17 @@ capture) and admiring the design instead of coding (no re-orient). Beats one
 and two serve the third — the point of capturing and refactoring is to reach a
 sharp experiment faster, not to accumulate prose. See GridWorks_CLAUDE
 "Experiment-Driven Design (EDD)".
+
+**General vs. EDD — what carries to non-experiment designs.** Beats 1–2
+(capture, refactor) are general design hygiene: they apply to *any* design,
+experiment-driven or not, as does the hub they feed — the concrete layout is in
+[`designs-process.md`](designs-process.md) "Hub `primary.md` layout". EDD
+specializes only beat 3: its "do this next" is a witnessable **experiment**
+against reality. A plain build-out design — a migration, an integration — runs
+the same capture → refactor → re-orient loop and the same hub layout; it just
+re-orients to the next concrete **build step** rather than an experiment. So
+"refactor the hub to lead with the next move" is universal; "the next move is an
+experiment" is the EDD part.
 
 ## Where new facts go: memory vs. the wiki
 

@@ -60,6 +60,14 @@ The deleted `jm/scada-control` branch was the scada-side
 4. **v001 usage inside admin is muddled** generally — the evaluation of
    how gwa consumes the message is in scope here, not just the type
    shape.
+5. **Fold in the ActorClass bump (Jessica, 2026-06-12).** The actor-class
+   cascade re-pointed `spaceheat.node.gt` to `/302`; capabilities must reach
+   `/302` too so capability declarations can carry post-bump nodes. But
+   `scada.control.capabilities/001` is **non-draft (immutable)** — an in-place
+   edit was attempted and **reverted** per the immutability rule. This v002
+   SHALL re-point `RelayNodes`/`DacNodes` to `spaceheat.node.gt/302`. Until v002
+   lands, capabilities stays on `/300` (it never carries sim actors, so no
+   urgency — the bump rides this planned v002, not a throwaway version).
 
 Sema changes go through `/make-sema-word` (v002 + upgrade template +
 registry deltas). **Sieg-loop visibility in admin** (can/should gwa see
