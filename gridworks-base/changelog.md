@@ -12,6 +12,28 @@ Newest at the top.
 
 ---
 
+## 2026-06-11 — Topology: timemic_tx -> amq.topic MQTT bridge tap (`3139f34`, PR #158)
+
+**What:** One new binding in
+`gwbase.topology.exchange_bindings()` — the time coordinator's publish
+exchange (`timemic_tx`) binds to `amq.topic` (the MQTT plugin's
+exchange) with routing key `rjb.#` (broadcasts only; direct traffic
+stays on the AMQP fabric). Topology tests updated (binding-count
+formula + explicit assertion); committed dev/prod definitions
+regenerated via `gen_definitions.py --write-all` (the drift test
+enforces this). Verified live on gw-dev-rabbit: an MQTT subscriber on
+`rjb/d1-tc/time/sim-timestep` received the tc-hello timesteps with
+advancing TimeUnixS — the first witnessed AMQP→MQTT crossing.
+
+**Why:** the sim-time bridge (scada simulated-test-environment design,
+sim-time spoke, OPS-40): MQTT-native actors (scadas) can only hear the
+time coordinator's `sim.timestep` broadcasts if they cross to
+`amq.topic`. The fabric is the authoritative "who may talk to whom",
+so the crossing is declared in the shared topology source, not in
+per-experiment harness glue. Rides along: `.pre-commit-config.yaml`
+ruff pin v0.5.6 → v0.15.14 — the stale pin could not parse the newer
+rule selectors in pyproject.toml and blocked commits.
+
 ## 2026-06-10 — version 0.5.2 (bump + uv.lock relock)
 
 **What:** Bump gwbase `0.5.1 → 0.5.2`, plus a `uv lock` relock so CI's

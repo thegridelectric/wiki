@@ -256,6 +256,16 @@ default (bind one by hand to debug). The ear is the universal audit tap and
 shovel source; see
 [`../../ear/executor/broker-tap.md`](../../ear/executor/broker-tap.md).
 
+Plus the **MQTT bridge tap** (added 2026-06-11): `timemic_tx → amq.topic
+(rjb.#)` — the one declared exception to "broadcasts are
+subscriber-bound". MQTT-native actors (scada) cannot bind queues on the
+AMQP fabric, so the time coordinator's broadcasts (sim timesteps) cross
+to the MQTT plugin's exchange in the static fabric, where an MQTT
+subscriber sees e.g. `rjb/d1-tc/time/sim-timestep`. Broadcasts only
+(`rjb.#`); direct traffic stays on the AMQP fabric. Declared in
+`topology.py` like every other reach grant — the broker, not the actor,
+decides that MQTT-world may hear the clock.
+
 (Binding keys are 6-token `JsonDirect` patterns filtering on the `<src>`
 and `<dst>` class slots; they don't match 4-token broadcast keys, which is
 why broadcasts are subscriber-bound rather than forwarded by this fabric.)

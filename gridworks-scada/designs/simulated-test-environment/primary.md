@@ -2,6 +2,14 @@
 
 Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-40
 
+**▶ Active spoke: `simulated-actors.md`.** SimSensor experiment **step 1
+passed** (a SimSensor output exactly the 20 sensor channels/units, witnessed).
+Current move: raise it onto the real path — real `SyncedReadings` on real
+topics, its own rabbit broker (data-outage test), plant-driven values, then the
+10-min-no-watchdog scada + dashboard run. Detail in that spoke's "DO THIS NEXT".
+(Convention: while a design is active, its active spoke is highlighted here at
+the top of the hub, so it can't get lost across files.)
+
 > What this is: a design for a robust simulated test environment for the SCADA —
 > simple simulated terminal assets plus simulated sensor drivers (with a "cheat"
 > mode for direct value injection) that otherwise exchange data over the dev
@@ -134,6 +142,11 @@ The gaps between today and a full sim environment:
     fast deterministic unit tests.
 - Plug in via the existing MakeModel dispatch (add `GRIDWORKS__SIM*` values via
   the Sema word process) — no new factory machinery.
+- **Sharpened (2026-06-11):** the MakeModel-dispatch mechanism here stands,
+  but the seam is now decided at the **device boundary with the plant
+  *pushing*** (not actors polling drivers, and not a driver-class hierarchy)
+  — see the `simulated-actors` spoke. Read "simulated driver" below as the
+  older framing of the same MakeModel seam.
 
 ### 2. Simulated terminal asset on gridworks-base
 - A `GridworksActor`-based synthetic GNode (GNodeClass `TerminalAsset`) that
@@ -164,6 +177,58 @@ The gaps between today and a full sim environment:
    Full slice in the `simulated-actors.md` spoke (moved from
    spruce-unlimbo 2026-06-11; still serves that design's merge gate —
    "testing green for BOTH layouts" — which now rides this harness).
+
+## Where this stands & what's next (2026-06-11)
+
+A working session moved this design from scaffolding toward a first real
+experiment. Captured here so the open work is durable, not a phantom list.
+
+**Delivered (this session):**
+- **First live bridge run — the crossing is Verified.** A real `tc-hello`
+  broadcasting `sim.timestep` over AMQP reaches MQTT subscribers and a real
+  scada-side `SimTimeListener` receives every step. Scoped Verified claim in
+  the `sim-time` spoke; worked example in `../../experiments/logbook.md`.
+- **The sim seam is decided** — device boundary via a `Sim*` `MakeModel`, the
+  plant pushes on `AsyncCaptureDelta`, one flat actor branch, no driver
+  hierarchy, sensors outside the command tree, controls as leaves. Full
+  statement in the `simulated-actors` spoke.
+- **The make-imaginary wand** (`sim-time-experiment/make_imaginary_layout.py`)
+  — turns a real layout imaginary (fresh instance UUIDs, canonical
+  device-type UUIDs). This is the tool behind "a complete simulated layout"
+  (#3) and the sim/real identity boundary. Proven on House0.
+- **Executor specs landed:** `executor/components.md` and
+  `executor/hardware-layout.md` (the device + layout model as it is today,
+  warts surfaced). And the **EDD** verification bar + the experiments-record
+  convention (`GridWorks_CLAUDE.md`, the `experimentation-tools` spoke).
+
+**Active next — the EDD worked example in progress:**
+- **The dashboard experiment.** Real `ScadaApp(is_simulated)` + `LtnApp` on
+  the dev rabbit, a tanks-only plant pushing temps, the LTN ASCII dashboard
+  rendering live. **Done-when: 10 minutes with zero watchdog-pat deaths**
+  (which also Verifies the `sim-time` spoke's "bridge is watchdog-safe"
+  claim). Run on the wanded current House0 fixture
+  (`house0.imaginary.json`) for now. Then the fidelity ladder — an hour of
+  CSV under *sped-up* time needs cadence-decoupling, which is the comms
+  redo, not the bridge.
+
+**Dependencies / blocked work (owned elsewhere — recorded so they don't get
+lost):**
+- **The real-house layouts are stale across the layout-augments rework.**
+  Migrating `oak` hit strategy renames + new derived-channel fields that are
+  a slice of the fold, not a hand-patch — so experiments use the wand on
+  current fixtures until the fold lands. Owner: **spruce-unlimbo Chunk B**
+  (the layout pipeline) — folding `jm/layout-augments` into
+  `jm/spruce-unlimbo` is a ~4–6 h hand-reconcile (relay.py moved+modified,
+  `layout_db` architectural, `RelayActorConfig`/`SpaceheatNodeGt` both
+  extend); a scout map exists.
+- **Sema:** close `gw.nolan.layout` (draft-but-complete at
+  `sema/definitions/types/gw.nolan.layout/000.yaml` → finalize + codegen +
+  validate, after the fold); and **the derived-channel strategy names need a
+  sema home** — they dangle, and the migration showed the inference cost of
+  that. New `Sim*` MakeModels are also sema words (`/make-sema-word`).
+- **Future:** a DB backfill of real `gw.house0.layout`s **respecting
+  uniqueness** — the wand is the seed tooling (instance ids unique,
+  device-type ids canonical/shared).
 
 ## Open questions
 

@@ -250,6 +250,46 @@ scada-link-down upstream), so live observers (JK, monitoring, admin)
 learn about an outage while it is happening. Not yet an issue; raise to
 a Linear issue/design when picked up.
 
+## Broker-access liveness — a second, worse gap (observed incident, reported 2026-06-11)
+
+A real outage, not a wire-capture finding: the scada stayed **comms-dead
+for ~15 minutes while looking healthy.** The service was up and logging
+normally (confirmed over SSH), but had no traffic to or from the broker
+the entire time. The trigger was a network/IP routing change on the Pi
+side; the connection did not recover on its own for ~15 minutes (how it
+eventually recovered is not established).
+
+This is a different gap from the emission gap above. There the transition
+*is* detected internally and only the live announcement is missing. Here
+the detection itself failed one layer down: the broker connection was
+silently dead and **nothing fired a transition or forced a reconnect**. A
+route/IP change blackholes packets without a TCP RST, so the socket sits
+half-open; paho's loop sees no error, and without a working
+keepalive→reconnect cycle or an independent reachability probe, a dead
+connection persists until something external resets it. The broker/peer
+conflation (below) makes it invisible from the contract stream: the only
+liveness signal rides broker-message accounting, which itself depends on
+the dead broker connection.
+
+It lands on the redo's **broker-connection machine** — the "up or it
+isn't" half of the two-machines split, which this incident shows is not
+trivial when the failure mode is a silent blackhole. That machine needs a
+first-class **broker-access liveness check** (an active probe that the
+broker is actually reachable, not just "paho believes it is connected")
+and a **bounded reconnect** that tears down and re-establishes — re-
+resolving DNS/route, since the trigger was an IP change — well before
+minutes pass. The MQTT keepalive interval and paho's reconnect backoff
+are the levers; whatever they are set to today, they did not reconnect in
+15 minutes.
+
+Worth examining whether a small mitigation fits the **existing** proactor
+ahead of the redo (tighten the MQTT keepalive / reconnect so detection is
+bounded to a minute or two) rather than carrying this only as a redo
+requirement. Raise to a Linear issue when picked up. The specifics —
+exact duration, what the IP change was, what the logs did and did not
+show — may sharpen from the aging Linear issues being triaged; this note
+is the symptom-level account plus the design seed.
+
 ## Multiple children — the structural critique 
 
 The proactor link mechanism **does not work for a parent with multiple

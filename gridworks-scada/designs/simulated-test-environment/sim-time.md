@@ -127,10 +127,31 @@ harness provisioning glue (experimentation-tools territory), not scada
 code. Not yet wired into `ScadaLiveTest`; first live bridge run =
 tc-hello + the binding + a sim scada, watching the link stay active.
 
+## Verified (2026-06-11): the crossing reaches MQTT
+
+Verified · Pass 1 · Updated 2026-06-11 · Reviewed 2026-06-11 (experiment
+`sim-time-first-bridge-run`, `experiments/logbook.md`)
+
+The first live bridge run confirmed, against `gw-dev-rabbit`: `tc-hello`
+(`d1.tc`) broadcasting `sim.timestep` over AMQP crosses to MQTT via the
+gwbase topology binding (TimeCoordinator publish exchange → `amq.topic`,
+key `rjb.#`) and arrives on `rjb/d1-tc/time/sim-timestep`; a real
+scada-side `SimTimeListener` receives every step and tracks it
+monotonically. The crossing and the scada receive path are proven end to
+end on a real broker. **Scoped:** this does NOT yet cover the real LTN's
+own sim-time path, nor the real scada↔LTN links driven off coordinator
+time — the run used a stand-in LTN listener and harness ping/acks. Those
+stay open below.
+
 ## Open
 
-- Wire the `timemic_tx → amq.topic` binding + tc-hello into the
-  harness and do the first live bridge run.
+- First live bridge run: **DONE for the crossing** (Verified above). What
+  remains is fidelity — wire tc-hello + the crossing into `ScadaLiveTest`
+  so the run is repeatable with the *real* scada/LTN apps (not stand-ins),
+  climbing toward the outcomes that would make it shine: the LTN's ASCII
+  dashboard showing live temps + relay/heat-pump + power under sim time,
+  and/or a CSV of an hour of simulated scada telemetry under sped-up
+  coordinator time (or both).
 - The LTN side of "ping/ack in both directions" (the hack MQTT LTN
   needs the symmetric trigger, or its own keepalive suffices — observe
   first).

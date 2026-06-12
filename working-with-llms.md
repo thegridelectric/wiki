@@ -1,6 +1,6 @@
 # Working with LLMs — guiding principles
 
-Status: Draft · Pass 0 · Updated 2026-05-27
+Status: Draft · Pass 0 · Updated 2026-06-11
 
 > For humans (Jessica + collaborators) to understand *how* we work with Claude on
 > GridWorks and *why* the wiki is built the way it is. This is the **rationale**;
@@ -106,6 +106,34 @@ is reached — don't draft around unresolved branches. The loop (Claude Code):
 
 Articulation pressure surfaces design flaws before code; "hard to specify
 cleanly" is a code smell caught early.
+
+## The EDD working rhythm — capture, refactor, re-orient
+
+The day-to-day rhythm of experiment-driven work (named 2026-06-11) is three
+beats, repeated:
+
+1. **Toss in what you don't want to lose.** Insights, decisions, OFIs, and
+   danglers surface constantly mid-work. Capture each in its right durable
+   home as it appears — a design spoke, an OFI in the spec, an `executor/`
+   fact, an experiments-logbook entry — so it survives the session, without
+   derailing the current move. (Homes, not a phantom task list: reference only
+   things the user can open — see GridWorks_CLAUDE "No phantom references".)
+2. **Take a breath and refactor the knowledge.** Periodically stop and
+   consolidate — knowledge gets refactored like code. Reconcile the sediment a
+   long conversation leaves (layered decisions, superseded sketches), route
+   danglers into spokes, fold OFIs into the spec, update the hub. A spoke that
+   reads as strata from a chat is harder to act on than one clean spec.
+3. **Re-orient to the next obvious "do this next."** End every consolidation by
+   pointing at a single, small, witnessable experiment — the EDD next move.
+   While a design is active, its **active spoke is highlighted at the top of
+   the hub** (`primary.md`) so the move can't get lost across files. Then go
+   run it.
+
+The rhythm guards two opposite failure modes: losing hard-won insight (no
+capture) and admiring the design instead of coding (no re-orient). Beats one
+and two serve the third — the point of capturing and refactoring is to reach a
+sharp experiment faster, not to accumulate prose. See GridWorks_CLAUDE
+"Experiment-Driven Design (EDD)".
 
 ## Where new facts go: memory vs. the wiki
 

@@ -96,6 +96,31 @@ mature than the doc, demote the doc instead. Section stamps live at
 ## Engineering maxims
 
 - **If it flaps, skip the acks** — never report on a comm path with messages that demand acks on that path.
+- **No phantom references** — never cite a task number, id, or handle the user can't open and see verbatim. Ephemeral session task-list numbers (`#11`, `#14`) are phantom: they mean nothing to the user and vanish with the session. Point only at durable, openable things — file paths, real Linear ids, commit hashes.
+
+## Experiment-Driven Design (EDD) — the verification bar
+
+**Experiment-Driven Design** is how we reach confidence — the evolution of
+test-driven design. Where TDD writes an in-process test first, EDD runs an
+**experiment in close-to-real-world conditions** — a real broker, real
+timing (optionally sped up) — and lets that experiment be what verifies the
+design. Confidence comes first from experiments, not from code analysis and
+not from in-process unit tests. In-code tests are necessary, not sufficient:
+they share a backdoor transport and a wall clock, and they go green while
+gating real-world behavior stays invisible (the 2026-06-09 routing-key bug
+`ScadaLiveTest` could not see; the ~15-minute broker-access blackhole no unit
+test would catch). A spec reaches **`Verified`** only when an experiment
+tests it against reality — the `experiments` entry in the
+`Draft → Accepted → Verified` ladder. Keep the harness as a re-runnable
+reproducer (it is the evidence behind the stamp); distill findings into
+scoped Verified claims, `Reviewed` pointing at the experiment. Lineage:
+Karan's verify ethic — build the experiment before calling a design
+verified. The framework and conventions live in the simulated-test-environment
+design (`wiki/gridworks-scada/`, experimentation-tools spoke).
+
+**When starting a design, use EDD when appropriate** — the
+capture → refactor → re-orient working rhythm is in
+[`working-with-llms.md`](working-with-llms.md#the-edd-working-rhythm--capture-refactor-re-orient).
 
 ## Weight signals
 

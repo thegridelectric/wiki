@@ -12,8 +12,45 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-06-11 — Sim-time bridge: scada-side sim.timestep listener (OFI)
+## 2026-06-11 — Green the test suite: House0 AsyncCaptureDelta + local test dotenv wiring (`b3cf2c4b`)
+
+**What:** Two coupled fixes landed together so `pytest` passes both
+locally and in CI on `jm/spruce-unlimbo`:
+
+1. **AsyncCaptureDelta restored to House0 layout.** `dab55d20` bumped
+   `RelayActorConfig` to `003`, which *enforces* Axiom 1 (if
+   `AsyncCapture` is true, `AsyncCaptureDelta` must exist — and the
+   check is `not AsyncCaptureDelta`, so both absent and `null` fail),
+   but only `nolan-layout.json` got the values. Added
+   `AsyncCaptureDelta: 1` to the 14 relay configs in
+   `tests/config/house0-layout.json` that lacked the key (relays are
+   binary state, so a delta of 1 captures every change, matching
+   nolan's relays). This is the bug behind CI's two `value_error`
+   failures on `relay18`. `tests/config/layout-lite.json` carries the
+   same `null` deltas but is loaded through the lite path, which does
+   not exercise the axiom in any test — left untouched on purpose, since
+   the goal was a green suite, not a speculative edit.
+
+2. **Local test dotenv actually loads now.** `tests/conftest.py` declared
+   `TEST_DOTENV_PATH` / `TEST_DOTENV_PATH_VAR` but never wired them, so
+   `gwproactor_test` fell back to its own default name and loaded nothing.
+   The LTN broker (`scada_mqtt = MQTTClient()`, `tls.use_tls` defaults
+   True) then tried TLS against the plain local mosquitto and hung —
+   every scada↔LTN link test timed out after 10 s. conftest now sets
+   `GWPROACTOR_TEST_DOTENV_PATH` so the repo's local config loads, and
+   `tests/.env-gw-spaceheat-test` is committed (copied from
+   `tests/config/.env-local`, TLS off) and removed from `.gitignore` —
+   the test rig should travel with the repo, not be hand-created per
+   checkout. CI still overwrites it from `.env-ci` (TLS on, with certs),
+   so CI keeps exercising the TLS path.
+
+**Why:** the branch's tests were red both locally (link timeouts) and in
+CI (the axiom failures). The merge `bb4f6294` was an early suspect but
+was a red herring — the regression is the config-version bump that
+enforced the axiom without backfilling House0, plus a long-standing dead
+dotenv wiring that only bites a fresh checkout with no local rig.
+
+## 2026-06-11 — Sim-time bridge: scada-side sim.timestep listener (OFI) (`aa802567`, PR #571)
 
 **What:** On branch `jm/sim-time-bridge` (off `jm/spruce-unlimbo`): a
 minimal listener that subscribes over MQTT to the time coordinator's

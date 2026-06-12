@@ -78,6 +78,23 @@ July 15" doesn't become "never."
 - Sema `jm/nolan` holds the draft `gw.nolan.layout` type (2 commits ahead
   of sema dev).
 
+## Test state by commit (recorded 2026-06-11, investigation open)
+
+- `td/orig-pred-set` tip `3c100867` — **CI green** (pushed by Thomas).
+- `jm/spruce-unlimbo` pre-merge tip `77d882ac` — not measured locally;
+  presumed green (the merge is the suspect, not proven).
+- `bb4f6294` (Merge dev into jm/spruce-unlimbo) — **fails locally**
+  (Jessica's pytest run), so the regression predates the sim-time
+  bridge commit.
+- `b437b1a1` (HEAD, + sim-time bridge `aa802567`) — **fails locally**
+  (reproduced): first failure
+  `tests/actors/test_auto_state.py::test_auto_state_home_alone_to_ltn`,
+  a 10 s `await_for` timeout "waiting for scada to ltn link" (link
+  never goes active in the harness). Suspects: the merge's changes to
+  `ltn.py` / `local_control/standby.py` / `sieg_loop.py`; the sim-time
+  listener is in the mix only at HEAD and is being ruled in/out
+  explicitly.
+
 ## Why the branch can't run House0 (verified disable points)
 
 Jessica: "I have disabled the meaning of turning on and off relays."

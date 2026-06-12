@@ -89,6 +89,55 @@ count/variety makes hand-launching the bottleneck.
    identity make hand-launching the bottleneck.
 5. **(6) capture/replay** — once live experiments are routine.
 
+## The record: logbook, kept reproducer, verified claim (decided 2026-06-11)
+
+An experiment that characterizes repeatable real-world behavior is durable
+evidence, not a throwaway (the distinction Jessica drew: steady-state
+behavior is repeatable, not "evidence for a moment"). Three things are
+kept, each in its right home:
+
+- **A terse logbook** — `experiments/logbook.md`, per domain: one dated
+  entry per run — why we ran it, what we found (the verified claim in a
+  line), pointers to the reproducer + raw bundle. An index, not a write-up;
+  terse by design so it doesn't become the `findings.md` graveyard the
+  conventions outlawed.
+- **The reproducer package** — the harness (re-runnable) plus its summary,
+  kept together so the claim can be re-checked. It IS the evidence behind a
+  `Verified` stamp, so it lives as code (scada repo / `experiments/`), not
+  as wiki prose.
+- **The verified claim** — distilled UP into the relevant spec (`executor/`
+  or the design), maturity raised, **scoped honestly to what was actually
+  exercised**, naming the experiment that validated it. This is the
+  `experiments` arm of the `Draft → Accepted → Verified` ladder
+  (GridWorks_CLAUDE "The verification bar").
+
+Raw `jsonl`/logs stay **out of wiki git** — provenance, kept or GC'd,
+pointed at from the logbook. Draw the line at *repeatable characterization*:
+a one-off plumbing smoke-test may resolve an open "does it work" item but
+does not earn a standing logbook entry or a Verified claim.
+
+## Simulated layout builders — the arc (learned 2026-06-11)
+
+Running an experiment needs a way to build a *simulated* layout. The
+progression this session made concrete:
+
+- **Start with the script we have.** `make_imaginary_layout.py` (the wand:
+  real → imaginary — fresh instance ids, canonical device-type ids, plus a
+  stale-version refresh). Available now; it's how the dashboard experiment
+  gets its House0.
+- **OFI — make it easy.** A layout's shape is *mostly specified by the sema
+  layout type* (`gw.house0.layout` / `gw.nolan.layout`), and once
+  `layout_gen` lands the clean `core`/`builders`/`subsystems` form from the
+  layout-augments rework, building one is near-declarative: the sema type
+  says *what a layout is*, a clean `layout_gen` *builds one*, and a
+  *simulated* one is just choosing `Sim*` device types. (Depends on the
+  spruce-unlimbo `layout-augments-fold` and `nolan-layout-sema` spokes.)
+- **Eventually — a docker fleet.** Simulated houses with **randomized tank
+  counts** (and other varied parameters), spun up as a fleet for scaled
+  experiments — the top of the World scale trajectory, where docker finally
+  earns its keep (tool 7). The randomized layouts are exactly what the
+  easy-builder above makes cheap.
+
 ## Open
 
 - Whether the World env profile is a file format, a small package, or
