@@ -12,6 +12,18 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-06-11 — README: gwbase 0.5.2 + the vendored sema snapshot
+
+**What:** README intro — note JK runs on `gridworks-base ≥ 0.5.2` and decodes
+with a restricted, vendored Sema runtime at `src/gjk/sema`, generated from
+`src/gjk/sema_seed_request.yaml` by the Sema snapshot toolchain (regenerate
+via `scripts/regen_sema_snapshot.sh`); never hand-edit `src/gjk/sema`.
+
+**Why:** the README predated the gwbase-0.5.x / sema-snapshot work
+(`integrate-gwbase-sema-updates`, OPS-386) — a new contributor had no pointer
+to how JK gets its types or how to refresh them.
+
 ## 2026-06-10 — Snapshot: seed `bid` (current) alongside `atn.bid` (`d189ba7`)
 
 **What:** Add `bid` to `src/gjk/sema_seed_request.yaml` and regenerate

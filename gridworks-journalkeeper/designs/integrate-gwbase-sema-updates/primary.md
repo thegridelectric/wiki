@@ -1,12 +1,22 @@
 # Integrate gwbase + sema updates into JournalKeeper
 
-Status: Accepted · Pass 1 · Updated 2026-06-10 · Linear: OPS-386
+Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-386
 
 > What this is: the **hub** of the design to finish moving
 > `gridworks-journalkeeper` onto the upgraded **gwbase 0.5.x** (three-tier
 > `ServiceSettings`/`ActorBase`) and the updated **sema** restricted-snapshot
 > toolchain (OPS-380), now that both upstreams have landed their relevant work.
 > Spokes split off this hub as the plan firms up (one per workstream).
+
+**▶ Active spoke: `gwbase-tier-migration.md` (hub item #2). DO THIS FIRST —**
+the gwbase **`ServiceSettings` tap-tier migration**: move JK off
+`Settings(GNodeSettings)` (`src/gjk/config.py`) onto `ServiceSettings` /
+`ActorBase` — first-class `service_alias`, plain-XDG paths, no GNode identity.
+**This is the one open remainder.** The other halves are done: the sema
+restricted-snapshot toolchain shipped, and the gwbase-0.5.2 PyPI prerequisite
+is cleared (JK is pinned `>=0.5.2`). So it's now actionable — and it is *why
+OPS-386 is still In Progress*. (Convention: while a design is active, its
+active spoke is highlighted here at the top of the hub.)
 
 ## Spokes
 

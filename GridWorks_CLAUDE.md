@@ -138,13 +138,6 @@ when extending into a new path or area. The SessionStart hook auto-claims
 your session there (friendly name + first-6 hash); the **normative
 protocol** lives in that file below the table.
 
-**Handoffs.** Releasing scope while leaving in-flight artifacts behind (e.g.
-pending changelog markers) goes through the `## Handoffs` section of
-`active-claims.md`: the sender lists the artifact, and a receiver **MAY**
-take responsibility by adopting its paths into their own Scope and deleting
-the line. Until someone does, responsibility stays with the sender. Details
-in that file's protocol.
-
 **Focus shorthand — design lookup.** When the user states a Focus as loose
 words that read like a design name (e.g. "sema snapshot improvement",
 "gridworks-scada relay timing", "linear integration"), resolve it to a design

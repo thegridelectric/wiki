@@ -78,22 +78,29 @@ July 15" doesn't become "never."
 - Sema `jm/nolan` holds the draft `gw.nolan.layout` type (2 commits ahead
   of sema dev).
 
-## Test state by commit (recorded 2026-06-11, investigation open)
+## Test state by commit — RESOLVED (2026-06-11, commit `b3cf2c4b`)
 
-- `td/orig-pred-set` tip `3c100867` — **CI green** (pushed by Thomas).
-- `jm/spruce-unlimbo` pre-merge tip `77d882ac` — not measured locally;
-  presumed green (the merge is the suspect, not proven).
-- `bb4f6294` (Merge dev into jm/spruce-unlimbo) — **fails locally**
-  (Jessica's pytest run), so the regression predates the sim-time
-  bridge commit.
-- `b437b1a1` (HEAD, + sim-time bridge `aa802567`) — **fails locally**
-  (reproduced): first failure
-  `tests/actors/test_auto_state.py::test_auto_state_home_alone_to_ltn`,
-  a 10 s `await_for` timeout "waiting for scada to ltn link" (link
-  never goes active in the harness). Suspects: the merge's changes to
-  `ltn.py` / `local_control/standby.py` / `sieg_loop.py`; the sim-time
-  listener is in the mix only at HEAD and is being ruled in/out
-  explicitly.
+The "merge `bb4f6294` is the suspect" hypothesis was a **red herring** — not
+a branch regression at all. Two independent causes, both fixed in `b3cf2c4b`
+("Green the test suite: House0 AsyncCaptureDelta + local test dotenv wiring"):
+
+- **The 10 s link timeout** (`test_auto_state_home_alone_to_ltn` and the
+  scada↔LTN link tests) was **local environment, not code**: the test dotenv
+  that turns TLS off for the plain local broker never loaded — `conftest.py`
+  declared dead dotenv constants while `gwproactor_test` reads a different
+  name (`GWPROACTOR_TEST_DOTENV_PATH` / `tests/.env-gwproactor-test`). So the
+  LTN broker defaulted `tls.use_tls=True` and hung against plain mosquitto.
+  Fixed: conftest now wires the dotenv var, and the local rig is committed
+  (un-gitignored).
+- **CI's two failures** were the `AsyncCaptureDelta` axiom: the
+  `RelayActorConfig` v003 bump (`dab55d20`) enforces "AsyncCapture ⇒
+  AsyncCaptureDelta" but only `nolan-layout.json` got the values;
+  `house0-layout.json`'s 14 relays were left without it. Fixed: backfilled
+  `AsyncCaptureDelta: 1`.
+
+Both ride entirely on `td/orig-pred-set` — the merge and the sim-time bridge
+were innocent. The full debugging is an EDD worked example in
+`../../experiments/logbook.md`. Tests green on `jm/spruce-unlimbo`.
 
 ## Why the branch can't run House0 (verified disable points)
 
@@ -147,6 +154,9 @@ three axes explicitly; control states speak only axis 1.
 - **B — layout pipeline:** `gw.nolan.layout` + `house0.layout` as Sema
   types; retire tlayouts' lock-step branching; fold in the
   `jm/layout-augments` rework. OPS-334 ("80% done") lives here.
+  **Spoked (2026-06-11):** `layout-augments-fold.md` (curated carry/skip for
+  the fold — the one to carry is `DerivedChannelGt` v002) and
+  `nolan-layout-sema.md` (closing `gw.nolan.layout`, back-burner).
 - **C — branch reconciliation:** collapsed to: glean `jm/spruce-new`
   (in flight) + `jm/layout-augments` onto `jm/spruce-unlimbo`, kill the
   rest, merge dev forward regularly.

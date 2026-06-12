@@ -12,6 +12,19 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-06-11 — README: document the MQTT bridge tap
+
+**What:** README "Dev Rabbit Broker" — note that `gwbase.topology` bridges the
+TimeCoordinator publish exchange to the MQTT plugin's `amq.topic` (the `rjb.#`
+broadcast tap), so an MQTT-native service (scada) subscribed to
+`rjb/<tc-alias>/time/sim-timestep` receives `sim.timestep`.
+
+**Why:** the README's "SCADA is MQTT-native, no AMQP exchanges" line predated
+the bridge tap (`3139f34`, PR #158); it now correctly reflects that a
+MQTT-native scada *can* receive TimeCoordinator broadcasts. Surfaced while
+exercising the crossing in the scada sim-time experiment.
+
 ## 2026-06-11 — Topology: timemic_tx -> amq.topic MQTT bridge tap (`3139f34`, PR #158)
 
 **What:** One new binding in

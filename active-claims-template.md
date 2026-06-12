@@ -7,12 +7,6 @@ starter row above the protocol section.
 | Session | Focus | Scope (path globs) | Since |
 | --- | --- | --- | --- |
 
-## Handoffs
-
-Offers, not assignments. A receiver MAY take one by adopting its paths into
-their own Scope and deleting the line; until then, responsibility stays with
-the sender. (Normative rule in the protocol below.)
-
 ## Protocol
 
 This protocol is **normative**. Every Claude session SHALL follow it
@@ -64,14 +58,6 @@ verbatim; deviation is a defect, not a stylistic choice. RFC 2119 keywords
 - **Stale rows:** the hook surfaces any row whose `Since` is more than 2 days
   old at session start. You MUST ask the user whether those sessions have
   ended and remove their rows if so.
-- **Handoffs.** When a session releases scope (or ends) while leaving
-  in-flight artifacts behind (e.g., `<!-- pending commit -->` changelog
-  markers, an unreconciled spec), the sender SHALL add a line under
-  `## Handoffs` naming the artifact paths and what completion looks like.
-  A handoff is an offer, not an assignment: a receiver **MAY** take
-  responsibility by adopting the paths into its own Scope and deleting the
-  line. Until a receiver does, responsibility stays with the sender — a
-  listed handoff is not thereby done.
 - **Before extending into a new path or area, you MUST re-check this file**
   and update your row. If the new area overlaps another active session's
   scope, you MUST stop and raise it; you MUST NOT edit across the boundary.
