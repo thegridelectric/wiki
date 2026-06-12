@@ -26,6 +26,19 @@ done).** While the spruce-unlimbo "unlimbo" epic is in flight, **new
 `dev`/`main`. The layout-pipeline rework lives there and downstream work
 (including the simulated-test-environment actors) depends on it.
 
+## ⏳ Sema-words commit permission (review pending — REMOVE after Jessica reviews)
+
+**Temporary (added 2026-06-12; remove after Jessica reviews the
+simulated-test-environment sema words — tracked at the end of that design's
+`primary.md`).** Claude MAY make **bounded, test-passing** git commits of sema
+vocabulary additions/bumps — each scoped to one word/change, `pytest` green,
+**title-only**, on the **same `jm/` topic branch** (currently `jm/sim-vocab`; do
+not proliferate branches), each with its `wiki/sema/changelog.md` entry. No `push`
+or PR without asking; Jessica does the merges to `dev` and **will review and may
+adjust the words after the fact** — committing is not finalizing. (The commit-block
+hook `precheck-no-claude-commits.sh` was removed from `.claude/settings.json` to
+enable this — **restore it when this directive is removed.**)
+
 ## Bearings (held at every altitude)
 
 True in every session, whatever the Focus. One line each; the full text
@@ -113,6 +126,7 @@ mature than the doc, demote the doc instead. Section stamps live at
 
 - **If it flaps, skip the acks** — never report on a comm path with messages that demand acks on that path.
 - **No phantom references** — never cite a task number, id, or handle the user can't open and see verbatim. Ephemeral session task-list numbers (`#11`, `#14`) are phantom: they mean nothing to the user and vanish with the session. Point only at durable, openable things — file paths, real Linear ids, commit hashes.
+- **Sema regen touches more than you changed** — bumping one sema type's version rewrites the generated runtime of *unchanged* types that reference it: their versionless class ref (reserved for the new latest) rebinds to the explicit `XxxNNN` old-version class. Expected and correct, not a stray diff.
 
 ## Experiment-Driven Design (EDD) — the verification bar
 

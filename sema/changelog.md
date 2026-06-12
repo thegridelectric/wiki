@@ -12,6 +12,21 @@ Newest at the top.
 
 ---
 
+## 2026-06-12 — `spaceheat.node.gt/302` + ActorClass cascade (`2b9e099`)
+
+**What:** New `spaceheat.node.gt/302` re-points `ActorClass` to `gw1.actor.class/012`
+(picks up `SimSensorActor`/`SimRelayActor`); trivial 301→302 upgrade, axiom
+implementations ported, hand-written tests bumped + a v302 fixture. The two
+embedders re-pointed **in place** (unpublished/draft): `scada.control.capabilities/001`
+and `gw.nolan.layout/000` → `/302` (their `created` bumped to 2026-06-12 to satisfy
+causal-timestamp ordering).
+
+**Why:** the ActorClass cascade — adding the two sim actor classes forces a
+`spaceheat.node.gt` bump and everything embedding it. `data.channel.gt` /
+`derived.channel.gt` reference nodes by *name*, so they don't ripple. Remaining
+embedders `layout.lite` + `new.command.tree` (both published) are separate version
+bumps, still pending.
+
 ## 2026-06-12 — Add `gw1.actor.class/012` — `SimSensorActor` + `SimRelayActor` (`a7aa496`)
 
 **What:** New enum version `gw1.actor.class/012` appends `SimSensorActor` and

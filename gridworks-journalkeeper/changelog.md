@@ -13,7 +13,19 @@ Newest at the top.
 ---
 
 <!-- pending commit -->
-## 2026-06-12 — Live AMQP liveness test: emitter → broker → JournalKeeper → DB
+## 2026-06-12 — README: document the docker-gated integration test
+
+**What:** README "Run tests" — note the suite includes a Layer-2 liveness test
+(`tests/test_live_amqp.py`) that stands up an ephemeral RabbitMQ + TimescaleDB
+via `testcontainers`, boots a real JournalKeeper, and round-trips a message
+through the broker into the DB; it needs docker and self-skips otherwise. Show
+`uv run pytest -m integration` to run it alone.
+
+**Why:** the README must stand alone for a contributor, and the new integration
+test has a non-obvious docker prerequisite (and a self-skip) that the bare
+`uv run pytest` line didn't convey.
+
+## 2026-06-12 — Live AMQP liveness test: emitter → broker → JournalKeeper → DB (`603d8a9`)
 
 **What:** Add a docker-backed integration test (`tests/test_live_amqp.py` +
 `tests/conftest.py`) that stands up an ephemeral RabbitMQ **and** TimescaleDB

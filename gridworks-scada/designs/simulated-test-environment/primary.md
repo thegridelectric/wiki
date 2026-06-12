@@ -277,9 +277,17 @@ lost):**
 - Relationship: subsumes OPS-40's original `gen_orange` dev-layout checklist;
   related to **OPS-118** (Dev mosquitto in Docker — the dev broker).
 
-## TODO — revert the tonight-only CLAUDE.md directive
+## TODO — revert the temporary `GridWorks_CLAUDE.md` directives
 
-A temporary directive was added to `GridWorks_CLAUDE.md` (2026-06-12): "keep the
-terminalasset plant as simple as possible … and no simpler; when in doubt err
-simpler and leave a question." **Revert that section from `GridWorks_CLAUDE.md`
-once the plant MVP (Phase A comms pipe + best-guess physics) is working.**
+Two temporary directives were added to `GridWorks_CLAUDE.md` (2026-06-12); remove
+each when its condition is met:
+
+1. **Plant simplicity** — "keep the terminalasset plant as simple as possible …
+   and no simpler; when in doubt err simpler and leave a question." **Remove once
+   the plant MVP (Phase A comms pipe + best-guess physics) is working.**
+2. **Sema-words commit permission** — Claude may make bounded, test-passing sema
+   commits on `jm/sim-vocab`. **Remove once Jessica has reviewed the
+   simulated-test-environment sema words** (the words committed under this
+   permission are not finalized until then). On removal, **also restore the
+   `precheck-no-claude-commits.sh` commit-block hook** in `.claude/settings.json`
+   (removed to enable the commits).

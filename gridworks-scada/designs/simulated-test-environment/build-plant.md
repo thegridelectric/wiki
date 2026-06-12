@@ -253,6 +253,47 @@ capabilities, channels). A real coupling smell — recorded here, not silent.
 **Mitigation:** new actor classes are *rare*, so the cascade is paid infrequently;
 not worth re-architecting now.
 
+## Journalkeeper must track the bumped versions — but NOT the sim types
+
+The cascade bumps **real** types the journalkeeper (JK) journals off the prod
+broker, so JK's sema snapshot must add the new versions to decode them. Old scada
+keeps emitting old versions (JK already knows those), so this is additive — JK
+tracks both old and new. **JK will need to track:**
+
+- `spaceheat.node.gt/302` (+ `gw1.actor.class/012`)
+- `layout.lite/014`
+- `new.command.tree/001`
+- `scada.control.capabilities/001`
+- `gw.nolan.layout/000` (if/when nolan layouts are journaled)
+
+**JK will NOT capture the sim messages** (Jessica, 2026-06-12) — `sim.plant.flux`,
+`sim.plant.actuation`, and the `change.relay.pin` enum are the sim boundary, not
+prod fleet traffic, so JK needs none of them. This is a **flag for the JK session**
+(spry-granite, `wiki/gridworks-journalkeeper/`), not an edit into their domain.
+
+## Review + validate the sema words (DO THIS)
+
+**Description-review checklist (Jessica reviews — the words are committed but *not
+finalized*, per the `GridWorks_CLAUDE.md` permission).** Go over the `description`
+/ `extended_description` of every new word this sprint:
+
+- [ ] `sim.plant.flux` — the plant's emission word (incl. the Tesla call-out).
+- [ ] `sim.plant.actuation` — the relay actuation *event* word.
+- [ ] `change.relay.pin` enum — `Energize`/`DeEnergize` + its `value_descriptions`.
+- [ ] `gw1.actor.class/012` — the two added values `SimSensorActor` /
+  `SimRelayActor` (no `value_descriptions` today — add if wanted).
+- [ ] `spaceheat.node.gt/302` — description inherited from 301 (verify still apt).
+
+**Validate sema AGAINST scada (EDD — proposed).** The scada hand-maintains its
+gwsproto types (PascalCase) *separately* from the sema canon, so they can drift.
+Close the loop: **have the scada EMIT an instance of a type and guarantee it passes
+the sema runtime check.** Concretely — take scada-produced JSON (a `SyncedReadings`,
+a layout's `spaceheat.node.gt`, and later `sim.plant.flux` / `sim.plant.actuation`),
+feed it through sema's `default_codec.from_dict()`, and assert it decodes clean. A
+green decode is a *guarantee* the scada's emission conforms to sema — the real test
+that the two carriers agree, not just that each is internally valid. Rides the
+experimentation harness (an EDD experiment, like the async-flux scratch step).
+
 ## Questions about the real system's behavior (for tomorrow's DB access)
 
 Obvious things to confirm against real per-room data (best-guesses above stand in

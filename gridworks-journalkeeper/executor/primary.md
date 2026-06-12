@@ -1,6 +1,6 @@
 # gridworks-journalkeeper — rebuild spec
 
-Status: Draft · Pass 0 · Updated 2026-06-09
+Status: Draft · Pass 0 · Updated 2026-06-12
 
 > Faithful-rebuild hub: enough to build journalkeeper from scratch.
 > **Part I — Functional specification** is the durable contract (what gjk
@@ -50,9 +50,12 @@ ecosystem adds actors and types**.
 2. **Deliver without routing-metadata gatekeeping** — a message that reaches
    the consumer MUST be handed to dispatch regardless of whether its routing
    key parses into structured class/alias metadata. Delivery and persistence
-   depend on the *type*, never on routing-class bookkeeping. (This is a
-   requirement gjk places on its transport; the current gwbase violation is in
-   Part II.)
+   depend on the *type*, never on routing-class bookkeeping. gjk pins
+   `gridworks-base ≥ 0.5.2`, which **satisfies** this — the prior routing-key
+   data-loss bug is fixed (`must-accept-current-ltn-messages`, distilled into
+   `gridworks-base/executor/transport.md`). Legacy `broadcast.*` keys that
+   predate the fix are recovered by JK's `on_routing_key_parse_error` override
+   (the permanent `legacy_hack`).
 3. **Decode** — `SemaCodec.from_dict(..., mode="degraded")` decodes against
    gjk's restricted Sema snapshot. A type outside the snapshot vocabulary
    decodes as degraded and is skipped (a coverage gap, never a crash).
@@ -64,7 +67,11 @@ ecosystem adds actors and types**.
 ## Invariants
 
 1. **Not a GNode.** gjk is a tap — `ActorBase`, not `GridworksActor`. No
-   heartbeat, no time-coordinator role, no GNode identity on the grid.
+   heartbeat, no time-coordinator role, no GNode identity on the grid. Its
+   settings ride gwbase's **`ServiceSettings`** tap tier (not `GNodeSettings`):
+   `service_alias` is the routable address (e.g. `d1.journal`), there is **no**
+   GNode identity file (`g.node.gt.json`), and paths are plain XDG keyed on
+   `service_name`.
 2. **Meaning/models live upstream, not here.** Persistence targets are the
    `gw_data` SQLAlchemy models (`MessageSql`, `ReadingChannelSql`,
    `ReadingSql`); gjk defines none of its own. The Sema runtime is a
@@ -128,19 +135,32 @@ ecosystem adds actors and types**.
 
 ```
 broker (consume exchange; per-type binds: #.report, #.glitch, …)
-  └─ ActorBase consume → on_message: parse routing key  ── parse fails ─▶ DROP*
+  └─ ActorBase consume → on_message: parse routing key  ── parse fails ─▶ recover* / log+drop
        └─ JournalKeeper.dispatch_message
             └─ SemaCodec.from_dict(json.loads(body))   ── degraded ─▶ skip
                  └─ SemaMessagePersistor.persist_message
                       ├─ custom persistor → MessageSql + fanned readings
                       └─ default → MessageSql(payload=jsonb)
                            └─ gw_data.messages
-*DROP is the current gwbase bug (Gate 2 violation) — see below.
+*Parse failures no longer drop silently: gwbase ≥ 0.5.2 fixed the routing-key
+ bug, and JK's `on_routing_key_parse_error` override recovers legacy
+ `broadcast.*` keys (the permanent `legacy_hack`); anything else is logged + dropped.
 ```
 
 The consume exchange today is `ear_tx` (the universal audit tap); gjk consumes
 directly from the **production** broker (`hw1__1`) — a transitional accident,
 not the target tier.
+
+## Verification
+
+The live path is exercised end-to-end by `tests/test_live_amqp.py` (Layer 2 of
+the layered-test-harness): a real `JournalKeeper` actor boots against an
+ephemeral RabbitMQ + TimescaleDB (`testcontainers`), and a `scada.params`
+message published to `amq.topic` (bridged to `ear_tx`) is consumed, decoded, and
+persisted to `gridworks.messages`; both containers tear down after. It self-skips
+without docker (the `integration` pytest marker). This is also the live
+verification of the gwbase tap-tier migration — it runs `ActorBase.__init__` →
+broker-consume, the path the unit suite skips (it builds JK via `__new__`).
 
 ## Current coverage and gaps
 
@@ -157,12 +177,14 @@ receives — it's a bus survey.
 - **Degraded — absent from the snapshot:** e.g. `gridworks.ack`,
   `slow.contract.heartbeat`. Real Sema types; candidates for a snapshot regen
   if we decide to capture them.
-- **Route-rejected at gwbase (the Gate 2 bug):** short-form class tokens the
-  gwbase `RoutingClass` enum rejects — `s.*` (scada), `ws.weather`,
+- **Previously route-rejected at gwbase (now fixed):** short-form class tokens
+  the old gwbase `RoutingClass` enum rejected — `s.*` (scada), `ws.weather`,
   `broadcast.*` (incl. `glitch`). Two of these — `glitch` and the weather
-  broadcast — are types gjk *wants* but never sees. Tracked by the
-  gridworks-base design `must-accept-current-ltn-messages`. (~37% of the
-  surveyed traffic fell here.)
+  broadcast — are types gjk *wants*. The gwbase ≥ 0.5.2 fix
+  (`must-accept-current-ltn-messages`, distilled into
+  `gridworks-base/executor/transport.md`) accepts them; legacy `broadcast.*`
+  (incl. `glitch`) are additionally recovered by JK's `legacy_hack` override.
+  (~37% of the surveyed traffic was in this class.)
 
 The current persist set omits `atn.bid` (commented "until bid works in SEMA")
 while keeping `latest.price`, `power.watts`, and the telemetry/forecast types.
