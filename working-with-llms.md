@@ -1,13 +1,15 @@
 # Working with LLMs — guiding principles
 
-Status: Draft · Pass 0 · Updated 2026-06-12
+Status: Draft · Pass 0 · Updated 2026-06-13
 
-> For humans (Jessica + collaborators) to understand *how* we work with Claude on
-> GridWorks and *why* the wiki is built the way it is. This is the **rationale**;
-> the operative rules Claude follows live in
-> [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md). Written as Claude's own honest
-> self-reflection on its operation — kept here so the reasoning is shared, not
-> tribal.
+> **Reference for humans — not an operative spec.** For humans (Jessica +
+> collaborators) to understand *how* we work with Claude on GridWorks and *why*
+> the wiki is built the way it is. This is the **rationale**; the operative rules
+> Claude actually follows live in [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) and
+> [`designs-process.md`](designs-process.md). A Claude session is **not** expected
+> to read this to do its work — so nothing load-bearing for Claude's behavior may
+> live only here. Written as Claude's own honest self-reflection on its operation,
+> kept so the reasoning is shared, not tribal.
 
 ## How Claude actually works (the honest mechanism)
 
@@ -91,60 +93,16 @@ shares one mental model. A `PreToolUse` hook
 ([`tools/spawn-economy-nudge.sh`](tools/spawn-economy-nudge.sh)) fires this
 reminder once per session on the first broad-looking spawn.
 
-## Converging research → executor (the design loop)
+## The design loop & the EDD working rhythm → designs-process
 
-A spec is only as good as the thinking behind it. Before promoting `research/`
-into an `executor/` sub-spec, stress-test the design until shared understanding
-is reached — don't draft around unresolved branches. The loop (Claude Code):
-
-1. Work in **plan mode** and run **`/grill-me`** — it interviews you relentlessly
-   about the design, resolving each branch of the decision tree.
-2. Run the proposal **past a fresh agent**, and/or have an agent run
-   **experiments** to validate it.
-3. Iterate (typically 3–5 cycles) until the tree is resolved.
-4. **Only then** draft the `executor/` spec and start coding from it.
-
-Articulation pressure surfaces design flaws before code; "hard to specify
-cleanly" is a code smell caught early.
-
-## The EDD working rhythm — capture, refactor, re-orient
-
-The day-to-day rhythm of experiment-driven work (named 2026-06-11) is three
-beats, repeated:
-
-1. **Toss in what you don't want to lose.** Insights, decisions, OFIs, and
-   danglers surface constantly mid-work. Capture each in its right durable
-   home as it appears — a design spoke, an OFI in the spec, an `executor/`
-   fact, an experiments-logbook entry — so it survives the session, without
-   derailing the current move. (Homes, not a phantom task list: reference only
-   things the user can open — see GridWorks_CLAUDE "No phantom references".)
-2. **Take a breath and refactor the knowledge.** Periodically stop and
-   consolidate — knowledge gets refactored like code. Reconcile the sediment a
-   long conversation leaves (layered decisions, superseded sketches), route
-   danglers into spokes, fold OFIs into the spec, update the hub. A spoke that
-   reads as strata from a chat is harder to act on than one clean spec.
-3. **Re-orient to the next obvious "do this next."** End every consolidation by
-   pointing at a single, small, witnessable experiment — the EDD next move.
-   While a design is active, its **active spoke is highlighted at the top of
-   the hub** (`primary.md`) so the move can't get lost across files. Then go
-   run it.
-
-The rhythm guards two opposite failure modes: losing hard-won insight (no
-capture) and admiring the design instead of coding (no re-orient). Beats one
-and two serve the third — the point of capturing and refactoring is to reach a
-sharp experiment faster, not to accumulate prose. See GridWorks_CLAUDE
-"Experiment-Driven Design (EDD)".
-
-**General vs. EDD — what carries to non-experiment designs.** Beats 1–2
-(capture, refactor) are general design hygiene: they apply to *any* design,
-experiment-driven or not, as does the hub they feed — the concrete layout is in
-[`designs-process.md`](designs-process.md) "Hub `primary.md` layout". EDD
-specializes only beat 3: its "do this next" is a witnessable **experiment**
-against reality. A plain build-out design — a migration, an integration — runs
-the same capture → refactor → re-orient loop and the same hub layout; it just
-re-orients to the next concrete **build step** rather than an experiment. So
-"refactor the hub to lead with the next move" is universal; "the next move is an
-experiment" is the EDD part.
+The design loop (converge `research/` → `executor/` via `/grill-me` +
+fresh-agent / experiment validation) and the capture → refactor → re-orient
+working rhythm **moved to** [`designs-process.md`](designs-process.md) §"The
+design loop — behave this way on every design" (2026-06-13), so the behavior
+lives next to the hub layout it produces and is the one place a design session
+reads. That section also carries the rule that the **hub only points to the
+active spoke** (it never restates the "do this next"). EDD's verification bar
+itself stays in GridWorks_CLAUDE "Experiment-Driven Design (EDD)".
 
 ## Where new facts go: memory vs. the wiki
 

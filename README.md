@@ -5,7 +5,16 @@ system. Code lives in the sibling repos (`gridworks-base`, `gridworks-scada`,
 `sema`, …); this wiki holds the *why*, the design intent, and the normative
 specs those repos satisfy.
 
-**This README is the entry point — what's here and where to go.** For *how we
+> **Reference for humans — not a Claude read-path.** A Claude session is **not**
+> expected to read this README to do its work (it starts from `CLAUDE.md` /
+> [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) + [`active-claims.md`](active-claims.md)).
+> So this file is human onboarding + a map of pointers — **nothing load-bearing
+> for Claude's behavior may live only here**; the operative rules live in
+> `GridWorks_CLAUDE.md` and [`designs-process.md`](designs-process.md). Because it
+> is unread by sessions, it drifts silently — when a pointer here goes stale, fix
+> it at the source and re-point.
+
+**This README is a human entry point — what's here and where to go.** For *how we
 work with Claude* and the wiki's conventions, see
 [`working-with-llms.md`](working-with-llms.md) (the authoring rules Claude
 follows live in [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md)). New to the repo?

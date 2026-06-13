@@ -1,7 +1,6 @@
 # Build the simulated loop — gwta emits `sim.plant.flux`, scada reads it
 
-Status: Accepted · Pass 1 · Updated 2026-06-12 · Linear: OPS-40
-
+Status: Accepted · Pass 1 · Updated 2026-06-13 · Linear: OPS-40
 
 > What this is: simulated-test-environment spoke — the **construction plan** for
 > the whole simulated **message-passing loop**: a `gridworks-terminalasset` (gwta)
@@ -10,47 +9,110 @@ Status: Accepted · Pass 1 · Updated 2026-06-12 · Linear: OPS-40
 > spoke** — the loop is the thing, and it can't be exercised end-to-end without
 > both ends, so they're built together. The physics *model* and the closed-loop
 > *I/O contract* live in `simulated-actors.md` ("The plant — first-pass model",
-> "The plant's I/O contract"); this spoke is how we build the loop.
+> "The plant's I/O contract"); this spoke is how we build the loop. Calibration
+> questions, the cross-carrier round-trip harness, and other parked notes live in
+> `gleanings.md`; new sema words awaiting Jessica's sign-off are in
+> `new-sema-words-to-review.md`.
 
-## Why close `gw.nolan.layout` first — the layout-vocabulary sweep
+## Do this now — the device-type upgrade, then Phase A
 
-Closing `gw.nolan.layout` is a deliberate vehicle: it forces a clean sweep of
-**most of the shared vocabulary we need to manipulate layouts** into the sema
-canon at once. That vocabulary is en route to **spruce-unlimbo** (the layout
-pipeline rework) and is exactly what we reuse as we add **simulated** components.
-Two working rules from Jessica (2026-06-12):
+The shared layout vocabulary has landed in sema (`6f73174` … `ee9d267`), so the
+layout-vocabulary sweep is no longer the lead. The current do-this-now is the
+**device-type transition** (resolved design; see `executor/hardware-layout.md`
+"Resolution"): enforce the MakeModel↔CAC-id bijection via an axiom on the
+**hardware-layout** type, so the layout self-validates, device-type + components
+stay version-stable, and the layout-version cascade on *naming* a device type is
+accepted.
 
-- **Add the new shared-infra words as NON-draft.** They get runtime classes, so
-  scada can import and emit them — which is how we verify them. Keep
-  `gw.nolan.layout` itself **draft**; we only reconcile its refs to the now-correct
-  published words. De-drafting / publishing the layout is a later step.
-- **Simulated things wear "sim" in their names.** The simulated hardware layout
-  is visibly simulated — its components are `sim.*` types (e.g. the existing
-  `sim.pico.tank.module.component.gt`), not real component types reused. Expect to
-  add at least one and probably several `sim.*` component words so a sim layout
-  reads as simulated by construction.
+- **Part A:** add a `gw1.cac.id` enum (canonical UUID strings) + a
+  `gw1.make.model.cac.id` projection (enum→enum); make the draft
+  `MakeModelCacIdConsistency` axiom on `gw.nolan.layout` *live* (reference the
+  projection); leave a migrate-to-axiom TODO in scada's `CACS_BY_MAKE_MODEL`
+  (still the live enforcer until then).
+- **Part B:** transition `component.attribute.class.gt` → the device-type
+  (UUID-primary + `MakeModel: string`) and bump **all** components added this
+  sprint onto it + the two new makemodels (`GRIDWORKS__SIM_SENSOR` /
+  `SIM_RELAY_BANK`, in `make.model/008`). Re-verify each via the cross-carrier
+  round-trip harness (`gleanings.md`); `pytest` green.
+- **OPEN FORK — decide first (Jessica):** is the device-type **generic** (suggest
+  `gw1.device.type.gt`, replacing the generic CAC) and **distinct** from the
+  gwsproto `gw1.scada.device.type.gt` (the SCADA-board-specific CAC:
+  NativeGpio/I2c/ADC/DAC)? Don't conflate them. Formalize the transition as a
+  `wiki/gridworks-scada/designs/` file + Ops Linear issue (tag `design`) when
+  picked up.
 
-**Verify the new words by EDD.** For each new/bumped word: a scada hack script
-imports the generated sema runtime, builds an instance from real layout data,
-**emits it over the dev mosquitto broker**; we **capture** the wire JSON and
-**decode it through sema's `default_codec.from_dict`** — a green decode guarantees
-the two carriers agree. This is why the words go in non-draft (drafts generate no
-runtime). A local de-draft is a reversible tweak, not a publish.
+**Then Phase A** — build + prove the comms loop, with the sim layout using
+`sim.sensor.component.gt` / `sim.relay.component.gt`. **Then Phase B** —
+first-pass plant physics.
+
+## Why one layout file — plant and scada read the same `hardware-layout.json`
+
+The end goal (the WHY): the plant (`gridworks-terminalasset`) reads and processes
+the **same** `hardware-layout.json` the scada runs from — one layout file, both
+sides consume it. For that the plant needs the layout's vocabulary in sema as
+flat, generated runtime types, so it can parse that file and stand up its
+simulated world directly from the scada's own layout (in a gwta snapshot these
+types are referenced by their **local names**). Closing `gw.nolan.layout` was the
+vehicle that swept most of that shared vocabulary into the sema canon — vocabulary
+en route to **spruce-unlimbo** (the layout-pipeline rework) and exactly what we
+reuse as we add **simulated** components. Two standing rules (Jessica, 2026-06-12):
+
+- **Shared-infra words land NON-draft** — they get runtime classes so scada can
+  import and emit them, which is how we verify them (the cross-carrier round-trip
+  harness in `gleanings.md`). `gw.nolan.layout` itself stays **draft**; we only
+  reconcile its refs to the now-published words. De-drafting is a later step.
+- **Simulated things wear "sim" in their names** — the sim hardware layout is
+  visibly simulated; its components are `sim.*` types (e.g. the existing
+  `sim.pico.tank.module.component.gt`, and `sim.sensor.component.gt`), not real
+  component types reused.
 
 ## Next tasks (ordered)
 
-The session queue, recorded here so the order survives across files:
+The build order, recorded here so it survives across files (the hub just points at
+this spoke; the ordered plan lives here):
 
-0. **Close `gw.nolan.layout`** — the layout-vocabulary sweep (the sema work in
-   this spoke). Reconcile refs; populate the missing/behind/`sim.*` words
-   non-draft; EDD-verify; keep the layout draft.
-1. **Ratify this spoke** to `Accepted · Pass 1` — it is the last sub-Accepted
-   spoke, so the bump clears the implementation gate.
-2. **Phase A** — build + prove the comms loop (format-correct plant →
+0. **Device-type upgrade** — Part A + Part B above (resolve the OPEN FORK first).
+1. **Phase A** — build + prove the comms loop (format-correct plant →
    `SimSensorActor` → real `ScadaApp(is_simulated)` + `LtnApp` + dashboard;
-   done-when 10 minutes, zero watchdog-pat deaths).
-3. **First pass at the plant physics** (Phase B step 4) — only after Phase A is
-   proven.
+   done-when 10 minutes, zero watchdog-pat deaths). Stand up the hardware layout
+   with `sim.sensor.component.gt` and validate that is the kind of component a
+   `SimSensorActor` has. Have the plant consume the hardware layout (requires a
+   sema snapshot with all the layout's words) and use it to decide which flux
+   words to send; likewise wire the plant to RECEIVE `sim.plant.actuation`. Start
+   by emitting random-but-plausible values.
+2. **First-pass plant physics** (Phase B step 4) — only after Phase A is proven.
+3. **JM review of the new sema words** (mostly Jessica) — sign off every
+   added/bumped word in `new-sema-words-to-review.md` (schema + descriptions). The
+   words are committed under the `jm/sim-vocab` permission but **not finalized**
+   until reviewed; this is the gate that finalizes them.
+
+### Sema changes needed for Phase A (analysis 2026-06-13)
+
+The shared layout vocabulary landed (sema `6f73174`). To stand up a *simulated*
+layout and the actuation path, Phase A still needs a small fresh sema mini-sweep
+(all tracked in `new-sema-words-to-review.md`):
+
+- **`sim.relay.component.gt/000`** — the component the scada-side `SimRelayActor`'s
+  relay node uses (flat: id/cac + `ConfigList` of `relay.actor.config/003`).
+  Parallel to `sim.sensor.component.gt/000`. "The simulated relay needs a component."
+- **Two new MakeModels** in `spaceheat.make.model` (additive → **/008**):
+  `GRIDWORKS__SIM_SENSOR` and `GRIDWORKS__SIM_RELAY_BANK`. **Two, not one** — sensor
+  vs relay are distinct device classes, and `layout_gen` dispatch + the
+  `CACS_BY_MAKE_MODEL` bijection key on MakeModel; matches existing per-class sim
+  makemodels (`GRIDWORKS__SIMBOOL30AMPRELAY`, `GRIDWORKS__SIMMULTITEMP`, …).
+- **`component.attribute.class.gt/002`** (refs `spaceheat.make.model/008`) so a sim
+  CAC carrying the new sim makemodels decodes. `/002` is a strict superset of `/001`
+  (additive); sim layouts use `/002` CACs. **The one ripple to weigh** — bumping a
+  just-landed type — flag for Jessica.
+- Already minted (prior sprint): `sim.plant.flux`, `sim.plant.actuation`,
+  `change.relay.pin`, `gw1.actor.class/012` (SimSensorActor / SimRelayActor).
+
+**Actuation path:** `SimRelayActor` receives the control command the real relay
+actor would, and emits `sim.plant.actuation` (`RelayName` + `change.relay.pin`
+Energize/DeEnergize + sim time + `ActualTimeUtc`) to the plant's broker; the plant
+resolves what energizing each relay *does* from the (sim) layout and folds it into
+physics. So the sim layout's relay nodes carry `sim.relay.component.gt` components
+whose CAC MakeModel is `GRIDWORKS__SIM_RELAY_BANK`.
 
 ## Where it lives
 
@@ -172,7 +234,8 @@ hydronic heat in → room warms → call clears.
   (house ~2 gpm, source ~4 gpm).
 
 Placeholders flagged GUESS — enough to build and run the loop; the DB calibrates
-them. The questions below are what these guesses stand in for.
+them. The calibration questions these stand in for are in `gleanings.md`
+("Questions about the real system's behavior").
 
 ## The two scada-side sim actors
 
@@ -232,7 +295,7 @@ values, real plumbing.
 1. `SimulatedPlant` shell + flux emitter on wall-clock time, synthetic values on
    the correct channels — **round-trip the real `SimPlantFlux` type** on the
    plant's own broker (scratch).
-2. Stand up `sim-sensor-actor.md` concurrently and **close the loop** into real
+2. Stand up the SimSensorActor concurrently and **close the loop** into real
    `ScadaApp(is_simulated)` + `LtnApp` + the LTN dashboard. **Done-when: 10
    minutes, zero watchdog-pat deaths** (also Verifies `sim-time`'s "bridge is
    watchdog-safe").
@@ -257,11 +320,12 @@ real physics — fidelity earned against a working loop, not blocking it.
   to a coherent model — every relay + sensor plumbed in, charge/discharge dynamics
   visible on the LTN dashboard.
 - **White-wire + simulated temp sensors, Thomas' derived setpoint.** The
-  single-zone layout replaces the Hubitats with **simulated white-wire + temperature sensors**
-  and carries **Thomas' derived-setpoint channels**. "Running the falling-edge
-  setpoint eval" is **purely a layout concern — no new control code from us**: make
-  the layout carry the derived-setpoint channels and the right simulated sensor
-  types, and Thomas' existing code evaluates. (Nolan's opto/white-wire world.)
+  single-zone layout replaces the Hubitats with **simulated white-wire + temperature
+  sensors** and carries **Thomas' derived-setpoint channels**. "Running the
+  falling-edge setpoint eval" is **purely a layout concern — no new control code
+  from us**: make the layout carry the derived-setpoint channels and the right
+  simulated sensor types, and Thomas' existing code evaluates. (Nolan's
+  opto/white-wire world.)
 
 **Post-MVP flair:**
 
@@ -311,76 +375,6 @@ tracks both old and new. **JK will need to track:**
 `sim.plant.actuation`, and the `change.relay.pin` enum are the sim boundary, not
 prod fleet traffic, so JK needs none of them. This is a **flag for the JK session**
 (spry-granite, `wiki/gridworks-journalkeeper/`), not an edit into their domain.
-
-## Review + validate the sema words (DO THIS)
-
-**Description-review checklist (Jessica reviews — the words are committed but *not
-finalized*, per the `GridWorks_CLAUDE.md` permission).** Go over the `description`
-/ `extended_description` of every new word this sprint:
-
-- [ ] `sim.plant.flux` — the plant's emission word (incl. the Tesla call-out).
-- [ ] `sim.plant.actuation` — the relay actuation *event* word.
-- [ ] `change.relay.pin` enum — `Energize`/`DeEnergize` + its `value_descriptions`.
-- [ ] `gw1.actor.class/012` — the two added values `SimSensorActor` /
-  `SimRelayActor` (no `value_descriptions` today — add if wanted).
-- [ ] `spaceheat.node.gt/302` — description inherited from 301 (verify still apt).
-
-### Layout-vocabulary population (mighty-cactus, 2026-06-12) — running list
-
-Closing `gw.nolan.layout` sweeps these into sema. Each lands **non-draft**,
-`pytest` + registry green, committed **title-only** on `jm/sim-vocab` with a
-`wiki/sema/changelog.md` entry — review the words/descriptions after the fact
-(per the `jm/sim-vocab` permission). **Sema words are FLAT** — no inheritance
-between words; the gwsproto base-class inheritance (`ComponentGt`,
-`ChannelConfigBase`) is an anti-pattern we do NOT carry into sema (each type
-schema spells out every field explicitly). The gwsproto inheritance is left as-is;
-it gets cleaned in the proactor replacement, not here.
-
-Status updated as each lands:
-
-- [ ] `electric.meter.channel.config/000` — NEW (channel-config; flat).
-- [ ] `gw108.vdc.relay.component.gt/001` — NEW (flat component: id/cac/configs/
-  display/hwuid + `GpioPin` + one `relay.actor.config`).
-- [ ] `i2c.thermistor.channel.config/001` — BUMP 000→001 (scada uses 001).
-- [ ] `i2c.thermistor.reader.component.gt/001` — BUMP 000→001.
-- [ ] `sim.*` component words — TBD set + names (the visibly-simulated layout).
-
-**Ref-only fixes in the `gw.nolan.layout` draft (no new word):** `data.channel.gt`
-001→002; `i2c.multichannel.dt.relay.component.gt` 003→004;
-`pico.tank.module.component.gt` 000→011 (000 never existed); the enum ref
-`heatcall.interpretation` → the existing `gw1.heat.call.interpretation/000`;
-`relay.actor.config` axiom pins 002→003.
-
-**Validate sema AGAINST scada (EDD — proposed).** The scada hand-maintains its
-gwsproto types (PascalCase) *separately* from the sema canon, so they can drift.
-Close the loop: **have the scada EMIT an instance of a type and guarantee it passes
-the sema runtime check.** Concretely — take scada-produced JSON (a `SyncedReadings`,
-a layout's `spaceheat.node.gt`, and later `sim.plant.flux` / `sim.plant.actuation`),
-feed it through sema's `default_codec.from_dict()`, and assert it decodes clean. A
-green decode is a *guarantee* the scada's emission conforms to sema — the real test
-that the two carriers agree, not just that each is internally valid. Rides the
-experimentation harness (an EDD experiment, like the async-flux scratch step).
-
-## Questions about the real system's behavior (for tomorrow's DB access)
-
-Obvious things to confirm against real per-room data (best-guesses above stand in
-until then; add questions as they arise):
-
-- **The room heat-input law (the key one).** In **beech** — our only non-spruce
-  house with a room thermostat (spruce has a radiant floor) — how does the
-  **downstairs wired temp sensor** vary with energy put into the downstairs? That
-  curve *is* the room model (heat-need → room-temp + heat-input-when-on).
-- Typical **pump speeds** — the actual 0–10 V values for the dist / primary /
-  store pumps.
-- Per-room **thermal mass / time-constant** — how fast does a room's temp respond
-  to heat on/off (and how little does flow gpm move it — the "water speed matters
-  less" claim)?
-- **Thermocline** parameters — real hot/cold temps and charge/discharge rates (for
-  the sharp-thermocline MVP, just the two temps + the boundary speed).
-- Typical **on/off cadence** of each relay in normal operation (so Phase-A
-  synthetic values are plausible).
-- _(Post-MVP — MVP assumes no defrost:)_ **defrost** cadence and its `hp-odu-pwr`
-  signature.
 
 ## Open
 

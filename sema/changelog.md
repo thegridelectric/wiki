@@ -12,6 +12,90 @@ Newest at the top.
 
 ---
 
+## 2026-06-13 — Draft `MakeModelCacIdConsistency` axiom on `gw.nolan.layout` (`ee9d267`)
+
+**What:** Added a draft (documentation-only) axiom `MakeModelCacIdConsistency` to the
+draft `gw.nolan.layout/000`: a DeviceType with a known MakeModel must use that
+MakeModel's canonical `ComponentAttributeClassId`; `UnknownMake__UnknownModel` may use
+any UUID. No deps added (prose statement); the layout is draft so it generates no
+runtime.
+
+**Why:** the in-canon home for the MakeModel↔CAC-id bijection — resolved design:
+enforce on the **layout** (self-validating; device-type + components stay
+version-stable), not the device-type. Enforcement stays scada-side
+(`CACS_BY_MAKE_MODEL`) until the `gw1.cac.id` enum + `gw1.make.model.cac.id`
+projection land and the layout publishes. Resolution in
+`executor/hardware-layout.md`.
+
+## 2026-06-13 — Reconcile `gw.nolan.layout` draft to the new vocabulary (`38e5129`)
+
+**What:** Updated the (still-draft) `gw.nolan.layout/000` refs to the shared layout
+words: `data.channel.gt` 001→002; `i2c.multichannel.dt.relay.component.gt` 003→004;
+`pico.tank.module.component.gt` 000→011; the Components `oneOf` now carries the real
+nolan set (`gw108.vdc.relay`, `i2c.thermistor.reader`, `sim.pico.tank.module`, plus
+the `gw108.gpio.relay` draft); dropped `gw1.scada.device.type.gt` from DeviceTypes;
+relay axiom pins `relay.actor.config` 002→003; `heatcall.interpretation` →
+`gw1.heat.call.interpretation`. Bumped `created` so it is ≥ its new deps.
+
+**Why:** close the loop on the layout-vocabulary sweep — the draft now references
+words that exist. **Kept draft** (publishing/de-drafting deferred; nothing emits a
+`gw.nolan.layout` yet).
+
+## 2026-06-13 — Phase-A sim enablers: `make.model/008` + `sim.relay.component.gt/000` (`af2bf49`)
+
+**What:** New enum version `spaceheat.make.model/008` adds `GRIDWORKS__SIM_SENSOR`
++ `GRIDWORKS__SIM_RELAY_BANK` (additive). New non-draft `sim.relay.component.gt/000`
+— the flat sim-marker relay component the scada-side `SimRelayActor`'s relay node
+uses (`ConfigList` of `relay.actor.config/003`), parallel to
+`sim.sensor.component.gt`.
+
+**Why:** Phase-A sema enablers (build-plant "Sema changes needed for Phase A").
+Two makemodels because sensor vs relay are distinct device classes (`layout_gen`
+dispatch + the `CACS_BY_MAKE_MODEL` bijection key on MakeModel). **Still needed for
+sim CACs:** `component.attribute.class.gt/002` (refs `make.model/008`) so a CAC
+carrying the sim makemodels decodes — deferred (task #6), along with the complex
+`gw1.scada.device.type.gt` (name kept; nested config needs ~5 promoted sub-types).
+`pytest` green; no sim-layout fixture yet.
+
+## 2026-06-12 — Add nolan-layout shared vocabulary to sema (flat, non-draft) (`6f73174`)
+
+**What:** Swept most of the shared layout-manipulation vocabulary into sema as
+**flat** types — every field spelled out, no base-class inheritance (the gwsproto
+`ComponentGt` / `ComponentAttributeClassGt` / `ChannelConfigBase` inheritance is a
+flaw, not mirrored; `ConfigList`s compose real config types by `$ref`). New
+non-draft words: CACs `component.attribute.class.gt/001` + `electric.meter.cac.gt/001`;
+configs `egauge.register.config/000` + `electric.meter.channel.config/000`;
+components `electric.meter.component.gt/001`, `gw108.gpio.sensor.component.gt/001`,
+`gw108.vdc.relay.component.gt/001`, `web.server.component.gt/001` (inline
+`WebServer`), `pico.btu.meter.component.gt/000`, `sim.sensor.component.gt/000` (the
+`sim.*`-named simulated-sensor component a SimSensorActor uses); enum
+`gpio.sense.mode/000`. `i2c.thermistor.channel.config` and
+`i2c.thermistor.reader.component.gt` were **restarted at `001`** — the never-emitted
+sema `000`s were dropped (the field only ever emits `001`). `gw108.gpio.relay.component.gt/001`
+added as a **draft** placeholder (no gwsproto class). All new types are
+**structural-only** (gwsproto axioms deferred).
+
+**Why:** so the plant (`gridworks-terminalasset`) can read and process the *same*
+`hardware-layout.json` the scada runs from — the layout's composing types must live
+in sema. En route to spruce-unlimbo; reused for sim components.
+
+**Verified (EDD, cross-carrier):** real scada-format instances decode clean through
+the sema runtime — `component.attribute.class.gt`,
+`electric.meter.{cac,channel.config,component}`, `egauge.register.config`,
+`web.server.component.gt` (house0/oak); `gw108.{gpio.sensor,vdc.relay}` +
+`i2c.thermistor.{channel.config,reader}` (nolan); `pico.btu.meter.component.gt`
+(tlayouts/beech). `component.attribute.class.gt` also confirmed via a **live gwsproto
+emit → sema decode**. `sim.sensor.component.gt` has no fixture yet (sema
+generated-sample round-trip only). Harness:
+`sim-time-experiment/layout_roundtrip_check.py`.
+
+**REVIEW (Jessica):** (1) CACs are structural-only — the `MakeModel↔CAC-id` mapping
+is GridWorks deployment policy, not a sema cross-system contract, so the axiom was
+dropped. (2) gwsproto emits `null` for absent optionals (sema tolerates it; a design
+to stop emitting None is queued). (3) `gw.nolan.layout` draft ref-reconciliation is
+still pending. (4) `gw1.scada.device.type.gt` intentionally dropped (CAC→device-type
+transition not happening yet).
+
 ## 2026-06-12 — Finish the ActorClass cascade + fix an immutability slip (`cc3fac8`)
 
 **What:** New versions `layout.lite/014` and `new.command.tree/002` re-point ShNodes

@@ -1,6 +1,6 @@
 # GridWorks — working conventions for Claude
 
-Status: Draft · Pass 0 · Updated 2026-06-12
+Status: Draft · Pass 0 · Updated 2026-06-13
 
 > Canonical at `wiki/GridWorks_CLAUDE.md`; symlink setup in
 > [`README.md`](README.md#setup). Paths below are relative to the umbrella dir
@@ -38,6 +38,20 @@ or PR without asking; Jessica does the merges to `dev` and **will review and may
 adjust the words after the fact** — committing is not finalizing. (The commit-block
 hook `precheck-no-claude-commits.sh` was removed from `.claude/settings.json` to
 enable this — **restore it when this directive is removed.**)
+
+## ⏳ Until the proactor port — sema words are FLAT (REVERT note)
+
+**Temporary clarification (added 2026-06-12; revise when the proactor
+replacement lands and the scada's `gwsproto` is regenerated flat).** Sema
+vocabulary words do **NOT** inherit from one another — every type schema is
+**flat**, every field spelled out explicitly. The scada `gwsproto` types
+*pretend* sema types inherit (base classes `ComponentGt`,
+`ComponentAttributeClassGt`, `ChannelConfigBase`); **that is a flaw**, not a
+pattern to mirror. When authoring a sema type from a gwsproto class, **flatten**
+the base-class fields into the type and reference other sema words only by
+`$ref` composition (e.g. a `ConfigList` of `channel.config`). Do **not** fix the
+gwsproto inheritance now — it gets swept up in the proactor port. Remove this
+note once that port regenerates `gwsproto` flat.
 
 ## Bearings (held at every altitude)
 
@@ -212,17 +226,21 @@ spoke is where today's *work* is, but the **design is the altitude**. Keeping
 the design in the Focus cell is what keeps the session on the big picture as the
 active spoke moves.
 
-**Before opening OR refactoring a design hub, READ the hub-layout convention.**
-Whenever I claim an existing design as Focus, **or** restructure / reorder a
-hub's `primary.md` (exactly the kind of refactor that prompts this — reordering
-sections, marking spokes done, trimming the hub), I **SHALL** first read
-[`designs-process.md`](designs-process.md) §"Hub `primary.md` layout (fractal
-designs)". It defines the ordering (what-to-do-next at the top, the ordered
+**When I take on a design, READ the design loop and SUMMARIZE it back.**
+Whenever I claim a design as Focus (open it), **or** restructure / reorder a
+hub's `primary.md` (reordering sections, marking spokes done, trimming the hub),
+I **SHALL** first read [`designs-process.md`](designs-process.md) §"The design
+loop — behave this way on every design" **and** §"Hub `primary.md` layout
+(fractal designs)" — then **reflect a short summary back to the user**: the
+verification bar (the hub's `EDD: yes`/`no`), the capture → refactor → re-orient
+rhythm, and the rule that the **hub only points to the active spoke** (it does
+NOT carry or hint at the "do this next" — that lives in the spoke). Reading-then-
+summarizing is the gate: it proves I loaded the convention rather than working a
+hub from memory, which is the mistake these pointers exist to prevent. The
+layout section defines the ordering (active-spoke pointer at the top, the ordered
 spoke list, notes at the bottom) and the rule that ephemeral coordination
-(session names, "BLOCKED") stays out of design docs. Re-laying-out a hub from
-memory instead of from that section is the mistake this pointer exists to
-prevent — it keeps every hub written to enable the next agent rather than stall
-it.
+(session names, "BLOCKED") stays out of design docs. Every hub stays written to
+enable the next agent rather than stall it.
 
 ## Sub-CLAUDE.md protocols
 
@@ -423,3 +441,19 @@ be named `<sema-type-name>.json`, where `<sema-type-name>` is the Sema
 (half-snake legacy). The dot↔underscore transformation belongs at the
 code boundary only — Python module names for the same type stay
 snake-cased per Python convention (`g_node_gt.py`).
+
+
+
+## ⏳ Until the proactor port — sema words are FLAT (REVERT note)
+
+**Temporary clarification (added 2026-06-12; revise when the proactor
+replacement lands and the scada's gwsproto is regenerated flat).** Sema
+vocabulary words do **NOT** inherit from one another — every type schema is
+**flat**, every field spelled out explicitly. The scada `gwsproto` types
+*pretend* sema types inherit (base classes `ComponentGt`,
+`ComponentAttributeClassGt`, `ChannelConfigBase`); **that is a flaw**, not a
+pattern to mirror. When authoring a sema type from a gwsproto class, **flatten**
+the base-class fields into the type and reference other sema words only by
+`$ref` composition (e.g. a `ConfigList` of `channel.config`). Do **not** fix the
+gwsproto inheritance now — it gets swept up in the proactor port. Remove this
+note once that port regenerates gwsproto flat.

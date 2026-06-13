@@ -1,6 +1,6 @@
 # Simulated actors: relays + i2c thermistor reader
 
-Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-40
+Status: Accepted · Pass 1 · Updated 2026-06-13 · Linear: OPS-40
 
 > What this is: simulated-test-environment spoke — simulated relays and a
 > simulated i2c thermistor reader so the Nolan scada runs fully locally
@@ -295,6 +295,14 @@ individual actors — `relay.py` skips GPIO when it's set,
   **scada, and only the scada**. No deed → simulated. You cannot
   *accidentally* be real; the worst a misconfiguration does is fail to prove
   realness.
+
+**The concrete check, and its migration path.** Non-simulated is one small
+method, **defaulting to simulated** — `is_simulated` becomes the default, not the
+flagged case. It starts as a method that simply **looks for an existing on-disk
+file** (an interim stand-in for the proof), and we **change that same method**
+into verifying the scada holds the **correct signed TaDeed**. The call site and
+the simulated-by-default polarity stay constant across the migration; only what
+counts as proof hardens (file present → valid registered deed).
 
 Proof gates *consequential real-world action* (acquiring a deed, binding
 contracts on the real broker, claiming a real terminal asset), not internal

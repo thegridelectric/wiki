@@ -1,249 +1,128 @@
 # SCADA simulated test environment (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-40
+Status: Accepted · Pass 1 · Updated 2026-06-13 · Linear: OPS-40
 
 **EDD: yes** The simulated-test-environment harness *is* the verification; spokes reach Verified only when an experiment runs against it (experiments/logbook.md).
 
-**▶ Active spoke: `build-plant.md`.** Where things stand (2026-06-12):
+**▶ Active spoke: [`build-plant.md`](build-plant.md)**
 
-- **Sema vocabulary minted + committed** — `sim.plant.flux`, `sim.plant.actuation`
-  + `change.relay.pin`, `gw1.actor.class/012` (SimSensorActor / SimRelayActor).
-- **Full ActorClass cascade done** — `spaceheat.node.gt/302` →
-  `layout.lite/014`, `new.command.tree/002` (clean single node version), and
-  `gw.nolan.layout` re-pointed; `scada.control.capabilities` v002 deferred to
-  admin-for-nolan. Recipe + cost: `../../executor/actor-class-upgrade.md`.
-- **SimulatedPlant async-flux trigger proven** in scratch (`experiments/logbook.md`).
-- **The plant + scada actors are NOT built yet** (Phase A not started).
+> What this is: a robust simulated test environment for the SCADA — extremely
+> simple simulated terminal assets plus simulated sensors that exchange data over
+> the dev Rabbit broker, the terminal assets built on gridworks-base. Ported from
+> Linear **OPS-40** (which began as a narrower "run dev scada without crashing /
+> `gen_orange` layout" task and is reframed here into the broader goal).
 
-**DO THIS NOW — two fronts (fresh, lean sessions recommended):**
-1. **Close `gw.nolan.layout`** in sema — scada git history as authority, the
-   updated channels first.
-2. **Build Phase A** — the comms pipe with the two sim actors (gwta plant
-   emitting `sim.plant.flux` + scada-side SimSensorActor/SimRelayActor), toward
-   the 10-min-no-watchdog dashboard run. Detail in `build-plant.md`.
+### Spokes
 
-(Convention: while a design is active, its active spoke is highlighted here at
-the top of the hub, so it can't get lost across files.)
+- **[`build-plant.md`](build-plant.md)** — *active.* The construction plan for the
+  simulated message-passing loop: gwta plant emits `sim.plant.flux`, the scada
+  `SimSensorActor` reads it into `synced.readings`, `SimRelayActor` sends
+  `sim.plant.actuation` back. Owns the ordered next-tasks.
+- [`simulated-actors.md`](simulated-actors.md) — the sim seam (device boundary, the
+  plant pushes), the first-pass plant model, the plant's I/O contract, and the
+  sim/real trust boundary. Moved here from spruce-unlimbo 2026-06-11.
+- [`sim-time.md`](sim-time.md) — scada on coordinator timesteps: code census, the
+  1-minute bridge for the existing proactor stack, the watchdog-pat gate. The
+  bridge crossing is Verified (`../../experiments/logbook.md`).
+- [`experimentation-tools.md`](experimentation-tools.md) — the replicable
+  real-broker experiment toolset; absorbed from world/designs/experimentation-harness
+  2026-06-11 (all simulation/experimentation work consolidates here).
+- [`new-sema-words-to-review.md`](new-sema-words-to-review.md) — JM sign-off tracker
+  for every sema word this design added/bumped (committed under `jm/sim-vocab`, not
+  finalized until reviewed).
+- [`gleanings.md`](gleanings.md) — parked notes off the build path: the sim-sensor
+  groundwork + `sim.plant.flux` rationale, DB-calibration questions, the
+  cross-carrier round-trip harness, deferred/queued items.
 
-> What this is: a design for a robust simulated test environment for the SCADA —
-> simple simulated terminal assets plus simulated sensor drivers (with a "cheat"
-> mode for direct value injection) that otherwise exchange data over the dev
-> Rabbit broker, with the simulated terminal assets built on gridworks-base.
-> Ported from Linear **OPS-40** (which began as a narrower "run dev scada
-> without crashing / `gen_orange` layout" task — mostly done — and is reframed
-> here into the broader goal). Spokes: `simulated-actors.md` (simulated relays
-> + i2c thermistor reader; moved here from spruce-unlimbo 2026-06-11, where it
-> had been executing for momentum — this design now leads) and
-> `experimentation-tools.md` (replicable real-broker experiment toolset;
-> absorbed from world/designs/experimentation-harness 2026-06-11 — all
-> simulation/experimentation work consolidates here);
-> `sim-sensor-words.md` (the sema vocabulary for simulated sensor data —
-> joint session pending; moved from the closed hello-world design); and
-> `sim-time.md` (scada on coordinator timesteps — code census, the
-> 1-minute bridge for the existing proactor stack, watchdog-pat gate).
+## Motivation
 
-## Elevated to the top — comms-first (Jessica, 2026-06-11)
+We have no robust test environment for the SCADA — only real hardware (slow,
+physical, one house at a time) or partial unit tests. We can't cheaply stand up a
+*whole* heating system — terminal asset + sensors + SCADA control — in software
+and exercise it end to end, which is what we need to test control logic, layouts,
+and fleet behaviour with confidence, and is the prerequisite for the hybrid
+real+simulated fleet vision.
 
-The simulation harness is now the top of the scada work. The reason: the
-big projects ahead (the AllyLink / proactor-link redo — see
-`../executor/scada-ltn-link-state.md`) need testing by experiment, the way
-we want to test, so the harness comes first. And we might as well set up
-the MVP the way it will work when we are really modeling terminal assets.
-For now, most of what we will want to test is comms infrastructure.
+So the simulation harness is the top of the scada work. The big projects ahead
+(the AllyLink / proactor-link redo — see `../executor/scada-ltn-link-state.md`)
+need testing by experiment, the way we want to test, so the harness comes first —
+and we set up the MVP the way it will work when we are really modeling terminal
+assets. For now, most of what we want to test is comms infrastructure. The MVP's
+"physics" is a **traffic generator with a seam** (construction plan in
+`build-plant.md`): a format-correct plant emitting synthetic channels, the value
+source being the seam where real modeling lands later. Its comms-test knobs are
+first-class — tunable cadence/volume, scriptable silence (to provoke
+`awaiting_peer` and the keepalive paths), burst mode, optional poison payloads —
+the experiment levers for evaluating the old proactor link against the new
+AllyLink on one rig.
 
-**Start: a terminal asset on gwbase emitting to the dev rabbit broker.**
-The MVP's "physics" is a traffic generator with a seam:
+**The hybrid scenario.** One dev rabbit broker, two protocol faces: gwbase actors
+(terminal assets, LTNs, later aggregators) are AMQP-native on the routing fabric;
+scadas — real or simulated — ride the MQTT plugin, exactly as prod does on
+gw-dev-rabbit. A sim scada is not a mock: it is the real scada process with an
+all-sim layout, connecting the way a house does. Per simulated house: one
+terminal-asset GNode + one sim scada + one LTN. Hybrid means real houses' scadas
+land on the same broker beside the sim houses. The rig exercises **both AllyLink
+tracks at once**: each sim scada is a plain 1:1 child against a real rabbit
+broker, while the LTN side has many parents talking to many children —
+FULL-AllyLink territory.
 
-- A `GridworksActor`-based GNode (GNodeClass `TerminalAsset`) that connects
-  to dev rabbit and emits a couple of synthetic channels at a fixed cadence
-  — constant or sawtooth, no thermodynamics. The value source is the seam
-  where real modeling lands later.
-- The comms-test knobs are first-class features, not extras: tunable
-  cadence/volume, scriptable silence (provoke `awaiting_peer` and the
-  keepalive paths), burst mode, optionally deliberate poison payloads.
-  These are the experiment levers for evaluating the old proactor link
-  against the new AllyLink, on the same rig.
-- Harness wiring: `ScadaLiveTest` already brings up LTN + SCADA on a real
-  rabbit broker; the terminal asset joins as the third participant.
+**The harness is also the spec-building instrument.** The 2026-06-10 live run
+(full ltn/scada on dev rabbit, ~5 minutes, wire capture + both process logs)
+produced essentially all the productive material in
+`../executor/scada-ltn-link-state.md` — observation-driven spec building. The rig
+makes that a one-command cadence: bring up the stack, capture, write what IS, let
+divergences drive design.
 
-**The hybrid scenario.** One dev rabbit broker, two protocol faces: gwbase
-actors (terminal assets, LTNs, later aggregators) are AMQP-native on the
-routing fabric; scadas — real or simulated — ride the MQTT plugin, exactly
-as prod does on gw-dev-rabbit. A sim scada is not a mock: it is the real
-scada process with an all-sim layout, connecting the way a house does. Per
-simulated house: one terminal-asset GNode + one sim scada + one LTN. Hybrid
-means real houses' scadas land on the same broker beside the sim houses.
-Note the rig exercises **both AllyLink tracks at once**: each sim scada is
-a plain 1:1 child against a real rabbit broker, while the LTN side of the
-same broker has many parents talking to many children — FULL-AllyLink
-territory.
+## Current state — where it's documented
 
-**The harness is also the spec-building instrument.** The 2026-06-10 live
-run (full ltn/scada on dev rabbit, ~5 minutes, wire capture + both process
-logs) produced essentially all the productive material in
-`../executor/scada-ltn-link-state.md` — observation-driven spec building.
-The rig makes that a one-command cadence: bring up the stack, capture,
-write what IS, let divergences drive design.
+This design generalizes existing scada seams rather than starting fresh. The
+**durable as-is facts live in `executor/`** (they outlive this design):
 
-**Deferred canonization (todo — NOT before the harness works):** after
-this simulation sprint ships, add one or two lines to `GridWorks_CLAUDE.md`
-defining **Verified as run against the test harness**, with a longer
-document elsewhere about what full test-harness runs actually mean.
-Canonize only after the sprint finishes.
+- **The sim MakeModel seam + component model** — `executor/components.md`
+  ("MakeModel" / "Sim already lives here").
+- **Sim layout components + the `TerminalAsset` GNode role** —
+  `executor/hardware-layout.md` (`simulated_tanks.py` →
+  `SimPicoTankModuleComponentGt`; the terminal asset is a GNode *role*, not a
+  scada actor).
+- **The in-process `ScadaLiveTest` harness** — `executor/testing.md`; the
+  real-broker rig — `executor/experimentation-rig.md`.
 
-## Problem
+The two seams this design is **actively changing** stay with the
+`simulated-actors.md` spoke, not executor (they move into `executor/` only when
+the design ships): the runtime **`is_simulated` flag** ("`is_simulated` is a smell
+— simulated until proven real") and the **MakeModel-dispatch** seam ("The sim seam
+— decided: device boundary, the plant pushes").
 
-We do not have a robust test environment for the SCADA. Today's options are
-the real hardware (slow, physical, one-house-at-a-time) or partial unit tests.
-We can't cheaply stand up a *whole* heating system — terminal asset + sensors +
-SCADA control — in software and exercise it end to end, which is what we need
-to test control logic, layouts, and fleet behaviour with confidence (and is a
-prerequisite for the hybrid real+simulated fleet vision).
+## What's landed (notes)
 
-The target: **extremely simple simulations of the terminal asset** plus
-**simulated drivers** that read "sensor" data, where a simulated driver either
-(a) listens over the **dev Rabbit broker** used in testing, or (b) has a
-**cheat option** to supply its own values directly (no broker round-trip). The
-simulated terminal assets are built on **gridworks-base**.
+Short pointers to durable facts; the live plan lives in `build-plant.md`.
 
-## Current state — scaffolding already exists (2026-06-07)
-
-This design generalizes existing seams rather than starting fresh.
-
-- **`is_simulated` flag** — `ScadaSettings.is_simulated`
-  (`gw_spaceheat/actors/config.py:62`), read across actors to skip real
-  hardware: `i2c_relay_multiplexer.py:68,94` swaps in `SimulatedPin` objects;
-  `i2c_zero_ten_multiplexer.py:173,199` branches the 0–10 V output;
-  `sh_node_actor.py:98,114` skips setpoint/temperature reads; `ltn/ltn.py:219,269`
-  injects a hardcoded 60 °F tank temp.
-- **Driver abstraction + MakeModel-dispatch factory** — abstract bases
-  `MultipurposeSensorDriver` (`drivers/multipurpose_sensor/…:15-32`) and
-  `PowerMeterDriver` (`drivers/power_meter/…:19-60`); factories dispatch on
-  `component.cac.MakeModel` (`actors/power_meter.py:93-109`,
-  `actors/multipurpose_sensor.py:61-90`). **A simulated driver already exists:**
-  `GridworksSimPm1_PowerMeterDriver` (MakeModel `GRIDWORKS__SIMPM1`) returns
-  fake values — the precedent for both "simulated driver" and "cheat" modes.
-- **Simulated layout components** — `layout_gen/simulated_tanks.py` builds tank
-  modules from `SimPicoTankModuleComponentGt`; `api_tank_module.py:42-44`
-  accepts the sim component.
-- **Integration harness** — `tests/utils/scada_live_test_helper.py` `ScadaLiveTest`
-  (extends `TreeLiveTest` from `gwproactor_test`) already starts LTN + SCADA
-  over a **real Rabbit broker** with `child1_simulated=True`, and polls async
-  predicates. The dev broker is provisioned via gridworks-base
-  (`tests/_stubs.py` `provision_topology`/`declare_topology`; SCADA rides the
-  Rabbit MQTT plugin, base is AMQP/pika).
-- **gridworks-base simulation primitives** — `GridworksActor` (GNode actor base),
-  and test stubs `GNodeStubRecorder` / `TimeCoordinatorStubRecorder`
-  (`tests/_stubs.py`) that already act as synthetic GNodes; `make_g_node_json`
-  factory (`tests/conftest.py:34-71`).
-
-**Terminal asset** is a GNode *role* ("avatar for a real-world transactive
-device"), not a scada actor; the SCADA reports on its behalf via
-`terminal_asset_alias` (`layout_gen/layout_db.py:232-233`). A *simulated*
-terminal asset is therefore a GNode actor (built on gridworks-base) that
-publishes synthetic telemetry.
-
-## What's missing (the design's scope)
-
-The gaps between today and a full sim environment:
-
-### 1. Simulated drivers for every sensor type (with cheat mode)
-- Generalize the `GRIDWORKS__SIMPM1` precedent: a simulated driver for each
-  abstraction (multipurpose/thermistor, power, flow, relay, 0–10 V).
-- Each simulated driver supports two modes:
-  - **broker mode** — subscribe to synthetic telemetry on the dev Rabbit broker
-    (values produced by the simulated terminal asset), or
-  - **cheat mode** — return caller-supplied values directly (no broker), for
-    fast deterministic unit tests.
-- Plug in via the existing MakeModel dispatch (add `GRIDWORKS__SIM*` values via
-  the Sema word process) — no new factory machinery.
-- **Sharpened (2026-06-11):** the MakeModel-dispatch mechanism here stands,
-  but the seam is now decided at the **device boundary with the plant
-  *pushing*** (not actors polling drivers, and not a driver-class hierarchy)
-  — see the `simulated-actors` spoke. Read "simulated driver" below as the
-  older framing of the same MakeModel seam.
-
-### 2. Simulated terminal asset on gridworks-base
-- A `GridworksActor`-based synthetic GNode (GNodeClass `TerminalAsset`) that
-  models an *extremely simple* heating system and **publishes synthetic sensor
-  telemetry** over AMQP/the dev broker for the simulated drivers to read.
-- "Extremely simple" first: plausible tank temps, flows, power that respond
-  coarsely to SCADA relay/voltage commands — enough to exercise control paths,
-  not a thermodynamic model. Richer physics is a later iteration.
-- Reuse the `GNodeStubRecorder` / `make_g_node_json` patterns.
-
-### 3. A complete simulated layout
-- Extend `simulated_tanks.py` into a full **all-simulated hardware layout**
-  (every component a `Sim*`/`GRIDWORKS__SIM*`), so `ScadaLiveTest` can bring up
-  a whole simulated house in one call.
-
-### 4. Harness wiring
-- Add the simulated terminal asset as a participant in `ScadaLiveTest`
-  alongside LTN + SCADA, and expose the cheat-injection seam to tests.
-
-## Increments (reordered 2026-06-11)
-
-1. **Terminal-asset comms rig** — the comms-first MVP above (gwbase GNode
-   emitting to dev rabbit; comms-test knobs; `ScadaLiveTest` third
-   participant). This is the start.
-2. **Simulated actors** — simulated relays + i2c thermistor reader +
-   scriptable heat-call, so the Nolan scada (then House0) runs fully
-   locally and the falling-edge setpoint evaluation can be exercised.
-   Full slice in the `simulated-actors.md` spoke (moved from
-   spruce-unlimbo 2026-06-11; still serves that design's merge gate —
-   "testing green for BOTH layouts" — which now rides this harness).
-
-## Where this stands & what's next (2026-06-11)
-
-A working session moved this design from scaffolding toward a first real
-experiment. Captured here so the open work is durable, not a phantom list.
-
-**Delivered (this session):**
-- **First live bridge run — the crossing is Verified.** A real `tc-hello`
-  broadcasting `sim.timestep` over AMQP reaches MQTT subscribers and a real
-  scada-side `SimTimeListener` receives every step. Scoped Verified claim in
-  the `sim-time` spoke; worked example in `../../experiments/logbook.md`.
+- **The sim-time bridge crossing is Verified** — a real `tc-hello` broadcasting
+  `sim.timestep` over AMQP reaches MQTT subscribers; a real scada-side
+  `SimTimeListener` receives every step. Scoped claim in `sim-time.md`; worked
+  example in `../../experiments/logbook.md`.
 - **The sim seam is decided** — device boundary via a `Sim*` `MakeModel`, the
-  plant pushes on `AsyncCaptureDelta`, one flat actor branch, no driver
-  hierarchy, sensors outside the command tree, controls as leaves. Full
-  statement in the `simulated-actors` spoke.
-- **The make-imaginary wand** (`sim-time-experiment/make_imaginary_layout.py`)
-  — turns a real layout imaginary (fresh instance UUIDs, canonical
-  device-type UUIDs). This is the tool behind "a complete simulated layout"
-  (#3) and the sim/real identity boundary. Proven on House0.
-- **Executor specs landed:** `executor/components.md` and
-  `executor/hardware-layout.md` (the device + layout model as it is today,
-  warts surfaced). And the **EDD** verification bar + the experiments-record
-  convention (`GridWorks_CLAUDE.md`, the `experimentation-tools` spoke).
+  plant pushes on `AsyncCaptureDelta`, one flat actor branch, no driver hierarchy,
+  sensors outside the command tree, controls as leaves. Full statement in
+  `simulated-actors.md`.
+- **The make-imaginary wand** (`sim-time-experiment/make_imaginary_layout.py`) —
+  turns a real layout imaginary (fresh instance UUIDs, canonical device-type
+  UUIDs); the tool behind a complete simulated layout and the sim/real identity
+  boundary. Proven on House0.
+- **Executor specs landed** — `executor/components.md` and
+  `executor/hardware-layout.md` (the device + layout model as it is today), plus
+  the EDD verification bar + experiments-record convention.
+- **Shared layout vocabulary landed in sema** (`6f73174` … `ee9d267`); the new
+  words await Jessica's sign-off in `new-sema-words-to-review.md`.
 
-**Active next — the EDD worked example in progress:**
-- **The dashboard experiment.** Real `ScadaApp(is_simulated)` + `LtnApp` on
-  the dev rabbit, a tanks-only plant pushing temps, the LTN ASCII dashboard
-  rendering live. **Done-when: 10 minutes with zero watchdog-pat deaths**
-  (which also Verifies the `sim-time` spoke's "bridge is watchdog-safe"
-  claim). Run on the wanded current House0 fixture
-  (`house0.imaginary.json`) for now. Then the fidelity ladder — an hour of
-  CSV under *sped-up* time needs cadence-decoupling, which is the comms
-  redo, not the bridge.
+**Carried caveats:**
 
-**Dependencies / blocked work (owned elsewhere — recorded so they don't get
-lost):**
-- **The real-house layouts are stale across the layout-augments rework.**
-  Migrating `oak` hit strategy renames + new derived-channel fields that are
-  a slice of the fold, not a hand-patch — so experiments use the wand on
-  current fixtures until the fold lands. Owner: **spruce-unlimbo Chunk B**
-  (the layout pipeline) — folding `jm/layout-augments` into
-  `jm/spruce-unlimbo` is a ~4–6 h hand-reconcile (relay.py moved+modified,
-  `layout_db` architectural, `RelayActorConfig`/`SpaceheatNodeGt` both
-  extend); a scout map exists.
-- **Sema:** close `gw.nolan.layout` (draft-but-complete at
-  `sema/definitions/types/gw.nolan.layout/000.yaml` → finalize + codegen +
-  validate, after the fold); and **the derived-channel strategy names need a
-  sema home** — they dangle, and the migration showed the inference cost of
-  that. New `Sim*` MakeModels are also sema words (`/make-sema-word`).
-- **Future:** a DB backfill of real `gw.house0.layout`s **respecting
-  uniqueness** — the wand is the seed tooling (instance ids unique,
-  device-type ids canonical/shared).
+- **Real-house layouts are stale across the layout-augments rework** — experiments
+  use the wand on current fixtures until the fold lands (owner: spruce-unlimbo
+  Chunk B, the layout pipeline; ~4–6 h hand-reconcile, scout map exists).
+- **`gw.nolan.layout` stays draft** — only its refs are reconciled to the
+  published words; de-drafting is later.
 
 ## Open questions
 

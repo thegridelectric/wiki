@@ -1,10 +1,92 @@
 # designs-process — the `designs/` lifecycle
 
-Status: Draft · Pass 0 · Updated 2026-06-12
+Status: Draft · Pass 0 · Updated 2026-06-13
 
 > What this is: how design-specs live in the wiki across all domains.
 > Companion: [`linear.md`](linear.md) for the Linear interface. Aggregated
 > live view: [`DESIGN_INDEX.md`](DESIGN_INDEX.md).
+
+## The design loop — behave this way on every design
+
+**When you take on a design, read this loop and _summarize it back to the user_
+before acting on the design** — a short reflection showing you know the
+verification bar (the hub's `EDD: yes`/`no`), the working rhythm, and the hub
+rule. This is the canonical "how to behave on a design"; the structural form it
+produces is ["Hub `primary.md` layout"](#hub-primarymd-layout-fractal-designs)
+below. (Moved here 2026-06-13 from `working-with-llms.md`, which now points
+here.)
+
+### Converge the thinking first (research → executor)
+
+A spec is only as good as the thinking behind it. Before promoting `research/`
+into an `executor/` sub-spec — or before writing code from a design — stress-test
+it until shared understanding is reached; don't draft around unresolved branches.
+
+1. Work in **plan mode** and run **`/grill-me`** — it interviews you relentlessly
+   about the design, resolving each branch of the decision tree.
+2. Run the proposal **past a fresh agent**, and/or have an agent run
+   **experiments** to validate it.
+3. Iterate (typically 3–5 cycles) until the tree is resolved.
+4. **Only then** draft the `executor/` spec and start coding from it.
+
+Articulation pressure surfaces design flaws before code; "hard to specify
+cleanly" is a code smell caught early.
+
+### The working rhythm — capture, refactor, re-orient
+
+The day-to-day rhythm of design work (EDD-named 2026-06-11) is three beats,
+repeated. Beats 1–2 are general to *any* design; beat 3 is where EDD specializes.
+
+1. **Capture — toss in what you don't want to lose.** Insights, decisions, OFIs,
+   and danglers surface constantly mid-work. Put each in its right durable home as
+   it appears — a design spoke, an OFI in the spec, an `executor/` fact, an
+   experiments-logbook entry — so it survives the session without derailing the
+   current move. Homes, not a phantom task list: reference only things the user
+   can open (GridWorks_CLAUDE "No phantom references").
+2. **Refactor the knowledge — take a breath.** Periodically stop and consolidate;
+   knowledge gets refactored like code. Reconcile the sediment a long conversation
+   leaves (layered decisions, superseded sketches), route danglers into spokes,
+   fold OFIs into the spec, update the hub. A spoke that reads as strata from a
+   chat is harder to act on than one clean spec.
+3. **Re-orient — point at the next move, in the active spoke.** End every
+   consolidation by naming a single, small "do this next." In an EDD design that
+   move is a witnessable **experiment** against reality; in a plain build-out
+   design (migration, integration) it is the next concrete **build step**.
+
+The rhythm guards two opposite failure modes: losing hard-won insight (no
+capture) and admiring the design instead of building (no re-orient). Beats 1–2
+serve beat 3 — the point of capturing and refactoring is to reach the next sharp
+move faster, not to accumulate prose.
+
+### The hub just points to the active spoke
+
+The re-orient beat lands in the **spoke**, never spread across the hub. While a
+design is active, the hub's active-spoke marker is **just the link — nothing
+else.** No one-line summary of the spoke, no "next tasks", no rationale, no
+convention reminder. One line, like this:
+
+```
+**▶ Active spoke: [`build-plant.md`](build-plant.md)**
+```
+
+**NOT** like this — every clause here belongs in the spoke (or in this doc), not
+the hub:
+
+```
+**▶ Active spoke: [`build-plant.md`](build-plant.md)** — build + prove the comms
+loop (gwta plant emits `sim.plant.flux` ↔ scada SimSensor/SimRelay). Next tasks:
+the device-type upgrade, then Phase A…
+
+(Convention: while a design is active the hub names its one live spoke and
+nothing more; the "do this next" lives in the spoke…)
+```
+
+The hub says *which* work is live; the spoke says *what to do* and *why*. The
+"do this next", the rationale, and the convention reminder all live elsewhere —
+restating any of them on the hub is the over-explaining this rule exists to stop,
+and it goes stale the moment the active spoke moves. The structural detail
+(ordered spoke list, notes at the bottom) is in
+["Hub `primary.md` layout"](#hub-primarymd-layout-fractal-designs) below.
 
 ## Where designs live
 
@@ -59,11 +141,16 @@ bar before the plan.
 
 Write the hub so the **next agent can open it and immediately act**. Order it:
 
-1. **What to do next, at the top** — the active item as concrete steps (the
-   files to touch, the recipe, the gotchas), not a status report. In an
-   experiment-driven design this "next move" is the next experiment; in a plain
-   build-out design (like a migration or integration) it's the next concrete
-   build step. Either way it leads the hub.
+1. **Point to the active spoke, at the top — and ONLY that.** Name the one
+   live spoke and link it, in a line or two: which spoke is live now, and why
+   it's the one. That is the hub's whole job here. The **concrete next steps**
+   — the files to touch, the recipe, the gotchas, the ordered task list — live
+   **in that spoke**, not the hub. The hub says *which* work is live; the spoke
+   says *what to do*. This keeps the hub short and stops the same plan being
+   maintained in two places (and going stale in one). In an experiment-driven
+   design the spoke's lead is the next experiment; in a plain build-out design
+   it's the next build step — either way that detail is the spoke's, and the
+   hub just points at it.
 2. **An ordered spoke list** — every workstream in sequence: done ones marked
    `✅ DONE`, the active one **bold**, not-yet-started ones plain. One line each
    — the at-a-glance map, not the detail.

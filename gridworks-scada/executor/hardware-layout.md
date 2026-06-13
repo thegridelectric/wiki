@@ -146,6 +146,35 @@ types is deliberate vocabulary namespacing (GridWorks's `gw1.actor.class`,
   counterpart — a deeper strategy divergence.
 - Spruce is special-cased (no relays, one tank, BTU meters) — house0-shaped
   injection into it fails to load.
+- **`CACS_BY_MAKE_MODEL` — the MakeModel↔CAC-id bijection.** `layout_gen` and
+  `ComponentAttributeClassGt`'s validator enforce a hardcoded 1:1 map from each
+  *known* `MakeModel` to a single canonical `ComponentAttributeClassId` (a ~35-entry
+  dict in `gwsproto/named_types/component_attribute_class_gt.py`). A CAC with a known
+  MakeModel MUST use that MakeModel's canonical id; only `UNKNOWNMAKE__UNKNOWNMODEL`
+  may use an arbitrary id. So `MakeModel` effectively *is* the device-type identity
+  and the id is redundant with it for known models. Messy because: the table is a
+  hardcoded constant (not data), it bakes a deployment-registration policy into the
+  runtime type, and adding a device type means editing two coordinated places (the
+  `spaceheat.make.model` enum value **and** the bijection). **In sema this rule is
+  deliberately NOT an axiom** — the id↔MakeModel canonical mapping is GridWorks
+  deployment policy, not a cross-system contract, so `component.attribute.class.gt`
+  is structural-only (the shared-vocabulary sweep, 2026-06-12; sema changelog
+  `6f73174`). **Resolution (Jessica, 2026-06-13).** Keep the **UUID as the
+  device-type's primary, globally-unique identity** (data-level — new types add as a
+  UUID with no version bump; unknown / cross-company types are first-class).
+  `MakeModel` is a descriptor. The bijection is **not** enforced on the device-type
+  (that would version-couple it to the mapping and ripple on every add). Its in-canon
+  home is a **draft axiom on the hardware-layout type** (`gw.nolan.layout` today —
+  `MakeModelCacIdConsistency`), with the canonical mapping to be formalized as
+  `gw1.*` vocabulary (a `gw1.cac.id` enum + a `gw1.make.model.cac.id` projection) the
+  layout axiom references — so the **layout is self-validating** (serves the plant
+  reading it + cross-company consumers) while `device.type` / components stay
+  version-stable; only *naming* a new device type bumps the layout type (rare; rides
+  the existing layout cascade — **accepted, Jessica 2026-06-13**: cascading the
+  layout version is not too costly). **Phasing:** `CACS_BY_MAKE_MODEL` stays the live
+  enforcer in scada (TODO there: migrate to the layout axiom); the draft layout axiom
+  captures intent now; it goes live when the `gw1.*` projection lands and the layout
+  publishes.
 
 ## Opportunities for improvement (OFIs)
 
