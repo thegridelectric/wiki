@@ -261,6 +261,15 @@ may be live (mirror your active-claims Scope). For Karan-style autonomy
 (Claude doing commits/merges with merge-safety guardrails) see
 `working-with-llms.md` "Karan's commit rules" — reference, not active.
 
+**Never edit or commit locally on a code repo's `dev`/`main`/`master`.**
+Cut a `jm/<topic>` branch first, always. This is **absolute** — enforced by
+two hard-`deny` PreToolUse hooks (no override): `precheck-protected-branch.sh`
+blocks edits, and `precheck-protected-branch-git.sh` blocks history-mutating
+git (commit/merge/rebase/reset --hard/branch -f/push --force) while a code repo
+is on a protected branch. The **wiki is exempt** — editing `wiki` on `main` is
+normal. Before any first edit in a repo, check `git -C <repo> branch
+--show-current`; if it is protected, branch before touching anything.
+
 ## Linear issue tags
 
 When creating a Linear issue, **first review the existing label set**

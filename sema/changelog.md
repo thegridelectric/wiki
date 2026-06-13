@@ -12,6 +12,61 @@ Newest at the top.
 
 ---
 
+## 2026-06-13 — Add strict-lint regression test for the generated runtime (`189ec23`)
+
+**What:** New `tests/test_snapshot_strict_lint.py` — prepares the full
+`seed_request.yaml` and runs `build_snapshot_runtime("gjk", strict_lint=True)`,
+which raises `LintGateError` on any ruff/mypy violation in the generated tree.
+
+**Why:** the existing snapshot-build tests run with the default `strict_lint=False`,
+which only *prints* lint violations, so the generator could emit ruff/mypy-dirty
+runtime and the suite stayed green — exactly how the gjk-snapshot failures reached a
+human (Joe) instead of CI. Verified the guard bites: reverting the three generator
+fixes (enum index API, scada.params upgrade typing, typed-map `Any`) makes this test
+fail with 7 errors; with them in place it passes. Pairs the three preceding commits
+with the test that would have caught them.
+
+## 2026-06-13 — Stop emitting unused `Any` import for typed-map types (`d4b4892`)
+
+**What:** Removed a spurious `ctx.needs_any = True` from the type generator
+(`runtime_generation/types.py`) on the typed-`additionalProperties` branch, which
+renders `dict[str, <resolved-type>]` (e.g. `dict[str, Gw1TankTempCalibration]`) and
+never uses `Any`. Regenerated `runtime/types/gw1_tank_temp_calibration_map.py`.
+
+**Why:** the generator imported `typing.Any` but left it unused for map types, a
+ruff `F401`. When the value annotation genuinely needs `Any`, the recursive
+`_annotation_for_schema` call sets the flag itself, so the explicit flag was
+redundant. Clears the last generator lint violation under the snapshot gate.
+
+## 2026-06-13 — Drop unused `GwStrEnum` index API (`to_index`/`from_index`) (`bf4914c`)
+
+**What:** Removed `to_index`, `from_index`, `_init_index_maps`, and the
+`_index_to_value`/`_value_to_index` maps from the generated `GwStrEnum` base
+(`runtime_generation/enums.py` literal); regenerated `runtime/enums/gw_str_enum.py`.
+Also widened `_missing_(value)` to `object` to match `Enum`.
+
+**Why:** legacy carry-over from gwproto's positional index / symbol wire-encoding —
+not part of the Sema enum contract (enums are closed value sets; `spec/authoring/enums.md`
+has no index concept) and with zero callers across sema, scada, base, journalkeeper.
+Cleared five mypy errors (dynamically-set attrs mypy can't see + the `_missing_` LSP
+override). Removes the notion of assigning indices to enum values.
+
+## 2026-06-13 — Type `scada.params` nested-upgrade loop vars as `SemaType` (`863f171`)
+
+**What:** Annotated the `new_params`/`old_params` loop variables in the
+`scada.params` 004→005 upgrade template (`upgrades/scada_params_004_to_005.py.jinja2`)
+as `SemaType`; regenerated `runtime/types/old_versions/scada_params_004.py`.
+
+**Why:** `scada.params:004` carries `NewParams`/`OldParams` as a `oneOf` of
+`ha1.params` 004|005, lifted to 006 via a multi-step `while … .upgrade()` loop (the
+only upgrade body that loops). mypy narrowed the loop var to the field union on first
+assignment, then rejected the broader `.upgrade()` result. Annotating to the base
+`SemaType` (which carries `.version` and `.upgrade()`) lets the polymorphic loop
+typecheck. Loop preserved; runtime behavior unchanged — round-trip was always green.
+Surfaced only by the snapshot mypy gate.
+
+---
+
 ## 2026-06-13 — Draft `MakeModelCacIdConsistency` axiom on `gw.nolan.layout` (`ee9d267`)
 
 **What:** Added a draft (documentation-only) axiom `MakeModelCacIdConsistency` to the
