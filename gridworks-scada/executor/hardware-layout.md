@@ -37,6 +37,35 @@ fields: `ZoneList`, `CriticalZoneList`, `TotalStoreTanks` (1–6),
 `MyTerminalAssetGNode`, `MyLeafTransactiveNodeGNode`). On disk it's
 `<house>.generated.json` (e.g. `oak.generated.json`).
 
+## Layout encodes the plant; the scada protocols share + disambiguate
+
+Every GridWorks layout is the same plant class — a **thermal-storage heat-pump system**
+(a heat pump, thermal storage, distribution, zones). The specific layout **encodes that
+plant's sense/control surface**: what can be sensed, what can be actuated, and how. The
+scada code reads that surface through **functional protocols** that (a) **share** the
+common control logic across layouts by speaking in *capabilities*, not hard-coded
+per-house node names, and (b) **disambiguate smoothly** where plants differ — feature-detect
+from the layout and enable / disable / adapt. Because the domain is fixed, the
+feature-detection is never "is this a heat-pump plant?" (always yes) but "this plant's dist
+pump is a 010V on *these* nodes / a relay / a sim stub." The domain is given; the wiring
+varies.
+
+Two consequences:
+
+- **SCADA-universal scaffolding belongs in every layout** — the local-control dispatch nodes
+  and state machine are the scada itself, not a plant difference, so every layout (including
+  a sim one) provides them; hard-requiring them is fine.
+- **Plant-specific sense/control must be read as capability.** `LocalControl` already shows
+  the pattern (`_dist_pump_recovery_enabled()` / `_store_pump_recovery_enabled()` feature-detect
+  the relay/010V nodes and degrade gracefully when absent), but still hard-reaches for
+  House0-named channels/devices in places. Generalizing that coupling — capability, not House0
+  name — is what lets one scada serve House0, Nolan, and a sim plant alike.
+
+The forcing function for getting this right is keeping **three diverse layouts** working at
+once (House0, Nolan, and a deliberately-simplest fake-physics sim layout — `gw1.simple.sim.layout`):
+two real layouts can mask leaked House0 assumptions; a third, radically-simpler one that still
+has to run breaks them.
+
 ## Load pipeline
 
 `HardwareLayout.load()` ingests the JSON and builds the graph:

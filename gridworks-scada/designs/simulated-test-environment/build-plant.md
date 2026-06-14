@@ -50,7 +50,7 @@ reuse as we add **simulated** components. Two standing rules (Jessica, 2026-06-1
   `sim.pico.tank.module.component.gt`, and `sim.sensor.component.gt`), not real
   component types reused.
 
-## The first sema layout word — `gw1.simple.layout`
+## The first sema layout word — `gw1.simple.sim.layout`
 
 The pared-down single-zone layout becomes the **first sema layout word**: a full
 hardware-layout type, not just the component vocabulary it references. That is the
@@ -59,18 +59,31 @@ sema-typed file instead of the plant re-deriving the graph — and it is on the
 **critical path for spruce-unlimbo**: getting layouts into sema is Chunk B / OPS-334,
 so this word is the on-ramp the rework reuses.
 
-**Name: `gw1.simple.layout`** — no `sim.` prefix (Jessica, 2026-06-13). Sim-ness is an
-**instance** property, not a type fact: a layout is simulated by its `sim.*` components
-and its wanded, unproven identity (no registered TaDeed — "simulated until proven
-real"), not by its type name. `sim.` belongs on things whose *schema* differs
-(components carry `Simulates*` fields); a sim layout adds no fields, so the prefix would
-only repeat what the contents already say and would couple the type to a deployment
-mode. So **no `sim.*` layout twins** — nolan/house0 reuse their own layout types run
-with sim components. The type's `description` notes it was minted as the simplest layout
-word for the MVP simulated test environment (origin / intended use, not a hard sim
-constraint). New generic GridWorks vocabulary, hence `gw1.` (matching
-`gw1.device.type` / `gw1.actor.class`). Distinct from `layout.lite` (the lightweight
-wire snapshot, not the full hardware layout).
+**Name: `gw1.simple.sim.layout`.** Sim-ness is *not* a primary part of a hardware-layout
+name — the production layouts (`gw.nolan.layout` / `gw.house0.layout`) don't carry
+"real", and a production layout *type* run with sim components is still that type. So
+there are **no `sim.*` twins** of the production layouts: you run nolan/house0 *with* sim
+components, you don't fork their type. This word is the deliberate exception worth
+flagging: it is **not designed for any built production system** — a purpose-built,
+simplest-possible layout that exists *only* for the simulated test environment. The
+`sim` in the name is an honest flag that this type has **no real-deployment counterpart**,
+not a claim that sim-ness generally belongs in layout names. The `gw1.` prefix is a
+deliberate fresh start in the new GridWorks namespace (`gw1.device.type` /
+`gw1.actor.class`) — the layout words may migrate off the legacy `gw.` names
+(`gw.nolan.layout` / `gw.house0.layout`) starting here. Distinct from `layout.lite` (the
+lightweight wire snapshot, not the full hardware layout).
+
+**Why a third layout — the point of it.** `gw1.simple.sim.layout` is a deliberate third
+choice alongside House0 and Nolan: the simplest plant we can imagine (fake the physics,
+stub the devices) that is *still a genuine thermal-storage heat-pump system*. Its value is
+a **forcing function** — two real layouts that differ mostly in hardware generation can
+still let House0 assumptions leak, but a third radically-simpler fake-physics plant that
+*also* has to run is different enough to break any House0-coupling that survived. Making
+the scada handle all three gracefully is what proves the plant-abstraction seams are real,
+not aspirational — and the same artifact doubles as the minimal fixture that stands up the
+simulated terminalasset. (Durable principle behind this — *the layout encodes the plant's
+sense/control surface; the scada protocols share + disambiguate, grounded in the
+thermal-storage heat-pump domain* — lives in `executor/hardware-layout.md`.)
 
 **Minimal-axiom first.** Carry only axioms that replicate **today's** hardware-layout
 load-time validations — tank count 1–6; `TankTempCalibrationMap` matches the tanks'
