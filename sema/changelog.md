@@ -12,6 +12,27 @@ Newest at the top.
 
 ---
 
+## 2026-06-14 — Add the Hubitat component pair (sema gap-fill complete) (`b7d2cae`)
+
+**What:** Authored the last five beech/house0 component words sema lacked, bottom-up and flat:
+`maker.api.attribute.gt/000` (one MakerAPI device attribute → SCADA channel; all `snake_case`
+fields re-cased to CamelCase, refs `spaceheat.telemetry.name:007` + `spaceheat.unit:001`);
+`hubitat.gt/000` (hub connection settings) and `hubitat.poller.gt/000` (poller settings, a
+`ConfigList`-style array of `maker.api.attribute.gt`); and the two flat component shells
+`hubitat.component.gt/000` (`Hubitat` → `hubitat.gt`) and `hubitat.poller.component.gt/000`
+(`Poller` → `hubitat.poller.gt`), both carrying `DeviceType` (open `pascal.case`) and a
+`channel.config` `ConfigList`, mirroring the dfr/ads shells. `MacAddress` modeled as a plain
+string (already normalized lowercase-colon at the SCADA boundary; a `mac.address` format was
+deliberately NOT added — speculative vocabulary on legacy-only words). Registry + indexes +
+runtime regenerated; `172 passed`; the three top-level types decode + re-encode against real
+new-shape instances (sema decoder cross-check).
+
+**Why:** closes the component gap-fill — every `*.component.gt` a beech/house0 layout names now
+exists in sema. The MakerAPI URL/REST helpers are computed in app code, not serialized, so they
+are excluded from the contract and called out in each word's `extended_description` (this
+vocabulary serves the five legacy House0 homes with no forward expansion). Shape follows the
+migrated sema patterns; the old scada types were a field reference only.
+
 ## 2026-06-14 — Begin adding remaining components needed for house0 (`64bce72`)
 
 **What:** Filled four `*.component.gt` types (+ sub-types) that a beech/house0 layout uses but

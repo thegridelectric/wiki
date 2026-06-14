@@ -37,45 +37,18 @@ Work branch: **`jm/delete-cac-id`** — the tunnel branch, nested
   `show_layout` fixed; `CACS_BY_MAKE_MODEL` / `DEVICE_TYPE_BY_MAKE_MODEL` / `db.device_type_for`
   all dropped. `Gw1DeviceType` enum is **app-code only** — gwsproto sema types keep open
   `DeviceType: str`.
+- **Sema Hubitat pair — gap-fill complete** — pending commit. Five flat words bottom-up:
+  `maker.api.attribute.gt/000` (snake→Camel re-cased; refs `spaceheat.telemetry.name:007` +
+  `spaceheat.unit:001`), `hubitat.gt/000`, `hubitat.poller.gt/000`, and the two shells
+  `hubitat.component.gt/000` + `hubitat.poller.component.gt/000` (carry `DeviceType`, mirror
+  dfr/ads). The MakerAPI URL/REST machinery turned out to be **computed helpers, not serialized
+  state** — excluded from the contract (noted in each word's `extended_description` and the
+  gwsproto docstrings). `MacAddress` is a plain string (no `mac.address` format — speculative on
+  legacy-only words). `172 passed`; the three top-level types pass the sema decoder cross-check.
 
-**Not done:** the **Hubitat** sema gap-fill (next), then the **scada fixture-regen green**.
+**Not done:** the **scada fixture-regen green** (the spruce-unlimbo merge gate).
 
-## ▶ DO THIS NEXT — the Hubitat sema pair
-
-Two beech components are still missing from sema: `hubitat.component.gt` and
-`hubitat.poller.component.gt`. Harder than dfr/ads because the scada source carries
-**`snake_case` fields** (`attribute_name`, `web_poll_enabled`, …) that violate sema's
-CamelCase MUST — **re-case to CamelCase** (decided) and model the nested REST-poller URL
-config. Trust the **migrated sema patterns** for shape (`electric.meter.component.gt`,
-`i2c.thermistor.channel.config`); the old scada types are a field reference only and may be
-stale.
-
-**Timebox — 90 minutes.** Finishing the last pair closes the gap-fill so
-no component dangler keeps pulling attention — worth doing. But the Hubitat sub-types are the
-open risk (nested REST/URL config + the `snake_case` re-casing). If the modeling runs past
-**90 minutes**, **punt** the remainder to a later focused pass rather than let it balloon —
-lean toward modeling the **minimum the layout actually needs**, not the full REST plumbing.
-
-First: read `sema/CLAUDE.md` + `spec/authoring/types.md` + `spec/authoring/enums.md`; post the
-read-receipt. Then bottom-up (each word: author yaml → registry entry → `scripts/build_indexes.sh`
-→ `scripts/regenerate_runtime.py` → `pytest` green):
-
-1. **`maker.api.attribute.gt`** (from scada `MakerAPIAttributeGt`) — re-case every field
-   (`attribute_name → AttributeName`, `channel_name → ChannelName`, `web_poll_enabled → WebPollEnabled`,
-   …); refs `spaceheat.telemetry.name` + `spaceheat.unit`.
-2. **`hubitat.gt`** and **`hubitat.poller.gt`** (from `HubitatGt` / `HubitatPollerGt`) — re-case;
-   decide how much of the nested `URLConfig` REST machinery to model vs simplify (it is poller
-   plumbing — lean toward the minimum the layout actually needs).
-3. **`hubitat.component.gt`** (`Hubitat` → `hubitat.gt`) and **`hubitat.poller.component.gt`**
-   (`Poller` → `hubitat.poller.gt`) — flat component shells with `DeviceType`, mirroring the
-   dfr/ads components.
-4. Registry entries (cluster with the existing dfr/ads gap-fill block before
-   `electric.meter.channel.config`), bump `metadata.last_updated`, regen, suite green.
-
-Source files to mine for fields: `gridworks-scada/packages/gridworks-scada-protocol/src/gwsproto/
-named_types/{hubitat_gt,hubitat_poller_gt,hubitat_component_gt,hubitat_poller_component_gt}.py`.
-
-## ▶ AFTER THAT — finish the scada cac→DeviceType green
+## ▶ DO THIS NEXT — finish the scada cac→DeviceType green
 
 The scada migration is code-complete but the **committed test fixtures still carry the old
 shape**, so the suite is red on missing `DeviceType`. Run from `gw_spaceheat` (venv at
@@ -183,9 +156,9 @@ GW108-unified stack (~30 ShNodes).
 
 **Sema component gap-fill (beech coverage):** a beech layout (`tlayouts/output/`) names 11
 `*.component.gt` types; four were missing from sema (Phase 1 added some device-type *records*
-but missed these *components* + configs). **dfr + ads done** (above); **Hubitat pair remaining**
-(DO THIS NEXT). `near5` deliberately not added as a format (`OpenVoltageByAds` is a bare number
-array).
+but missed these *components* + configs). **dfr + ads + Hubitat all done** (above) — the
+component gap-fill is complete. `near5` deliberately not added as a format (`OpenVoltageByAds`
+is a bare number array).
 
 ## Why its own issue / dependents
 
