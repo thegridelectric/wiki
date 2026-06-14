@@ -50,6 +50,12 @@ config. Trust the **migrated sema patterns** for shape (`electric.meter.componen
 `i2c.thermistor.channel.config`); the old scada types are a field reference only and may be
 stale.
 
+**Timebox — 90 minutes.** Finishing the last pair closes the gap-fill so
+no component dangler keeps pulling attention — worth doing. But the Hubitat sub-types are the
+open risk (nested REST/URL config + the `snake_case` re-casing). If the modeling runs past
+**90 minutes**, **punt** the remainder to a later focused pass rather than let it balloon —
+lean toward modeling the **minimum the layout actually needs**, not the full REST plumbing.
+
 First: read `sema/CLAUDE.md` + `spec/authoring/types.md` + `spec/authoring/enums.md`; post the
 read-receipt. Then bottom-up (each word: author yaml → registry entry → `scripts/build_indexes.sh`
 → `scripts/regenerate_runtime.py` → `pytest` green):
@@ -82,7 +88,7 @@ shape**, so the suite is red on missing `DeviceType`. Run from `gw_spaceheat` (v
    `ComponentAttributeClassId` → `DeviceType` with the right `gw1.device.type` value
    (per-component judgment, not mechanical).
 3. **`pytest` green for BOTH layouts** — the spruce-unlimbo merge gate.
-4. **Sema decoder cross-check (Jessica's bar):** emit each new gwsproto type to JSON and run
+4. **Sema decoder cross-check:** emit each new gwsproto type to JSON and run
    it through the sema runtime decoder — the real contract check that scada output conforms
    to the sema schemas, beyond internal green.
 
@@ -125,9 +131,17 @@ members. Dropping UUID identity entirely is the simpler, toolchain-honest answer
 ## Scope — pass-one boundary
 
 The spine: drop `cac_id`s → `gw1.device.type` `DeviceType`; simplify components; restructure
-`layout_gen`; fill the sema component vocabulary against a real (beech) layout. **Deferred to
+`layout_gen`; fill the sema **component** vocabulary against a real (beech) layout. **Deferred to
 pass two:** the full `ChannelConfig` / config-list overhaul and `TelemetryName → gw1.unit` +
 `gw1.quantity`.
+
+**The near-term target is just SOME shared minimal sema layout that scada and terminalasset
+both stand up against** — one common contract, not a complete or
+production layout. So we do **not** need to complete `gw.nolan.layout`, do **not** need to start
+a `gw.house0.layout`, and do **not** need to add all the axioms (`DeviceTypeRecordAlignment` et
+al.) to that first simple layout. The aggregate layout words + their full axiom set are pulled
+by demand later. Finishing the *component* gap-fill (the Hubitat pair) is the close-out; *layout*
+completion is not.
 
 **Decision (2026-06-14): the ConfigList revamp is NOT pulled forward.** Tempting — we are
 already in these files and it would avoid another version bump — but `TelemetryName` is
@@ -177,5 +191,8 @@ explainable. Dependents:
   layout; the device-type model lives here.
 - **spruce-unlimbo Chunk B** — the `layout_gen` restructuring + the merge gate "layout
   generation green for both the `house0` and Spruce layouts."
+- **The gwbase'd LTN** — will want the same shared sema hardware layout.
+  A third consumer: the more nodes that read the layout, the more "fix the contract once, now"
+  amortizes — and the more debt is avoided by not building against the old cac/make-model shape.
 
 It is also the "critical pass" `executor/hardware-layout.md` already anticipated.

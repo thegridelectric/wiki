@@ -451,7 +451,11 @@ punchy verdict fragment ("there are only two honest options — X, or Y.
 No incremental third path."). Same family, also banned: ", full stop",
 "— X edition", one-fragment verdict sentences, antithesis flourishes
 ("saves bytes, never trust"). Say the thing as an ordinary sentence.
-Her verbatim phrases stay verbatim.
+Her verbatim phrases stay verbatim. **Do NOT attribute notes, decisions,
+or quotes to the specific human developer by name and date** — no
+"(Jessica, 2026-06-14)", "Jessica's bar", "Raised … (Jessica)". Wiki prose
+is the project's settled voice: state the decision or fact as the
+project's own. A bare date is fine when genuinely useful; the name is not.
 
 **Sema-typed JSON files** — on-disk JSON instances of a Sema type SHALL
 be named `<sema-type-name>.json`, where `<sema-type-name>` is the Sema
