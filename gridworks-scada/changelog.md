@@ -12,6 +12,37 @@ Newest at the top.
 
 ---
 
+## 2026-06-13 — Rip out UNKNOWN device handling + the sim-multi-temp tank gen (`fc5f4d14`)
+
+**What:** Deleted `unknown_power_meter_driver.py`, `unknown_multipurpose_sensor_driver.py`,
+and `layout_gen/simulated_tanks.py`. `power_meter.py` / `multipurpose_sensor.py` no longer
+fall back to an Unknown driver — an unrecognized device (or missing i2c/adafruit libs) now
+raises `NotImplementedError`. `fixture_layouts.py` no longer adds simulated tanks to the
+house0/nolan fixtures; dropped the obsolete (already-skipped) `test_tank_device_capture_period`.
+
+**Why:** OPS-407 (hardware-layout-pass-one). The scada should loudly refuse unknown hardware
+rather than run silently against it. The sim multi-temp tank (`GRIDWORKS__SIMMULTITEMP` /
+`SimPicoTankModuleComponentGt`) is superseded by the all-purpose `GridworksSimSensor`
+(configured from its Component `ConfigList`), so the old sim-tank layout-gen goes — matching
+the `gw1.device.type` enum dropping `UnknownDeviceType` + `GridworksSimMultiTemp`. Fixtures
+are temporarily tankless until `GridworksSimSensor` is wired (later in OPS-407). `pytest`
+green (114 passed).
+
+## 2026-06-13 — docstring warning about aging stuff (`6989180f`)
+
+**What:** Added a warning docstring to `gwsproto/named_types/scada_device_type_gt.py`
+(`ScadaDeviceTypeGt`, `gw1.scada.device.type.gt`).
+
+**Why:** The simulated-test-environment design resolved (Jessica, 2026-06-13) that
+the generic device-type is `gw1.device.type.gt` (UUID-primary identity +
+`MakeModel: string` descriptor), distinct from this **board-specific** type
+(NativeGpio / I2cRelays / CtAdc / ThermistorAdcs / Dacs). The docstring marks that
+boundary at the type so the two are never conflated — conflation would re-couple the
+generic, version-stable, cross-company identity to SCADA-board hardware specifics. It
+also flags that this type is gwsproto-only (not in sema — `gw.nolan.layout` dropped
+its ref, sema `6f73174`/`af2bf49`) and that its `ComponentAttributeClassGt`
+inheritance is the proactor-port flatten flaw, not a pattern to mirror.
+
 ## 2026-06-11 — Green the test suite: House0 AsyncCaptureDelta + local test dotenv wiring (`b3cf2c4b`)
 
 **What:** Two coupled fixes landed together so `pytest` passes both

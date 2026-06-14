@@ -12,6 +12,60 @@ Newest at the top.
 
 ---
 
+## 2026-06-13 — gw1.device.type: drop UnknownDeviceType + GridworksSimMultiTemp, add AbstractWebServer (`d4a3e26`)
+
+**What:** `gw1.device.type/000` now 20 values. Dropped `UnknownDeviceType` (no
+"unknown" device type — the scada loudly refuses unknown hardware instead) and
+`GridworksSimMultiTemp` (superseded by `GridworksSimSensor`, which is fully configured
+from its Component `ConfigList`). Added `AbstractWebServer` — a generic web-server
+*service* component (not hardware), replacing the old `UNKNOWNMAKE` web-server hack.
+`default` is now `EgaugePowerMeter` — **vestigial**: `DeviceType` is required on every
+component, so the enum default is never exercised.
+
+**Why:** OPS-407. Removing the "unknown" sentinel forces every component to name a real
+device type; `AbstractWebServer` keeps the model uniform (every component carries a
+`DeviceType`) while honestly marking the web server as a generic service, not a make/model.
+
+## 2026-06-13 — Trim gw1.device.type to referenced device types (47 → 21) (`3c88996`)
+
+**What:** Pruned `gw1.device.type/000` from 47 to 21 values, dropping device types whose
+old `MakeModel` had no live reference in `gridworks-scada` (only the CACS tables / enum
+def / comments). Kept the device types actually used in `layout_gen` / drivers / real
+layouts / tests (incl. both thermistors and `UnknownDeviceType` at that point).
+
+**Why:** OPS-407 — the enum should carry the device types we actually use, not the full
+legacy `spaceheat.make.model` set. Removals verified by searching scada+tlayouts per
+make.
+
+## 2026-06-13 — Add gw1.device.type enum (device category replacing make/model-as-CAC) (`a8e0401`)
+
+**What:** New `gw1.device.type/000` enum — 47 PascalCase device-category values (46
+device types + an `UnknownDeviceType` sentinel/default), migrated from
+`spaceheat.make.model` (each value's description notes its old MakeModel). Registry
+`metadata.last_updated` bumped to cover the new `created` date.
+
+**Why:** OPS-407 (hardware-layout-pass-one) replaces UUID `cac_id` device identity with a
+`gw1.device.type` key: a device *category* (PascalCase, the `pascal.case` format), NOT a
+make+model — several eGauge models map to one `EgaugePowerMeter`. Components will carry
+`DeviceType` as an open `pascal.case` string (version-stable); the hardware layout
+enforces membership in this enum. `spaceheat.make.model` is frozen at `/008`. (The
+UUID-valued enum + projection was abandoned — sema string-enum values must be Python
+identifiers.)
+
+## 2026-06-13 — adjust sema spec rules for enums (`0283544`)
+
+**What:** Added a "String Enum Value Constraints — values are Python identifiers"
+section to `spec/authoring/enums.md`.
+
+**Why:** Document the hard constraint the runtime generator already enforces —
+`GwStrEnum` sets a string enum's wire value *equal to* its Python member name (via
+`auto()` + `_generate_next_value_`), so every value must be a valid Python identifier;
+`regenerate_runtime.py` rejects anything else. Surfaced the hard way when a UUID-valued
+`gw1.device.type.id` enum + projection (for the device-type bijection) failed to
+generate. The note also records the projection corollary (source and target enums must
+both have identifier values) and the PascalCase value convention. Lineage: OPS-407
+(hardware-layout-pass-one), which dropped UUID device ids for a `gw1.device.type` enum.
+
 ## 2026-06-13 — Add strict-lint regression test for the generated runtime (`189ec23`)
 
 **What:** New `tests/test_snapshot_strict_lint.py` — prepares the full

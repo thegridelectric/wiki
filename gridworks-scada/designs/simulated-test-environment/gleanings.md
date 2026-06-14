@@ -208,3 +208,23 @@ and assert it decodes clean. A green decode is a *guarantee* the two carriers ag
   `GridWorks_CLAUDE.md` defining **Verified as run against the test harness**, with a
   longer document about what full test-harness runs mean. Canonize only after the
   sprint finishes.
+
+## Opportunities for improvement
+
+- **Move operational config out of the hardware layout (incl. the web server).** The
+  hardware layout should be hardware *truth* — what exists, how it's wired, what it
+  measures — not operational/service config (`executor/components.md` "What belongs in
+  the hardware layout"). The **web server** is the clearest case: its host/port is
+  service config, not a device. The `AbstractWebServer` device type (added this sprint)
+  keeps hardware-layout-pass-one uniform — every component carries a `DeviceType` — but
+  the real endpoint is lifting service config *out* of the layout into scada settings.
+  The web server **stays** as a thing; it just shouldn't be a hardware-layout component.
+  (Pass-two / its own cleanup, beyond hardware-layout-pass-one.)
+- **Hubitat is not going forward; Home Assistant is uncertain — don't over-invest in the
+  current poller/hubitat model.** Andrew's pollers + the Hubitat hub component exist to
+  support the **5 initial House0 homes**. We do **not** plan to keep supporting Hubitat,
+  and may not adopt Home Assistant either. If we do take on a hub going forward it will
+  likely be **Home Assistant**, with a large refactor that probably **re-architects the
+  pollers**. So treat the current poller/hubitat layer as legacy-supporting-the-five, not
+  a pattern to extend or model carefully in the device-type work. (The web server is the
+  exception — it stays, per the note above.)

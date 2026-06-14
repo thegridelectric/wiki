@@ -159,22 +159,25 @@ types is deliberate vocabulary namespacing (GridWorks's `gw1.actor.class`,
   deliberately NOT an axiom** — the id↔MakeModel canonical mapping is GridWorks
   deployment policy, not a cross-system contract, so `component.attribute.class.gt`
   is structural-only (the shared-vocabulary sweep, 2026-06-12; sema changelog
-  `6f73174`). **Resolution (Jessica, 2026-06-13).** Keep the **UUID as the
-  device-type's primary, globally-unique identity** (data-level — new types add as a
-  UUID with no version bump; unknown / cross-company types are first-class).
-  `MakeModel` is a descriptor. The bijection is **not** enforced on the device-type
-  (that would version-couple it to the mapping and ripple on every add). Its in-canon
-  home is a **draft axiom on the hardware-layout type** (`gw.nolan.layout` today —
-  `MakeModelCacIdConsistency`), with the canonical mapping to be formalized as
-  `gw1.*` vocabulary (a `gw1.cac.id` enum + a `gw1.make.model.cac.id` projection) the
-  layout axiom references — so the **layout is self-validating** (serves the plant
-  reading it + cross-company consumers) while `device.type` / components stay
-  version-stable; only *naming* a new device type bumps the layout type (rare; rides
-  the existing layout cascade — **accepted, Jessica 2026-06-13**: cascading the
-  layout version is not too costly). **Phasing:** `CACS_BY_MAKE_MODEL` stays the live
-  enforcer in scada (TODO there: migrate to the layout axiom); the draft layout axiom
-  captures intent now; it goes live when the `gw1.*` projection lands and the layout
-  publishes.
+  `6f73174`). **Resolution (Jessica, 2026-06-13) — the bijection and the UUID id are both
+  removed.** The device type is identified by a **`gw1.device.type` enum** value
+  (PascalCase, the existing `pascal.case` format) — a device *category*, not a
+  make+model (several eGauge models lump under one value by design). ALL `cac_id` /
+  `ComponentAttributeClassId` UUID identity is **dropped**, scada and sema alike;
+  there is **no generic `component.attribute.class.gt` / `gw1.device.type.gt`** record.
+  A component carries its `DeviceType` (a `pascal.case` field, kept open so component
+  types stay version-stable); the **hardware-layout type enforces** `DeviceType ∈
+  gw1.device.type`. Device types that carry real category-level data open a
+  **specialized `<family>.device.type.gt`** (e.g. `gw1.scada.device.type.gt` for the
+  gw108 board, `egauge.device.type.gt` for a modbus port); a **layout axiom** requires
+  the matching specialized record present whenever a component references such a type
+  (the component does not self-signal it). This drops `CACS_BY_MAKE_MODEL`, the
+  UUID↔MakeModel mapping, and the projection idea entirely — the UUID-valued
+  `gw1.device.type.id` enum was abandoned because sema string-enum values must be
+  Python identifiers (`GwStrEnum`: value == member name), so UUIDs can't be enum members
+  or projection targets. **Phasing:** a high-volume `gridworks-scada` migration removes
+  every `cac_id` and restructures `layout_gen` around `DeviceType`; tracked as its own
+  Ops issue (**OPS-407**, subsumes the earlier `replace-cacs-by-make-model` idea).
 
 ## Opportunities for improvement (OFIs)
 

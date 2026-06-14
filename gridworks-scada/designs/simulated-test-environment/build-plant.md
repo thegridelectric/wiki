@@ -14,36 +14,20 @@ Status: Accepted · Pass 1 · Updated 2026-06-13 · Linear: OPS-40
 > `gleanings.md`; new sema words awaiting Jessica's sign-off are in
 > `new-sema-words-to-review.md`.
 
-## Do this now — the device-type upgrade, then Phase A
+## Do this now — wait on the hardware-layout pass, then Phase A
 
-The shared layout vocabulary has landed in sema (`6f73174` … `ee9d267`), so the
-layout-vocabulary sweep is no longer the lead. The current do-this-now is the
-**device-type transition** (resolved design; see `executor/hardware-layout.md`
-"Resolution"): enforce the MakeModel↔CAC-id bijection via an axiom on the
-**hardware-layout** type, so the layout self-validates, device-type + components
-stay version-stable, and the layout-version cascade on *naming* a device type is
-accepted.
+The device-type model and the high-volume scada migration the sim layout depends on are a
+**separate, shared piece of work** — its own Ops issue (**OPS-407**), depended on by this
+harness and spruce-unlimbo Chunk B. Its durable home is `executor/hardware-layout.md`
+("Resolution"): device identity becomes a `gw1.device.type` enum value (`DeviceType`,
+`pascal.case` format), **ALL `cac_id` / UUID identity is removed** (scada and sema), and
+`layout_gen` is restructured around it. The sim component types
+(`sim.sensor.component.gt`, `sim.relay.component.gt`) land in that pass — flat, carrying
+`DeviceType`, no `cac_id`.
 
-- **Part A:** add a `gw1.cac.id` enum (canonical UUID strings) + a
-  `gw1.make.model.cac.id` projection (enum→enum); make the draft
-  `MakeModelCacIdConsistency` axiom on `gw.nolan.layout` *live* (reference the
-  projection); leave a migrate-to-axiom TODO in scada's `CACS_BY_MAKE_MODEL`
-  (still the live enforcer until then).
-- **Part B:** transition `component.attribute.class.gt` → the device-type
-  (UUID-primary + `MakeModel: string`) and bump **all** components added this
-  sprint onto it + the two new makemodels (`GRIDWORKS__SIM_SENSOR` /
-  `SIM_RELAY_BANK`, in `make.model/008`). Re-verify each via the cross-carrier
-  round-trip harness (`gleanings.md`); `pytest` green.
-- **OPEN FORK — decide first (Jessica):** is the device-type **generic** (suggest
-  `gw1.device.type.gt`, replacing the generic CAC) and **distinct** from the
-  gwsproto `gw1.scada.device.type.gt` (the SCADA-board-specific CAC:
-  NativeGpio/I2c/ADC/DAC)? Don't conflate them. Formalize the transition as a
-  `wiki/gridworks-scada/designs/` file + Ops Linear issue (tag `design`) when
-  picked up.
-
-**Then Phase A** — build + prove the comms loop, with the sim layout using
-`sim.sensor.component.gt` / `sim.relay.component.gt`. **Then Phase B** —
-first-pass plant physics.
+**This spoke's work resumes at Phase A** once that pass lands the new component shape:
+build + prove the comms loop with the sim layout using `sim.sensor.component.gt` /
+`sim.relay.component.gt`. **Then Phase B** — first-pass plant physics.
 
 ## Why one layout file — plant and scada read the same `hardware-layout.json`
 
@@ -66,12 +50,45 @@ reuse as we add **simulated** components. Two standing rules (Jessica, 2026-06-1
   `sim.pico.tank.module.component.gt`, and `sim.sensor.component.gt`), not real
   component types reused.
 
+## The first sema layout word — `gw1.simple.layout`
+
+The pared-down single-zone layout becomes the **first sema layout word**: a full
+hardware-layout type, not just the component vocabulary it references. That is the
+cleanest way for gwta and the sim scada to share **one** layout — both parse the same
+sema-typed file instead of the plant re-deriving the graph — and it is on the
+**critical path for spruce-unlimbo**: getting layouts into sema is Chunk B / OPS-334,
+so this word is the on-ramp the rework reuses.
+
+**Name: `gw1.simple.layout`** — no `sim.` prefix (Jessica, 2026-06-13). Sim-ness is an
+**instance** property, not a type fact: a layout is simulated by its `sim.*` components
+and its wanded, unproven identity (no registered TaDeed — "simulated until proven
+real"), not by its type name. `sim.` belongs on things whose *schema* differs
+(components carry `Simulates*` fields); a sim layout adds no fields, so the prefix would
+only repeat what the contents already say and would couple the type to a deployment
+mode. So **no `sim.*` layout twins** — nolan/house0 reuse their own layout types run
+with sim components. The type's `description` notes it was minted as the simplest layout
+word for the MVP simulated test environment (origin / intended use, not a hard sim
+constraint). New generic GridWorks vocabulary, hence `gw1.` (matching
+`gw1.device.type` / `gw1.actor.class`). Distinct from `layout.lite` (the lightweight
+wire snapshot, not the full hardware layout).
+
+**Minimal-axiom first.** Carry only axioms that replicate **today's** hardware-layout
+load-time validations — tank count 1–6; `TankTempCalibrationMap` matches the tanks'
+derived channels; `usable-energy` / `required-energy` present by name; the
+referential-integrity checks (`CapturedByNodeName` / `AboutNodeName` /
+`InputChannelNames` resolve) — and **not** the fuller axiom set being spelled out in
+`gw.nolan.layout`. Match current behavior first; richer axioms later. Mint via
+`/make-sema-word` (read `sema/CLAUDE.md` first) when ready to author.
+
 ## Next tasks (ordered)
 
 The build order, recorded here so it survives across files (the hub just points at
 this spoke; the ordered plan lives here):
 
-0. **Device-type upgrade** — Part A + Part B above (resolve the OPEN FORK first).
+0. **Device-type pivot + SCADA migration** — see "Do this now" above: mint
+   `gw1.device.type` (+ the `DeviceType` `pascal.case` field), drop ALL `cac_id`
+   (scada and sema), then the high-volume scada migration (`layout_gen`,
+   `CACS_BY_MAKE_MODEL`).
 1. **Phase A** — build + prove the comms loop (format-correct plant →
    `SimSensorActor` → real `ScadaApp(is_simulated)` + `LtnApp` + dashboard;
    done-when 10 minutes, zero watchdog-pat deaths). Stand up the hardware layout
@@ -92,18 +109,21 @@ The shared layout vocabulary landed (sema `6f73174`). To stand up a *simulated*
 layout and the actuation path, Phase A still needs a small fresh sema mini-sweep
 (all tracked in `new-sema-words-to-review.md`):
 
-- **`sim.relay.component.gt/000`** — the component the scada-side `SimRelayActor`'s
-  relay node uses (flat: id/cac + `ConfigList` of `relay.actor.config/003`).
-  Parallel to `sim.sensor.component.gt/000`. "The simulated relay needs a component."
-- **Two new MakeModels** in `spaceheat.make.model` (additive → **/008**):
-  `GRIDWORKS__SIM_SENSOR` and `GRIDWORKS__SIM_RELAY_BANK`. **Two, not one** — sensor
-  vs relay are distinct device classes, and `layout_gen` dispatch + the
-  `CACS_BY_MAKE_MODEL` bijection key on MakeModel; matches existing per-class sim
-  makemodels (`GRIDWORKS__SIMBOOL30AMPRELAY`, `GRIDWORKS__SIMMULTITEMP`, …).
-- **`component.attribute.class.gt/002`** (refs `spaceheat.make.model/008`) so a sim
-  CAC carrying the new sim makemodels decodes. `/002` is a strict superset of `/001`
-  (additive); sim layouts use `/002` CACs. **The one ripple to weigh** — bumping a
-  just-landed type — flag for Jessica.
+- **`gw1.device.type/000`** (new enum) — the universal device-type key: PascalCase
+  values (existing `pascal.case` format), pruned to the device types scada actually
+  uses, including `GridworksSimSensor` and `GridworksSimRelayBank`. Replaces
+  make/model-as-CAC. Components carry a `DeviceType` field of the existing `pascal.case`
+  format; the layout enforces `DeviceType ∈ gw1.device.type`. **No `cac_id` anywhere.**
+- **`sim.sensor.component.gt/000` / `sim.relay.component.gt/000`** — the sim component
+  types, flat: `ComponentId`, `DeviceType` (`pascal.case`), `ConfigList` (channel
+  configs for the sensor; `relay.actor.config/003` for the relay), `DisplayName`,
+  `HwUid`. **No `ComponentAttributeClassId`.** Sensor vs relay are distinct device types
+  (`GridworksSimSensor` / `GridworksSimRelayBank`).
+- **Superseded:** the `spaceheat.make.model/008` sim makes (`GRIDWORKS__SIM_SENSOR` /
+  `GRIDWORKS__SIM_RELAY_BANK`, already committed) are now **legacy/orphaned** —
+  `gw1.device.type` replaces make/model-as-CAC; `spaceheat.make.model` stays frozen, the
+  values are harmless. The earlier `gw1.device.type.gt` / `gw1.device.type.id` /
+  `gw1.make.model.device.type.id` projection plan is **abandoned** (see "Do this now").
 - Already minted (prior sprint): `sim.plant.flux`, `sim.plant.actuation`,
   `change.relay.pin`, `gw1.actor.class/012` (SimSensorActor / SimRelayActor).
 
@@ -112,7 +132,7 @@ actor would, and emits `sim.plant.actuation` (`RelayName` + `change.relay.pin`
 Energize/DeEnergize + sim time + `ActualTimeUtc`) to the plant's broker; the plant
 resolves what energizing each relay *does* from the (sim) layout and folds it into
 physics. So the sim layout's relay nodes carry `sim.relay.component.gt` components
-whose CAC MakeModel is `GRIDWORKS__SIM_RELAY_BANK`.
+whose `DeviceType` is `GridworksSimRelayBank`.
 
 ## Where it lives
 

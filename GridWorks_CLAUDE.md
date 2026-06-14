@@ -299,6 +299,17 @@ relation when asked. Dependencies and context belong in the issue **description
 prose** (e.g. "blocked from merge until gridworks-base 0.5.x publishes"), not in
 a relation edge.
 
+**Shared-dependency work earns its own flat Linear issue.** When a sizable chunk
+of work is depended on by **two or more** larger designs, it becomes its **own**
+issue + design — never a sub-issue of either. Two reasons: it keeps Linear **flat**
+(no sub-issue trees, no tangled relations — composes with *No issue-to-issue
+relations* above: the dependents reference it **by name in their description
+prose**, not by a relation edge); and it stays **explainable to the team** —
+"here's one thing we did, referenced from these two big functional issues." Scope it
+generously enough to absorb honest creep (a "pass-one" framing both bounds the work
+and signals a later pass), so the shared piece is one coherent, closeable unit
+rather than a litter of tiny adjacent issues.
+
 ## Working-tree hygiene
 
 Code-repo edits are organised into **clusters**: one pending changelog
