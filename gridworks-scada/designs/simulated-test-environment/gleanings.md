@@ -208,6 +208,56 @@ and assert it decodes clean. A green decode is a *guarantee* the two carriers ag
   `GridWorks_CLAUDE.md` defining **Verified as run against the test harness**, with a
   longer document about what full test-harness runs mean. Canonize only after the
   sprint finishes.
+- **Finish `gw1.scada.device.type.gt` — a spruce-untangle dependency.** The
+  hardware-layout-pass-one design created it as a **minimal draft stub** (board-level
+  identity only). Flattening the full gw108 board descriptor — `NativeGpio` in/out BCM
+  pin maps, `I2cRelays`, `CtAdc`, `ThermistorAdcs`, `Dacs` (mirroring the scada
+  `ScadaDeviceTypeGt` / Joe's `starter-scripts/gw108_test_code.py`) — is the codification
+  of Joe's gw108 board and **needs to happen for spruce-untangle**.
+
+## Two facets of simulation (sim.sensor vs sim.pico)
+
+Surfaced while evaluating whether to keep `sim.pico.tank.module.component.gt`
+(hardware-layout-pass-one, 2026-06-13). There are **two distinct facets** of
+simulating a device, and they test different layers — keep both:
+
+- **Generic plant-seam traffic generation** — `sim.sensor.component.gt` /
+  `sim.relay.component.gt` (`GridworksSimSensor` / `GridworksSimRelayBank`). The plant
+  pushes format-correct synthetic channels; the scada's generic `SimSensorActor` /
+  `SimRelayActor` consume them. This is the **decided MVP seam** (primary.md "The sim
+  seam is decided") and exercises **comms infrastructure** — it deliberately does NOT
+  run real device code. Configured entirely from the component `ConfigList`.
+- **Component-faithful simulation** — `sim.pico.tank.module.component.gt`, which carries
+  `SimulatesTypeName`/`SimulatesVersion` pointing at a *specific* real component, so a
+  sim layout drives the **real scada device code path** (`ApiTankModule`) with simulated
+  input. This tests the **device code**, which the generic seam can't reach. Only partly
+  worked through on the actor side; kept because that coverage is worth it.
+
+The generic seam is breadth (comms, fleet behaviour, any channel); the component-faithful
+seam is depth (one real device's code under simulation). A mature harness wants both —
+generic for most tests, component-faithful when the thing under test *is* the device
+handler. (`sim.pico.tank.module` is the only component-faithful example so far.)
+
+## Device-type membership is a hardware-layout invariant (all layout types)
+
+From hardware-layout-pass-one (2026-06-13). Every hardware-layout sema type is **expected
+to carry a device-type membership axiom**: (1) every Component's `DeviceType` SHALL be a
+member of the `gw1.device.type` enum, and (2) for every Component whose `DeviceType`
+requires a specialized record (a category with category-level data — electric meter,
+ADS111x sensor, GW108 board), the layout's `DeviceTypes` array SHALL contain a matching
+`<family>.device.type.gt` (joined by the shared `DeviceType` value). Consistency is a
+**layout invariant, not a per-component flag** — a component does not advertise whether it
+needs a record; the layout enforces it. `gw.nolan.layout` carries this axiom
+(`DeviceTypeMembership`); future/other hardware-layout types should too.
+
+Note: `layout.lite` (the emitted runtime *projection*) needed a **new version** to migrate, not
+an in-place rebind — it has a live upgrade chain over real field fixtures, and the scada emits a
+`layout.lite` on boot, so the latest version must stay coherent with the components a migrated
+scada loads. Done as **`layout.lite/015`** (cac-free embedded components); the `014→015` upgrade
+is `UpgradeRequiresContext` (old projections with cac components can't auto-migrate without the
+source layout), and the beech/spruce upgrade-to-latest tests now assert that refusal. An in-place
+`/014` rebind was tried first and rejected: it broke decode-old→latest and violated
+dependency-timestamp ordering (`/014` predates the new component versions).
 
 ## Opportunities for improvement
 

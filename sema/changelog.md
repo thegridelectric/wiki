@@ -12,6 +12,87 @@ Newest at the top.
 
 ---
 
+## 2026-06-14 — Begin adding remaining components needed for house0 (`64bce72`)
+
+**What:** Filled four `*.component.gt` types (+ sub-types) that a beech/house0 layout uses but
+sema lacked: new `dfr.config/000` → `dfr.component.gt/000`; `ads.channel.config/000` (with
+`ThermistorDeviceType` — an open `pascal.case` `gw1.device.type` value, replacing the old
+`ThermistorMakeModel` enum field) → `ads111x.based.component.gt/000`; and a new versioned enum
+`thermistor.data.method/000` (`SimpleBeta` / `BetaWithExponentialAveraging`). All born flat and
+migrated (carry `DeviceType`, no cac). Registry + indexes + runtime regenerated; `172 passed`.
+
+**Why:** Phase 1 added some device-type *records* to sema but missed these *components* and their
+channel configs — so a real production (beech) layout could not be fully expressed in the sema
+vocabulary. Shape follows the migrated sema patterns; the old scada types are a field reference
+only (possibly stale). `near5` deliberately not added as a format (`OpenVoltageByAds` is a bare
+number array). Remaining: the Hubitat component pair (needs `snake_case → CamelCase` re-casing).
+
+## 2026-06-14 — Adjusting pico btu and flow meters v 001 (`abc369f`)
+
+**What:** `pico.flow.module.component.gt/001` and `pico.btu.meter.component.gt/001` (both
+draft/unpushed — revised in place, no new version): `FlowMeterType` moved from
+`$ref spaceheat.make.model` to `$ref formats/pascal.case` (an open `gw1.device.type`
+string). Dropped the `spaceheat.make.model` dependency from both `001`
+`direct_dependencies`; added an `extended_description` to each; recorded the FlowMeterType
+delta in the `000→001` upgrade docstring + the registry summary (kept mirrored);
+regenerated indexes + runtime.
+
+**Why:** retiring `make_model` across the hardware-layout vocabulary — device identity is
+the readable `gw1.device.type` `DeviceType`. Keeping `FlowMeterType` an open `pascal.case`
+string (not an enum `$ref`) keeps the component type version-stable as device types grow;
+the enum membership is articulated by the hardware layout that composes the type. Mutated
+in place (version `001` preserved) so the aggregate layout words (`gw.nolan.layout`,
+`layout.lite`) that compose these types do not rebind.
+
+## 2026-06-14 — Aggregate rebind: gw.nolan.layout DeviceTypeMembership axiom + new layout.lite/015 (cac-free) (`0cd2175`)
+
+**What:** Two aggregate hardware-layout types reconciled to the cac-free `DeviceType`
+vocabulary. (1) `gw.nolan.layout/000` (draft): `Components` oneOf rebound to the new
+`DeviceType` component versions; `DeviceTypes` swapped from CAC refs
+(`component.attribute.class.gt`, `electric.meter.cac.gt`) to the specialized records
+(`electric.meter` / `ads111x.based` / `gw1.scada` `.device.type.gt`); the old
+`DeviceTypeReferenceIntegrity` axiom reworked into **`DeviceTypeMembership`** (every
+Component's `DeviceType` ∈ `gw1.device.type`, and any category needing a specialized record
+has a matching `<family>.device.type.gt` in `DeviceTypes`); stale
+`DeviceType.ComponentAttributeClassId` dropped from `GlobalIdUniqueness`; `gw1.device.type:000`
+added as an axiom dep. (2) **New `layout.lite/015`** — `/014` rebound to the cac-free embedded
+component versions (`pico.tank.module` 011→012, `sim.pico.tank.module` 000→001,
+`pico.flow.module` 000→001, `i2c.multichannel.dt.relay` 004→005). The `014→015` upgrade is
+`UpgradeRequiresContext` (the embedded components migrate cac_id→DeviceType, which needs the
+source layout); `/014` gained a compact example (now superseded); the real beech/spruce
+upgrade-to-latest tests now assert the context-dependent refusal.
+
+**Why:** OPS-407, hardware-layout pass one (1.5 tail). The authoritative hardware layout now
+expresses the device-type model (components key into specialized records by `DeviceType`,
+membership a layout invariant). `layout.lite` needed a NEW version rather than an in-place
+rebind: it has a live upgrade chain over real field projections, and the scada emits a
+`layout.lite` on boot — `/015` keeps that emission coherent with the migrated components while
+old projections (with cac components) refuse to auto-upgrade without context.
+
+## 2026-06-13 — Drop cac_id from all emitted component types → gw1.device.type DeviceType; add draft `<family>.device.type.gt` records (`2d55705`)
+
+**What:** Every emitted component type drops `ComponentAttributeClassId` (the cac UUID)
+and gains `DeviceType` (an open `pascal.case` string, a `gw1.device.type` value) as a new
+version — `electric.meter` (→002), `gw108.gpio.sensor/relay/vdc.relay` (→002),
+`i2c.multichannel.dt.relay` (→005), `i2c.thermistor.reader` (→002), `pico.btu.meter`
+(→001), `pico.flow.module` (→001), `pico.tank.module` (→012), `web.server` (→002),
+`sim.pico.tank.module` (→001, `SimulatesVersion` 011→012). The two never-emitted sim
+types (`sim.sensor`, `sim.relay`) are mutated in place at `/000`. Each new version's
+upgrade is `UpgradeRequiresContext` (DeviceType lives on the referenced cac, not the
+component); each now-superseded version carries a field-sourced `examples:` block.
+Added three **draft** specialized records — `electric.meter.device.type.gt`,
+`ads111x.based.device.type.gt`, `gw1.scada.device.type.gt` (minimal stub) — keyed by
+`DeviceType`. Froze `component.attribute.class.gt` (`replaced_by: gw1.device.type`) and
+`electric.meter.cac.gt` (`replaced_by: electric.meter.device.type.gt`). Also fixed the
+generated `new_command_tree` upgrade's mypy typing at its template source.
+
+**Why:** OPS-407, hardware-layout pass one. Replaces UUID `cac_id` device identity with a
+readable `DeviceType`; a plain device is now fully described by its `DeviceType` value +
+its own component fields. A CAC that carries real category-level data does not vanish — it
+becomes a per-family `<family>.device.type.gt` joined by the shared `DeviceType`.
+Immutability is gated on real-world emission in gridworks-scada (spruce/field layouts), so
+every emitted type earns a new version; only the never-emitted sim types mutate in place.
+
 ## 2026-06-13 — gw1.device.type: drop UnknownDeviceType + GridworksSimMultiTemp, add AbstractWebServer (`d4a3e26`)
 
 **What:** `gw1.device.type/000` now 20 values. Dropped `UnknownDeviceType` (no

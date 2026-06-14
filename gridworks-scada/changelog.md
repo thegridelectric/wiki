@@ -12,6 +12,27 @@ Newest at the top.
 
 ---
 
+## 2026-06-14 — Hardware-layout pass one: cac_id → DeviceType migration (WIP `b0f03292`, `b358a676`)
+
+**What:** The scada side of the cac→DeviceType migration, landed as two WIP commits (to be
+squashed). `b0f03292`: `ComponentGt` drops `ComponentAttributeClassId` and carries
+`DeviceType: str` (v002); `ComponentAttributeClassGt` becomes the device-type-record base keyed
+by `DeviceType` (its `CACS_BY_MAKE_MODEL` Axiom-1 + the UUID gone); `hardware_layout` resolution
+joins by `DeviceType` with the specialized record now optional; `layout_db` + the 12 `layout_gen`
+generators restructured; new `Gw1DeviceType` enum (app-code only — the gwsproto sema types keep
+an open `DeviceType: str`). `b358a676` ("remove cac_id"): the ~9 actor/driver dispatches moved
+`cac.MakeModel → DeviceType`; the generators re-swept onto `Gw1DeviceType.X`; the `MakeModel`
+field removed from the record base; `show_layout` fixed; `pico_flow`/`pico_btu` `FlowMeterType`
+retyped to `str`; and `cacs_by_make_model.py` + the transitional `device_type_by_make_model.py`
+deleted.
+
+**Why:** Retire UUID device identity (`cac_id`) and make/model-as-CAC across the scada hardware
+layout in favour of a readable `gw1.device.type` `DeviceType`. A device is now fully described by
+its `DeviceType` plus its own fields; the `CACS_BY_MAKE_MODEL` bijection evaporates, the silent
+type-alignment guard it provided moves to a layout axiom, and `make_model` as a phrase leaves
+scada app code. Matches the sema contract in `2d55705` / `0cd2175`. Test fixtures are not yet
+regenerated — regenerating them + greening the suite is the next step.
+
 ## 2026-06-13 — Rip out UNKNOWN device handling + the sim-multi-temp tank gen (`fc5f4d14`)
 
 **What:** Deleted `unknown_power_meter_driver.py`, `unknown_multipurpose_sensor_driver.py`,

@@ -1,115 +1,181 @@
 # Hardware layout — pass one
 
-Status: Accepted · Pass 1 · Updated 2026-06-13 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-06-14 · Linear: OPS-407
 
-**EDD: no** build-out/refactor — verified by the suite (layouts load + `layout_gen`
-green for BOTH `house0.layout` and `gw.nolan.layout`; `pytest`), not gated on a
-standalone real-world experiment.
+**EDD: no** build-out/refactor — verified by the suite (layouts load + `layout_gen` green
+for BOTH the `house0` and Spruce layouts; `pytest`), not gated on a standalone real-world
+experiment.
 
-> What this is: the first critical pass on the scada hardware-layout / components
-> model. Drop the UUID `cac_id`s, replace make/model-as-CAC with a `gw1.device.type`
-> enum, simplify components, and restructure `layout_gen` around the device type. A
-> **shared dependency** — both the **simulated-test-environment** harness and
-> **spruce-unlimbo** Chunk B need it — so it lives as its own flat Linear issue
-> (GridWorks_CLAUDE "Shared-dependency work earns its own flat Linear issue"),
-> referenced by name from both, not as a sub-issue of either.
+> What this is: the first critical pass on the scada hardware-layout / components model.
+> Drop the UUID `cac_id`s, replace make/model-as-CAC with a readable `gw1.device.type`
+> `DeviceType`, simplify components, restructure `layout_gen`, and fill the sema component
+> vocabulary against a real layout. A **shared dependency** — both the
+> **simulated-test-environment** harness and **spruce-unlimbo** Chunk B need it — so it is
+> its own flat Linear issue (OPS-407), referenced by name from both.
 
-## Why its own issue
+## Status (2026-06-14)
 
-The simulated-test-environment harness needs the new, simpler component shape to
-stand up a sim layout; spruce-unlimbo Chunk B needs `layout_gen` restructured to make
-both `house0` and `nolan` layouts green at the merge gate. Both depend on the same
-chunk of work. Per the shared-dependency rule it becomes one flat issue, referenced by
-name in each dependent's prose — keeping Linear flat and the work explainable.
+Work branch: **`jm/delete-cac-id`** — the tunnel branch, nested
+`jm/spruce-unlimbo → jm/sim-test-env → jm/delete-cac-id` (it contains all of
+`origin/jm/spruce-unlimbo`). Continue here; do not cut off `dev` or `jm/spruce-unlimbo`.
 
-It is also the "critical pass" `executor/hardware-layout.md` already anticipated
-("First pass… Future TODO: review it with a critical eye for design, the way
-`scada-ltn-link-state.md` was").
+**Done + green:**
+- **Sema cac→DeviceType** — committed `2d55705`, `0cd2175`. `gw1.device.type` enum; every
+  cac-carrying component bumped to drop `ComponentAttributeClassId` / carry `DeviceType`;
+  draft `*.device.type.gt` records; CACs frozen + `replaced_by`; `gw.nolan.layout` rebound
+  + `DeviceTypeMembership` axiom; `layout.lite/015`.
+- **Sema FlowMeterType** — committed `abc369f`. `pico.flow`/`pico.btu` `001` `FlowMeterType`
+  moved `$ref spaceheat.make.model → formats/pascal.case`, mutated in place (version `001`
+  kept → aggregate layout words don't rebind).
+- **Sema component gap-fill: dfr + ads** — uncommitted, `172 passed`. `dfr.config` +
+  `dfr.component.gt`; `ads.channel.config` (`ThermistorMakeModel → ThermistorDeviceType`) +
+  `ads111x.based.component.gt`; new versioned enum `thermistor.data.method`.
+- **Scada cac→DeviceType migration** — uncommitted beyond WIP `b0f03292`. `ComponentGt` →
+  `DeviceType` (v002); `ComponentAttributeClassGt` → device-type-record base (no `MakeModel`);
+  `hardware_layout` resolution joins by `DeviceType` (records optional); `layout_db` + all 12
+  generators on `Gw1DeviceType`; ~9 actor/driver dispatches moved `cac.MakeModel → DeviceType`;
+  `show_layout` fixed; `CACS_BY_MAKE_MODEL` / `DEVICE_TYPE_BY_MAKE_MODEL` / `db.device_type_for`
+  all dropped. `Gw1DeviceType` enum is **app-code only** — gwsproto sema types keep open
+  `DeviceType: str`.
 
-## The device-type model (decided 2026-06-13)
+**Not done:** the **Hubitat** sema gap-fill (next), then the **scada fixture-regen green**.
 
-- **`gw1.device.type`** — a new sema enum, the universal device key. PascalCase values
-  (the existing `pascal.case` format, no underscores), e.g. `EgaugePowerMeter`,
-  `GridworksSimSensor`, `GridworksScadaGw108`, pruned to the device types
-  `gridworks-scada` actually uses. It is a device **category**, NOT a make+model —
-  lumping several eGauge models under one value is correct by design (split later
-  additively if ever needed). `spaceheat.make.model` is **frozen** at `/008`; this is a
-  fresh, cleaner vocabulary, not a bump.
-- **Components carry `DeviceType`** as a `pascal.case` **format** field (open string,
-  NOT an enum `$ref`) — so component types stay version-stable as the enum grows. **The
-  hardware-layout type enforces** `DeviceType ∈ gw1.device.type` (the enum `$ref` /
-  axiom lives on the *layout*), so a layout self-validates that every device type is
-  known.
-- **All `cac_id` / UUID device identity is REMOVED** — scada and sema alike. No
-  `ComponentAttributeClassId`, no generic `component.attribute.class.gt` /
-  `gw1.device.type.gt`. A plain device is fully described by its `DeviceType` value +
-  the component's own fields (`ConfigList`, `DisplayName`, `HwUid`). The
-  `CACS_BY_MAKE_MODEL` / bijection / projection machinery all evaporates.
+## ▶ DO THIS NEXT — the Hubitat sema pair
+
+Two beech components are still missing from sema: `hubitat.component.gt` and
+`hubitat.poller.component.gt`. Harder than dfr/ads because the scada source carries
+**`snake_case` fields** (`attribute_name`, `web_poll_enabled`, …) that violate sema's
+CamelCase MUST — **re-case to CamelCase** (decided) and model the nested REST-poller URL
+config. Trust the **migrated sema patterns** for shape (`electric.meter.component.gt`,
+`i2c.thermistor.channel.config`); the old scada types are a field reference only and may be
+stale.
+
+First: read `sema/CLAUDE.md` + `spec/authoring/types.md` + `spec/authoring/enums.md`; post the
+read-receipt. Then bottom-up (each word: author yaml → registry entry → `scripts/build_indexes.sh`
+→ `scripts/regenerate_runtime.py` → `pytest` green):
+
+1. **`maker.api.attribute.gt`** (from scada `MakerAPIAttributeGt`) — re-case every field
+   (`attribute_name → AttributeName`, `channel_name → ChannelName`, `web_poll_enabled → WebPollEnabled`,
+   …); refs `spaceheat.telemetry.name` + `spaceheat.unit`.
+2. **`hubitat.gt`** and **`hubitat.poller.gt`** (from `HubitatGt` / `HubitatPollerGt`) — re-case;
+   decide how much of the nested `URLConfig` REST machinery to model vs simplify (it is poller
+   plumbing — lean toward the minimum the layout actually needs).
+3. **`hubitat.component.gt`** (`Hubitat` → `hubitat.gt`) and **`hubitat.poller.component.gt`**
+   (`Poller` → `hubitat.poller.gt`) — flat component shells with `DeviceType`, mirroring the
+   dfr/ads components.
+4. Registry entries (cluster with the existing dfr/ads gap-fill block before
+   `electric.meter.channel.config`), bump `metadata.last_updated`, regen, suite green.
+
+Source files to mine for fields: `gridworks-scada/packages/gridworks-scada-protocol/src/gwsproto/
+named_types/{hubitat_gt,hubitat_poller_gt,hubitat_component_gt,hubitat_poller_component_gt}.py`.
+
+## ▶ AFTER THAT — finish the scada cac→DeviceType green
+
+The scada migration is code-complete but the **committed test fixtures still carry the old
+shape**, so the suite is red on missing `DeviceType`. Run from `gw_spaceheat` (venv at
+`gw_spaceheat/venv`), tests need `PYTHONPATH=gw_spaceheat`. To green:
+
+1. **Regenerate** `tests/config/{nolan,house0}-layout.json` via
+   `gw_spaceheat/layout_gen/genlayout.py mktest` (run from repo root; `LayoutIDMap` now
+   tolerates old-shape src, so it can bootstrap from the existing fixtures).
+2. **Fix the hand-written named-type sample dicts** in `tests/named_types/*` —
+   `ComponentAttributeClassId` → `DeviceType` with the right `gw1.device.type` value
+   (per-component judgment, not mechanical).
+3. **`pytest` green for BOTH layouts** — the spruce-unlimbo merge gate.
+4. **Sema decoder cross-check (Jessica's bar):** emit each new gwsproto type to JSON and run
+   it through the sema runtime decoder — the real contract check that scada output conforms
+   to the sema schemas, beyond internal green.
+
+## The device-type model (the durable contract)
+
+- **`gw1.device.type`** — sema enum, the universal device key. PascalCase values (the
+  `pascal.case` format), e.g. `EgaugePowerMeter`, `GridworksScadaGw108`, pruned to what
+  `gridworks-scada` uses. A device **category**, NOT a make+model (several eGauge models →
+  one value, by design). `spaceheat.make.model` is **frozen**; this is a fresh vocabulary.
+- **Components carry `DeviceType` as an open `pascal.case` string** (NOT an enum `$ref`) — so
+  component types stay version-stable as the enum grows. The **hardware-layout type** enforces
+  `DeviceType ∈ gw1.device.type` (the enum membership lives on the *layout*).
+- **String in the sema types, enum in the scada app code.** gwsproto sema types use open
+  `DeviceType: str`; scada app code (generators, actors, drivers) uses the `Gw1DeviceType`
+  enum. `GwStrEnum` is a `str` subclass, so `Gw1DeviceType.X` sets the open field and compares
+  equal to it with no friction.
+- **All `cac_id` / UUID device identity is REMOVED.** A plain device is fully described by its
+  `DeviceType` + the component's own fields (`ConfigList`, `DisplayName`, `HwUid`). The
+  `CACS_BY_MAKE_MODEL` / bijection / projection machinery evaporates; `make_model` as a phrase
+  is retired from scada app code.
 - **Specialized records open per-family, only when the category carries real data** —
-  `gw1.scada.device.type.gt` (gw108 board: GPIO/I²C/ADC/DAC numbers — exists),
-  `egauge.device.type.gt` (modbus port), `electric.meter.device.type.gt`,
-  `ads111x.device.type.gt`. gw108 is the exemplar: numbers belonging to the device
-  *category*, not the individual component.
-- **A component does NOT signal whether it has a specialized record.** The sensor-code
-  author knows; a **layout axiom** enforces it — *if a component references a
-  `DeviceType` that requires a specialized record, the layout MUST contain that type's
-  `<family>.device.type.gt`*. Consistency is a layout invariant, not a per-component
-  flag.
-- **Join by the enum value.** A component finds its specialized record (when one
-  exists) via its `DeviceType`; the specialized `.gt` carries the same `DeviceType`
-  key. This replaces `component → cac_id (UUID) → CAC` with `component → DeviceType →
-  optional specialized record by the same readable key`.
+  `gw1.scada.device.type.gt` (gw108 GPIO/I²C/ADC numbers), `electric.meter.device.type.gt`,
+  `ads111x.based.device.type.gt`. The component finds its record (when one exists) by the
+  shared `DeviceType` key — `component → DeviceType → optional record`. Records are **optional**
+  at runtime; the loader resolves `None` for record-less categories.
+- **Membership is a layout axiom, not a per-component flag.** `DeviceTypeMembership`: if a
+  component's `DeviceType` requires a record, the layout MUST contain it. A second axiom is
+  owed — **`DeviceTypeRecordAlignment`**: a component's record must be the *right family* for
+  its `DeviceType`. This replaces the silent guard the dropped `(MakeModel, cac_id)` pairing
+  used to provide (`make_component` does no type check). Not yet on `gw.nolan.layout`.
+- **Carried caveat — inheritance is deliberate debt.** The scada device-type records inherit
+  from `ComponentAttributeClassGt` (Andy's inheritance — violates the flat-sema rule). Per the
+  CLAUDE temporary directive this is **left as-is for the proactor port**, not repaired here.
 
-**Why this shape (the toolchain wall):** the earlier plan — a UUID-valued
-`gw1.device.type.id` enum + a `make.model → id` projection enforcing a bijection — was
-**abandoned**. Sema string-enum values must be valid Python identifiers (`GwStrEnum`:
-the wire value *is* the member name), so UUIDs can't be enum members or projection
-targets (`regenerate_runtime.py` rejects them). Dropping UUID identity entirely is the
-simpler, toolchain-honest answer — and it makes components dramatically easier to read.
-(Now canon in `sema/spec/authoring/enums.md`.)
+**Why this shape (the toolchain wall):** the earlier plan — a UUID-valued `gw1.device.type.id`
+enum + a `make.model → id` projection — was abandoned. Sema string-enum values must be valid
+Python identifiers (`GwStrEnum`: the wire value *is* the member name), so UUIDs can't be enum
+members. Dropping UUID identity entirely is the simpler, toolchain-honest answer.
 
-## The migration (high-volume)
+## Scope — pass-one boundary
 
-A real combing-through of `gridworks-scada`:
+The spine: drop `cac_id`s → `gw1.device.type` `DeviceType`; simplify components; restructure
+`layout_gen`; fill the sema component vocabulary against a real (beech) layout. **Deferred to
+pass two:** the full `ChannelConfig` / config-list overhaul and `TelemetryName → gw1.unit` +
+`gw1.quantity`.
 
-- **Remove every `cac_id` / `ComponentAttributeClassId` concept**, replacing the
-  device-type reference with `DeviceType` (a `gw1.device.type` value) across gwsproto
-  `named_types/` + `data_classes/` (the Cac side of the component triad goes away), the
-  layouts / fixtures, and `tlayouts`.
-- **Restructure `layout_gen`** around `DeviceType` — the per-device generators and the
-  hardcoded bucket dispatch reorganize; **drop `CACS_BY_MAKE_MODEL`** entirely (subsumes
-  the earlier `replace-cacs-by-make-model` idea — folded in here, no separate design).
-- **New sim components** (`sim.sensor.component.gt`, `sim.relay.component.gt`) carry
-  `DeviceType`, no `cac_id`.
-- **Reword the `scada_device_type_gt.py` warning docstring** — `gw1.scada.device.type.gt`
-  is a per-family specialized record, not a "board-specific vs generic device-type"
-  contrast (there is no generic record now).
-- Regenerate fixtures; **`pytest` green for BOTH** house0 and nolan (the spruce-unlimbo
-  merge-gate condition).
+**Decision (2026-06-14): the ConfigList revamp is NOT pulled forward.** Tempting — we are
+already in these files and it would avoid another version bump — but `TelemetryName` is
+*everywhere* in scada, and **decisively, we cannot validate a change that broad without a
+mature experimental harness that exercises all the production layouts** (the EDD bar). New
+channel configs are authored in the **current** shape; revisit once the
+simulated-test-environment harness can replay the production layouts.
 
-## Sequencing
+## Gleanings — domain context (durable)
 
-1. **Sema first** — mint `gw1.device.type` (+ wire the `DeviceType` `pascal.case` field
-   into the sim component types) on `jm/sim-vocab`. 
-2. **Scada migration** — the combing-through above, on a `jm/` branch off
-   `jm/spruce-unlimbo` (per the temporary branch directive).
-3. **Dependents consume** — the sim harness builds Phase A on the migrated layout;
-   spruce-unlimbo Chunk B parameterizes `layout_gen` by layout for both house cases.
+> **Naming — Nolan ↔ Spruce (keep both; not PII):** the gw108 house is **Nolan** in code and
+> sema (`gw.nolan.layout`, Strategy `"Nolan"`, `gw108_nolan_zones.py`, `nolan-layout.json`)
+> and **Spruce** colloquially — the next in the tree-name series (beech, elm, oak, fir, maple
+> → spruce). Same house. "Nolan" is an honored legacy, not a name to scrub: Ms. Nolan was a
+> Millinocket widow who lived in the original house; when she could no longer pay her mortgage,
+> Matt Polstein bought the property and let her stay through her passing, then built the Nolan
+> house. Matt was glad to have her legacy live on in the name.
 
-## Scope — pass one (with some license to sprawl)
+**Deployment context (the field reality):**
+- The first five homes all run the **House0** layout: **beech, elm, oak, fir, maple.**
+  Electronics hand-made by George — not gw108.
+- Common across all five: three store tanks + a buffer; Hubitat hubs driving Honeywell
+  thermostats; a variety of heat pumps. **Siegenthaler loops on beech and maple** — a
+  mechanical variation today, not a layout/software distinction.
+- **Spruce is a one-off:** gw108 electronics, a plain radiant floor. The next ~12 new-builds
+  use store-under-floor (radiant + bisecting insulation), so Spruce's specifics shouldn't be
+  over-generalized into a layout word.
 
-The **spine**: drop `cac_id`s → `gw1.device.type` enum + `DeviceType`; simplify
-components; restructure `layout_gen`. **Boundary (guideline, not a wall):** pass one
-stops at the device-type / CAC model. The full **`ChannelConfig` / config-list overhaul**
-and **`TelemetryName` → `gw1.unit`** (executor/components.md "Direction") are **pass
-two**. Some honest creep into adjacent `layout_gen` cleanup is expected and fine — when
-something clearly outgrows the pass, it rolls to pass two rather than ballooning this
-one.
+So House0 is the **fleet** layout (5 homes, one hardware generation); Spruce is a **single
+experimental** layout (gw108) — the asymmetry behind whether house0 earns its own
+`gw.house0.layout` word. House0 is *not* minimal: a full alternative stack (Hubitat/Honeywell
+thermostat, dual Krida I2C relay boards, DFRobot pump DACs, ~47 ShNodes) vs Spruce's
+GW108-unified stack (~30 ShNodes).
 
-## Dependents (referenced by name, not by relation)
+**Sema component gap-fill (beech coverage):** a beech layout (`tlayouts/output/`) names 11
+`*.component.gt` types; four were missing from sema (Phase 1 added some device-type *records*
+but missed these *components* + configs). **dfr + ads done** (above); **Hubitat pair remaining**
+(DO THIS NEXT). `near5` deliberately not added as a format (`OpenVoltageByAds` is a bare number
+array).
 
-- **simulated-test-environment** — Phase A needs the new component shape to stand up the
-  sim layout; the device-type model lives here (the harness spoke points at this design
-  by name).
-- **spruce-unlimbo Chunk B** — the `layout_gen` restructuring + the merge-gate condition
-  "layout generation green for both `house0.layout` and `gw.nolan.layout`."
+## Why its own issue / dependents
+
+A sizeable chunk depended on by **two** larger designs becomes its own flat issue (per the
+shared-dependency rule), referenced by name from each — keeping Linear flat and the work
+explainable. Dependents:
+- **simulated-test-environment** — Phase A needs the new component shape to stand up the sim
+  layout; the device-type model lives here.
+- **spruce-unlimbo Chunk B** — the `layout_gen` restructuring + the merge gate "layout
+  generation green for both the `house0` and Spruce layouts."
+
+It is also the "critical pass" `executor/hardware-layout.md` already anticipated.
