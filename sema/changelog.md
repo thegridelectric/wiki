@@ -12,7 +12,7 @@ Newest at the top.
 
 ---
 
-## 2026-06-15 — Freeze spaceheat.make.model (replaced_by gw1.device.type) <!-- pending commit -->
+## 2026-06-15 — freeze and replace spaceheat.make.model (`9430e8c`)
 
 **What:** Marked `spaceheat.make.model` frozen in the registry — added `replaced_by:
 [gw1.device.type]` and `frozen_at: "2026-06-15T20:05:00Z"`, and noted the supersession in its
@@ -24,7 +24,7 @@ identity moved to the open `DeviceType` (`gw1.device.type`). The `replaced_by`/`
 make that migration legible to humans + tooling while keeping `spaceheat.make.model` as frozen base
 vocabulary. Part of the wiki MakeModel→DeviceType sweep. `pytest` green (220).
 
-## 2026-06-15 — gw.house0.layout: make the example fully snapshot-conformant + optional-first axiom guard <!-- pending commit -->
+## 2026-06-15 — minor adjustment gw.house0.layout (`70c3dab`)
 
 **What:** Brought the `gw.house0.layout/000` example up to the versions/shape its schema
 `$ref`s so the gwta snapshot round-trip gate (`mode="strict"`) passes: (1) the Hubitat `Poller`

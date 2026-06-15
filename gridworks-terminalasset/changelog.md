@@ -12,7 +12,7 @@ Newest at the top.
 
 ---
 
-## 2026-06-15 — Regenerate sema snapshot: typed gw.house0.hydronic + conformant house0 example <!-- pending commit -->
+## 2026-06-15 — create gw.house0.hydronic; fix hubitat snake case (`37d811f`)
 
 **What:** Re-ran `build_gwta_snapshot.sh` to regenerate the gwta Sema snapshot from `sema`
 `jm/sim-vocab`. Picks up the typed-hydronic promotion (`gw1.hvac.zone`, `gw.house0.primary.flow.source`
