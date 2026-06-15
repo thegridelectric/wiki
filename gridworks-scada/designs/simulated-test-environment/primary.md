@@ -18,6 +18,12 @@ Status: Accepted · Pass 1 · Updated 2026-06-13 · Linear: OPS-40
   simulated message-passing loop: gwta plant emits `sim.plant.flux`, the scada
   `SimSensorActor` reads it into `synced.readings`, `SimRelayActor` sends
   `sim.plant.actuation` back. Owns the ordered next-tasks.
+- [`self-faking-actors.md`](self-faking-actors.md) — the component-faithful **fidelity
+  dial** in its simplest local form: the real device actors (`ApiTankModule` /
+  `ApiBtuMeter` / `ApiFlowModule`) self-generate fictitious input on a timer — no plant,
+  no broker — so a full-sim House0 layout runs every device code path without crashing.
+  The cheap precursor to the coherent plant; unblocks the hardware-layout-pass-one
+  `primary-flow` behavior test. Candidate next-active spoke.
 - [`simulated-actors.md`](simulated-actors.md) — the sim seam (device boundary, the
   plant pushes), the first-pass plant model, the plant's I/O contract, and the
   sim/real trust boundary. Moved here from spruce-unlimbo 2026-06-11.
@@ -79,8 +85,8 @@ divergences drive design.
 This design generalizes existing scada seams rather than starting fresh. The
 **durable as-is facts live in `executor/`** (they outlive this design):
 
-- **The sim MakeModel seam + component model** — `executor/components.md`
-  ("MakeModel" / "Sim already lives here").
+- **The sim DeviceType seam + component model** — `executor/components.md`
+  ("DeviceType — and the retirement of MakeModel" / "Sim is just another DeviceType").
 - **Sim layout components + the `TerminalAsset` GNode role** —
   `executor/hardware-layout.md` (`simulated_tanks.py` →
   `SimPicoTankModuleComponentGt`; the terminal asset is a GNode *role*, not a
@@ -91,7 +97,7 @@ This design generalizes existing scada seams rather than starting fresh. The
 The two seams this design is **actively changing** stay with the
 `simulated-actors.md` spoke, not executor (they move into `executor/` only when
 the design ships): the runtime **`is_simulated` flag** ("`is_simulated` is a smell
-— simulated until proven real") and the **MakeModel-dispatch** seam ("The sim seam
+— simulated until proven real") and the **DeviceType-dispatch** seam ("The sim seam
 — decided: device boundary, the plant pushes").
 
 ## What's landed (notes)
@@ -102,7 +108,7 @@ Short pointers to durable facts; the live plan lives in `build-plant.md`.
   `sim.timestep` over AMQP reaches MQTT subscribers; a real scada-side
   `SimTimeListener` receives every step. Scoped claim in `sim-time.md`; worked
   example in `../../experiments/logbook.md`.
-- **The sim seam is decided** — device boundary via a `Sim*` `MakeModel`, the
+- **The sim seam is decided** — device boundary via a `Sim*` `DeviceType`, the
   plant pushes on `AsyncCaptureDelta`, one flat actor branch, no driver hierarchy,
   sensors outside the command tree, controls as leaves. Full statement in
   `simulated-actors.md`.
@@ -149,18 +155,18 @@ Short pointers to durable facts; the live plan lives in `build-plant.md`.
   goal is testing SCADA, but the simulated-terminal-asset half is gridworks-base
   work; if the base simulation framework grows it may graduate to a cross-cutting
   `wiki/designs/` design. Flag at ratification.
-- **New MakeModel sim values** — exact `GRIDWORKS__SIM*` names per sensor type.
+- **New sim `gw1.device.type` values** — exact `Sim*` names per sensor type.
 
 ## Implementation notes
 
 - **No code yet.** Per the implementation gate, this design must reach
   `Accepted` (Pass ≥ 1) on every spoke before scada/base edits matching its
   scope begin.
-- **Any Sema change** (new `GRIDWORKS__SIM*` MakeModel values, sim component
+- **Any Sema change** (new `Sim*` `gw1.device.type` values, sim component
   types) goes through `/make-sema-word` — read `sema/CLAUDE.md` and follow it.
 - Touch points: `gridworks-scada` (`drivers/`, `actors/` factories, `layout_gen/`,
   `tests/utils/`), `gridworks-base` (simulated terminal asset GNode actor,
-  dev-broker test topology), `gridworks-protocol`/`sema` (MakeModel + sim
+  dev-broker test topology), `gridworks-protocol`/`sema` (`gw1.device.type` + sim
   component types).
 - Relationship: subsumes OPS-40's original `gen_orange` dev-layout checklist;
   related to **OPS-118** (Dev mosquitto in Docker — the dev broker).

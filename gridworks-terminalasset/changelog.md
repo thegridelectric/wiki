@@ -12,7 +12,20 @@ Newest at the top.
 
 ---
 
-## 2026-06-15 — Regenerate sema snapshot: 3 layout types + short local names; round-trip script (`8b6f4e6`)
+## 2026-06-15 — Regenerate sema snapshot: typed gw.house0.hydronic + conformant house0 example <!-- pending commit -->
+
+**What:** Re-ran `build_gwta_snapshot.sh` to regenerate the gwta Sema snapshot from `sema`
+`jm/sim-vocab`. Picks up the typed-hydronic promotion (`gw1.hvac.zone`, `gw.house0.primary.flow.source`
+enum, `gw.house0.hydronic`; `gw.house0.layout.Hydronic` now `$ref`s the typed block) and the
+fully-snapshot-conformant `gw.house0.layout` example (Hubitat poller PascalCase, real `DeviceTypes`
+records, `derived.channel.gt → 002`). `house0_layout.py` regenerated with the reworked axioms;
+new `gw_house0_hydronic.py` / `gw1_hvac_zone.py` / `gw_house0_primary_flow_source.py` + the
+`non.negative.int` format added.
+
+**Why:** keeps the snapshot the scada emits/decodes in sync with sema's source of truth. With it,
+the scada↔gwta `layout_roundtrip.py` is green for `gw.house0.layout` and `gw1.simple.sim.layout`
+(nolan still red on its pre-existing required-`Hydronic` minimal-instance issue). `mode="strict"`
+snapshot gate green: 34 samples round-tripped. (hardware-layout pass-one, OPS-407.)
 
 **What:** Regenerated the gwta Sema snapshot from current `sema` `jm/sim-vocab` via
 `build_gwta_snapshot.sh`. Picks up the upstream sema changes (`mac.address` format → `hubitat.gt`

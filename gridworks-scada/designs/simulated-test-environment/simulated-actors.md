@@ -234,15 +234,15 @@ nolan layout, `SCADA_IS_SIMULATED=true`, on `jm/spruce-unlimbo`:
 > sensor source is a `SimSensorActor` that *publishes readings*; the
 > device-emitter detail here ("plant → sim Pico → real conversion") is now an
 > optional fidelity dial, not the baseline. The durable parts of this section
-> stand: sim is a device-boundary `MakeModel` choice (not a new ActorClass
+> stand: sim is a device-boundary `DeviceType` choice (not a new ActorClass
 > fork), no driver hierarchy, and "prove you're real" for the scada.
 
 Resolves "where the sim seam lives" (was open below), from the actor +
 component review and the dashboard-experiment design pass:
 
 - **Sim is a hardware-realization choice, declared at the device boundary
-  via `MakeModel`.** A simulated device carries a `Sim*` make/model (the
-  `GRIDWORKS__SIM*` precedent), so the layout reads "sim" at every fake
+  via its `DeviceType`.** A simulated device carries a `Sim*` `DeviceType` (a
+  `gw1.device.type` value; the `GridworksSim*` precedent), so the layout reads "sim" at every fake
   device — fact and fiction legible in the artifact, which is what the
   sim/real trust boundary needs. NOT new `ActorClass` values (a simulated
   relay is still a relay — same capability and mechanism, only the
@@ -267,10 +267,10 @@ component review and the dashboard-experiment design pass:
   the simulated world — outside the command tree.
 - **Sim component *types* only where extra params are needed.**
   `sim.pico.tank.module.component.gt` (carrying `SimulatesTypeName` + the
-  synthesis params, and a `Sim*` MakeModel in its Cac) is the case where the
+  synthesis params, and a `Sim*` `DeviceType`) is the case where the
   sim device needs configuration the real one lacks. Otherwise a `Sim*`
-  MakeModel on the existing component type suffices. Minting `Sim*`
-  make/models is a sema change (`/make-sema-word`).
+  `DeviceType` on the existing component type suffices. Adding `Sim*`
+  `gw1.device.type` values is a sema change (`/make-sema-word`).
 - **Identity — the "make-imaginary" wand.** A simulated house must not wear a
   real house's identity. `make_imaginary_layout.py` (kept in
   `sim-time-experiment/`) turns a real layout imaginary: fresh instance
@@ -284,7 +284,7 @@ individual actors — `relay.py` skips GPIO when it's set,
 `i2c_thermistor_reader.py` skips the I2C bus, etc. That is a smell, two ways:
 
 - **It's on the actors.** An actor should never know it's simulated.
-  Sim-ness is a property of the *device* (the layout's `MakeModel`); the
+  Sim-ness is a property of the *device* (the component's `DeviceType`); the
   relay actor talks to its relay component — real or sim — as one body of
   code. The redo drives `is_simulated`-in-actors to **zero**; actors stay
   pure and layout-driven.
@@ -388,9 +388,9 @@ duplicate.
 ## Open
 
 - ~~Where the sim seam lives~~ — **decided** (see "The sim seam" above):
-  device boundary via a `Sim*` `MakeModel`, the plant pushes, one flat
+  device boundary via a `Sim*` `DeviceType`, the plant pushes, one flat
   branch in the actor, no driver hierarchy. The first increment may still
-  start with an `is_simulated` branch and graduate to a `Sim*` MakeModel as
+  start with an `is_simulated` branch and graduate to a `Sim*` `DeviceType` as
   the sema word lands.
 - Whether the relay-state reporting in (2) is the same change that
   un-comments the House0 FsmAtomicReport path (probably adjacent, not

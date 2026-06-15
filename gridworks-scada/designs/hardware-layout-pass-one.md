@@ -13,7 +13,7 @@ real fixture layouts is the sub-gate; a broker-transport round-trip is a later, 
 > `layout_gen`, fill the sema vocabulary against real layouts. A **shared dependency**
 > (simulated-test-environment + spruce-unlimbo Chunk B), its own flat issue OPS-407.
 
-## Orient (read this, not the history)
+## Orient
 
 **Done:** the device-type model (`cac_id` → open `pascal.case` `DeviceType`); the full migrated
 sema **component** vocabulary (dfr / ads / Hubitat / sim / gw108 / pico / electric-meter / …);
@@ -39,6 +39,50 @@ gwta's sema snapshot decodes (27/27). `gw.nolan.layout` is un-drafted (axioms pa
 `<family>.device.type.gt` records exist only where a category carries real data.
 
 ## ▶ DO THIS NEXT — build up `gw.house0.layout` bit by bit (Sema is the source)
+
+**▶▶ Start here (immediate next slice): Siegenthaler-loop variants in House0, end-to-end to
+`derived_generator`.** Structure **decided 2026-06-15** — the `FlowTopology` block (details + the
+three configs + the source⟶channel axiom in the **"TODO — Siegenthaler variants + `primary-flow`"**
+section at the bottom). The behavior test is a **deferred deliverable** (it needs the simulated
+plant — the *next* focus); see "DELIVERABLE — `primary-flow` behavior test" at the bottom. The
+implementable chain this pass:
+
+1. **Layout type** — add the `FlowTopology` block to `gw.house0.layout` (`SiegLoopPlumbed` replacing
+   `FlowManifoldVariant`; new `PrimaryFlowSource: Measured | DerivedSiegSum`; the source⟶channel
+   axiom), through the sema → gwta → gwsproto loop; keep the gwsproto `flow_manifold_variant`
+   computed property; confirm the **layout round-trip** stays green (runnable now).
+2. **Gen builders** — make them sieg-variant-aware (no-loop / loop-not-running / loop-running) so the
+   layout states the topology rather than it being implicit in which builders are called; set
+   `gen_maple.py` to the loop-running config.
+3. **`derived_generator`** — implement a **`sum` derived-channel strategy** in the active path
+   (`handle_input_reading → _dispatch_derived_input`) so maple's `primary-flow = sieg-send + sieg-flow`
+   is actually computed (it is **currently uncomputed** — the old `hack_maple_primary_flow` was
+   removed). Code it this pass; *verify* it via the deferred deliverable.
+4. **Behavior test — DEFERRED.** Left well-specified as a deliverable for the simulated-plant focus;
+   do **not** build it this pass.
+
+(Parked, separate: the axiom-enforcement loop is **WIP** — sema commit `3422ca9` embedded a beech
+example + 4 axioms in `gw.house0.layout/000`; the sema **snapshot build is blocked** until the
+bijection adapter serializes the poller `by_alias`. Resume after the sieg work, or instead, per
+Jessica.) Everything below is the working method + the state already in place.
+
+**Session status (2026-06-15):** the **typed-hydronic promotion** landed (sema `32540ef` + a
+follow-up example-conformance commit) and the **scada↔gwta layout round-trip is green** for
+`gw.house0.layout` + `gw1.simple.sim.layout`. The freeform `Hydronic` block became three new sema
+words — `gw1.hvac.zone` (shared zone type, list-of-objects, killing the parallel-list axioms),
+`gw.house0.primary.flow.source` (enum: `Measured` | `DerivedSiegSum`), and `gw.house0.hydronic`
+(typed: `Zones`, `TotalStoreTanks`, `UseSiegLoop`, `SiegLoopPlumbed` [was `FlowManifoldVariant`],
+`PrimaryFlowSource`, `Strategy`; axiom `UseSiegLoop ⟹ SiegLoopPlumbed`) — with `gw.house0.layout.Hydronic`
+now a `$ref`. Per sema's spec the now-known shape belongs in the schema, not a freeform object +
+hand-axioms. Getting the gwta snapshot to build also forced the `gw.house0.layout` **example** fully
+conformant (poller PascalCase, real `DeviceTypes` records, `derived.channel.gt → 002`). The
+measured-vs-derived `primary-flow` topology is now **explicit + axiom-tied**. `gw1.hvac.zone` is
+shared so Nolan adopts it when its hydronic is promoted. **Still pending** (the behavior, not the
+structure): the `sum` derived-channel strategy + sieg-variant-aware gen, verified by the **deferred**
+simulated-plant behavior test — which depends on the sim-actor self-faking capability (next focus).
+The earlier **v001 tank-calibration migration + stored-map retire** also landed green (sema `efeafc0`,
+scada `5e6008df`); calibration lives only in the derived channels
+(`linear.one.dimensional.calibration/001`, integer B in FahrenheitX100). See the changelogs.
 
 **Sema is the source of truth for all three mutating layout types** (`gw.nolan.layout`,
 `gw.house0.layout`, `gw1.simple.sim.layout`). The working loop is:
@@ -164,6 +208,13 @@ nodes, tank/zone structure, system-model energy channels, sieg-manifold rules).
 
 ## TODO — Siegenthaler variants + `primary-flow` (real vs derived); EDD on all 3
 
+**Read first:** `executor/components.md` §"What belongs in the hardware layout — and
+what doesn't" (the topology field is hardware truth → belongs; per-instance
+calibration is component-level → why it lives in the derived channel), and
+`executor/testing.md` §"The harness" (`ScadaLiveTest`, the in-process LTN↔SCADA
+harness the unit test extends — *test*, not the broker experiment in
+`experimentation-rig.md`).
+
 The House0 code must work across **three Siegenthaler configurations**, and the EDD
 fixtures must cover all three:
 
@@ -184,22 +235,67 @@ fixtures must cover all three:
   it was removed (already dead — `process_synced_readings` is never dispatched), so
   **maple's primary-flow is currently NOT computed** — a real gap.
 
-**Missing: the physical-topology choice is implicit and belongs in the layout type.**
-Whether `primary-flow` is measured or derived is determined by a **real physical
-topology choice — is there a flow meter at/next to the primary pump?** (beech: yes →
-measured; maple: no → derived from the sieg loop). Today that choice exists only
-*implicitly* in which builders a gen script calls (`add_btu(primary-btu)` /
-`add_flow(primary_flow)` vs not). Because it is physical topology, it SHALL be
-represented **explicitly in `gw.house0.layout`** (and the Hydronic/topology block) —
-not inferred from channel presence — so the layout itself states the flow-meter
-topology and the measured-vs-derived primary-flow follows from it. Same logic
-generalizes to the other flow positions (dist, store) where a meter may or may not be
-physically present.
+**Decided structure (2026-06-15): a coherent `FlowTopology` block in `Hydronic`.**
+Three distinct facts are in play, and today the layout represents only two of them —
+one of which is arguably misfiled:
+
+1. **Is the sieg loop *plumbed*?** — hardware truth. Today: `FlowManifoldVariant`
+   (`House0` / `House0Sieg`).
+2. **Does scada *control* the loop?** — operational/strategy (spawns `HpBoss` +
+   `SiegLoop`). Today: `UseSiegLoop: bool`, read at ~12 `self.layout.use_sieg_loop`
+   sites.
+3. **Where does `primary-flow` come from?** — hardware truth. Today: **unrepresented**,
+   implicit in which gen builders run (`add_btu(primary-btu)` / `add_flow(primary_flow)`
+   vs not).
+
+Fact 3 is **independent** of Facts 1–2: beech and maple are *both* `House0Sieg`-plumbed
+yet beech measures `primary-flow` (from `primary-btu`) while maple derives it. So the
+measured-vs-derived choice is driven by **"is there a flow meter at the primary
+pump?"**, not by "is there a sieg loop." That physical fact has no home today.
+
+The structure (altitude chosen 2026-06-15: *coherent topology block*, keeping the
+operational `UseSiegLoop` where the actors read it for now — Fact 2 stays put; a later
+pass MAY pull it into the strategy home per `executor/components.md` "operational
+policy arguably doesn't belong in the layout"):
+
+```
+Hydronic:
+  FlowTopology:                       # NEW named block — the physical flow truth
+    SiegLoopPlumbed: bool             # was FlowManifoldVariant (House0Sieg ⟺ true)
+    PrimaryFlowSource: Measured | DerivedSiegSum   # NEW — was implicit in builders
+    # DistFlowSource / StoreFlowSource added the same way when those positions vary
+  UseSiegLoop: bool                   # UNCHANGED — Fact 2 (operations), actors read it
+  Strategy: House0                    # unchanged
+```
+
+- `SiegLoopPlumbed` **replaces** `FlowManifoldVariant` in the layout type. gwsproto keeps
+  a computed `flow_manifold_variant` property (`House0Sieg` if plumbed else `House0`) so
+  the two read sites — `check_house0_sieg_manifold` and the manifold `Strategy` at
+  `scada.py:1728` — keep working untouched. The existing invariant
+  ("`UseSiegLoop ⟹ House0Sieg`") becomes "`UseSiegLoop ⟹ SiegLoopPlumbed`".
+- `PrimaryFlowSource` is the **cause**; the channels are the **effect**. Do NOT duplicate
+  the strategy mechanics here — the `sum` inputs already live on the `primary-flow`
+  `DerivedChannel` (`Strategy=sum`, `InputChannelNames=[sieg-send, sieg-flow]`). A new
+  **axiom** ties them: `Measured ⟹ primary-flow is a DataChannel captured by a flow/btu
+  node`; `DerivedSiegSum ⟹ primary-flow is a sum DerivedChannel over the sieg-loop
+  inputs`. The layout states the topology; the channel set must agree with it.
+- Same shape generalizes to `dist` / `store` later — add `DistFlowSource` /
+  `StoreFlowSource` when a position actually varies, not pre-emptively.
+
+**Config map under the new structure:**
+
+| home | `SiegLoopPlumbed` | `UseSiegLoop` | `PrimaryFlowSource` |
+|------|---|---|---|
+| oak/elm/fir | false | false | Measured |
+| beech | true | false | Measured |
+| maple | true | true | DerivedSiegSum |
 
 **Work to do:**
-- **Encode the flow-meter topology in `gw.house0.layout`** (the primary-pump flow
-  meter present/absent choice, and the analogous dist/store positions) as an explicit
-  physical-topology field, since it drives measured-vs-derived flow channels.
+- **Encode `FlowTopology` in `gw.house0.layout`** through the sema → gwta → gwsproto loop
+  (replace `FlowManifoldVariant` with `SiegLoopPlumbed`; add `PrimaryFlowSource`; add the
+  source⟶channel axiom; keep the gwsproto `flow_manifold_variant` computed property), and
+  confirm the **layout round-trip** stays green (`layout_roundtrip.py` — runnable now;
+  this is *not* the blocked behavior test).
 - Implement a **`sum` derived-channel strategy** in the active path
   (`handle_input_reading → _dispatch_derived_input`): `dc.Name = Σ InputChannelNames`
   (fresh payload + cached latest of the others), emitting in `OutputUnit` — replacing
@@ -207,9 +303,53 @@ physically present.
 - Make the gen builders **sieg-variant-aware** so a layout expresses "primary-flow is
   measured" vs "primary-flow is the `sum` derived channel" by config, not by hand;
   set `gen_maple.py` to config (3) and confirm beech is config (2).
-- **EDD via a simulated plant:** build *enough of a simulated plant* to run against the
-  House0 layout and confirm the calculations BASICALLY WORK on all three configs —
-  in particular feeding the real + derived flow channels (`primary-flow`,
-  `sieg-send`, `sieg-flow`, `dist-flow`, `store-flow`) and checking the derived
-  results (the `sum`, the BTU-derived flows) are sensible. This is the verification
-  bar for the sieg-flow work.
+- **Behavior test (the EDD bar) — DEFERRED, see the deliverable below.** The real
+  verification is a focused behavior test against all three sieg configs. It needs a
+  **simulated plant**, which is the *next* focus — so it is **NOT built this pass**. It
+  is left as a **well-specified deliverable** (next subsection) to be executed once the
+  simulated-plant harness lands. (The `sum` strategy code itself can be written this
+  pass; what cannot be done now is *verifying* it end-to-end.)
+
+### DELIVERABLE — `primary-flow` behavior test (build when the simulated plant lands)
+
+This is the EDD bar for the `sum`/topology work, **deferred** to the simulated-plant
+focus (we cannot really test it before then). Hand it off as written; it is
+self-contained. The harness drives **BTU meters** (`api_btu_meter`) + a `sieg-send`
+flow sensor into `derived_generator` and checks the emitted readings. It rides on
+`ScadaLiveTest` (`tests/utils/scada_live_test_helper.py`) — the in-process LTN↔SCADA
+tree, no broker (see `executor/testing.md` "The harness"); the *simulated plant* is the
+device-reading source that feeds it.
+
+**The three configs under test (all three MUST pass):**
+
+| # | config | `SiegLoopPlumbed` / `UseSiegLoop` | `primary-flow` source | what to assert |
+|---|--------|------|------|------|
+| 1 | no loop (oak/elm/fir) | false / false | Measured (own meter) | `primary-flow` DataChannel arrives intact; no derivation runs |
+| 2 | loop, not controlled (beech) | true / false | Measured (`primary-btu`) | `primary-btu` meter emits `primary-flow` directly as a DataChannel — arrives intact |
+| 3 | loop, controlled (maple) | true / true | DerivedSiegSum | `sieg-btu`→`sieg-flow` + `sieg-send` sensor→`sieg-send`; the `sum` strategy emits `primary-flow = sieg-send + sieg-flow` |
+
+**Per-config recipe (config 3, the load-bearing one):**
+1. Load the maple-shaped House0 layout (`SiegLoopPlumbed=true`, `UseSiegLoop=true`,
+   `PrimaryFlowSource=DerivedSiegSum`); confirm `primary-flow` is present as a `sum`
+   `DerivedChannel` with `InputChannelNames=[sieg-send, sieg-flow]`, `OutputUnit=GpmX100`,
+   and is **absent** from DataChannels (axiom check).
+2. Feed `sieg-btu` a reading → it emits `sieg-flow` (GpmX100). Feed the `sieg-send` flow
+   sensor a reading → `sieg-send` (GpmX100).
+3. Assert `derived_generator` emits a `primary-flow` reading whose value is
+   `sieg-send + sieg-flow` (in GpmX100), with a sensible `ScadaReadTimeUnixMs`.
+4. Edge cases: only one input seen yet → no emission (or a defined partial behavior —
+   pin it down when implementing the strategy); both stale vs one-fresh-one-cached → uses
+   the cached latest of the other (`self.data.latest_channel_values`).
+
+**Also exercise the affine tank-calibration path (currently unverified end-to-end).**
+The same harness should feed `api_tank_module` device readings (`*-depth{n}-device`,
+WaterTempCTimes1000) through `handle_affine` and assert the calibrated `*-depth{n}`
+(FahrenheitX100) equals `M*x + B` for a **non-zero B**. The scada suite has only ever run
+`B=0` (identity), so the v001 `affine` math has no test yet — this closes that gap.
+
+**Compliance tests WAIT for the data-classes → sema-types transition.** Making
+`config/house0-layout.json` a fully-compliant fictitious single-zone House0 (+
+maple/beech compliance tests) should wait: "fully compliant" is defined by the axioms
+being lifted into sema, plus the new `FlowTopology` field and the three configs, so
+writing the compliance assertions now chases a moving target. The layout *fixtures* are
+durable and fine to shape now; the *assertions* follow the sema authority.

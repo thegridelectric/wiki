@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-06-14
+Status: Draft · Pass 0 · Updated 2026-06-15
 
 # The hardware layout
 
@@ -378,7 +378,10 @@ Flag and fix per home as part of the migration.
   families — the rework, encoded").
 - Spruce is special-cased (no relays, one tank, BTU meters) — house0-shaped
   injection into it fails to load.
-- **`CACS_BY_MAKE_MODEL` — the MakeModel↔CAC-id bijection.** `layout_gen` and
+- **`CACS_BY_MAKE_MODEL` — the MakeModel↔CAC-id bijection (being retired, summer 2026).**
+  `MakeModel` and this bijection are the **pre-`DeviceType`** mechanism — read this as
+  the as-is loader code finishing its `jm/delete-cac-id` deletion; the target is the open
+  `DeviceType` (`gw1.device.type`) carried on the component, no canonical-id map. `layout_gen` and
   `ComponentAttributeClassGt`'s validator enforce a hardcoded 1:1 map from each
   *known* `MakeModel` to a single canonical `ComponentAttributeClassId` (a ~35-entry
   dict in `gwsproto/named_types/component_attribute_class_gt.py`). A CAC with a known

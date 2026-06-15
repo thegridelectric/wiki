@@ -12,7 +12,67 @@ Newest at the top.
 
 ---
 
-## 2026-06-15 — gw1.tank.temp.calibration + .map → v001 (integer B in FahrenheitX100) <!-- pending commit -->
+## 2026-06-15 — Freeze spaceheat.make.model (replaced_by gw1.device.type) <!-- pending commit -->
+
+**What:** Marked `spaceheat.make.model` frozen in the registry — added `replaced_by:
+[gw1.device.type]` and `frozen_at: "2026-06-15T20:05:00Z"`, and noted the supersession in its
+description. Advisory metadata only (no validation/lifecycle/closure change); the enum's published
+versions are untouched. `metadata.last_updated` bumped; indexes rebuilt.
+
+**Why:** `MakeModel` is being retired across summer 2026 (the `jm/delete-cac-id` work); device
+identity moved to the open `DeviceType` (`gw1.device.type`). The `replaced_by`/`frozen_at` markers
+make that migration legible to humans + tooling while keeping `spaceheat.make.model` as frozen base
+vocabulary. Part of the wiki MakeModel→DeviceType sweep. `pytest` green (220).
+
+## 2026-06-15 — gw.house0.layout: make the example fully snapshot-conformant + optional-first axiom guard <!-- pending commit -->
+
+**What:** Brought the `gw.house0.layout/000` example up to the versions/shape its schema
+`$ref`s so the gwta snapshot round-trip gate (`mode="strict"`) passes: (1) the Hubitat `Poller`
+sub-objects' keys snake_case → PascalCase (they `$ref` `hubitat.poller.gt` / `maker.api.attribute.gt`,
+which require PascalCase — the example was simply wrong); (2) `DeviceTypes` rebuilt from 11 legacy
+`cac.gt` / `component.attribute.class.gt/002` stand-ins down to the 2 real specialized records the
+schema's `oneOf` allows (`ads111x.based.device.type.gt/000` for the TSnap board with real
+`AdsI2cAddressList`/`TotalTerminalBlocks`/`TelemetryNameList`, `electric.meter.device.type.gt/000`
+for the eGauge); per the model the other 9 device categories carry no specialized record (their
+`DeviceType` lives on the component); (3) the 14 `derived.channel.gt` instances upgraded `001 → 002`,
+adding the required `OutputQuantity` (`Temperature` for the FahrenheitX100 depth channels, `Energy`
+for the WattHours energy channels, per the unit→quantity projection). Also guarded axiom 2
+`EssentialNodesExistence` to skip when `ShNodes` is empty — so the optional-first minimal layout
+(`TypeName`+`Version` only) the round-trip script sends validates, while real layouts still enforce.
+
+**Why:** the snapshot round-trip gate (and the scada↔gwta `layout_roundtrip.py`) demand a fully
+conformant example; the example had been lagging the schema's referenced versions (a known scaffold).
+With this, the gwta snapshot builds and the house0 + simple.sim round-trips are green. `pytest` green
+(220). (hardware-layout pass-one, OPS-407.)
+
+## 2026-06-15 — add gw1.hvac.zone and gw.house0.hydronic (`32540ef`)
+
+**What:** Promoted `gw.house0.layout`'s freeform `Hydronic` block (`additionalProperties: true`)
+into typed sema vocabulary, and made the measured-vs-derived `primary-flow` topology explicit:
+- **`gw1.hvac.zone/000`** (new shared type) — one heating zone (`Name`, `Critical` bool,
+  `KwhPerDegF`); replaces the former parallel `ZoneList` / `CriticalZoneList` /
+  `ZoneKwhPerDegFList`, so their subset / equal-length invariants are now structural.
+- **`gw.house0.primary.flow.source/000`** (new versioned enum) — `Measured` | `DerivedSiegSum`.
+- **`gw.house0.hydronic/000`** (new type) — typed hydronic: `Zones` (list of `gw1.hvac.zone`),
+  `TotalStoreTanks` (`non.negative.int`), `UseSiegLoop`, `SiegLoopPlumbed` (replacing the bare
+  `FlowManifoldVariant`), `PrimaryFlowSource` (`$ref` the enum), `Strategy`; axiom 1
+  `SiegLoopControlImpliesPlumbed` (`UseSiegLoop ⟹ SiegLoopPlumbed`).
+- **`gw.house0.layout/000`** — `Hydronic` now `$ref`s `gw.house0.hydronic`; the unconditional
+  hand-axioms (old 2 `HydronicStructure`, 5 `FlowTopologyDeclaration` shape) became structural;
+  axioms renumbered to 1 `GlobalIdUniqueness`, 2 `EssentialNodesExistence`, 3
+  `ZoneWhitewirePwrChannel` (now over `Zones`), 4 `PrimaryFlowSourceChannelAgreement`
+  (`Measured ⟺ a primary-flow DataChannel`; `DerivedSiegSum ⟺ a primary-flow `sum`
+  DerivedChannel`). `TankTempCalibrationMap` dropped from the layout (derived channels are the
+  calibration source of truth). Runtime + indexes regenerated. v000 edited in place (unpushed).
+
+**Why:** the measured-vs-derived `primary-flow` choice is a real physical-topology fact (a flow
+meter at the primary pump or not) that was implicit in which gen builders ran. Making it explicit —
+and typing the hydronic block — follows the sema rule that a known, axiom-constrained shape belongs
+in the schema, not in a freeform object + hand-axioms (`spec/authoring/types.md` Inline Objects /
+Open Containers). `gw1.hvac.zone` is shared so Nolan can adopt it when its hydronic is promoted
+(hardware-layout pass-one, OPS-407). `pytest` green (220).
+
+## 2026-06-15 — gw1.tank.temp.calibration + .map → v001 (integer B in FahrenheitX100) (`efeafc0`)
 
 **What:** Bumped `gw1.tank.temp.calibration` and `gw1.tank.temp.calibration.map` to v001, mirroring
 `linear.one.dimensional.calibration/001`: `Depth{1,2,3}B` changes `number → integer`, where `B` is
@@ -25,6 +85,19 @@ the now-superseded v000 schemas, and bumped `metadata.last_updated`.
 (see `wiki/gridworks-scada/executor/hardware-layout.md` "In-field tank-temp calibration"); making
 `B` an integer in that domain removes the float/°F ambiguity that had `B` mis-scaled across the
 dev → jm/spruce transition. `pytest` green (220).
+
+## 2026-06-15 — WIP: enforce gw.house0.layout axioms (4 + validator template + beech example) (`3422ca9`)
+
+**What:** WIP toward axiom enforcement on `gw.house0.layout/000`: lifted 4 of the stashed axioms
+(GlobalIdUniqueness, HydronicStructure, EssentialNodesExistence, ZoneWhitewirePwrChannel) into
+`x-gridworks.axioms`, authored the validator template
+(`templates/axioms/gw_house0_layout_000.py.jinja2`), and embedded a real bijection-generated **beech
+example** (~3.6k lines) so the snapshot round-trip can validate the axioms.
+
+**Why:** subset-first proof of the sema→gwta→scada axiom-enforcement loop. **Caveat — incomplete:**
+this is the active axiom-loop WIP; the snapshot build is currently **blocked** by this embedded
+example until the bijection adapter serializes the poller with `by_alias` (the on-disk fixtures are
+already PascalCase). Resume here for the axiom loop.
 
 ## 2026-06-15 — Stash gw.house0.layout axioms; gitignore gwta snapshot tooling (`273815e`)
 

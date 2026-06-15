@@ -12,21 +12,36 @@ Newest at the top.
 
 ---
 
-## 2026-06-15 — Tank calibration v001: integer B in FahrenheitX100; fix affine domain <!-- pending commit -->
+## 2026-06-15 — Tank calibration v001 + retire stored TankTempCalibrationMap from layout (`5e6008df`)
 
-**What:** Aligned gwsproto with the sema v001 calibration: `LinearOneDimensionalCalibration`,
-`TankTempCalibration`, `TankTempCalibrationMap` → v001 with `B`/`Depth*B` as **integer in the
-OutputUnit (FahrenheitX100)** domain. Fixed `derived_generator.handle_affine` to compute
-`temp_x100 = int(M·(x_f·100) + B)` (apply B in FahrenheitX100), which is byte-identical to dev's
-working `int((M·x_f + B_f)·100)` with `B = B_f·100`. Regenerated all 7 fixtures
-(`beech/oak/maple/elm/fir` + `house0`/`nolan`); the five real homes' calibrations are George's exact
-values sourced from **dev/main × 100** (fixing the jm/spruce hand-shift, e.g. beech tank3 depth1
-corrected from −481 to −108).
+**What (calibration v001):** Aligned gwsproto with the sema v001 calibration:
+`LinearOneDimensionalCalibration`, `TankTempCalibration`, `TankTempCalibrationMap` → v001 with
+`B`/`Depth*B` as **integer in the OutputUnit (FahrenheitX100)** domain. Fixed
+`derived_generator.handle_affine` to compute `temp_x100 = int(M·(x_f·100) + B)` (apply B in
+FahrenheitX100) — byte-identical to dev's working `int((M·x_f + B_f)·100)` with `B = B_f·100`.
+Regenerated all 7 fixtures; the five real homes' calibrations are George's exact values sourced from
+**dev/main × 100** (fixing the jm/spruce hand-shift, e.g. beech tank3 depth1 −481 → −108).
 
-**Why:** the prior state was the broken middle — `B` had been hand-shifted toward FahrenheitX100
-integers but `handle_affine` still applied it as °F, mis-calibrating. v001 makes value + code
-consistent and preserves George's hand-discovered calibrations. Scada suite green (114). Gen scripts
-live in the tlayouts repo.
+**What (retire stored map):** The layout no longer stores a `TankTempCalibrationMap` — each tank
+depth's calibration lives in its (`identity`/`affine`) derived channel, the single source of truth.
+Dropped the required key + loading + cross-check in `house_0_layout.py` (replaced
+`validate_tank_temp_calibration_consistency` with a per-depth well-formed-derived-channel check);
+`layout_db` stops writing `misc["TankTempCalibrationMap"]` (tmap stays a generation-time input);
+`scada.py` stops passing `TMap` into `LayoutLite` (the Optional field now defaults None — a later
+`layout.lite` bump can remove it). Removed the dead `process_synced_readings` / `_depth_calibration`
+/ `hack_maple_primary_flow` cluster (the orphaned `self.tmap` path — `process_synced_readings` was
+never dispatched; the active path is `handle_input_reading → _dispatch_derived_input → handle_affine`).
+
+**Why:** the prior state mis-calibrated (B hand-shifted to FahrenheitX100 ints but `handle_affine`
+applied it as °F); v001 makes value + code consistent, and the derived channels become the lone
+calibration home. **Carried caveat:** removing `hack_maple_primary_flow` leaves maple's `primary-flow`
+(= `sieg-send + sieg-flow`) **uncomputed** — see the design TODO (the `sum` strategy). Scada suite
+green (114); gen scripts in the tlayouts repo.
+
+## 2026-06-15 — WIP: add pico.btu.meter to House0Layout Components union (`fbebebc1`)
+
+**What:** Added `PicoBtuMeterComponentGt` to the gwsproto `House0Layout` Components union (beech/
+maple carry btu meters). WIP slice of the house0-layout build-up.
 
 ## 2026-06-15 — Add real-home runtime fixtures (beech/oak/maple/elm/fir) (`640a0d33`)
 
