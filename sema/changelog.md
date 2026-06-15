@@ -12,6 +12,20 @@ Newest at the top.
 
 ---
 
+## 2026-06-15 — gw1.tank.temp.calibration + .map → v001 (integer B in FahrenheitX100) <!-- pending commit -->
+
+**What:** Bumped `gw1.tank.temp.calibration` and `gw1.tank.temp.calibration.map` to v001, mirroring
+`linear.one.dimensional.calibration/001`: `Depth{1,2,3}B` changes `number → integer`, where `B` is
+now an offset in the consuming derived channel's OutputUnit (FahrenheitX100) scaling rather than a
+°F float. Added the 000→001 upgrade templates (the upgrade is the `round(B × 100)` reinterpretation,
+°F → FahrenheitX100; the map lifts its nested Buffer/Tank via their own `.upgrade()`), examples on
+the now-superseded v000 schemas, and bumped `metadata.last_updated`.
+
+**Why:** the in-field tank calibration `y = M·x + B` is applied in the FahrenheitX100 output domain
+(see `wiki/gridworks-scada/executor/hardware-layout.md` "In-field tank-temp calibration"); making
+`B` an integer in that domain removes the float/°F ambiguity that had `B` mis-scaled across the
+dev → jm/spruce transition. `pytest` green (220).
+
 ## 2026-06-15 — Stash gw.house0.layout axioms; gitignore gwta snapshot tooling (`273815e`)
 
 **What:** Added `definitions/types/gw.house0.layout/stash_axioms.md` — the gw.house0.layout axiom

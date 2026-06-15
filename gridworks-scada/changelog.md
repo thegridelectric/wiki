@@ -12,6 +12,22 @@ Newest at the top.
 
 ---
 
+## 2026-06-15 — Tank calibration v001: integer B in FahrenheitX100; fix affine domain <!-- pending commit -->
+
+**What:** Aligned gwsproto with the sema v001 calibration: `LinearOneDimensionalCalibration`,
+`TankTempCalibration`, `TankTempCalibrationMap` → v001 with `B`/`Depth*B` as **integer in the
+OutputUnit (FahrenheitX100)** domain. Fixed `derived_generator.handle_affine` to compute
+`temp_x100 = int(M·(x_f·100) + B)` (apply B in FahrenheitX100), which is byte-identical to dev's
+working `int((M·x_f + B_f)·100)` with `B = B_f·100`. Regenerated all 7 fixtures
+(`beech/oak/maple/elm/fir` + `house0`/`nolan`); the five real homes' calibrations are George's exact
+values sourced from **dev/main × 100** (fixing the jm/spruce hand-shift, e.g. beech tank3 depth1
+corrected from −481 to −108).
+
+**Why:** the prior state was the broken middle — `B` had been hand-shifted toward FahrenheitX100
+integers but `handle_affine` still applied it as °F, mis-calibrating. v001 makes value + code
+consistent and preserves George's hand-discovered calibrations. Scada suite green (114). Gen scripts
+live in the tlayouts repo.
+
 ## 2026-06-15 — Add real-home runtime fixtures (beech/oak/maple/elm/fir) (`640a0d33`)
 
 **What:** Added `tests/config/{beech,oak,maple,elm,fir}.json` — the five real House0 homes regenerated

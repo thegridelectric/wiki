@@ -161,3 +161,55 @@ cac / enum-symbol serialization) — mine them for the *what* (families, channel
 *how*; the new-model `gw.nolan.layout` is the structural template. The current-code authority for
 required structure is the House0 validations in `data_classes/house_0_layout.py` (required topology
 nodes, tank/zone structure, system-model energy channels, sieg-manifold rules).
+
+## TODO — Siegenthaler variants + `primary-flow` (real vs derived); EDD on all 3
+
+The House0 code must work across **three Siegenthaler configurations**, and the EDD
+fixtures must cover all three:
+
+1. **No loop** — `FlowManifoldVariant.House0`, `use_sieg_loop=False` (oak, elm, fir).
+2. **Loop present, sieg code NOT running** — `FlowManifoldVariant.House0Sieg`,
+   `use_sieg_loop=False` (beech): the plumbing has the loop but the scada doesn't
+   actively control it (no SiegLoop/HpBoss actors).
+3. **Loop AND running sieg** — `FlowManifoldVariant.House0Sieg`, `use_sieg_loop=True`
+   (maple): SiegLoop + HpBoss actors active.
+
+**`primary-flow` differs by config and must work in each:**
+- **measured (DataChannel)** — beech: `primary-flow` comes straight from the
+  `primary-btu` BTU meter; no derivation.
+- **derived (sum)** — maple: `primary-flow = sieg-send + sieg-flow`. dev modelled this
+  as a derived channel `DerivedChConfig(Name="primary-flow", Strategy="sum",
+  OutputUnit=GpmX100)` over the sieg-loop inputs (`sieg-send` flow sensor +
+  `sieg-btu`→`sieg-flow`). The old `hack_maple_primary_flow` did the sum imperatively;
+  it was removed (already dead — `process_synced_readings` is never dispatched), so
+  **maple's primary-flow is currently NOT computed** — a real gap.
+
+**Missing: the physical-topology choice is implicit and belongs in the layout type.**
+Whether `primary-flow` is measured or derived is determined by a **real physical
+topology choice — is there a flow meter at/next to the primary pump?** (beech: yes →
+measured; maple: no → derived from the sieg loop). Today that choice exists only
+*implicitly* in which builders a gen script calls (`add_btu(primary-btu)` /
+`add_flow(primary_flow)` vs not). Because it is physical topology, it SHALL be
+represented **explicitly in `gw.house0.layout`** (and the Hydronic/topology block) —
+not inferred from channel presence — so the layout itself states the flow-meter
+topology and the measured-vs-derived primary-flow follows from it. Same logic
+generalizes to the other flow positions (dist, store) where a meter may or may not be
+physically present.
+
+**Work to do:**
+- **Encode the flow-meter topology in `gw.house0.layout`** (the primary-pump flow
+  meter present/absent choice, and the analogous dist/store positions) as an explicit
+  physical-topology field, since it drives measured-vs-derived flow channels.
+- Implement a **`sum` derived-channel strategy** in the active path
+  (`handle_input_reading → _dispatch_derived_input`): `dc.Name = Σ InputChannelNames`
+  (fresh payload + cached latest of the others), emitting in `OutputUnit` — replacing
+  the removed hack, no per-house special-casing.
+- Make the gen builders **sieg-variant-aware** so a layout expresses "primary-flow is
+  measured" vs "primary-flow is the `sum` derived channel" by config, not by hand;
+  set `gen_maple.py` to config (3) and confirm beech is config (2).
+- **EDD via a simulated plant:** build *enough of a simulated plant* to run against the
+  House0 layout and confirm the calculations BASICALLY WORK on all three configs —
+  in particular feeding the real + derived flow channels (`primary-flow`,
+  `sieg-send`, `sieg-flow`, `dist-flow`, `store-flow`) and checking the derived
+  results (the `sum`, the BTU-derived flows) are sensible. This is the verification
+  bar for the sieg-flow work.

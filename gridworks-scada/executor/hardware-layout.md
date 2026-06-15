@@ -115,6 +115,43 @@ behind this morning's `AsyncCaptureDelta` greening, one layer up).
   entirely, uses one tank + BTU meters, default (zero) tank calibrations.
   `oak` is the full House0 (20 relays via the i2c multiplexer, 4 Pico tank
   modules, power meter, HpBoss) — the layout the dashboard experiment uses.
+  Each `gen_<house>.py` gets stable ids from a prior layout —
+  `LayoutIDMap.from_path(output/<house>.generated.json)`, or
+  `from_rclone("<house>")` to pull the deployed layout off the house's pi — then
+  `db.write`s `output/<house>.generated.json`, which is copied into
+  `gridworks-scada/tests/config/<house>.json` as a runtime test fixture.
+  **Branch pairing:** `tlayouts@main` matches `gridworks-scada@dev` (the working
+  pre-migration pair); the `tlayouts@jm/spruce` gen scripts were ported to the
+  current post-cac-migration scada API (`MakeModel`→`Gw1DeviceType`,
+  `add_relays`→`add_house0_relays`, `from_rclone`→`from_path`,
+  `tmap`→`LayoutDb(tmap=)`). When re-sourcing real-house values, **dev/main is
+  the trustworthy source** — a hand-shift on jm/spruce had corrupted some tank
+  calibrations.
+
+> **OFI — where tlayouts is going.** The copy-paste "scripts repo" is the
+> fragile part (9 near-identical per-house Python files, per-house divergence in
+> *code* not *data*). The durable direction is a single generator that consumes
+> **sema-typed inputs** — a site/topology spec + a `gw1.tank.temp.calibration.map`
+> + hardware UIDs — instead of bespoke scripts, so each house collapses to sema
+> data + one shared generator. The natural sema seam is **calibration discovery →
+> generation**: George's hand-fit M/B (today a DB + spreadsheet) becomes a
+> `gw1.tank.temp.calibration.map` fed to the generator, rather than hand-edited
+> into Python. (See the layout round-trip + dc→sema adapter for the layout-side
+> seam: `gw.house0.layout` is the sema word scada emits and gwta decodes.)
+>
+> **OFI — tlayouts shouldn't need the scada venv.** Today the gen scripts import
+> `gw_spaceheat`/`layout_gen` directly and must run inside scada's venv. Once the
+> proactor functionality lift lands and scada can become a proper `uv` package,
+> tlayouts could depend on it as a package rather than borrowing its venv.
+>
+> **OFI — where is the authority for a hardware layout?** Right now it is
+> implicitly "whatever is running on each pi" (the `from_rclone` pull). We may
+> choose to keep that, but it deserves a dedicated session evaluating the right
+> home in light of the "where meaning lives" approach. Hard constraint: the
+> **gridworks-data *analytics* database** (a subset of gridworks-data, not all of
+> it) MUST NOT become the de-facto / implicit home for layout changes we intend to
+> make — layout authority should be a deliberate choice, not a side effect of
+> where analytics data happens to live.
 
 ## Names — `gwsproto/names/`
 
