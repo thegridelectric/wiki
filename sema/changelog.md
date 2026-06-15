@@ -12,6 +12,68 @@ Newest at the top.
 
 ---
 
+## 2026-06-15 — Add mac.address format; ads OpenVoltageByAdsRange axiom (`abbc250`)
+
+**What:** Added a `mac.address` format (six lowercase hex octet pairs, colon-separated;
+`^([0-9a-f]{2}:){5}[0-9a-f]{2}$`) + its runtime validator template, and pointed
+`hubitat.gt`'s `MacAddress` at it (`type: string` → `$ref formats/mac.address`, edited in place
+— pushed to git but not web-published, so still mutable this session). Added an
+`OpenVoltageByAdsRange` axiom to `ads111x.based.component.gt` (each element in [4.5, 5.5]) and
+implemented its template. Bumped the `created` of `hubitat.gt` + `hubitat.component.gt` (dep
+ordering) and `metadata.last_updated`; added `mac.address` to the property-format test map.
+Regenerated; `218 passed`.
+
+**Why:** closes the two "sema looser than gwsproto" divergences from hardware-layout-pass-one —
+MacAddress now carries the lowercase-hex constraint (was a plain string), and the OpenVoltageByAds
+"near 5V" range is a sema **axiom** (rather than a gwsproto-only Near5 validator or a speculative
+format). gwsproto mirrors both (it already used a strict MacAddress type; the Near5 field-validator
+became `check_axiom_1`). Snapshot not rebuilt — gwta will be re-snapshotted as a batch.
+
+## 2026-06-15 — Un-draft device-type records + gw.nolan.layout; stash nolan axioms (`7d4f634`)
+
+**What:** Un-drafted the three specialized device-type records (`ads111x.based.device.type.gt`,
+`electric.meter.device.type.gt`, `gw1.scada.device.type.gt` — they were never meant to be
+drafts) and `gw.nolan.layout/000`. Moved the layout's ~40 axioms into
+`gw.nolan.layout/stash_axioms.md` (a markdown file the yaml-globbing tooling/tests skip) and
+stripped them from `000.yaml`, so the type generates a runtime **without** axiom validators.
+Dropped the `gw108.gpio.relay.component.gt` placeholder from the layout's Components oneOf (the
+real relay is `gw108.vdc.relay`, already present), rewrote `direct_dependencies` to the actual
+schema $refs (no axiom-only / transitive deps), and bumped `created`. Regenerated; `216 passed`.
+`gw.nolan.layout` now has a sema runtime class.
+
+**Why:** the hardware-layout-pass-one branch is building the full layout types now (axioms
+implemented later — `gw1.simple.sim.layout` + `gw.house0.layout` to follow the same pattern).
+Immutability is push-to-origin this session, so these unpushed un-drafts are still mutable.
+`gw1.scada.device.type.gt` stays a partial stub by design (built out as we go). Next: add the
+layouts to the gwta snapshot + gwsproto.
+
+## 2026-06-14 — Guard test: every superseded upgrade is defined (no stubs) (`b38e628`)
+
+**What:** Added `tests/runtime/test_superseded_upgrades_defined.py` — for every superseded
+published type version that carries an example, decoding it with `auto_upgrade` must reach the
+latest version or deliberately raise `UpgradeRequiresContext`; a `NotImplementedError` fails
+the test. 44 cases (21 real upgrades, 23 context-dependent refusals). Full suite `216 passed`.
+
+**Why:** an audit prompted by the hardware-layout version bumps found **no** dangling/stub
+upgrades — every transition has a defined `upgrade()` (real, or an explicit
+`upgrade_requires_context` for cac→DeviceType / FlowMeterType / layout aggregates that need the
+source layout). But the scaffold tool seeds new upgrade templates as `raise NotImplementedError`
+stubs and nothing caught a left-behind one. This guard closes that gap — the same way examples
+and axioms are now enforced. Companion to the gwsproto version-alignment work (OPS-407).
+
+## 2026-06-14 — Fix 2 example values to round-trip through gwsproto (`698b1b3`)
+
+**What:** `hubitat.gt` + `hubitat.component.gt` example `MacAddress` `"example"` →
+`"34:e1:d1:82:22:22"`; `ads111x.based.component.gt` example `OpenVoltageByAds` `[0.0]` →
+`[4.95]`. Non-normative (example-only); no version bump. Regenerated runtime; `172 passed`.
+
+**Why:** sema is looser than gwsproto on these two fields (plain string vs gwsproto
+`MacAddress`; bare number vs gwsproto `Near5`), so the auto-generated minimal examples were
+sema-valid but gwsproto-invalid. Realistic values let the snapshot's own samples round-trip
+through gwsproto unchanged (27/27, no patching). Open question recorded in the
+hardware-layout-pass-one design: whether sema should add `mac.address` / `near5` constraints to
+close the looseness (that would be a version bump, and gwsproto would follow).
+
 ## 2026-06-14 — Implement 6 stubbed axiom validators + add examples to 25 schemas (`a8a7f25`)
 
 **What:** Implemented six axiom-validator templates that were `NotImplementedError`

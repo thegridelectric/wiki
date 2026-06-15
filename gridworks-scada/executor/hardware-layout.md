@@ -117,16 +117,43 @@ behind this morning's `AsyncCaptureDelta` greening, one layer up).
 
 ## Names — `gwsproto/names/`
 
-Node and channel names are layered: `core/` (system actors:
-primary_scada, ltn, power meter), `hydronic_spaceheat/` (the shared
-heating vocabulary — zones, tanks, flows, pipes), and per-house-type
-`house0/` and `nolan/`. `H0N`/`H0CN` (house-0 node/channel names) expose
-static names (relays, pumps, pipe temps, powers) plus zone-/tank-indexed
-names populated at instantiation from `ZoneList`/`TotalStoreTanks`. Names
-are **invariant across hardware substitution** — swapping a sensor changes
-the *capturing node*, not the channel name (`dist-swt` stays `dist-swt`).
-This layered names system is half of the "multiple house types, done
-right" rework.
+Node and channel names live in vocabulary packages: `core/` (system actors:
+primary_scada, ltn, power meter), `hydronic_spaceheat/` (the shared heating
+vocabulary — zones, tanks, flows, pipes; the `temp`/`set`/`heat-call` zone
+channels), and per-layout `house0/`, `nolan/`, `simple_sim/`. Names are
+**invariant across hardware substitution** — swapping a sensor changes the
+*capturing node*, not the channel name (`dist-swt` stays `dist-swt`).
+
+**These packages compose; they do NOT inherit.** `House0ZoneChannelNames`,
+`NolanZoneChannelNames`, and `SimpleSimZoneChannelNames` do **not** subclass
+`HydronicSpaceheatZoneChannelNames` — they *use* it (e.g. for the shared
+`zone{i}-{label}` base) and add only their own raw-input names
+(`whitewire_pwr`/`stat_temp` for house0; `opto_input`/`gw_temp` for nolan + sim).
+A layout draws on **more than one** package: a `house0.layout` uses **both**
+`hydronic_spaceheat` (the shared `temp`/`set`/`heat-call`, tanks, flows, pipes)
+**and** `house0` (the whitewire-pwr / stat-temp raw inputs). Composition, not a
+single inheritance chain.
+
+**Required vs optional is the LAYOUT's call, not the names'.** The name packages
+are pure vocabulary — they neither know nor declare what a given plant must have;
+**some names are optional.** It is the **layout type** (`gw.house0.layout` /
+`gw.nolan.layout` / `gw1.simple.sim.layout`) that declares, via its `required`
+lists and axioms, which channels and ShNodes are mandatory for that plant and
+which are optional. The same name can be required in one layout and optional in
+another; the layout — not `names/` — is the authority.
+
+The canonical example is **`-gw-temp`**:
+- In **nolan** it is **required** — the gw108 thermistor reading is *the* zone
+  room temperature, and the zone setpoint is derived from it
+  (`simple-falling-edge-setpoint` over `[gw-temp, heat-call]`). It is a
+  `NolanZoneChannelNames` member and a required part of the nolan zone vocabulary
+  alongside the `temp`/`set`/`heat-call` invariant.
+- In **house0** it is **optional** — room temp normally comes from the Hubitat
+  thermostat, and only some homes also wire a TSnap `-gw-temp` (beech has it both
+  zones, maple zone1 only, elm/fir/oak none). Same name, optional here.
+
+This composed, layout-governed names system is half of the "multiple house types,
+done right" rework.
 
 ## The three layout families — the rework, encoded
 

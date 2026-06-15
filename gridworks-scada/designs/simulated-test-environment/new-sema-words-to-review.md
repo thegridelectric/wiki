@@ -112,6 +112,12 @@ we decide to retain the CAC shape for anything.
 | `component.attribute.class.gt` (generic CAC) | 001 | non-draft | `e3cd6d8` | |
 | `electric.meter.cac.gt` | 001 | non-draft | `4d58ee6` | |
 
+**`spaceheat.make.model` is NOT tracked here.** It is frozen base vocabulary; the
+early `008` bump (which added `GRIDWORKS__SIM_SENSOR` / `GRIDWORKS__SIM_RELAY_BANK`
+make-models) was **superseded by `gw1.device.type`** when make/model-as-identity was
+retired. The enum stays registered in sema but is abandoned for this work — not a
+word to review, so it carries no row.
+
 **Ref-only fixes in the `gw.nolan.layout` draft (no new word — no review row):**
 `data.channel.gt` 001→002; `i2c.multichannel.dt.relay.component.gt` ref bumps;
 `pico.tank.module.component.gt` ref bumps; enum ref `heatcall.interpretation` →

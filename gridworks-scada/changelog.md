@@ -12,6 +12,41 @@ Newest at the top.
 
 ---
 
+## 2026-06-15 — gwsproto: add g.node.gt + its enums; GwNolanLayout scaffold (`a0210a00`)
+
+**What:** Hand-ported from the gwta sema snapshot runtime: `GNodeGt` (`g.node.gt/004`, with all
+5 axioms — ClassConsistency / PhysicalGNodeLocations / AliasTransitionConsistency /
+GNodeClassNamespacing / AliasSuffixSemantics) and its two enums `BaseGNodeClass`
+(`base.g.node.class`) + `GNodeStatus` (`g.node.status`), in gwsproto idiom (AslEnum / BaseModel /
+property_format, PascalCase fields). Registered in the enum + named_type `__init__`. Also added a
+`GwNolanLayout` scaffold (`gw.nolan.layout`, full structure, axioms as a commented TODO block;
+`GNodes` now typed `List[GNodeGt]`). And `ads111x.based.component.gt`: the `OpenVoltageByAds`
+Near5 field-validator became `check_axiom_1` (OpenVoltageByAdsRange [4.5, 5.5]) mirroring the new
+sema axiom — the Near5 property format is retired.
+
+**Why:** the layout types' `GNodes` field needs `g.node.gt`, which had no gwsproto class. Verified
+end-to-end: gwsproto `GNodeGt` validates the snapshot's `g.node.gt` sample (axioms pass) → re-emits
+→ `gwta.sema` decodes it back. Imports + collection clean (117 tests). Next session: the
+`gw.house0.layout` + `gw1.simple.sim.layout` sema types, then copy all 3 layout runtimes into
+gwsproto. OPS-407.
+
+## 2026-06-14 — gwsproto: align all 27 types to the sema snapshot (`62cf522d`)
+
+**What:** Brought gwsproto into full version + shape parity with the terminal-asset sema
+snapshot (the rule: a gwsproto type's `Version` equals its sema word's version). (1) Bumped 10
+lagging `Version` literals the cac→DeviceType migration left behind — `spaceheat.node.gt`
+301→302; electric.meter / gw108.* / i2c.thermistor.reader 001→002; i2c.multichannel 004→005;
+pico.tank 011→012; pico.btu / pico.flow / sim.pico.tank →001 (sim.pico also `SimulatesVersion`
+011→012). Shapes already matched — version-only. (2) Created `SimSensorComponentGt` +
+`SimRelayComponentGt` (were missing). (3) Gave the Hubitat nested sub-types
+(`HubitatGt`, `HubitatPollerGt`, `MakerAPIAttributeGt`) `TypeName`/`Version` so they are proper
+sema objects. All five exported from `named_types/__init__`.
+
+**Why:** so scada can emit every snapshot type and gridworks-terminalasset's `gwta.sema` codec
+decodes it. Verified end-to-end: each type built in gwsproto → serialized → decoded through
+`gwta.sema` = **27/27**. Imports + collection clean (117 tests). The remaining suite reds are
+the pre-existing old-shape layout fixtures (separate gate). OPS-407.
+
 ## 2026-06-14 — gwsproto: Hubitat components declare Version 000 (`609e098f`)
 
 **What:** `HubitatComponentGt` and `HubitatPollerComponentGt` now declare
