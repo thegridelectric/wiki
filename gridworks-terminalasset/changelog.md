@@ -12,6 +12,38 @@ Newest at the top.
 
 ---
 
+## 2026-06-15 — Regenerate sema snapshot: 3 layout types + short local names; round-trip script (`8b6f4e6`)
+
+**What:** Regenerated the gwta Sema snapshot from current `sema` `jm/sim-vocab` via
+`build_gwta_snapshot.sh`. Picks up the upstream sema changes (`mac.address` format → `hubitat.gt`
+MacAddress + `property_format.is_mac_address`; `ads111x` `OpenVoltageByAdsRange` axiom) **and** adds
+the three layout types `gw.house0.layout` / `gw.nolan.layout` / `gw1.simple.sim.layout` with short
+local class names `House0Layout` / `NolanLayout` / `SimpleSimLayout` (set via `local_names.yaml`).
+Adding the layouts pulled their full dependency closure into the snapshot (data.channel.gt,
+derived.channel.gt, the `<family>.device.type.gt` records, gw1.unit/quantity/emission enums, the
+unit/telemetry projections). Round-trip green (33 samples). Added `layout_roundtrip.py` — the gwta
+side of the bidirectional layout round-trip (SENDS a layout, then verifies scada's returned form).
+
+**Why:** Sema is the source of truth for the layout types; this snapshots them into gwta so the
+scada↔gwta layout round-trip can run. The short local names are the agreed ergonomic class names.
+
+## 2026-06-15 — Add g.node.gt to the gwta sema snapshot (`7c61c23`)
+
+**What:** Added `g.node.gt` to the snapshot seed and rebuilt `src/gwta/sema` — now **28 types**
+(its closure pulled in the `base.g.node.class` + `g.node.status` enums). 28/28 round-trip.
+
+**Why:** the layout types need `g.node.gt` for their `GNodes`; this is the authoritative source
+that was hand-ported into gwsproto (`GNodeGt`). Verified: gwsproto `GNodeGt` → `gwta.sema` decode.
+
+## 2026-06-14 — Rebuild sema snapshot (realistic examples; full gwsproto round-trip) (`1ae4c2c`)
+
+**What:** Regenerated `src/gwta/sema` from the current sema (with the 6 implemented axioms +
+the realistic `hubitat`/`ads` example values). All 27 type samples round-trip both ways:
+gwsproto emits → `gwta.sema` decodes = **27/27**, with no test patching.
+
+**Why:** closes scada↔terminalasset parity — every snapshot type can be sent by scada over the
+dev rabbit broker and decoded here. Pairs with the scada `gwsproto` version-alignment commit.
+
 ## 2026-06-14 — Add sema snapshot at gwta/sema (`b264c6a`)
 
 **What:** Generated a restricted sema runtime snapshot into `src/gwta/sema/`

@@ -12,6 +12,70 @@ Newest at the top.
 
 ---
 
+## 2026-06-15 — Add real-home runtime fixtures (beech/oak/maple/elm/fir) (`640a0d33`)
+
+**What:** Added `tests/config/{beech,oak,maple,elm,fir}.json` — the five real House0 homes regenerated
+from the (whipped-into-shape) tlayouts `gen_*.py` against the current scada layout_gen. Each loads as
+`House0Layout` (beech 83 nodes/76 ch, oak 85/82, maple 78/73, elm 86/83, fir 87/84; 14 derived each)
+and carries valid `g.node.gt` GNodes (promoted from the legacy flat shape, key-derived
+BaseClass/GNodeClass + PositionPointId). Suite green (114).
+
+**Why:** real per-home layouts as runtime test fixtures, replacing reliance on only the synthetic
+nolan/house0 fixtures. The generators live in the tlayouts repo; this commit is just the generated
+fixtures consumed by the scada tests.
+
+## 2026-06-15 — Promote layout GNodes to g.node.gt; House0 dc↔sema bijection harness (`69ab5564`)
+
+**What:** Promoted the layout's GNode representation to `g.node.gt/004`. `layout_db.py` emission and
+both fixtures (`house0`/`nolan-layout.json`) now carry `g.node.gt`-shaped GNode entries —
+`BaseClass` + `GNodeClass` aligned (axiom 1), `GNodeStatus → Status`, `PositionPointId` for the
+non-Logical LTN/TA (axiom 2), Scada as `BaseClass: Logical`, and legacy `AtomicTNode →
+LeafTransactiveNode`. The `g_node_alias`/`_id` accessors read `Alias`/`GNodeId` and were untouched.
+Added `gw_spaceheat/house0_bijection.py` — the `dc → sema → dc` EDD harness.
+
+**Why:** the bijection is the EDD proof that `gw.house0.layout` encodes every part of the
+production House0 data-class layout. It showed all categories encoded except GNodes (loose legacy
+dicts); promoting them to `g.node.gt` closes it — the harness now reports all 7 categories encode
+and the GNode round-trip is identical. Scada suite green (114).
+
+## 2026-06-15 — House0Layout + SimpleSimLayout layout types; layout round-trip return (`d1f5b0e6`)
+
+**What:** Hand-ported the three layout types into gwsproto to match the Sema snapshot (Sema is the
+source of truth). `House0Layout` (`gw.house0.layout`) carries the full shape mirroring the sema type
+— optional `GNodes`/`ShNodes`/`DataChannels`/`DerivedChannels`/`Components` (House0 oneOf union) /
+`DeviceTypes` (`ComponentAttributeClassGt` stand-in, like the Nolan scaffold) / `Hydronic`, with
+only TypeName+Version required. `SimpleSimLayout` (`gw1.simple.sim.layout`) is the minimal stub. The
+existing Nolan scaffold class was renamed `GwNolanLayout` → `NolanLayout` (file → `nolan_layout.py`)
+for the agreed short local names; `House0Layout` + `SimpleSimLayout` registered in
+`named_types/__init__`. Added `gw_spaceheat/layout_roundtrip_return.py` — the scada side of the
+bidirectional layout round-trip (decodes + re-encodes a sent layout through gwsproto).
+
+**Why:** Completes the sema→snapshot→gwsproto loop for the layout baselines; the round-trip
+(`gridworks-terminalasset/layout_roundtrip.py` ↔ this return script) is green for house0 +
+simple.sim. Scada suite green (114).
+
+## 2026-06-14 — layout_gen: rebuild simulated tanks (new device-type model); green the suite (`955869b7`)
+
+**What:** Greened the scada suite after the cac→DeviceType migration. (1) Rebuilt
+`layout_gen/simulated_tanks.py` in the new device-type model — the deleted file used the gone
+`MakeModel.GRIDWORKS__SIMMULTITEMP` / `ComponentAttributeClassId` / `make_cac_id` /
+`CACS_BY_MAKE_MODEL` APIs; the rewrite registers a `gw1.device.type` record
+(`GridworksSimSensor`) and emits `SimPicoTankModuleComponentGt(DeviceType=…)`, mirroring the
+already-migrated `tank3.py`. (2) Re-wired `add_simulated_tanks` + the per-tank loop back into
+both `fixture_layouts.py` builders, so the `*-depth{i}-device` channels the
+`add_house0_derived_channels` tank-depth derived channels depend on exist again (buffer + tank1,
+matching `TotalStoreTanks=1`). (3) Regenerated `tests/config/{nolan,house0}-layout.json` to the
+DeviceType shape via `genlayout mktest`. (4) Fixed `show_layout.py`'s `print_component_dicts` to
+join cacs by `DeviceType` (was `ComponentAttributeClassId`). (5) Fixed the `tests/named_types/*`
+sample dicts — `ComponentAttributeClassId` → `DeviceType`, and bumped the stale `Version`
+literals to the single current runtime version (`spaceheat.node.gt` 301→302, i2c.thermistor
+001→002, i2c.multichannel 004→005, pico.tank 011→012, pico.flow 000→001).
+
+**Why:** the in-suite `layout_gen`-green for both real layouts is the sub-gate of the
+hardware-layout pass-one EDD bar (the real verification is the gwta round-trip). Suite now
+114 passed / 3 skipped. The sim tank module's purpose is to exercise the `api_tank_module.py`
+actor in unit tests. OPS-407.
+
 ## 2026-06-15 — gwsproto: add g.node.gt + its enums; GwNolanLayout scaffold (`a0210a00`)
 
 **What:** Hand-ported from the gwta sema snapshot runtime: `GNodeGt` (`g.node.gt/004`, with all

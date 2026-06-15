@@ -12,6 +12,38 @@ Newest at the top.
 
 ---
 
+## 2026-06-15 — Stash gw.house0.layout axioms; gitignore gwta snapshot tooling (`273815e`)
+
+**What:** Added `definitions/types/gw.house0.layout/stash_axioms.md` — the gw.house0.layout axiom
+catalog (22 axioms), ported from the live `gwsproto/data_classes/house_0_layout.py` +
+`hardware_layout.py` validations (GNode set, id uniqueness, device-type membership, hydronic
+structure, essential + required topology nodes, tank-temp-calibration, system-model energy channels,
+sieg manifold, base-layer integrity) plus zone axioms (MVP per-zone whitewire-pwr channel; a
+connect-everything zone structure adapted from the nolan stash, using gwsproto/names house0 naming).
+Kept as a stash (markdown, deferred enforcement) like gw.nolan.layout. Also gitignored the local-only
+`gwta_seed_request.yaml` + `build_gwta_snapshot.sh`.
+
+**Why:** the goal for gw.house0.layout is to carry the data-class validations as sema axioms; this
+records the full catalog ahead of wiring enforcement (which needs a real bijection-generated example).
+
+## 2026-06-15 — Add gw.house0.layout + gw1.simple.sim.layout; lay out House0 shape (`470d6db`)
+
+**What:** Created two new layout vocabulary types — `gw.house0.layout` and `gw1.simple.sim.layout`
+(`gw.nolan.layout` already existed), with registry entries + `direct_dependencies`. Both began as
+minimal `TypeName`+`Version` stubs; then `gw.house0.layout/000` was laid out with the full property
+set mirroring `gw.nolan.layout` (new DeviceType model): GNodes, ShNodes, DataChannels,
+DerivedChannels, a `Components` oneOf for the House0 set (eGauge `electric.meter`, `ads111x.based`
+TSnap, Krida `i2c.multichannel.dt.relay`, `dfr`, `pico.flow.module`, `pico.tank.module` +
+`sim.pico.tank.module`, `hubitat.component` + `hubitat.poller.component`, `web.server`), a
+`DeviceTypes` oneOf, and a freeform `Hydronic` block — optional-first (only TypeName+Version
+required). Indexes + runtime regenerated; `metadata.last_updated` bumped. (The snapshot tooling
+`gwta_seed_request.yaml` + `build_gwta_snapshot.sh` — prepare → remap the three layout local names
+to `House0Layout`/`SimpleSimLayout`/`NolanLayout` → build → copy to gwta — is kept as local,
+untracked tooling in the sema repo, deliberately out of this commit.)
+
+**Why:** Sema is the source of truth for the three mutating layout types; this lays the House0 shape
+down so it can be built up bit by bit and round-tripped against scada. `pytest` green (218).
+
 ## 2026-06-15 — Add mac.address format; ads OpenVoltageByAdsRange axiom (`abbc250`)
 
 **What:** Added a `mac.address` format (six lowercase hex octet pairs, colon-separated;

@@ -32,7 +32,7 @@ A layout is the node→component→device-type→channel graph for one house,
 plus house-level facts. `HardwareLayout` (`data_classes/hardware_layout.py`)
 is the base; `House0Layout` (`data_classes/house_0_layout.py`) adds House0
 fields: `ZoneList`, `CriticalZoneList`, `TotalStoreTanks` (1–6),
-`ZoneKwhPerDegFList`, `TankTempCalibrationMap`, `FlowManifoldVariant`,
+`ZoneKwhPerDegFList`, `FlowManifoldVariant`,
 `UseSiegLoop`, and the three GNodes (`MyScadaGNode`,
 `MyTerminalAssetGNode`, `MyLeafTransactiveNodeGNode`). On disk it's
 `<house>.generated.json` (e.g. `oak.generated.json`).
@@ -85,9 +85,10 @@ types; the only residual wart is that the loader's bucket list is hardcoded
 rather than derived from which device types are specialized.
 
 **Load-time validations that bite (House0Layout `__init__`):** tank count
-1–6; `TankTempCalibrationMap` M/B must match the tanks' derived channels
-(identity/affine strategy); the system model requires `usable-energy` and
-`required-energy` derived channels by exact name. These run at construction
+1–6; each tank depth has a well-formed `identity`/`affine` calibrated derived
+channel (see "In-field tank-temp calibration"; the legacy `TankTempCalibrationMap`
+cross-check is retired with the map); the system model requires `usable-energy`
+and `required-energy` derived channels by exact name. These run at construction
 — a layout that violates them fails to load (this is the class of failure
 behind this morning's `AsyncCaptureDelta` greening, one layer up).
 
@@ -231,13 +232,49 @@ in *code*, not data): the per-house difference becomes config + which builder.
 
 house0 and nolan both read tank temps via pico **TankModule3** (`add_tank3`),
 which emits raw `*-depth{n}-device` channels; the calibrated `*-depth{n}` are
-`affine`/`identity` derived channels (per-depth M/B from the calibration map).
-house0 = buffer + 3 tanks; nolan = buffer + 1 tank. The (now deleted)
-`simulated_tanks.py` was the sim equivalent. **Current gap:** neither test
+`affine`/`identity` derived channels (per-depth M/B — see "In-field tank-temp
+calibration" below). house0 = buffer + 3 tanks; nolan = buffer + 1 tank. The (now
+deleted) `simulated_tanks.py` was the sim equivalent. **Current gap:** neither test
 fixture wires a tank generator, so the raw `*-device` channels the derived
 tank-temp channels depend on don't exist and the layout fails
 `validate_derived_channels` — wiring `add_tank3` into each builder is what
 closes it.
+
+### In-field tank-temp calibration
+
+A tank probe's raw reading drifts per probe + per depth, so each calibrated tank
+temperature is the raw device reading run through a **linear correction**
+`y = M·x + B`:
+
+- **Raw channel** `<reader>-depth{n}-device` — `WaterTempCTimes1000`, emitted by
+  the pico TankModule3 (or the SimSensor in `simple_sim`).
+- **Calibrated channel** `<reader>-depth{n}` — a derived channel that applies the
+  correction. `Strategy: affine` carries the coefficients in
+  `Parameters.Calibration`, a **`linear.one.dimensional.calibration`** object
+  (`M` slope, `B` intercept, both finite; self-describing via `TypeName`/`Version`).
+  When `M == 1.0` and `B == 0.0` the derived channel uses `Strategy: identity`
+  (no correction) and carries no Calibration. `derived_generator.handle_affine`
+  applies `M·x + B` then scales to `FahrenheitX100`.
+
+**How the coefficients are found.** They are **hand-discovered**: probe readings
+are logged to the database, compared against reference temperatures in a
+spreadsheet, and the per-depth `M`/`B` that best fit are read off and encoded.
+This is a deliberate, occasional field activity, not an automated loop — the tree
+homes' (beech, oak, …) coefficients are George's hand-fit values and MUST be
+preserved across any layout rework.
+
+**Where the calibration lives (the canonical pattern).** The calibration is a
+property of the **derived channel** — each `<reader>-depth{n}` carries its own
+`linear.one.dimensional.calibration`. The layout does **not** store a separate
+calibration map; the derived channel is the single source of truth for a depth's
+correction, so adjusting an in-field calibration = editing that one derived
+channel's `Parameters.Calibration` (or regenerating the layout from updated
+coefficients). `gw.nolan.layout` already follows this; house0 is being moved to
+match (the legacy `TankTempCalibrationMap` layout field is retired — its M/B were
+always required to equal the derived channels' anyway, so it was redundant
+duplication). The generator still accepts the per-tank coefficients as a
+generation-time input (the source of George's values); it just writes them into
+the derived channels rather than into a stored map.
 
 ### simple_sim specifics
 
