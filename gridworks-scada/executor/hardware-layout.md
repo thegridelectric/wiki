@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-06-11
+Status: Draft · Pass 0 · Updated 2026-06-14
 
 # The hardware layout
 
@@ -128,15 +128,114 @@ the *capturing node*, not the channel name (`dist-swt` stays `dist-swt`).
 This layered names system is half of the "multiple house types, done
 right" rework.
 
-## The rework (pointer, not spec)
+## The three layout families — the rework, encoded
 
-Where this is headed — `layout.lite` (`named_types/layout_lite.py`, a Sema
-type with axioms) is the seed; the full direction is **`house0.layout` /
-`gw.nolan.layout` as Sema types with axioms**, retiring tlayouts'
-lock-step branching, on the layered `names/` system. That is spruce-unlimbo
-**Chunk B / OPS-334** — the layout pipeline. The `gw`/`gw1` prefix on these
-types is deliberate vocabulary namespacing (GridWorks's `gw1.actor.class`,
+This captures durable **design intent** (partially encoded today in code +
+the `tlayouts` hand-scripts). It is the target of spruce-unlimbo Chunk B /
+OPS-334, with the device-type spine in OPS-407. Some of it is intent ahead of
+code (flagged inline); review before relying. The seed is `layout.lite`
+(`named_types/layout_lite.py`, a Sema type with axioms).
+
+Three diverse layouts are kept working at once — the forcing function that
+breaks leaked House0 assumptions — and each becomes a **Sema layout type**:
+
+- **`gw.house0.layout`** — the five-home fleet (beech, elm, oak, fir, maple).
+  Hubitat thermostats + eGauge power meter + TSnap ADS thermistors + pico tank
+  modules.
+- **`gw.nolan.layout`** — the gw108 one-off (Spruce). The gw108 board does room
+  temp + whitewire sensing.
+- **`gw1.simple.sim.layout`** — the deliberately-simplest fake-physics sim plant.
+
+The `gw`/`gw1` prefix is deliberate vocabulary namespacing (`gw1.actor.class`,
 `gw1.unit`, `gw.nolan.layout` leave room for other orgs' own words).
+
+### The zone invariant — temp, set, heat-call exist in every layout
+
+Every zone in every layout MUST carry the three semantic channels from
+`HydronicSpaceheatZoneChannelNames`: `zone{i}-{label}-temp`, `-set`,
+`-heat-call`. These are what the shared scada control logic speaks. What
+**differs** per layout is the raw inputs they are built from and how heat-call
+is detected — read as capability, never hard-coded per house.
+
+| derived (shared) | house0 raw | nolan raw | simple_sim raw |
+|---|---|---|---|
+| `-heat-call` | `-whitewire-pwr` (eGauge power; `heat-call` strategy, GreaterThanThreshold) | `-opto-input` (gw108 opto; DigitalZeroIsActive) | `-opto-input` (SimSensor; DigitalZeroIsActive — same as nolan) |
+| `-temp` / gw-temp | Hubitat `-stat-temp` + TSnap `-gw-temp` | gw108 `-gw-temp` | SimSensor `-gw-temp` |
+| `-set` | derived `simple-falling-edge-setpoint` over `[gw-temp, heat-call]` | same | same |
+
+The setpoint derivation is the same everywhere; the **heat-call source** is the
+real divergence. Setpoint was first read straight off the Hubitat, but that was
+not trustworthy — the derived `simple-falling-edge-setpoint` from gw-temp +
+heat-call is the path (`derived_generator.py`). The power→whitewire mechanism
+already exists: it is the generic `heat-call` strategy with
+`GreaterThanThreshold` interpretation applied to a `-whitewire-pwr` power
+channel.
+
+### Per-layout raw-input names (use the `names/` classes)
+
+Each builder drives channel/node names through the `names/` classes — not
+hand-typed literals (the `tlayouts` fragility below):
+
+- **house0** → `House0ZoneChannelNames`: `whitewire_pwr` (`-whitewire-pwr`),
+  `stat_temp` (`-stat-temp`).
+- **nolan** → `NolanZoneChannelNames`: `opto_input` (`-opto-input`), `gw_temp`
+  (`-gw-temp`).
+- **simple_sim** → a NEW `names/simple_sim/` subfolder mirroring nolan:
+  `opto_input` + `gw_temp` only. No floor temp, no `stat_temp`, no
+  `whitewire_pwr`.
+
+The **zone-name list is a required input** to each builder — it indexes every
+zone channel and node.
+
+### layout_gen refactor — three builders, shared tools
+
+Split `layout_gen`'s house-type assembly into `house0_layout_gen`,
+`nolan_layout_gen`, and `simple_sim_layout_gen`. Each:
+
+- composes the **shared** device tools (`add_tank3`, the relay/derived-channel
+  tools, `add_egauge` / `add_gw108_nolan_zones` / the sim equivalents),
+- routes names through the `names/` classes,
+- takes the zone list as input.
+
+This retires the nine copy-paste `tlayouts/gen_<house>.py` scripts (divergence
+in *code*, not data): the per-house difference becomes config + which builder.
+
+### Tank sensing — pico TankModule3 for the real layouts
+
+house0 and nolan both read tank temps via pico **TankModule3** (`add_tank3`),
+which emits raw `*-depth{n}-device` channels; the calibrated `*-depth{n}` are
+`affine`/`identity` derived channels (per-depth M/B from the calibration map).
+house0 = buffer + 3 tanks; nolan = buffer + 1 tank. The (now deleted)
+`simulated_tanks.py` was the sim equivalent. **Current gap:** neither test
+fixture wires a tank generator, so the raw `*-device` channels the derived
+tank-temp channels depend on don't exist and the layout fails
+`validate_derived_channels` — wiring `add_tank3` into each builder is what
+closes it.
+
+### simple_sim specifics
+
+The simplest plant that is still a thermal-storage heat-pump system: a single
+**large** storage tank (360 gallons, 3 depth sensors), **no buffer tank**, and a
+**fixed single-tank shape** (no tank-count variable). **Every** reading comes
+from the **SimSensor** — room temp, whitewire, *and* the tank depth temps — so
+`add_tank3` is **not** used here: the `3` in TankModule3 names the pico hardware
+device type (the old `GRIDWORKS__TANKMODULE3` make/model), which the sim does not
+have. The sim still uses the **same detection mechanisms as nolan**
+(`opto-input` → heat-call digital; `gw-temp` → setpoint), just sourced from the
+SimSensor. It maps to the `gw1.simple.sim.layout` sema word (authored in the
+simulated-test-environment design); the scada-side builder is
+`simple_sim_layout_gen`.
+
+### Fragile whitewire/gw-temp in the five homes — rename, keep the id
+
+The five production homes were wired by hand in `tlayouts`, so their zone raw
+channels are uneven: whitewire follows `-whitewire-pwr`, but `gw-temp` is
+inconsistent (beech: both zones; maple: zone1 only; elm/fir/oak: none) and the
+`temp`/`set`/`heat-call` invariant is not uniformly produced. Moving to sema
+generation, any home whose channel name diverges from the canonical `names/`
+value gets its **channel name changed to the canonical one while keeping the
+immutable channel id** — so historical data stays connected across the rename.
+Flag and fix per home as part of the migration.
 
 ## Hacky/irregular bits (current)
 
@@ -171,8 +270,11 @@ types is deliberate vocabulary namespacing (GridWorks's `gw1.actor.class`,
   inference.
 - `SynthChannels` list still instantiated though `DerivedChannels` is the
   real mechanism (`layout_db.py`).
-- Nolan-only derived channels (heat-call, setpoint) with no House0
-  counterpart — a deeper strategy divergence.
+- Heat-call + setpoint derived channels are wired for nolan but not yet for
+  house0/simple_sim — the divergence is the heat-call **source** (gw108 opto vs
+  eGauge whitewire-power vs SimSensor), not whether the channels exist. Target:
+  all three layouts carry `temp`/`set`/`heat-call` (see "The three layout
+  families — the rework, encoded").
 - Spruce is special-cased (no relays, one tank, BTU meters) — house0-shaped
   injection into it fails to load.
 - **`CACS_BY_MAKE_MODEL` — the MakeModel↔CAC-id bijection.** `layout_gen` and

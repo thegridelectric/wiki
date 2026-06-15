@@ -12,6 +12,28 @@ Newest at the top.
 
 ---
 
+## 2026-06-14 — Implement 6 stubbed axiom validators + add examples to 25 schemas (`a8a7f25`)
+
+**What:** Implemented six axiom-validator templates that were `NotImplementedError`
+stubs: `dfr.config`/`ads.channel.config` `CaptureAndPollingConsistency`;
+`pico.flow.module.component.gt` `HwUidPattern`; `pico.tank.module.component.gt` +
+`sim.pico.tank.module.component.gt` `PicoHardwareIdentityXor` /
+`PicoKOhmsConsistency` / `SensorOrderPermutation`;
+`i2c.multichannel.dt.relay.component.gt` `ActorAndRelayIndexUniqueness`. Added a
+minimal, axiom-satisfying `examples:` entry to 25 schemas (the terminal-asset
+snapshot closure) that lacked one. Regenerated runtime + indexes; `172 passed`.
+
+**Why:** the gwta terminal-asset snapshot's round-trip gate could only exercise 2
+of 27 types — the rest lacked examples, and 6 also decoded through stub axiom
+validators that raise. With the validators implemented (the axiom *statements*
+were already published; this only fills in the generator, not a contract change —
+permitted as a runtime-consistency fix) and examples added (non-normative,
+permitted on published versions), a rebuilt snapshot now reports
+"Round-trip OK: 27 sample(s)". `layout.lite/015`'s axiom remains a stub (not in
+the terminal-asset closure; its layout-wide invariant is a larger, separate
+implementation). The axiom logic is new — flag for JM review against the stated
+semantics.
+
 ## 2026-06-14 — Add the Hubitat component pair (sema gap-fill complete) (`b7d2cae`)
 
 **What:** Authored the last five beech/house0 component words sema lacked, bottom-up and flat:

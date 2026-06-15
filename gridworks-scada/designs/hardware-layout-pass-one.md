@@ -2,9 +2,10 @@
 
 Status: Accepted · Pass 1 · Updated 2026-06-14 · Linear: OPS-407
 
-**EDD: no** build-out/refactor — verified by the suite (layouts load + `layout_gen` green
-for BOTH the `house0` and Spruce layouts; `pytest`), not gated on a standalone real-world
-experiment.
+**EDD: yes** the verification that matters now is a real round-trip: scada emits each type,
+publishes to the dev rabbit broker, and gridworks-terminalasset decodes it through its sema
+snapshot. (The earlier in-suite bar — `layout_gen` green for both layouts — still holds as a
+sub-gate, but the round-trip is what proves the contract.)
 
 > What this is: the first critical pass on the scada hardware-layout / components model.
 > Drop the UUID `cac_id`s, replace make/model-as-CAC with a readable `gw1.device.type`
@@ -13,57 +14,100 @@ experiment.
 > **simulated-test-environment** harness and **spruce-unlimbo** Chunk B need it — so it is
 > its own flat Linear issue (OPS-407), referenced by name from both.
 
-## Status (2026-06-14)
+## ▶ DO THIS NEXT — scada↔terminalasset round-trip parity for every snapshot type
 
-Work branch: **`jm/delete-cac-id`** — the tunnel branch, nested
-`jm/spruce-unlimbo → jm/sim-test-env → jm/delete-cac-id` (it contains all of
-`origin/jm/spruce-unlimbo`). Continue here; do not cut off `dev` or `jm/spruce-unlimbo`.
+**Goal:** for every sema type the gwta snapshot carries (27 = 16 published components + the
+node + their closure, at `gridworks-terminalasset/src/gwta/sema`), the scada `gwsproto` can
+build an instance, publish it over the dev rabbit broker, and `gwta.sema`'s codec decodes it
+clean. Only the **Hubitat pair is proven** so far (round-trip green after the Version fix
+below); the other 25 are unverified and likely carry the same class of mismatch.
 
-**Done + green:**
-- **Sema cac→DeviceType** — committed `2d55705`, `0cd2175`. `gw1.device.type` enum; every
-  cac-carrying component bumped to drop `ComponentAttributeClassId` / carry `DeviceType`;
-  draft `*.device.type.gt` records; CACs frozen + `replaced_by`; `gw.nolan.layout` rebound
-  + `DeviceTypeMembership` axiom; `layout.lite/015`.
-- **Sema FlowMeterType** — committed `abc369f`. `pico.flow`/`pico.btu` `001` `FlowMeterType`
-  moved `$ref spaceheat.make.model → formats/pascal.case`, mutated in place (version `001`
-  kept → aggregate layout words don't rebind).
-- **Sema component gap-fill: dfr + ads** — committed `64bce72`, `172 passed`. `dfr.config` +
-  `dfr.component.gt`; `ads.channel.config` (`ThermistorMakeModel → ThermistorDeviceType`) +
-  `ads111x.based.component.gt`; new versioned enum `thermistor.data.method`.
-- **Scada cac→DeviceType migration** — WIP-committed `b0f03292` + `b358a676` (to squash). `ComponentGt` →
-  `DeviceType` (v002); `ComponentAttributeClassGt` → device-type-record base (no `MakeModel`);
-  `hardware_layout` resolution joins by `DeviceType` (records optional); `layout_db` + all 12
-  generators on `Gw1DeviceType`; ~9 actor/driver dispatches moved `cac.MakeModel → DeviceType`;
-  `show_layout` fixed; `CACS_BY_MAKE_MODEL` / `DEVICE_TYPE_BY_MAKE_MODEL` / `db.device_type_for`
-  all dropped. `Gw1DeviceType` enum is **app-code only** — gwsproto sema types keep open
-  `DeviceType: str`.
-- **Sema Hubitat pair — gap-fill complete** — pending commit. Five flat words bottom-up:
-  `maker.api.attribute.gt/000` (snake→Camel re-cased; refs `spaceheat.telemetry.name:007` +
-  `spaceheat.unit:001`), `hubitat.gt/000`, `hubitat.poller.gt/000`, and the two shells
-  `hubitat.component.gt/000` + `hubitat.poller.component.gt/000` (carry `DeviceType`, mirror
-  dfr/ads). The MakerAPI URL/REST machinery turned out to be **computed helpers, not serialized
-  state** — excluded from the contract (noted in each word's `extended_description` and the
-  gwsproto docstrings). `MacAddress` is a plain string (no `mac.address` format — speculative on
-  legacy-only words). `172 passed`; the three top-level types pass the sema decoder cross-check.
+Recipe (extend the `/tmp/rt_{send,capture,decode}.py` harness from the Hubitat round-trip to
+all types):
+1. For each gwsproto type in the snapshot set, build an instance, serialize (`by_alias=True`
+   where the type uses snake fields + camel aliases), and decode through `gwta.sema` — list
+   every mismatch.
+2. Fix the gwsproto type to match its sema word: **Version equal to the sema word's version**
+   (not the inherited `ComponentGt` base), CamelCase serialized fields, no `cac_id`.
+3. Prove the real path: scada publishes to `localhost:1885` (dev rabbit, MQTT, TLS off), a gwta
+   subscriber decodes. Keep the harness as the re-runnable reproducer (EDD evidence).
+4. **Cover old versions, not just latest.** Where scada may still emit a prior version, verify the
+   `decode-old → upgrade() → decode-current` path — the snapshot seed used latest-only, so the
+   upgrade functions for this pass's many version bumps are **untested**; stub/wrong `upgrade()`s
+   fail a real consumer that receives older-version wire data.
 
-**Not done:** the **scada fixture-regen green** (the spruce-unlimbo merge gate).
+**Then, the still-open sub-gates (ordered):**
+- **scada fixture-regen green** — the committed `tests/config/{nolan,house0}-layout.json` carry
+  the old shape; ~8 `tests/named_types/*` reds on missing `DeviceType`. Regenerate the fixtures
+  (blocked on wiring tank sensors — see executor `hardware-layout.md`) + fix the hand-written
+  sample dicts (`ComponentAttributeClassId` → `DeviceType`, per-component judgment) → `pytest`
+  green for both layouts (the spruce-unlimbo merge gate).
+- **layout_gen 3-builder refactor** — `house0_layout_gen` / `nolan_layout_gen` /
+  `simple_sim_layout_gen` over shared tools, names-driven, per the durable intent now in
+  `executor/hardware-layout.md` ("The three layout families"). Deferred; the design intent is
+  captured there.
 
-## ▶ DO THIS NEXT — finish the scada cac→DeviceType green
+Work lives on the scada **`jm/delete-cac-id`** branch (the tunnel
+`jm/spruce-unlimbo → jm/sim-test-env → jm/delete-cac-id`); do not cut off `dev`. The sema and
+terminalasset sides are merged/committed (below).
 
-The scada migration is code-complete but the **committed test fixtures still carry the old
-shape**, so the suite is red on missing `DeviceType`. Run from `gw_spaceheat` (venv at
-`gw_spaceheat/venv`), tests need `PYTHONPATH=gw_spaceheat`. To green:
+## What I've learned (this session)
 
-1. **Regenerate** `tests/config/{nolan,house0}-layout.json` via
-   `gw_spaceheat/layout_gen/genlayout.py mktest` (run from repo root; `LayoutIDMap` now
-   tolerates old-shape src, so it can bootstrap from the existing fixtures).
-2. **Fix the hand-written named-type sample dicts** in `tests/named_types/*` —
-   `ComponentAttributeClassId` → `DeviceType` with the right `gw1.device.type` value
-   (per-component judgment, not mechanical).
-3. **`pytest` green for BOTH layouts** — the spruce-unlimbo merge gate.
-4. **Sema decoder cross-check:** emit each new gwsproto type to JSON and run
-   it through the sema runtime decoder — the real contract check that scada output conforms
-   to the sema schemas, beyond internal green.
+- **EDD caught a real contract bug the in-suite tests could not.** gwsproto's Hubitat
+  components inherited `Version "002"` from `ComponentGt`, but the sema words are `000`, so the
+  sema decoder rejected them (`Unsupported version 002`). The fix: each gwsproto component
+  declares its **own** `Version` matching its sema word (dfr/ads already did; the Hubitat pair
+  didn't). This is the template for step 2 above — expect the same across the other 25.
+- **The sema snapshot is the authoritative version reference, not memory.** `sema snapshot
+  prepare <seed> && sema snapshot build --package-name gwta` emits a restricted runtime into
+  `<consumer>/src/gwta/sema`; drafts are auto-excluded. gwta now decodes all 27. Latest versions:
+  `electric.meter` / `gw108.*` / `web.server` / `i2c.thermistor.reader` = **002**,
+  `i2c.multichannel` = **005**, `pico.tank` = **012**, `pico.flow`/`pico.btu` = **001**,
+  `hubitat.*` / `dfr.*` / `ads.*` / `sim.*` = **000**, `spaceheat.node.gt` = **302**.
+- **Six axiom validators were `NotImplementedError` stubs** (`CaptureAndPollingConsistency`,
+  `HwUidPattern`, `PicoHardwareIdentityXor` / `PicoKOhmsConsistency` / `SensorOrderPermutation`,
+  `ActorAndRelayIndexUniqueness`) — implemented (sema `a8a7f25`). `layout.lite/015`'s axiom is
+  still a stub (not in the terminal-asset closure; larger job).
+- **25 schemas lacked `examples:`** — added axiom-satisfying minimal examples so the snapshot
+  round-trips all 27. Examples are non-normative (permitted on published versions).
+- **`make_model` is fully gone from gwsproto** (`ThermistorMakeModel` → `ThermistorDeviceType`;
+  `FlowMeterType` → open `str`). The umbrella `tlayouts/gen_*.py` hand-scripts still import
+  `MakeModel` and will break until folded into the builders — expected (they are being retired).
+- **The dev rabbit broker runs locally** (`gw-dev-rabbit` container; MQTT `localhost:1885`, TLS
+  off). The Rabbit MQTT plugin turns topic dots into slashes; payloads are intact.
+- **Version bumps owe upgrade functions — the sema prep should make this loud.** This pass
+  bumped many component versions (`ComponentGt`/electric.meter/gw108.* → v002, etc.). Each new
+  version owes a correct old→new `upgrade()`, and — exactly like the axiom validators — these are
+  easy to leave as stubs. The snapshot's `decode-old → upgrade() → decode-current` leg is what
+  exercises them, but the gwta seed used **latest-only** (`{}`), so that leg never ran. Whenever
+  a consumer (gwta, the LTN) receives an **older-version** instance off the wire, a stub/wrong
+  upgrade fails the decode. So `sema snapshot prepare` (and the per-word ritual) ought to surface
+  "you bumped a version → implement/verify its upgrade()" as plainly as it surfaces the example
+  gap. **Owed:** audit the upgrade functions for every version bumped this pass.
+
+## What's landed
+
+**Sema (merged via PR #27 into `jm/sim-vocab`):**
+- `2d55705`, `0cd2175` — `gw1.device.type` enum; every cac-carrying component bumped to drop
+  `ComponentAttributeClassId` / carry `DeviceType`; draft `*.device.type.gt` records; CACs
+  frozen + `replaced_by`; `gw.nolan.layout` rebound + `DeviceTypeMembership` axiom; `layout.lite/015`.
+- `abc369f` — `pico.flow`/`pico.btu` `FlowMeterType` moved to `formats/pascal.case` (in place, v001).
+- `64bce72` — dfr + ads gap-fill (`dfr.config`/`dfr.component.gt`, `ads.channel.config` with
+  `ThermistorDeviceType`/`ads111x.based.component.gt`, `thermistor.data.method`).
+- `b7d2cae` — the Hubitat pair (`maker.api.attribute.gt`, `hubitat.gt`, `hubitat.poller.gt`, +
+  the two component shells). MakerAPI URL/REST machinery is computed helpers, not serialized.
+- `a8a7f25` — 6 axiom validators implemented + examples on 25 schemas (snapshot round-trips all 27).
+
+**Scada (`jm/delete-cac-id`):**
+- `b0f03292` + `b358a676` (to squash) — the cac→DeviceType migration: `ComponentGt` → `DeviceType`
+  (v002); `ComponentAttributeClassGt` → device-type-record base; resolution joins by `DeviceType`
+  (records optional); `layout_db` + 12 generators on `Gw1DeviceType`; `CACS_BY_MAKE_MODEL` dropped.
+- `b23b07af` — `make_model` removed from gwsproto; relay `AsyncCaptureDelta`; `names/simple_sim/`.
+- `609e098f` — Hubitat components declare `Version 000` (the round-trip fix).
+- `b7a6e5a3` — gwsproto docstrings: MakerAPI helpers stay app-code.
+
+**gridworks-terminalasset (`jm/ta-sema-snapshot`):**
+- `b264c6a` — the sema snapshot at `src/gwta/sema` (all 27 types decode via `gwta.sema`).
 
 ## The device-type model (the durable contract)
 
@@ -112,14 +156,13 @@ pass two:** the full `ChannelConfig` / config-list overhaul and `TelemetryName �
 **`gw1.simple.sim.layout`** — the simplest plant that is still a thermal-storage heat-pump system,
 built from the sim components — is the first shared `hardware-layout.json` both sides stand up
 against. It is authored in the **simulated-test-environment** design (`build-plant.md`, "The first
-sema layout word"), not here: it carries today's `hardware_layout.py` structural validations as
-axioms and is fully wired (the complete `ConfigList` of every component), but **none** of the
-house-specific or `DeviceTypeRecordAlignment` axioms, and it does not complete `gw.nolan.layout` or
-start `gw.house0.layout`. The durable principle it rests on — *the layout encodes the plant's
+sema layout word"), not here. The durable principle it rests on — *the layout encodes the plant's
 sense/control surface; the scada protocols share + disambiguate, grounded in the thermal-storage
 heat-pump domain; three diverse layouts are the forcing function* — lives in
-`executor/hardware-layout.md`. What **this** pass owes that work is the migrated, flat **component
-vocabulary** (including the sim components) the layout is built from.
+`executor/hardware-layout.md` ("The three layout families"), which now also carries the durable
+intent for the house0 / nolan / simple_sim builders, the `temp`/`set`/`heat-call` zone invariant,
+and the per-layout heat-call detection mechanisms. What **this** pass owes that work is the
+migrated, flat **component vocabulary** (including the sim components) the layout is built from.
 
 **Decision (2026-06-14): the ConfigList revamp is NOT pulled forward.** Tempting — we are
 already in these files and it would avoid another version bump — but `TelemetryName` is
@@ -155,8 +198,7 @@ thermostat, dual Krida I2C relay boards, DFRobot pump DACs, ~47 ShNodes) vs Spru
 GW108-unified stack (~30 ShNodes).
 
 **Sema component gap-fill (beech coverage):** a beech layout (`tlayouts/output/`) names 11
-`*.component.gt` types; four were missing from sema (Phase 1 added some device-type *records*
-but missed these *components* + configs). **dfr + ads + Hubitat all done** (above) — the
+`*.component.gt` types; four were missing from sema. **dfr + ads + Hubitat all done** — the
 component gap-fill is complete. `near5` deliberately not added as a format (`OpenVoltageByAds`
 is a bare number array).
 
@@ -166,11 +208,11 @@ A sizeable chunk depended on by **two** larger designs becomes its own flat issu
 shared-dependency rule), referenced by name from each — keeping Linear flat and the work
 explainable. Dependents:
 - **simulated-test-environment** — Phase A needs the new component shape to stand up the sim
-  layout; the device-type model lives here.
+  layout; the device-type model lives here. The gwta sema snapshot (now landed) is what the
+  terminalasset side decodes against.
 - **spruce-unlimbo Chunk B** — the `layout_gen` restructuring + the merge gate "layout
   generation green for both the `house0` and Spruce layouts."
-- **The gwbase'd LTN** — will want the same shared sema hardware layout.
-  A third consumer: the more nodes that read the layout, the more "fix the contract once, now"
-  amortizes — and the more debt is avoided by not building against the old cac/make-model shape.
+- **The gwbase'd LTN** — will want the same shared sema hardware layout. The more nodes that
+  read the layout, the more "fix the contract once, now" amortizes.
 
 It is also the "critical pass" `executor/hardware-layout.md` already anticipated.

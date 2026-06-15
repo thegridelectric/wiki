@@ -12,6 +12,50 @@ Newest at the top.
 
 ---
 
+## 2026-06-14 — gwsproto: Hubitat components declare Version 000 (`609e098f`)
+
+**What:** `HubitatComponentGt` and `HubitatPollerComponentGt` now declare
+`Version: Literal["000"] = "000"` instead of inheriting `ComponentGt`'s `"002"`
+(dfr/ads component types already had this override).
+
+**Why:** A round-trip experiment (generate from gwsproto → publish to the dev
+rabbit broker → capture → decode through the sema runtime) caught the bug: the
+sema words `hubitat.component.gt` / `hubitat.poller.component.gt` are version
+`000`, so the inherited `002` made the sema decoder reject the messages
+("Unsupported version 002"). With the override both components decode clean
+(2/2). EDD paying off — the contract mismatch was invisible to in-process tests
+that don't cross the sema boundary.
+
+## 2026-06-14 — gwsproto: remove MakeModel; relay AsyncCaptureDelta; names/simple_sim (`b23b07af`)
+
+**What:** Completed the `make_model` removal at the gwsproto type level: `AdsChannelConfig`
+and `multi.py`'s TSnap config moved `ThermistorMakeModel: MakeModel` →
+`ThermistorDeviceType: str`; `btu.py`/`flow.py` moved `FlowMeterType: MakeModel` → `str`
+(`Gw1DeviceType.SaierFlowSensor` / `.EkmFlowMeter`); the `MakeModel` enum was deleted and
+unexported, one test dict key renamed. Also: added `AsyncCaptureDelta=1` to the 14 house0
+relay configs in `relay.py` (they set `AsyncCapture=True` but RelayActorConfig v003's Axiom 1
+now requires the delta — the generator had drifted from the committed fixture). Added a new
+`names/simple_sim/` package (`opto_input` + `gw_temp`, mirroring nolan).
+
+**Why:** `make_model` is retired across the hardware-layout vocabulary — device identity is the
+`gw1.device.type` `DeviceType` now (sema side merged in PR #27). Doing the gwsproto type
+migration cleanly first makes the eventual sema-generated upgrade graceful. The relay fix
+unblocks house0 layout generation; `names/simple_sim/` seeds the third layout family. Imports
+green, 117 tests collect. The umbrella `tlayouts/gen_*.py` hand-scripts still import
+`MakeModel` and will break until folded into the new builders (expected — they are being
+retired). OPS-407.
+
+**What:** Docstrings only (no functional change) on `HubitatGt` and `HubitatComponentGt`:
+record that the MakerAPI URL helpers (`url_config` / `maker_api_url_config` / `refresh_url` …)
+are computed in app code, are NOT part of the `hubitat.gt` / `hubitat.component.gt` sema
+contract, and will NOT be generated when these types are regenerated from sema in the proactor
+port — they must keep living in app code.
+
+**Why:** The matching sema words were just authored (sema `b7d2cae`); the URL machinery turned
+out to be derived helpers, not serialized state. The note keeps the next agent (and the proactor
+port) from assuming a sema-generated dataclass will carry these methods. Also flags that this
+vocabulary serves the five legacy House0 homes with no forward expansion.
+
 ## 2026-06-14 — Hardware-layout pass one: cac_id → DeviceType migration (WIP `b0f03292`, `b358a676`)
 
 **What:** The scada side of the cac→DeviceType migration, landed as two WIP commits (to be

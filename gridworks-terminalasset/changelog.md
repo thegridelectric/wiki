@@ -12,7 +12,23 @@ Newest at the top.
 
 ---
 
-## 2026-06-11 — hello world
+## 2026-06-14 — Add sema snapshot at gwta/sema (`b264c6a`)
+
+**What:** Generated a restricted sema runtime snapshot into `src/gwta/sema/`
+(import root `gwta.sema`): the codec + base + property_format + the type/enum
+runtime for the closure of every **published** `*.component.gt` (16 of them) plus
+`spaceheat.node.gt`, expanded to their dependency closure (27 types + enums +
+formats). Built with `sema snapshot prepare <seed> && sema snapshot build
+--package-name gwta`; the build's round-trip gate passed. `SemaCodec` imports and
+decodes from the terminalasset venv.
+
+**Why:** the terminal asset needs to decode/encode the latest component vocabulary
+without depending on the full sema registry. This snapshot is the authoritative
+reference for the latest component shapes/versions (it is what gwsproto should
+match). Drafts (`gw108.gpio.relay.component.gt`) are excluded by the snapshot
+builder. Caveat: only 2 of the seeded types carry schema `examples`, so the
+build-time round-trip self-test exercised 2 samples — broaden by adding examples
+to the component schemas in sema.
 
 **What:** uv project scaffold (src layout, hatchling, pytest + ruff,
 `gridworks-base>=0.5.2` from PyPI — no pin needed, gwbase dev == v0.5.2)
