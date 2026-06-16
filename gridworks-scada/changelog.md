@@ -12,6 +12,26 @@ Newest at the top.
 
 ---
 
+## 2026-06-16 — prep for house0_sema_gen (`7697db49`)
+
+**What:** Added the sema-native House0 layout generator and its diff harness in `gw_spaceheat/`.
+`house0_sema_gen.py` builds a `gw.house0.layout` Sema object directly from a config
+(`sema_gen(config, reference)`), pulling stable IDs by name from a reference layout via `LayoutIDMap`
+(the same mechanism the old dc gen uses); this skeleton emits GNodes, the Hydronic block, the 14
+invariant system-actor nodes, and the power-meter device-type/component/nodes/`*-pwr` channels.
+`house0_sema_gen_check.py` diffs `sema_gen(config) == dc_to_sema(load(reference))` and prints the
+field-level gap. Also fixed two bugs in the `gwsproto/names/` hierarchy surfaced by running the gen:
+`House0NodeNames.__init__` called `House0ZoneNodeNames(zone, idx+1)` (arity mismatch — the class takes
+only `idx`); and `HydronicSpaceheatNodeNames` carried malformed SpaceheatNames `hp_idu`/`primary_flow`
+(underscores → hyphens, which fail the SpaceheatName format).
+
+**Why:** Task a of hardware-layout-pass-one — a sema-native gen is the **fixture factory** for the
+layout-axiom counterexample tests (only it can emit a layout that *violates* a `gw.house0.layout`
+axiom, since the dc loader's Python guards raise before the sema codec runs) and the parallel the
+`sema_gen == dc_to_sema(load(...))` equivalence is checked against. The diff harness is the EDD driver:
+generate → observe the gap → close it. The names fixes are the underscore-format bugs the design
+predicted this pass would surface. (OPS-407.)
+
 ## 2026-06-16 — mark required-node layout properties as design-brainstorm, not used yet (`a82e714c`)
 
 **What:** Added "DESIGN BRAINSTORM — NOT USED YET" docstrings to `House0Layout.required_topology_nodes`

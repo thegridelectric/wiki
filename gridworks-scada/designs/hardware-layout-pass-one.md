@@ -58,6 +58,22 @@ axiom tests.
 - **▶ Task a (ACTIVE) — the sema-native layout gen.** Generate `gw.house0.layout` directly from
   config and validate `sema_gen(config) == dc_to_sema(load(old_dc_gen(config)))` for the fleet
   configs; then drive the scada ↔ gwta round-trip off a *generated* sema layout. Blueprint below.
+  **In flight:** the gen + its diff harness landed —
+  `gw_spaceheat/house0_sema_gen.py` (`sema_gen(config, reference)`, stable IDs pulled by name from a
+  reference layout via `LayoutIDMap`) and `gw_spaceheat/house0_sema_gen_check.py` (diffs
+  `sema_gen == dc_to_sema(load(reference))`; the printed diff IS the remaining-builders worklist —
+  generate → observe gap → close it). First equivalence target is the **stub `house0-layout.json`**
+  (the only config the old gen reproduces; real fleet jsons are frozen captures with no per-house gen),
+  then build up to maple. **Skeleton emits & matches:** GNodes, Hydronic, the 14 system-actor nodes,
+  the power-meter device-type/component/nodes/`*-pwr` channels. **Worklist (gap to close):** the relay
+  bank (i2c multichannel relay component + relay nodes + relay-state channels), hubitat + poller +
+  thermostat zone channels, the two sim tanks + buffer (`sim.pico.tank.module` components + depth nodes
+  + device/micro-v channels), the dfr 010V component + channels, and the 8 DerivedChannels (energy +
+  tank/buffer calibration). **Names-hierarchy bugs found & fixed along the way** (`gwsproto/names/`):
+  `House0NodeNames.__init__` called `House0ZoneNodeNames(zone, idx+1)` (arity mismatch); and
+  `HydronicSpaceheatNodeNames` had malformed SpaceheatNames `hp_idu`/`primary_flow`/`vdc_relay`
+  (underscores → hyphens — all fixed; House0 overrides `vdc_relay` to `relay1` anyway, but the base
+  hydronic value is now well-formed too).
 - **Task b (QUEUED) — finish the layout axioms.** Port the structural validations
   (`house_0_layout.py`) into sema axioms (House0 only this pass), keeping the round-trip green at each
   addition, **and** adding a generated counterexample test per axiom (via the Task-a gen) proving it
