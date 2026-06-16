@@ -12,7 +12,191 @@ Newest at the top.
 
 ---
 
-## 2026-06-15 — Tank calibration v001 + retire stored TankTempCalibrationMap from layout (`5e6008df`)
+## 2026-06-16 — mark required-node layout properties as design-brainstorm, not used yet (`a82e714c`)
+
+**What:** Added "DESIGN BRAINSTORM — NOT USED YET" docstrings to `House0Layout.required_topology_nodes`
+and `required_system_actor_nodes` (`data_classes/house_0_layout.py`), noting they are enforced
+nowhere, are written in legacy `H0N` terms, and are already known too strict (maple runs `hp_odu`-only,
+no `hp_idu`, yet is still House0).
+
+**Why:** these two properties are a first-guess spec of what the five production homes need to run, to
+be reworked into real per-layout sema axioms in hardware-layout-pass-2 (after `H0N` is dropped). The
+docstrings stop a reader mistaking them for live validation. (OPS-407.)
+
+## 2026-06-15 — bring back thoughts on scada device type gt (`d4608cfd`)
+
+**What:** Added two gwsproto files sketching the gw108 SCADA-board device type. `named_types/
+scada_device_type_gt.py` defines `ScadaDeviceTypeGt` (`gw1.scada.device.type.gt/001`, a transitional
+type extending `ComponentAttributeClassGt`) plus its config sub-models — `I2cBitAddress`
+(I2cAddress/Register/BitIndex), `I2cRelayConfig` (address + `SupportedWiringConfigs` + Notes),
+`I2cAdcConfig`, `I2cThermistorInterfaceConfig`, `I2cDacConfig`, `NativeGpioConfig` (name→BCM-pin
+in/out maps). `data_classes/device_types/gw1_scada_gw108.py` is the concrete `gw108_device_type`
+instance: native GPIO (zone whitewires + shutdown in; tstat-power/Vdc/watchdog/power-off out), the
+full I2C relay bank on expanders `0x20`/`0x21` (zone failsafe + scada relays, buffer/store heating
+elements, heat-pump enable, boiler-buffer valve, misc), the CT ADC (`0x48`, ADS1115), one thermistor
+ADC (`0x49`, 5.65 kΩ pullup), and the zones DAC (`0x60`, MCP4728).
+
+**Why:** captures how the gw108 hardware board is actually wired and how the Nolan relay structure
+should be fleshed out — the device-type record the hardware-layout pass-one work points at as the
+lens for the Nolan layout refactor. Brought back as reference for that build-out; not yet wired into
+a layout. (OPS-407.)
+
+## 2026-06-15 — patch layout roundtrip script (`e48393be`)
+
+**What:** Flipped the focused layout round-trip to **scada-originated**: removed the scada returner
+(`gw_spaceheat/layout_roundtrip_return.py`) and added a driver (`gw_spaceheat/layout_roundtrip.py`)
+that loads a real dc layout JSON (default `tests/config/maple.json`), converts it to the
+`gw.house0.layout` sema type via the house0 bijection, ships it to gwta (shelling out to the
+terminalasset venv), decodes the return through gwsproto, and compares — with a channel-level diff
+reporter (the thing that surfaced the `SecondsX10` degradation).
+
+**Why:** the round-trip should start from a real deployed-style layout (a dc), not a gwta-built
+minimal instance — so it proves scada↔gwta wire agreement end-to-end from `maple.json`. Pairs with the
+gwta returner (gridworks-terminalasset `a83b8614`).
+
+## 2026-06-15 — cleaning up gwsproto enums (`096c5f21`)
+
+**What:** Brought the gwsproto enums and `derived.channel.gt` into faithful agreement with the gwta
+snapshot. Enums: bumped `gw1.unit` 000→001 (added `Seconds`, `SecondsX10`, `Milliseconds`), `gw1.quantity`
+000→001 (added `Time`), `gw1.actor.class` 011→012 (added `SimSensorActor`, `SimRelayActor`); ported the
+missing `i2c.adc.channel` (v000); added the matching `UNIT_TO_QUANTITY` rows (the three time units →
+`Time`). Normalized every gwsproto enum so its docstring `Sema:` URL version equals its `enum_version()`
+classmethod (added the method where only `version()` or a bare docstring existed; left genuinely
+version-less enums alone). Ported `gw1.unit.quantity.projection` as `UnitQuantityProjection`
+(`named_types/unit_quantity_projection.py`). `derived.channel.gt`: made `OutputUnit`/`OutputQuantity`/
+`InputChannelNames` required and replaced the bespoke validators with `check_axiom_1..4` copied verbatim
+from gwta (PascalCase); the sieg `hp-keep-seconds-x-10` channel now carries `OutputUnit=SecondsX10`
+(→ `OutputQuantity=Time`); gens set `OutputQuantity=UnitQuantityProjection.project(OutputUnit)` at each
+site. Also finished the `AslEnum`→`SemaEnum` rename (three straggler refs in `actors/relay.py`,
+`actors/i2c_relay_multiplexer.py`, the `gw_str_enum.py` docstring) and regenerated the sieg-loop
+fixtures (`maple`, `beech`).
+
+**Why:** the earlier `derived.channel.gt` "Optional OutputUnit" was a symptom of gwsproto's `gw1.unit`
+lagging gwta — it lacked `SecondsX10`, so the one trigger-only channel had no unit to name. Syncing the
+enums makes the unit expressible and lets the type match gwta's contract exactly (required fields + the
+unit↔quantity projection axiom), closing the last ⚠️ in the hardware-layout pass-one type checklist.
+Scada suite green (114 passed, 3 skipped; the lone `test_async_power_update` failure is a pre-existing
+timing flake, passes in isolation). (OPS-407.)
+
+## 2026-06-15 — rip out all cac references; update components (`9e258d01`)
+
+**What:** Deleted the legacy ComponentAttributeClass ("cac") machinery from `gwsproto` and switched
+the loader + gens to the device-type model. Gone: `CacDecoder` (→ `DeviceTypeDecoder`, regex
+`.*\.device\.type\.gt`), the `*.cac.gt` types (`ads111x.based.cac.gt`, `electric.meter.cac.gt`,
+`resistive.heater.cac.gt`), `ComponentAttributeClassGt` / `component.attribute.class.gt`, the
+`cacs.py` union, and every `ComponentAttributeClassId`. The loader's `cacs`/`load_cacs`/`.cac` became
+`device_types`/`load_device_types`/`.device_type`; the four `*Cacs` layout buckets collapsed to the
+single gwta `DeviceTypes` list; `layout_db.add_cacs` → `add_device_types`. Record-bearing families
+(ads111x, electric.meter, gw1.scada) emit real `*.device.type.gt` records; record-less families read
+identity off `component.gt.DeviceType`. Also: `derived.channel.gt` bumped v001→v002 (`OutputQuantity`,
+auto-derived from `OutputUnit`); `web.server.component.gt` pinned to v002; the divergent
+`scada_device_type_gt.py` (v001) dropped for the new `gw1_scada_device_type_gt.py` (v000);
+`house0_bijection` `DeviceTypes` is now a trivial passthrough. Incidental: `vdc_relay_name` reads
+`self.hydronic.Strategy` (fixes a latent break fixture-regen exposed).
+
+**Why:** every gwsproto component type already carried the open `DeviceType` string and the loader
+already keyed "cacs" by `DeviceType` — the cac layer was dead weight pretending to be a contract that
+no gwta type matches. Removing it makes `dc_to_sema` trivial (the round-trip blocker) and aligns
+gwsproto to the gwta `gw.house0.layout` wire shape. Scada suite green (114 passed, 3 skipped),
+dc→sema→dc bijection lossless, all six gens load. One open divergence: gwta `derived.channel.gt` v002
+makes `OutputUnit`/`OutputQuantity` required, gwsproto keeps them Optional for trigger-only channels —
+flagged in the hardware-layout pass-one checklist for a decision. (OPS-407.)
+
+## 2026-06-15 — Support maple sieg-loop config: sum + integrate-relay-motion derived-channel strategies (`fe4e1794`)
+
+**What:** Two changes so the `use_sieg_loop=True` (config-3) gen path works (maple is the first
+layout to exercise it): (1) `hardware_layout.validate_derived_channels` gained `case "sum"`
+(validate ≥2 `InputChannelNames` + `EmissionMethod.OnTrigger` — maple's derived `primary-flow =
+sieg-send + sieg-flow`) and `case "integrate-relay-motion"` (the SiegLoop-produced
+`hp-keep-seconds-x-10` channel; derived-generator skips it). (2) Fixed that channel's definition in
+`layout_db.add_stub_scadas` — `Strategy` was `"Integrate relay motion"` (invalid `SpaceheatName`,
+spaces) and `EmissionMethod` was missing; now `"integrate-relay-motion"` + `OnTrigger`.
+
+**Why:** the sieg-loop gen path was never validated before (no layout ran `use_sieg_loop=True`); both
+were latent breaks the maple config-3 build-out surfaced. With them, maple's dc gen loads, the full
+actor stack instantiates, and `dc_to_sema` produces a clean sema layout (`PrimaryFlowSource=
+DerivedSiegSum`, the `sum` `primary-flow` channel). Scada suite green (114). (hardware-layout
+pass-one, OPS-407.)
+
+## 2026-06-15 — add hydronic to layout in layout_gen (`d31b2918`)
+
+**What:** `LayoutDb.dict()` now folds the flat hydronic keys the per-device builders write
+(`ZoneList`/`CriticalZoneList`/`ZoneKwhPerDegFList`/`TotalStoreTanks`/`FlowManifoldVariant`/
+`UseSiegLoop`/`Strategy`) into the typed nested `"Hydronic"` block (`gw.house0.hydronic` shape:
+`Zones` of `gw1.hvac.zone`, `SiegLoopPlumbed`, `PrimaryFlowSource`, …) via a new `_nest_hydronic`.
+The builders keep reading the flat `misc` keys during generation (e.g. `add_house0_relays` reads
+`misc["ZoneList"]`), so only the *output* shape changed. Added `StubConfig.primary_flow_source`
+(default `"Measured"`).
+
+**Why:** the generated/deployed layout now carries the same typed `Hydronic` structure the dc + sema
+use, so `gen → dc.load → dc_to_sema → gwta` runs on the typed shape end-to-end. Verified: gen produces
+a nested layout, the dc reads `self.hydronic`, `dc_to_sema` has no gaps; committed flat fixtures still
+load via the dc dual-read; scada suite green (114). (hardware-layout pass-one, OPS-407.)
+
+## 2026-06-15 — House0 dataclass: carry typed gw.house0.hydronic; bijection writes nested Hydronic; add sieg_send name (`1efa487c`)
+
+**What:** `House0Layout` (data class) now builds and carries `self.hydronic: GwHouse0Hydronic`
+(`_build_hydronic`): it reads the nested `"Hydronic"` block if present, else builds the typed
+hydronic from the legacy flat top-level keys (`ZoneList`/`FlowManifoldVariant`/… — transitional,
+dual-read). The flat accessors (`self.zone_list`, `self.critical_zone_list`,
+`self.zone_kwh_per_deg_f_list`, `self.total_store_tanks`, `self.use_sieg_loop`,
+`self.flow_manifold_variant`) are now **derived from `self.hydronic`** so the actor sites are
+untouched (a later sweep moves those references onto `self.hydronic.*`). `load_args` reads the sieg
+topology from the typed `Hydronic` too. The dc→sema map (`house0_bijection.dc_to_sema`) now just uses
+`dc.hydronic`, and `sema_to_layout_dict` writes the nested `"Hydronic"` block (not flat keys), so
+`dc → sema → dc` is lossless again (it broke when `House0Layout.Hydronic` became typed). Also fixed a
+`sieg_send` typo (`HNN.seig_send` → `HNN.sieg_send`) in `hydronic_spaceheat/channel_names.py`.
+
+**Why:** the dc structure now matches the sema layout (the hydronic type lives on the dataclass), so
+the dc→sema bridge — the validation reference for the forthcoming parallel sema gen — is clean and
+the bijection round-trip holds. `dc → sema → dc` lossless, scada ↔ gwta round-trip green, scada suite
+green (114). (hardware-layout pass-one, OPS-407.)
+
+## 2026-06-15 — gwsproto: port gw1.hvac.zone + gw.house0.hydronic + primary-flow-source enum; type House0Layout.Hydronic (`964f32b8`)
+
+**What:** Hand-ported the three new sema words into gwsproto to match the gwta snapshot:
+`enums/gw_house0_primary_flow_source.py` (`GwHouse0PrimaryFlowSource`: `Measured` | `DerivedSiegSum`,
+an `AslEnum`), `named_types/gw1_hvac_zone.py` (`Gw1HvacZone`: `Name`/`Critical`/`KwhPerDegF`), and
+`named_types/gw_house0_hydronic.py` (`GwHouse0Hydronic`: `Zones`/`TotalStoreTanks`/`UseSiegLoop`/
+`SiegLoopPlumbed`/`PrimaryFlowSource`/`Strategy` + axiom `UseSiegLoop ⟹ SiegLoopPlumbed`). Changed
+`House0Layout.Hydronic` from `Optional[dict]` to `Optional[GwHouse0Hydronic]`. Exports added.
+
+**Why:** the gwsproto wire type now mirrors the gwta snapshot's typed `gw.house0.layout` (the
+hand-port step of the sema→gwta→gwsproto loop) instead of passing Hydronic through as a freeform
+dict. Full typed Hydronic decodes + re-encodes PascalCase, the axiom fires, the house0 + simple.sim
+round-trips stay green, scada suite green (114). Nolan's Hydronic stays freeform in both gwta and
+gwsproto (unchanged) — it adopts `gw1.hvac.zone` when its hydronic is promoted. (hardware-layout
+pass-one, OPS-407.)
+
+## 2026-06-15 — derived_generator: add the `sum` derived-channel strategy (`9fb6d584`)
+
+**What:** Added `handle_sum` to `DerivedGenerator` (registered as strategy `"sum"`, with an
+init-time check that the inputs share one unit). It emits `dc.Name = Σ InputChannelNames` — reading
+the fresh input payload plus the cached latest of the other inputs (`self.data.latest_channel_values`)
+and waiting, emitting nothing, until every input has been seen. Generic (no per-house names).
+
+**Why:** the active path needs a `sum` strategy so a Siegenthaler-loop house can derive
+`primary-flow = sieg-send + sieg-flow` (replacing the removed `hack_maple_primary_flow`). This is the
+strategy half; the per-house *wiring* (declaring the derived channel in the gen) is separate and
+currently blocked on a domain question (no house's gen is in the derived-sum config yet — see the
+design). `test_derived` green; scada suite green (`test_power_meter::test_async_power_update` is a
+pre-existing async-timing flake, unrelated). (hardware-layout pass-one, OPS-407.)
+
+## 2026-06-15 — Serialize layout poller by_alias (PascalCase) in bijection + round-trip adapters (`4c0d497b`)
+
+**What:** Added `by_alias=True` to the layout `model_dump(...)` calls in `gw_spaceheat/house0_bijection.py`
+(the dc→sema bijection adapter) and `gw_spaceheat/layout_roundtrip_return.py` (the scada round-trip
+return). The Hubitat poller types (`HubitatPollerGt` / `maker.api.attribute.gt`) use snake_case
+python fields with `alias_generator=snake_to_camel`, so a plain `model_dump` emitted snake_case keys
+(`hubitat_component_id`, `attribute_name`, …); `by_alias=True` emits the PascalCase wire names. GNode
+types are PascalCase-native (no alias) so the GNode round-trip stays identical.
+
+**Why:** the parked "bijection adapter serializes the poller by_alias" gap — snake_case poller keys
+are non-PascalCase and were what fed the bad `gw.house0.layout` sema example (since corrected). The
+deployed-layout writer (`LayoutDb.dict()`) already uses `by_alias=True`, so deployed fixtures +
+tlayouts outputs were already PascalCase (no regen needed); this aligns the bijection/round-trip
+adapters. Bijection harness green (GNode round-trip identical, poller now PascalCase); scada suite
+green (114 passed); house0 + simple.sim round-trips green. (hardware-layout pass-one, OPS-407.)
 
 **What (calibration v001):** Aligned gwsproto with the sema v001 calibration:
 `LinearOneDimensionalCalibration`, `TankTempCalibration`, `TankTempCalibrationMap` → v001 with

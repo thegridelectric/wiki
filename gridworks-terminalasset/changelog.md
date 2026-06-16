@@ -12,6 +12,61 @@ Newest at the top.
 
 ---
 
+## 2026-06-16 — rebuild sema snapshot for gw.house0.hydronic Cardinality axiom (`748f5d4`)
+
+**What:** Rebuilt the gwta sema snapshot (`src/gwta/sema/`) from the sema source after
+`gw.house0.hydronic/000` gained axiom 2 `Cardinality` — `house0_hydronic.py` now carries
+`check_axiom_2` (1 ≤ TotalStoreTanks ≤ 6; 1 ≤ |Zones| ≤ 6).
+
+**Why:** keep terminalasset enforcing the same layout invariants as sema — step 2 of the layout
+working loop (sema edit → snapshot to gwta). The scada↔gwta layout round-trip stays green for all
+five House0 fleet layouts. (OPS-407.)
+
+## 2026-06-15 — patch layout roundtrip test (`a83b8614`)
+
+**What:** Flipped the gwta side of the layout round-trip to the **returner** role: removed the old
+gwta-driver (`layout_roundtrip.py`) and added `layout_roundtrip_return.py` — decode a sema layout
+through the gwta snapshot and re-encode it.
+
+**Why:** scada now originates the round-trip from a real dc layout; gwta's job is just the
+decode + re-encode return leg. Pairs with gridworks-scada `e48393be`.
+
+## 2026-06-15 — SpaceheatTelemetryName -> TelemetryName (`564298c`)
+
+**What:** Regenerated the gwta snapshot with one added local-name override:
+`spaceheat.telemetry.name` now generates class `TelemetryName` (`enums/telemetry_name.py`) instead
+of `SpaceheatTelemetryName`. `spaceheat.unit` deliberately stays `SpaceheatUnit` (the override is
+scoped to telemetry.name only). The rename ripples through every type referencing the enum
+(`data.channel.gt`, `maker.api.attribute.gt`, the device-type records, the telemetry-quantity
+projection, …) plus the recorded `local_names.yaml` / `seed_request.yaml`. Wire identities unchanged.
+
+**Why:** shorter, cleaner name for the most-referenced enum; the seed-request `overrides` mechanism
+keeps it distinct from `spaceheat.unit`. Generated from the sema `gwta_seed_request.yaml` override via
+`build_gwta_snapshot.sh`.
+
+## 2026-06-15 — using local names (`dfbca74`)
+
+**What:** Regenerated the gwta Sema snapshot with de-prefixed local (Python) class/module names —
+`Gw1Unit → Unit`, `Gw1Quantity → Quantity`, `Gw1ScadaDeviceTypeGt → ScadaDeviceTypeGt`,
+`Gw1UnitQuantityProjection → UnitQuantityProjection`, `GwHouse0Hydronic → House0Hydronic`, … with
+`gw108.*` left intact — driven by the seed request's `local_names` rule (`strip_prefixes: [gw1, gw]`).
+The snapshot also picks up `derived.channel.gt/002`'s repointed enum deps (`gw1.unit/001` +
+`gw1.quantity/001`, so `SecondsX10`/`Time` are representable) and now records the original
+`seed_request.yaml`. Dotted `TypeName` wire identities are unchanged.
+
+**Why:** settle the cleaner de-prefixed class names now, before terminalasset code is written against
+them (no later rename churn), and make the scada↔gwta layout round-trip lossless for the sieg
+time-unit derived channel. Generated from sema `14fdfbc` via `build_gwta_snapshot.sh`.
+
+## 2026-06-15 — layout_roundtrip: accept a full layout JSON file (`8e79caa`)
+
+**What:** `layout_roundtrip.py` now takes either a type name (minimal `{TypeName, Version}` stub, as
+before) or a path to a `.json` file holding a full layout, which it sends gwta → scada → gwta.
+
+**Why:** to round-trip a **real** sema layout (e.g. maple's full `gw.house0.layout` from the dc→sema
+bijection) end-to-end, not just the minimal stub — "the round-trip works for the sema layouts."
+(hardware-layout pass-one, OPS-407.)
+
 ## 2026-06-15 — create gw.house0.hydronic; fix hubitat snake case (`37d811f`)
 
 **What:** Re-ran `build_gwta_snapshot.sh` to regenerate the gwta Sema snapshot from `sema`

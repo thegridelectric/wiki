@@ -12,6 +12,61 @@ Newest at the top.
 
 ---
 
+## 2026-06-16 — start adding house0 layout axioms (`899f79b`)
+
+**What:** Added axiom 2 `Cardinality` to `gw.house0.hydronic/000` (unpushed → mutable in place, no
+version bump): (a) `1 ≤ TotalStoreTanks ≤ 6`, (b) `1 ≤ |Zones| ≤ 6`. Implemented `check_axiom_2` in
+the runtime axiom template (`templates/axioms/gw_house0_hydronic_000.py.jinja2`) and regenerated
+runtime + indexes; aligned the `TotalStoreTanks` field description (was "0..6") to the enforced
+1..6.
+
+**Why:** first slice of hardware-layout pass-one Task a — porting the scada dc loader's structural
+validations (`house_0_layout.py:100–103`, the 1–6 tank/zone guards) into sema axioms so sema is the
+source of truth. Bare `minimum`/`maxItems` are forbidden by sema's primitive-constraint rule, so an
+axiom is the carrier. Verified: sema suite green (220 passed), and all five House0 fleet layouts
+(maple/beech/elm/oak/fir) still round-trip scada→gwta→scada unchanged with the axiom enforced. A
+generated counterexample test (proving the axiom *catches* a violation) is owed once the sema-native
+layout gen (Task b) lands. (OPS-407.)
+
+## 2026-06-15 — fixing local names and patching derived channel (`14fdfbc`)
+
+**What:** (1) **Local names** — replaced the snapshot CLI's clobbering local-names writer with a
+declarative mechanism. The seed request now carries a `local_names` block (`strip_prefixes` +
+per-type `overrides`); `prepare` materializes `local_names.yaml` from it via
+`render_local_names_yaml` (with collision detection), instead of a private `_write_local_names_yaml`
+that unconditionally overwrote the file. `prepare` also now records the original `seed_request.yaml`
+in the snapshot for provenance. README updated to the new flow. (2) **Derived channel** — reconciled
+the in-place `/002` edit (see `4adb357`): registry `direct_dependencies` `gw1.quantity:000 → :001`,
+fixed the `gw1.qauntity` summary typo, and made the `001 → 002` upgrade-template docstring mirror the
+summary; regenerated indexes + runtime.
+
+**Why:** the old `prepare` reimplemented the local-names emitter and dropped the idempotent helper's
+preserve-if-exists guard, so every rebuild clobbered hand-edited local names — the gwta de-prefixing
+never survived. Declarative rules in the seed request express the intent (drop `gw1.`/`gw.` prefixes;
+keep `gw108.*`) without hand-editing and survive regeneration. The derived-channel reconciliation makes
+the kept in-place `/002` internally consistent — the full sema suite is green (220 passed).
+
+## 2026-06-15 — patch derived channel (`4adb357`)
+
+**What:** Repointed `derived.channel.gt/002`'s `OutputUnit` `$ref` to `gw1.unit/001` and
+`OutputQuantity` to `gw1.quantity/001` (was `/000` for both) — an **in-place edit of `/002`**.
+(The registry/index/upgrade-template reconciliation this required landed in `14fdfbc`.)
+
+**Why:** the scada↔gwta layout round-trip (`maple.json → dc → sema → gwta → scada`) was
+silently degrading the sieg `hp-keep-seconds-x-10` channel: scada emits `OutputUnit=SecondsX10`
+→ `OutputQuantity=Time`, but `gw1.unit/000`/`gw1.quantity/000` (the versions `/002` originally
+pinned) lack `SecondsX10`/`Time`, so gwta decoded them to `Unknown`. Pointing the fields at the
+v001 enums (which carry the time values) makes the round-trip lossless.
+
+**Why in-place rather than a new `/003`:** `/002` had been pushed to `origin/dev`, which our
+push-based immutability rule treats as frozen — but that freeze is considered premature, and the
+schema is **not published** anywhere (nothing resolves on `schemas.electricity.works` yet), so
+there is no live contract to protect. A clean `/003` would have cascaded version bumps across the
+layout types that embed the channel, for no pre-publication benefit. The edit is also temporally
+clean: `gw1.unit/001` and `gw1.quantity/001` share `/002`'s exact `created` stamp
+(`2026-03-04T19:00:00Z`), so dependency ordering already holds. Decision: **keep `/002`.** One
+carry-forward: this branch's `/002` now differs from `origin/dev`'s; reconcile that at merge.
+
 ## 2026-06-15 — freeze and replace spaceheat.make.model (`9430e8c`)
 
 **What:** Marked `spaceheat.make.model` frozen in the registry — added `replaced_by:

@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-06-15
+Status: Draft · Pass 0 · Updated 2026-06-16
 
 # The hardware layout
 
@@ -189,6 +189,31 @@ The canonical example is **`-gw-temp`**:
 - In **house0** it is **optional** — room temp normally comes from the Hubitat
   thermostat, and only some homes also wire a TSnap `-gw-temp` (beech has it both
   zones, maple zone1 only, elm/fir/oak none). Same name, optional here.
+
+**Three categories, three authorities.** Beyond what the operational code reasons
+about, a layout always tolerates **arbitrary experimental / hand-made** nodes and
+channels. So a name falls into one of three kinds, and the authority differs:
+
+| Kind | What it means | Authority |
+|---|---|---|
+| **Required** | every layout of this type MUST carry it | the **layout type** — `gw.house0.layout` etc. via its `required` lists + axioms (the binding contract) |
+| **Known-optional** | the code knows it, uses it if present, tolerates absence | **`gwsproto/names/`** — being *in* the names catalog is what makes a name "known-optional" rather than an extra; the use-it-if-present behavior then lives in the operational code (`optional_channels`) |
+| **Experimental extra** | the code has never heard of it | nobody — named by no one, required by no one, tolerated by all |
+
+The discriminator between a known-optional and an extra is simply **"is it in
+`names/`?"** — `buffer-cold-pipe` (a `names/` member, absent on some homes for
+plumbing reasons, used if present) is known-optional; a bench-wired
+`random-temp-sensor` is an extra. **Required and trustworthy are independent
+axes** — a channel can be required yet not to be trusted:
+
+- **`zone-state`** (the Hubitat `thermostatOperatingState`) is **currently
+  required** — still in `ZoneChannelNames.all` — yet its values are **sick /
+  unstable** and must not be trusted for heat-call or control (the trustworthy
+  heat-call is the whitewire-derived `-heat-call` channel). It is held required
+  only because removing it risks breaking existing dashboard consumers; the
+  direction is to **retire it** to known-optional once whitewire-derived heat-call
+  is the relied-on signal everywhere. So "required" (the layout's contract) says
+  nothing about whether a channel's *readings* can be believed.
 
 This composed, layout-governed names system is half of the "multiple house types,
 done right" rework.
