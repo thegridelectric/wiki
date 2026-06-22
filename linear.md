@@ -1,6 +1,6 @@
 # How GridWorks uses Linear
 
-Status: Accepted · Pass 2 · Updated 2026-06-08
+Status: Accepted · Pass 2 · Updated 2026-06-22
 
 > What this is: the reference for how the team uses **Linear** for work
 > tracking — the split with the wiki, the workspace shape, labels, the cap-8
@@ -235,6 +235,13 @@ history is the deep record.
   (`PreToolUse` on the Linear `save_issue` MCP call) — **blocks** a `design`
   issue *create* that omits assignee, initial state, or priority. Updates and
   non-design issues pass through.
+- **[`tools/linear-snapshot.sh`](tools/linear-snapshot.sh)** (manual sync, not a
+  hook) — pulls the open Ops issues (state type ≠ completed/canceled) via the
+  Linear GraphQL API and writes a compact, gitignored CSV
+  `wiki/.linear-snapshot.csv` (`id,title,state,priority,labels,started_age_d,
+  updated_age_d,design`). Run it so a session greps one small file instead of
+  paying for MCP JSON. Needs `LINEAR_API_KEY` (below); refuses with guidance
+  when unset.
 
 **About `LINEAR_API_KEY`.** The hooks are shell scripts, and the Linear MCP is
 available only to Claude, not to shell. For a hook to query Linear *itself* (the
