@@ -10,6 +10,17 @@ Status: Draft · Pass 0 · Updated 2026-06-13
 > at [`wiki/README.md`](wiki/README.md) to find anything (domain map +
 > getting-started/how-to). Coordination before editing is under Multi-session.
 
+## ⏳ This session only — lively-cedar MAY edit sema schema definitions (REMOVE at session end)
+
+**Temporary (added 2026-06-17, session lively-cedar; remove when the session
+ends).** None of the in-flight sema words have been published to
+`schema.electricity.works`, so they are mutable in place. For **this session
+only**, lively-cedar MAY edit the sema schema definitions Jessica asks for —
+in-place functional edits (axioms, fields, etc.) without cutting a new version.
+Scope is the specific types Jessica names; no `push`/PR without asking. Also:
+passing references to other sema types in a schema MUST appear only in
+`extended_description` (or as a formal `$ref`), never in a field `description`.
+
 ## ⏳ Tonight only — terminalasset plant simplicity (REVERT ME)
 
 **Temporary directive (added 2026-06-12; revert when the
@@ -145,6 +156,7 @@ mature than the doc, demote the doc instead. Section stamps live at
 - **Timestamps are real wall-clock, rounded to 5 minutes** — when stamping a sema registry `created` (per version) or `metadata.last_updated`, use the *actual* current UTC time (`date -u`) rounded to the nearest 5 minutes, never an arbitrary placeholder like `12:00:00Z`. Several versions added in one sitting MAY share that rounded stamp; `created` need only be unique *within* a type, dependency ordering allows equal stamps, and `last_updated` must be ≥ every `created`.
 - **Dev broker = local `gw-dev-rabbit`** — one RabbitMQ container serves both faces: **gwbase actors over AMQP (`localhost:5672`)** and **scada over MQTT (`localhost:1885`, TLS off, via the Rabbit MQTT plugin — which rewrites topic dots to slashes; payloads are intact)**. Management UI on `15672`. Connection creds live in the per-repo `.env` (e.g. `gridworks-scada/.env` `SCADA_GRIDWORKS_MQTT__*`); never hardcode them.
 - **gwsproto serialize needs `by_alias=True`** — gwsproto named-types define **snake_case** python fields with `alias_generator=snake_to_camel`, so the PascalCase wire names (the serialized/Sema form) are pydantic **aliases**, not the field names. A plain `model_dump()` emits snake_case; **`model_dump(by_alias=True)` emits the PascalCase wire form.** Decoding tolerates either (`populate_by_name=True`), which hides the asymmetry. So **serialize layouts/components with `by_alias=True`** — the deployed `LayoutDb.dict()` does; the dc→sema bijection (`house0_bijection.py`) and the round-trip return adapter were the gap that leaked snake_case (Hubitat poller keys) into the `gw.house0.layout` sema example. Not every type bites: PascalCase-native types (e.g. `g.node.gt`) have no alias, so `by_alias` is a no-op for them — the bite is on snake-field types (the Hubitat poller, `maker.api.attribute.gt`).
+- **gwsproto sema-type docstrings are the `Sema:` URL and nothing else** — a gwsproto sema type's (or enum's) class docstring MUST be exactly the one-line schema pointer `Sema: <schema_url>` (e.g. `Sema: https://schemas.electricity.works/types/channel-readings/002`) and NOTHING ELSE. No "Values:" enumerations, no "For more information" / global-authority links, no prose — that content duplicates the schema, which is the single source of truth. (The scada `name shuffle` commit stripped these blocks back to the bare `Sema:` line; keep it that way and don't reintroduce them on regen.)
 
 ## Experiment-Driven Design (EDD) — the verification bar
 

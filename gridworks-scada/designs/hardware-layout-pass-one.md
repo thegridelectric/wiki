@@ -1,6 +1,6 @@
 # Hardware layout — pass one
 
-Status: Accepted · Pass 1 · Updated 2026-06-16 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-06-22 · Linear: OPS-407
 
 **EDD: yes** the verification that matters is the focused layout round-trip, scada-originated from a
 real layout: scada loads a dc layout (e.g. `tests/config/maple.json`) → converts it to the
@@ -73,7 +73,88 @@ axiom tests.
   `House0NodeNames.__init__` called `House0ZoneNodeNames(zone, idx+1)` (arity mismatch); and
   `HydronicSpaceheatNodeNames` had malformed SpaceheatNames `hp_idu`/`primary_flow`/`vdc_relay`
   (underscores → hyphens — all fixed; House0 overrides `vdc_relay` to `relay1` anyway, but the base
-  hydronic value is now well-formed too).
+  hydronic value is now well-formed too). Also fixed `House0ChannelNames.store_flow` (was a
+  copy-paste of `primary-flow`).
+
+  **Decision (2026-06-16) — new naming conventions NOW, preserve existing UUIDs.** The new `names/`
+  hierarchy deliberately diverges from old `H0N`/`H0CN`: the systematic House0 change is that
+  **relay-state channels drop the trailing relay-index** (`vdc-relay1` → `vdc-relay`; the base is
+  already unique). The gen emits the new (`names/`) convention; the frozen fixtures keep their old
+  names but their **UUIDs carry over** — the gen indexes a reference layout's channel ids by their
+  *stripped* (new) name (`strip_relay_idx`), so an emitted new name inherits the existing UUID (this is
+  exactly the `LayoutIDMap` "maintain uuids from an existing layout" feature, extended across the
+  rename). The diff harness applies the same rename to the comparison target. **Verified:** the gen's
+  `vdc-relay` carries the fixture's `vdc-relay1` UUID. *On-disk* fixture migration (writing the new
+  names into the JSONs) is a clean follow-on once the runtime names-sweep moves scada code off
+  `H0CN`; until then the gen + harness handle it in-memory so nothing breaks at runtime.
+
+  **Relay bank DONE & matching:** `emit_relays` emits the i2c Krida component (14 `relay.actor.config`
+  in exact layout order, 12 before 11), the relay-multiplexer node, the 14 relay nodes, and the 14
+  relay-state DataChannels — all new-convention, UUIDs preserved, zero content diff vs the target.
+  **All builders DONE — full house0 equivalence reached:** `sema_gen(config) ==
+  dc_to_sema(load(house0-layout.json))` byte-for-byte (47 nodes, 35 data channels, 8 derived channels,
+  8 components), UUIDs preserved across the rename. Builders: power-meter, web-server, thermostat
+  (hubitat + per-zone poller), relays, sim tanks (buffer + tank1), dfr 010V, and the 8 DerivedChannels
+  (usable/required energy `system-model` + per-depth `identity` calibration). Enum gotchas worth noting:
+  `DerivedChannelGt.OutputUnit` is `GwUnit` (not `Unit`) and `EmissionMethod` is its own enum; the
+  hubitat `MacAddress` rides the sema `mac.address` format (lowercase-only — pydantic normalizes upstream
+  at the gwsproto boundary, sema validates). **Note — final byte-equality needs exact list ORDER**
+  (`got_d == target_d` is order-sensitive for every collection): emit components in target order
+  (electric-meter, web-server, hubitat, poller, i2c-relay, sim-buffer, sim-tank1, dfr) and nodes in
+  target order (… store-pump, hubitat, zone-stat, zone, relay-mux, relays, tanks, 010V).
+
+  **Fleet extension IN FLIGHT — oak at 82/85 nodes, 76/82 channels.** The multi-zone parametrization
+  carried for free (relays 19–24, per-zone thermostats). Done this push: ① ✅ **eGauge** (real
+  `electric.meter` + `EgaugePowerMeter` device-type via a `power_meter_kind`/`PwrChannelSpec` config
+  axis — modbus register map, pump/boiler/whitewire about-nodes, uppercase channel displays);
+  ② ✅ **ADS analog-temp** (`ads111x.based` + `GridworksTsnap1ScadaBoard` device-type + `analog-temp`
+  node via an `AdsChannelSpec` axis — the board's i2c map is an invariant constant, only HwUid /
+  OpenVoltage / terminal-block channel-list vary per home). **Remaining for oak (3 pieces):**
+  ③ **flow meters** — 3× `pico.flow.module` (dist/primary/store, with `FlowNodeName`) → flow nodes +
+  `*-flow`/`*-flow-hz` channels; ④ **real `pico.tank.module`** vs the sim stub — a tank-kind config
+  axis (buffer + 3 tanks); ⑤ **affine tank calibration** — oak's buffer/tank depths 1 & 3 are `affine`
+  (Strategy `affine` + `linear.one.dimensional.calibration` M/B), depth 2 `identity`; the gen emits all
+  `identity`, so per-depth calibration becomes config.
+
+  **✅ oak PASSES — `GEN OK [oak]`, the full fleet builder set works.** A real 4-zone / 3-tank /
+  no-sieg production home is now generated content+id-equal: eGauge (`PwrChannelSpec` register map),
+  ADS analog-temp (`AdsChannelSpec`), Reed flow meters (`FlowSpec`), real `pico.tank.module` + affine
+  depth calibration (`TankSpec` — depths 1&3 affine M·x+B, depth 2 identity), and multi-zone
+  relays/thermostats. Bespoke-per-home config knobs surfaced: web-server `Port`, relay `I2cAddressList`,
+  poller DisplayName uses the **zone index** (not the device id), and zone-label casing splits three
+  ways (`zone.capitalize()` → "Living-rm" for node/relay displays; `base.replace('-',' ').title()` →
+  "Zone1 Living Rm" for channel displays). Real-tank ConfigList orders all-devices-then-all-micro-v
+  (sim interleaves). **Comparison is now order-INSENSITIVE** (`_canon` sorts each collection by a
+  stable key before `==`): list position in a layout is just historical authoring/load order, not
+  semantically meaningful, so the gen emits its own canonical order and a frozen fixture adopts it on
+  migration — equivalence is content + id, not position.
+
+  **Remaining fleet work:** elm + fir (same no-sieg shape — just each home's bespoke device-map config),
+  then beech + maple (add the **sieg loop**: SiegLoopPlumbed/UseSiegLoop, the sieg manifold relays,
+  the BTU meter + `DerivedSiegSum` primary-flow). Per-position
+  flow/temp **sourcing** (BTU-meter | flow-meter+analog-temps | derived-sum) is the config axis these
+  share; maple/beech additionally bring the **sieg loop** (deferred until the no-sieg homes pass).
+
+  **Key insight from oak — the fleet is config-BESPOKE, not just invariant skeleton.** Unlike the sim
+  stub, the real devices carry hand-specified per-home data the gen config must encode: the eGauge has a
+  per-channel `EgaugeRegisterConfig` (unique modbus `Address` + register name) + `ModbusHost`/`HwUid`;
+  the ADS carries its i2c/terminal map; flow meters + tank picos carry hardware UIDs; pwr channel
+  display names are uppercase (`DIST PUMP PWR`); even invariant-looking nodes differ (`hp-odu` display
+  "Hp Odu" on oak vs "HP ODU" on the stub). So the gen's config grows a **device-map** section per home
+  (mirroring what the dc fixtures froze) — this is the real shape of the four config axes for production
+  homes, and the reason there is no single per-house gen today. Implication: the config object, not just
+  the builders, is the bulk of the fleet work; structure it as a per-home device map fed to generic
+  emitters.
+
+  **Closing step — migrate the OLD gen to the new names, then drop the harness bridge ("update the OLD
+  gen too").** The harness's in-memory `_to_new_convention` rename of the comparison target is a
+  *temporary bridge* only. The real end-state: update the dc-side `layout_gen` builders (`relay.py`'s
+  relay-state channel names, and any other renamed channels) to emit the **new convention natively**
+  (off `names/`, not `H0CN`), so `dc_to_sema(load(old_gen(config)))` produces new names directly. Then
+  **remove `_to_new_convention`** and confirm `sema_gen(config) == dc_to_sema(load(old_gen(config)))`
+  holds with **no rename** — that is the genuine equivalence. Until that lands, verify the old
+  `layout_gen` (`genlayout mktest` / `test_layout_gen`) still produces a self-consistent layout under
+  the new names (no dangling old-name references between its component ConfigLists and its DataChannels).
 - **Task b (QUEUED) — finish the layout axioms.** Port the structural validations
   (`house_0_layout.py`) into sema axioms (House0 only this pass), keeping the round-trip green at each
   addition, **and** adding a generated counterexample test per axiom (via the Task-a gen) proving it
@@ -390,3 +471,129 @@ ever run `B=0` (identity), so the v001 `affine` math has no test yet.
 **Compliance tests WAIT for the data-classes → sema-types transition** — "fully compliant" is defined
 by the axioms being lifted into sema, so writing the assertions now chases a moving target. The layout
 *fixtures* are durable and fine to shape now; the *assertions* follow the sema authority.
+
+## I²C / board-resident components — code reality + plan (in flight)
+
+A gw108 board hosts many things — relays, an ADC, GPIO — that today are modelled as separate,
+self-describing components. The plan: make the **board** the single source of physical truth and let
+the parts on it be thin references. This section records what the code actually does and where we are
+taking it. It is **in flight** (actor wiring not yet built).
+
+### What the code does today
+
+- **`I2cBus`** (`gw_spaceheat/actors/i2c_bus.py`) — a serialized, exclusive executor for one physical
+  bus. It speaks pure bit ops: `I2cWriteBit` / `I2cReadBit` carry `(I2cAddress, Register, BitIndex,
+  Value)` — exactly the `gw.i2c.bit.address` shape — and reply with `I2cResult` (currently to
+  `primary_scada`, not the requester).
+- **Board descriptor** is sketched in `gwsproto/data_classes/device_types/scada_gw108.py`
+  (`ScadaDeviceTypeGt`, `gw1.scada.device.type.gt`): `NativeGpio` (name→BCM-pin), `I2cRelays`
+  (silk-screen name → `I2cBitAddress` + `SupportedWiringConfigs`), `CtAdc`, `ThermistorAdcs`, `Dacs`.
+  The relay keys (`Zone1Failsafe`, `BufferTop`, …) are **what the board has silk-screened — not ShNode
+  names.**
+- **`relay.py`** — for an I²C relay it sends an `FsmEvent` to the Krida `relay_multiplexer` and awaits
+  its atomic-report ack; for a gw108 GPIO relay it drives `GPIO.output` directly. Its config is matched
+  by `ActorName == node.name` in the component's `ConfigList`.
+- **`i2c_relay_board.py`** — a board-level intermediary that dispatches on `DeviceType` (gw108) and
+  translates relay semantics into `I2cWriteBit`. ~50 lines; one extra hop, no real authority.
+- **`i2c_thermistor_reader.py`** — owns its ADC directly via the Adafruit ADS1115 lib + `board.I2C()`
+  at `component.gt.AdcAddress`; reads many channels off one ADC. It does **not** route through
+  `I2cBus` (same physical bus 1 — a latent contention with relay writes). Its component carries
+  `AdcAddress`, `AdcReferenceVolts`, `SeriesResistanceKOhms`, `TempCalcMethod`, `Bus`, `ConfigList`.
+- **`spaceheat.node.gt/302`** already carries **two** ids: `ComponentId` ("my specific device") and
+  `BoardComponentId` ("the board I'm physically on").
+
+### The model we're moving to
+
+Three layers, two need actors:
+
+1. **Bus** — `I2cBus` stays (one per bus, serialized owner).
+2. **Board** — `gw1.scada.device.type.gt` is pure data, the physical map, resolved through
+   `BoardComponentId`, shared by **many** ShNodes.
+3. **Device** — the per-relay / per-reader component, carried by **at most one** ShNode via
+   `ComponentId`. Thin: it names *which thing on the board* it is, plus its control/channel config; it
+   does **not** restate the physical address.
+
+`I2cRelayBoard` and `i2c_relay_multiplexer` **go away** — `relay.py` resolves its relay against the
+board and writes to `I2cBus` itself. The `node.ComponentId → component → RelayName`, then
+`node.BoardComponentId → board → I2cRelays[RelayName].Address → I2cWriteBit` path is the whole story.
+
+Board-resident parts stay `ComponentBase` (uniform), each with its **own coarse `DeviceType`** and no
+specialized `*.device.type.gt` record. So three device types: the board (`GridworksScadaGw108`), an
+**ADC on a gw108**, and an **I²C relay on a gw108** — the latter two new `gw1.device.type` values whose
+physical facts live in the board's `ThermistorAdcs` / `I2cRelays`.
+
+### Planned changes
+
+- **Sema board words (done this pass):** `gw.i2c.bit.address`, `gw.i2c.bus`, `gw.i2c.relay.config`,
+  `gw.i2c.adc.config`, `gw.i2c.thermistor.interface.config`, `gw.i2c.dac.config`,
+  `gw.native.gpio.pin`, and the I²C-scoped enums `gw.i2c.adc.type` / `gw.i2c.dac.type`. Notes:
+  - The string→int maps (`NativeGpio`, `I2cRelays`, `Dacs`) became typed arrays — sema's codec
+    PascalCases all keys, so a free-key map can't decode. `gw.native.gpio.config` (a list-holder)
+    became `gw.native.gpio.pin` (one `{Name, BcmPin}`); the board carries two lists
+    (`NativeGpioInputs`/`NativeGpioOutputs`), preserving the in/out distinction structurally.
+  - Enum membership is a **soft** constraint (an unknown value coerces to the enum default; it does
+    not raise) — the I²C-only vocabulary scopes the field, hard rejection would need an axiom.
+    **Formats** (`pascal.case`, `non.negative.int`, `positive.float`) by contrast are **hard** — they
+    reject at the codec boundary.
+  - **Every board sub-device is name-addressable.** Relays, ADCs, DACs, GPIO pins each carry a
+    `pascal.case` `Name` (silk-screen); board-resident components reference their hardware by that name.
+  - **The bus is board-physical.** `gw1.scada.device.type.gt` carries `BusList: [gw.i2c.bus]`
+    (`{Name, BusNumber}` — the Linux `/dev/i2c-N` adapter); every device config carries an `I2cBus`
+    naming its bus; axiom `BusMembership` enforces each `I2cBus ∈ BusList`. (Earlier framing — "bus is
+    purely layout-wiring" — was wrong: a two-bus board must say which physical bus a device is on.)
+  - Once the board owns physical-bus identity, the **component's `Bus` field is redundant** — it
+    resolves the bus via `BoardComponentId → board device-config → I2cBus`. Drop `Bus` from the
+    thermistor v003 and don't add it to the relay component.
+- **Thermistor reader → `i2c.thermistor.reader.component.gt/003`:** keep `TempCalcMethod`,
+  `ConfigList`; **drop** `AdcAddress`, `AdcReferenceVolts`, `SeriesResistanceKOhms`, and `Bus` (all now
+  resolved via the board). Those physical facts moved to `gw.i2c.thermistor.interface.config`:
+  `I2cAddress` (= old `AdcAddress`), `SeriesResistanceKOhms`, and the added `AdcReferenceVolts` — set
+  them in `scada_gw108`. The component references its ADC by the board ADC's `Name`. Its `DeviceType`
+  becomes the new "ADC on gw108" value.
+- **Relays:** decommission `I2cMultichannelDtRelayComponent`; move the relay actor configs into new
+  per-relay **`i2c.relay.component.gt`** types (`DeviceType` = "I²C relay on gw108"; carries `RelayName`
+  board key + chosen `WiringConfig` + the one `relay.actor.config`). This is a layout + actor migration
+  (every relay node re-pointed, fixtures regenerated, the multiplexer path replaced) — its own chunk.
+- **Layout bijection axiom (new):** every layout (`gw.house0.layout`, `gw.nolan.layout`,
+  `gw1.simple.sim.layout`) must hold that the set of DataChannels is in **bijection** with the set of
+  `ChannelName`s across all component `ConfigList`s.
+
+### Cross-consistency axioms (the board↔component sanity checks)
+
+The references must resolve: a relay's `RelayName ∈ board.I2cRelays`; its `WiringConfig ∈
+SupportedWiringConfigs`; no two relay components sharing a board share a `RelayName` (⇒ no bit-address
+collision); a thermistor reader's ADC reference resolves in `board.ThermistorAdcs`. These replace the
+silent `ActorName`-matching the multiplexer did.
+
+### ADC reads route through `I2cBus` (decided)
+
+All bus traffic — relay bit-writes *and* ADC register reads — goes through the single `I2cBus` actor;
+the thermistor reader is a **client** of it, not a direct hardware owner (no parallel Adafruit access).
+That is what makes the relay/read contention safe rather than a race.
+
+- **No true concurrency, but latency overlaps.** One ADS1115 is single-conversion with a shared mux
+  (4 channels read sequentially), and one physical bus is serial. But the slow part — the ~1–8 ms
+  conversion — happens *off-bus*: the reader issues `start-conversion` (a discrete bus op), **sleeps
+  off-bus**, then issues `read-result` (another op). The bus is held only for the µs-scale register
+  transactions, never the conversion wait, so a queued relay write slots in between — relay latency
+  stays bounded while reads run as fast as the bus allows.
+- **Releasing mid-protocol is correct** because the ADS1115 holds its result in its own register until
+  read; an intervening transaction to a *different* address doesn't disturb it. The one rule: never
+  start a second conversion on the *same* chip before reading the first.
+- **Granularity = per ADC chip** (the 4-channel unit, matching `gw.i2c.thermistor.interface.config`).
+  One reader sequences its chip's mux'd channels; cross-chip interleave on the bus is safe, intra-chip
+  must be ordered by the one owner. Not per-single-channel (channels share a mux), not all-thermistors
+  (independent chips, breaks one-component-one-node).
+- **`I2cBus` needs register ops.** Today it only does single-bit `I2cWriteBit`/`I2cReadBit`; ADS1115
+  needs 16-bit register access (write config to select mux + start; read the 2-byte conversion
+  register). Add `I2cWriteReg`/`I2cReadReg` (word) alongside the bit ops.
+
+### Open
+
+- **`I2cResult` routing** — for `relay.py` to confirm actuation, `I2cWriteBit` needs a reply-to so the
+  result returns to the requesting relay with its `TriggerId` (today it goes to `primary_scada`).
+- **Bus actor name ↔ board bus name** — one `I2cBus` actor per physical bus; matching its
+  `spaceheat.name` ShNode name to the board bus's `pascal.case` `Name` needs a defined casing mapping
+  (a layout axiom, deferred with the rest of the actor wiring).
+- **Device-type value names** — the exact `gw1.device.type` strings for "ADC on gw108" / "I²C relay on
+  gw108" (e.g. `Gw108Adc`, `Gw108I2cRelay`).

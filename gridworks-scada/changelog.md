@@ -12,6 +12,110 @@ Newest at the top.
 
 ---
 
+## 2026-06-17 — ComponentBase → type_helpers; ComponentGt as a flat named type (`<!-- pending commit -->`)
+
+**What:** Finished moving the shared component base out of `named_types/` into
+`gwsproto/type_helpers/component_base.py` and fixed its long-standing class-name
+typo `CommponentBase` → `ComponentBase`. Re-added `ComponentGt` (the generic
+concrete component, `TypeName` `component.gt` / `Version` `002`) as a flat named
+type in `named_types/component_gt.py` inheriting `ComponentBase`. Repointed all
+19 concrete `*ComponentGt` types, `decoders.py` (fallback now instantiates
+`ComponentGt`), `data_classes/hardware_layout.py`, and
+`data_classes/components/component.py` to import `ComponentBase` from
+`type_helpers`; re-exported `ComponentGt` from `named_types` (keeps
+`layout_gen`'s `from gwsproto.named_types import ComponentGt` working). Deleted
+the old `named_types/component_gt.py` duplicate. Import smoke test green.
+
+**Why:** sema types do not inherit from one another — the base belongs in
+`type_helpers`, not in the `named_types` sema-word namespace. This is the gwsproto
+half of honoring the flat-sema law (the temporary "gwsproto inheritance is a flaw
+left for the proactor port" note is being paid down here, per Jessica's direction).
+Still pending in follow-on bits: migrate the Channel-Name-uniqueness axiom out of
+`ComponentBase` into each specific component (and actually implement it, today a
+no-op stub), and add that axiom to the sema component schemas. (OPS-407.)
+
+## 2026-06-17 — name shuffle (`2ca8f730`)
+
+**What:** Second pass of the sema-native name cleanup begun in `beb964e8`.
+Renamed the generated zone type `Gw1HvacZone` → `HvacZone` (module
+`gw1_hvac_zone.py` → `hvac_zone.py`) and the unit enum `Unit` → `SpaceheatUnit`,
+updating every import site in `gw_spaceheat/` (house0 sema-gen, the `layout_gen/`
+generators, `house0_bijection.py`) and gwsproto (`house0_hydronic`,
+`house0_layout`, `unit_quantity_projection`, `device_types`). Also stripped the
+redundant "Values:/links" docstring blocks from ~25 generated enum modules and
+alphabetized the `SpaceheatUnit` import in `enums/__init__.py`. 68 files,
+net −210 lines.
+
+**Why:** the generated sema-native symbols should read by their bare domain names,
+and the enum docstrings duplicated the schema_url already on each class — a sema
+type's docstring is the `Sema:` URL and nothing else. Pure rename/cleanup; no
+wire-format or schema change. (OPS-407.)
+
+## 2026-06-16 — renaming (`beb964e8`)
+
+**What:** Strip the `Gw1`/`Gw` prefixes from the generated sema-native names so
+the generated symbols read by their bare domain names: `Gw1DeviceType` →
+`DeviceType`, `GwQuantity` → `Quantity`, `GwHouse0Hydronic` → `House0Hydronic`,
+and the module/class `gw1_scada_gw108` → `scada_gw108`. Mechanical rename swept
+across the `layout_gen/` emitters, the actor drivers, `house0_sema_gen.py`,
+`house0_bijection.py`, and the gwsproto data classes — no behavior change.
+
+**Why:** The `Gw1`/`Gw` prefixes were legacy noise carried over from the old
+naming; the sema-native convention names the type by its domain meaning alone.
+Continuation of the house0_sema_gen naming-hygiene pass.
+
+## 2026-06-16 — House0 names hold only House0-specific names (`63795377`)
+
+**What:** Extended the sema-native gen with the fleet builders the sim stub never exercised, and got a
+real production home (`oak.json`: 4 zones, 3 tanks, no sieg) to `sema_gen(config) == dc_to_sema(load)`
+content+id-equal. New generic, config-driven emitters: eGauge power meter (`PwrChannelSpec` — modbus
+register map + pump/boiler/whitewire about-nodes), ADS analog-temp (`AdsChannelSpec` — pipe temps; the
+`GridworksTsnap1ScadaBoard` i2c map is an invariant constant), Reed flow meters (`FlowSpec`), real
+`pico.tank.module` tanks vs the sim stub (`tank_kind` axis + `TankSpec`) with affine depth calibration
+(depths 1&3 affine M·x+B, depth 2 identity). Surfaced bespoke-per-home knobs as config: web-server
+`Port`, relay `I2cAddressList`, poller DisplayName uses the zone index (not device id), and three-way
+zone-label casing. The diff harness (`house0_sema_gen_check.py`) gained an order-INSENSITIVE comparison
+(`_canon` sorts each collection before `==`) — list position in a layout is historical load order, not
+semantic, so the gen emits a canonical order and a fixture adopts it on migration.
+
+**Why:** Task a of hardware-layout-pass-one — proving the gen reproduces a real fleet home (not just
+the sim stub) end to end, with UUIDs preserved and on the new naming convention. Remaining fleet homes:
+elm/fir (same no-sieg shape, different device maps), then beech/maple (the sieg loop).
+
+**Names hygiene — `House0*` classes hold ONLY House0-specific names.** The name classes stay
+flat/separate and do NOT compose from one another; the **consumer picks the appropriate class** per
+name. Removed every name from `House0ChannelNames`/`House0NodeNames` that duplicates a
+`core`/`hydronic_spaceheat` name: `House0ChannelNames` now carries only the 12 House0 krida relay-state
+channels (dropped the power/pipe-temp/flow/010V/energy channels and `vdc-relay`), and `House0NodeNames`
+only the krida relay nodes + House0 instrumentation (`hubitat`, `analog-temp`, `relay-multiplexer`,
+`zero-ten-multiplexer`, the BTU nodes) — dropping the system actors, pumps, pipe temps, flows, 010V,
+buffer, oat. `House0ZoneChannelNames` likewise keeps only `whitewire_pwr`/`stat_temp`. The generator
+now references `CoreNodeNames`/`HydronicSpaceheatNodeNames` (and the channel equivalents) directly for
+the shared names, and the `House0*` classes only for House0-specific ones. Verified: both gen configs
+(house0 + oak) stay `GEN OK`, all fleet layouts still load, maple round-trip green. (OPS-407.)
+
+## 2026-06-16 — house0_sema_gen relay bank + uuid-preserving new-convention naming (`cad3962c`)
+
+**What:** Built the relay bank in the sema-native gen (`house0_sema_gen.py`): `emit_relays` emits the
+i2c Krida `I2cMultichannelDtRelayComponentGt` (14 `relay.actor.config` in exact layout order, krida idx
+12 before 11), the relay-multiplexer node, the 14 relay nodes (with their handles/display names), and
+the 14 relay-state DataChannels — driven by compact `_RELAY_KINDS` / `_NONZONE_RELAYS` spec tables plus
+a per-zone failsafe/ops pair. The gen now emits the **new `names/` convention**, whose one systematic
+House0 change is that relay-state channels drop the trailing relay-index (`vdc-relay1` → `vdc-relay`).
+UUIDs are preserved across that rename: the gen indexes a reference layout's channel ids by their
+*stripped* (new) name (`strip_relay_idx`), so an emitted new name inherits the frozen fixture's existing
+UUID — the `LayoutIDMap` "maintain uuids from an existing layout" feature extended across the rename.
+The diff harness (`house0_sema_gen_check.py`) applies the same rename to its comparison target. Also
+fixed two `names/` defects surfaced here: `House0ChannelNames.store_flow` (was a copy-paste of
+`primary-flow`) and `HydronicSpaceheatNodeNames.vdc_relay` (`vdc_relay` → `vdc-relay`, a malformed
+SpaceheatName); and added the zone relay-state channel names to `House0ZoneChannelNames`.
+
+**Why:** Task a of hardware-layout-pass-one, executing the decision to adopt the new naming conventions
+now while keeping existing production-layout UUIDs. The relay bank is the largest builder; landing it
+proves the new-convention + uuid-preservation approach end to end (verified: the gen's `vdc-relay`
+carries the fixture's `vdc-relay1` UUID, zero content diff on relay nodes/channels). Remaining gen
+builders (web-server, hubitat+poller, sim tanks, dfr, the 8 derived channels) follow. (OPS-407.)
+
 ## 2026-06-16 — prep for house0_sema_gen (`7697db49`)
 
 **What:** Added the sema-native House0 layout generator and its diff harness in `gw_spaceheat/`.

@@ -12,6 +12,21 @@ Newest at the top.
 
 ---
 
+## 2026-06-16 — gw.house0.layout: require all collections + Hydronic (`dc7877f`)
+
+**What:** Promote every collection field (`GNodes`, `ShNodes`, `DataChannels`, `DerivedChannels`,
+`Components`, `DeviceTypes`) plus the `Hydronic` block from optional to `required` in
+`gw.house0.layout/000` (unpushed → mutable in place, no version bump). Drops the v000 "optional-first
+bootstrap" allowance, mirroring the sibling `gw.nolan.layout/000` which already requires all nine
+fields. Updated the schema description + registry version summary to match, regenerated runtime
+(`g_nodes: list[GNodeGt]` … `hydronic: GwHouse0Hydronic`, no more `| None = None`) and rebuilt indexes.
+
+**Why:** A layout is a complete, deployable artifact, never a partial one — the optional-first shape
+was scaffolding to keep the round-trip green while the collections were populated, and they now are.
+The codegen was faithfully emitting `Optional[List[...]] = None` because the schema's `required` block
+still listed only `TypeName` + `Version`; making the fields required is the real fix, not a codegen
+patch.
+
 ## 2026-06-16 — start adding house0 layout axioms (`899f79b`)
 
 **What:** Added axiom 2 `Cardinality` to `gw.house0.hydronic/000` (unpushed → mutable in place, no

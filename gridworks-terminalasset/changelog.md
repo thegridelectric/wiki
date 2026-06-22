@@ -12,6 +12,20 @@ Newest at the top.
 
 ---
 
+## 2026-06-16 — house0.layout - entries are required (`2f6c4f8`)
+
+**What:** Rebuilt the gwta sema snapshot (`src/gwta/sema/`) from the sema source after
+`gw.house0.layout/000` promoted all six collections + `Hydronic` from optional to `required`
+(sema `dc7877f`). Regenerated `house0_layout.py` now declares `g_nodes: list[GNodeGt]` …
+`hydronic: House0Hydronic` (no `| None = None`), and the mirrored `definitions/` +
+`indexes/` reflect the new `required` block and version summary. Five files: the layout
+type, its definition, the registry, `seed_expanded.yaml`, `versions.yaml`. Snapshot
+round-trip green (34 samples); gwta suite passes.
+
+**Why:** Keep the gwta decode side in lockstep with the sema source of truth — a House0
+layout is a complete, deployable artifact, so the snapshot must reject partial ones too.
+Mechanical regen via `sema snapshot prepare/build` from `seed_request.yaml`; no hand edits.
+
 ## 2026-06-16 — rebuild sema snapshot for gw.house0.hydronic Cardinality axiom (`748f5d4`)
 
 **What:** Rebuilt the gwta sema snapshot (`src/gwta/sema/`) from the sema source after
