@@ -1,12 +1,18 @@
 # Spoke B — persisted type-set (what JK ingests + stores)
 
-Status: Accepted · Pass 1 · Updated 2026-06-10 · Linear: OPS-386 · Reviewed 2026-06-10 (scada↔ltn live capture)
+Status: Accepted · Pass 1 · Updated 2026-06-22 · Linear: OPS-386 · Reviewed 2026-06-10 (scada↔ltn live capture)
 
 > What this is: spoke of `integrate-gwbase-sema-updates` (hub: `primary.md`,
 > OPS-386). The mechanism and plan for **which message types JournalKeeper
 > ingests off the broker and stores** — and how to add more cheaply. Immediate
 > targets: `gridworks.ack` and `gridworks.ping`, with "a few more" to follow,
 > discovered from live LTN+scada traffic.
+>
+> **Scope note (2026-06-22):** the durable liveness-signal *selection* and the
+> new `ally.inactive` word moved to **OPS-317 (scada-health-diagnostics)** —
+> that's where the *what + why* now lives. This spoke is retained as the JK
+> persist **mechanism** reference (the *how*: the registry, the add-recipe, the
+> decode gate, ack/ping placement). `ally.inactive` is still unauthored.
 
 ## How JK decides what it ingests and stores (one source of truth)
 

@@ -26,13 +26,12 @@ Status: Accepted · Pass 2 · Updated 2026-06-22 · Linear: OPS-381
   every **open** issue must carry exactly one of {`design`, `parked`}. The rows
   below are the live discrepancies: my open issues with **neither** label,
   surfaced by `tools/linear-snapshot.sh`'s invariant check (snapshot
-  **2026-06-22**, 16 issues). Each needs a decision — promote to a `design`,
+  **2026-06-22**, 14 issues). Each needs a decision — promote to a `design`,
   tag `parked`, or close. Fill the **Decision** column as we go; an issue
   leaves this list once it carries a label (re-run the script to refresh).
 
   | Issue | Status | Priority | Title | Decision |
   | --- | --- | --- | --- | --- |
-  | OPS-289 | Backlog | Medium | marketmaker must broadcast latest.price so we have it in persistent store |  |
   | OPS-306 | Backlog | Medium | Record heat pump type somewhere??? |  |
   | OPS-325 | Backlog | Low | Send fewer readings for whitewire *-pwr channels |  |
   | OPS-344 | Backlog | Medium | Dig into UK US sCOP discrepancies |  |
@@ -45,7 +44,6 @@ Status: Accepted · Pass 2 · Updated 2026-06-22 · Linear: OPS-381
   | OPS-270 | Todo | Medium | SCADA Template 7 -- new Python, etc. |  |
   | OPS-304 | Todo | High | Harden MQTT transport against half-open TCP / keepalive timeout stalls (observed 2026-02-12) |  |
   | OPS-313 | Todo | Low | pico improvements |  |
-  | OPS-317 | Todo | High | Improve scada health diagnostics |  |
   | OPS-329 | Todo | Medium | report.event v004 |  |
   | OPS-393 | Todo | High | Post-mortem: maple HP on during on-peak while in Standby (2026-06-09) |  |
 - [x] **Write the issue-snapshot script** (token-cheap sync) —

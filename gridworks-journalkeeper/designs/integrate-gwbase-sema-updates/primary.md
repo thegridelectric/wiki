@@ -1,6 +1,6 @@
 # Integrate gwbase + sema updates into JournalKeeper
 
-Status: Accepted · Pass 1 · Updated 2026-06-12 · Linear: OPS-386
+Status: Accepted · Pass 1 · Updated 2026-06-22 · Linear: OPS-386
 
 **EDD: no** build-out/integration; verified by the test suite (incl. the Layer-2
 liveness test, `tests/test_live_amqp.py`), not gated on a standalone real-world
@@ -13,36 +13,29 @@ experiment.
 > list, then notes.** Durable facts from completed items are distilled into
 > `executor/primary.md`; this hub is deleted when the last item lands.
 
-## ▶ Do this now — item #3: persisted type-set
+## ▶ Do this now — item #4: close session loose ends
 
-Add these types to JK's persisted set — the durable **semantic** signals (the
-proactor **mechanism** events are deliberately skipped; the rewrite will churn
-them):
+Commit/stash the prod-persist live-test runner; tidy active-claims. With the
+persisted type-set moved out (below), this is all that remains — the gwbase +
+sema integration itself is done.
 
-- **Add:** `gridworks.ack`, `gridworks.ping`, `gridworks.event.startup`,
-  `gridworks.event.shutdown`, `gridworks.event.comm.peer.active`, and the new
-  `ally.inactive`.
-- **Skip:** `gridworks.event.comm.mqtt.connect` / `…fully.subscribed` /
-  `…response.timeout`, `send.layout`.
-
-For each: seed it in `src/gjk/sema_seed_request.yaml` → regen the snapshot
-(`scripts/regen_sema_snapshot.sh`) → add it to the right table in
-`sema_message_persistor.py` → confirm it flows through the liveness harness
-(`tests/test_live_amqp.py`). `ally.inactive` is a **new sema word**, coined first
-via `/make-sema-word` (branch `jm/proactor-link-vocab`); peer-up (`peer.active`,
-an Event) and peer-down (`ally.inactive`, a non-event) stay asymmetric **on
-purpose** — real friction for the proactor rewrite to resolve, not to paper over
-here. Full detail in spoke **`persisted-type-set.md`**.
-
-Then **item #4 — close session loose ends:** commit/stash the prod-persist
-live-test runner.
+**Item #3 (persisted type-set) moved to OPS-317 (scada-health-diagnostics),
+2026-06-22.** The durable liveness-signal *selection* and the new `ally.inactive`
+word are scada-health-diagnostics work, so that design owns the *what + why*. JK's
+persist *mechanism* (seed → snapshot-regen → persistor recipe) stays here as
+reference in **`persisted-type-set.md`**. Correction carried over: `ally.inactive`
+was **never authored** — the `jm/proactor-link-vocab` branch it was parked against
+is merged into sema dev and carries no unique commits, so it must still be coined
+via `/make-sema-word`.
 
 ## Spokes (in order)
 
 1. ✅ **DONE** — sema snapshot regen (item #1; folded in, no separate spoke).
 2. ✅ **DONE** — `gwbase-tier-migration.md` (item #2; landed + live-verified).
-3. **▶ `persisted-type-set.md` (item #3) — active** (see top).
-4. close session loose ends (item #4; no spoke).
+3. ↪ **MOVED to OPS-317** — `persisted-type-set.md` retained as the JK persist
+   *mechanism* reference (the *how*); the signal-set selection + `ally.inactive`
+   are owned by the scada-health-diagnostics design.
+4. **▶ close session loose ends (item #4) — active** (see top).
 
 ---
 
