@@ -58,6 +58,17 @@ slugify() {
   echo "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//'
 }
 
+# The doc's Status-stamp line, tolerating a `> ` blockquote prefix and leading
+# indentation — mirrors tests/test_doc_health.py::_stamp_line (it strips a
+# leading run of `>`, space, tab, then matches `Status:`). Echoes the original
+# line (framing intact) so callers can grep its content; empty if none. A bare
+# `grep '^Status:'` would silently skip a blockquoted stamp and miss the
+# Accepted-missing-id check the pytest catches.
+stamp_line() {  # $1 = file path
+  awk '{ s = $0; sub(/^[> \t]+/, "", s); if (s ~ /^Status:/) { print; exit } }' \
+    "$1" 2>/dev/null
+}
+
 # Emit every design root as "slug<TAB>relpath". A root is a flat
 # `designs/<slug>.md` or a fractal `designs/<slug>/primary.md`.
 design_roots() {
@@ -103,7 +114,7 @@ wiki_side_findings() {
   while IFS=$'\t' read -r slug rel; do
     [ -z "$slug" ] && continue
     local status
-    status="$(grep -m1 '^Status:' "$WIKI/$rel" 2>/dev/null || true)"
+    status="$(stamp_line "$WIKI/$rel")"
     if echo "$status" | grep -qE 'Accepted|Verified'; then
       if ! echo "$status" | grep -qE 'Linear: *(OPS|GRI)-[0-9]+'; then
         missing_id="${missing_id}  - $rel  ($status)

@@ -12,6 +12,21 @@ Newest at the top.
 
 ---
 
+## 2026-06-22 — refactor snapshot w improved components; also i2c vocab (`7909c37`)
+
+**What:** Rebuilt the gwta sema snapshot (`src/gwta/sema/`) from the current sema source —
+picking up the improved component schemas (the `ChannelNameUniqueness` axiom across all
+components, `web.server`'s `EmptyConfigList`) — and added the gw108 board descriptor
+(`gw1.scada.device.type.gt` → local `ScadaDeviceTypeGt`) plus the full generic `i2c.*`
+family (`i2c.bit.address`, `i2c.reg.address`, `i2c.bus`, the four configs, the five bus-op
+types, the enums) to the snapshot via `gwta_seed_request.yaml`. 80 files; snapshot round-trip
+green for the 34 example-bearing samples.
+
+**Why:** stage the codegen'd decode oracle for the broker round-trip EDD sweep that aligns the
+hand-written gwsproto i2c/board types to these sema words — gwta decodes what scada publishes,
+proving the hand-port matches the schema. The i2c vocabulary is expected to be **removed from
+gwta** once the sweep is done (it doesn't belong in the terminalasset snapshot long-term). (OPS-407.)
+
 ## 2026-06-16 — house0.layout - entries are required (`2f6c4f8`)
 
 **What:** Rebuilt the gwta sema snapshot (`src/gwta/sema/`) from the sema source after

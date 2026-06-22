@@ -1,6 +1,6 @@
 # Linear integration
 
-Status: Accepted · Pass 2 · Updated 2026-06-10 · Linear: OPS-381
+Status: Accepted · Pass 2 · Updated 2026-06-22 · Linear: OPS-381
 
 > What this is: the **remaining setup/cleanup work** to integrate Linear with
 > the wiki. The durable "how it works" reference now lives in
@@ -20,68 +20,71 @@ Status: Accepted · Pass 2 · Updated 2026-06-10 · Linear: OPS-381
 
 ## To do
 
-- [ ] **Triage the existing Ops issues** — the in-flight pass through the
-  backlog: reuse/normalize tags, set states, fix assignees, close stale items.
-  Open issues assigned to me (snapshot **2026-06-10**, after the organize-pass;
-  `✓` = dealt with / exec-summarized / parked deliberately; `D` =
-  `design`-tagged). Unmarked rows are the **less-important / ops residue** —
-  parked here on purpose per the 2026-06-10 triage:
+- [ ] **Triage my untriaged issues** — the cleanup worklist. The triage
+  invariant: every issue of mine sits in exactly one of *closed*
+  (Done/Cancelled/Duplicate) · *open + `design`* · *open + `parked`* — so
+  every **open** issue must carry exactly one of {`design`, `parked`}. The rows
+  below are the live discrepancies: my open issues with **neither** label,
+  surfaced by `tools/linear-snapshot.sh`'s invariant check (snapshot
+  **2026-06-22**, 28 issues). Each needs a decision — promote to a `design`,
+  tag `parked`, or close. Fill the **Decision** column as we go; an issue
+  leaves this list once it carries a label (re-run the script to refresh).
 
-  | ✓ | Issue | Status | D | Title / triage note |
+  | Issue | Status | Priority | Title | Decision |
   | --- | --- | --- | --- | --- |
-  | x | OPS-27 | Backlog | D | Circulator pump 0-10V models |
-  | x | OPS-40 | Backlog | D | Simulated test environment |
-  | x | OPS-47 | Backlog | D | BTU meter integration |
-  | x | OPS-59 | Backlog | | i2c-dfr exception hardening (good code-read notes in issue) |
-  | x | OPS-118 | Backlog | | Shorten SCADA CI time |
-  | x | OPS-141 | Todo | | Tracing missing oak data |
-  | x | OPS-150 | Todo | | Fix spurious no-data alerts |
-  | x | OPS-172 | Backlog | | Cold garages / freeze backstop (decision item) |
-  | | OPS-213 | Todo | | beech2 store-and-forward check (forensics, low) |
-  | | OPS-215 | Todo | | Oil-boiler responsiveness diagnostic — **important, but next heating-season prep**; revisit at fall planning |
-  | x | OPS-219 | Todo | | Nolan House control → folded into **spruce-unlimbo OPS-392** (Chunks A+D); exec summary in issue |
-  | | OPS-223 | Todo | | SWT derivations — pairs with the facts-vs-calcs remainder of OPS-238 |
-  | | OPS-224 | Todo | | Fix `is_buffer_charge_limited` (House0 sensor-absence bug) |
-  | | OPS-225 | Todo | | H0CN → ChannelSpec refactor |
-  | x | OPS-230 | Todo | | Spruce starter script → interim retired by OPS-392; Take2/3 only if merge slips vs July-15 |
-  | x | OPS-238 | Todo | | ActorBase/ASL codec — 2/3 shipped (gwbase 0.5.x, OPS-386); extract facts-vs-calcs principle, then **close** |
-  | | OPS-248 | Todo | | Maple became-a-different-system note (low) |
-  | | OPS-257 | Todo | | GW admin: layout-version tolerance |
-  | | OPS-265 | Todo | | MCU choice re-evaluation (Wiznet Pico vs Pico2) |
-  | | OPS-270 | Todo | | SCADA Template 7 (py3.12 SD card) |
-  | x | OPS-281 | Todo | | LBL observatory db — checklist nearly complete |
-  | x | OPS-282 | Todo | | LBL intro session — description filled; gated on OPS-283 |
-  | | OPS-283 | Todo | | S3 → observatory pipeline — the real LBL gate (outside-world lane) |
-  | x | OPS-313 | Todo | | pico improvements — moved off In Progress 2026-06-10 |
-  | x | OPS-324 | Backlog | | sema axioms thread — parked until post-MarketMaker-skeleton; exec summary in issue |
-  | x | OPS-334 | Todo | | `gw.nolan.layout` → Chunk B of **OPS-392**; exec summary in issue |
-  | | OPS-358 | Backlog | | zoneX heatcall derived channel — adjacent to OPS-392 Chunk C; fold or sequence there |
-  | | OPS-367 | Backlog | | RabbitMQ security — overlaps rmqbot designs `prod-tls-fix` + `prod-4x-upgrade`; reconcile/dedupe |
-  | | OPS-368 | Todo | | SystemMode in visualizer (nice-to-have) |
-  | x | OPS-380 | **Done** | D | Snapshot improvement — merged 2026-06-09 |
-  | x | OPS-381 | In Progress | D | Linear integration *(this design)* |
-  | x | OPS-384 | Backlog | D | publish-backpressure |
-  | x | OPS-386 | Backlog | D | integrate-gwbase-sema-updates |
-  | x | OPS-387 | In Progress | D | ltn-sends-gw-wrapped |
-  | x | OPS-389 | Todo | | Publish gwbase 0.5.x to PyPI (fresh, crisp, High) |
-  | x | OPS-390 | Todo | | scada pytest pythonpath (nit) |
-  | x | OPS-391 | Backlog | D | substrate-fit (parked brainstorm; focus AFTER the launch) |
-  | x | OPS-392 | Backlog | D | **spruce-unlimbo** — anchor for 219/230/334; July-15 AC driver |
-- [ ] **Write the issue-snapshot script** (token-cheap sync): a tiny script
-  (e.g. `tools/linear-snapshot.sh`) that pulls open Ops issues via the Linear
-  GraphQL API (`LINEAR_API_KEY`) and writes a compact, gitignored CSV
-  (id, title, state, priority, labels, started/updated ages, design-link) —
-  e.g. `wiki/.linear-snapshot.csv` — so a Claude session greps one small file
-  instead of paying for MCP JSON. The table above then stops being
-  hand-maintained: the script refreshes the facts; sessions only add judgment.
-- [ ] *(optional, decide later)* **Wire `LINEAR_API_KEY`** so the hooks' live Linear-side
-  checks run instead of the wiki-side / honor-system fallback (see
-  [`../linear.md`](../linear.md) "Enforcement").
-- [ ] **Fix `precheck-design-bijection.sh` stamp parsing** — it locates the
-  stamp with `grep '^Status:'`, so it silently skips a design whose stamp is
-  blockquoted/indented (e.g. `> Status:`) and misses the Accepted-missing-id
-  check that `tests/test_doc_health.py` catches. Detect maturity with the
-  test's lenient `STAMP_RE`; keep the bare-`Status:` rule for the id.
+  | OPS-172 | Backlog | Low | What do we do about cold garages to keep them from freezing |  |
+  | OPS-192 | Backlog | Medium | Report accurate SCADA top state and admin timeout |  |
+  | OPS-194 | Backlog | Medium | Important admin improvements |  |
+  | OPS-258 | Backlog | Medium | Local Control / Admin: handle missing/broken oil boiler |  |
+  | OPS-289 | Backlog | Medium | marketmaker must broadcast latest.price so we have it in persistent store |  |
+  | OPS-306 | Backlog | Medium | Record heat pump type somewhere??? |  |
+  | OPS-324 | Backlog | Medium | sema snapshots under code derivation |  |
+  | OPS-325 | Backlog | Low | Send fewer readings for whitewire *-pwr channels |  |
+  | OPS-330 | Backlog | Low | harden ear; use to set up infra upgrade and monitoring framework |  |
+  | OPS-344 | Backlog | Medium | Dig into UK US sCOP discrepancies |  |
+  | OPS-358 | Backlog | No priority | Add zoneX-YYY-heatcall derived channel for all homes |  |
+  | OPS-367 | Backlog | No priority | RabbitMQ security improvements |  |
+  | OPS-141 | Todo | High | Tracing missing oak data |  |
+  | OPS-150 | Todo | Medium | Fix spurious no-data alerts |  |
+  | OPS-215 | Todo | High | Procedural diagnostic for non-electric backup (oil boiler) responsiveness |  |
+  | OPS-225 | Todo | Medium | Turn H0CN into ChannelSpec objects |  |
+  | OPS-238 | Todo | High | Update ActorBase and ASL codec for database code |  |
+  | OPS-248 | Todo | Low | When did maple "become a different system"? Add note to persistent store |  |
+  | OPS-251 | Todo | Medium | MarketMaker design upgrades |  |
+  | OPS-257 | Todo | Medium | GW admin: handle new layout versions better |  |
+  | OPS-265 | Todo | Medium | Re-evaluate MCU (Wiznet Pico2, Wiznet Pico, PicoW) choice |  |
+  | OPS-270 | Todo | Medium | SCADA Template 7 -- new Python, etc. |  |
+  | OPS-304 | Todo | High | Harden MQTT transport against half-open TCP / keepalive timeout stalls (observed 2026-02-12) |  |
+  | OPS-313 | Todo | Low | pico improvements |  |
+  | OPS-317 | Todo | High | Improve scada health diagnostics |  |
+  | OPS-329 | Todo | Medium | report.event v004 |  |
+  | OPS-393 | Todo | High | Post-mortem: maple HP on during on-peak while in Standby (2026-06-09) |  |
+- [x] **Write the issue-snapshot script** (token-cheap sync) —
+  [`tools/linear-snapshot.sh`](../tools/linear-snapshot.sh), *2026-06-22*.
+  Pulls open Ops issues (state type ≠ completed/canceled, paginated) via the
+  Linear GraphQL API (`LINEAR_API_KEY`) and writes a compact, gitignored CSV
+  `wiki/.linear-snapshot.csv` (`id,title,state,priority,labels,started_age_d,
+  updated_age_d,design`) so a session greps one small file instead of paying
+  for MCP JSON. The table above then stops being hand-maintained: the script
+  refreshes the facts; sessions only add judgment. **Needs `LINEAR_API_KEY`**
+  (the MCP is Claude-facing, not shell-callable) — same dependency as the live
+  hook checks below; refuses with guidance when unset.
+- [x] **Wire `LINEAR_API_KEY`** — *2026-06-22*. Stored as plaintext in
+  `.claude/settings.local.json` `env` (project-local, not committed — the
+  umbrella isn't a git repo), injected into the session + hook environment on
+  start. Verified live: `linear-snapshot.sh` pulls 113 open issues,
+  `precheck-cap-8.sh` reports the real started count (2/8), and
+  `precheck-design-bijection.sh` runs its Linear-side mismatch sweep. The
+  hooks' wiki-side / honor-system fallbacks remain for any environment without
+  the key.
+- [x] **Fix `precheck-design-bijection.sh` stamp parsing** — *2026-06-22*.
+  Added a `stamp_line` helper mirroring `tests/test_doc_health.py::_stamp_line`
+  (strips a leading `>`/space/tab run, then matches `Status:`) and routed the
+  Accepted/Verified-needs-an-id check through it, so a blockquoted/indented
+  stamp is found instead of silently skipped. The id check stays scoped to that
+  Status line (`Linear: (OPS|GRI)-NNN`). Verified end-to-end: a blockquoted
+  Accepted stamp with no id is now flagged; the `_stamp_line`/`_slugify`/
+  `accepted-designs-have-linear-id` pytest cases stay green.
 
 ## Retirement
 

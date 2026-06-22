@@ -12,27 +12,54 @@ Newest at the top.
 
 ---
 
-## 2026-06-17 — ComponentBase → type_helpers; ComponentGt as a flat named type (`<!-- pending commit -->`)
+## 2026-06-22 — alphabetizing the gwsproto inits (`7201e5a4`)
 
-**What:** Finished moving the shared component base out of `named_types/` into
-`gwsproto/type_helpers/component_base.py` and fixed its long-standing class-name
-typo `CommponentBase` → `ComponentBase`. Re-added `ComponentGt` (the generic
-concrete component, `TypeName` `component.gt` / `Version` `002`) as a flat named
-type in `named_types/component_gt.py` inheriting `ComponentBase`. Repointed all
-19 concrete `*ComponentGt` types, `decoders.py` (fallback now instantiates
-`ComponentGt`), `data_classes/hardware_layout.py`, and
-`data_classes/components/component.py` to import `ComponentBase` from
-`type_helpers`; re-exported `ComponentGt` from `named_types` (keeps
-`layout_gen`'s `from gwsproto.named_types import ComponentGt` working). Deleted
-the old `named_types/component_gt.py` duplicate. Import smoke test green.
+**What:** Alphabetized the import blocks and `__all__` lists of `gwsproto/named_types/__init__.py`
+and `gwsproto/enums/__init__.py` (ruff `I` + `RUF022`). This was only safe after the prior commit's
+fix to the three modules that imported siblings *via the package `__init__`* — alphabetical order had
+reordered an importer ahead of its dependency, triggering a partially-initialized-module circular
+import.
 
-**Why:** sema types do not inherit from one another — the base belongs in
-`type_helpers`, not in the `named_types` sema-word namespace. This is the gwsproto
-half of honoring the flat-sema law (the temporary "gwsproto inheritance is a flaw
-left for the proactor port" note is being paid down here, per Jessica's direction).
-Still pending in follow-on bits: migrate the Channel-Name-uniqueness axiom out of
-`ComponentBase` into each specific component (and actually implement it, today a
-no-op stub), and add that axiom to the sema component schemas. (OPS-407.)
+**Why:** import hygiene, and it enforces the rule that a `named_types` module must never import from
+the package `gwsproto.named_types` (always from the specific sibling module). (OPS-407.)
+
+## 2026-06-22 — batch 1 i2c sema words (`210ed585`)
+
+**What:** Aligned the gwsproto i2c bus-op family to the sema schemas (Batch 1 of the
+gwsproto→sema conformance sweep). New types `I2cBitAddress`, `I2cRegAddress`, `I2cReadReg`,
+`I2cWriteReg` + the `I2cOperation` enum; `I2cReadBit`/`I2cWriteBit`/`I2cResult` rewritten from
+their old flat shape to **compose** the address sub-types (`Address: I2cBitAddress`/`I2cRegAddress`)
+— `i2c.result` now carries `Operation: I2cOperation` (was a `Literal`), a widened `Value`, and no
+address echo. Added a non-coercive `NonNegativeInt` to `property_format` (the i2c types import it,
+replacing inline `Annotated[StrictInt, Field(ge=0)]`). Exported all new types/enum. Also fixed three
+modules that imported siblings via the package `__init__` (`slow_contract_heartbeat`,
+`gw108_gpio_sensor_component_gt`, `snapshot_spaceheat`) to import from the specific module — a
+package-self-import is a latent circular-import trap.
+
+**Why:** sema is the source of truth and these hand-written gwsproto types must match it; each was
+verified by building a sample and decoding it through the sema runtime (`sema validate`), and the
+validated sample became the schema's example. The composed/address shape mirrors sema's
+`$ref`-composition. (OPS-407.)
+
+**What:** Three things. (1) Moved the shared component base out of `named_types/`
+into `gwsproto/type_helpers/component_base.py` and fixed its long-standing
+class-name typo `CommponentBase` → `ComponentBase`; re-added `ComponentGt` (the
+generic concrete component, `TypeName` `component.gt`) as a flat named type
+inheriting `ComponentBase`. Repointed every concrete `*ComponentGt`, `decoders.py`
+(fallback instantiates `ComponentGt`), `data_classes/hardware_layout.py`, and
+`data_classes/components/component.py` to `ComponentBase` from `type_helpers`;
+re-exported `ComponentGt` from `named_types`. (2) Implemented the
+Channel-Name-uniqueness axiom as `check_axiom_1` in **each** concrete component
+(removed the no-op stub from `ComponentBase`); existing per-component axioms
+renumbered up. (3) Deleted unused components — `fibaro_smart_implant` (dead IoT
+device, no field instances) and `resistive_heater` (both the named-type and the
+data-class wrapper). 29 files.
+
+**Why:** sema types do not inherit from one another, so the base belongs in
+`type_helpers`, not the `named_types` sema-word namespace, and each component
+owns its own axioms — the gwsproto half of honoring the flat-sema law (paying
+down the "gwsproto inheritance is a flaw, left for the proactor port" interim
+note). The matching sema-side axioms land separately (sema `2823a2b`). (OPS-407.)
 
 ## 2026-06-17 — name shuffle (`2ca8f730`)
 

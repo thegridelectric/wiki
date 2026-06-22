@@ -12,6 +12,89 @@ Newest at the top.
 
 ---
 
+## 2026-06-22 — add i2c examples, registry alphabetized (`15d94e7`)
+
+**What:** Added gwsproto-validated `examples` to the i2c.* type schemas (Batches 1–2 of the
+gwsproto→sema conformance sweep: `i2c.bit.address`, `i2c.reg.address`, `i2c.read.bit`/`write.bit`,
+`i2c.read.reg`/`write.reg`, `i2c.result`, `i2c.relay.config`, `i2c.adc.config`, `i2c.dac.config`,
+`i2c.thermistor.interface.config`) — each example is the exact payload its hand-written gwsproto type
+produced, confirmed by decoding it through the sema runtime (`sema validate`). Also alphabetized the
+entries within each section (`formats`/`enums`/`types`) of `definitions/registry.yaml` by key — the
+i2c.* words now cluster correctly (they had been inserted in the "g" area); a pure byte-for-byte
+reorder, indexes regenerated.
+
+**Why:** the examples document the wire form and are exercised by the snapshot round-trip; the registry
+alphabetization is hygiene (entries findable by name). `pytest` green (226). (OPS-407.)
+
+## 2026-06-22 — sema validate: CLI + API (`40f7643`)
+
+**What:** Added a first-class validation surface. API: `sema.runtime.validate.validate(data)`
+→ `ValidationResult{ok, type_name, version, error}` — wraps `default_codec.from_dict` and
+returns a structured result instead of raising, so callers can branch; `expected_type=` asserts
+the decoded `TypeName`. CLI: a `sema validate [file]` subcommand (file or stdin; exit 0 valid /
+2 invalid; `--type` to assert), registered alongside reverse/runtime/snapshot. 6 tests.
+
+**Why:** validating a payload against the Sema vocabulary should be a first-class, shell-usable,
+cross-venv operation — decode-through-the-runtime *is* the validation, and Sema is the source of
+truth (not a downstream codegen'd copy). This is the per-type tool for the gwsproto→sema
+conformance sweep (gwsproto emits JSON → `sema validate`), replacing the indirect gwta-snapshot
+proxy. Built on `jm/cli` off `dev` so it merges independently of the in-flight vocab work.
+
+## 2026-06-22 — pin strict-lint test to a committed seed fixture (`1da1c7b`)
+
+**What:** `tests/test_snapshot_strict_lint.py` pointed `prepare_snapshot` at the
+repo-root `seed_request.yaml`, which is gitignored (a locally-generated artifact),
+so the test raised `FileNotFoundError` on any fresh checkout that lacks it. Copied
+the production seed targets into a committed fixture
+`tests/fixtures/strict_lint_seed.yaml` and repointed the test at it.
+
+**Why:** The strict-lint guard needs to run for everyone, not just on a machine
+that happens to have generated `seed_request.yaml`. The fixture pins the same
+targets (notably `scada.params` all-versions, the enums hitting the legacy
+GwStrEnum index API, and the typed-map types) so the regression paths the guard
+protects stay exercised. Reported by Joe.
+
+## 2026-06-22 — adjust axioms for all the components (`2823a2b`)
+
+**What:** Added the `ChannelNameUniqueness` axiom (axiom 1: "Channel names SHALL be
+unique across the ConfigList") to every `*.component.gt` schema + its runtime axiom
+template, matching the gwsproto runtime. The 11 axiom-free components got it as their
+sole axiom; the 5 with existing axioms had those renumbered up by one
+(`ads111x` OpenVoltageByAdsRange→2; `i2c.multichannel` ActorAndRelayIndexUniqueness→2;
+`pico.flow` HwUidPattern→2; `pico.tank`/`sim.pico.tank` the three Pico axioms→2,3,4).
+`web.server.component.gt` is the exception — it's a software service, not telemetry
+hardware, so instead of ChannelNameUniqueness it got an `EmptyConfigList` axiom
+(`ConfigList` enforced empty at decode, since the runtime ignores `maxItems`) plus a
+"dangler" note in `extended_description`. `electric.meter` already had the axiom. 47
+files; runtime regenerated; `pytest` 220 passed.
+
+**Why:** sema is the source of truth for the component axioms, so the schemas must
+declare what the gwsproto runtime enforces — Channel-Name uniqueness on every
+component's ConfigList. Surfaced that `web.server` is a misuse of the component
+concept (no channels) and constrained it honestly. (OPS-407.)
+
+## 2026-06-22 — gw108 board descriptor + generic i2c bus vocabulary (`dc6800e`)
+
+**What:** Built out the gw108 board descriptor (`gw1.scada.device.type.gt/000`) and a generic `i2c.*`
+hardware vocabulary. New types: `i2c.bit.address`, `i2c.reg.address`, `i2c.bus`, `i2c.relay.config`,
+`i2c.adc.config`, `i2c.thermistor.interface.config`, `i2c.dac.config`, `i2c.read.bit`, `i2c.write.bit`,
+`i2c.read.reg`, `i2c.write.reg`, `i2c.result`, and `gw.native.gpio.pin`; new enums `i2c.adc.type`,
+`i2c.dac.type`, `i2c.operation`. The board descriptor gained `BusList`, `NativeGpioInputs`/`Outputs`,
+`I2cRelays`, `CtAdc`, `ThermistorAdcs`, `Dacs`, `TelemetryNameList`, and a `BusMembership` axiom (every
+device `I2cBus` ∈ `BusList`). String→int maps became typed arrays; silk-screen names are `pascal.case`,
+addresses are bus-relative `non.negative.int`. Bus ops compose the address words and carry the `I2cBus`
+actor name; `i2c.result` widens `Value`, correlates by `TriggerId`, and enforces `ErrorIffFailure`;
+`i2c.read.reg`/`write.reg` enforce `NumBytes ∈ {1,2}` and value-fits-in-NumBytes. Also added the
+`ChannelNameUniqueness` axiom to `electric.meter.component.gt` and folded in in-flight `ads111x`/`dfr`
+edits. 52 files; runtime + indexes regenerated; `pytest` 220 passed.
+
+**Why:** Make the board the single source of physical truth (resolved via `BoardComponentId`) and give
+the I²C layer a generic, composable vocabulary, so board-resident components stay thin references and
+all bus traffic can route through one serializing `I2cBus` actor. `i2c.*` is generic; only the board
+descriptor and the Broadcom-pin word are `gw*`. Full design + rationale live in the
+hardware-layout-pass-one design ("The Sema I²C vocabulary" section). Words authored/edited in place
+(unpushed, mutable). (OPS-407.)
+
 ## 2026-06-16 — gw.house0.layout: require all collections + Hydronic (`dc7877f`)
 
 **What:** Promote every collection field (`GNodes`, `ShNodes`, `DataChannels`, `DerivedChannels`,

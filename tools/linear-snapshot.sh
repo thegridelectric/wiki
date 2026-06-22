@@ -3,10 +3,14 @@
 #
 # Pulls the OPEN Ops issues via the Linear GraphQL API and writes a compact,
 # gitignored CSV so a session greps one small file instead of paying for MCP
-# JSON. "Open" = every state whose type is NOT completed/canceled (so Done,
-# Canceled, and Duplicate are excluded; Backlog/Todo/In Progress/In Review
-# stay). The hand-maintained triage table in designs/linear-integration.md is
+# JSON. "Open" = every state whose type is NOT completed/canceled/duplicate (so
+# Done, Canceled, and Duplicate are excluded; Triage/Backlog/Todo/In Progress/
+# In Review stay). The hand-maintained triage table in designs/linear-integration.md is
 # meant to lean on this: the script refreshes the FACTS, sessions add judgment.
+#
+# It also evaluates a personal triage invariant (see the block below the CSV
+# write): every OPEN issue assigned to me must carry exactly one of the
+# `design` / `parked` labels — and prints the discrepancies.
 #
 # The MCP is Claude-facing, not shell-callable — so, like the other Linear
 # hooks, this calls Linear's web API directly and needs $LINEAR_API_KEY in the
@@ -48,7 +52,7 @@ EOF
   exit 1
 fi
 
-# Open Ops issues = team OPS, state type not completed/canceled. Paginated.
+# Open Ops issues = team OPS, state type not completed/canceled/duplicate. Paginated.
 read -r -d '' QUERY <<'GQL' || true
 query($after: String) {
   issues(
@@ -56,7 +60,7 @@ query($after: String) {
     after: $after
     filter: {
       team: { key: { eq: "OPS" } }
-      state: { type: { nin: ["completed", "canceled"] } }
+      state: { type: { nin: ["completed", "canceled", "duplicate"] } }
     }
   ) {
     pageInfo { hasNextPage endCursor }
@@ -129,3 +133,49 @@ done
 
 count="$(wc -l < "$OUT" | tr -d ' ')"
 echo "✓ wrote $((count - 1)) open Ops issues → $OUT"
+
+# ── personal triage invariant ───────────────────────────────────────────────
+# Every issue assigned to me sits in exactly ONE of three buckets:
+#   (1) closed  — state type completed/canceled/duplicate (Done/Cancelled/Duplicate)
+#   (2) design  — open, carrying the `design` label
+#   (3) parked  — open, carrying the `parked` label
+# "Closed dominates": a closed issue is exempt and MAY still carry `design` (a
+# shipped design keeps its tag as the durable record) or `parked`. So the live
+# check reduces to: every OPEN issue of mine carries EXACTLY ONE of
+# {design, parked}. A violation is an open issue with NEITHER (untriaged — make
+# it a design or park it) or BOTH (contradictory — pick one).
+echo
+echo "── personal triage invariant: every OPEN issue of mine has exactly one of {design, parked} ──"
+inv_q='{"query":"{ issues(filter:{assignee:{isMe:{eq:true}}, state:{type:{nin:[\"completed\",\"canceled\",\"duplicate\"]}}}, first:250){ pageInfo{hasNextPage} nodes{ identifier title state{name} labels{nodes{name}} } } }"}'
+inv_resp="$(curl -s --max-time 20 -X POST https://api.linear.app/graphql \
+              -H "Authorization: $LINEAR_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d "$inv_q" || true)"
+if ! echo "$inv_resp" | jq -e '.data.issues.nodes' >/dev/null 2>&1; then
+  echo "⚠  invariant check skipped — my-open-issues query failed" >&2
+else
+  [ "$(echo "$inv_resp" | jq -r '.data.issues.pageInfo.hasNextPage')" = "true" ] && \
+    echo "⚠  >250 open issues assigned to me — list truncated; paginate before relying" >&2
+  echo "$inv_resp" | jq -r '
+    def has($l): any(.labels.nodes[]?.name; . == $l);
+    .data.issues.nodes
+    | map({ id: .identifier, st: .state.name, title: .title,
+            d: has("design"), p: has("parked") })
+    | map(. + {k: ([.d, .p] | map(select(.)) | length)})
+    | ([.[] | select(.k == 0)]) as $neither
+    | ([.[] | select(.k == 2)]) as $both
+    | "  open: \(length)   ok: \(map(select(.k == 1)) | length)   discrepancies: \(($neither + $both) | length)",
+      ( if (($neither + $both) | length) == 0 then
+          "  ✓ invariant holds"
+        else
+          ( if ($neither | length) > 0 then
+              "  ✗ NEITHER design nor parked (\($neither | length)) — promote to a design, or tag `parked`:",
+              ($neither | sort_by(.st, .id)[] | "    - \(.id)  [\(.st)]  \(.title[0:60])")
+            else empty end ),
+          ( if ($both | length) > 0 then
+              "  ✗ BOTH design and parked (\($both | length)) — contradictory, pick one:",
+              ($both | sort_by(.st, .id)[] | "    - \(.id)  [\(.st)]  \(.title[0:60])")
+            else empty end )
+        end )
+  '
+fi
