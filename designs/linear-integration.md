@@ -26,31 +26,20 @@ Status: Accepted · Pass 2 · Updated 2026-06-22 · Linear: OPS-381
   every **open** issue must carry exactly one of {`design`, `parked`}. The rows
   below are the live discrepancies: my open issues with **neither** label,
   surfaced by `tools/linear-snapshot.sh`'s invariant check (snapshot
-  **2026-06-22**, 28 issues). Each needs a decision — promote to a `design`,
+  **2026-06-22**, 16 issues). Each needs a decision — promote to a `design`,
   tag `parked`, or close. Fill the **Decision** column as we go; an issue
   leaves this list once it carries a label (re-run the script to refresh).
 
   | Issue | Status | Priority | Title | Decision |
   | --- | --- | --- | --- | --- |
-  | OPS-172 | Backlog | Low | What do we do about cold garages to keep them from freezing |  |
-  | OPS-192 | Backlog | Medium | Report accurate SCADA top state and admin timeout |  |
-  | OPS-194 | Backlog | Medium | Important admin improvements |  |
-  | OPS-258 | Backlog | Medium | Local Control / Admin: handle missing/broken oil boiler |  |
   | OPS-289 | Backlog | Medium | marketmaker must broadcast latest.price so we have it in persistent store |  |
   | OPS-306 | Backlog | Medium | Record heat pump type somewhere??? |  |
-  | OPS-324 | Backlog | Medium | sema snapshots under code derivation |  |
   | OPS-325 | Backlog | Low | Send fewer readings for whitewire *-pwr channels |  |
-  | OPS-330 | Backlog | Low | harden ear; use to set up infra upgrade and monitoring framework |  |
   | OPS-344 | Backlog | Medium | Dig into UK US sCOP discrepancies |  |
-  | OPS-358 | Backlog | No priority | Add zoneX-YYY-heatcall derived channel for all homes |  |
   | OPS-367 | Backlog | No priority | RabbitMQ security improvements |  |
   | OPS-141 | Todo | High | Tracing missing oak data |  |
   | OPS-150 | Todo | Medium | Fix spurious no-data alerts |  |
-  | OPS-215 | Todo | High | Procedural diagnostic for non-electric backup (oil boiler) responsiveness |  |
-  | OPS-225 | Todo | Medium | Turn H0CN into ChannelSpec objects |  |
-  | OPS-238 | Todo | High | Update ActorBase and ASL codec for database code |  |
   | OPS-248 | Todo | Low | When did maple "become a different system"? Add note to persistent store |  |
-  | OPS-251 | Todo | Medium | MarketMaker design upgrades |  |
   | OPS-257 | Todo | Medium | GW admin: handle new layout versions better |  |
   | OPS-265 | Todo | Medium | Re-evaluate MCU (Wiznet Pico2, Wiznet Pico, PicoW) choice |  |
   | OPS-270 | Todo | Medium | SCADA Template 7 -- new Python, etc. |  |

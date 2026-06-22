@@ -8,7 +8,9 @@ Status: Draft · Pass 0 · Updated 2026-06-08
 > industry landscape see
 > [`../research/market-product-taxonomy.md`](../research/market-product-taxonomy.md);
 > for the `market.product` type's typed fields see
-> `sema/definitions/types/market.product/000.yaml`.
+> `sema/definitions/types/market.product/000.yaml`; for bid-curve axioms +
+> self-scaling thinking see
+> [`bid-axioms-and-self-scaling.md`](bid-axioms-and-self-scaling.md).
 
 ## What a market product is
 

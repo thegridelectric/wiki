@@ -66,6 +66,8 @@ Status: Draft · Pass 0 · Updated 2026-06-10
   2026-06-10: the ack's *constitutive* nature is decided (stored
   timestamped ack = the contract, above); what remains open is what the
   ack *asserts* about quantity/price/slot and how supersession reads.
+  Bid-shape axioms for self-scaling (anchor / ticks / aggregation semantics):
+  [`../../explorations/bid-axioms-and-self-scaling.md`](../../explorations/bid-axioms-and-self-scaling.md).
 - **Trust + market substrate** — signed, distributed, non-hijackable (a chain's
   real draw is *anti-capture*, not throughput); framework-agnostic (econ-markets
   inv. 14), **not** committed. Two roles, likely different answers: credentials /
