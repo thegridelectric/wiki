@@ -12,6 +12,24 @@ Newest at the top.
 
 ---
 
+## 2026-06-22 — Batch 2 i2c (`75da8146`)
+
+**What:** Added the gwsproto i2c config family (Batch 2 of the gwsproto→sema conformance sweep):
+new types `I2cRelayConfig`, `I2cAdcConfig`, `I2cDacConfig`, `I2cThermistorInterfaceConfig` + the
+`I2cAdcType` (Ads1115/Ads1015) and `I2cDacType` (Mcp4728/Mcp4725) enums. Introduced a shared
+`PascalCase` format in `property_format.py` (alongside `NonNegativeInt`) and applied it to the config
+name/bus fields (`RelayName`, `I2cBus`, `Name`, `DacName`). Reworked the Batch 1 bus-op types so each
+sema schema axiom is mirrored as a `@model_validator(mode="after")` `check_axiom_n` method — replacing
+the `Literal[0,1]`/`Literal[1,2]` shortcuts — covering `BitValueRange` (write.bit), `NumBytesRange`
+(read.reg/write.reg), `ValueFitsNumBytes` (write.reg), and `ErrorIffFailure` (result).
+
+**Why:** the configs are the per-chip descriptors the board (Batch 3) composes; the `PascalCase` format
+keeps device/bus names wire-conformant rather than free `str`; axioms-as-methods is the standing rule
+(see `GridWorks_CLAUDE.md`) — value-range constraints belong in a numbered `check_axiom_n` that mirrors
+the sema axiom, not buried in a `Literal`, so the gwsproto producer and the sema runtime enforce the
+same contract. Each type's emitted payload was confirmed against the sema runtime (`sema validate`)
+before its example was added schema-side. (OPS-407.)
+
 ## 2026-06-22 — alphabetizing the gwsproto inits (`7201e5a4`)
 
 **What:** Alphabetized the import blocks and `__all__` lists of `gwsproto/named_types/__init__.py`
