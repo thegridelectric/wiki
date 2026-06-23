@@ -77,9 +77,9 @@ only when a sort is requested. *Further (unspecced):* resumable checkpoint
 - The target steady-state functionality is the end goal these support.
 
 ## Cross-refs
-- [`layered-test-harness.md`](layered-test-harness.md) — the idempotency
+- **layered-test-harness** (sibling JK design) — the idempotency
   assertion (re-run → no dup) is what lets item 4 batch safely.
-- [`../../gridworks-data/designs/gw-data-analytics-deployment.md`](../../gridworks-data/designs/gw-data-analytics-deployment.md)
-  — backfill/deployment context (and the 5→14 day lag reconcile).
+- **gw-data-analytics-deployment** (gridworks-data design) — backfill/deployment
+  context (and the 5→14 day lag reconcile).
 - `sema/spec/authoring/formats.md` (the format→enum closure rule)
   — gates item 1's "store everything" decision.

@@ -12,14 +12,18 @@ Newest at the top.
 
 ---
 
-## 2026-06-22 — pytest self-contained via pythonpath (`794d589c`)
+## 2026-06-22 — pytest self-contained via pythonpath (`98aa12f5`)
 
 **What:** Added `pythonpath = ["gw_spaceheat"]` to `[tool.pytest.ini_options]` in `pyproject.toml`.
+Also settled the two `scada_gw108.py` `QUESTION FOR JESSICA` comments into plain statements (no value
+change): the gw108's I²C peripherals share one bus (`/dev/i2c-1`), and the thermistor
+`AdcReferenceVolts=3.3` is the divider pull-up supply.
 
 **Why:** the test suite imports top-level `gw_spaceheat` modules (`show_layout`, `ltn_app`, …), so it
 only collected when `gw_spaceheat` was on `sys.path` — previously supplied by the `gw` shell alias's
 `PYTHONPATH`, which broke after the Coding→GridWorks checkout move. With this, `pytest` collects from the
-repo root with no external `PYTHONPATH` (117 tests collected with `PYTHONPATH` unset). (OPS-407.)
+repo root with no external `PYTHONPATH` (117 tests collected with `PYTHONPATH` unset). The gw108 comments
+were the open hardware questions, now confirmed. (OPS-407.)
 
 ## 2026-06-22 — Batch 3 i2c: the gw1.scada.device.type.gt board (`e0325686`)
 
