@@ -1,5 +1,7 @@
 # Concern: `gw.nolan.layout` — axiom complexity vs LLM comprehension
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 Concerns from Jessica about the `gw.nolan.layout` Sema word, framed
 in terms of how easily its complexity is comprehended by LLMs (and humans).
 Moved here from `sema/docs/scada-layout-concerns.md` — these are SCADA-side

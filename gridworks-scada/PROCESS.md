@@ -1,5 +1,7 @@
 # The SCADA Documentation & Cleanup Process
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 This is the operating procedure for the long-running effort to understand,
 document, and clean up `gridworks-scada`. It is written so that any session
 (me, a fresh Claude, or a human) can pick up where the last one left off and

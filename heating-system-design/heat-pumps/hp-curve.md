@@ -1,5 +1,7 @@
 # Heat-Pump COP-Curve Module
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 Deep-research deliverable supporting `design.md`. The outer optimizer calls
 this module for every (LWT, OAT, mode) tuple to get (COP, Q_thermal,
 P_electrical). This file documents the functional form, the coefficients

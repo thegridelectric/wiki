@@ -1,5 +1,7 @@
 # Concern: non-GNode interfaces (provisioning, certs, admin)
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 Design intent from Jessica + evidence from code. These are the interfaces to the
 SCADA that are **not** the GNode-to-GNode (SCADA↔LTN) message path —
 provisioning, certificates, and administration. Largely **undetermined**.

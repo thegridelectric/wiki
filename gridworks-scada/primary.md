@@ -1,5 +1,7 @@
 # gridworks-scada — domain primary
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 Start here for the `gridworks-scada` domain. Wiki-wide conventions (folder
 structure, hub-and-spoke, living-spec discipline) live in
 [`../GridWorks_CLAUDE.md`](../GridWorks_CLAUDE.md); how-we-work-with-Claude

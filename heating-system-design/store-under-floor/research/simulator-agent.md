@@ -1,5 +1,7 @@
 # Thermal-Store Simulator as a SEMA Agent
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 Design notes for building the under-floor thermal-store simulation as an
 **agent that speaks SEMA over a local MQTT broker**, integrates with the
 existing GridWorks SCADA actor system, and lays groundwork for a chaos-

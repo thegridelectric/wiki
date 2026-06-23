@@ -1,5 +1,7 @@
 # Concern: TerminalAsset deeds & TradingRights
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 Design intent from Jessica. **Not implicit in the SCADA code yet** — Jessica
 wants this written up here as the target. Historical context in `old_words/`.
 

@@ -1,5 +1,7 @@
 # Unpressurized-Store — Design Notes
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 Working design notes for the **decoupled pressurized-system / unpressurized-tank
 thermal store** module. The module is intentionally **site-independent**: it
 exposes a clean four-port thermal interface plus optional electric immersion

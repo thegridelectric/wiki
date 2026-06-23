@@ -1,5 +1,7 @@
 # Findings register
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 Actionable backlog: bugs, smells, and small/medium cleanups. Append-only IDs
 (`F-NNN`), never reused. Conventions in [`../PROCESS.md`](../PROCESS.md).
 Grouped into **area subsections** so a cleanup session can grab a localized

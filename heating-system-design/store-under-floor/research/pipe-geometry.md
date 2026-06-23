@@ -1,5 +1,7 @@
 # Pipe Geometry in the Under-Floor Flowable-Fill Store
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 Deep-research deliverable supporting `design.md`. Pending review by
 J. Siegenthaler. Project: Polstein 14-home phase-1, Millinocket ME. Template footprint
 1000 ft² (93 m²), CLSM store, design-day Q_in,max = 15 kW, Q_out,max = 5 kW,

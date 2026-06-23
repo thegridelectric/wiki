@@ -1,5 +1,7 @@
 # Insulation — Top, Bottom, Edge
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 Deep-research deliverable supporting [`design.md`](design.md). Sets the
 top, bottom, and edge insulation R-values for the under-floor flowable-fill
 thermal store at Polstein's Millinocket development. Reviewed against

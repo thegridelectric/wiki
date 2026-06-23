@@ -1,5 +1,7 @@
 # Edge-Loss — 2-D and Transient Treatment
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 Companion to [`insulation.md`](insulation.md), which carries the
 ASHRAE F-factor (per-foot-of-perimeter) cost sweep. This document goes
 deeper: the F-factor method approximates a fundamentally 2-D, transient,

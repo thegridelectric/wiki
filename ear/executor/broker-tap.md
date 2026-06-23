@@ -1,5 +1,7 @@
 # Ear — The Broker Audit Tap
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 > The **ear** is GridWorks' most fundamental data-persistence mechanism: a
 > universal, passive tap that copies every message crossing the broker into
 > a single exchange, from which it is shovelled off-broker for persistence

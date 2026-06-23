@@ -1,5 +1,7 @@
 # Materials — Flowable Fill (CLSM) for the Under-Floor Thermal Store
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 Research-grade reference document for the cement-sand flowable fill used as
 the storage medium in the under-floor thermal store. Companion to
 [`design.md`](design.md); supersedes the working numbers in the Materials

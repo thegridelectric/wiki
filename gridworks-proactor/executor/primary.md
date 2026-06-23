@@ -1,5 +1,7 @@
 # gridworks-proactor — Rebuild Specification (primary)
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 > **First pass — acceptable minimum.** This captures the load-bearing
 > structure of `gridworks-proactor` from its README and package layout so
 > the domain has a spec to grow into. Most depth is still **Open**. This is

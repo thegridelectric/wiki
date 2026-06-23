@@ -1,5 +1,7 @@
 # Can a 150 gal Stratified Tank + Radiant Floor Avoid Versant TOU Hours?
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 ## Which design this is about
 
 Two designs are being compared at the system level (see

@@ -1,5 +1,7 @@
 # Simulator Agent — Design Plan
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 A SEMA-conformant agent that runs the under-floor thermal store as a
 **peer GNode on the local RabbitMQ broker**, alongside
 `gridworks-scada`. **Second deliverable** of the heating-system-design

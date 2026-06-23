@@ -1,5 +1,7 @@
 # gridworks-scada — Rebuild Specification (primary)
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 The faithful-rebuild hub for `gridworks-scada`. Intended to grow into a
 language-agnostic account complete enough to rebuild the SCADA from these docs.
 

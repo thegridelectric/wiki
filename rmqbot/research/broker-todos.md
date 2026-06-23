@@ -1,5 +1,7 @@
 # rmqbot — operational context + design index
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 > `rmqbot` is GridWorks' deployed production RabbitMQ/MQTT broker
 > (`hw1-1.electricity.works`, AWS, docker; vhost `hw1__1`). This domain
 > owns the **running broker**: hosting, compose, TLS/certs, ops runbook.

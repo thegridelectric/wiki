@@ -1,5 +1,7 @@
 # Foundational principles
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 Commitments that constrain every SCADA design decision. These are *design
 intent from Jessica*, not necessarily reflected in today's code — where the
 code diverges, that is a finding, not a correction to this file.

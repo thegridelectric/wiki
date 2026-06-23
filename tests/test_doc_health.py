@@ -9,7 +9,8 @@ Checks:
   hubs (DESIGN_INDEX), vocabulary canon (glossary), operational state
   (active-claims*), and the test infra itself.
 - a design at Accepted or Verified maturity has Pass >= 1.
-- no doc exceeds the 1000-line cap (split it into a hub + sub-specs).
+- no doc exceeds the 1000-line cap (split it into a hub + sub-specs),
+  except append-only changelogs, which grow without bound by design.
 
 Each doc is its own parametrized case, so a failure names the exact file.
 """
@@ -40,12 +41,19 @@ STAMP_EXEMPT_NAMES = {
     "glossary.md",
     "active-claims.md",
     "active-claims-template.md",
+    # Not "designed" content: scratch pads and archived raw correspondence.
+    "scratch.md",
+    "john-siegenthaler.md",
 }
 
 # Top-level directories whose contents are exempt entirely from stamp
 # requirements (test infrastructure + operational tool scripts are not
 # designed content).
 STAMP_EXEMPT_TOPLEVEL = {"tests", "tools"}
+
+# Any-depth directories whose contents are archived raw material (e.g. emails),
+# not designed content — exempt from the stamp requirement wherever they appear.
+STAMP_EXEMPT_DIRS = {"correspondence"}
 
 
 def _md_files() -> list[Path]:
@@ -64,6 +72,8 @@ def _stamp_scope() -> list[Path]:
             continue
         parts = p.relative_to(WIKI).parts
         if parts and parts[0] in STAMP_EXEMPT_TOPLEVEL:
+            continue
+        if any(part in STAMP_EXEMPT_DIRS for part in parts):
             continue
         out.append(p)
     return out
@@ -246,7 +256,17 @@ def test_accepted_designs_have_linear_id(doc: Path) -> None:
     )
 
 
-@pytest.mark.parametrize("doc", _md_files(), ids=_rel)
+# Files exempt from the line cap: changelog.md is append-only and grows without
+# bound by design (one entry per commit, forever) — splitting it would defeat its
+# purpose. The cap targets *designed* docs that should be split into hub + spokes.
+LINE_CAP_EXEMPT_NAMES = {"changelog.md"}
+
+
+def _line_cap_scope() -> list[Path]:
+    return [p for p in _md_files() if p.name not in LINE_CAP_EXEMPT_NAMES]
+
+
+@pytest.mark.parametrize("doc", _line_cap_scope(), ids=_rel)
 def test_no_doc_exceeds_line_cap(doc: Path) -> None:
     n = sum(1 for _ in doc.open(encoding="utf-8", errors="replace"))
     assert n <= MAX_LINES, (

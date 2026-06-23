@@ -1,5 +1,7 @@
 # Component: `ContractHandler`
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 > **What this is:** the SCADA-side bookkeeper for its dispatch relationship with
 > the LTN. It owns the lifecycle of the `SlowDispatchContract`, the
 > heartbeat exchange that proves liveness between SCADA and LTN, running energy

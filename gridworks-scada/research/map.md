@@ -1,5 +1,7 @@
 # Coverage map
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 Living inventory of `gridworks-scada` and how far each part has been
 documented. Status legend: `untouched` → `mapped` → `documented` → `verified`
 (see `PROCESS.md`). Pick the next discovery pass to maximize coverage of

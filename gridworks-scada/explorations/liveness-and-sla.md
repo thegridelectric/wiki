@@ -1,5 +1,7 @@
 # Concern: liveness, heartbeat & the SLA
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 Design intent from Jessica + evidence from code. See [[../principles]].
 
 ## The commitment

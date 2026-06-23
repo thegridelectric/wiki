@@ -1,5 +1,7 @@
 # CFD Analysis — First Pass: Flute vs. Disc Diffuser
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 **Goal of this first pass:** decide, with quantitative evidence, whether
 the unpressurized-store module should use a **single Moscone-style
 self-stratifying flute** (the Vaughn-tank pattern) or **three symmetric

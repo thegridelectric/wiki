@@ -1,5 +1,7 @@
 # Design A (Store-Under-Floor) vs Design B (Garth Tank + Radiant Floor)
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 **Status: stub.** This memo is the eventual home for the head-to-head
 life-cycle comparison the user flagged at the start of the design
 exercise. It depends on the engine and dashboard

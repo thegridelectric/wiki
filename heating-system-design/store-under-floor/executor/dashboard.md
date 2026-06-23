@@ -1,5 +1,7 @@
 # Dashboard — Design Plan
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 A simple web dashboard that exposes the under-floor-store model
 parameters as widgets, runs the capital-cost minimizer for the chosen
 parameter values, and renders the costed BOM as a table plus a few

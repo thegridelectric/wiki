@@ -1,5 +1,7 @@
 # Concern: Sema, and the legacy SCADA style
 
+Status: Draft · Pass 0 · Updated 2026-06-23
+
 Design intent from Jessica + foundational reads (`sema/CLAUDE.md`,
 [[../../../sema/research/where-meaning-lives-in-gridworks]]).
 
