@@ -12,8 +12,20 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-06-23 — house0 layout axioms in gwsproto + odu-only fixture (`<pending>`)
+## 2026-06-23 — house0_sema_gen uses correct SpaceheatUnit (`a3f187eb`)
+
+**What:** Fixed the sema-native house0 gen's stale unit references: channel-config `Unit` fields now use
+`SpaceheatUnit` (`W`/`Fahrenheit`/`Celcius`/`VoltsRms`/`Gpm`/`Unitless`/`ThermostatStateEnum` — the values
+the ConfigList serializes), while DerivedChannel `OutputUnit` keeps the gw1 `Unit` enum
+(`WattHours`/`FahrenheitX100`). Removed the duplicate `Unit` import.
+
+**Why:** a sema regen had renamed the gw1 unit members (`W`→`Watts`, `Fahrenheit`→`FahrenheitX100`),
+which crashed the gen on `Unit.W` before it emitted anything; the channel configs need the old
+`spaceheat.unit` values for now, so they bind to `SpaceheatUnit`. The gen now runs end-to-end and builds a
+`House0Layout` — surfacing the next real gap (it does not emit per-zone `whitewire-pwr`, which the new
+axiom 3 catches). (OPS-407.)
+
+## 2026-06-23 — house0 layout axioms in gwsproto + odu-only fixture (`1ab30c6f`)
 
 **What:** Ported the `gw.house0.layout` sema axioms to the gwsproto `House0Layout` type as
 `check_axiom_1..4` (GlobalIdUniqueness, EssentialNodesExistence, ZoneWhitewirePwrChannel,

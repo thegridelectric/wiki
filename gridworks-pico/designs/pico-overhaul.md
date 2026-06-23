@@ -8,8 +8,7 @@ its own after the AP is dropped — not code review.
 
 > What this is: the one consolidating design for `gridworks-pico` — **needed for
 > scaling, before September 2026**. The code has fractured enough that
-> provisioning one more pico is confusing. **Folds OPS-313 (pico improvements)
-> and OPS-265 (MCU choice).** This doc is written to be **built from directly**:
+> provisioning one more pico is confusing. This doc is written to be **built from directly**:
 > every section ends in concrete do/don't and a done-when, with reference code,
 > so there is little room to interpret it loosely.
 
@@ -32,7 +31,7 @@ its intent is rebuilt cleanly here (see *Shared `net.py`*); the partial version 
 `origin/jm/cleanup` is reference only. The deployed `field` line is fully
 superseded by this branch (push `jm/field-backup`, then `field` can go).
 
-## Platform decision (folds OPS-265)
+## Platform decision
 
 - **PicoW over wifi for this year**, building to ~20 homes. **Wiznet is
   rejected.** ESP32 is a *next-summer* evaluation, not now.
@@ -164,9 +163,10 @@ implementation of each networking primitive in the tree.
 
 Two different things, do not conflate them:
 
-- **Firmware (MicroPython `.uf2`)** — bench/provisioning only, **never OTA**, now
-  and forever. (This is the "no firmware downloads" rule; it is what keeps code
-  quality honest.)
+- **Firmware (MicroPython `.uf2`)** — flashed at the bench / provisioning today,
+  not OTA. A robust firmware-OTA path may be worth building later; it is **out of
+  scope here** and nothing in this design depends on one. For now, bench flashing
+  is the baseline (and not leaning on an OTA crutch keeps code quality honest).
 - **App-code download** (`update_code()` → `/code-update`) — **kept for this
   year** (≤ ~20 homes, while tailscale/SSH exist). At the hundreds-phase there is
   **no tailscale and no SSH**, and the app-code download is **removed** then too;
@@ -184,16 +184,16 @@ Two different things, do not conflate them:
       machine.reset()             # the one sanctioned reset — and not during a config write
   ```
 
-## ADC / sensing correctness (folds the rest of OPS-313)
+## ADC / sensing correctness
 
 - **Do not hard-code 3.3 V.** The bench finding: open-thermistor reads 3.3 V on
   the BTU but **2.97 V on the tank module** (a low 3V3 rail or a leakage path).
   Name it `ADC_SUPPLY_V` and treat it as **measured/configured**, not assumed —
   and chase the 2.97 V as a real hardware fault (measure the 3V3 pin), don't
   calibrate it away.
-- **No network calls in the timer ISR** (OPS-313) — the ISR sets flags; the main
+- **No network calls in the timer ISR** — the ISR sets flags; the main
   loop does the I/O.
-- **Integer ADC math** (OPS-313): replace the float/list averaging with an
+- **Integer ADC math**: replace the float/list averaging with an
   integer accumulation loop.
 
 ## Provisioning — the original pain (make one clear path)
