@@ -12,6 +12,34 @@ Newest at the top.
 
 ---
 
+## 2026-06-22 — pytest self-contained via pythonpath (`794d589c`)
+
+**What:** Added `pythonpath = ["gw_spaceheat"]` to `[tool.pytest.ini_options]` in `pyproject.toml`.
+
+**Why:** the test suite imports top-level `gw_spaceheat` modules (`show_layout`, `ltn_app`, …), so it
+only collected when `gw_spaceheat` was on `sys.path` — previously supplied by the `gw` shell alias's
+`PYTHONPATH`, which broke after the Coding→GridWorks checkout move. With this, `pytest` collects from the
+repo root with no external `PYTHONPATH` (117 tests collected with `PYTHONPATH` unset). (OPS-407.)
+
+## 2026-06-22 — Batch 3 i2c: the gw1.scada.device.type.gt board (`e0325686`)
+
+**What:** The capstone of the gwsproto→sema conformance sweep. Two new sub-types `I2cBus`
+(`Name`/`BusNumber`) and `NativeGpioPin` (`Name`/`BcmPin`), and `ScadaDeviceTypeGt` rewritten to mirror
+the sema `gw1.scada.device.type.gt/000` schema — composing `BusList`, `NativeGpioInputs`/`Outputs`,
+`I2cRelays`, `CtAdc`, `ThermistorAdcs`, `Dacs`, `TelemetryNameList`, with the `BusMembership` axiom as a
+`check_axiom_1` method (every I2cBus a config references must be a Name in BusList). The old nested
+`BaseModel`s in `scada_device_type_gt.py` are retired. Local class name stays `ScadaDeviceTypeGt` while
+the wire `TypeName` is `gw1.scada.device.type.gt`; the in-flight `Gw1ScadaDeviceTypeGt` name is renamed
+back to `ScadaDeviceTypeGt` across `nolan_layout.py`, `relay.py`, `gw108_nolan_zones.py`, and the three
+new names are exported from the package `__init__`. `scada_gw108.py` rebuilt against the new structure
+(dict→list, `Register`→`RegisterIndex`, every config given `Name`/`I2cBus`, one `DefaultBus`).
+
+**Why:** the board descriptor is the type the whole i2c family was built to compose; with it the sweep
+covers the full hardware-layout vocabulary. The serialized gw108 is the schema's example, confirmed
+against the sema runtime (`sema validate` → OK) and its `BusMembership` rejection. Two gw108 hardware
+values had no prior field and are flagged in-code for Jessica (single-bus assumption;
+`AdcReferenceVolts=3.3`). (OPS-407.)
+
 ## 2026-06-22 — Batch 2 i2c (`75da8146`)
 
 **What:** Added the gwsproto i2c config family (Batch 2 of the gwsproto→sema conformance sweep):

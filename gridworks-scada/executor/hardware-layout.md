@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-06-16
+Status: Draft · Pass 0 · Updated 2026-06-23
 
 # The hardware layout
 
@@ -362,6 +362,112 @@ generation, any home whose channel name diverges from the canonical `names/`
 value gets its **channel name changed to the canonical one while keeping the
 immutable channel id** — so historical data stays connected across the rename.
 Flag and fix per home as part of the migration.
+
+## I²C and board-resident components
+
+A gw108-class board hosts many parts — relays, an ADC, a DAC, GPIO — that
+each need a physical address on the board. The board is the **single source
+of physical truth**; the parts on it are thin references that name *which*
+thing they are and let the board hold the address. Three layers, the outer
+two backed by actors:
+
+1. **Bus** — one `I2cBus` actor per physical bus, the serialized exclusive
+   owner of bus traffic. **All** bus traffic — relay bit read-modify-writes
+   and ADC register reads alike — goes through it; that serialization is the
+   only safe way to share one bus.
+2. **Board** — `gw1.scada.device.type.gt`, pure data: the physical map
+   (`BusList`, `NativeGpioInputs`/`NativeGpioOutputs`, `I2cRelays`, `CtAdc`,
+   `ThermistorAdcs`, `Dacs`), resolved through a node's `BoardComponentId` and
+   shared by **many** ShNodes. The gw108 instance is
+   `data_classes/device_types/scada_gw108.py`.
+3. **Device** — the per-relay / per-reader component, carried by **at most
+   one** ShNode via `ComponentId`. Thin: it names *which* sub-device on the
+   board it is (by that sub-device's `Name`) plus its control/channel config;
+   it does **not** restate the physical address. `spaceheat.node.gt/302`
+   already carries both `ComponentId` and `BoardComponentId`.
+
+Board-resident parts stay uniform `ComponentBase`, each with its own coarse
+`gw1.device.type` value and no specialized `*.device.type.gt` record — their
+physical facts live in the board's config lists. So three device types are in
+play: the board (`GridworksScadaGw108`), an ADC-on-gw108, and an
+I²C-relay-on-gw108 (the last two named in the design while the actor layer
+lands).
+
+### The Sema I²C vocabulary
+
+Generic `i2c.*` primitives carry nothing GridWorks-specific; only the board
+descriptor and the Broadcom-pin word (`gw.native.gpio.pin`) are `gw*`. The
+sema schemas are the source of truth; the durable shape:
+
+- **Addressing is bus-relative.** `i2c.bit.address` `{I2cAddress,
+  RegisterIndex, BitIndex}` and `i2c.reg.address` `{I2cAddress, RegisterIndex}`
+  locate a target by device address *independent of which physical bus it is
+  on*, so neither carries a `Bus`. That is what lets one address word serve
+  both the bus-op messages and the board descriptor. All address fields are
+  `non.negative.int` (a 0 address/register/bit is valid).
+- **The physical bus.** `i2c.bus` `{Name (pascal.case), BusNumber}` — one bus
+  on a board, `BusNumber` the Linux i²c adapter (`/dev/i2c-<BusNumber>`). A
+  board declares its buses in `BusList`.
+- **Per-device configs** — each carries a `pascal.case` `Name` (its
+  silk-screen name) and an `I2cBus` naming its board bus:
+  `i2c.relay.config`, `i2c.adc.config`, `i2c.thermistor.interface.config`,
+  `i2c.dac.config`. Chipset enums `i2c.adc.type` (`Ads1115`/`Ads1015`) and
+  `i2c.dac.type` (`Mcp4728`/`Mcp4725`).
+- **Bus-op messages** (the actor wire protocol): `i2c.read.bit`,
+  `i2c.write.bit` (+`Value`), `i2c.read.reg` (+`NumBytes`), `i2c.write.reg`
+  (+`Value`), `i2c.result` `{Operation, Value?, Success, Error?, UnixTimeMs,
+  TriggerId}`. `Bus` on every op is the `I2cBus` actor's `spaceheat.name`;
+  requests carry a `TriggerId` and `i2c.result` correlates back by it (so it
+  echoes no address). `Value` is a single `non.negative.int` widened to hold a
+  bit or a 1–2 byte register word.
+
+The free-key string→int maps (`NativeGpio`, `I2cRelays`, `Dacs`) became typed
+**arrays** because sema's codec PascalCases all keys, so a free-key map can't
+decode; the board keeps `NativeGpioInputs`/`NativeGpioOutputs` as two lists to
+hold the in/out distinction structurally.
+
+**Two enforcement tiers** (the recurring sema theme): **formats are hard**
+(`pascal.case`, `non.negative.int`, `positive.float`, … reject at the codec
+boundary); **enum membership is soft** (an unknown value coerces to the enum's
+default rather than raising); **array length is unenforced**. So a value range
+or a list-length bound is an **axiom**, not a primitive constraint —
+`Value ∈ {0,1}` (`i2c.write.bit`), `NumBytes ∈ {1,2}` and `Value` fits
+(`i2c.read.reg`/`write.reg`), `Error` non-blank ⇔ `¬Success` (`i2c.result`).
+
+### Invariants (referential integrity)
+
+- **`BusMembership`** (enforced on `gw1.scada.device.type.gt`): every device
+  config's `I2cBus` appears in the board's `BusList`.
+- **Board↔component cross-consistency** (the target the actor migration
+  enforces, replacing the multiplexer's silent `ActorName` matching): a relay
+  component's `RelayName ∈ board.I2cRelays`; its `WiringConfig ∈` that relay's
+  `SupportedWiringConfigs`; no two relay components on one board share a
+  `RelayName` (⇒ no bit-address collision); a thermistor reader's ADC
+  reference resolves in `board.ThermistorAdcs`.
+- **Layout-level bijections** (target): the DataChannel set ↔ the `ChannelName`
+  set across all component `ConfigList`s; each `I2cBus` actor ShNode ↔ a board
+  `BusList` entry, via a defined `pascal.case ↔ spaceheat.name` casing map
+  (`DefaultBus ↔ default-bus`).
+
+### ADC reads route through `I2cBus` (decided)
+
+The thermistor reader is a **client** of the `I2cBus` actor, not a direct
+hardware owner — no parallel Adafruit access. This is safe because the slow
+part of an ADS1115 read happens **off-bus**: issue `start-conversion` (a
+discrete bus op), sleep off-bus through the ~1–8 ms conversion, then issue
+`read-result` (another op). The bus is held only for the µs-scale register
+transactions, so a queued relay write slots in between and relay latency stays
+bounded. Granularity is **per ADC chip** (the 4-channel mux unit). The ADS1115
+holds its result in its own register until read, so an intervening transaction
+to a *different* address is harmless; the one rule is never start a second
+conversion on the *same* chip before reading the first. This is why `I2cBus`
+gained register ops (`I2cReadReg`/`I2cWriteReg`) alongside the bit ops.
+
+> The actor layer that wires this — the `I2cBus` actor receiving the composed
+> ops with `I2cResult` replying to the requester, retiring `I2cRelayBoard` +
+> `i2c_relay_multiplexer`, the thermistor-reader and relay-component version
+> bumps, and minting the ADC/relay `gw1.device.type` values — is in flight,
+> tracked in the hardware-layout-pass-one design (OPS-407).
 
 ## Hacky/irregular bits (current)
 

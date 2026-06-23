@@ -12,6 +12,34 @@ Newest at the top.
 
 ---
 
+## 2026-06-22 — gw108 board example + BusMembership counterexample (`1a1e031`)
+
+**What:** Added the validated gw108 board as the `examples` of `gw1.scada.device.type.gt/000` — the exact
+payload the hand-written gwsproto `ScadaDeviceTypeGt` emits, confirmed by `sema validate`. Added a
+`BusMembership` (Axiom 1) counterexample fixture + test: a minimal board whose relay references an
+`I2cBus` name absent from `BusList`, asserted to be rejected by the runtime codec.
+
+**Why:** closes the Batch 3 (board) leg of the gwsproto→sema conformance sweep — the example pins what a
+conformant board looks like, the counterexample pins that the runtime enforces bus membership (accept +
+reject, both sides). Indexes regenerated. `pytest` green (232 passed, 1 xpassed). (OPS-407.)
+
+## 2026-06-22 — add axiom tests and more examples (`bf41287`)
+
+**What:** Added axiom counterexample fixtures + tests for the i2c bus-op types — one
+fixture per axiom, each an otherwise-valid payload with a single field mutated to violate
+exactly one axiom, asserted to be rejected by the runtime codec:
+`i2c.write.bit` (Axiom 1 `BitValueRange`, Value=2), `i2c.read.reg` (Axiom 1 `NumBytesRange`,
+NumBytes=3), `i2c.write.reg` (Axiom 1 `NumBytesRange` NumBytes=3, Axiom 2 `ValueFitsNumBytes`
+NumBytes=1/Value=300), `i2c.result` (Axiom 1 `ErrorIffFailure`, Success=false with no Error).
+Also added gwsproto-validated `examples` to the four config schemas
+(`i2c.relay.config`, `i2c.adc.config`, `i2c.dac.config`, `i2c.thermistor.interface.config`).
+
+**Why:** the counterexamples are the other half of the EDD bar — the example proves the runtime
+*accepts* a conformant payload, the fixture proves it *rejects* one that breaks the axiom, so each
+schema axiom is pinned from both sides. Mirrors the `check_axiom_n` methods on the hand-written
+gwsproto producers (a gwsproto axiom dropped → sema still catches it). `pytest` green (231 passed,
+1 xpassed). (OPS-407.)
+
 ## 2026-06-22 — add i2c examples, registry alphabetized (`15d94e7`)
 
 **What:** Added gwsproto-validated `examples` to the i2c.* type schemas (Batches 1–2 of the
