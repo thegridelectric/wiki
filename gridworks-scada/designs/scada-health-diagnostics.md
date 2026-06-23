@@ -1,6 +1,6 @@
 # Scada health diagnostics
 
-Status: Draft · Pass 0 · Updated 2026-06-22 · Linear: OPS-317
+Status: Draft · Pass 0 · Updated 2026-06-23 · Linear: OPS-317
 
 **EDD: yes** verified by a real-broker outage experiment: kill a peer and observe
 the live `ally.inactive` signal published + journaled immediately, and the
@@ -23,33 +23,16 @@ back-office reflect the down state well inside the current ~10-minute lag.
   exists.
 - No back-office visibility into the up/down state.
 
-## The signal: `ally.inactive` (live, fire-and-forget)
+## The signal it consumes (emitted by the `ally-inactive` design)
 
-The key new piece: a **live peer-down signal** that is deliberately **not** a
-`gridworks.event.*` and **not** an Event — being an Event is exactly what makes
-the comm types arrive too late.
-
-- **`ally.inactive`** — fire-and-forget, unpersisted at the emitter,
-  semantically named (covers MQTT drop AND response-timeout AND any future way a
-  peer vanishes). Published the moment a peer goes dark, straight out the
-  announcer's **own broker connection** — independent of the (now-dead) path to
-  the vanished peer, so any third party hears it immediately. Frame as plain
-  broker reachability, **not** proactor "links" (the 1:1 link FSM is the
-  abstraction under critique).
-- **Up/down asymmetry kept on purpose.** Peer-**up** is the existing proactor
-  Event `gridworks.event.comm.peer.active` (after-the-fact); peer-**down** is the
-  new non-event `ally.inactive` (live). Different mechanism, different name
-  ("peer" vs "ally") — real friction the proactor rewrite will resolve; capture
-  it asymmetrically for now rather than papering over it.
-
-**Status of the word: not yet authored.** `ally.inactive` does **not exist** in
-any `sema` ref (checked `dev`/`main`/working tree 2026-06-22). The branch
-`jm/proactor-link-vocab` it was once parked against is **merged into `sema` dev
-and carries no unique commits** — a dead pointer. The word still needs coining
-via `/make-sema-word` (read `sema/CLAUDE.md` + `spec/primary.md` first): a
-**versioned** type, CamelCase serialized fields, `TypeName` `ally.inactive`,
-carrying at least the announcer alias, the ally that went dark, the cause, and an
-emit timestamp.
+The live peer-down signal this design relies on — fire-and-forget `ally.inactive`
+(with `ally.active` on recovery), published the moment a peer goes dark on
+whatever broker still works, deliberately **not** a stored-until-acked Event so it
+arrives live rather than after the link is back — is designed and emitted by the
+**ally-inactive** design (OPS-410). This design does **not** re-specify emission;
+it **consumes** that signal — persisting it and surfacing it. (Gate: the
+`ally.inactive` sema word is not yet authored — that coining belongs to the
+ally-inactive design.)
 
 ## Persist the durable liveness signal set
 
@@ -75,7 +58,5 @@ and the live-detection purpose); JK owns the *how*.
 - Back-office surface: where/how the up/down state shows (admin panel? a
   derived channel?).
 - Sequencing gate: the persist half is **blocked on a clean `sema` + `wiki/sema`
-  release** (the new `ally.inactive` word needs a JK snapshot regen from sema
-  dev). Coin the word first.
-- Does peer-down want an eventual `ally.active` / rename, or does that wait for
-  the proactor rewrite?
+  release** (the `ally.inactive` word — coined by the ally-inactive design —
+  needs a JK snapshot regen from sema dev). Gated behind that emission work.

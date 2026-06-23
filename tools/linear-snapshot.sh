@@ -135,17 +135,19 @@ count="$(wc -l < "$OUT" | tr -d ' ')"
 echo "✓ wrote $((count - 1)) open Ops issues → $OUT"
 
 # ── personal triage invariant ───────────────────────────────────────────────
-# Every issue assigned to me sits in exactly ONE of three buckets:
+# Every issue assigned to me sits in ONE bucket:
 #   (1) closed  — state type completed/canceled/duplicate (Done/Cancelled/Duplicate)
 #   (2) design  — open, carrying the `design` label
 #   (3) parked  — open, carrying the `parked` label
-# "Closed dominates": a closed issue is exempt and MAY still carry `design` (a
-# shipped design keeps its tag as the durable record) or `parked`. So the live
-# check reduces to: every OPEN issue of mine carries EXACTLY ONE of
-# {design, parked}. A violation is an open issue with NEITHER (untriaged — make
-# it a design or park it) or BOTH (contradictory — pick one).
+#   (4) nit     — open, carrying the `nit` label (sub-threshold cleanup not worth
+#                 a design; an active nit is legitimately neither parked nor design)
+# "Closed dominates": a closed issue is exempt. So the live check reduces to:
+# every OPEN issue of mine carries AT LEAST ONE of {design, parked, nit}. A
+# violation is an open issue with NONE (untriaged — design it, park it, or mark a
+# nit), or the contradictory combo `design` + (`parked`|`nit`) — `design` is
+# mutually exclusive with both.
 echo
-echo "── personal triage invariant: every OPEN issue of mine has exactly one of {design, parked} ──"
+echo "── personal triage invariant: every OPEN issue of mine carries one of {design, parked, nit} ──"
 inv_q='{"query":"{ issues(filter:{assignee:{isMe:{eq:true}}, state:{type:{nin:[\"completed\",\"canceled\",\"duplicate\"]}}}, first:250){ pageInfo{hasNextPage} nodes{ identifier title state{name} labels{nodes{name}} } } }"}'
 inv_resp="$(curl -s --max-time 20 -X POST https://api.linear.app/graphql \
               -H "Authorization: $LINEAR_API_KEY" \
@@ -160,21 +162,22 @@ else
     def has($l): any(.labels.nodes[]?.name; . == $l);
     .data.issues.nodes
     | map({ id: .identifier, st: .state.name, title: .title,
-            d: has("design"), p: has("parked") })
-    | map(. + {k: ([.d, .p] | map(select(.)) | length)})
-    | ([.[] | select(.k == 0)]) as $neither
-    | ([.[] | select(.k == 2)]) as $both
-    | "  open: \(length)   ok: \(map(select(.k == 1)) | length)   discrepancies: \(($neither + $both) | length)",
-      ( if (($neither + $both) | length) == 0 then
+            d: has("design"), p: has("parked"), n: has("nit") })
+    | map(. + { none: ((.d or .p or .n) | not),
+                contra: (.d and (.p or .n)) })
+    | ([.[] | select(.none)]) as $none
+    | ([.[] | select(.contra)]) as $contra
+    | "  open: \(length)   ok: \(map(select((.none or .contra) | not)) | length)   discrepancies: \(($none + $contra) | length)",
+      ( if (($none + $contra) | length) == 0 then
           "  ✓ invariant holds"
         else
-          ( if ($neither | length) > 0 then
-              "  ✗ NEITHER design nor parked (\($neither | length)) — promote to a design, or tag `parked`:",
-              ($neither | sort_by(.st, .id)[] | "    - \(.id)  [\(.st)]  \(.title[0:60])")
+          ( if ($none | length) > 0 then
+              "  ✗ NEITHER design/parked/nit (\($none | length)) — design it, park it, or mark a nit:",
+              ($none | sort_by(.st, .id)[] | "    - \(.id)  [\(.st)]  \(.title[0:60])")
             else empty end ),
-          ( if ($both | length) > 0 then
-              "  ✗ BOTH design and parked (\($both | length)) — contradictory, pick one:",
-              ($both | sort_by(.st, .id)[] | "    - \(.id)  [\(.st)]  \(.title[0:60])")
+          ( if ($contra | length) > 0 then
+              "  ✗ `design` + parked/nit (\($contra | length)) — contradictory, pick one:",
+              ($contra | sort_by(.st, .id)[] | "    - \(.id)  [\(.st)]  \(.title[0:60])")
             else empty end )
         end )
   '

@@ -21,20 +21,19 @@ Status: Accepted · Pass 2 · Updated 2026-06-22 · Linear: OPS-381
 ## To do
 
 - [ ] **Triage my untriaged issues** — the cleanup worklist. The triage
-  invariant: every issue of mine sits in exactly one of *closed*
-  (Done/Cancelled/Duplicate) · *open + `design`* · *open + `parked`* — so
-  every **open** issue must carry exactly one of {`design`, `parked`}. The rows
-  below are the live discrepancies: my open issues with **neither** label,
-  surfaced by `tools/linear-snapshot.sh`'s invariant check (snapshot
-  **2026-06-22**, 14 issues). Each needs a decision — promote to a `design`,
-  tag `parked`, or close. Fill the **Decision** column as we go; an issue
-  leaves this list once it carries a label (re-run the script to refresh).
+  invariant: every issue of mine is *closed* (Done/Cancelled/Duplicate) or, if
+  open, carries **at least one** of {`design`, `parked`, `nit`} (`nit` =
+  sub-threshold cleanup not worth a design; an active nit is fine left as-is).
+  The rows below are the live discrepancies: my open issues with **none** of
+  those labels, surfaced by `tools/linear-snapshot.sh`'s invariant check
+  (snapshot **2026-06-22**). Each needs a decision — promote to a `design`, tag
+  `parked`, mark a `nit`, or close. Fill the **Decision** column as we go; an
+  issue leaves this list once it carries a label (re-run the script to refresh).
 
   | Issue | Status | Priority | Title | Decision |
   | --- | --- | --- | --- | --- |
   | OPS-306 | Backlog | Medium | Record heat pump type somewhere??? |  |
   | OPS-325 | Backlog | Low | Send fewer readings for whitewire *-pwr channels |  |
-  | OPS-344 | Backlog | Medium | Dig into UK US sCOP discrepancies |  |
   | OPS-367 | Backlog | No priority | RabbitMQ security improvements |  |
   | OPS-141 | Todo | High | Tracing missing oak data |  |
   | OPS-150 | Todo | Medium | Fix spurious no-data alerts |  |

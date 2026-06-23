@@ -1,6 +1,6 @@
 # ally-inactive (design)
 
-Status: Draft · Pass 0 · Updated 2026-06-11
+Status: Draft · Pass 0 · Updated 2026-06-23 · Linear: OPS-410
 
 > What this is: a fire-and-forget liveness announcement — when a peer
 > goes away, say so immediately, on whatever still works — so live
