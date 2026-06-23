@@ -12,6 +12,19 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-06-23 — house0 layout axiom 3 → ZoneHeatCallChannel (`<pending>`)
+
+**What:** Replaced `gw.house0.layout/000` axiom 3 `ZoneWhitewirePwrChannel` with `ZoneHeatCallChannel`:
+each zone SHALL have a `zone{i}-{name}-heat-call` DerivedChannel (Strategy `heat-call`) plus a per-zone
+source DataChannel — `whitewire-pwr` (power-sourced) or `opto-input` (opto-sourced). Schema statement
+updated; runtime jinja2 `check_axiom_3` template + regen to follow in this cluster.
+
+**Why:** require the semantic signal (heat-call) the control logic needs, not a specific sensor —
+parallel to heat-pump-power and the PrimaryFlowSource agreement. The source is a per-zone hardware
+choice (power ⇒ eGauge whitewire, opto ⇒ gw108), so whitewire-pwr drops from always-required to
+required-only-when-power-sourced. `gw.house0.layout/000` is unpushed → mutable in place. (OPS-407.)
+
 ## 2026-06-22 — gw108 board example + BusMembership counterexample (`1a1e031`)
 
 **What:** Added the validated gw108 board as the `examples` of `gw1.scada.device.type.gt/000` — the exact
