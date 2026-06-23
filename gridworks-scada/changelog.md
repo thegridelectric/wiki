@@ -12,6 +12,24 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-06-23 — house0 layout axioms in gwsproto + odu-only fixture (`<pending>`)
+
+**What:** Ported the `gw.house0.layout` sema axioms to the gwsproto `House0Layout` type as
+`check_axiom_1..4` (GlobalIdUniqueness, EssentialNodesExistence, ZoneWhitewirePwrChannel,
+PrimaryFlowSourceChannelAgreement) and added `check_axiom_2` (Cardinality) to `House0Hydronic`
+(axiom 1, SiegLoopControlImpliesPlumbed, was already present) — each mirrors the sema runtime logic
+with PascalCase field accessors. Added `tests/config/gw.house0.layout.json`: a minimal sema-convention
+`gw.house0.layout` instance — one zone (`main`), outdoor unit only (no `hp-idu`), no sieg loop,
+`PrimaryFlowSource=Measured`.
+
+**Why:** the EDD bar for house0 — gwsproto producers now enforce the same layout contract the sema
+runtime does, and the fixture is the valid base we mutate to author each axiom's counterexample. Built
+via the `dc_to_sema(House0Dc.load(...))` path (the in-flight `house0_sema_gen` is broken on a stale
+`Unit.W`); the two "minor modifications" the bare stub needed to pass the existing axioms were a
+`zone1-main-whitewire-pwr` channel (axiom 3) and a `primary-flow` DataChannel (axiom 4). Validates
+`OK` against the sema runtime; all five axioms verified firing on mutated payloads. (OPS-407.)
+
 ## 2026-06-22 — pytest self-contained via pythonpath (`98aa12f5`)
 
 **What:** Added `pythonpath = ["gw_spaceheat"]` to `[tool.pytest.ini_options]` in `pyproject.toml`.

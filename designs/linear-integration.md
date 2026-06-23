@@ -32,12 +32,9 @@ Status: Accepted · Pass 2 · Updated 2026-06-22 · Linear: OPS-381
 
   | Issue | Status | Priority | Title | Decision |
   | --- | --- | --- | --- | --- |
-  | OPS-306 | Backlog | Medium | Record heat pump type somewhere??? |  |
-  | OPS-325 | Backlog | Low | Send fewer readings for whitewire *-pwr channels |  |
   | OPS-367 | Backlog | No priority | RabbitMQ security improvements |  |
   | OPS-141 | Todo | High | Tracing missing oak data |  |
   | OPS-150 | Todo | Medium | Fix spurious no-data alerts |  |
-  | OPS-248 | Todo | Low | When did maple "become a different system"? Add note to persistent store |  |
   | OPS-257 | Todo | Medium | GW admin: handle new layout versions better |  |
   | OPS-265 | Todo | Medium | Re-evaluate MCU (Wiznet Pico2, Wiznet Pico, PicoW) choice |  |
   | OPS-270 | Todo | Medium | SCADA Template 7 -- new Python, etc. |  |
