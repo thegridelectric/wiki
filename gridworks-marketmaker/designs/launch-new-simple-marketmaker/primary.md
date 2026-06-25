@@ -109,7 +109,7 @@ rebuild):
 - **gwbase primitives:** `GridworksActor`, `GNodeStubRecorder`,
   `TimeCoordinatorStubRecorder`.
 - **Fleet identity at scale:** FIS —
-  [`../../../gridworks-fleet-index-service/research/design.md`](../../../gridworks-fleet-index-service/research/design.md).
+  [`../../../gridworks-fleet-index-service/executor/primary.md`](../../../gridworks-fleet-index-service/executor/primary.md).
 - **Vision:** [`../../../vision/primary.md`](../../../vision/primary.md) "The hybrid
   game — one world, real + simulated" (spoke:
   [`../../../vision/hybrid-game.md`](../../../vision/hybrid-game.md));

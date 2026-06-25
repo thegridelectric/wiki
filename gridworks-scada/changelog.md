@@ -12,6 +12,37 @@ Newest at the top.
 
 ---
 
+## 2026-06-23 — house0_sema_gen: heat-call + source axis + primary-flow emission (`1ad69983`)
+
+**What:** Taught the sema-native gen to satisfy axioms 3 + 4. (1) Per-zone `heat-call` DerivedChannel
+(Strategy `heat-call`) with a new `heat_call_source` config axis — `power` (whitewire-pwr,
+`GreaterThanThreshold`) or `opto` (opto-input, `DigitalZeroIsActive`). The sim power meter emits the
+per-zone `whitewire-pwr` source (node + DataChannel + ConfigList) only when power-sourced. (2)
+`emit_primary_flow` wires the existing `primary_flow_source` axis: `Measured` emits a `primary-flow`
+node + DataChannel (`DerivedSiegSum` lands with the sieg emitters).
+
+**Why:** Phase-1 prerequisite — the gen must produce axiom-valid `gw.house0.layout` instances; the stub
+now does (`GEN OK`, `sema validate OK`). The `opto` source branch is wired but its source emitter (a
+gw108 opto sensor) is the next chunk; until then an opto config trips axiom 3's missing-source check.
+(OPS-407.)
+
+## 2026-06-23 — house0 heat-call axiom 3 (gwsproto) + source names to hydronic (`91db0a90`)
+
+**What:** (1) Rewrote gwsproto `House0Layout.check_axiom_3` from `ZoneWhitewirePwrChannel` to
+`ZoneHeatCallChannel`, mirroring the sema runtime: each zone needs a `zone{i}-{name}-heat-call`
+DerivedChannel (Strategy `heat-call`) plus a per-zone source DataChannel (`whitewire-pwr` or
+`opto-input`). (2) Moved the heat-call *source* channel names onto `HydronicSpaceheatZoneChannelNames`
+(shared, known-optional, per-zone): `opto_input` and `whitewire_pwr`; removed `whitewire_pwr` from
+`House0ZoneChannelNames` (no call-sites on the new class). (3) Updated `tests/config/gw.house0.layout.json`
+to add the `zone1-main-heat-call` derived channel. The nolan/sim `opto_input` copies stay for now (5
+old-`layout_gen` call-sites) — de-duped in the names sweep.
+
+**Why:** require the semantic signal (heat-call) the control logic needs, not a specific sensor; its
+source is a per-zone hardware choice (power ⇒ eGauge whitewire, opto ⇒ gw108). gw108 opto sensing is
+cross-family (house0/nolan/sim going forward), so the source names belong on the shared hydronic zone,
+revising the executor's earlier "families add their own raw-input names" split. Pairs with the sema
+axiom-3 rewrite (sema changelog). (OPS-407.)
+
 ## 2026-06-23 — house0_sema_gen uses correct SpaceheatUnit (`a3f187eb`)
 
 **What:** Fixed the sema-native house0 gen's stale unit references: channel-config `Unit` fields now use

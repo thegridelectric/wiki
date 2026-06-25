@@ -1,6 +1,6 @@
 # prod-4x-upgrade
 
-Status: Draft · Pass 0 · Updated 2026-05-27
+Status: Draft · Pass 0 · Updated 2026-06-25 · Linear: OPS-424
 
 > Upgrade the prod broker `hw1__1` from RabbitMQ 3.9.13 (EOL) to 4.x,
 > after the new 4.x dev broker has been kicked-the-tires by a first
@@ -32,16 +32,7 @@ are kept **version-agnostic** — plain exchanges / bindings / queues /
 identities, no 4.x-only features — so the *same* topology loads on
 both.
 
-## Dependencies
+## Sequencing & dependencies
 
-- **`prod-tls-fix`** SHOULD land first (TLS work belongs on 4.x, not
-  on the EOL 3.9 line).
-- After this lands, unblocks: `mtls-fis-auth`,
-  `analytics-broker-shovel` (analytics-broker SHOULD run the same
-  major as prod for shovel compatibility).
-
-## Cross-refs
-
-- [`prod-tls-fix.md`](prod-tls-fix.md).
-- [`analytics-broker-shovel.md`](analytics-broker-shovel.md).
-- the `mtls-fis-auth` design (Linear OPS-420).
+Tracked in Linear (this design's issue), not here — they are cross-design
+relationships.

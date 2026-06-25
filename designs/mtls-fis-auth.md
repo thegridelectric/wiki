@@ -10,7 +10,6 @@ cert) — not code review.
 > based mutual TLS**, with the **Fleet Index Service (FIS)** as the authorization
 > authority. A 2026-summer goal. Cross-cutting — it spans **rmqbot** (the broker
 > conf), **FIS** (the principal model), and **provisioning** (client certs).
-> Graduated from the old `rmqbot/explorations/mtls-fis-auth.md`.
 
 ## The target
 
@@ -24,14 +23,6 @@ cert) — not code review.
 - **Trustworthy publisher identity.** Run the broker's `validated-user-id` plugin
   so `properties.user_id` on every publish must match the connection's
   authenticated cert subject — the basis for audit attribution.
-
-## Prerequisites (the order this rides on)
-
-1. **`prod-4x-upgrade`** — don't anchor auth on EOL 3.9.
-2. **`prod-tls-fix`** — encryption TLS is the foundation mTLS extends.
-3. **grid-node-registry running with a query API (OPS-419)** — FIS validates a
-   `GNodeId` against it; the auth path can't enforce GNode semantics until it
-   exists.
 
 ## The design work — pin these three open dimensions
 
@@ -49,7 +40,7 @@ These are why it was an exploration; turning it into a design means settling the
 
 - **rmqbot** — broker conf: require + verify client certs, the `auth-backend-http`
   endpoint, the `validated-user-id` plugin; the one parameterized broker conf
-  (the former `conf-template` work folds in here for the TLS/auth-backend era).
+  (the broker conf parameterization folds in here for the TLS/auth-backend era).
 - **FIS** — the `principal` table + `/auth/*` endpoints + the handshake; this is
   the authoritative auth spec (FIS `principal-model`).
 - **provisioning** — mint client cert + `principal` row for both GNode and

@@ -46,7 +46,7 @@ principal
   `gnode_id` against the live `ServiceInstanceId`, against the GNode
   registry, per existing FIS Invariant #1.
 
-The four FIS invariants from [`../design.md`](../research/design.md) all
+The four FIS invariants from [`../executor/primary.md`](../executor/primary.md) all
 hold unchanged. Non-GNode auth is additive — services get a
 principal row with `gnode_id=NULL` and static permissions; nothing
 about GNode handling changes.

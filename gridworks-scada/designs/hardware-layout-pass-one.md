@@ -46,6 +46,35 @@ is un-drafted (axioms parked in its `stash_axioms.md`).
 `gw1.device.type` value) and no `cac_id`; the *layout type* enforces enum membership; specialized
 `<family>.device.type.gt` records exist only where a category carries real data.
 
+## Migration strategy — sema-first, translate, migrate last
+
+The big in-code migration (every actor/accessor off the dc data-classes onto sema types, the ~76
+call-site reference sweep, the `names/` sweep) is **deferred behind** two cheaper phases that de-risk
+it. The point: find every vocabulary/axiom gap against the **real fleet** before touching call-sites.
+
+- **Phase 1 — generate every existing layout as sema.** The sema-native gen (`house0_sema_gen`)
+  produces each fleet home (beech, oak, elm, fir, maple) as a `gw.house0.layout` and nolan as
+  `gw.nolan.layout`, each from a per-home config — the `tlayouts/gen_<house>_sema.py` scripts mirroring
+  the old `gen_<house>.py`. Two things get proven the stub can't: the **axioms hold on all six real
+  homes**, and `sema_gen(config) == dc_to_sema(load(old_gen(config)))` (content+id equal) per home. Gaps
+  surface here — exactly how the bare stub exposed the missing `whitewire-pwr` / `heat-call` channels.
+- **Phase 2 — translate, don't migrate.** The dc↔sema bijection is the translation layer: the running
+  scada keeps loading dc layouts, but the **sema layout is the authored, axiom-validated artifact** and
+  round-trips through gwta. The fleet is fully expressible + checked as sema, with a working
+  translation, *without* migrating the actor code.
+- **Phase 3 — the full code migration (later).** `names/` sweep, actors/accessors onto sema types,
+  retire the old dc gen. De-risked by Phase 1+2.
+
+Task a (below) is the Phase-1 engine; Task b's axioms are what Phase 1 validates against the fleet.
+
+**Pass one is done when:** (1) every bespoke fleet layout generates as sema (`gen_<house>_sema`),
+axiom-valid and content+id-equal to its dc layout; (2) the House0 axiom slice (Task b) is complete with
+counterexamples; (3) the dc↔sema round-trip is green fleet-wide (Phase 2). The **deep code clean is
+deferred to pass two** — ripping out `H0N`/`H0CN` (~61 files), the ~76 call-sites onto
+`self.hydronic.*`, the full actor migration onto sema types, retiring the old dc gen (Phase 3), and the
+G/H RequiredTopologyNodes axioms (which need `H0N` gone). The `channel.config`/board-component shape
+cleanup (OPS-427) is **not** the deferred clean — it's done now, while those versions are unpublished.
+
 ## ▶ Tasks — in order
 
 The sema gen comes first because it is the only clean way to author axiom counterexamples: proving an
@@ -327,9 +356,10 @@ power; the old gen must be updated to add it to maple and the rest of the fleet.
 ### Task b — the axiom slice list + EDD recipe (House0 only this pass)
 
 `gw.house0.layout/000` is **unpushed → mutable in place**; axioms are added to `000` directly (no
-bump). Already present: ① GlobalIdUniqueness, ② EssentialNodesExistence, ③ ZoneWhitewirePwrChannel,
-④ PrimaryFlowSourceChannelAgreement (+ `UseSiegLoop ⟹ SiegLoopPlumbed` and Cardinality on
-`gw.house0.hydronic`). Gaps to port, simplest-first:
+bump). Already present: ① GlobalIdUniqueness, ② EssentialNodesExistence, ③ ZoneHeatCallChannel (a per-zone
+`heat-call` DerivedChannel + a `whitewire-pwr`|`opto-input` source — *replaced* the old
+ZoneWhitewirePwrChannel 2026-06-23), ④ PrimaryFlowSourceChannelAgreement (+ `UseSiegLoop ⟹
+SiegLoopPlumbed` and Cardinality on `gw.house0.hydronic`). Gaps to port, simplest-first:
 
 - **A — Cardinality ✅ LANDED** (`gw.house0.hydronic/000` #2): `1 ≤ TotalStoreTanks ≤ 6`,
   `1 ≤ |Zones| ≤ 6` (`house_0_layout.py:100–103`). Counterexample test still owed (waits on the gen).
@@ -342,6 +372,11 @@ bump). Already present: ① GlobalIdUniqueness, ② EssentialNodesExistence, ③
   (`validate_tank_temp_calibration_consistency`).
 - **F — SystemModelEnergyChannels:** usable + required energy, `system-model` strategy, created by
   `derived-generator`, exactly one of each (`validate_house0_system_models`).
+- **I — DerivedInputChannelsExist (referential integrity):** every `DerivedChannel`'s
+  `InputChannelNames` SHALL each resolve to an existing channel name in the **union** of DataChannels
+  ∪ DerivedChannels (a derived channel MAY feed another derived channel — e.g. `transactive-power`
+  summing the derived `heat-pump-power`). One of the executor's named referential-integrity
+  constraints; clean, layout-wide, and independent of the others.
 - **DeviceTypeRecordAlignment (owed):** for components whose `DeviceType` has an actual
   `*.device.type.gt` record (`Ads111xBasedDeviceTypeGt`, `ElectricMeterDeviceTypeGt`,
   `Gw1ScadaDeviceTypeGt`), the record must align — not yet on any layout.

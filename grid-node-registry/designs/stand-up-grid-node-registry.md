@@ -52,4 +52,4 @@ mTLS+FIS auth work — it has to exist before FIS can enforce GNode identity.
 - **Writer/authority.** Who writes the registry (provisioning mints GNode +
   registry row?), and the auth on the write path vs the read path FIS uses.
 - **The API contract details** — settle with the FIS team alongside the
-  mtls-fis-auth design.
+  mTLS+FIS auth work.

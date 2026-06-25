@@ -26,9 +26,9 @@ real-world experiment.
 
 - [ ] **Maker broadcasts `latest.price`** on a topic JournalKeeper subscribes to,
   so the cleared price is persisted. Define the publication (topic / routing /
-  cadence). **Sequenced with the `launch-new-simple-marketmaker` rebuild** — the
-  rebuilt maker owns the `latest.price` out-surface, so this rides that work
-  rather than retrofitting a soon-replaced path.
+  cadence). The rebuilt maker owns the `latest.price` out-surface, so this rides
+  that work rather than retrofitting a soon-replaced path (sequencing tracked in
+  Linear).
 - [ ] **Remove the deprecated `EnergyInstruction`** named type and its stale TODO
   references; confirm nothing live depends on it first.
 

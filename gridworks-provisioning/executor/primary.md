@@ -100,7 +100,7 @@ g_node table"*).
 
 The provisioning system extends — does not replace — the mTLS + FIS
 infrastructure already designed for runtime authorization
-([`../../gridworks-fleet-index-service/research/design.md`](../../gridworks-fleet-index-service/research/design.md)):
+([`../../gridworks-fleet-index-service/executor/primary.md`](../../gridworks-fleet-index-service/executor/primary.md)):
 
 - **At provisioning time**: a new GNode's cert is **minted** — by the
   provisioning service (which has authority to issue per the FIS
@@ -220,7 +220,7 @@ Carried forward from the legacy design + extended:
 ## Cross-references
 
 - [`../../sema/research/where-meaning-lives-in-gridworks.md`](../../sema/research/where-meaning-lives-in-gridworks.md) — the gem as canonical seed
-- [`../../gridworks-fleet-index-service/research/design.md`](../../gridworks-fleet-index-service/research/design.md) — FIS auth model (Invariants #2, #3, #4 generalize to operator certs and installer certs)
+- [`../../gridworks-fleet-index-service/executor/primary.md`](../../gridworks-fleet-index-service/executor/primary.md) — FIS auth model (Invariants #2, #3, #4 generalize to operator certs and installer certs)
 - [`../../gridworks-scada/explorations/non-gnode-interfaces.md`](../../gridworks-scada/explorations/non-gnode-interfaces.md) — original framing of provisioning as an open concern
 - Legacy code reference: `~/Claude/GNodeRegistry/` (gnf.gnf_db.py, gnf.django.models.py, gnf.basegnode_scada_create.py, gnf.rest_api.py)
 - Legacy whitepaper docs: `~/Claude/Algorand/` (PDFs / PPTXs — read with poppler / office-tooling when needed for deeper trust-model history)

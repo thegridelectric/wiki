@@ -1,11 +1,11 @@
 # prod-tls-fix
 
-Status: Draft · Pass 0 · Updated 2026-05-27
+Status: Draft · Pass 0 · Updated 2026-06-25 · Linear: OPS-423
 
 > Fix the broken TLS configuration on the prod broker `hw1__1`. Today
 > the broker is **not using TLS correctly** (per `authority/certbot`
 > notes). Encryption-only is the immediate goal; mutual TLS auth is a
-> later track (the `mtls-fis-auth` design, Linear OPS-420).
+> later track.
 
 ## Why
 
@@ -13,8 +13,6 @@ Status: Draft · Pass 0 · Updated 2026-05-27
   the broker is a current exposure.
 - It blocks the FIS auth model (mTLS, cert CN = `GNodeId`) — see
   [`../../gridworks-fleet-index-service/research/lifecycle.md`](../../gridworks-fleet-index-service/research/lifecycle.md).
-- It blocks the `analytics-broker-shovel` design (the shovel link
-  itself needs TLS).
 
 ## The fix
 
@@ -24,24 +22,15 @@ setup. There is a sample rabbit config there that needs to be
 copied; the current one is misconfigured. **Encryption only** —
 broker access stays password-based for now.
 
-**Fold in the conf cleanup** (the former `conf-template`): while you're editing
-the broker conf for TLS, collapse the two near-identical conf files into one
-parameterized template — the conf needs real changes here anyway, so this rides
-along rather than being its own design.
+**Fold in the conf cleanup:** while you're editing the broker conf for TLS,
+collapse the two near-identical conf files into one parameterized template — the
+conf needs real changes here anyway.
 
 ## Verification
 
 Test plan (from `rmq-docker/README.md`):
 - `mosquitto_pub` / `mosquitto_sub` on port 8883 (MQTT-over-TLS)
 - Management UI on `https://hw1-1.electricity.works:15671/`
-
-## Dependencies
-
-None on the analysis side. On the execution side, this is a
-prerequisite for:
-- `analytics-broker-shovel`
-- `mtls-fis-auth` (Phase 0 of the planned security architecture)
-- `prod-4x-upgrade` (TLS work should land on 4.x, not on the EOL 3.9)
 
 ## Cross-refs
 

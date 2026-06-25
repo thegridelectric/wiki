@@ -12,8 +12,7 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-06-23 — house0 layout axiom 3 → ZoneHeatCallChannel (`<pending>`)
+## 2026-06-23 — house0 layout axiom 3 → ZoneHeatCallChannel (`b716f75`)
 
 **What:** Replaced `gw.house0.layout/000` axiom 3 `ZoneWhitewirePwrChannel` with `ZoneHeatCallChannel`:
 each zone SHALL have a `zone{i}-{name}-heat-call` DerivedChannel (Strategy `heat-call`) plus a per-zone

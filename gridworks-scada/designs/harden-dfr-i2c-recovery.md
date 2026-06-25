@@ -12,9 +12,9 @@ actor dying; not from code reading.
 
 ## Gate
 
-**Gated by spruce-unlimbo (OPS-392).** The hardening targets the *new* i2c
-model, not today's per-actor `smbus2.SMBus(1)` code, which spruce-unlimbo
-replaces: all i2c routed through the central `I2cBus` actor
+**Gated by the scada i2c-bus rework (tracked in Linear).** The hardening targets
+the *new* i2c model, not today's per-actor `smbus2.SMBus(1)` code: all i2c is
+routed through the central `I2cBus` actor
 (`gw_spaceheat/actors/i2c_bus.py`) using the gwsproto i2c language
 (`i2c_write_bit` / `i2c_read_bit` / `i2c_result`). Do this hardening **at the
 same time as the dfr→I2cBus port** — recovery belongs in `I2cBus` (one
@@ -24,7 +24,7 @@ that's about to be deleted.
 `I2cBus` is **not yet fully fleshed out** — today it has only bit-level verbs
 (for relays); it has no recovery loop and no word-level ops. The dfr DAC needs
 **word** writes (`write_word_data`), so the port also requires extending the
-i2c language with a word verb. All of that lands in / after spruce-unlimbo;
+i2c language with a word verb. All of that lands in / after the i2c-bus rework;
 keep this design thin until then.
 
 ## Problem (verified against code 2026-06-22)
@@ -52,8 +52,8 @@ keep this design thin until then.
   `Err` even on a handled dispatch; `zero_ten_outputer.process_analog_dispatch`
   L29-34 logs "ignoring" but is missing `return` on AboutName-mismatch and
   Value-out-of-range, so it forwards anyway.
-- **Scope split** vs OPS-392: does the dfr→I2cBus port live in spruce-unlimbo
-  and this issue own only the recovery hardening, or does this own both? — ask.
+- **Scope split:** does the dfr→I2cBus port live in the i2c-bus rework and this
+  design own only the recovery hardening, or does this own both? — ask.
 
 ## EDD experiment (when unblocked)
 
