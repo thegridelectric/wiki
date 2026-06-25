@@ -44,4 +44,4 @@ both.
 
 - [`prod-tls-fix.md`](prod-tls-fix.md).
 - [`analytics-broker-shovel.md`](analytics-broker-shovel.md).
-- [`../explorations/mtls-fis-auth.md`](../explorations/mtls-fis-auth.md).
+- the `mtls-fis-auth` design (Linear OPS-420).

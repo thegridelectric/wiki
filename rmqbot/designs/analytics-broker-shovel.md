@@ -92,7 +92,7 @@ Three landable chunks:
 
 1. **Stand up the analytics broker.** New container / VM. Same
    RabbitMQ version as the upgraded prod (post-4.x). Same generated
-   definitions shape (per `identities-in-definitions`). Distinct
+   definitions shape (per `broker-topology-canonical-in-gwbase`). Distinct
    hostname (`analytics.electricity.works` or similar). TLS from day
    one (no "encryption only" phase like prod has had).
 
@@ -120,9 +120,9 @@ Three landable chunks:
   needs TLS.
 - **`prod-4x-upgrade`** SHOULD land first or simultaneously so prod
   and analytics run the same RabbitMQ major.
-- **`identities-in-definitions`** — the analytics broker's definitions
-  follow the same generated shape; new identities (shovel,
-  per-consumer) get added there.
+- **`broker-topology-canonical-in-gwbase`** — the analytics broker's topology
+  follows the same generated definitions; the shovel / per-consumer
+  **identities** become FIS service principals (the `mtls-fis-auth` design).
 
 ## Open questions
 
@@ -144,5 +144,5 @@ Three landable chunks:
 - [`../../ear/executor/broker-tap.md`](../../ear/executor/broker-tap.md) — the universal audit-tap design this builds on.
 - [`prod-tls-fix.md`](prod-tls-fix.md) — prerequisite.
 - [`prod-4x-upgrade.md`](prod-4x-upgrade.md) — prerequisite.
-- [`identities-in-definitions.md`](identities-in-definitions.md) — shovel identity sits here.
+- the `broker-topology-canonical-in-gwbase` design — generated definitions; the shovel/consumer identity → the `mtls-fis-auth` design (FIS service principal).
 - [`../../gridworks-journalkeeper/executor/primary.md`](../../gridworks-journalkeeper/executor/primary.md) — first migrating consumer.

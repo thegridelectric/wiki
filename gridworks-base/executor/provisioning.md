@@ -90,4 +90,4 @@ topology loads on both. The eventual prod target is also **4.x** — 3.x is
 at/near community EOL, and 4.x is the right foundation for the deferred
 **mTLS + FIS** auth work, a separate track (see
 [`../../gridworks-fleet-index-service/`](../../gridworks-fleet-index-service/)
-and [`../../rmqbot/research/broker-todos.md`](../../rmqbot/research/broker-todos.md)).
+and [`../../rmqbot/executor/primary.md`](../../rmqbot/executor/primary.md)).

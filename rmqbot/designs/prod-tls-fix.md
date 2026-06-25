@@ -5,7 +5,7 @@ Status: Draft · Pass 0 · Updated 2026-05-27
 > Fix the broken TLS configuration on the prod broker `hw1__1`. Today
 > the broker is **not using TLS correctly** (per `authority/certbot`
 > notes). Encryption-only is the immediate goal; mutual TLS auth is a
-> later track (see [`../explorations/mtls-fis-auth.md`](../explorations/mtls-fis-auth.md)).
+> later track (the `mtls-fis-auth` design, Linear OPS-420).
 
 ## Why
 
@@ -23,6 +23,11 @@ Follow the
 setup. There is a sample rabbit config there that needs to be
 copied; the current one is misconfigured. **Encryption only** —
 broker access stays password-based for now.
+
+**Fold in the conf cleanup** (the former `conf-template`): while you're editing
+the broker conf for TLS, collapse the two near-identical conf files into one
+parameterized template — the conf needs real changes here anyway, so this rides
+along rather than being its own design.
 
 ## Verification
 
