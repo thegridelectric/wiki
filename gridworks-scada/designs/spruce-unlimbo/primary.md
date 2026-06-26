@@ -129,11 +129,11 @@ Three things are currently conflated and must be separated cleanly
    scheme: Nolan has capabilities House0 lacks (resistive backup
    elements, fan coils, heat-exchanger pump) and lacks ones House0 has
    (store charge/discharge across three tanks, Honeywell setpoint
-   write). The capability-protocol-and-verify design (OPS-394) defines
+   write). The capability-protocol-and-verify design ([OPS-394](https://linear.app/gridworks/issue/OPS-394)) defines
    the vocabulary; this design adds: the vocabulary is **per-layout
    subsetted**, not universal.
 2. **Capability → mechanism binding** — *what an intent means on this
-   plumbing* (OPS-394 principle 2). E.g. "charge buffer" means different
+   plumbing* ([OPS-394](https://linear.app/gridworks/issue/OPS-394) principle 2). E.g. "charge buffer" means different
    valve/pump choreography on different manifolds.
 3. **Hardware realization** — *which physical device executes the
    mechanism.* Differs even where the capability is identical: the
@@ -153,7 +153,7 @@ three axes explicitly; control states speak only axis 1.
   House0 path and making the path choice layout-driven (axis 3).
 - **B — layout pipeline:** `gw.nolan.layout` + `house0.layout` as Sema
   types; retire tlayouts' lock-step branching; fold in the
-  `jm/layout-augments` rework. OPS-334 ("80% done") lives here.
+  `jm/layout-augments` rework. [OPS-334](https://linear.app/gridworks/issue/OPS-334) ("80% done") lives here.
   **Spoked (2026-06-11):** `layout-augments-fold.md` (curated carry/skip for
   the fold — the one to carry is `DerivedChannelGt` v002) and
   `nolan-layout-sema.md` (closing `gw.nolan.layout`, back-burner).
@@ -162,8 +162,8 @@ three axes explicitly; control states speak only axis 1.
   rest, merge dev forward regularly.
 - **D — Nolan local control:** today observation-only (SetpointPhase
   learning, heat-call sensing — see survey spoke). The control loop that
-  *uses* predicted setpoints is unwritten; written against the OPS-394
-  capability surface from day one. OPS-219 lives here.
+  *uses* predicted setpoints is unwritten; written against the [OPS-394](https://linear.app/gridworks/issue/OPS-394)
+  capability surface from day one. [OPS-219](https://linear.app/gridworks/issue/OPS-219) lives here.
 - **E — minimal AC path by July 15:** smallest subset of A+D that honors
   the commitment, running on the branch (not gated on the merge gate).
 
@@ -185,11 +185,11 @@ first proof.
 
 - Run the glean cherry-picks; delete `jm/spruce*` branches after.
 - Glean review of `jm/layout-augments` (the layout-gen rework).
-- Task list with the July-15 critical path explicit; fold OPS-219 +
-  OPS-334 in; propose the Linear issue set (design tag on this hub when
+- Task list with the July-15 critical path explicit; fold [OPS-219](https://linear.app/gridworks/issue/OPS-219) +
+  [OPS-334](https://linear.app/gridworks/issue/OPS-334) in; propose the Linear issue set (design tag on this hub when
   Accepted).
 - The capability-set / binding / hardware model above needs a worked
-  draft against both layouts (joint with OPS-394's capability list).
+  draft against both layouts (joint with [OPS-394](https://linear.app/gridworks/issue/OPS-394)'s capability list).
 - Executor write-up: the durable architecture facts found here
   (layout-strategy routing, relay actuation paths, test-layout
   selection) belong in `wiki/gridworks-scada/executor/` as they verify.

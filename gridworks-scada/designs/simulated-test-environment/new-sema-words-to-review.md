@@ -3,7 +3,7 @@
 Status: Draft · Pass 0 · Updated 2026-06-14 · Linear: OPS-40
 
 > What this is: the simulated-test-environment spoke that **tracks Jessica's
-> review** of every sema word this design (and the shared OPS-407 hardware-layout
+> review** of every sema word this design (and the shared [OPS-407](https://linear.app/gridworks/issue/OPS-407) hardware-layout
 > pass) added or bumped. Per the `jm/sim-vocab` commit permission (GridWorks_CLAUDE
 > "Sema-words commit permission"), Claude may commit bounded, test-passing vocab —
 > **but the words are not finalized until Jessica reviews them.** This table is that
@@ -18,7 +18,7 @@ Status: Draft · Pass 0 · Updated 2026-06-14 · Linear: OPS-40
 (placeholder, no runtime). *Landed* — the commit hash, or `PENDING` if not yet
 authored. **Reviewed by JM** — empty until signed off.
 
-## Device-type model — the cac→DeviceType vocabulary (OPS-407)
+## Device-type model — the cac→DeviceType vocabulary ([OPS-407](https://linear.app/gridworks/issue/OPS-407))
 
 The headline of the recent commits: UUID `cac_id` identity is gone; a component
 carries an open `pascal.case` `DeviceType` (a `gw1.device.type` value), and the

@@ -32,11 +32,6 @@ Status: Accepted · Pass 2 · Updated 2026-06-22 · Linear: OPS-381
 
   | Issue | Status | Priority | Title | Decision |
   | --- | --- | --- | --- | --- |
-  | OPS-367 | Backlog | No priority | RabbitMQ security improvements |  |
-  | OPS-150 | Todo | Medium | Fix spurious no-data alerts |  |
-  | OPS-257 | Todo | Medium | GW admin: handle new layout versions better |  |
-  | OPS-270 | Todo | Medium | SCADA Template 7 -- new Python, etc. |  |
-  | OPS-304 | Todo | High | Harden MQTT transport against half-open TCP / keepalive timeout stalls (observed 2026-02-12) |  |
   | OPS-393 | Todo | High | Post-mortem: maple HP on during on-peak while in Standby (2026-06-09) |  |
 - [x] **Write the issue-snapshot script** (token-cheap sync) —
   [`tools/linear-snapshot.sh`](../tools/linear-snapshot.sh), *2026-06-22*.

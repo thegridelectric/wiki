@@ -86,5 +86,5 @@ can't drift from the code. Cheap (introspection only), and a natural companion
 to Layer 0.
 
 ## Cross-refs
-- `sema/spec/snapshot.md` — samples emission + build-time round-trip (design folded here, OPS-380).
-- `sema/spec/authoring/formats.md` (the format→enum closure rule) — the bug class Layer 0 guards (design folded, OPS-378).
+- `sema/spec/snapshot.md` — samples emission + build-time round-trip (design folded here, [OPS-380](https://linear.app/gridworks/issue/OPS-380)).
+- `sema/spec/authoring/formats.md` (the format→enum closure rule) — the bug class Layer 0 guards (design folded, [OPS-378](https://linear.app/gridworks/issue/OPS-378)).

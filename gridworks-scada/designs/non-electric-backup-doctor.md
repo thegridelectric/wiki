@@ -29,7 +29,7 @@ The HP→boiler handoff is **blind to boiler health**:
 
 ## Scope
 
-**Detection — the doctor (was OPS-215):** a procedural, non-transactive probe of
+**Detection — the doctor (was [OPS-215](https://linear.app/gridworks/issue/OPS-215)):** a procedural, non-transactive probe of
 backup-heat readiness.
 
 - Trigger on a semi-fixed schedule **and** asynchronously (to re-confirm after a
@@ -43,7 +43,7 @@ backup-heat readiness.
   the buffer get colder than HomeAlone/LeafAlly would normally allow.
 - Can it run without interfering with a dispatch contract?
 
-**Policy — don't strand the house (folded from OPS-258):** when entering
+**Policy — don't strand the house (folded from [OPS-258](https://linear.app/gridworks/issue/OPS-258)):** when entering
 `UsingNonElectricBackup`, if the boiler is **not confirmed working** (per the
 doctor's signal / failure counter), do **not** take the HP off SCADA control —
 keep or return to the heat pump. A struggling HP beats a dead boiler when the

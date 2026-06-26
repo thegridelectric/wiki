@@ -4,7 +4,7 @@ Status: Draft · Pass 0 · Updated 2026-06-10 · Linear: OPS-400
 
 > What this is: get the **correct constructs in place and tested** for the
 > sieg loop on both Beech and Maple. Companion to `sieg-summer-posture`
-> (OPS-395, shipped as scada `e6ba4f51` / PR #570) — the broader
+> ([OPS-395](https://linear.app/gridworks/issue/OPS-395), shipped as scada `e6ba4f51` / PR #570) — the broader
 > evaluation that fix surfaced. Stub; the evaluation is the design work.
 
 ## Why now

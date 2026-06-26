@@ -13,7 +13,7 @@ real fixture layouts is the sub-gate; a broker-transport round-trip is a later, 
 > What this is: the first critical pass on the scada hardware-layout / components model — drop
 > UUID `cac_id`s for a readable `gw1.device.type` `DeviceType`, simplify components, restructure
 > `layout_gen`, fill the sema vocabulary against real layouts. A **shared dependency**
-> (simulated-test-environment + spruce-unlimbo Chunk B), its own flat issue OPS-407.
+> (simulated-test-environment + spruce-unlimbo Chunk B), its own flat issue [OPS-407](https://linear.app/gridworks/issue/OPS-407).
 
 ## Orient
 
@@ -73,7 +73,7 @@ counterexamples; (3) the dc↔sema round-trip is green fleet-wide (Phase 2). The
 deferred to pass two** — ripping out `H0N`/`H0CN` (~61 files), the ~76 call-sites onto
 `self.hydronic.*`, the full actor migration onto sema types, retiring the old dc gen (Phase 3), and the
 G/H RequiredTopologyNodes axioms (which need `H0N` gone). The `channel.config`/board-component shape
-cleanup (OPS-427) is **not** the deferred clean — it's done now, while those versions are unpublished.
+cleanup ([OPS-427](https://linear.app/gridworks/issue/OPS-427)) is **not** the deferred clean — it's done now, while those versions are unpublished.
 
 ## ▶ Tasks — in order
 

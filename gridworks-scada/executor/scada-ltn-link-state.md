@@ -1,14 +1,16 @@
-Status: Draft · Pass 0 · Updated 2026-06-11
+Status: Draft · Pass 0 · Updated 2026-06-25
 
 # SCADA ↔ LTN link state (the proactor linking mechanism)
 
 What this is: how the scada's broker links come up, stay alive, and fail
 — the gwproactor link state machine (Andrew Schweitzer's design) as the
-scada uses it. Seeded from the first live run on `gw-dev-rabbit`
-(2026-06-10); the deep proactor analysis is Open and will grow this doc
-(or split it) substantially. Proactor internals belong to the
-`wiki/gridworks-proactor/` domain; this doc covers the scada-side
-contract and observed behavior.
+scada uses it today. Seeded from the first live run on `gw-dev-rabbit`
+(2026-06-10). This is the **verified account of what IS** — current
+behavior and the structural critique of today's mechanism; the rewrite
+spec it motivated now lives in the proactor makeover
+([OPS-428](https://linear.app/gridworks/issue/OPS-428)). Proactor
+internals belong to the `wiki/gridworks-proactor/` domain; this doc
+covers the scada-side contract and observed behavior.
 
 ## The three links
 
@@ -46,9 +48,7 @@ is a `.env` telemetry setting, hijacked for a comm purpose it never
 declares. It suppresses the child's pings (last_send stays fresh) and
 supplies the parent's steady evidence of life; change it for a
 telemetry reason (bandwidth, reporting cadence) and you silently
-change the link's keepalive behavior. The redo gives keepalive its own
-explicit parameter — liveness cadence must not be an emergent property
-of a reporting setting. There is no
+change the link's keepalive behavior. There is no
 `last_recv` silence deadline: liveness rides outbound-ack accounting,
 not inbound silence, which also keeps detection *internal* to each
 party (the emission gap below). The 5 s timeout is an order of
@@ -112,8 +112,8 @@ the contract stream).
   periodic `send_ping` tasks per link. `awaiting_peer → active` requires
   hearing the peer — verifying that back-and-forth (and the
   `response_timeout` regression `active → awaiting_peer`) needs the LTN
-  running too: it rides the hello-world step of the spruce-unlimbo
-  design.
+  running too: it rides the unlimbo hello-world work
+  ([OPS-392](https://linear.app/gridworks/issue/OPS-392)).
 
 ## Observed startup sequence (verified 2026-06-10, dev rabbit; wire capture + both process logs)
 
@@ -216,8 +216,8 @@ Two durable lessons, one fix:
 - **Protocol gap #2 — the maple shape again:** an undecodable message
   is *swallowed*, not refused. No nack / dead-letter / skip-after-N in
   the reupload loop, so one poison event degrades the link forever.
-  Same principle as the capability design's "an order refused and an
-  order swallowed are opposite things" — here for transport.
+  Same principle as the capability work's "an order refused and an
+  order swallowed are opposite things" ([OPS-394](https://linear.app/gridworks/issue/OPS-394)) — here for transport.
 
 ## Link-down behavior — the gap (told + code-grounded, 2026-06-10)
 
@@ -294,8 +294,8 @@ is the symptom-level account plus the design seed.
 
 The proactor link mechanism **does not work for a parent with multiple
 children** — one peer per link is baked in. That sinks more than scada
-topology options: the aggregation-providing-regulation example (the
-substrate-fit design, `wiki/designs/`) requires an aggregator parent
+topology options: the aggregation-providing-regulation example (substrate-fit
+work, [OPS-391](https://linear.app/gridworks/issue/OPS-391)) requires an aggregator parent
 talking with thousands of children. This is not hypothetical: it was
 GridWorks' first manifestation as **VCharge**
 (https://gridworks-consulting.com/vcharge-in-pennsylvania), aggregating
@@ -349,167 +349,14 @@ small: a broker connection is up or it isn't; an ally is silent,
 greeted, active, or lost. The redo builds two simple machines, not one
 clever one.
 
-**Shape of the redo (decided 2026-06-11): rewrite, not refactor** —
-the spec accumulating in this doc contradicts the existing machinery at
-its foundations, and refactoring toward it would be rewriting with
-extra steps. **The new comms layer lives flat in the scada repo, under
-uv** — plain modules, not a package: after the LTN goes gwbase, the
-scada is the only consumer of the new mechanism (child-side,
-mosquitto-world, scada-as-parent), and the package boundary is already
-fictional — the scada pins a personal fork tag of gwproactor
-(`v4.1.13+jm1`). The old gwproactor stays frozen for its remaining
-consumers (gridworks-ingester, gridworks-uploader) until they move to
-gwbase, which is where cloud-side services belong anyway. **Axiom for any scada/proactor overhaul (KNOWN, 2026-06-11): the LTN
-goes gwbase, and the scada stays MQTT native** — a scada may very well
-want to be a parent itself, and Pis have mosquitto brokers, not rabbit
-brokers. This is not an open trade study; an overhaul that revisits it
-is solving the wrong problem. The cloud↔house boundary rides the
-RabbitMQ MQTT plugin bridge (already how `gridworks_mqtt` works). The
-fan-out requirement therefore lands squarely on the MQTT side: the
-redone link concept has to let an MQTT-native scada be a parent with
-multiple children, with peers distinct from brokers. Once we are in there,
-more may ride the same job: making the proactor code **sema-compliant
-like gwbase**, and rolling out versioned wrapper + header types that
-enforce `left.right.dot` on their `From` field (today's wire shows
-short names like `s`/`ltn` in Src — see the asymmetric-naming note
-above). For those, probably **mint new sema types rather than
-versioning Andrew's in place** — we are not stepping on his. The
-startup handshake the redo wants, in full: **"hey are you there" →
-"yes I am here" → both move link to active.** Once. Then the slow
-keepalive — and **the ping/ack itself carries the `heartbeat.a` hex
-pair**: the parent's ping brings its fresh hex (plus the echo of the
-child's last), the child's ack answers in kind, so every beat is proof
-of hearing, not just transport receipt. The cadence is **tunable AND
-shared** — agreed in the establishment handshake, default 60 s — never
-implicit, never one-sided. **Both actors update their link state from
-the beat** (today only the pinging side arms anything).   The link state
-is active if and only if one has confirmation the other party can both
-send and receive. That means three spoken words, so we shall choose
-them as a known 3-part cadence:
-**do / re / mi** — since each leg means its own thing ("are you
-there" / "I hear you" / "I hear you too"). Note that there is an 
-asymmetry  The ping/ack **asymmetry is kept deliberately**:
-it matches the fan shape of a parent/child tree — one parent drives
-the cadence to N children, each child only answers. Mutual hearing is
-confirmed rapidly at activation with fire-and-forget messages, and 
-then at the shared cadence. And the
-vocabulary changes: **these two are not peers.** The relationship is
-asymmetric with a natural implied tree order — different roles,
-neither one "better." The redo speaks **parent and child** when the
-tree role matters (who initiates the keepalive, who acks, who fans
-out), and **ally** for the other end of any link — we assume any link
-is with an ally. Already native vocabulary (LeafAlly), without the
-hostility of "counterparty." "Peer" obscures both the role asymmetry
-and the tree itself (one parent; many children — the fan-out
-requirement). The same
-job is a chance to implement sema the preferred way (2026-06-11):
-**horizontally, as a zipped file dropped into the repo, instead of as
-a package** — one less package to package-manage. Carried
-open question: how the MQTT-native scada is represented in the gwbase
-TransportClass/RoutingClass taxonomy across the bridge. (Scada↔Scada2
-staying mosquitto follows from the axiom — Pis run mosquitto.)
+## The rewrite spec — extracted (2026-06-25)
 
-## The AllyLink program — two tracks (decided 2026-06-11)
-
-The redone mechanism has a name: **AllyLink**. It comes in two builds,
-developed in tandem, split by fan-out requirement:
-
-- **Scada AllyLink** (the flat-in-scada rewrite above). What we NEED
-  from it: it works **one-to-one with a paired gwbase LTN, where the
-  broker is actually a rabbit broker** (the scada riding the MQTT
-  plugin — the critical scada↔LTN link), AND it works **one-to-many as
-  long as there is only one parent on the MQTT broker** — which is
-  exactly what a hierarchy of scadas on Pis in the home needs. The
-  one-parent-per-broker constraint is what keeps the scada-side
-  machinery simple; the multi-parent problem is not its job.
-- **FULL AllyLink in gwbase**, developed in parallel. FULL means
-  **multiple parents communicating with fleets of children on the same
-  broker** — the aggregator↔LTN case — including storing and sending
-  messages.
-
-In tandem, we will want to **lift some of the existing proactor
-functionality into gwbase** rather than rebuild it only scada-side:
-for example there may indeed be messages we want acked where they are
-stored until they have made it into some permanent store (the
-persist-until-acked idea, generalized to persist-until-landed-in-a-
-permanent-store).
-
-Process: once the design is nailed down, a **long-running fable
-session** runs the rewrite, with two standing charges: (1) use Andy's
-proactor as an inspiration for what it did WELL — capture is explicit,
-silence is not capture; (2) run experiments to keep evaluating what is
-working well and what is not, on both the old code and the new.
-
-## Verdict and triage (decided 2026-06-10)
-
-**This is not what we want** - a solid start that's really kept all our data for us - but fails our actual needs in gating ways to scale. We cannot redo all of it now; the
-triage is what changes now vs what waits for the transport game plan.
-
-**Change now (small, high-value):**
-
-- **Fire-and-forget `ally.inactive`.** Its absence is *just bad*: it is
-  the single most important thing a **third-party referee** could hear.
-  A dispatch contract needs an outside party able to adjudicate "who
-  went dark, when" — today that knowledge sits inside the two
-  interested parties and reaches the wire only after the outage ends
-  (stored-until-acked). Emit it immediately, unpersisted, on whatever
-  links still work. (Semantic event, not mechanism-named — covers MQTT
-  drop AND response timeout AND any future way a peer vanishes.)
-- **Strip internal-link telemetry from the upstream stream** (the
-  principle above): comm events about `local_mqtt`/`admin` stop riding
-  the contract-backing stream; only scada↔LTN liveness goes up. Small
-  filter, fits naturally alongside the ack-policy work below.
-- **Poison-message handling in the reupload loop**: skip-after-N /
-  dead-letter + a loud `problem` event, so one undecodable persisted
-  event cannot flap a link forever (see root cause above). An order
-  refused and an order swallowed are opposite things — transport
-  edition.
-
-**Game plan (not now, but decided-by-design, not by drift):**
-
-- The 1:1 proactor assumption and the multi-child aggregation future
-  (structural critique below) — the direction is DECIDED (the LTN SHALL
-  be gwbase / rabbit-native; mechanism redo known); what remains is the
-  redesign itself, against this doc's findings.
-- Persisted-event store vs type-version bumps — **decided 2026-06-10**:
-  epoch/fingerprint gate at boot, archive-aside, lossy-and-fine. The
-  deployment story is owned elsewhere.
-
-## DO THIS NEXT (session opener, 2026-06-11)
-
-Extract the rewrite spec out of this doc into its own slugged design
-(+ Linear issue, design/scada/proactor-flavored tags, title === slug).
-The spec accumulated here as dated verdicts; pull together: the axioms
-(LTN on gwbase; scada MQTT-native, mosquitto on Pis; NO BACK DOOR),
-rewrite-not-refactor, flat-in-scada-under-uv (old gwproactor frozen for
-ingester/uploader), the two small state machines (broker connection ·
-ally presence), the three-beat hello (once), the hex-bearing ping/ack
-keepalive at the parent's cadence (asymmetry kept for the fan shape;
-explicit cadence parameter, never emergent from telemetry), fire-and-
-forget ally.inactive/ally.active, the inverted ack default (nothing
-acked unless it backs a contract; ping keeps its ack — it IS the
-keepalive), the upstream-stream principle, parent/child/ally
-vocabulary, and the sema ride-alongs (new versioned wrapper/header
-words with left.right.dot From; sema delivered as a zipped file;
-heartbeat.a canon wrinkle to resolve). The extract also carries the
-AllyLink two-track program (scada AllyLink with the one-parent-per-
-MQTT-broker constraint; FULL AllyLink in gwbase; the lift-into-gwbase
-of persist-until-stored acks; the long-running fable session with its
-two standing charges). One more rider for the rebuild design (Jessica,
-2026-06-11, noted-not-designed): **a simulated scada must find it HARD
-or close to impossible to acquire a real-world TaDeed / validation** —
-the sim/real trust boundary is enforced at the deed, not by good
-intentions. Not being designed now; it factors into rebuild design
-decisions (identity, provisioning, what a scada can claim about
-itself), so the rebuild carries it as a standing constraint. Since the
-scada is being REBUILT as uv with the new mechanisms anyway,
-scada-side simulated-time machinery stays minimal until then (the
-sim-time spoke's bridge). Then trim this executor doc back
-to the verified account of what IS — the spec moves to the design, and
-this doc points at no designs.
-
-Before the rewrite discards the old mechanism: do a **full proactor
-analysis** to make sure we have clearly captured everything we
-currently have that we want (ack/"pat" semantics, in-flight event
-accounting, reupload pacing, anything else load-bearing) — capture is
-explicit, silence is not capture.
+The rewrite spec that accumulated here as dated verdicts has been pulled together
+into a tracked design ([OPS-428](https://linear.app/gridworks/issue/OPS-428)): the axioms (LTN on gwbase; scada
+MQTT-native; NO BACK DOOR), rewrite-not-refactor, the two small state machines,
+the three-beat hello, the hex-bearing `heartbeat.a` keepalive, the inverted-ack
+default, the upstream-stream principle, parent/child/ally vocabulary, the sema
+ride-alongs (left.right.dot `From`), the AllyLink two-track program, and the
+sim/real TaDeed constraint. The third-party-umpire requirement for the scada↔LTN
+SLA rides with it. This doc remains the durable **link analysis** that design
+builds on.

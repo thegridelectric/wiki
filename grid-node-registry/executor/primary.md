@@ -7,7 +7,7 @@ Status: Draft · Pass 0 · Updated 2026-06-23
 > connectivity (parent/child) edges between them. It is the registry the **Fleet
 > Index Service (FIS)** consults to authorize a GNode runtime instance. Current
 > state plus the intended invariants; the standup plan is the
-> `stand-up-grid-node-registry` design (Linear OPS-419).
+> `stand-up-grid-node-registry` design (Linear [OPS-419](https://linear.app/gridworks/issue/OPS-419)).
 
 ## What it is
 

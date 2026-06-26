@@ -4,7 +4,7 @@ Status: Draft · Pass 0 · Updated 2026-06-15 · Linear: OPS-27
 
 > What this is: a design for representing the different circulator-pump models we deploy —
 > as **device types** — and their differing 0–10 V control responses across hardware layouts,
-> the admin panel, and the Sema type system. Ported from Linear **OPS-27**. (Reworked
+> the admin panel, and the Sema type system. Ported from Linear **[OPS-27](https://linear.app/gridworks/issue/OPS-27)**. (Reworked
 > 2026-06-15 onto the `DeviceType` model after `MakeModel` was retired.)
 
 ## Problem
@@ -62,7 +62,7 @@ This fits the device-type model **better**, two ways:
 - **Admin panel** — `gridworks-admin` DAC widget (`watch/widgets/dac_widget_info.py`) shows the
   channel's voltage state only; no pump identity. `layout.lite` (v013) carries no pump field.
 
-## Scope of work (the three threads OPS-27 names)
+## Scope of work (the three threads [OPS-27](https://linear.app/gridworks/issue/OPS-27) names)
 
 ### 1. Represent pump models as device types in layouts
 - Mint a `gw1.device.type` value per distinct pump class (start from the four pump make/models

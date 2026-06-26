@@ -35,7 +35,7 @@ machinery: systemd, `rename(2)`, uv, sha256.
   list, the **protocol fingerprint** (hash of the gwsproto type-version
   set, for the store epoch gate), minimum supervisor version.
 - **Code tarball** — the app at a tag, version baked in
-  (`setuptools_scm`/`_version.py`; extends OPS-7's field-verified git
+  (`setuptools_scm`/`_version.py`; extends [OPS-7](https://linear.app/gridworks/issue/OPS-7)'s field-verified git
   detection).
 - **Wheels** — fetched individually by name+hash, so the cache works.
 - **CI builds on the fleet's OS template image** (same glibc/platform
@@ -136,7 +136,7 @@ failed, loud). Announce doubles as fleet inventory.
 
 ## Existing bricks
 
-- **OPS-7 / #375 (field-verified, beech):** git-commit detection at
+- **[OPS-7](https://linear.app/gridworks/issue/OPS-7) / #375 (field-verified, beech):** git-commit detection at
   startup, carried in layout-lite ShNode. The announce is an extension
   of this; the layout-lite carriage is interim (firmware isn't layout).
 - gwbase precedent: LTN reads gridflo's commit into FloParamsHouse0.

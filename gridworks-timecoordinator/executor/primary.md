@@ -4,7 +4,7 @@ Status: Draft · Pass 0 · Updated 2026-06-11
 
 What this is: the rebuild spec for `gridworks-timecoordinator`, the
 simulated-time authority. Mostly Open; this hub records what the
-hello-world rebuild (OPS-405, shipped 2026-06-11, merged to `dev`)
+hello-world rebuild ([OPS-405](https://linear.app/gridworks/issue/OPS-405), shipped 2026-06-11, merged to `dev`)
 settled. The poetry-era first-pass code lives whole on the `legacy`
 branch — design intent, not implementation.
 

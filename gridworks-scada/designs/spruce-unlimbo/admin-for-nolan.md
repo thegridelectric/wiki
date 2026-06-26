@@ -11,7 +11,7 @@ Status: Accepted · Pass 1 · Updated 2026-06-10 · Linear: OPS-392
 ## Why this is its own spoke
 
 - **Admin is the capability vocabulary — and comes FIRST.** Per the
-  capability-protocol-and-verify design (OPS-394), the actor capability
+  capability-protocol-and-verify design ([OPS-394](https://linear.app/gridworks/issue/OPS-394)), the actor capability
   surface is calibrated to what the admin can do. This spoke is therefore
   a **prerequisite** of the capability-protocol work, not a sibling
   (Jessica, 2026-06-10): getting admin working against Nolan *discovers*
@@ -72,7 +72,7 @@ The deleted `jm/scada-control` branch was the scada-side
 Sema changes go through `/make-sema-word` (v002 + upgrade template +
 registry deltas). **Sieg-loop visibility in admin** (can/should gwa see
 SiegLoop state?) is noted and **deferred to sieg-semantic-harmonization
-(OPS-400)** — that design already owns the valve-telemetry-not-emitted
+([OPS-400](https://linear.app/gridworks/issue/OPS-400))** — that design already owns the valve-telemetry-not-emitted
 gap.
 
 ## Known gaps (verified 2026-06-10 unless noted)
@@ -99,7 +99,7 @@ gap.
 3. `test_admin.py` gains Nolan-layout cases alongside the House0
    overrides (the both-layouts test pattern from the merge gate).
 4. The capabilities-type hardware-shape question is resolved jointly
-   with OPS-394 (likely: per-node actuation component reference, not a
+   with [OPS-394](https://linear.app/gridworks/issue/OPS-394) (likely: per-node actuation component reference, not a
    single top-level I2cRelayComponent).
 
 ## Open

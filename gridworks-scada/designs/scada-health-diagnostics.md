@@ -11,7 +11,7 @@ back-office reflect the down state well inside the current ~10-minute lag.
 > alert lags ~10 minutes and the back-office app has no view of it. The fix is a
 > live peer-down signal plus persisting the durable liveness signal set so a
 > third-party referee (JournalKeeper) has the "who went dark, when" record.
-> (Moved here from OPS-386 item #3; JK's persist *mechanism* stays JK-side — see
+> (Moved here from [OPS-386](https://linear.app/gridworks/issue/OPS-386) item #3; JK's persist *mechanism* stays JK-side — see
 > below.)
 
 ## The problem
@@ -23,16 +23,16 @@ back-office reflect the down state well inside the current ~10-minute lag.
   exists.
 - No back-office visibility into the up/down state.
 
-## The signal it consumes (emitted by the `ally-inactive` design)
+## The signal it consumes (`ally.inactive`, emitted elsewhere)
 
 The live peer-down signal this design relies on — fire-and-forget `ally.inactive`
 (with `ally.active` on recovery), published the moment a peer goes dark on
 whatever broker still works, deliberately **not** a stored-until-acked Event so it
-arrives live rather than after the link is back — is designed and emitted by the
-**ally-inactive** design (OPS-410). This design does **not** re-specify emission;
+arrives live rather than after the link is back — is designed and emitted by
+separate work ([OPS-410](https://linear.app/gridworks/issue/OPS-410)). This design does **not** re-specify emission;
 it **consumes** that signal — persisting it and surfacing it. (Gate: the
-`ally.inactive` sema word is not yet authored — that coining belongs to the
-ally-inactive design.)
+`ally.inactive` sema word is not yet authored — that coining belongs to that
+emission work.)
 
 ## Persist the durable liveness signal set
 
@@ -48,15 +48,13 @@ will churn):
   / `…response.timeout` — mechanism detail the proactor rewrite redefines.
 
 The **how** (JK's seed → snapshot-regen → persistor recipe) is JournalKeeper's
-own mechanism and stays documented in
-`gridworks-journalkeeper/designs/integrate-gwbase-sema-updates/persisted-type-set.md`
-(the JK persist reference). This design owns the *what + why* (which signals,
-and the live-detection purpose); JK owns the *how*.
+own mechanism and stays documented JournalKeeper-side. This design owns the
+*what + why* (which signals, and the live-detection purpose); JK owns the *how*.
 
 ## Open
 
 - Back-office surface: where/how the up/down state shows (admin panel? a
   derived channel?).
 - Sequencing gate: the persist half is **blocked on a clean `sema` + `wiki/sema`
-  release** (the `ally.inactive` word — coined by the ally-inactive design —
+  release** (the `ally.inactive` word — coined by the emission work ([OPS-410](https://linear.app/gridworks/issue/OPS-410)) —
   needs a JK snapshot regen from sema dev). Gated behind that emission work.

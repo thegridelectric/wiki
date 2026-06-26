@@ -4,7 +4,7 @@ Status: Draft · Pass 0 · Updated 2026-06-08 · Linear: OPS-47
 
 > What this is: the change plan for exposing the GridWorks BTU meter to Home
 > Assistant via the `gridworks-homeassistant` HACS integration. Ported from
-> Linear **OPS-47**. Sits under the broader, still-open
+> Linear **[OPS-47](https://linear.app/gridworks/issue/OPS-47)**. Sits under the broader, still-open
 > [Home Assistant + LTN wrapper exploration](../../explorations/home-assistant-ltn.md);
 > this design is the concrete, near-term slice.
 
@@ -28,7 +28,7 @@ learn the HA ecosystem.)
 
 ## Scope of work
 
-Absorbed from OPS-47's checklist, grouped:
+Absorbed from [OPS-47](https://linear.app/gridworks/issue/OPS-47)'s checklist, grouped:
 
 **API surface**
 - Import the relevant pydantic named types into the integration.
@@ -38,7 +38,7 @@ Absorbed from OPS-47's checklist, grouped:
 - Create the **BtuMeter endpoints**.
 
 **Vocabulary**
-- Add **Sema** vocabulary for the relevant types (OPS-47 says "ASL" — legacy
+- Add **Sema** vocabulary for the relevant types ([OPS-47](https://linear.app/gridworks/issue/OPS-47) says "ASL" — legacy
   for Sema; see [`glossary.md`](../../glossary.md)).
 - Decide whether **Units** are an enum or a string (the str-vs-enum question,
   resolved once for the boundary).

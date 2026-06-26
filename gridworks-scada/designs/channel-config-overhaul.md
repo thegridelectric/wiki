@@ -59,6 +59,18 @@ disruptive pass.
    the fleet round-trip (gate below) is what catches a missed site. This is the most expensive slice;
    gate it on the `transactive-power` decision first.
 
+4. **Transactive audit declaration** — the first-class replacement for `InPowerMetering`'s role. A
+   small new sema word (the *audit declaration*) the layout carries **exactly once**, naming: the
+   transactive measurement (energy primary), the **inspected meter** it is bound to, and its
+   **declared CT inputs** (the boundary). Plus a layout axiom: **exactly one** transactive declaration;
+   it resolves to an inspected meter; its inputs resolve to existing channels (the declared CTs).
+   *How* the meter binding is expressed (component ref / HwUid / …) is the executing agent's call.
+   This is what makes the audited quantity first-class, singular, and auditor-legible — the structural
+   job `InPowerMetering` crudely did. The **deeper veracity mechanics** (energy metered from the meter's
+   register vs our integral, the committed/signed reported stream, single-CT preference, directional
+   combination) stay open in the metering exploration (`explorations/metering.md`) — this slice only
+   establishes the declaration word + the singularity/binding axiom.
+
 ## Gate
 
 Not "done" until `sema_gen` + the dc round-trip are green for **all** fleet homes — the regen
@@ -66,7 +78,7 @@ touches every `channel.config`, so the round-trip is where a missed call-site sh
 
 ## Context (read these first)
 
-This is a slice of the **hardware-layout-pass-one** design (OPS-407). Two pieces of its background
+This is a slice of the **hardware-layout-pass-one** design ([OPS-407](https://linear.app/gridworks/issue/OPS-407)). Two pieces of its background
 are load-bearing here, so read them before executing:
 
 - **The board-resident-component model** — `executor/hardware-layout.md` "I²C and board-resident

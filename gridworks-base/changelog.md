@@ -38,7 +38,7 @@ enforces this). Verified live on gw-dev-rabbit: an MQTT subscriber on
 advancing TimeUnixS — the first witnessed AMQP→MQTT crossing.
 
 **Why:** the sim-time bridge (scada simulated-test-environment design,
-sim-time spoke, OPS-40): MQTT-native actors (scadas) can only hear the
+sim-time spoke, [OPS-40](https://linear.app/gridworks/issue/OPS-40)): MQTT-native actors (scadas) can only hear the
 time coordinator's `sim.timestep` broadcasts if they cross to
 `amq.topic`. The fabric is the authoritative "who may talk to whom",
 so the crossing is declared in the shared topology source, not in
@@ -54,9 +54,9 @@ pinning `0.5.1`, failing the locked sync).
 
 **Why:** Cut the release that carries the tolerant routing-key parse +
 `on_routing_key_parse_error` hook (`724ea52`, design `must-accept-current-ltn-messages`,
-OPS-388) so downstream consumers can adopt it — JournalKeeper's `legacy_hack`
-(`2156a31`) and the scada `ltn-sends-gw-wrapped` (OPS-387) both wait on this
-publish (OPS-389). Backward-compatible patch: the hook is additive and the
+[OPS-388](https://linear.app/gridworks/issue/OPS-388)) so downstream consumers can adopt it — JournalKeeper's `legacy_hack`
+(`2156a31`) and the scada `ltn-sends-gw-wrapped` ([OPS-387](https://linear.app/gridworks/issue/OPS-387)) both wait on this
+publish ([OPS-389](https://linear.app/gridworks/issue/OPS-389)). Backward-compatible patch: the hook is additive and the
 routing-key envelope API is consumed, not constructed, outside gwbase.
 
 ## 2026-06-09 — Tolerant routing-key parse: accept short-form class tokens; on_message parse-error hook (`724ea52`)
@@ -102,9 +102,9 @@ pre-check) stay synchronous; the scheduled callback re-checks open + publishes;
 both the schedule call and the callback are guarded so `send` never raises
 (invariant #9). `send` is now genuinely fire-and-forget — `MESSAGE_SENT` means
 *scheduled*. Distilled into `executor/transport.md` §3.8 + `primary.md`
-invariant #9. Design `pika-thread-safe-publish` (Accepted, OPS-383) was ratified off this; its
+invariant #9. Design `pika-thread-safe-publish` (Accepted, [OPS-383](https://linear.app/gridworks/issue/OPS-383)) was ratified off this; its
 distillate now lives in the executor spec, so the `designs/` file is deleted when
-this fix merges (and OPS-383 moves to Done) per the designs-process.
+this fix merges (and [OPS-383](https://linear.app/gridworks/issue/OPS-383) moves to Done) per the designs-process.
 
 **Validated** by a throwaway pressure harness (built, run, then deleted in this
 same change — never committed, never in CI): on the pre-fix code, 48 non-ioloop

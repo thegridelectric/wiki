@@ -5,7 +5,7 @@ Status: Draft · Pass 0 · Updated 2026-06-10 · Linear: OPS-394
 > What this is: encode the scada actor's functional abilities as an explicit
 > protocol in `ShNodeActor` methods — the only language control states may
 > speak — plus the verification layer that makes intent observable. Born
-> from the maple standby post-mortem (OPS-393): Standby expressed "keep
+> from the maple standby post-mortem ([OPS-393](https://linear.app/gridworks/issue/OPS-393)): Standby expressed "keep
 > everything off" at relay level, the sieg loop moved HP authority into
 > HpBoss, and nobody told HpBoss "off."
 
@@ -56,7 +56,7 @@ Status: Draft · Pass 0 · Updated 2026-06-10 · Linear: OPS-394
    {House0, House0Sieg, …Nolan} asserting final capability-level intent —
    the missing test that would have caught maple; the regression net for
    every layout to come. Likely rides the simulated-test-environment
-   harness (OPS-40) rather than a new one.
+   harness ([OPS-40](https://linear.app/gridworks/issue/OPS-40)) rather than a new one.
 
 ## Scope
 
@@ -70,7 +70,7 @@ Status: Draft · Pass 0 · Updated 2026-06-10 · Linear: OPS-394
 - The test matrix.
 - Open: exact capability list (calibrate against admin surface); how
   `scada.control.capabilities` declarations are produced from layouts;
-  relationship to OPS-368 (SystemMode visibility); **which other sites are
+  relationship to [OPS-368](https://linear.app/gridworks/issue/OPS-368) (SystemMode visibility); **which other sites are
   sieg-plumbed** (Jessica: "what about beech??") — the fleet sweep of
   use_sieg_loop belongs in this design's first verification pass.
 

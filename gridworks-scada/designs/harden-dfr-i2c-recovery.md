@@ -7,7 +7,7 @@ Status: Draft · Pass 0 · Updated 2026-06-22 · Linear: OPS-59
 actor dying; not from code reading.
 
 > What this is: harden the dfr (DFRobot 0-10V DAC) i2c path against bus failure
-> — the OPS-56 Elm mode where an undervoltage wedges the i2c bus and the actor
+> — the [OPS-56](https://linear.app/gridworks/issue/OPS-56) Elm mode where an undervoltage wedges the i2c bus and the actor
 > dies with no recovery. **Minimal Draft** — intent + the gate, depth deferred.
 
 ## Gate

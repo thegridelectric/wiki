@@ -110,7 +110,7 @@ Posture is read from the **static startup config** `settings.system_mode` (env
 (the restart also rebuilds the LocalControl tree). Verified against code
 2026-06-10 (scada `e6ba4f51`).
 
-**Known caveats (→ OPS-400 `sieg-semantic-harmonization`, not yet resolved):**
+**Known caveats (→ [OPS-400](https://linear.app/gridworks/issue/OPS-400) `sieg-semantic-harmonization`, not yet resolved):**
 control state `HpOff` no longer uniquely determines valve posture and valve
 telemetry isn't emitted (the valve `SingleMachineState` is still TODO);
 default-when-off is per-heat-pump (Maple Mitsubishi vs Beech LG) and not yet
@@ -142,7 +142,7 @@ Normative across the domain — full statements in
 | Actor model & message bus | sub-spec **Open** | Open |
 | Hardware layout / actor graph | sub-spec **Open** | Open |
 | Boundary types (gwsproto / Sema) | sub-spec **Open** | Open |
-| Sieg loop (hydronic posture, HSM state) | brief account above; full eval **Open** (OPS-400) | acceptable-minimum |
+| Sieg loop (hydronic posture, HSM state) | brief account above; full eval **Open** ([OPS-400](https://linear.app/gridworks/issue/OPS-400)) | acceptable-minimum |
 | Transport & links (LTN→gwbase decided; redo pending) | [`scada-ltn-link-state.md`](scada-ltn-link-state.md) | Draft |
 | Non-GNode interfaces (provisioning, certs, admin) | [`../explorations/non-gnode-interfaces.md`](../explorations/non-gnode-interfaces.md) | Open |
 | Dev/test environment (venv, `tools/`, by-hand bits) | [`environment.md`](environment.md) | Draft |

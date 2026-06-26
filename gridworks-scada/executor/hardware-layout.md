@@ -6,7 +6,7 @@ What this is: how a house's hardware is described, loaded, and generated —
 the layout object, its load pipeline, and the (hacky) generation tooling.
 **Current state only.** The rework (Sema layout types with axioms, the
 `names/` system, doing multiple house types right) is spruce-unlimbo
-Chunk B (OPS-334) — tracked there, not speculated here. Components
+Chunk B ([OPS-334](https://linear.app/gridworks/issue/OPS-334)) — tracked there, not speculated here. Components
 themselves are `executor/components.md`.
 
 **First pass.** This is a first pass written to help *work with* the
@@ -222,7 +222,7 @@ done right" rework.
 
 This captures durable **design intent** (partially encoded today in code +
 the `tlayouts` hand-scripts). It is the target of spruce-unlimbo Chunk B /
-OPS-334, with the device-type spine in OPS-407. Some of it is intent ahead of
+[OPS-334](https://linear.app/gridworks/issue/OPS-334), with the device-type spine in [OPS-407](https://linear.app/gridworks/issue/OPS-407). Some of it is intent ahead of
 code (flagged inline); review before relying. The seed is `layout.lite`
 (`named_types/layout_lite.py`, a Sema type with axioms).
 
@@ -467,7 +467,7 @@ gained register ops (`I2cReadReg`/`I2cWriteReg`) alongside the bit ops.
 > ops with `I2cResult` replying to the requester, retiring `I2cRelayBoard` +
 > `i2c_relay_multiplexer`, the thermistor-reader and relay-component version
 > bumps, and minting the ADC/relay `gw1.device.type` values — is in flight,
-> tracked in the hardware-layout-pass-one design (OPS-407).
+> tracked in the hardware-layout-pass-one design ([OPS-407](https://linear.app/gridworks/issue/OPS-407)).
 
 ## Hacky/irregular bits (current)
 
@@ -543,7 +543,7 @@ gained register ops (`I2cReadReg`/`I2cWriteReg`) alongside the bit ops.
   Python identifiers (`GwStrEnum`: value == member name), so UUIDs can't be enum members
   or projection targets. **Phasing:** a high-volume `gridworks-scada` migration removes
   every `cac_id` and restructures `layout_gen` around `DeviceType`; tracked as its own
-  Ops issue (**OPS-407**, subsumes the earlier `replace-cacs-by-make-model` idea).
+  Ops issue (**[OPS-407](https://linear.app/gridworks/issue/OPS-407)**, subsumes the earlier `replace-cacs-by-make-model` idea).
 
 ## Opportunities for improvement (OFIs)
 

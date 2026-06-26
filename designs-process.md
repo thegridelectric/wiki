@@ -93,7 +93,7 @@ and it goes stale the moment the active spoke moves. The structural detail
 A design-spec lives in **one folder, never moved**:
 
 - **Per-domain:** `wiki/<domain>/designs/<slug>.md` — for changes scoped to
-  one domain (e.g., `wiki/gridworks-protocol/designs/gwproto-shrink.md`).
+  one domain (e.g., `wiki/rmqbot/designs/prod-tls-fix.md`).
 - **Cross-cutting / tooling / meta:** `wiki/designs/<slug>.md` — for
   multi-domain refactors or wiki/process tooling
   (e.g., `wiki/designs/linear-integration.md`).

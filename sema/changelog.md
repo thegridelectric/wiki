@@ -22,7 +22,7 @@ updated; runtime jinja2 `check_axiom_3` template + regen to follow in this clust
 **Why:** require the semantic signal (heat-call) the control logic needs, not a specific sensor —
 parallel to heat-pump-power and the PrimaryFlowSource agreement. The source is a per-zone hardware
 choice (power ⇒ eGauge whitewire, opto ⇒ gw108), so whitewire-pwr drops from always-required to
-required-only-when-power-sourced. `gw.house0.layout/000` is unpushed → mutable in place. (OPS-407.)
+required-only-when-power-sourced. `gw.house0.layout/000` is unpushed → mutable in place. ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-22 — gw108 board example + BusMembership counterexample (`1a1e031`)
 
@@ -33,7 +33,7 @@ payload the hand-written gwsproto `ScadaDeviceTypeGt` emits, confirmed by `sema 
 
 **Why:** closes the Batch 3 (board) leg of the gwsproto→sema conformance sweep — the example pins what a
 conformant board looks like, the counterexample pins that the runtime enforces bus membership (accept +
-reject, both sides). Indexes regenerated. `pytest` green (232 passed, 1 xpassed). (OPS-407.)
+reject, both sides). Indexes regenerated. `pytest` green (232 passed, 1 xpassed). ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-22 — add axiom tests and more examples (`bf41287`)
 
@@ -50,7 +50,7 @@ Also added gwsproto-validated `examples` to the four config schemas
 *accepts* a conformant payload, the fixture proves it *rejects* one that breaks the axiom, so each
 schema axiom is pinned from both sides. Mirrors the `check_axiom_n` methods on the hand-written
 gwsproto producers (a gwsproto axiom dropped → sema still catches it). `pytest` green (231 passed,
-1 xpassed). (OPS-407.)
+1 xpassed). ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-22 — add i2c examples, registry alphabetized (`15d94e7`)
 
@@ -64,7 +64,7 @@ i2c.* words now cluster correctly (they had been inserted in the "g" area); a pu
 reorder, indexes regenerated.
 
 **Why:** the examples document the wire form and are exercised by the snapshot round-trip; the registry
-alphabetization is hygiene (entries findable by name). `pytest` green (226). (OPS-407.)
+alphabetization is hygiene (entries findable by name). `pytest` green (226). ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-22 — sema validate: CLI + API (`40f7643`)
 
@@ -111,7 +111,7 @@ files; runtime regenerated; `pytest` 220 passed.
 **Why:** sema is the source of truth for the component axioms, so the schemas must
 declare what the gwsproto runtime enforces — Channel-Name uniqueness on every
 component's ConfigList. Surfaced that `web.server` is a misuse of the component
-concept (no channels) and constrained it honestly. (OPS-407.)
+concept (no channels) and constrained it honestly. ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-22 — gw108 board descriptor + generic i2c bus vocabulary (`dc6800e`)
 
@@ -133,7 +133,7 @@ the I²C layer a generic, composable vocabulary, so board-resident components st
 all bus traffic can route through one serializing `I2cBus` actor. `i2c.*` is generic; only the board
 descriptor and the Broadcom-pin word are `gw*`. Full design + rationale live in the
 hardware-layout-pass-one design ("The Sema I²C vocabulary" section). Words authored/edited in place
-(unpushed, mutable). (OPS-407.)
+(unpushed, mutable). ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-16 — gw.house0.layout: require all collections + Hydronic (`dc7877f`)
 
@@ -164,7 +164,7 @@ source of truth. Bare `minimum`/`maxItems` are forbidden by sema's primitive-con
 axiom is the carrier. Verified: sema suite green (220 passed), and all five House0 fleet layouts
 (maple/beech/elm/oak/fir) still round-trip scada→gwta→scada unchanged with the axiom enforced. A
 generated counterexample test (proving the axiom *catches* a violation) is owed once the sema-native
-layout gen (Task b) lands. (OPS-407.)
+layout gen (Task b) lands. ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-15 — fixing local names and patching derived channel (`14fdfbc`)
 
@@ -236,7 +236,7 @@ for the WattHours energy channels, per the unit→quantity projection). Also gua
 **Why:** the snapshot round-trip gate (and the scada↔gwta `layout_roundtrip.py`) demand a fully
 conformant example; the example had been lagging the schema's referenced versions (a known scaffold).
 With this, the gwta snapshot builds and the house0 + simple.sim round-trips are green. `pytest` green
-(220). (hardware-layout pass-one, OPS-407.)
+(220). (hardware-layout pass-one, [OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-15 — add gw1.hvac.zone and gw.house0.hydronic (`32540ef`)
 
@@ -263,7 +263,7 @@ meter at the primary pump or not) that was implicit in which gen builders ran. M
 and typing the hydronic block — follows the sema rule that a known, axiom-constrained shape belongs
 in the schema, not in a freeform object + hand-axioms (`spec/authoring/types.md` Inline Objects /
 Open Containers). `gw1.hvac.zone` is shared so Nolan can adopt it when its hydronic is promoted
-(hardware-layout pass-one, OPS-407). `pytest` green (220).
+(hardware-layout pass-one, [OPS-407](https://linear.app/gridworks/issue/OPS-407)). `pytest` green (220).
 
 ## 2026-06-15 — gw1.tank.temp.calibration + .map → v001 (integer B in FahrenheitX100) (`efeafc0`)
 
@@ -371,7 +371,7 @@ upgrades — every transition has a defined `upgrade()` (real, or an explicit
 `upgrade_requires_context` for cac→DeviceType / FlowMeterType / layout aggregates that need the
 source layout). But the scaffold tool seeds new upgrade templates as `raise NotImplementedError`
 stubs and nothing caught a left-behind one. This guard closes that gap — the same way examples
-and axioms are now enforced. Companion to the gwsproto version-alignment work (OPS-407).
+and axioms are now enforced. Companion to the gwsproto version-alignment work ([OPS-407](https://linear.app/gridworks/issue/OPS-407)).
 
 ## 2026-06-14 — Fix 2 example values to round-trip through gwsproto (`698b1b3`)
 
@@ -479,7 +479,7 @@ component versions (`pico.tank.module` 011→012, `sim.pico.tank.module` 000→0
 source layout); `/014` gained a compact example (now superseded); the real beech/spruce
 upgrade-to-latest tests now assert the context-dependent refusal.
 
-**Why:** OPS-407, hardware-layout pass one (1.5 tail). The authoritative hardware layout now
+**Why:** [OPS-407](https://linear.app/gridworks/issue/OPS-407), hardware-layout pass one (1.5 tail). The authoritative hardware layout now
 expresses the device-type model (components key into specialized records by `DeviceType`,
 membership a layout invariant). `layout.lite` needed a NEW version rather than an in-place
 rebind: it has a live upgrade chain over real field projections, and the scada emits a
@@ -503,7 +503,7 @@ Added three **draft** specialized records — `electric.meter.device.type.gt`,
 `electric.meter.cac.gt` (`replaced_by: electric.meter.device.type.gt`). Also fixed the
 generated `new_command_tree` upgrade's mypy typing at its template source.
 
-**Why:** OPS-407, hardware-layout pass one. Replaces UUID `cac_id` device identity with a
+**Why:** [OPS-407](https://linear.app/gridworks/issue/OPS-407), hardware-layout pass one. Replaces UUID `cac_id` device identity with a
 readable `DeviceType`; a plain device is now fully described by its `DeviceType` value +
 its own component fields. A CAC that carries real category-level data does not vanish — it
 becomes a per-family `<family>.device.type.gt` joined by the shared `DeviceType`.
@@ -520,7 +520,7 @@ from its Component `ConfigList`). Added `AbstractWebServer` — a generic web-se
 `default` is now `EgaugePowerMeter` — **vestigial**: `DeviceType` is required on every
 component, so the enum default is never exercised.
 
-**Why:** OPS-407. Removing the "unknown" sentinel forces every component to name a real
+**Why:** [OPS-407](https://linear.app/gridworks/issue/OPS-407). Removing the "unknown" sentinel forces every component to name a real
 device type; `AbstractWebServer` keeps the model uniform (every component carries a
 `DeviceType`) while honestly marking the web server as a generic service, not a make/model.
 
@@ -531,7 +531,7 @@ old `MakeModel` had no live reference in `gridworks-scada` (only the CACS tables
 def / comments). Kept the device types actually used in `layout_gen` / drivers / real
 layouts / tests (incl. both thermistors and `UnknownDeviceType` at that point).
 
-**Why:** OPS-407 — the enum should carry the device types we actually use, not the full
+**Why:** [OPS-407](https://linear.app/gridworks/issue/OPS-407) — the enum should carry the device types we actually use, not the full
 legacy `spaceheat.make.model` set. Removals verified by searching scada+tlayouts per
 make.
 
@@ -542,7 +542,7 @@ device types + an `UnknownDeviceType` sentinel/default), migrated from
 `spaceheat.make.model` (each value's description notes its old MakeModel). Registry
 `metadata.last_updated` bumped to cover the new `created` date.
 
-**Why:** OPS-407 (hardware-layout-pass-one) replaces UUID `cac_id` device identity with a
+**Why:** [OPS-407](https://linear.app/gridworks/issue/OPS-407) (hardware-layout-pass-one) replaces UUID `cac_id` device identity with a
 `gw1.device.type` key: a device *category* (PascalCase, the `pascal.case` format), NOT a
 make+model — several eGauge models map to one `EgaugePowerMeter`. Components will carry
 `DeviceType` as an open `pascal.case` string (version-stable); the hardware layout
@@ -561,7 +561,7 @@ section to `spec/authoring/enums.md`.
 `regenerate_runtime.py` rejects anything else. Surfaced the hard way when a UUID-valued
 `gw1.device.type.id` enum + projection (for the device-type bijection) failed to
 generate. The note also records the projection corollary (source and target enums must
-both have identifier values) and the PascalCase value convention. Lineage: OPS-407
+both have identifier values) and the PascalCase value convention. Lineage: [OPS-407](https://linear.app/gridworks/issue/OPS-407)
 (hardware-layout-pass-one), which dropped UUID device ids for a `gw1.device.type` enum.
 
 ## 2026-06-13 — Add strict-lint regression test for the generated runtime (`189ec23`)
@@ -773,7 +773,7 @@ indexes/runtime, filled `ListLengthConsistency` axiom template). Fields:
 `sim.plant.flux`; the scada-side sim sensor reads and *interprets* it into
 `synced.readings` (and electrical/other derived signals later). It is the
 plant-emits/sensor-reads boundary word of the SCADA simulated test environment
-(OPS-40). Two timestamps because under sped-up coordinator time the sim clock
+([OPS-40](https://linear.app/gridworks/issue/OPS-40)). Two timestamps because under sped-up coordinator time the sim clock
 outruns the wall clock — `ActualTimeUtc` is human-readable provenance for CSVs,
 not consumed downstream. `Simulates*` was dropped deliberately: the plant's raw
 emission must not presume its destination.
@@ -838,7 +838,7 @@ member into the three types that reference `gw1.unit` (`derived_channel_gt`,
 `gw1_unit_quantity_projection`, `synced_readings_bundle`).
 
 *Why:* makes those 3 members canonical, so the gridworks-journalkeeper snapshot
-regen (OPS-386) no longer drops units its persistors use — they had been
+regen ([OPS-386](https://linear.app/gridworks/issue/OPS-386)) no longer drops units its persistors use — they had been
 hand-patched into JK's old snapshot. This *replays* Joe's reviewed schema delta
 (`jds/dollarsX1000`) onto current `dev` rather than merging his stale branch;
 merging the 29-commits-behind branch produced generator/formatting drift (4
@@ -863,7 +863,7 @@ step.
 
 ## 2026-06-09 — Merge pull request #21 — jm/ops-380-snapshot-improvement (`8293b4e`)
 
-**What:** Merge landing the OPS-380 snapshot-improvement branch on `dev`. The
+**What:** Merge landing the [OPS-380](https://linear.app/gridworks/issue/OPS-380) snapshot-improvement branch on `dev`. The
 constituent commits each have their own entries below (`bea9846`, `ee5bd53`,
 `0169b47`, `653a152`, `701495c`, `be72b40`, `6f68508`).
 
@@ -889,7 +889,7 @@ step and treat it as an **expected pass** (the sample still must round-trip at i
 own version). Runtime regenerated; spec `authoring/type-semantics.md` Upgrade
 Discipline documents the contract.
 
-**Why:** OPS-380 thread 4 mandates an example on every superseded version and the
+**Why:** [OPS-380](https://linear.app/gridworks/issue/OPS-380) thread 4 mandates an example on every superseded version and the
 gate upgrades each sample to latest — but some `old→new` transforms need
 out-of-band context (layout handles/ids, source message) an isolated message
 can't carry, so their `upgrade()` correctly refuses. A bare `ValueError` made
@@ -907,7 +907,7 @@ bullet. Structured enums were rolled back (`0bf8f0f`), so the clause referenced 
 capability that no longer exists.
 
 **Why:** Stale residue left by the structured-enums rollback; surfaced while
-closing out the `untangle-market-type-name` design (OPS-378). Keeps the operative
+closing out the `untangle-market-type-name` design ([OPS-378](https://linear.app/gridworks/issue/OPS-378)). Keeps the operative
 instructions honest.
 
 ## 2026-06-08 — backfill: examples on 20 superseded versions, flip gate, fold snapshot spoke (`be72b40`)
@@ -930,7 +930,7 @@ build, `samples/`, the round-trip gate + context-dependent-upgrade exemption),
 linked from `spec/primary.md`; Python tool specifics stay in the
 `src/sema/tools/` docstrings per the in-repo-spec / wiki-pointer split.
 
-**Why:** OPS-380 thread 4 — completes the mandate landed in `ee5bd53` so the
+**Why:** [OPS-380](https://linear.app/gridworks/issue/OPS-380) thread 4 — completes the mandate landed in `ee5bd53` so the
 snapshot round-trip exercises every old version along the upgrade path where
 restricted-snapshot bugs concentrate (the `atn.bid` class; this same pass already
 surfaced the `layout.lite/007→008` ShNodes-lift bug fixed in `0169b47`). Folding
@@ -974,7 +974,7 @@ descriptive correction.)
 and added the new top-level fields yet never lifted the embedded nodes, so any
 `007` instance carrying nodes raised a `literal_error` on upgrade. The gap had
 gone unnoticed because no old-version `layout.lite` fixture exercised the chain
-(fixtures start at v011, whose nodes are already `301`). Surfaced by the OPS-380
+(fixtures start at v011, whose nodes are already `301`). Surfaced by the [OPS-380](https://linear.app/gridworks/issue/OPS-380)
 thread-4 backfill: a realistic `layout.lite/007` example must round-trip
 `decode-old → upgrade() → decode-current`, which is exactly the path this gate
 exists to protect (the `atn.bid` class). The sibling steps in the chain
@@ -993,7 +993,7 @@ type version that has a successor MUST carry at least one `examples:` entry;
 latest versions and versionless types stay optional. New
 `tests/registry/test_superseded_examples.py` enforces the mandate by walking
 `definitions/types/`; marked `xfail` (non-strict) until the one-time backfill of
-existing old versions lands (OPS-380 thread 4), at which point it xpasses and
+existing old versions lands ([OPS-380](https://linear.app/gridworks/issue/OPS-380) thread 4), at which point it xpasses and
 the marker is removed.
 
 **Why:** Superseded versions exist to be **upgraded**, and the
@@ -1004,7 +1004,7 @@ version it has a fixture for, and the fixture is the authored `examples:` entry
 old-version round-trip coverage to be total. Permitting examples on published
 versions removes the immutability grey area that would otherwise block the
 backfill — examples are non-normative guidance, not validation behavior. Part of
-OPS-380 (thread 4, spec half; the example backfill itself follows separately).
+[OPS-380](https://linear.app/gridworks/issue/OPS-380) (thread 4, spec half; the example backfill itself follows separately).
 
 ## 2026-06-08 — snapshot: round-trip gate + generated samples + lint-gated atomic build (`bea9846`)
 
@@ -1013,14 +1013,14 @@ to generate into a **staged** tree, gate it, and swap into place only on green �
 a failed gate is a no-op (the previous snapshot is left untouched), replacing the
 old clear-then-write that could half-write on failure. New gates:
 
-- **`samples/`** (OPS-380 thread 3) — `src/sema/tools/snapshot_check.py` runs in a
+- **`samples/`** ([OPS-380](https://linear.app/gridworks/issue/OPS-380) thread 3) — `src/sema/tools/snapshot_check.py` runs in a
   subprocess against the staged package and, for every type version under
   `definitions/` with an `examples:` block, feeds the first example through the
   snapshot codec (`from_dict → to_dict`) and writes the canonical serialized form
   to `samples/<type.name>[.<version>].json` (old versions included). Writes a
   coverage `samples/README.md`. Samples are the exact wire bytes the runtime
   emits, so they double as the round-trip's expected output and don't churn.
-- **Round-trip gate** (OPS-380 thread 2) — a new shipped, pydantic-only
+- **Round-trip gate** ([OPS-380](https://linear.app/gridworks/issue/OPS-380) thread 2) — a new shipped, pydantic-only
   `roundtrip.py` harness (`templates/roundtrip.py.jinja2`, emitted by
   `generate_runtime.py`) walks `samples/`, decodes each at its own version,
   re-encodes (deep-equal), and upgrades superseded versions to latest. Run
@@ -1028,7 +1028,7 @@ old clear-then-write that could half-write on failure. New gates:
   This is the check that catches a word missing only from the *restricted*
   snapshot (the `atn.bid` class). `tests/test_snapshot_roundtrip.py` proves it
   flags a non-decoding sample.
-- **Lint gate** (OPS-380 thread 1) — `src/sema/tools/snapshot_lint.py` runs
+- **Lint gate** ([OPS-380](https://linear.app/gridworks/issue/OPS-380) thread 1) — `src/sema/tools/snapshot_lint.py` runs
   `ruff format` in place (the generator already sorts output, so format makes a
   re-build a zero diff) and reports `ruff check` / `mypy` (fatal only under
   `--strict-lint`, because the generator emits known pre-existing violations
@@ -1050,7 +1050,7 @@ round-trip gate makes "does the emitted runtime decode its own types" a
 build-time invariant against the *restricted* vocabulary — exactly where a
 sema-runtime test can't see the bug. Atomic staging means a failing gate can
 never corrupt a consumer's snapshot. `ruff format` + the generator's existing
-sorting make a second regen a zero diff. Part of OPS-380 (threads 1–3).
+sorting make a second regen a zero diff. Part of [OPS-380](https://linear.app/gridworks/issue/OPS-380) (threads 1–3).
 
 ---
 
@@ -1064,11 +1064,11 @@ to expect `[metadata, formats, enums, types]`.
 
 **Why:** `built_at` was non-deterministic — it made every snapshot regen diff on
 `registry.yaml` regardless of generated-code formatting, blocking the zero-diff
-goal (OPS-380, thread #1). Nothing reads it; snapshot provenance is already
+goal ([OPS-380](https://linear.app/gridworks/issue/OPS-380), thread #1). Nothing reads it; snapshot provenance is already
 carried by the copied `metadata.registry_version` + `last_updated`. Dropping the
 `snapshot:` key also makes the restricted registry conform to the spec's
 top-level structure — `metadata/formats/enums/types`, which has no `snapshot`
-section (`spec/registry/structure.md`). Part of OPS-380.
+section (`spec/registry/structure.md`). Part of [OPS-380](https://linear.app/gridworks/issue/OPS-380).
 
 ---
 
@@ -1102,12 +1102,12 @@ integer case stubbed with a `raise`) and a third home for semantics with weaker
 guarantees (primitive-only, unvalidated free-text units). Name-decodable
 semantics belong on the `market.product` **type** (real `$ref`'d fields) and in
 axioms — mirroring the legacy `MarketTypeGt` and the market-product taxonomy's
-"name + rich type" verdict. Unpublished, so the rollback is clean. See OPS-378 +
+"name + rich type" verdict. Unpublished, so the rollback is clean. See [OPS-378](https://linear.app/gridworks/issue/OPS-378) +
 `wiki/sema/designs/untangle-market-type-name/rollback-structured-enums.md`.
 
 ## 2026-06-08 — Untangle market.type.name into structured gw.market.product.name + market.product type (`8190fdb`)
 
-**What:** The complete `untangle-market-type-name` work (OPS-378), squashed.
+**What:** The complete `untangle-market-type-name` work ([OPS-378](https://linear.app/gridworks/issue/OPS-378)), squashed.
 Two reusable Sema capabilities applied to the market vocabulary, while keeping
 the universal market messages uniform across makers:
 

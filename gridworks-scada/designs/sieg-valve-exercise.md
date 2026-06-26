@@ -21,7 +21,7 @@ through a sweep and return it to the posture position.
   dictates (open, in summer).
 - Guards: only while local control is Standby? never during a dispatch
   contract? (same non-transactive constraint family as the oil-boiler
-  diagnostic, OPS-215).
+  diagnostic, [OPS-215](https://linear.app/gridworks/issue/OPS-215)).
 - Seizure signature: motion commanded but no flow/temp response → Glitch /
   alert, so a stuck valve is found in July, not at first heat call in
   October.

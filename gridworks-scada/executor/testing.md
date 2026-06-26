@@ -78,7 +78,7 @@ The proactor encodes a published `Message` as MQTT topic
 `Dst=self.scada.name` (`= "s"`), the SCADA — subscribed to its own short_name —
 receives it; when the LTN sent the old `Dst="broadcast"`, the SCADA was **not**
 the addressee and never received it. So the behavioral check for the
-`ltn-sends-gw-wrapped` change (design, OPS-387) is:
+`ltn-sends-gw-wrapped` change (design, [OPS-387](https://linear.app/gridworks/issue/OPS-387)) is:
 
 1. Boot the tree and reach quiescence.
 2. Drive the LTN to emit one of the changed types (e.g. `FloNextHourPlans` /

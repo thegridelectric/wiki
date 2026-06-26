@@ -46,6 +46,6 @@ cert foundation) but the *how* is still wide open. They graduate to
 
 ## Cross-refs
 
-- the `mtls-fis-auth` design (Linear OPS-420) — prerequisite.
+- the `mtls-fis-auth` design (Linear [OPS-420](https://linear.app/gridworks/issue/OPS-420)) — prerequisite.
 - `authority/tls/tls-certs.md` (in `gridworks-infra`) — original
   phase architecture.

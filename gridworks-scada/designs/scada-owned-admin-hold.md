@@ -37,7 +37,7 @@ So "admin dies after I walk away" is not a crash — the hold simply lasts the
 - `>24h` → `None` → the scada's `max_timeout_seconds` cap. No clean "hold until
   I release."
 
-## Scope (the rewritten OPS-194 bullets)
+## Scope (the rewritten [OPS-194](https://linear.app/gridworks/issue/OPS-194) bullets)
 
 1. **Survive the panel drop — intentionally and tested.** Already true; raise /
    clarify the default and add an explicit **long hold** and a **hold-until-

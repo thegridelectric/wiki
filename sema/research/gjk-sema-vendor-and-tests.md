@@ -51,7 +51,7 @@ Two things changed since the finding was queued:
    runtime `TypeAdapter`s for all eight formats above (plus newer ones:
    `non.empty.string`, `positive.int.as.str`, `pascal.case`, …).
 2. **The snapshot contract now rules vendored test suites out.** The merged
-   OPS-380 work canonized `sema/spec/snapshot.md`: a snapshot "ships data,
+   [OPS-380](https://linear.app/gridworks/issue/OPS-380) work canonized `sema/spec/snapshot.md`: a snapshot "ships data,
    not test code … it does NOT vendor a test suite," and the build itself
    carries the round-trip gate over generated `samples/`. gjk's vendored
    tests are therefore not just redundant — they are outside the snapshot

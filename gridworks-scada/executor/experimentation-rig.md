@@ -31,7 +31,7 @@ tolerant parser + `on_routing_key_parse_error` hook), via
 
 - Env: `GJK_RABBIT__URL=amqp://smqPublic:smqPublic@localhost:5672/d1__1` and
   **`GJK_SERVICE_ALIAS=d1.journalkeeper`** (the 3-tier base requires
-  `service_alias`; JK's `.env` predates it — OPS-386).
+  `service_alias`; JK's `.env` predates it — [OPS-386](https://linear.app/gridworks/issue/OPS-386)).
 - Bind catch-all: `queue_bind(jk.queue_name, "amq.topic", routing_key="#")` in a
   `local_rabbit_startup` override (sees everything bridged from MQTT).
 - To observe parsing **without a DB**, swap `jk.persistor` / `jk._persist_body`

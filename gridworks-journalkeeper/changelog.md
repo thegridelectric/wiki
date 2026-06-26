@@ -60,7 +60,7 @@ Drive-by: fix a `test_journal_keeper.py` docstring that still claimed
 settings still inherited `GNodeSettings`, carrying GNode identity (and a
 `g.node.gt.json` file) it never loads usefully. `ServiceSettings` is the gwbase
 0.5.x tier for riding the rabbit + sema toolkit without GNode identity. This is
-OPS-386 hub item #2 (`integrate-gwbase-sema-updates`, spoke
+[OPS-386](https://linear.app/gridworks/issue/OPS-386) hub item #2 (`integrate-gwbase-sema-updates`, spoke
 `gwbase-tier-migration`) — the last open remainder now that gwbase 0.5.2 is on
 PyPI and the snapshot regen has landed. Sheds `g_node.json` entirely; logs land
 under `state_dir("journalkeeper")`.
@@ -73,7 +73,7 @@ with a restricted, vendored Sema runtime at `src/gjk/sema`, generated from
 via `scripts/regen_sema_snapshot.sh`); never hand-edit `src/gjk/sema`.
 
 **Why:** the README predated the gwbase-0.5.x / sema-snapshot work
-(`integrate-gwbase-sema-updates`, OPS-386) — a new contributor had no pointer
+(`integrate-gwbase-sema-updates`, [OPS-386](https://linear.app/gridworks/issue/OPS-386)) — a new contributor had no pointer
 to how JK gets its types or how to refresh them.
 
 ## 2026-06-10 — Snapshot: seed `bid` (current) alongside `atn.bid` (`d189ba7`)
@@ -85,7 +85,7 @@ deps** (no `market.type.name` hand-patch). JK suite green (20 passed).
 
 **Why:** the snapshot covered only the historical frozen `atn.bid`, so a current
 `bid` message decoded as degraded. Seeding both keeps old S3 (`atn.bid`) and
-current (`bid`) decoding strict. Per the OPS-386 design
+current (`bid`) decoding strict. Per the [OPS-386](https://linear.app/gridworks/issue/OPS-386) design
 (`integrate-gwbase-sema-updates`), which calls for both.
 
 ## 2026-06-10 — Update snapshot: new.command.tree effective-handle axiom (`fa27f1b`)
@@ -108,15 +108,15 @@ runbook — it worked end-to-end.
 the vendored `tests/` (clears the long-standing `test_property_format.py`
 failure), ships the round-trip gate + `samples/`, and removes the
 `market.type.name` / `property_format.py` hand-patches. Broad diff (~67 files):
-the snapshot was stale, so the regen also syncs JK to the OPS-380
+the snapshot was stale, so the regen also syncs JK to the [OPS-380](https://linear.app/gridworks/issue/OPS-380)
 canonical-formatting landing, not just the 3 new units. Also adds
 `scripts/regen_sema_snapshot.sh` (a one-command runbook wiring the gjk-specific
 glue — seed path, `--package-name gjk`, the `output/sema` → `src/gjk/sema`
 mirror — around the sema CLI) and a header pointer to it on the seed, so the
 recipe isn't rediscovered by archaeology next time.
 
-**Why:** First consumer of the merged sema snapshot-improvement (OPS-380 / PR
-#21); part of OPS-386. The clean regen needed 3 `gw1.unit` members the persistors
+**Why:** First consumer of the merged sema snapshot-improvement ([OPS-380](https://linear.app/gridworks/issue/OPS-380) / PR
+#21); part of [OPS-386](https://linear.app/gridworks/issue/OPS-386). The clean regen needed 3 `gw1.unit` members the persistors
 hard-reference at class-definition time (`KilowattHoursX1000`, `DollarsX1000`,
 `MilesPerHourX1000`), which had only ever been hand-patched into the old
 snapshot. Those are now canonical in sema via the additive `gw1.unit/002`
@@ -131,7 +131,7 @@ them honestly. **Green:** JK suite `17 passed`, round-trip OK on 35 samples.
 `ActorBase.on_routing_key_parse_error`, a hook that exists only in gwbase 0.5.2.
 Pinning 0.5.2 makes the override bind to the real base hook and lets the
 previously-`skipif`-skipped fallback test run — JK suite now 8/8 green against
-real gwbase 0.5.2. Independent of the JK sema-snapshot regen (OPS-386), which is
+real gwbase 0.5.2. Independent of the JK sema-snapshot regen ([OPS-386](https://linear.app/gridworks/issue/OPS-386)), which is
 deliberately not touched here.
 
 ## 2026-06-09 — JournalKeeper legacy_hack: persist pre-gwbase broadcast.* keys (`2156a31`)

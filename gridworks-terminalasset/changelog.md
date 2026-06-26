@@ -25,7 +25,7 @@ green for the 34 example-bearing samples.
 **Why:** stage the codegen'd decode oracle for the broker round-trip EDD sweep that aligns the
 hand-written gwsproto i2c/board types to these sema words — gwta decodes what scada publishes,
 proving the hand-port matches the schema. The i2c vocabulary is expected to be **removed from
-gwta** once the sweep is done (it doesn't belong in the terminalasset snapshot long-term). (OPS-407.)
+gwta** once the sweep is done (it doesn't belong in the terminalasset snapshot long-term). ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-16 — house0.layout - entries are required (`2f6c4f8`)
 
@@ -49,7 +49,7 @@ Mechanical regen via `sema snapshot prepare/build` from `seed_request.yaml`; no 
 
 **Why:** keep terminalasset enforcing the same layout invariants as sema — step 2 of the layout
 working loop (sema edit → snapshot to gwta). The scada↔gwta layout round-trip stays green for all
-five House0 fleet layouts. (OPS-407.)
+five House0 fleet layouts. ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-15 — patch layout roundtrip test (`a83b8614`)
 
@@ -94,7 +94,7 @@ before) or a path to a `.json` file holding a full layout, which it sends gwta �
 
 **Why:** to round-trip a **real** sema layout (e.g. maple's full `gw.house0.layout` from the dc→sema
 bijection) end-to-end, not just the minimal stub — "the round-trip works for the sema layouts."
-(hardware-layout pass-one, OPS-407.)
+(hardware-layout pass-one, [OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-15 — create gw.house0.hydronic; fix hubitat snake case (`37d811f`)
 
@@ -109,7 +109,7 @@ new `gw_house0_hydronic.py` / `gw1_hvac_zone.py` / `gw_house0_primary_flow_sourc
 **Why:** keeps the snapshot the scada emits/decodes in sync with sema's source of truth. With it,
 the scada↔gwta `layout_roundtrip.py` is green for `gw.house0.layout` and `gw1.simple.sim.layout`
 (nolan still red on its pre-existing required-`Hydronic` minimal-instance issue). `mode="strict"`
-snapshot gate green: 34 samples round-tripped. (hardware-layout pass-one, OPS-407.)
+snapshot gate green: 34 samples round-tripped. (hardware-layout pass-one, [OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 **What:** Regenerated the gwta Sema snapshot from current `sema` `jm/sim-vocab` via
 `build_gwta_snapshot.sh`. Picks up the upstream sema changes (`mac.address` format → `hubitat.gt`
@@ -166,7 +166,7 @@ provisions the exchange fabric, connects, and broadcasts `heartbeat.a`
 at a fixed cadence (`uv run ta-hello`). Smoke tests offline; one
 live-marked test, verified green against a local rabbit broker.
 
-**Why:** the hello-world design (OPS-404, Accepted · Pass 1) — prove
+**Why:** the hello-world design ([OPS-404](https://linear.app/gridworks/issue/OPS-404), Accepted · Pass 1) — prove
 the comms plumbing of the simulated-terminal-asset comms rig before any
 physics or new sema words; existing gwbase types only.
 

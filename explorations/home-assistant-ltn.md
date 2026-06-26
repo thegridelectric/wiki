@@ -59,7 +59,7 @@ BTU sub-thread already lives.
 
 ## Sub-thread: BTU meter → HA
 
-The original narrow task (Linear OPS-47, now cancelled) was getting the
+The original narrow task (Linear [OPS-47](https://linear.app/gridworks/issue/OPS-47), now cancelled) was getting the
 GridWorks BTU meter (`gridworks-pico` — itself due for an overhaul) to report
 into Jonathon's HA SCADA, via the `gridworks-homeassistant` integration above.
 It was chosen as a way to learn HA. Jonathon may have found another path, but may

@@ -6,7 +6,7 @@ What this is: the rebuild spec for `gridworks-terminalasset`, the repo
 holding terminal asset GNode actors — simulated terminal assets first
 (the comms rig for the scada simulation harness, seed of the live
 hybrid fleet). Most of the spec is Open; this hub records what the
-hello-world increment (OPS-404, shipped 2026-06-11) settled.
+hello-world increment ([OPS-404](https://linear.app/gridworks/issue/OPS-404), shipped 2026-06-11) settled.
 
 ## Overview
 

@@ -9,7 +9,7 @@ Status: Accepted · Pass 1 · Updated 2026-06-13 · Linear: OPS-40
 > What this is: a robust simulated test environment for the SCADA — extremely
 > simple simulated terminal assets plus simulated sensors that exchange data over
 > the dev Rabbit broker, the terminal assets built on gridworks-base. Ported from
-> Linear **OPS-40** (which began as a narrower "run dev scada without crashing /
+> Linear **[OPS-40](https://linear.app/gridworks/issue/OPS-40)** (which began as a narrower "run dev scada without crashing /
 > `gen_orange` layout" task and is reframed here into the broader goal).
 
 ### Spokes
@@ -168,8 +168,8 @@ Short pointers to durable facts; the live plan lives in `build-plant.md`.
   `tests/utils/`), `gridworks-base` (simulated terminal asset GNode actor,
   dev-broker test topology), `gridworks-protocol`/`sema` (`gw1.device.type` + sim
   component types).
-- Relationship: subsumes OPS-40's original `gen_orange` dev-layout checklist;
-  related to **OPS-118** (Dev mosquitto in Docker — the dev broker).
+- Relationship: subsumes [OPS-40](https://linear.app/gridworks/issue/OPS-40)'s original `gen_orange` dev-layout checklist;
+  related to **[OPS-118](https://linear.app/gridworks/issue/OPS-118)** (Dev mosquitto in Docker — the dev broker).
 
 ## TODO — revert the temporary `GridWorks_CLAUDE.md` directives
 

@@ -17,7 +17,7 @@ Status: Accepted · Pass 1 · Updated 2026-06-13 · Linear: OPS-40
 ## Do this now — wait on the hardware-layout pass, then Phase A
 
 The device-type model and the high-volume scada migration the sim layout depends on are a
-**separate, shared piece of work** — its own Ops issue (**OPS-407**), depended on by this
+**separate, shared piece of work** — its own Ops issue (**[OPS-407](https://linear.app/gridworks/issue/OPS-407)**), depended on by this
 harness and spruce-unlimbo Chunk B. Its durable home is `executor/hardware-layout.md`
 ("Resolution"): device identity becomes a `gw1.device.type` enum value (`DeviceType`,
 `pascal.case` format), **ALL `cac_id` / UUID identity is removed** (scada and sema), and
@@ -56,7 +56,7 @@ The pared-down single-zone layout becomes the **first sema layout word**: a full
 hardware-layout type, not just the component vocabulary it references. That is the
 cleanest way for gwta and the sim scada to share **one** layout — both parse the same
 sema-typed file instead of the plant re-deriving the graph — and it is on the
-**critical path for spruce-unlimbo**: getting layouts into sema is Chunk B / OPS-334,
+**critical path for spruce-unlimbo**: getting layouts into sema is Chunk B / [OPS-334](https://linear.app/gridworks/issue/OPS-334),
 so this word is the on-ramp the rework reuses.
 
 **Name: `gw1.simple.sim.layout`.** Sim-ness is *not* a primary part of a hardware-layout

@@ -5,7 +5,7 @@ Status: Accepted · Pass 1 · Updated 2026-06-13 · Linear: OPS-40
 > What this is: simulated-test-environment spoke — simulated relays and a
 > simulated i2c thermistor reader so the Nolan scada runs fully locally
 > (and the House0 case after it), exercising Thomas's setpoint evaluation
-> in test mode. Began life as a spruce-unlimbo spoke (OPS-392), executed
+> in test mode. Began life as a spruce-unlimbo spoke ([OPS-392](https://linear.app/gridworks/issue/OPS-392)), executed
 > there for momentum; moved here 2026-06-11 when the simulation harness
 > was elevated to the top. Still serves spruce-unlimbo's merge gate
 > (testing green for both layouts).
@@ -193,7 +193,7 @@ and independent of scada's `gwproto` copies. Consequences:
 ### Capability-protocol consistency (evaluated 2026-06-11)
 
 Tracked `local_control` → relay commands against the `capability-protocol-and-verify`
-design (OPS-394). **Largely consistent:** control states drive actuators through
+design ([OPS-394](https://linear.app/gridworks/issue/OPS-394)). **Largely consistent:** control states drive actuators through
 the capability surface (`turn_on/off_HP`, `valved_to_charge/discharge_store`,
 `*_switch_to_scada`, `sieg_valve_dormant`), not raw-relay idiom, and `turn_on_HP`
 already routes HP authority to `hp-boss` under sieg — the maple-fix shape the
@@ -208,7 +208,7 @@ itself predicts** (both fine for a Draft):
   off but still drawing." **This is where the plant earns its keep:** because the
   plant turns relay state into `hp-odu-pwr`, the harness can finally exercise
   principle 7 and the principle-8 layout×state test matrix (which the design says
-  "likely rides OPS-40"). The plant is the instrument that makes capability-verify
+  "likely rides [OPS-40](https://linear.app/gridworks/issue/OPS-40)"). The plant is the instrument that makes capability-verify
   testable.
 
 ## Live baseline (verified 2026-06-10)

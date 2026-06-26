@@ -23,7 +23,7 @@ per `--beat-seconds` of wall time. Witnessed live test green against
 gw-dev-rabbit: an observer queue on `timemic_tx` received consecutive
 timesteps with advancing TimeUnixS.
 
-**Why:** the hello-world design (OPS-405, Accepted · Pass 1) — the sim
+**Why:** the hello-world design ([OPS-405](https://linear.app/gridworks/issue/OPS-405), Accepted · Pass 1) — the sim
 stack needs a time authority, and gwbase built the seat for it
 (control-plane `sim.timestep` reception + `send_ready()` already in
 every Orchestrator-tier actor). Poetry-era first-pass code preserved on

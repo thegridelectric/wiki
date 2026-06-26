@@ -124,7 +124,7 @@ designs sharing one issue).
 
 **Cross-reference both ways:**
 - Wiki `Status:` line carries the issue id, e.g.
-  `Status: Accepted · Pass 2 · Updated 2026-06-08 · Linear: OPS-142`.
+  `Status: Accepted · Pass 2 · Updated 2026-06-08 · Linear: [OPS-142](https://linear.app/gridworks/issue/OPS-142)`.
 - The Linear issue body carries the `Design:` wiki path (above), while the
   file is alive.
 

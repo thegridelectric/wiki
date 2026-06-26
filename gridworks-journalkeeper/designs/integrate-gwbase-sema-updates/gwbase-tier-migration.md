@@ -3,7 +3,7 @@
 Status: Accepted · Pass 1 · Updated 2026-06-12 · Linear: OPS-386
 
 > What this is: spoke of `integrate-gwbase-sema-updates` (hub: `primary.md`,
-> OPS-386). The concrete plan for hub item **#2** — moving JournalKeeper's
+> [OPS-386](https://linear.app/gridworks/issue/OPS-386)). The concrete plan for hub item **#2** — moving JournalKeeper's
 > settings off the GNode-only tier onto gwbase 0.5.x's `ServiceSettings`, making
 > `service_alias` first-class, and adopting the plain-XDG path convention. The
 > actor class is already `ActorBase`; this spoke is almost entirely about

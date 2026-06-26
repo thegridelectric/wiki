@@ -423,10 +423,19 @@ shipped, where the distillate now lives (`executor/…`), and any carried-forwar
 caveat (e.g. an interim hack's revert condition) — so the issue stays the
 durable workflow record after the file is gone, and (3) move it to **Done**.
 **Because designs are
-ephemeral — deleted on completion — NOTHING SHALL link to a design** (any
-markdown link to a `designs/` file rots into a dangler the moment that design
-is deleted); reference a design by name in prose instead. Links are for
-durable targets (`executor/`, code, external refs). The sole exception is
+ephemeral — deleted on completion — NOTHING SHALL link to OR name a design
+*file*** (a markdown link to a `designs/` file rots into a dangler the moment
+that design is deleted; a name-in-prose mention rots the same way for a reader).
+A wiki doc references only durable records — `executor/` specs, code,
+research/explorations, external refs, **and Linear issues** (an issue URL like
+`https://linear.app/gridworks/issue/OPS-407` is **immutable even as status
+changes** — hyperlink it in **human-facing prose**; Claude/tooling bookkeeping
+(`DESIGN_INDEX.md`, the triage worklist, Status-line stamps) keeps the bare
+`OPS-NNN`). So express a **cross-design / cross-work
+relationship** by pointing at the other work's **Linear issue**, not its design
+file; the richer relationship narrative (depends-on, sequencing, gated-by, folds,
+supersedes) also lives in Linear (the issue description, which may reference
+other issues). The sole exception is
 [`DESIGN_INDEX.md`](DESIGN_INDEX.md), the aggregator that indexes every
 design by definition. Per-domain `findings.md`
 registers are legacy and SHALL NOT be created in new domains — items

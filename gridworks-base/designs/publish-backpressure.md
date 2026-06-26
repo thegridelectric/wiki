@@ -2,14 +2,14 @@
 
 Status: Draft · Pass 0 · Updated 2026-06-09 · Linear: OPS-384
 
-> What this is: a parked follow-up to the thread-safe-publish fix (OPS-383).
+> What this is: a parked follow-up to the thread-safe-publish fix ([OPS-383](https://linear.app/gridworks/issue/OPS-383)).
 > It records the one trade-off that fix introduced — loss of inline
 > backpressure — and the open question of whether/how to bound the publish
 > queue. **Backlog: no code until a high-throughput path actually needs it.**
 
 ## Problem
 
-OPS-383 made `ActorBase.send` thread-safe by marshaling every publish onto the
+[OPS-383](https://linear.app/gridworks/issue/OPS-383) made `ActorBase.send` thread-safe by marshaling every publish onto the
 consumer thread's ioloop via `add_callback_threadsafe` instead of calling
 `basic_publish` inline on the caller's thread. That removed the **implicit
 backpressure** the inline publish gave: a synchronous `basic_publish` slowed the
@@ -39,7 +39,7 @@ gwbase to handle well — hence worth parking, not forgetting.
   backpressure but can stall a caller; dropping preserves liveness but loses
   messages (acceptable only for best-effort traffic, not acked critical paths).
 - **Bound value.** A sensible queue cap / memory budget, likely per-actor.
-- **Measure.** Re-stand-up the OPS-383 pressure-harness pattern (it was
+- **Measure.** Re-stand-up the [OPS-383](https://linear.app/gridworks/issue/OPS-383) pressure-harness pattern (it was
   disposable) to validate whatever policy lands under load.
 
 **Not in scope:** changing the threading model. The marshaling decision stands;
@@ -49,4 +49,4 @@ this is purely about bounding the queue *behind* it.
 
 - The trade-off is recorded as a caveat in
   [`../executor/transport.md`](../executor/transport.md) §3.8.
-- Originating fix: OPS-383 (thread-safe `ActorBase.send`).
+- Originating fix: [OPS-383](https://linear.app/gridworks/issue/OPS-383) (thread-safe `ActorBase.send`).

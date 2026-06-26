@@ -24,7 +24,7 @@ node + DataChannel (`DerivedSiegSum` lands with the sieg emitters).
 **Why:** Phase-1 prerequisite — the gen must produce axiom-valid `gw.house0.layout` instances; the stub
 now does (`GEN OK`, `sema validate OK`). The `opto` source branch is wired but its source emitter (a
 gw108 opto sensor) is the next chunk; until then an opto config trips axiom 3's missing-source check.
-(OPS-407.)
+([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-23 — house0 heat-call axiom 3 (gwsproto) + source names to hydronic (`91db0a90`)
 
@@ -41,7 +41,7 @@ old-`layout_gen` call-sites) — de-duped in the names sweep.
 source is a per-zone hardware choice (power ⇒ eGauge whitewire, opto ⇒ gw108). gw108 opto sensing is
 cross-family (house0/nolan/sim going forward), so the source names belong on the shared hydronic zone,
 revising the executor's earlier "families add their own raw-input names" split. Pairs with the sema
-axiom-3 rewrite (sema changelog). (OPS-407.)
+axiom-3 rewrite (sema changelog). ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-23 — house0_sema_gen uses correct SpaceheatUnit (`a3f187eb`)
 
@@ -54,7 +54,7 @@ the ConfigList serializes), while DerivedChannel `OutputUnit` keeps the gw1 `Uni
 which crashed the gen on `Unit.W` before it emitted anything; the channel configs need the old
 `spaceheat.unit` values for now, so they bind to `SpaceheatUnit`. The gen now runs end-to-end and builds a
 `House0Layout` — surfacing the next real gap (it does not emit per-zone `whitewire-pwr`, which the new
-axiom 3 catches). (OPS-407.)
+axiom 3 catches). ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-23 — house0 layout axioms in gwsproto + odu-only fixture (`1ab30c6f`)
 
@@ -71,7 +71,7 @@ runtime does, and the fixture is the valid base we mutate to author each axiom's
 via the `dc_to_sema(House0Dc.load(...))` path (the in-flight `house0_sema_gen` is broken on a stale
 `Unit.W`); the two "minor modifications" the bare stub needed to pass the existing axioms were a
 `zone1-main-whitewire-pwr` channel (axiom 3) and a `primary-flow` DataChannel (axiom 4). Validates
-`OK` against the sema runtime; all five axioms verified firing on mutated payloads. (OPS-407.)
+`OK` against the sema runtime; all five axioms verified firing on mutated payloads. ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-22 — pytest self-contained via pythonpath (`98aa12f5`)
 
@@ -84,7 +84,7 @@ change): the gw108's I²C peripherals share one bus (`/dev/i2c-1`), and the ther
 only collected when `gw_spaceheat` was on `sys.path` — previously supplied by the `gw` shell alias's
 `PYTHONPATH`, which broke after the Coding→GridWorks checkout move. With this, `pytest` collects from the
 repo root with no external `PYTHONPATH` (117 tests collected with `PYTHONPATH` unset). The gw108 comments
-were the open hardware questions, now confirmed. (OPS-407.)
+were the open hardware questions, now confirmed. ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-22 — Batch 3 i2c: the gw1.scada.device.type.gt board (`e0325686`)
 
@@ -103,7 +103,7 @@ new names are exported from the package `__init__`. `scada_gw108.py` rebuilt aga
 covers the full hardware-layout vocabulary. The serialized gw108 is the schema's example, confirmed
 against the sema runtime (`sema validate` → OK) and its `BusMembership` rejection. Two gw108 hardware
 values had no prior field and are flagged in-code for Jessica (single-bus assumption;
-`AdcReferenceVolts=3.3`). (OPS-407.)
+`AdcReferenceVolts=3.3`). ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-22 — Batch 2 i2c (`75da8146`)
 
@@ -121,7 +121,7 @@ keeps device/bus names wire-conformant rather than free `str`; axioms-as-methods
 (see `GridWorks_CLAUDE.md`) — value-range constraints belong in a numbered `check_axiom_n` that mirrors
 the sema axiom, not buried in a `Literal`, so the gwsproto producer and the sema runtime enforce the
 same contract. Each type's emitted payload was confirmed against the sema runtime (`sema validate`)
-before its example was added schema-side. (OPS-407.)
+before its example was added schema-side. ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-22 — alphabetizing the gwsproto inits (`7201e5a4`)
 
@@ -132,7 +132,7 @@ reordered an importer ahead of its dependency, triggering a partially-initialize
 import.
 
 **Why:** import hygiene, and it enforces the rule that a `named_types` module must never import from
-the package `gwsproto.named_types` (always from the specific sibling module). (OPS-407.)
+the package `gwsproto.named_types` (always from the specific sibling module). ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-22 — batch 1 i2c sema words (`210ed585`)
 
@@ -150,7 +150,7 @@ package-self-import is a latent circular-import trap.
 **Why:** sema is the source of truth and these hand-written gwsproto types must match it; each was
 verified by building a sample and decoding it through the sema runtime (`sema validate`), and the
 validated sample became the schema's example. The composed/address shape mirrors sema's
-`$ref`-composition. (OPS-407.)
+`$ref`-composition. ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 **What:** Three things. (1) Moved the shared component base out of `named_types/`
 into `gwsproto/type_helpers/component_base.py` and fixed its long-standing
@@ -170,7 +170,7 @@ data-class wrapper). 29 files.
 `type_helpers`, not the `named_types` sema-word namespace, and each component
 owns its own axioms — the gwsproto half of honoring the flat-sema law (paying
 down the "gwsproto inheritance is a flaw, left for the proactor port" interim
-note). The matching sema-side axioms land separately (sema `2823a2b`). (OPS-407.)
+note). The matching sema-side axioms land separately (sema `2823a2b`). ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-17 — name shuffle (`2ca8f730`)
 
@@ -187,7 +187,7 @@ net −210 lines.
 **Why:** the generated sema-native symbols should read by their bare domain names,
 and the enum docstrings duplicated the schema_url already on each class — a sema
 type's docstring is the `Sema:` URL and nothing else. Pure rename/cleanup; no
-wire-format or schema change. (OPS-407.)
+wire-format or schema change. ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-16 — renaming (`beb964e8`)
 
@@ -230,7 +230,7 @@ only the krida relay nodes + House0 instrumentation (`hubitat`, `analog-temp`, `
 buffer, oat. `House0ZoneChannelNames` likewise keeps only `whitewire_pwr`/`stat_temp`. The generator
 now references `CoreNodeNames`/`HydronicSpaceheatNodeNames` (and the channel equivalents) directly for
 the shared names, and the `House0*` classes only for House0-specific ones. Verified: both gen configs
-(house0 + oak) stay `GEN OK`, all fleet layouts still load, maple round-trip green. (OPS-407.)
+(house0 + oak) stay `GEN OK`, all fleet layouts still load, maple round-trip green. ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-16 — house0_sema_gen relay bank + uuid-preserving new-convention naming (`cad3962c`)
 
@@ -252,7 +252,7 @@ SpaceheatName); and added the zone relay-state channel names to `House0ZoneChann
 now while keeping existing production-layout UUIDs. The relay bank is the largest builder; landing it
 proves the new-convention + uuid-preservation approach end to end (verified: the gen's `vdc-relay`
 carries the fixture's `vdc-relay1` UUID, zero content diff on relay nodes/channels). Remaining gen
-builders (web-server, hubitat+poller, sim tanks, dfr, the 8 derived channels) follow. (OPS-407.)
+builders (web-server, hubitat+poller, sim tanks, dfr, the 8 derived channels) follow. ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-16 — prep for house0_sema_gen (`7697db49`)
 
@@ -272,7 +272,7 @@ layout-axiom counterexample tests (only it can emit a layout that *violates* a `
 axiom, since the dc loader's Python guards raise before the sema codec runs) and the parallel the
 `sema_gen == dc_to_sema(load(...))` equivalence is checked against. The diff harness is the EDD driver:
 generate → observe the gap → close it. The names fixes are the underscore-format bugs the design
-predicted this pass would surface. (OPS-407.)
+predicted this pass would surface. ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-16 — mark required-node layout properties as design-brainstorm, not used yet (`a82e714c`)
 
@@ -283,7 +283,7 @@ no `hp_idu`, yet is still House0).
 
 **Why:** these two properties are a first-guess spec of what the five production homes need to run, to
 be reworked into real per-layout sema axioms in hardware-layout-pass-2 (after `H0N` is dropped). The
-docstrings stop a reader mistaking them for live validation. (OPS-407.)
+docstrings stop a reader mistaking them for live validation. ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-15 — bring back thoughts on scada device type gt (`d4608cfd`)
 
@@ -301,7 +301,7 @@ ADC (`0x49`, 5.65 kΩ pullup), and the zones DAC (`0x60`, MCP4728).
 **Why:** captures how the gw108 hardware board is actually wired and how the Nolan relay structure
 should be fleshed out — the device-type record the hardware-layout pass-one work points at as the
 lens for the Nolan layout refactor. Brought back as reference for that build-out; not yet wired into
-a layout. (OPS-407.)
+a layout. ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-15 — patch layout roundtrip script (`e48393be`)
 
@@ -338,7 +338,7 @@ lagging gwta — it lacked `SecondsX10`, so the one trigger-only channel had no 
 enums makes the unit expressible and lets the type match gwta's contract exactly (required fields + the
 unit↔quantity projection axiom), closing the last ⚠️ in the hardware-layout pass-one type checklist.
 Scada suite green (114 passed, 3 skipped; the lone `test_async_power_update` failure is a pre-existing
-timing flake, passes in isolation). (OPS-407.)
+timing flake, passes in isolation). ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-15 — rip out all cac references; update components (`9e258d01`)
 
@@ -362,7 +362,7 @@ no gwta type matches. Removing it makes `dc_to_sema` trivial (the round-trip blo
 gwsproto to the gwta `gw.house0.layout` wire shape. Scada suite green (114 passed, 3 skipped),
 dc→sema→dc bijection lossless, all six gens load. One open divergence: gwta `derived.channel.gt` v002
 makes `OutputUnit`/`OutputQuantity` required, gwsproto keeps them Optional for trigger-only channels —
-flagged in the hardware-layout pass-one checklist for a decision. (OPS-407.)
+flagged in the hardware-layout pass-one checklist for a decision. ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-15 — Support maple sieg-loop config: sum + integrate-relay-motion derived-channel strategies (`fe4e1794`)
 
@@ -378,7 +378,7 @@ spaces) and `EmissionMethod` was missing; now `"integrate-relay-motion"` + `OnTr
 were latent breaks the maple config-3 build-out surfaced. With them, maple's dc gen loads, the full
 actor stack instantiates, and `dc_to_sema` produces a clean sema layout (`PrimaryFlowSource=
 DerivedSiegSum`, the `sum` `primary-flow` channel). Scada suite green (114). (hardware-layout
-pass-one, OPS-407.)
+pass-one, [OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-15 — add hydronic to layout in layout_gen (`d31b2918`)
 
@@ -393,7 +393,7 @@ The builders keep reading the flat `misc` keys during generation (e.g. `add_hous
 **Why:** the generated/deployed layout now carries the same typed `Hydronic` structure the dc + sema
 use, so `gen → dc.load → dc_to_sema → gwta` runs on the typed shape end-to-end. Verified: gen produces
 a nested layout, the dc reads `self.hydronic`, `dc_to_sema` has no gaps; committed flat fixtures still
-load via the dc dual-read; scada suite green (114). (hardware-layout pass-one, OPS-407.)
+load via the dc dual-read; scada suite green (114). (hardware-layout pass-one, [OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-15 — House0 dataclass: carry typed gw.house0.hydronic; bijection writes nested Hydronic; add sieg_send name (`1efa487c`)
 
@@ -412,7 +412,7 @@ topology from the typed `Hydronic` too. The dc→sema map (`house0_bijection.dc_
 **Why:** the dc structure now matches the sema layout (the hydronic type lives on the dataclass), so
 the dc→sema bridge — the validation reference for the forthcoming parallel sema gen — is clean and
 the bijection round-trip holds. `dc → sema → dc` lossless, scada ↔ gwta round-trip green, scada suite
-green (114). (hardware-layout pass-one, OPS-407.)
+green (114). (hardware-layout pass-one, [OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-15 — gwsproto: port gw1.hvac.zone + gw.house0.hydronic + primary-flow-source enum; type House0Layout.Hydronic (`964f32b8`)
 
@@ -428,7 +428,7 @@ hand-port step of the sema→gwta→gwsproto loop) instead of passing Hydronic t
 dict. Full typed Hydronic decodes + re-encodes PascalCase, the axiom fires, the house0 + simple.sim
 round-trips stay green, scada suite green (114). Nolan's Hydronic stays freeform in both gwta and
 gwsproto (unchanged) — it adopts `gw1.hvac.zone` when its hydronic is promoted. (hardware-layout
-pass-one, OPS-407.)
+pass-one, [OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-15 — derived_generator: add the `sum` derived-channel strategy (`9fb6d584`)
 
@@ -442,7 +442,7 @@ and waiting, emitting nothing, until every input has been seen. Generic (no per-
 strategy half; the per-house *wiring* (declaring the derived channel in the gen) is separate and
 currently blocked on a domain question (no house's gen is in the derived-sum config yet — see the
 design). `test_derived` green; scada suite green (`test_power_meter::test_async_power_update` is a
-pre-existing async-timing flake, unrelated). (hardware-layout pass-one, OPS-407.)
+pre-existing async-timing flake, unrelated). (hardware-layout pass-one, [OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 ## 2026-06-15 — Serialize layout poller by_alias (PascalCase) in bijection + round-trip adapters (`4c0d497b`)
 
@@ -458,7 +458,7 @@ are non-PascalCase and were what fed the bad `gw.house0.layout` sema example (si
 deployed-layout writer (`LayoutDb.dict()`) already uses `by_alias=True`, so deployed fixtures +
 tlayouts outputs were already PascalCase (no regen needed); this aligns the bijection/round-trip
 adapters. Bijection harness green (GNode round-trip identical, poller now PascalCase); scada suite
-green (114 passed); house0 + simple.sim round-trips green. (hardware-layout pass-one, OPS-407.)
+green (114 passed); house0 + simple.sim round-trips green. (hardware-layout pass-one, [OPS-407](https://linear.app/gridworks/issue/OPS-407).)
 
 **What (calibration v001):** Aligned gwsproto with the sema v001 calibration:
 `LinearOneDimensionalCalibration`, `TankTempCalibration`, `TankTempCalibrationMap` → v001 with
@@ -551,7 +551,7 @@ literals to the single current runtime version (`spaceheat.node.gt` 301→302, i
 **Why:** the in-suite `layout_gen`-green for both real layouts is the sub-gate of the
 hardware-layout pass-one EDD bar (the real verification is the gwta round-trip). Suite now
 114 passed / 3 skipped. The sim tank module's purpose is to exercise the `api_tank_module.py`
-actor in unit tests. OPS-407.
+actor in unit tests. [OPS-407](https://linear.app/gridworks/issue/OPS-407).
 
 ## 2026-06-15 — gwsproto: add g.node.gt + its enums; GwNolanLayout scaffold (`a0210a00`)
 
@@ -569,7 +569,7 @@ sema axiom — the Near5 property format is retired.
 end-to-end: gwsproto `GNodeGt` validates the snapshot's `g.node.gt` sample (axioms pass) → re-emits
 → `gwta.sema` decodes it back. Imports + collection clean (117 tests). Next session: the
 `gw.house0.layout` + `gw1.simple.sim.layout` sema types, then copy all 3 layout runtimes into
-gwsproto. OPS-407.
+gwsproto. [OPS-407](https://linear.app/gridworks/issue/OPS-407).
 
 ## 2026-06-14 — gwsproto: align all 27 types to the sema snapshot (`62cf522d`)
 
@@ -586,7 +586,7 @@ sema objects. All five exported from `named_types/__init__`.
 **Why:** so scada can emit every snapshot type and gridworks-terminalasset's `gwta.sema` codec
 decodes it. Verified end-to-end: each type built in gwsproto → serialized → decoded through
 `gwta.sema` = **27/27**. Imports + collection clean (117 tests). The remaining suite reds are
-the pre-existing old-shape layout fixtures (separate gate). OPS-407.
+the pre-existing old-shape layout fixtures (separate gate). [OPS-407](https://linear.app/gridworks/issue/OPS-407).
 
 ## 2026-06-14 — gwsproto: Hubitat components declare Version 000 (`609e098f`)
 
@@ -619,7 +619,7 @@ migration cleanly first makes the eventual sema-generated upgrade graceful. The 
 unblocks house0 layout generation; `names/simple_sim/` seeds the third layout family. Imports
 green, 117 tests collect. The umbrella `tlayouts/gen_*.py` hand-scripts still import
 `MakeModel` and will break until folded into the new builders (expected — they are being
-retired). OPS-407.
+retired). [OPS-407](https://linear.app/gridworks/issue/OPS-407).
 
 **What:** Docstrings only (no functional change) on `HubitatGt` and `HubitatComponentGt`:
 record that the MakerAPI URL helpers (`url_config` / `maker_api_url_config` / `refresh_url` …)
@@ -661,12 +661,12 @@ fall back to an Unknown driver — an unrecognized device (or missing i2c/adafru
 raises `NotImplementedError`. `fixture_layouts.py` no longer adds simulated tanks to the
 house0/nolan fixtures; dropped the obsolete (already-skipped) `test_tank_device_capture_period`.
 
-**Why:** OPS-407 (hardware-layout-pass-one). The scada should loudly refuse unknown hardware
+**Why:** [OPS-407](https://linear.app/gridworks/issue/OPS-407) (hardware-layout-pass-one). The scada should loudly refuse unknown hardware
 rather than run silently against it. The sim multi-temp tank (`GRIDWORKS__SIMMULTITEMP` /
 `SimPicoTankModuleComponentGt`) is superseded by the all-purpose `GridworksSimSensor`
 (configured from its Component `ConfigList`), so the old sim-tank layout-gen goes — matching
 the `gw1.device.type` enum dropping `UnknownDeviceType` + `GridworksSimMultiTemp`. Fixtures
-are temporarily tankless until `GridworksSimSensor` is wired (later in OPS-407). `pytest`
+are temporarily tankless until `GridworksSimSensor` is wired (later in [OPS-407](https://linear.app/gridworks/issue/OPS-407)). `pytest`
 green (114 passed).
 
 ## 2026-06-13 — docstring warning about aging stuff (`6989180f`)
@@ -733,7 +733,7 @@ the bridge plan (1-minute timesteps feed ping/ack; existing scada/LTN
 stay wall-clock).
 
 **Why:** the sim-time spoke of the simulated-test-environment design
-(OPS-40, hub + spoke Accepted · Pass 1 2026-06-11) — the simplest
+([OPS-40](https://linear.app/gridworks/issue/OPS-40), hub + spoke Accepted · Pass 1 2026-06-11) — the simplest
 scada-side hook for the bridge, per the decision to keep scada sim-time
 machinery minimal until the rebuild.
 
@@ -801,7 +801,7 @@ layout→registry coupling that bit during spruce bring-up.
 ## 2026-06-10 — OFI comment (`8a0e1689`)
 
 **What:** Add an OFI comment in `gw_spaceheat/actors/sieg_loop.py`
-`moving_to_hp_off_valve_position` pointing at OPS-400
+`moving_to_hp_off_valve_position` pointing at [OPS-400](https://linear.app/gridworks/issue/OPS-400)
 `sieg-semantic-harmonization`. No behavior change.
 
 **Why:** Flags in-code that, after `e6ba4f51`, control state `HpOff` no longer
@@ -826,8 +826,8 @@ post-incident; the first action is putting the loop in full send. SiegLoop
 learns posture from the **static startup config** `settings.system_mode` (env
 `SCADA_SYSTEM_MODE`), so the new posture takes effect on the restart that
 switches a SCADA to Standby (which also rebuilds the LocalControl tree). Design
-`sieg-summer-posture`, OPS-395. Known OFI (`sieg-semantic-harmonization`,
-OPS-400): control state `HpOff` no longer uniquely determines valve posture and
+`sieg-summer-posture`, [OPS-395](https://linear.app/gridworks/issue/OPS-395). Known OFI (`sieg-semantic-harmonization`,
+[OPS-400](https://linear.app/gridworks/issue/OPS-400)): control state `HpOff` no longer uniquely determines valve posture and
 telemetry can't disambiguate (valve-state `SingleMachineState` still TODO); and
 default-when-off is per-heat-pump (Maple Mitsubishi vs Beech LG), not yet
 parameterized.
@@ -848,7 +848,7 @@ routing key with no valid GridWorks envelope, so a gwbase consumer
 `gw.<src>.to.<peer>.<type>` key that gwbase parses (tolerant short-form parse,
 gridworks-base design `must-accept-current-ltn-messages`). `"mm"` is deliberately
 the gwbase `RoutingClass.MarketMaker` token, so the key already matches the
-new/future rabbit structure. Design `ltn-sends-gw-wrapped`, OPS-387; depends on
+new/future rabbit structure. Design `ltn-sends-gw-wrapped`, [OPS-387](https://linear.app/gridworks/issue/OPS-387); depends on
 the gridworks-base parser change publishing.
 
 ## 2026-05-14 — Add back a much-pruned docs folder (`c05a7625`, merged `6734aa0f` / PR #562)
