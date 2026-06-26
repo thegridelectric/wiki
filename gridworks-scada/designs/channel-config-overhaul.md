@@ -1,6 +1,6 @@
 # Channel-config overhaul (thin board components)
 
-Status: Draft · Pass 0 · Updated 2026-06-25 · Linear: OPS-427
+Status: Accepted · Pass 1 · Updated 2026-06-25 · Linear: OPS-427
 
 **EDD: no** build-out/refactor; verified by the fleet layout round-trip (`sema_gen` + the
 dc round-trip green for every home), not a standalone experiment.
@@ -95,7 +95,6 @@ are load-bearing here, so read them before executing:
 
 ## Open
 
-- **Confirm the `transactive-power` decision** (above) before dropping `InPowerMetering` in item 3 —
-  it changes where "what is transactive" lives (per-node flags → one layout-declared channel).
+
 - **Driver check for `Exponent`** — item 2 drops `channel.config.Exponent`; verify no driver relies
   on it to scale a raw device reading before removing it (relocate to the channel/telemetry if so).
