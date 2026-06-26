@@ -1,6 +1,6 @@
 # Channel-config overhaul (thin board components)
 
-Status: Accepted · Pass 1 · Updated 2026-06-25 · Linear: OPS-427
+Status: Accepted · Pass 1 · Updated 2026-06-26 · Linear: OPS-427
 
 **EDD: no** build-out/refactor; verified by the fleet layout round-trip (`sema_gen` + the
 dc round-trip green for every home), not a standalone experiment.
@@ -11,6 +11,34 @@ dc round-trip green for every home), not a standalone experiment.
 > comes from its `TelemetryName`; a board-resident component is a *thin pointer* to its board; a
 > channel's *routing* comes from the consuming `DerivedChannel.InputChannelNames`. Stop scattering
 > identity/routing as flags on components.
+
+## Status (2026-06-26) — sema half shipped, scada half remaining
+
+The **sema side of items 2 + 3 is done and green** (240 tests, deterministic regen) on `jm/sim-vocab`.
+A correction to the plan below: items 2/3 were *not* all "cheap in-place edits". The published types
+needed real version bumps — `channel.config/000` and `relay.actor.config/003` were on `origin/dev`, and
+`data.channel.gt/002` likewise. What shipped:
+
+- **Item 2 (drop `Unit`+`Exponent`) across SIX config-family types**, not the five originally enumerated:
+  `channel.config/001`, `ads.channel.config/001`, `i2c.thermistor.channel.config/002`,
+  `electric.meter.channel.config/001`, `dfr.config/001`, and **`relay.actor.config/004`** — the sixth was
+  missed by the original scope because it isn't named `*.channel.config` and doesn't `$ref` channel.config
+  (it's a flat ChannelConfigBase sibling). `egauge.register.config` and `maker.api.attribute.gt` are
+  deliberately out of scope (the latter's `Exponent` is the one *functional* scaling exponent — it does
+  real Hubitat conversion work).
+- **Item 3 (drop `InPowerMetering` + axiom)**: `spaceheat.node.gt/303` and `data.channel.gt/003`.
+  `NameplatePowerW` stays on the node.
+- All referrers repointed in place (unpushed): 15 component `ConfigList` `$ref`s, the 4 relay components,
+  `layout.lite/015`, `new.command.tree/002`, `scada.control.capabilities/001`, and `gw.house0.layout/000`
+  (embedded-example rewrite). `gw.nolan.layout/000` left as-is.
+
+**Remaining (scada repo, the gwsproto side):** bump the gwsproto types inheriting `ChannelConfigBase`
+(`ChannelConfig`, `AdsChannelConfig`, `I2cThermistorChannelConfig`, `ElectricMeterChannelConfig`,
+`DfrConfig`, `RelayActorConfig`) to drop `Unit`+`Exponent`; bump `SpaceheatNodeGt` + `DataChannelGt`
+to drop `InPowerMetering` (with `check_axiom` mirrors); repoint `ScadaControlCapabilities`. Remove the
+two `config.Unit` validation readers (`gpio_sensor.py:49-50`, `i2c_thermistor_reader_component_gt.py:58`)
+and the `SendToDerived`/`InPowerMetering` consumers, computing metering routing from
+`InputChannelNames` (gated on the transactive-power decision). Then the fleet round-trip Gate.
 
 ## Why now
 
@@ -95,6 +123,12 @@ are load-bearing here, so read them before executing:
 
 ## Open
 
-
-- **Driver check for `Exponent`** — item 2 drops `channel.config.Exponent`; verify no driver relies
-  on it to scale a raw device reading before removing it (relocate to the channel/telemetry if so).
+- **Driver check for `Exponent` — RESOLVED clean.** A repo-wide survey of `gridworks-scada` found no
+  driver reads a channel-config `Exponent` to scale a raw reading (the two exponent-scaling sites are
+  `maker.api.attribute.gt` for Hubitat and the nested `egauge.register.config`, neither a channel
+  config). Safe to drop. The redundancy of `config.Unit` was likewise confirmed: `ChannelRegistry.unit()`
+  already resolves from `TelemetryName`/`OutputUnit`, never from `config.Unit`; its only two readers are
+  validation guards that vanish with the field.
+- **Item 4 (transactive audit-declaration word) — deferred** to a later pass, still gated on the
+  transactive-power decision. This pass only *drops* `InPowerMetering`; the first-class replacement is
+  not yet authored.

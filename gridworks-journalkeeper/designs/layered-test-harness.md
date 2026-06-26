@@ -47,6 +47,11 @@ the samples to the exchange/routing-key the consumer expects (mimicking
 expected rows land. Verifies the live-transport plumbing (the codec itself is
 already covered by Layer 0).
 
+### Layer 3 - small nit
+
+(from Joe)
+If JournalKeeper can't process a message, we should get a (non-critical) notification about it so we can fix it. Need to figure out the best way to do this. Maybe send a glitch message?
+
 ## Shared core
 Both transports call `SemaCodec` + `SemaMessagePersistor`. Test that core once
 (Layer 0 + the persist assertions in Layer 1); Layers 1–2 then only verify their

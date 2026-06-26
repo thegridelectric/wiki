@@ -12,6 +12,37 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-06-26 — Channel-config overhaul: drop Unit/Exponent + InPowerMetering
+
+**What:** Sema half of the channel-config-overhaul ([OPS-427](https://linear.app/gridworks/issue/OPS-427)),
+items 2 + 3. New versions dropping the redundant `Unit` + `Exponent` from every
+ChannelConfigBase-family config: `channel.config/001`, `ads.channel.config/001`,
+`i2c.thermistor.channel.config/002`, `electric.meter.channel.config/001`, `dfr.config/001`, and
+`relay.actor.config/004` (the sixth config-family type — a flat sibling that the channel.config
+reverse-dep closure missed). New versions dropping `InPowerMetering` + its axiom:
+`spaceheat.node.gt/303` (drops `InPowerMeteringRequiresNameplate`, keeps `NameplatePowerW`) and
+`data.channel.gt/003` (drops `PowerMeteringConstraint`). All referrers repointed in place (unpushed,
+no version bump): the 15 component `ConfigList` `$ref`s, the 4 relay components, `layout.lite/015`,
+`new.command.tree/002`, `scada.control.capabilities/001`, and `gw.house0.layout/000` (embedded-example
+rewrite of 83 nodes / 76 channels / 6 configs / 16 relay configs). `gw.nolan.layout/000` left as-is.
+22 referrer `created` stamps moved forward to satisfy the dependency-timestamp ordering rule. Axiom
+validators ported to the new versions; upgrade templates added (`*_to_*`, each dropping the retired
+keys); runtime regen deterministic; 240 sema tests green. `egauge.register.config` (modbus register
+descriptor) and `maker.api.attribute.gt` (the functional Hubitat scaling exponent) deliberately left
+out of scope.
+
+**Why:** a channel's unit and scaling are carried by its identity — `TelemetryName` (data channel) or
+`OutputUnit` gw1.unit (derived channel) — so the per-config `Unit` (the old `spaceheat.unit` enum) and
+`Exponent` are redundant, and a survey confirmed no driver reads them to scale a reading. `InPowerMetering`
+was a source-side copy of routing the consuming transactive declaration owns; it goes from
+`spaceheat.node.gt` and `data.channel.gt`. Done now while the carrying component versions are still
+unpushed, so the configs are clean version bumps and the components are cheap in-place repoints. Item 4
+(the first-class transactive audit-declaration word that replaces `InPowerMetering`'s role) is deferred to
+a later pass. The gwsproto/scada side (ChannelConfigBase + RelayActorConfig + SpaceheatNodeGt +
+DataChannelGt + ScadaControlCapabilities bumps, removing the two `config.Unit` validation readers, and
+computing metering routing from `InputChannelNames`) follows in the scada repo. ([OPS-427](https://linear.app/gridworks/issue/OPS-427).)
+
 ## 2026-06-23 — house0 layout axiom 3 → ZoneHeatCallChannel (`b716f75`)
 
 **What:** Replaced `gw.house0.layout/000` axiom 3 `ZoneWhitewirePwrChannel` with `ZoneHeatCallChannel`:

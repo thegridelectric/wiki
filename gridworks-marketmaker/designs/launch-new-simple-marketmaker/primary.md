@@ -1,6 +1,6 @@
 # Launch a new simple MarketMaker
 
-Status: Draft · Pass 0 · Updated 2026-06-10
+Status: Draft · Pass 0 · Updated 2026-06-10 · Linear: OPS-431
 
 > What this is: the **hub** of the design to launch a new, simple MarketMaker —
 > the locked decisions, scope, and open questions, as a tight seed for a fresh

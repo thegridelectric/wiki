@@ -24,6 +24,26 @@ cert) — not code review.
   so `properties.user_id` on every publish must match the connection's
   authenticated cert subject — the basis for audit attribution.
 
+## Gateway boundary — a web login is not enough
+
+Certificates onto the prod broker are GridWorks' **single core security mechanism,
+by design.** A web gateway that bridges a browser session onto the broker (admin —
+[OPS-429](https://linear.app/gridworks/issue/OPS-429); customer app-comms —
+[OPS-408](https://linear.app/gridworks/issue/OPS-408)) **SHALL NOT** collapse that
+to the strength of a web session. A login (password / OIDC session) alone is never
+authority to issue a control command:
+
+- the human presents a **phishing-resistant, hardware-bound credential**
+  (WebAuthn/FIDO2 passkey) registered to their FIS Principal — not a password or
+  bearer token;
+- **high-impact commands require a fresh step-up assertion**; a stolen session
+  cannot actuate;
+- the gateway **forwards** that assertion to FIS and holds **no standing
+  authority** to issue commands on a session's behalf — it is a transport bridge,
+  not an authority;
+- authority **scales with impact** (read < low-impact preference < mode change <
+  relay/actuator) — the strongest proof gates the strongest action.
+
 ## The design work — pin these three open dimensions
 
 These are why it was an exploration; turning it into a design means settling them:
