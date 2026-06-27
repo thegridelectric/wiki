@@ -158,6 +158,7 @@ mature than the doc, demote the doc instead. Section stamps live at
 - **gwsproto serialize needs `by_alias=True`** — gwsproto named-types define **snake_case** python fields with `alias_generator=snake_to_camel`, so the PascalCase wire names (the serialized/Sema form) are pydantic **aliases**, not the field names. A plain `model_dump()` emits snake_case; **`model_dump(by_alias=True)` emits the PascalCase wire form.** Decoding tolerates either (`populate_by_name=True`), which hides the asymmetry. So **serialize layouts/components with `by_alias=True`** — the deployed `LayoutDb.dict()` does; the dc→sema bijection (`house0_bijection.py`) and the round-trip return adapter were the gap that leaked snake_case (Hubitat poller keys) into the `gw.house0.layout` sema example. Not every type bites: PascalCase-native types (e.g. `g.node.gt`) have no alias, so `by_alias` is a no-op for them — the bite is on snake-field types (the Hubitat poller, `maker.api.attribute.gt`).
 - **gwsproto sema-type docstrings are the `Sema:` URL and nothing else** — a gwsproto sema type's (or enum's) class docstring MUST be exactly the one-line schema pointer `Sema: <schema_url>` (e.g. `Sema: https://schemas.electricity.works/types/channel-readings/002`) and NOTHING ELSE. No "Values:" enumerations, no "For more information" / global-authority links, no prose — that content duplicates the schema, which is the single source of truth. (The scada `name shuffle` commit stripped these blocks back to the bare `Sema:` line; keep it that way and don't reintroduce them on regen.)
 - **gwsproto sema-type axioms are `check_axiom_n` methods** — a gwsproto sema type SHALL mirror its sema schema's `x-gridworks.axioms` as `@model_validator(mode="after")` methods named `check_axiom_<n>`, numbered to match the sema axiom numbers, each raising `ValueError` with a `"Axiom <n> (<Name>) failed: …"` message on violation. This is **mandatory even for value-range constraints** (a 0/1 bit, a 1/2 NumBytes): type the field with the matching sema **format** (`NonNegativeInt`, `PositiveInt`, …) and add the axiom method — do **NOT** capture the bound with a `Literal[0,1]`/`Literal[1,2]`, which silently drops the axiom. The check belongs in code, mirroring the authority (the sema schema), so the proactor port regenerates it; a missing `check_axiom_n` is the defect this maxim exists to prevent.
+- **No dead code, no assumed defaults** — when a refactor orphans a name, method, or constant, **delete it in the same change**; never leave it "because it's harmless." Unused symbols obscure intent and accrete. And do **not** introduce a default that hides a value the layout/caller must declare (e.g. a default `NameplatePowerW`) — make it **required** and sourced from a `names` constant, so the source has to state it. Clean and clear beats convenient.
 
 ## Experiment-Driven Design (EDD) — the verification bar
 
@@ -218,12 +219,12 @@ protocol** lives in that file below the table.
 
 **Focus shorthand — design lookup.** When the user states a Focus as loose
 words that read like a design name (e.g. "sema snapshot improvement",
-"gridworks-scada relay timing", "linear integration"), resolve it to a design
+"gridworks-scada relay timing", "mtls fis auth"), resolve it to a design
 file before doing anything else. Kebab-case the words and match fuzzily against
 file names. Try **both** of these and take whichever hits:
 
 - **Cross-cutting** — the *whole* phrase as the slug in **`wiki/designs/`**
-  ("linear integration" → `wiki/designs/linear-integration.md`).
+  ("mtls fis auth" → `wiki/designs/mtls-fis-auth.md`).
 - **Per-domain** — if the first word names a `wiki/` domain folder, treat it as
   `<subfolder>` and the *remaining* words as the slug in
   **`wiki/<subfolder>/designs/`** ("sema snapshot improvement" → domain `sema`,
@@ -287,6 +288,17 @@ normal. Before any first edit in a repo, check `git -C <repo> branch
 --show-current`; if it is protected, branch before touching anything.
 
 ## Linear issue tags
+
+**Keep Linear ↔ wiki in sync** — reconcile at session start and after any
+Linear-UI edits: run the bijection sweep + `tools/linear-snapshot.sh` and fix
+drift (routine + cadence in `linear.md` "Keeping in sync"). When you rename,
+rename both sides — the wiki file is the canonical slug.
+
+**Log hours on completion** — when a substantial task or design wraps, add an
+hours note to its Linear issue (total + a brief per-day breakdown) **and** a
+Harvest entry (a churn/scope estimate from the wiki commits, via the `hv`
+workflow). Confirm the hours with the user before posting to Harvest — it's
+billable.
 
 When creating a Linear issue, **first review the existing label set**
 (`list_issue_labels` on the **Ops** team) and reuse a fitting tag; coin a new

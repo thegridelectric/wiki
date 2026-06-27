@@ -13,6 +13,10 @@ The following are intentionally NOT danglers and are skipped:
     hub-and-spoke convention's planned-but-unwritten spokes
   - links inside inline code spans or fenced code blocks (examples/placeholders
     such as `Concern: [[this]]`)
+  - targets git **ignores** (e.g. the per-session `active-claims.md`, the
+    gitignored `knifes-edge-development/` private materials): present in a working
+    tree but absent in a clean checkout like CI, so a missing-but-ignored target
+    is a legitimate runtime/local reference, not a broken link.
 
 Usage:
   check_wiki_links.py [WIKI_ROOT] [--changed f1.md f2.md ...] [--quiet]
@@ -46,6 +50,27 @@ def _is_external(t: str) -> bool:
     )
 
 
+def _gitignored(wiki_root: Path, rel_paths: list[str]) -> set[str]:
+    """Subset of `rel_paths` that git ignores — so they may be absent in a clean
+    checkout (e.g. CI) yet present in a working tree. Empty if git is
+    unavailable, so behavior degrades to plain existence checking."""
+    paths = [p for p in rel_paths if p]
+    if not paths:
+        return set()
+    import subprocess
+
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(wiki_root), "check-ignore", "--stdin"],
+            input="\n".join(paths), capture_output=True, text=True,
+        )
+    except Exception:
+        return set()
+    if r.returncode not in (0, 1):  # 0 = some ignored, 1 = none; anything else = error
+        return set()
+    return {ln.strip() for ln in r.stdout.splitlines() if ln.strip()}
+
+
 def find_danglers(wiki_root: Path, files: list[Path] | None = None):
     """Return a sorted list of (relpath, kind, raw_target) danglers.
     `files` limits the scan to those paths (used by the changed-files hook)."""
@@ -76,7 +101,7 @@ def find_danglers(wiki_root: Path, files: list[Path] | None = None):
             if wiki_root not in dest.parents and dest != wiki_root:
                 continue
             if not dest.exists():
-                danglers.append((rel, "md", m.group(1)))
+                danglers.append((rel, "md", m.group(1), dest.relative_to(wiki_root).as_posix()))
         for m in _WIKILINK.finditer(text):
             if _OPEN_MARKER.match(text, m.end()):
                 continue
@@ -90,7 +115,11 @@ def find_danglers(wiki_root: Path, files: list[Path] | None = None):
             stem = stem[:-3] if stem.endswith(".md") else stem
             if stem in by_stem or target in by_suffix or target.lstrip("./") in by_suffix:
                 continue
-            danglers.append((rel, "wiki", m.group(1)))
+            danglers.append((rel, "wiki", m.group(1), ""))
+    # Missing-but-gitignored targets (active-claims.md, knifes-edge materials, …)
+    # exist locally but not in a clean CI checkout — not real danglers.
+    ignored = _gitignored(wiki_root, [d[3] for d in danglers if d[3]])
+    danglers = [(r, k, raw) for (r, k, raw, dest_rel) in danglers if dest_rel not in ignored]
     return sorted(danglers)
 
 

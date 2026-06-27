@@ -96,7 +96,7 @@ A design-spec lives in **one folder, never moved**:
   one domain (e.g., `wiki/rmqbot/designs/prod-tls-fix.md`).
 - **Cross-cutting / tooling / meta:** `wiki/designs/<slug>.md` — for
   multi-domain refactors or wiki/process tooling
-  (e.g., `wiki/designs/linear-integration.md`).
+  (e.g., `wiki/designs/proactor-makeover.md`).
 
 **Owning-domain rule for cross-repo designs.** A design that touches
 multiple repos lives in the domain that bears the most change (e.g.,

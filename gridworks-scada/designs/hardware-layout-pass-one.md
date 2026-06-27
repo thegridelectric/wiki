@@ -1,6 +1,6 @@
 # Hardware layout — pass one
 
-Status: Accepted · Pass 1 · Updated 2026-06-23 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-06-26 · Linear: OPS-407
 
 **EDD: yes** the verification that matters is the focused layout round-trip, scada-originated from a
 real layout: scada loads a dc layout (e.g. `tests/config/maple.json`) → converts it to the
@@ -559,3 +559,57 @@ board the resolved source of truth at runtime.
   e.g. `DefaultBus`), via the `pascal.case ↔ spaceheat.name` casing map.
 - **Device-type value names** — the exact `gw1.device.type` strings for "ADC on
   gw108" / "I²C relay on gw108" (e.g. `Gw108Adc`, `Gw108I2cRelay`).
+
+## Channel-config overhaul (scada half) — done (2026-06-26)
+
+The channel-config slice ([OPS-427](https://linear.app/gridworks/issue/OPS-427)) landed on
+`gridworks-scada` `jm/delete-cac-id` and `sema` `jm/sim-vocab`. Scada suite green (112), sema green
+(241). The durable shape:
+
+- **`channel.config` carries neither `Unit` nor `Exponent`** — across all six
+  ChannelConfigBase-family types (`channel.config`, `ads.channel.config`,
+  `i2c.thermistor.channel.config`, `electric.meter.channel.config`, `dfr.config`,
+  `relay.actor.config`). A channel's identity is its `TelemetryName` (which already encodes
+  scaling, e.g. `GpmTimes100`); its unit resolves from `TelemetryName`, never from the config.
+  `egauge.register.config` (its `Unit`) and `maker.api.attribute.gt` (its functional `Exponent`)
+  are out of the family and keep both.
+- **The metered transactive set is declared once, not flagged per-node.** `InPowerMetering` is gone
+  from `spaceheat.node.gt` (303) and `data.channel.gt` (003). In its place a single
+  `derived.channel.gt` with **`Strategy="transactive-power"`** names the metered `PowerW` channels
+  in `InputChannelNames`. The **power-meter actor** computes it (not the derived-generator, so
+  `power.watts` latency is unchanged) — it reads the channel's inputs to know what to sum. The
+  strategy is deliberately distinct from `"sum"`: the layout needs exactly one identifiable,
+  nameplate-bound transactive declaration, and a generic sum (which appears elsewhere) would route
+  to the wrong actor. `Strategy` stays an open string for now — a sema enum is deferred until the
+  derived-strategy vocabulary settles, since sema enums coerce unknown values to a default and so
+  would be weaker than the code-level strategy validation.
+- **Layout axiom (the metering boundary).** Exactly one `transactive-power` DerivedChannel; its
+  inputs resolve to existing `PowerW` DataChannels; each input's about-node carries
+  `NameplatePowerW`. Lives in `hardware_layout.check_transactive_metering_consistency` and is
+  mirrored in the sema layout words — `gw.house0.layout` axiom 5 and `gw.nolan.layout` axiom 1
+  (executable validators; the house0 example carries a transactive-power channel). This axiom is
+  where the retired `spaceheat.node.gt` "InPowerMetering implies NameplatePowerW" obligation now
+  lives.
+- **No defaulted nameplates.** The metered set is config-declared (the eGauge gen per channel, the
+  sim gen via `transactive_about_nodes`), and a transactive node MUST state its `NameplatePowerW` —
+  no builder default. `CoreChannelNames.transactive_power` is the channel name.
+- **Removed as dead:** `TelemetryTuple` and its four unused `HardwareLayout` properties, the unused
+  `asset-electric-power` name, the eGauge `NameplatePowerW=10` default.
+
+### Carried forward (not in this slice)
+
+- **Functional relay ShNode names.** The gen still builds relay nodes as `relay{krida-idx}`. The
+  intended shape is functional ShNode names assigned to the PascalCase hardware relays on the board
+  device type (the board-resident model) — a value-changing layout migration, folded into the relay
+  decommission chunk (step 3 above).
+- **Gen/round-trip gate for all homes.** `dc_to_sema` currently fails the `ZoneHeatCallChannel`
+  axiom because the fleet fixtures lack the zone heat-call + whitewire/opto source channels the
+  heat-call work added — fixture staleness on that axis, separate from channel-config.
+- **`SendToDerived` removal** (still on `i2c.thermistor.channel.config`) and the **old
+  `layout_gen/` LayoutDb builders** sweep (under rework on `jm/layout-augmments`).
+- **`channel_stubs()` / `ChannelStub`** in `house_0_names.py` — fully unused, still carrying the
+  retired `in_power_metering`; delete when convenient.
+- **The transactive *audit declaration*** — this slice only drops `InPowerMetering` and adds the
+  `transactive-power` channel. Making the audited quantity fully first-class (inspected-meter
+  binding, energy-from-register vs our integral, the committed/signed reported stream, single-CT
+  preference, directional combination) stays open in `explorations/metering.md`.

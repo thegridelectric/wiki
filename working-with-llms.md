@@ -172,7 +172,7 @@ report.
   "doing" enforced at the Linear layer). Open investigations stay in
   `explorations/`. Shipped designs distill into `executor/`. See
   [`designs-process.md`](designs-process.md) +
-  `designs/linear-integration.md` +
+  [`linear.md`](linear.md) +
   live view at [`DESIGN_INDEX.md`](DESIGN_INDEX.md).
 - Whether "looking for trouble" stays the name.
 - Validate by running one real walk before promoting past Draft.

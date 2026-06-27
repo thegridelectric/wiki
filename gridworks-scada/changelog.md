@@ -12,6 +12,28 @@ Newest at the top.
 
 ---
 
+## 2026-06-26 — Channel-config overhaul: drop Unit/Exponent/InPowerMetering, transactive-power DerivedChannel + layout axiom (`6e7dd24c`)
+
+**What:** Dropped `Unit`+`Exponent` from the six `ChannelConfigBase`-family types (bumped
+`channel.config`/`ads.channel.config`/`electric.meter.channel.config`/`dfr.config` →001,
+`i2c.thermistor.channel.config` →002, `relay.actor.config` →004) and `InPowerMetering` from
+`spaceheat.node.gt` (→303) + `data.channel.gt` (→003). Replaced the per-node/per-channel
+`InPowerMetering` flag with a single `transactive-power` `derived.channel.gt`: the power-meter actor
+reads its `InputChannelNames` to know the metered set (`power_meter.py`), and a new layout axiom
+(`hardware_layout.check_transactive_metering_consistency`) requires exactly one such channel whose
+inputs resolve to `PowerW` DataChannels with nameplate-bearing about-nodes. The sim/eGauge gen
+declares the metered set (no defaulted nameplate); `CoreChannelNames.transactive_power` added; gen
+channel/node names routed through `names/` (new `FlowNodeNames`/`FlowChannelNames`). Deleted dead
+`TelemetryTuple` + four unused `HardwareLayout` properties and the `asset-electric-power` name.
+Migrated the fleet fixtures and the named-type tests.
+
+**Why:** The components carrying these fields had new, still-unpublished versions, so fixing the
+shape was an in-place edit rather than a future migration. Identity belongs to `TelemetryName` (it
+already encodes scaling) and routing to the consuming DerivedChannel — stop scattering them as flags
+on every config/node. Scada suite green (112), sema green (241). Relay functional-name transition and
+the heat-call fixture/gate work are carried forward in the hardware-layout-pass-one design.
+([OPS-427](https://linear.app/gridworks/issue/OPS-427).)
+
 ## 2026-06-23 — house0_sema_gen: heat-call + source axis + primary-flow emission (`1ad69983`)
 
 **What:** Taught the sema-native gen to satisfy axioms 3 + 4. (1) Per-zone `heat-call` DerivedChannel

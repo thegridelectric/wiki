@@ -68,7 +68,7 @@ Within each `wiki/<domain>/`:
 Cross-cutting / tooling design-specs live at the wiki root in
 [`designs/`](designs/), alongside meta convention docs like
 [`designs-process.md`](designs-process.md) and
-`designs/linear-integration.md`.
+[`linear.md`](linear.md).
 
 ## Domains
 
@@ -94,7 +94,7 @@ design area.
 
 - [`DESIGN_INDEX.md`](DESIGN_INDEX.md) — L0 hub of active work: current `designs/` entries across all domains, open explorations, conventions. Read this every session.
 - [`designs-process.md`](designs-process.md) — the `designs/` lifecycle (status stamps, Pass discipline, fractal expansion, when to ship/distill to `executor/`).
-- `designs/linear-integration.md` — Linear ↔ wiki interface (epic + sub-issue templates, port/pull recipes, status-flow).
+- [`linear.md`](linear.md) — how GridWorks uses Linear: the split, labels, the design↔issue bijection, Projects, cap-8.
 - [`working-with-llms.md`](working-with-llms.md) — how we work with Claude and the wiki conventions: how Claude operates, source precedence, the maturity-stamp dial, signaling vocabulary, the research→executor loop, memory-vs-wiki. The *why* behind the conventions.
 - [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) — the canonical `CLAUDE.md` for the umbrella directory: the rules Claude follows, incl. the wiki authoring conventions ("Wiki essentials") and source precedence (see Setup).
 - [`glossary.md`](glossary.md) — vocabulary + legacy→current naming (`atn`→LTN, `ASL`→Sema); defers to Sema for formal types.

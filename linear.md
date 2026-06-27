@@ -5,9 +5,7 @@ Status: Accepted · Pass 2 · Updated 2026-06-22
 > What this is: the reference for how the team uses **Linear** for work
 > tracking — the split with the wiki, the workspace shape, labels, the cap-8
 > WIP rule, and the design↔issue bijection. Linear is wired into Claude
-> sessions via the official remote MCP server. Setup/cleanup tasks that are
-> still *in flight* live in the design checklist
-> `designs/linear-integration.md`, not here.
+> sessions via the official remote MCP server.
 
 ## The split: Linear vs. the wiki
 
@@ -202,6 +200,24 @@ assignee's cap-8 once its state flips to started.
 file. The issue's `Design:` link then points at a deleted path — fine; git
 history is the deep record.
 
+## Projects
+
+Use a Linear **Project** only for a sustained effort of **≥ 2–3 issues sharing a
+goal** (give it a lead + target date, and **milestones** for any dependency
+order); a single design — even a big rebuild — stays a labeled issue until it
+*decomposes*. Projects group by **goal**, labels by **kind** — don't proliferate.
+The live set is the authority (Linear, not the wiki). An issue **in a Project** is
+grouped by it — don't *also* tag it with a cross-cutting label like `2026-summer`;
+reserve that for **non-project** summer work.
+
+## Triage hygiene
+
+Every open issue assigned to you is either **closed** or carries at least one of
+{`design`, `parked`, `nit`} — so nothing sits silently untriaged.
+**Hardware/electronics and ops-engineering work is its own category** (neither a
+wiki design, parked, nor a nit): a clear component tag (`electronics`, `alerts`, …)
+is its triage. `tools/linear-snapshot.sh` surfaces violations.
+
 ## How Claude reads + writes Linear
 
 - **Official remote MCP server** `https://mcp.linear.app/mcp` (HTTP), added at
@@ -250,3 +266,23 @@ which needs a secret token in the environment named `LINEAR_API_KEY`. It is
 **optional**: without it the hooks still run every wiki-side check and just fall
 back to a reminder for the Linear-side. To enable the live checks, create a
 personal API key in Linear settings and set it in the environment.
+
+## Keeping Linear ↔ wiki in sync
+
+The bijection mostly maintains itself: `precheck-design-bijection.sh` runs a sweep
+every prompt (with `LINEAR_API_KEY`) plus a write-time slug guard, and a hook
+blocks a bad `design` create. **Drift comes from the Linear UI** — renaming an
+issue (breaks the title→slug projection), changing labels/states, cancelling —
+which the hooks can't see.
+
+**The reconcile routine** — ask a session: *"reconcile Linear and the wiki — run
+the bijection check + the snapshot, bring up any drift."* It runs the bijection
+sweep + `tools/linear-snapshot.sh`, then fixes drift: wiki slug with no issue;
+`design` issue with no file (**Done/Cancelled is expected**; an *open* one is a
+gap); an Accepted design missing its id; untriaged issues; `DESIGN_INDEX` ↔
+filesystem drift.
+
+**Cadence:** at **session start** (cheap — the hook already does most), **right
+after Linear-UI edits** (the real drift source), and a **fuller pass ~weekly / at
+the team meeting**. When you rename, rename **both sides** — the wiki file is the
+canonical slug, so a UI-only rename breaks the link.

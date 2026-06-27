@@ -147,7 +147,7 @@ echo "✓ wrote $((count - 1)) open Ops issues → $OUT"
 # nit), or the contradictory combo `design` + (`parked`|`nit`) — `design` is
 # mutually exclusive with both.
 echo
-echo "── personal triage invariant: every OPEN issue of mine carries one of {design, parked, nit} ──"
+echo "── personal triage invariant: every OPEN issue of mine carries one of {design, parked, nit} (or a hardware/ops tag) ──"
 inv_q='{"query":"{ issues(filter:{assignee:{isMe:{eq:true}}, state:{type:{nin:[\"completed\",\"canceled\",\"duplicate\"]}}}, first:250){ pageInfo{hasNextPage} nodes{ identifier title state{name} labels{nodes{name}} } } }"}'
 inv_resp="$(curl -s --max-time 20 -X POST https://api.linear.app/graphql \
               -H "Authorization: $LINEAR_API_KEY" \
@@ -162,8 +162,9 @@ else
     def has($l): any(.labels.nodes[]?.name; . == $l);
     .data.issues.nodes
     | map({ id: .identifier, st: .state.name, title: .title,
-            d: has("design"), p: has("parked"), n: has("nit") })
-    | map(. + { none: ((.d or .p or .n) | not),
+            d: has("design"), p: has("parked"), n: has("nit"),
+            hw: (has("electronics") or has("hardware") or has("fcm") or has("ops-automate") or has("alerts")) })
+    | map(. + { none: ((.d or .p or .n or .hw) | not),
                 contra: (.d and (.p or .n)) })
     | ([.[] | select(.none)]) as $none
     | ([.[] | select(.contra)]) as $contra

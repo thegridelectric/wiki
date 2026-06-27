@@ -60,14 +60,22 @@ The deleted `jm/scada-control` branch was the scada-side
 4. **v001 usage inside admin is muddled** generally — the evaluation of
    how gwa consumes the message is in scope here, not just the type
    shape.
-5. **Fold in the ActorClass bump (Jessica, 2026-06-12).** The actor-class
-   cascade re-pointed `spaceheat.node.gt` to `/302`; capabilities must reach
-   `/302` too so capability declarations can carry post-bump nodes. But
-   `scada.control.capabilities/001` is **non-draft (immutable)** — an in-place
-   edit was attempted and **reverted** per the immutability rule. This v002
-   SHALL re-point `RelayNodes`/`DacNodes` to `spaceheat.node.gt/302`. Until v002
-   lands, capabilities stays on `/300` (it never carries sim actors, so no
-   urgency — the bump rides this planned v002, not a throwaway version).
+5. **The node re-point LANDED as sema `scada.control.capabilities/002`
+   (2026-06-26, channel-config-overhaul / OPS-427).** The actor-class cascade plus
+   the channel-config cascade carried `spaceheat.node.gt` to **`/303`** (and
+   `data.channel.gt` to `/003`) — past the `/302` this item originally anticipated.
+   Because `/001` is non-draft/immutable, the re-point was **not** done in place; a
+   clean **`scada.control.capabilities/002`** was cut instead — `RelayNodes`/`DacNodes`
+   → `spaceheat.node.gt/303`, `ControlChannels` → `data.channel.gt/003`, axioms and
+   `I2cRelayComponent` ref otherwise unchanged from `/001`. So **sema is already at
+   `scc/002`**; what remains for THIS design is the **gwsproto/scada side**: the
+   hand-written `ScadaControlCapabilities` is still the bespoke lightweight
+   `ControlNode`/`ControlChannel` shape at gwsproto `Version "000"` — it must be
+   upgraded to adopt `scc/002` (the full `spaceheat.node.gt/303` + `data.channel.gt/003`
+   node/channel shape), which is the same work the rest of this section describes
+   (axioms-over-sema-attributes, the CapturedByNodeName/AboutNodeName decision, the
+   Nolan `gw108.vdc.relay` hardware, gwa consumption). The broader shape change beyond
+   the node version (items 1–4 above) rides on top of `scc/002`.
 
 Sema changes go through `/make-sema-word` (v002 + upgrade template +
 registry deltas). **Sieg-loop visibility in admin** (can/should gwa see

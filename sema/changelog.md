@@ -12,8 +12,21 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-06-26 — Channel-config overhaul: drop Unit/Exponent + InPowerMetering
+## 2026-06-26 — Add transactive-power axioms to layout words (`0946021`)
+
+**What:** Added the `TransactivePowerChannel` axiom to both layout words — `gw.house0.layout`
+(axiom 5) and `gw.nolan.layout` (axiom 1, its first): exactly one DerivedChannel with Strategy
+`transactive-power`, whose `InputChannelNames` resolve to existing `PowerW` DataChannels each of
+whose about-node carries `NameplatePowerW`. Executable validators ported into the axiom templates
+(no `NotImplementedError` stub left), and the house0 embedded example gained a transactive-power
+DerivedChannel so it satisfies the axiom. Regen green (241).
+
+**Why:** Once `InPowerMetering` was dropped from `spaceheat.node.gt`, its `⟹ NameplatePowerW`
+obligation had nowhere to live — it folds into this layout-level axiom, which also makes the metered
+transactive set singular and auditor-legible. Mirrors the gwsproto
+`check_transactive_metering_consistency`. ([OPS-427](https://linear.app/gridworks/issue/OPS-427).)
+
+## 2026-06-26 — Channel-config overhaul: drop Unit/Exponent + InPowerMetering (`1920240`)
 
 **What:** Sema half of the channel-config-overhaul ([OPS-427](https://linear.app/gridworks/issue/OPS-427)),
 items 2 + 3. New versions dropping the redundant `Unit` + `Exponent` from every
@@ -22,10 +35,14 @@ ChannelConfigBase-family config: `channel.config/001`, `ads.channel.config/001`,
 `relay.actor.config/004` (the sixth config-family type — a flat sibling that the channel.config
 reverse-dep closure missed). New versions dropping `InPowerMetering` + its axiom:
 `spaceheat.node.gt/303` (drops `InPowerMeteringRequiresNameplate`, keeps `NameplatePowerW`) and
-`data.channel.gt/003` (drops `PowerMeteringConstraint`). All referrers repointed in place (unpushed,
+`data.channel.gt/003` (drops `PowerMeteringConstraint`). Most referrers repointed in place (unpushed,
 no version bump): the 15 component `ConfigList` `$ref`s, the 4 relay components, `layout.lite/015`,
-`new.command.tree/002`, `scada.control.capabilities/001`, and `gw.house0.layout/000` (embedded-example
-rewrite of 83 nodes / 76 channels / 6 configs / 16 relay configs). `gw.nolan.layout/000` left as-is.
+`new.command.tree/002`, and `gw.house0.layout/000` (embedded-example rewrite of 83 nodes / 76 channels /
+6 configs / 16 relay configs). `gw.nolan.layout/000` left as-is. **`scada.control.capabilities`** is the
+exception: it is published-immutable per its owning design (admin-for-nolan / OPS-394), so instead of an
+in-place repoint it gets a clean new **`scada.control.capabilities/002`** (RelayNodes/DacNodes →
+`spaceheat.node.gt/303`, ControlChannels → `data.channel.gt/003`); `/001` is restored to `/300`+`/001`
+and backfilled with the now-required superseded example.
 22 referrer `created` stamps moved forward to satisfy the dependency-timestamp ordering rule. Axiom
 validators ported to the new versions; upgrade templates added (`*_to_*`, each dropping the retired
 keys); runtime regen deterministic; 240 sema tests green. `egauge.register.config` (modbus register
