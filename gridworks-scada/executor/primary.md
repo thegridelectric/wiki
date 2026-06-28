@@ -54,7 +54,8 @@ The `Scada` PrimeActor owns:
 - Synchronous compressed reports (`ReportEvent`) + async `PowerWatts` upstream
   when in `RemoteControl`; retention/backfill when out of contact.
 - Routing of `FsmEvent` / `AnalogDispatch` to actors via a command tree built
-  from the hardware layout.
+  from the hardware layout. The HSM ↔ command-tree ↔ capability-cover mechanism
+  is specified in [`control-hierarchy.md`](control-hierarchy.md).
 
 ### Links
 
