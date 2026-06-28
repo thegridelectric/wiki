@@ -65,11 +65,40 @@ mirroring nolan's `VdcRelaySemantics` / `ElementRelaySemantics` / zone failsafe-
 axioms (the stub-existence pattern, [`axioms.md`](axioms.md)). Decide those names when the relay path
 is iterated in, not for the boot.
 
+## Boot-seam scout (done 2026-06-28)
+
+- **Boot path:** `run_scada.py` → `command_line_utils.py::get_scada` (`:185–269`) loads
+  `House0Layout.load(settings.paths.hardware_layout)`, builds `ScadaSettings` from `.env`, instantiates
+  `Scada(name, services)`, then `run_forever()`. Minimal boot constructs these directly — no `App`
+  wrapper, no `run_forever`.
+- **Actor-factory seam:** the proactor host's `_load_actors` (`gwproactor/app.py:270–281`) →
+  `ActorInterface.load(node.Name, node.actor_class_str, services, actors_module=actors)` — looks the
+  `ActorClass` string up in `actors/__init__.py` and calls `Class(name, services)`. This is where a
+  sim/self-fake branch slots in.
+- **`is_simulated=True` already handles ACTUATION.** I2cBus / Relay / I2cRelayMultiplexer /
+  MultipurposeSensor / PowerMeter already skip hardware (`SimulatedPin`, skip smbus2/GPIO) under
+  `is_simulated`; there's even a `GridworksSimPowerMeter` driver. **The gap is SENSOR INPUT:** the
+  device actors get readings *pushed* — tank/flow/BTU via **HTTP POST** from picos
+  (`api_tank_module._process_microvolts`, `api_flow_module._handle_ticklist_*`,
+  `api_btu_meter._handle_multichannel_snapshot_post`), the thermostat poller via **REST**
+  (`hubitat_poller._make_request`). Self-faking = inject readings at those points on a timer. **No
+  existing self-fake for sensor readings** — this is the new bit (the sim-test-env self-faking-actors
+  slice).
+- **`ScadaLiveTest` is heavier than we want:** it builds on `TreeLiveTest` + a parent `LtnApp`
+  (`tests/utils/scada_live_test_helper.py:16–25`) — the full proactor multi-App stack (no *real* broker,
+  in-process transport). Reusable: the `is_simulated=True` settings pattern.
+- **Things to stub/avoid:** don't start `SimTimeListener` (needs `gridworks_mqtt`); stub
+  `services.send_threadsafe` / `publish_message` / `add_web_route` / `add_task` to no-ops; `PicoCycler`
+  no-ops gracefully with no picos.
+
 ## Open / next move
 
-- **Re-orient (do this next):** inventory what the scada needs to boot a `gw1.simple.sim.layout`
-  in-process with self-faking device actors — the actor factory seam, which device actors need a
-  self-fake branch, where the LocalControl fake slots in, and whether `ScadaLiveTest` already gets us
-  most of the way. Produce the smallest "boots + runs N cycles" script.
+- **Re-orient (do this next): write the smallest "boots + runs N cycles" script** against `maple.json`
+  (existing fixture, existing `House0Layout`, `is_simulated=True`), injecting fake readings at the device
+  push-points each cycle and reading `scada._data.latest_channel_values`. **One decision to settle first:**
+  *(A)* hand-roll a minimal `services` stub (lightest, but must satisfy the `ScadaAppInterface` call
+  contract), or *(B)* bring up the real `ScadaApp` standalone (no LTN parent, in-process transport) so the
+  services are wired correctly (heavier, lower stub-drift risk). Lean: try (B) first for fidelity, fall
+  back to (A) if a standalone `ScadaApp` drags in the LTN/broker.
 - Coordinate with sim-test-environment's `self-faking-actors` work so the two don't duplicate the seam
   — the minimal slice here should be a subset that the fuller spoke later subsumes.

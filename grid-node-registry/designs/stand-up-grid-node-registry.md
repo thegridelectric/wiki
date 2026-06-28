@@ -1,6 +1,6 @@
 # Stand up grid node registry
 
-Status: Draft · Pass 0 · Updated 2026-06-23 · Linear: OPS-419
+Status: Accepted · Pass 1 · Updated 2026-06-28 · Linear: OPS-419
 
 **EDD: no** build-out — verified by the suite plus a deployed registry that
 round-trips GNode I/O and answers FIS's validity queries; not a standalone
@@ -31,15 +31,19 @@ mTLS+FIS auth work — it has to exist before FIS can enforce GNode identity.
    time*.
 3. **Enforce the invariants** (the registry's reason to exist; see executor):
    alias-uniqueness-through-time, parent-closed active tree (and active physical
-   subtree), ConnectivityEdge consistency, ConnectivityEdge coverage. Enforce at
-   write time, with a whole-registry validator pass available for audits.
+   subtree), ConnectivityEdge coverage, and the `base_class` CTN→MM transition rule.
+   Enforce at write time, with a whole-registry validator pass available for audits.
 4. **Lifecycle state machine.** Enforce the `GNodeStatus` transitions
    (Pending→Active, Active→{Suspended, PermanentlyDeactivated}, …) on every
    status change; reject illegal transitions.
-5. **Query API (FastAPI) — the FIS contract.** Minimum surface FIS needs:
-   look up a GNode by `alias` or `GNodeId`; **assert a `GNodeId` is `Active`**;
-   fetch a node's parent/children edges. Pin this contract with FIS — it is the
-   handshake the auth path depends on.
+5. **Egress: handler core + two transports** (see *Write model & egress*). A
+   transport-agnostic handler core behind the `AuthoritySource` interface
+   (read / assert-active / fetch-edges / apply the signed re-parent command),
+   exposed over **rabbit (primary)** request-reply + a change broadcast and a thin
+   **FastAPI façade** for non-rabbit consumers. Minimum read surface: look up a
+   GNode by `alias` or `GNodeId`; **assert a `GNodeId` is `Active`**;
+   `get gnode by {GNodeId}`; fetch parent/children edges. Pin this contract with FIS
+   (OPS-422) — the handshake the auth path depends on; FIS reads it over rabbit.
 6. **Tests + CI.**
 7. **Deploy.** Where it runs (alongside FIS), how FIS reaches the API, `.env` /
    secrets, running Alembic on deploy.
@@ -104,12 +108,14 @@ re-parenting is a **prefix rewrite of a whole subtree**:
 4. **Only after commit**, gnr **broadcasts** the new topology (best-effort). It does
    *not* need a delivery guarantee: convergence is **by authorization, not by
    delivery** — a renamed node carries the same immutable `GNodeId`, and FIS denies
-   any connection whose alias is stale, pushing the `current_alias` back so the node
-   self-heals (re-provision + redeploy; renames run ~yearly). The fleet routes by
-   alias and an actor only knows its alias at runtime
-   (`gwbase/transport_encoding.py`), so a stale node simply fails to authorize until
-   it adopts the new alias. No dual-routing, acks, or `prev_alias` delivery bridge —
-   `prev_alias` stays as the registry-internal parent-resolution aid + audit.
+   any connection whose alias is stale. The node learns its current alias from the
+   FIS rejection and/or by re-querying the registry by `GNodeId`, then self-heals
+   (re-provision + redeploy; renames run ~yearly). (The `auth-backend-http` deny is a
+   bare allow/deny, so the channel that carries `current_alias` back is pinned in the
+   FIS build, OPS-422.) The fleet routes by alias and an actor only knows its alias at
+   runtime (`gwbase/transport_encoding.py`), so a stale node simply fails to authorize
+   until it adopts the new alias. No dual-routing, acks, or `prev_alias` delivery
+   bridge — `prev_alias` stays as the registry-internal parent-resolution aid + audit.
 
 ### Preparing for distributed authority (stub now, swap later)
 
@@ -138,10 +144,11 @@ From `legacy/g-node-factory` (+ `legacy/g-node-registry`, `legacy/old_words`):
 - **`recursively_update_alias`** (`gnf_db.py`) — the depth-first subtree alias
   rewrite we are reproducing; computes `new_alias = new_parent_alias + "." +
   final_word`, recurses children before saving self, stashes `prev_alias`.
-- **`prev_alias` as the transition bridge** — parent lookup falls back to
-  `prev_alias` when the natural parent (from the new alias) is not yet active.
-  This is how the legacy avoided deadlock mid-rewrite; a candidate answer to the
-  transition-window question above.
+- **`prev_alias` as the parent-resolution aid** — parent lookup falls back to
+  `prev_alias` when the natural parent (from the new alias) is not yet active. This
+  is how the legacy avoided deadlock mid-rewrite; we keep it as the registry-internal
+  aid (the runtime transition concern is otherwise handled by
+  convergence-by-authorization, not by `prev_alias`).
 - **`parent_from_alias()`** — parent derived from the alias string (split on `.`,
   drop last word), so topology is self-evident from the alias; no separate parent
   pointer to keep consistent.
@@ -153,43 +160,38 @@ From `legacy/g-node-factory` (+ `legacy/g-node-registry`, `legacy/old_words`):
   active tree, role/class hierarchy (TA ⊂ ATN ⊂ CTN/MM ⊂ root), status SM.
 - **Honest caveat:** legacy committed the DB **then** messaged async (no
   cross-system atomicity — eventual consistency). Our atomicity is *within* the
-  registry transaction; fleet convergence is still eventual. Decide whether that
-  is acceptable (it is for a source-of-truth authority) or whether acks/retries
-  are needed.
+  registry transaction; fleet convergence is still eventual — and that is
+  **accepted**, because FIS authorization (not message delivery) is the
+  convergence backstop, so no acks/retries on the broadcast are needed.
 - **DROP:** TaDeed/TradingRights **NFTs**, multisig `[GnfAdmin, Validator]`,
   AssetCreate/Transfer txns, algod/algosdk, Algo-address formats, msgpack txn
   signing. Each maps to a non-chain equivalent (cert/JWT, signed command, the
   `AuthoritySource` seam above).
 
+## Resolved (the durable facts now live in `executor/primary.md`)
+
+- **The Sema snapshot** stays in sync via a checked-in seed request
+  (`gnr_seed_request.yaml`, targets `g.node.gt` · `connectivity.edge.gt` ·
+  `position.point.gt`) + `build_gnr_snapshot.sh` (the gwta pattern, homed in the
+  consumer). `g.node.gt` is **v004** (`g.node.class` enum dropped from the closure).
+- **The 2026-06-28 grill** settled the mutation model: fleet-convergence is
+  **by-authorization, not by-delivery** (broadcast best-effort + FIS-rejection
+  backstop + ~yearly redeploy); **edges store ids only, retire+recreate**;
+  **`PositionPoint` immutable** (change = TaValidator re-cert, downstream; accuracy
+  by definition = within-footprint); **rabbit-primary + API = one core, two thin
+  adapters** (FIS reads over rabbit).
+- **The sema-type edits landed:** `connectivity.edge.gt` dropped its alias fields
+  (`565d9d0`) and `position.point.gt` gained the footprint/immutability semantics;
+  the gnr snapshot + models reconciled (`ae3be8f`).
+
 ## Open
 
-- **Sema snapshot coupling — regen step settled.** `gnr` vendors its own Sema
-  snapshot (`src/gnr/sema`); it stays in sync via a checked-in seed request
-  (`gnr_seed_request.yaml`, targets `g.node.gt` · `connectivity.edge.gt` ·
-  `position.point.gt`, enums pulled in by closure) and `build_gnr_snapshot.sh`,
-  which drives the sema repo's `sema snapshot prepare|build --package-name gnr`
-  generator and rsyncs `output/sema/` into `src/gnr/sema/` (the gwta pattern,
-  homed in the consumer so the only sema-side write is its gitignored scratch).
-  Regenerated against sema `jm/sim-vocab` 2026-06-27: `g.node.gt` is now **v004**
-  and no longer depends on the `g.node.class` enum (dropped from the closure).
-  (Regen-against-`dev` + README placement tracked under *Still open* below.)
-**Resolved in the 2026-06-28 grill** (now durable in `executor/primary.md`):
-fleet-convergence is **by-authorization not by-delivery** (broadcast best-effort +
-FIS-rejection backstop + redeploy); **edges store ids only, retire+recreate**;
-**`PositionPoint` immutable** (change = TaValidator re-cert, downstream; accuracy by
-definition = within-footprint); **rabbit-primary + API = one core, two thin
-adapters** (FIS reads over rabbit).
-
-Still open:
-
-- **Pending sema-type edits** (sema repo — coordinate with the session holding
-  `sema/`, via `/make-sema-word`): `connectivity.edge.gt` drop `From/ToGNodeAlias`
-  (ids only); `position.point.gt` add the footprint guarantee to
-  `extended_description`. Then regen the snapshot + reconcile.
 - **The signed re-parent command + broadcast payload shapes** — the Sema message
   types for the write command and the topology-change broadcast (legacy
   `basegnodes.broadcast` = `TopGNode` + `DescendantGNodeList` is the heritage shape).
 - **MarketMaker credential verification on the write path** — how the registry
   authenticates the signed command (ties to the FIS principal / mTLS model, OPS-420).
-- **Snapshot:** regen against sema `dev` when it settles; whether the vendored
+- **The `current_alias` push channel** for the FIS rejection (bare `auth-backend-http`
+  deny can't carry it) — pinned with the FIS build (OPS-422).
+- **Snapshot:** regen against sema `dev` once sim-vocab merges; whether the vendored
   `src/gnr/sema/README.md` should move out of the generated tree.

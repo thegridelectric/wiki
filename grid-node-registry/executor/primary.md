@@ -1,6 +1,6 @@
 # grid-node-registry — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-06-27
+Status: Draft · Pass 0 · Updated 2026-06-28
 
 > What this is: the faithful spec of the **Grid Node Registry** (`gnr`) — the
 > authoritative record of GridWorks GNodes, their geographic positions, and the
@@ -107,12 +107,13 @@ gwbase citizen), not HTTP.
 **Convergence-by-authorization.** Because the cert/principal binds the **immutable
 `GNodeId`** (not the alias), a node carrying a stale alias after a rename **cannot
 be authorized**: FIS resolves cert→`GNodeId`, finds the current alias here, and
-denies on mismatch — **pushing the `current_alias` back in the rejection**. The node
-self-heals from that push (re-provision + redeploy; renames run ~yearly, so a
-restart is fine). This makes broadcast delivery best-effort rather than load-bearing
-— a missed broadcast is caught by the auth gate. The FIS-side contract
-(cert-subject = `GNodeId`, alias-staleness check, `current_alias` in the rejection)
-lives in the mTLS+FIS auth work (OPS-420 / OPS-422).
+denies on mismatch. The node learns its current alias (from the FIS rejection and/or
+by re-querying the registry by `GNodeId`) and self-heals (re-provision + redeploy;
+renames run ~yearly, so a restart is fine). This makes broadcast delivery best-effort
+rather than load-bearing — a missed broadcast is caught by the auth gate. The
+FIS-side contract (cert-subject = `GNodeId`, alias-staleness check, and the channel
+that carries `current_alias` back to the denied node) lives in the mTLS+FIS auth
+work (OPS-420 / OPS-422).
 
 ## Stack
 
@@ -120,10 +121,11 @@ Python 3.12, `uv`, `pydantic-settings` (`gnr.settings.Settings` ← `.env`),
 SQLAlchemy + **Alembic** migrations, Postgres 16 (`docker-compose.yaml`). Logs to
 `~/.local/state/gridworks/gnr/log/` (GridWorks convention).
 
-## Current status (2026-06-27)
+## Current status (2026-06-28)
 
 Models + Sema `gt` types + enums + an Alembic scaffold exist; the vendored Sema
-snapshot was regenerated off sema `jm/sim-vocab` (`g.node.gt` v004). **Not yet:** a
+snapshot tracks sema (`g.node.gt` v004), and the `connectivity.edge.gt` ids-only +
+`position.point.gt` footprint/immutability edits have landed. **Not yet:** a
 working dev Postgres (the `docker-compose` Postgres roles are failing), generated
-tables, history tables, enforced invariants, managed lifecycle transitions, a
-FastAPI query API, or tests/CI. The standup design sequences these.
+tables, history tables, enforced invariants, managed lifecycle transitions, the
+rabbit/HTTP query surface, or tests/CI. The standup design sequences these.
