@@ -72,3 +72,12 @@ _(append freely; no order, no vetting)_
   (alert #10 "Rebooting") per `../observability/designs/consolidate-from-infra-scada-jk.md`.
   Journalkeeper does health; the neutral witness does adjudication. Keep them
   separate.
+- **TaValidator certifies the GNode's location (from OPS-419).** The grid-node-
+  registry makes `position.point.gt` **immutable** and guarantees accuracy only
+  *by definition* (a point falls within the footprint of the building it locates);
+  a location change is a heavyweight **TaValidator re-certification** with a
+  validator-**reputation** consequence for a wrong location. When this validator/
+  deed machinery is built, add a **recorded per-fix accuracy** field to
+  `position.point.gt` — **R95** (the 95%-confidence radius, integer metres; *not*
+  CEP, whose 50% radius is too weak for a money-anchoring location). The type is
+  unpushed, so the field can be added in place at that time.

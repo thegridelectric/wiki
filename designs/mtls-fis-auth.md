@@ -13,9 +13,14 @@ cert) — not code review.
 
 ## The target
 
-- **mTLS for every prod-broker connection.** The cert subject (`CN=<service_alias>`)
-  is the identity; the broker delegates authorization to FIS over HTTP
-  (`rabbitmq-auth-backend-http` → `/auth/{user,vhost,resource}`).
+- **mTLS for every prod-broker connection.** The cert subject is the **immutable
+  identity**: for a GNode, `CN=<GNodeId>` (rabbit derives `username = GNodeId` from
+  the CN — `gridworks-infra/authority/fleet-index-service/lifecycle.md`; FIS
+  executor *Separation of identity and instance*). The **alias is a runtime claim**
+  in `client_properties` (`g_node_alias`), checked against the registry's current
+  alias — not part of the cert, so a rename never reissues it. The broker delegates
+  authorization to FIS over HTTP (`rabbitmq-auth-backend-http` →
+  `/auth/{user,vhost,resource}`).
 - **One FIS path for GNodes and services.** The connect handshake carries
   `ServiceAlias` + `ServiceInstanceId` always, and `GNodeClass` iff the principal
   is a GNode; FIS enforces single-writer per `GNodeId` for GNodes and a static
@@ -23,6 +28,28 @@ cert) — not code review.
 - **Trustworthy publisher identity.** Run the broker's `validated-user-id` plugin
   so `properties.user_id` on every publish must match the connection's
   authenticated cert subject — the basis for audit attribution.
+
+## GNode identity binds the immutable `GNodeId` (from OPS-419)
+
+The grid-node-registry standup ([OPS-419](https://linear.app/gridworks/issue/OPS-419))
+converged a contract this design owns. A GNode's **`alias` is mutable** (re-parent)
+but its **`GNodeId` is immutable**, and the fleet routes by alias — so a renamed
+node carries a stale alias until it is redeployed. Two requirements fall out:
+
+- **For a GNode principal, identity binds the immutable `GNodeId`**, not the mutable
+  alias — confirmed by the original infra source
+  (`gridworks-infra/authority/fleet-index-service/lifecycle.md`: *"Cert CN =
+  GNodeId"*) and the FIS executor spec. *The target* above is corrected to match
+  (an earlier `CN=<service_alias>` reading was drift). A rename never reissues the
+  cert; only the runtime `g_node_alias` claim changes.
+- **FIS auth doubles as the rename-convergence backstop.** FIS resolves
+  connection → `GNodeId`, looks up the registry's **current** alias, and **denies on
+  mismatch**. A stale node cannot authorize, so it is forced to reconcile —
+  convergence by authorization, not by message delivery (the registry's change
+  broadcast is then best-effort, not load-bearing). Surfacing the `current_alias`
+  back to the denied node needs a channel beyond the bare `auth-backend-http` deny
+  (a dedicated reject endpoint and/or the registry-API pull) — pinned in the FIS
+  build ([OPS-422](https://linear.app/gridworks/issue/OPS-422)).
 
 ## Gateway boundary — a web login is not enough
 

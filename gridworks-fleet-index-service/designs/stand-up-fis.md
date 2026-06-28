@@ -37,6 +37,17 @@ claim, and a racing second instance supersedes the first.
      connection (step 5); return AUTHORIZED.
 
    Map AUTHORIZED→`{"result":"allow"}`, NOT_AUTHORIZED/REJECTED→`{"result":"deny"}`.
+
+   *Rename-convergence (from [OPS-419](https://linear.app/gridworks/issue/OPS-419)):*
+   the **alias-matches** check above is also the backstop that re-converges a node
+   after a GNode rename — a stale-alias claim fails to authorize, forcing the node to
+   reconcile to the registry's current alias. The convergence design wants the node
+   told its `current_alias`, but the `auth-backend-http` deny is a bare allow/deny —
+   it can't carry a rich payload to a not-yet-connected client. So the **push** of
+   `current_alias` needs a separate channel (a dedicated FIS reject endpoint the
+   client may query, and/or the `runtime.instance.authorization` event), with the
+   **registry-API pull** (`get gnode by {GNodeId}`) as the robust fallback. Pin this
+   channel with the registry standup.
 4. **`/auth/{user,vhost,resource}`.** `/auth/user` returns the `/validate`
    decision; **v1: `/auth/vhost` and `/auth/resource` allow-all**.
 5. **Revocation via the Management API** (*Manual Broker Revocation*). On

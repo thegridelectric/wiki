@@ -12,6 +12,23 @@ Newest at the top.
 
 ---
 
+## 2026-06-28 — connectivity.edge.gt ids-only; position.point.gt footprint + immutable semantics (`565d9d0`)
+
+**What:** `connectivity.edge.gt` — dropped `FromGNodeAlias` / `ToGNodeAlias`
+(and the now-unused `left.right.dot` dependency); edges carry only the immutable
+`From/ToGNodeId`. `position.point.gt` — `extended_description` now prescribes
+accuracy by intent (a point falls within the footprint of the GNode's building),
+declares the point **immutable** (a location change is a TaValidator
+re-certification, not an in-place edit), and notes a per-fix R95 accuracy field is
+deferred to the TaValidator/deed machinery. Indexes + runtime regenerated;
+`pytest` green (241). Both types are draft/unpushed, so edited in place (no bump).
+
+**Why:** the grid-node-registry standup grill ([OPS-419](https://linear.app/gridworks/issue/OPS-419))
+converged the registry's data model: edges key on the **immutable** id and derive
+alias on read (a pure rename then touches zero edges and the edge-alias-consistency
+invariant disappears); and a GNode's location anchors its TaDeed/TaTradingRights, so
+it must be immutable with corrections handled as a certified re-visit.
+
 ## 2026-06-26 — Add transactive-power axioms to layout words (`0946021`)
 
 **What:** Added the `TransactivePowerChannel` axiom to both layout words — `gw.house0.layout`
