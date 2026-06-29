@@ -4,9 +4,10 @@ Status: Accepted · Pass 1 · Updated 2026-06-27 · Linear: OPS-407
 
 > What this is: the cheapest high-value move in pass one. Before the layout rewrite touches ~76
 > call-sites, stand up a test we don't have today — the scada **boots a House0 layout and runs every
-> device code path** with self-faking device actors (no broker, no plant). Build it against the
-> **existing** fixtures first, so it is a regression net the rewrite verifies *through*. The richer
-> coherent plant stays sim-test-environment work ([OPS-40](https://linear.app/gridworks/issue/OPS-40)).
+> device code path** with self-faking device actors on the **dev rabbit broker** (no LTN, no plant).
+> Build it against the **existing** fixtures first, so it is a regression net the rewrite verifies
+> *through*. The richer coherent plant + LTN stay sim-test-environment work
+> ([OPS-40](https://linear.app/gridworks/issue/OPS-40)).
 
 ## Why this is first
 
@@ -23,9 +24,14 @@ works on known-good layouts), then re-run it after each rewrite step.
 
 Borrow the sim-test-env **self-faking-actors** model (the cheap precursor to the plant): the real
 device actors (`ApiTankModule` / `ApiBtuMeter` / `ApiFlowModule`, the poller) self-generate fictitious
-input on a timer — no plant process, no broker — so a simplified sim House0 exercises the device code
-paths. Durable harness facts live in [`../../executor/testing.md`](../../executor/testing.md)
-("The harness", `ScadaLiveTest`); this spoke scopes only the **House0-boot** slice.
+input on a timer — no plant process — and the scada runs on the **dev rabbit broker** (the Rabbit MQTT
+plugin, `localhost:1885`, exactly as a real house connects), with **no LTN** so it sits in LocalControl.
+
+**On the broker, not in-process (decided 2026-06-28).** A no-broker in-process harness is the backdoor
+transport EDD calls necessary-but-insufficient — it shares a fake transport + wall clock and goes green
+while real comms behavior stays invisible. Running on `gw-dev-rabbit` exercises the real MQTT wiring and
+is the **reusable seed for the OPS-40 rig**, not a throwaway. Durable harness facts live in
+[`../../executor/testing.md`](../../executor/testing.md); this spoke scopes only the **House0-boot** slice.
 
 **The sim layout — `gw1.simple.sim.layout` (decided 2026-06-27).** The simulated stand-in for House0 is
 authored as its **own word, `gw1.simple.sim.layout`** — **NOT** shoehorned into `gw.house0.layout`. It
@@ -36,12 +42,13 @@ the temperature / flow / power device paths. Build most of it now; layer the rel
 boot works.
 
 **In scope (pass one):**
-- The simplified sim House0 layout loads and the scada actor tree starts.
-- Each non-relay device actor runs its read/derive path on self-faked input without crashing.
+- The simplified sim House0 layout loads and the scada actor tree starts on `gw-dev-rabbit`.
+- Each non-relay device actor runs its read/derive path on self-faked input without crashing, publishing
+  its channels over MQTT (no consumer needed).
 - A single witnessed "House0 booted + ran N device cycles" assertion — the behavioral gate.
 
-**Out of scope (stays OPS-40):** the coherent `sim.plant.flux` plant, broker transport, sim-time
-coordinator stepping, the multi-house hybrid rig, chaos/poison levers; and (initially) the relay
+**Out of scope (stays OPS-40):** the coherent `sim.plant.flux` plant, the **LTN** + the dispatch contract,
+sim-time coordinator stepping, the multi-house hybrid rig, chaos/poison levers; and (initially) the relay
 actuation paths.
 
 ## LocalControl + "turn on the heat pump" — a documented fake first
@@ -94,11 +101,11 @@ is iterated in, not for the boot.
 ## Open / next move
 
 - **Re-orient (do this next): write the smallest "boots + runs N cycles" script** against `maple.json`
-  (existing fixture, existing `House0Layout`, `is_simulated=True`), injecting fake readings at the device
-  push-points each cycle and reading `scada._data.latest_channel_values`. **One decision to settle first:**
-  *(A)* hand-roll a minimal `services` stub (lightest, but must satisfy the `ScadaAppInterface` call
-  contract), or *(B)* bring up the real `ScadaApp` standalone (no LTN parent, in-process transport) so the
-  services are wired correctly (heavier, lower stub-drift risk). Lean: try (B) first for fidelity, fall
-  back to (A) if a standalone `ScadaApp` drags in the LTN/broker.
+  (existing fixture, existing `House0Layout`, `is_simulated=True`) **on `gw-dev-rabbit`**, injecting fake
+  readings at the device push-points each cycle and reading `scada._data.latest_channel_values`.
+  **Decided: approach (B)** — bring up the real `ScadaApp` standalone (no LTN parent) pointed at the dev
+  rabbit broker (Rabbit MQTT plugin), so the services + comms are wired the real way; entry via
+  `command_line_utils.get_scada` (`:185–269`). Requires the `gw-dev-rabbit` container up (creds in
+  `gridworks-scada/.env`).
 - Coordinate with sim-test-environment's `self-faking-actors` work so the two don't duplicate the seam
   — the minimal slice here should be a subset that the fuller spoke later subsumes.

@@ -12,7 +12,7 @@ Newest at the top.
 
 ---
 
-## 2026-06-28 — Drop vendored sema README; remove its rsync exclude <!-- pending commit -->
+## 2026-06-28 — Drop vendored sema README; remove its rsync exclude (`77c876a`)
 
 **What:** Removed `src/gnr/sema/README.md` (stale "Sema Module" boilerplate with
 already-done integration steps) and dropped the now-unneeded `--exclude='README.md'`
