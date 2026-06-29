@@ -1,6 +1,6 @@
 # Minimal House0 sim-run — the safety net (active spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-06-27 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-06-29 · Linear: OPS-407
 
 > What this is: the cheapest high-value move in pass one. Before the layout rewrite touches ~76
 > call-sites, stand up a test we don't have today — the scada **boots a House0 layout and runs every
@@ -74,10 +74,14 @@ is iterated in, not for the boot.
 
 ## Boot-seam scout (done 2026-06-28)
 
-- **Boot path:** `run_scada.py` → `command_line_utils.py::get_scada` (`:185–269`) loads
-  `House0Layout.load(settings.paths.hardware_layout)`, builds `ScadaSettings` from `.env`, instantiates
-  `Scada(name, services)`, then `run_forever()`. Minimal boot constructs these directly — no `App`
-  wrapper, no `run_forever`.
+- **Boot path (corrected 2026-06-29):** the live entry is `cli.py run` → **`ScadaApp.main()`** (the
+  proactor `App` subclass in `scada_app.py`). `Scada` is now a `PrimeActor` whose
+  `__init__(self, name, services)` takes a `ScadaAppInterface` — so the App is **required**, not optional
+  (approach (B) brings up `ScadaApp` standalone). `ScadaApp.get_settings(env_file=...)` builds
+  `ScadaSettings` from `.env`; `ScadaApp._load_hardware_layout` does `House0Layout.load(path)`. The older
+  `command_line_utils.get_scada` / `run_scada.py` path is **stale** — it still builds
+  `Scada(settings=, hardware_layout=, actor_nodes=)`, which no longer matches the PrimeActor signature;
+  don't use it.
 - **Actor-factory seam:** the proactor host's `_load_actors` (`gwproactor/app.py:270–281`) →
   `ActorInterface.load(node.Name, node.actor_class_str, services, actors_module=actors)` — looks the
   `ActorClass` string up in `actors/__init__.py` and calls `Class(name, services)`. This is where a
@@ -105,7 +109,8 @@ is iterated in, not for the boot.
   readings at the device push-points each cycle and reading `scada._data.latest_channel_values`.
   **Decided: approach (B)** — bring up the real `ScadaApp` standalone (no LTN parent) pointed at the dev
   rabbit broker (Rabbit MQTT plugin), so the services + comms are wired the real way; entry via
-  `command_line_utils.get_scada` (`:185–269`). Requires the `gw-dev-rabbit` container up (creds in
+  **`ScadaApp.main()`** (mirroring `cli.py run` in `scada_app.py`), **not** the stale
+  `command_line_utils.get_scada`. Requires the `gw-dev-rabbit` container up (creds in
   `gridworks-scada/.env`).
 - Coordinate with sim-test-environment's `self-faking-actors` work so the two don't duplicate the seam
   — the minimal slice here should be a subset that the fuller spoke later subsumes.

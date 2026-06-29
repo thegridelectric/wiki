@@ -12,7 +12,57 @@ Newest at the top.
 
 ---
 
-## 2026-06-29 — sema_to_dc projection + forward diff-and-adopt oracle (proven on oak) (`<!-- pending commit -->`)
+## 2026-06-29 — Universe guardrail: alias↔broker coherence check at boot (`822b150c`)
+
+**What:** New `gw_spaceheat/universe.py` (`universe_of_alias` = first dotted segment;
+`universe_of_host` = DNS first-label before `-`, `localhost ⇒ d1`; `assert_universe_coherence`).
+Wired into `ScadaApp.make_app_for_cli` (the real `cli.py run` boot path — **not** generic
+construction, so unit tests that load `hw1` fixtures on localhost are unaffected) so the scada
+refuses to boot when its GNode-alias universe disagrees with the `gridworks_mqtt` broker host's.
+`sim_layout.py` now also **dev-ifies** the GNodeAliases (→ `d1`) so a simulated layout is coherent
+with the dev broker, and `sim_boot` builds the simulated layout in-memory (no on-disk fixture).
+Unit test for the helpers + the mismatch refusal.
+
+**Why:** the `universe-guardrail` spoke — stop a `d1.*` scada landing on the `hw1` broker (the
+honest-misconfiguration guard Joe asked for). Cooperative check; the hard server-side boundary is
+`gridworks-base` rabbit permissions (tracked in the simulated-test-environment gleanings).
+([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
+
+## 2026-06-29 — SimSensorActor: self-generating sim sensor + simulated house0 layout (`d8ce5570`)
+
+**What:** New generic `SimSensorActor` (`actors/sim_sensor.py`) driving `sim.sensor.component.gt`
+— on a timer it emits synthetic `SyncedReadings` for its `ConfigList` channels (values keyed by
+each channel's `TelemetryName`) to the primary scada, so a layout's sensor channels populate with
+**no pico and no faked HTTP transport**. New `SimSensorComponent` data class
+(`data_classes/components`) + registrations (`actors/__init__`, `components/__init__`,
+`ActorClass.SimSensorActor` already present). Plus `sim_layout.py`, a transform that swaps the
+pico-fed sensor actors (tanks/flow/BTU/multipurpose) for `SimSensorActor`s to build a **simulated
+house0 layout** (booted on `gw-dev-rabbit` via the existing `sim_boot` harness — 55 of 92 channels
+populate vs 20 with real pico actors).
+
+**Why:** milestone 2 of the sim-run behavioral gate ([`sim-run.md`](https://linear.app/gridworks/issue/OPS-407))
+— self-faked sensor input was the genuinely-new bit (real device actors wait for pico HTTP posts
+that never come in sim). A self-generating actor is simpler than simulating a pico, and is
+**layout-agnostic** — reusable for every home's simulated variant.
+([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
+
+## 2026-06-29 — Minimal sim-run boot harness on gw-dev-rabbit (`b4623fe1`)
+
+**What:** New `gw_spaceheat/sim_boot.py` — boots a real `ScadaApp` standalone against the dev
+rabbit broker (MQTT `1885`), `is_simulated=True`, no LTN parent → LocalControl, runs the actor
+tree for a bounded number of seconds (drives `proactor.run_forever()` under
+`asyncio.wait_for` so the harness returns cleanly), and reports how many channel values
+populated. Also dropped three leftover debug `print()`s in `Scada.__init__`
+(`actors/scada.py` — PrimeActor/Scada `__slots__` + MRO) that the boot surfaced.
+
+**Why:** the behavioral safety net for hardware-layout-pass-one (the `sim-run` spoke) — the
+EDD gate the rest of the pass verifies *through*. Proven on `maple.json`: the scada boots,
+LocalControl runs in simulation (`set all temperatures to 70 degF`), ~20 relay/channel values
+populate, clean shutdown. Confirms the live boot path is `ScadaApp.main()`/`run_forever`, not
+the stale `command_line_utils.get_scada`.
+([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
+
+## 2026-06-29 — sema_to_dc projection + forward diff-and-adopt oracle (proven on oak) (`5094aaed`)
 
 **What:** New durable `gw_spaceheat/sema_to_dc.py`: `sema_to_dc(House0Sema) -> House0Dc`
 (the forward partner of `sema_gen`) plus `sema_to_layout_dict` moved out of the retiring

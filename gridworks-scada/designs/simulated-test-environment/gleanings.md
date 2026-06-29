@@ -1,6 +1,6 @@
 # Gleanings — sim-test-environment notes parked off the build path
 
-Status: Draft · Pass 0 · Updated 2026-06-13 · Linear: OPS-40
+Status: Draft · Pass 0 · Updated 2026-06-29 · Linear: OPS-40
 
 > What this is: the simulated-test-environment spoke that holds **gleanings** —
 > groundwork, calibration questions, reusable patterns, and deferred/queued
@@ -278,3 +278,37 @@ dependency-timestamp ordering (`/014` predates the new component versions).
   pollers**. So treat the current poller/hubitat layer as legacy-supporting-the-five, not
   a pattern to extend or model carefully in the device-type work. (The web server is the
   exception — it stays, per the note above.)
+- **Refactor `is_simulated` — it does two jobs; derive at least one of them from the layout.**
+  Today `ScadaSettings.is_simulated` is a single free-floating config boolean that means **two
+  different things at once**: (1) **fake the sensor data** (sensors don't read real hardware), and
+  (2) **skip real hardware actuation** (the I2C / relay drivers skip GPIO / smbus2 under
+  `is_simulated`). Because it's an independent flag, it can silently *disagree* with the layout — a
+  sim flag set true over an all-real-pico layout, or vice versa — so it's a third source of truth
+  for something the layout already encodes. **At least half of it should be replaced by a derived
+  property: "does the layout contain any simulated component?"** (e.g. `layout.has_simulated_components`
+  — any `sim.*` component / `SimSensorActor` / `GridworksSimSensor`). That `SimSensorActor` exists
+  (shipped in hardware-layout-pass-one) makes the "faked sensor data" half straightforwardly
+  derivable: if the layout has sim sensors, sensor data is simulated — no separate flag needed. The
+  **actuation** half (skip GPIO) is a *different* concern and can come apart from sensor-faking (a
+  relay-bench rig: real actuation, faked sensors), so don't collapse both into one boolean — model
+  actuation-stubbing per the component (real vs sim relay) rather than the global flag. Ties to the
+  **universe guardrails** (a layout with sim components must be a dev/hybrid universe, never the
+  single production `w` universe): "is this simulated?" should be answered by the layout + universe,
+  not a hand-set switch. (Its own small design; deferred from hardware-layout-pass-one.)
+- **Universe guardrail — the durable boundary is server-side in gridworks-base.** A GNode's
+  *universe* is the first dotted segment of its alias (`d1`, `hw1`, the single production `w`);
+  the rabbit broker carries the same universe in its DNS host (`hw1-1.electricity.works`) and its
+  vhost (`hw1__1`), where `__N` / `-N` is a broker/world-instance index, not part of identity. The
+  scada-side check — `universe_of(alias) == universe_of(broker_host)`, `localhost ⇒ d1` — is
+  **sufficient for honest misconfiguration** (a `d1.*` scada fat-fingered onto the `hw1` broker
+  refuses to boot), which is the day-to-day worry. But it is **cooperative**: it only protects
+  against clients that run it. **What gridworks-base needs to do for a true boundary:** the rabbit
+  `smqPublic` user currently has wide-open permissions (`configure`/`write`/`read` = `.*`) and one
+  shared public credential across universes, so the vhost is a *namespace, not a security boundary*
+  — any holder of the public creds can publish any-universe routing keys. To make a wrong-universe
+  alias *physically unable* to publish: (1) scope each vhost's permission regex to the universe
+  prefix (a user on `hw1__1` may only write/read routing keys beginning `hw1.*`), and (2) issue
+  per-universe (ideally per-GNode-role) credentials instead of the one shared public user. Then the
+  scada check becomes defense-in-depth rather than the sole line. This is `gridworks-base` infra
+  (the rabbit definitions `rabbit/rabbitconfig/*.json` + `for_docker/gen_definitions.py`) — its own
+  issue, needed once non-GridWorks / untrusted publishers exist.

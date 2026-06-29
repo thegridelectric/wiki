@@ -1,6 +1,6 @@
 # Hardware layout — pass one (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-06-27 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-06-29 · Linear: OPS-407
 
 **EDD: yes** — and the verification that *matters* is behavioral, not static. The real bar is a
 House0-replicating simulated terminal asset (the sim plant, [OPS-40](https://linear.app/gridworks/issue/OPS-40);
@@ -11,7 +11,7 @@ gates are: each home's `gw.house0.layout` / `gw.nolan.layout` is axiom-valid, an
 **review aid** (diff to see what changed, then adopt the corrected fixture), **not** a strict gate —
 being able to run House0 in sim means we don't have to be fussy about static byte-equality now.
 
-**▶ Active spoke: [`sim-run.md`](sim-run.md)**
+**▶ Active spoke: [`operational-params.md`](operational-params.md)**
 
 > What this is: the first critical pass on the scada hardware-layout / components model. Sema becomes
 > the **authored source of truth** for a layout; the dc `HardwareLayout` the running scada loads is a
@@ -59,19 +59,24 @@ the truth oracle. **That is backwards.** Settled direction:
   params, the [`operational-params.md`](operational-params.md) spoke); the rewiring test; `channel.config`
   collapses to `ChannelName` + hardware-binding; **sema axioms as sole validity authority** (drop the dc
   `check_*`); forward-only transforms; **sieg as its own layout**; the board is not a layout factor.
-- **[`operational-params.md`](operational-params.md)** — *built this pass (folded from a sibling).* The
-  third artifact `operational-params.json`: capture tuning + `SystemMode` + criticality/thermal-mass + FLO
-  knobs split out of config + the static layout, with `ops_and_sema_to_dc` assembly. The LTN live-update
-  transport is [OPS-408](https://linear.app/gridworks/issue/OPS-408) (Thomas), the consumer.
-- **[`sim-run.md`](sim-run.md)** — *active.* The safety net first: a **minimal House0 sim-boot** — the
-  scada loads a House0 layout and runs every device code path with self-faking device actors (no broker,
-  no plant), built against the **existing fixtures** before the rewrite. Reuses the sim-test-env
-  self-faking-actors approach ([OPS-40](https://linear.app/gridworks/issue/OPS-40)); the richer plant
-  stays there. This is the behavioral gate the rest of the pass verifies through.
+- **[`operational-params.md`](operational-params.md)** — *active.* The third artifact
+  `operational-params.json`: capture tuning + `SystemMode` + criticality/thermal-mass + FLO knobs split
+  out of config + the static layout, with `ops_and_sema_to_dc` assembly. Forces the `channel.config`
+  collapse; do it before the fleet gen files (the shape every gen targets). The LTN live-update transport
+  is [OPS-408](https://linear.app/gridworks/issue/OPS-408) (Thomas), the consumer.
+- ✅ **[`sim-run.md`](sim-run.md)** — *done.* The behavioral safety net: the scada boots + runs every
+  device code path on `gw-dev-rabbit` with self-generating `SimSensorActor`s, plus the universe guardrail.
+  Shipped (`sema_to_dc` → `b4623fe1`/`d8ce5570`/`822b150c`); it's the gate the rest of the pass verifies
+  through. Richer coherent plant stays [OPS-40](https://linear.app/gridworks/issue/OPS-40).
 - **[`code-for-three-layouts.md`](code-for-three-layouts.md)** — *next, with sim-run.* What `gw_spaceheat`
   must change to run three layouts: discriminate by `TypeName`, a **command tree per layout**
   (House0 keeps pico-cycler/hp-boss/sieg; simple_sim is minimal, **no pico-cycler**; nolan its own), and
   the on-disk naming answer. The pass-one cut is the smallest change that boots `gw1.simple.sim.layout`.
+- **[`universe-guardrail.md`](universe-guardrail.md)** — the **universe** model (first alias segment =
+  `d1`/`hw1`/single-production `w`) and the cheap scada-side boot check that a GNode only talks on a
+  broker in its own universe (`universe_of(alias) == universe_of(broker_host)`, `localhost ⇒ d1`).
+  Stops sim/dev layouts reaching a real-money broker; the hard server-side boundary (rabbit perms) is
+  a `gridworks-base` follow-on. Forces `sim_layout.py` to dev-ify aliases.
 - **[`gen-pipeline.md`](gen-pipeline.md)** — *next.* The authoring pipeline: per-home config →
   `sema_gen` → axiom-valid sema → `sema_to_dc` → dc fixture; retire `dc_to_sema`; the diff-and-adopt
   review aid; fleet status (oak ✅, elm/fir/beech-sieg/maple remaining); regenerate `tests/config/`.

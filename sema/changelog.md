@@ -12,6 +12,45 @@ Newest at the top.
 
 ---
 
+## 2026-06-29 — Release g.node.reparent.cmd + g.node.topology.broadcast (draft → released) (`7743882`)
+
+**What:** flipped both words from draft to released — `$id` and registry
+`schema_url` `/draft/types/…` → `/types/…`, removed `status: "draft"` — and
+regenerated `indexes/` + runtime (released types now get their per-type runtime
+classes). No change to the schema contract (fields/axioms/deps unchanged).
+
+**Why:** the gnr snapshot build excludes draft words, so the registry could not
+vendor or use them. Releasing (status only; the schema is identical) lets the
+snapshot include them. They remain locally mutable until pushed to origin
+(immutability tracks the push), so this is reversible until release.
+
+## 2026-06-29 — Add gnr command words: g.node.reparent.cmd + g.node.topology.broadcast (`8a6202b`)
+
+**What:** two new **draft** versioned type words (v000) on `jm/gnr-commands` for
+the Grid Node Registry's mutation contract — `g.node.reparent.cmd` (`NewNode:
+g.node.gt/004` + `MovedChildGNodeIds: [uuid4.str]`) and
+`g.node.topology.broadcast` (`UpdatedNodes: [g.node.gt/004]`). Kept minimal for
+now (edge retire/create set deferred). Plus registry entries (draft status,
+`gridworks-energy` owner, `created` 2026-06-29T04:50Z, `direct_dependencies.structural`
+= `{g.node.gt:004, uuid4.str}` / `{g.node.gt:004}`), `last_updated` bump, and
+regenerated `indexes/` + runtime (`validate.py`; drafts get no per-type runtime
+class in the main repo — they generate into the consumer snapshot).
+
+**Why:** build step 5 of the grid-node-registry standup (OPS-419) — the two
+Sema messages a re-parent mutation rides on (command in, topology broadcast out),
+authored extremely-simple first, to be fleshed out with the handler core. The
+example round-trip is exercised when these are vendored into the gnr snapshot.
+**Verified:** `pytest` green (177 passed) incl. registry validation.
+
+## 2026-06-29 — Ignore per-consumer snapshot build tooling (`6759f9f`)
+
+**What:** `.gitignore` — generalized the existing `seed_request.yaml` ignore to
+`*_seed_request.yaml` + `build_*_snapshot.sh`.
+
+**Why:** per-consumer snapshot build tooling (e.g. `build_gnr_snapshot.sh` +
+`gnr_seed_request.yaml`, tracked in the consumer repo) leaves stray artifacts in
+a sema checkout when run from here; ignoring them keeps the sema tree clean.
+
 ## 2026-06-28 — connectivity.edge.gt ids-only; position.point.gt footprint + immutable semantics (`565d9d0`)
 
 **What:** `connectivity.edge.gt` — dropped `FromGNodeAlias` / `ToGNodeAlias`

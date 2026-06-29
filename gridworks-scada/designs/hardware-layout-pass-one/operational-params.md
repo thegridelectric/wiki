@@ -1,12 +1,34 @@
 # operational-params — the third SCADA artifact (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-06-28 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-06-29 · Linear: OPS-407
 
 > What this is: a third SCADA artifact alongside deployment config and the static hardware layout — the
 > **operational / optimization parameters** (`operational-params.json`): the tunable state that changes
 > *without* rewiring hardware. **Built this pass** — folded in from a would-be sibling design because it is
 > too entangled with the `channel.config` reshape to defer (dropping capture params from the layout needs
 > their new home *now*). The LTN live-update *transport* stays OPS-408 (its consumer), not this spoke.
+
+## ▶ Next move (start here — active spoke)
+
+The behavioral net is in place (`sim-run.md` ✅: scada boots + runs on `gw-dev-rabbit`, sim sensors
+self-generate, universe guardrail). **Do this reshape now, before the fleet gen files** — it pins the
+three-artifact shape every home's gen file targets, so each home is authored once, not re-authored
+after. The sim-run net + oak are the verification.
+
+1. **Converge the two `Open` questions first** (plan mode + `/grill-me`): the exact field list that
+   crosses the rewiring boundary (esp. `PollPeriodMs`), and one ops sema type vs a small family. Don't
+   code around an unresolved tree.
+2. **Define the `operational-params` sema type(s)** and **collapse the `channel.config` family** — drop
+   the capture params (`CapturePeriodS`/`AsyncCapture`/`AsyncCaptureDelta`) so the base collapses to
+   `ChannelName` + hardware-binding (per [`layout-boundary.md`](layout-boundary.md)).
+3. **Build `ops_and_sema_to_dc`** — extend `gw_spaceheat/sema_to_dc.py` to merge `static sema ⊕
+   operational-params` back into a whole-`channel.config` dc, plus the assembly coverage check.
+4. **Verify on oak** — `sema_gen(oak) → (static ⊕ ops) → ops_and_sema_to_dc → dc`, diff-and-adopt vs
+   the fixture, and **boot it in sim** (`sim_boot`) — the behavioral gate, not byte-equality.
+
+**Dependency to clear first:** the `channel.config` family + the new ops type are **sema** changes, and
+`sema/` is currently another session's claim — coordinate or wait for release, and confirm those types
+are still **unpushed/mutable** before editing in place. Forward-only throughout (no `dc_to_sema`).
 
 ## The boundary — the rewiring test
 

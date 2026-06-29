@@ -102,6 +102,16 @@ Suspended→ {Active, PermanentlyDeactivated}
 PermanentlyDeactivated → (terminal)
 ```
 
+Plus the constrained-mutable **`base_class`** SM: the one sanctioned non-identity
+change is **`ConnectivityNode → MarketMaker`** (a CTN gains authority to re-parent
+its sub-topology when a copper-topology shift becomes a known constraint);
+`g_node_class` moves in lockstep (per-row axiom 1). Both SMs live in
+`gnr.db.lifecycle` (`check_status_transition` / `check_base_class_transition`,
+grounded in legacy `g-node-factory` Update Axiom 3 + the role-change rule) — pure
+functions the step-5 write handlers call before applying any status/class change,
+rejecting an illegal move before the mutation commits. Identity transitions are
+no-ops.
+
 ## Intended invariants (the registry's reason to exist)
 
 Beyond per-row Sema validation, the registry MUST enforce structure Sema can't —
@@ -116,12 +126,27 @@ Beyond per-row Sema validation, the registry MUST enforce structure Sema can't �
   handle for money and physical grid control, so a stale message, replayed
   command, historical reading, or TaDeed reference addressed to a recycled alias
   would silently bind the wrong physical entity.) Enforcement below.
-- **Active GNode tree is parent-closed**; the active *physical* subtree is
-  parent-closed.
-- **ConnectivityEdge coverage** — for every non-root GNode `A` with parent `P`,
-  the registry holds **exactly one** active edge `FromGNodeId = P, ToGNodeId = A`.
-  (The legacy "edge consistency" invariant — that an edge's ids and aliases agree —
-  is **gone**: edges store ids only, so there is no stored alias to keep consistent.)
+- **Active GNode tree is parent-closed** — an active non-root GNode's
+  alias-parent exists and is Active. The active *physical* subtree is
+  parent-closed as a consequence of the class hierarchy below (physical classes
+  only parent physical classes, up to the world root).
+- **ConnectivityEdge coverage** — for every active non-root GNode `A` with parent
+  `P`, the registry holds **exactly one** active edge `FromGNodeId = P,
+  ToGNodeId = A` (no missing edge, no extra incoming edge, and the one edge is
+  from the alias-parent). (The legacy "edge consistency" invariant — that an
+  edge's ids and aliases agree — is **gone**: edges store ids only, so there is
+  no stored alias to keep consistent.)
+- **Class hierarchy** — each non-root GNode's parent class is legal for its own
+  (the new-class form of legacy `g-node-factory` Creation Axiom 5 ROLE):
+  ConnectivityNode/MarketMaker parent the world root or each other;
+  LeafTransactiveNode parents a ConnectivityNode/MarketMaker; TerminalAsset
+  parents a LeafTransactiveNode (it sits behind an atomic-metered point); Logical
+  is unconstrained. Legacy→new mapping: `ConductorTopologyNode → ConnectivityNode`,
+  `AtomicTNode`/`AtomicMeteringNode → LeafTransactiveNode`, `Scada`/`Other → Logical`.
+
+These three structural invariants are enforced by `gnr.db.validate` —
+`validate_registry` runs the audit pass; the step-5 write handlers will run the
+relevant check on the affected subtree at write time.
 
 ### Enforcing alias-uniqueness-through-time
 
@@ -207,6 +232,24 @@ shadowed by a host-local Postgres on macOS), the initial Alembic migration
 creates all three tables, and a `GNodeGt` round-trips against the live DB
 (`gt → GNodeSql.from_gt → session → to_gt`, identical bytes back). `Settings`
 now loads `.env` (it didn't before — `gnr.settings`, was `gnr.config`), and the
-engine/session factory lives in `gnr.db.session`. **Not yet:** history tables,
-enforced invariants, managed lifecycle transitions, the rabbit/HTTP query
-surface, or tests/CI. The standup design sequences these.
+engine/session factory lives in `gnr.db.session`. **Build step 2 (partial):**
+the `alias_assignment` ledger (`gnr.db.models.AliasAssignmentSql`, `alias` PK)
+and its enforcement primitive `gnr.db.alias_ledger.claim_alias` have landed and
+are proven against the live DB — a different `GNodeId` cannot claim a vacated
+alias (`AliasAlreadyOwned`), the original owner may re-acquire it, and bindings
+stay permanent. **Build step 3 (structural invariants done):**
+`gnr.db.validate.validate_registry` is a whole-registry audit pass enforcing
+**parent-closed active tree** (active non-root ⇒ active alias-parent),
+**ConnectivityEdge coverage** (active non-root ⇒ exactly one active edge from its
+alias-parent), and the **class-hierarchy** parent rule (the new-class form of
+legacy Creation Axiom 5 — which also yields "active physical subtree
+parent-closed"). All proven against live Postgres (clean 5-node tree passes; a
+suspended parent, a missing edge, a wrong-source extra edge, and a
+TerminalAsset under a ConnectivityNode are each caught). **Build step 4 done:**
+`gnr.db.lifecycle` enforces the `GNodeStatus` SM and the `ConnectivityNode →
+MarketMaker` `base_class` SM, proven against live Postgres (a legal Pending→Active
+applies and persists; an illegal Active→Pending is rejected and the row is left
+unchanged). **Not yet:** edge change-history (status-history folds into the
+lifecycle SM; edge-history is best a projection of the step-5 command log),
+write-time enforcement (rides on the step-5 handlers — the validator + the SMs are
+what they call), the rabbit/HTTP query surface, or tests/CI.

@@ -29,17 +29,34 @@ mTLS+FIS auth work — it has to exist before FIS can enforce GNode identity.
    (no `env_file`) — fixed, and renamed `gnr.config` → `gnr.settings` to match
    the docs. Initial Alembic migration applied; a `GNodeGt` round-trips against
    the live DB. Details in `executor/primary.md` "Current status".
-2. **▶ NEXT — History tables.** Append-only history for GNode + edge changes (alias
-   changes, status transitions) — the substrate for *alias uniqueness through
-   time*.
-3. **Enforce the invariants** (the registry's reason to exist; see executor):
-   alias-uniqueness-through-time, parent-closed active tree (and active physical
-   subtree), ConnectivityEdge coverage, and the `base_class` CTN→MM transition rule.
-   Enforce at write time, with a whole-registry validator pass available for audits.
-4. **Lifecycle state machine.** Enforce the `GNodeStatus` transitions
-   (Pending→Active, Active→{Suspended, PermanentlyDeactivated}, …) on every
-   status change; reject illegal transitions.
-5. **Egress: handler core + two transports** (see *Write model & egress*). A
+2. **◐ IN PROGRESS — History tables.** The `alias_assignment` ledger (the
+   substrate for *alias uniqueness through time*) is **done + enforced** —
+   `gnr.db.models.AliasAssignmentSql` (`alias` PK) + `gnr.db.alias_ledger.claim_alias`
+   (`INSERT … ON CONFLICT` + ownership assertion), proven against live Postgres
+   (mechanism in `executor/primary.md` "Enforcing alias-uniqueness-through-time").
+   **▶ Open branch:** the status/edge change-history — whether GNode status
+   transitions and edge retire/create share the ledger's append-only spine or get
+   their own tables, ideally authored as a projection of the create/reparent
+   command log.
+3. **✅ DONE (audit form) — Enforce the invariants** (the registry's reason to
+   exist; see executor). `gnr.db.validate.validate_registry` enforces
+   alias-uniqueness-through-time (the ledger), parent-closed active tree,
+   ConnectivityEdge coverage, and the class-hierarchy parent rule (= "active
+   physical subtree parent-closed"), each proven against live Postgres. The
+   whole-registry validator pass is the audit form; **write-time** enforcement on
+   the affected subtree rides on the step-5 handlers. The `base_class` CTN→MM
+   transition is a lifecycle/SM rule → step 4.
+4. **✅ DONE — Lifecycle state machine.** `gnr.db.lifecycle` enforces the
+   `GNodeStatus` SM (legacy Update Axiom 3) and the `ConnectivityNode →
+   MarketMaker` `base_class` SM, proven against live Postgres (legal move
+   persists; illegal move rejected, row unchanged). The step-5 handlers call
+   these before applying a status/class change.
+5. **◐ IN PROGRESS — Egress: handler core + two transports** (see *Write model &
+   egress*). The two Sema words are **authored (draft) + validated** in `sema` on
+   `jm/gnr-commands` — `g.node.reparent.cmd/000` (NewNode + MovedChildGNodeIds) and
+   `g.node.topology.broadcast/000` (UpdatedNodes), extremely-simple v0 (edge set
+   deferred), `pytest` green. **▶ Next:** vendor them into the gnr snapshot
+   (round-trip proof), then build the transport-agnostic handler core. A
    transport-agnostic handler core behind the `AuthoritySource` interface
    (read / assert-active / fetch-edges / apply the signed re-parent command),
    exposed over **rabbit (primary)** request-reply + a change broadcast and a thin

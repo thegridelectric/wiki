@@ -1,6 +1,6 @@
 # The authoring pipeline — sema_gen → sema_to_dc (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-06-27 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-06-29 · Linear: OPS-407
 
 > What this is: the one flow that makes sema the authored source of truth and the dc layout an output.
 > `per-home config → sema_gen → axiom-valid gw.house0.layout → sema_to_dc → the dc HardwareLayout the
@@ -18,9 +18,12 @@ per-home config ──sema_gen──▶ gw.house0.layout (sema, axiom-valid) ─
 - **`sema_gen(config)`** emits a `gw.house0.layout` directly from a per-home config, pulling stable IDs
   by name from a reference layout (`LayoutIDMap`). Already landed: `gw_spaceheat/house0_sema_gen.py`.
   Full house0-stub equivalence reached and **oak passes** (real 4-zone / 3-tank production home).
-- **`sema_to_dc(sema_layout)`** projects the sema layout to the dc layout dict the running scada loads
-  (then `House0Dc.load()`). **To build.** It is the inverse of the retiring `dc_to_sema` — harvest that
-  function's worked-out field correspondence to write it, then delete `dc_to_sema`.
+- **`sema_to_dc(sema_layout)`** projects the sema layout to the dc `House0Layout` the running scada
+  loads. **Built** (`gw_spaceheat/sema_to_dc.py`), forward-proven on oak — `sema_to_dc(sema_gen(oak))`
+  loads cleanly. The projection plumbing already existed as `sema_to_layout_dict` inside the retiring
+  `house0_bijection.py` EDD harness; `sema_to_dc` moves it to a durable module and wraps
+  `House0Dc.load_dict`. `dc_to_sema` still backs the gwta round-trip, so its deletion stays a separate
+  follow-on (below).
 
 **Per the layout-boundary split ([`layout-boundary.md`](layout-boundary.md)), the pipeline forks the
 authored side and the transform becomes `ops_and_sema_to_dc`:** the gen authors **both** the static
@@ -30,12 +33,27 @@ stripped from `channel.config`), and `ops_and_sema_to_dc(static ⊕ ops)` assemb
 `channel.config` reshape forces it); the operational-params artifact is built this pass in the
 [`operational-params.md`](operational-params.md) spoke.
 
+## Where the gen files live — machinery in scada, per-home gen in `tlayouts`
+
+- **Machinery (reusable) — `gridworks-scada/gw_spaceheat`:** `House0SemaGenConfig`, `sema_gen`,
+  `sema_to_dc`. The generic pipeline, shared by every home.
+- **Per-home gen files — the `tlayouts` sibling repo:** each home is its own `gen_<home>.py` that
+  builds that home's `House0SemaGenConfig` and runs the pipeline, exactly where the legacy dc-based
+  `gen_maple.py`/`gen_oak.py`/… already live (they import gw_spaceheat today; the sema versions
+  import `house0_sema_gen` + `sema_to_dc` the same way). The per-home configs currently parked in
+  `house0_sema_gen_check.py` (oak, house0-stub) **move out to `tlayouts`** as each home's gen file;
+  gw_spaceheat keeps only the machinery (and `house0_sema_gen_check.py` is retiring).
+- **Two outputs, both sema-authored:** production layouts → **`tlayouts/output/`** (what scadas
+  deploy); test fixtures → **`gridworks-scada/tests/config/`** (what the suite loads). The same
+  per-home config feeds both.
+
 ## Retire dc_to_sema
 
 `dc_to_sema` was the Phase-2 "translate legacy dc *into* sema" bridge; under the pivot, dc is an output,
 so the reverse direction is dead weight on the ship path. Sequence:
 
-1. Build `sema_to_dc` by inverting `dc_to_sema`'s field mapping (`gw_spaceheat/house0_bijection.py`).
+1. ✅ Build `sema_to_dc` (`gw_spaceheat/sema_to_dc.py`) — done; `sema_to_layout_dict` moved there out
+   of the `house0_bijection.py` harness (and the vestigial `gnode_src` kwarg + dead imports dropped).
 2. Move the gwta wire round-trip (`layout_roundtrip.py`) onto a `sema_gen` layout instead of
    `dc_to_sema(load(...))` — nothing on the ship path needs the reverse.
 3. Delete `dc_to_sema`, the `house0_sema_gen_check.py` equivalence oracle, and the
@@ -44,7 +62,9 @@ so the reverse direction is dead weight on the ship path. Sequence:
 ## The oracle — diff-and-adopt, relaxed
 
 The static check flips to the dc side and **relaxes to a review aid** (the real gate is behavioral —
-House0 runs in sim, [`sim-run.md`](sim-run.md)):
+House0 runs in sim, [`sim-run.md`](sim-run.md)). Implemented as `sema_to_dc.diff_against_fixture(home)`
+(canon, order-insensitive). On oak it already shows the gen *ahead* of the frozen fixture — 19 vs 15
+DerivedChannels, the 4 extra being the per-zone `heat-call` the stale fixture lacks (adopt):
 
 1. Author the home's sema (axiom-valid, **with** heat-call etc.) → `sema_to_dc` → generated dc.
 2. **Diff generated-dc against the frozen fixture.** The diff is the worklist: where the gen omits a
