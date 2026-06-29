@@ -1,6 +1,6 @@
 # Gleanings — domain context, working method, deferred sweeps (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-06-27 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-06-29 · Linear: OPS-407
 
 > What this is: parked notes off the build path — durable domain context, the sema-source-of-truth
 > working method, the landed channel-config-overhaul, open questions (transactive-energy reporting),
@@ -100,3 +100,17 @@ but are written in `H0N` terms and enforced nowhere yet. Pass-2 drops `H0N` and 
 layout family shares vs differs on — only then can these become real per-layout axioms. **Proof the
 guess is already too strict:** `maple` carries only an `hp-odu` (no `hp-idu`) yet is definitely still
 House0, so `required_topology_nodes` (which lists `H0N.hp_idu`) is wrong as-is.
+
+**The capturer↔channel *capability* axiom is the nuanced pass-two piece.** Pass-one recovers only the
+*structural* guarantee that a captured channel is bound to a real, hardware-bearing component
+(`CaptureNodeHasComponent` — see [`axioms.md`](axioms.md)). It deliberately does **not** assert the
+*semantic* guarantee that the component is of a *kind* that can actually capture that channel
+(a thermistor reads a temperature, a flow module reads a flow, a meter reads power). That by-kind
+check is the component↔channel **capability** axiom, deferred to pass-two with the i2c board model
+([`i2c-board-components.md`](i2c-board-components.md)) — it needs a channel-kind↔component-kind
+capability map, which is exactly what the board-resident decomposition reorganizes, so encoding it now
+would bake in a mapping pass-two is about to rewrite. The right altitude is the same one every
+channel-existence axiom already sits at: require the *semantic* channel (about-node + unit), stay silent
+on the hardware that produces it, until the capability layer lands. This is the more-nuanced sibling of
+the `G/H` topology axioms above — both are "what must a real layout's nodes/components be" questions that
+only become tractable once `H0N` is gone and the layout families are knit.

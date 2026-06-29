@@ -1,6 +1,6 @@
 # The layout's purpose & boundary (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-06-28 · Linear: OPS-407
+Status: Accepted · Pass 2 · Updated 2026-06-29 · Linear: OPS-407
 
 > What this is: the session's core output — what a hardware layout IS and is NOT, the three-artifact
 > split, and the consequences (channel.config collapse, sema axioms as sole validity authority,
@@ -29,29 +29,67 @@ The discriminator is one question:
 
 By the rewiring test, several things in the layout/config today **fail it and move to operational**:
 `ZoneKwhPerDegFList` + `CriticalZoneList` (in `gw.house0.hydronic` today), `SystemMode` (in config
-today), and the per-channel **report tuning** (`CapturePeriodS`/`AsyncCapture`/`AsyncCaptureDelta`,
-today in every component's `channel.config`). The full artifact + assembly are built **this pass** in the
+today), and the per-channel **report tuning** (`CapturePeriodS`/`AsyncCapture`/`AsyncCaptureDelta`/
+`PollPeriodMs`, today in every component's `channel.config`). `PollPeriodMs` goes too, **optional** — it is
+tunable without rewiring, bounded below only by the hardware floor `MinPollPeriodMs` (which *stays* on the
+device type); the `CaptureAndPollingConsistency` axiom moves with it (reshaped conditional). Most of
+`actors/config.py` is in fact operational (the COP curve, heating/RSWT model, control/mode knobs) — the
+full inventory + the artifact + assembly are built **this pass** in the
 [`operational-params.md`](operational-params.md) spoke; only the LTN live-update *transport* stays separate
 ([OPS-408](https://linear.app/gridworks/issue/OPS-408), Thomas).
 
-## Consequence — `channel.config` collapses to `ChannelName`
+**Carve-out the other way — a few config fields go to the LAYOUT, not operational** (they *fail* the
+rewiring test — swapping them *is* rewiring): `hp_model` and `hp_max_kw_el` (HP nameplate — already
+`# TODO: move to layout`), and `whitewire_threshold_watts`. They are physical specs, not tunable knobs.
 
-Once report tuning leaves, the base `channel.config` is **just `ChannelName`**. The only thing that earns
-a place in a component's `ConfigList` beyond a bare name is the **family types that extended the old base**
-— and they keep their *hardware-binding* fields, not tuning. E.g. `ads.channel.config/001` (unpublished →
-mutable in place) becomes `ChannelName` + `TerminalBlockIdx` + `ThermistorDeviceType` +
-`DataProcessingMethod/Description`, no capture params.
+## Consequence — the `channel.config` base type is **removed**
 
-**Decision (2026-06-28): a component carries a `ConfigList` only when it has per-channel hardware binding**
-(ADS terminal blocks, eGauge registers, thermistor types). For a component with no per-channel binding
-(relay multiplexer, flow module), the channel→component binding is **solely `DataChannel.CapturedByNodeName`**
-— a bare `{ChannelName}` ConfigList is information-free redundancy and a drift risk (the no-dead-information
-maxim).
+Once report tuning leaves, a bare `channel.config` would be **just `ChannelName`** — and a bare
+`{ChannelName}` ConfigList is information-free redundancy (the channel→component binding is already carried
+by `DataChannel.CapturedByNodeName`). So the endpoint is not "collapse the base to `ChannelName`" but
+**delete the base type entirely**. The only thing that earns a place in a component's `ConfigList` is the
+**specialty family types** — and they keep their *hardware-binding* fields, not tuning. E.g.
+`ads.channel.config/001` (unpublished → mutable in place) becomes `ChannelName` + `TerminalBlockIdx` +
+`ThermistorDeviceType` + `DataProcessingMethod/Description`, no capture params.
+
+**Decision (2026-06-28, sharpened 2026-06-29): a component carries a `ConfigList` only when it has
+per-channel hardware binding** (ADS terminal blocks, eGauge registers, thermistor types). For a component
+with no per-channel binding, the channel→component binding is **solely `DataChannel.CapturedByNodeName`** —
+a bare `{ChannelName}` ConfigList is information-free redundancy and a drift risk (the no-dead-information
+maxim). When all bare-base users are reworked, **nothing references `channel.config` → the base type is
+removed.**
+
+**The 9-component drop worklist.** Nine component types currently `$ref` the bare `channel.config` in their
+ConfigList (latest versions). Every one of them keeps its per-channel binding (where any) at the
+**component level** via named fields, not inside the ConfigList items — so each cleanly **drops its
+`ConfigList`** (new version); **none needs a new specialty type:**
+
+| Component (latest ver) | Component-level binding (kept) | Action |
+|---|---|---|
+| `gw108.gpio.sensor.component.gt/002` | `GpioPin`, `SenseMode` | drop ConfigList |
+| `hubitat.component.gt/000` | `Hubitat` | drop ConfigList |
+| `hubitat.poller.component.gt/000` | `Poller` (per-attribute map) | drop ConfigList |
+| `pico.btu.meter.component.gt/001` | `Flow/Hot/Cold/CtChannelName` | drop ConfigList |
+| `pico.flow.module.component.gt/001` | `FlowNodeName` | drop ConfigList |
+| `pico.tank.module.component.gt/012` | `SensorOrder`, Pico HwUids | drop ConfigList |
+| `sim.pico.tank.module.component.gt/001` | `SensorOrder`, Pico HwUids | drop ConfigList |
+| `sim.sensor.component.gt/000` | (none) | drop ConfigList |
+| `web.server.component.gt/002` | `WebServer` | drop ConfigList |
+
+(`pico.btu.meter` / `pico.flow.module` carry component-level `AsyncCaptureDelta*` *firmware* fields — those
+stay on the component; they are not the `channel.config` capture params and are out of scope for this
+collapse.) The specialty `ConfigList`-bearing types that **remain** are `ads.channel.config`,
+`i2c.thermistor.channel.config`, `electric.meter.channel.config`, `dfr.config`, and `relay.actor.config`.
 
 **Axiom change:** the global `ComponentDataChannelBijection` (C == D over all ConfigLists) is replaced by
 a **per-component local bijection** — *for a component that has a `ConfigList`, its `ChannelName` set equals
 exactly the DataChannels whose `CapturedByNodeName` is that component's node.* Composes with the kept
-`ChannelCaptureConsistency` + `CapturedByNodeName` referential integrity. See [`axioms.md`](axioms.md).
+`ChannelCaptureConsistency` + `CapturedByNodeName` referential integrity. **Plus a new
+`CaptureNodeHasComponent` axiom** recovers what the bare-base drop silently removed — the guarantee that a
+captured channel is bound to a *real, hardware-bearing* component (the global bijection used to give this
+for free): *for every `DataChannel`, if `CapturedByNodeName` is present, that ShNode SHALL have a non-null
+`ComponentId`* (`DerivedChannel`s exempt). The semantic by-*kind* capability check stays pass-two. See
+[`axioms.md`](axioms.md).
 
 ## sema axioms are the sole layout-validity authority
 

@@ -56,8 +56,9 @@ the truth oracle. **That is backwards.** Settled direction:
   `transactive-power` metering boundary. Notes in [`gleanings.md`](gleanings.md).
 - **[`layout-boundary.md`](layout-boundary.md)** — *the session's core output.* What a layout IS (static
   physical topology + control nodes) vs is NOT; the **three-artifact split** (config / layout / operational
-  params, the [`operational-params.md`](operational-params.md) spoke); the rewiring test; `channel.config`
-  collapses to `ChannelName` + hardware-binding; **sema axioms as sole validity authority** (drop the dc
+  params, the [`operational-params.md`](operational-params.md) spoke); the rewiring test; the bare
+  `channel.config` base type is **removed** (specialty `ConfigList`s only); **sema axioms as sole validity
+  authority** (drop the dc
   `check_*`); forward-only transforms; **sieg as its own layout**; the board is not a layout factor.
 - **[`operational-params.md`](operational-params.md)** — *active.* The third artifact
   `operational-params.json`: capture tuning + `SystemMode` + criticality/thermal-mass + FLO knobs split

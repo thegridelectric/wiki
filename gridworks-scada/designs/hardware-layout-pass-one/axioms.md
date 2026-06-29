@@ -1,6 +1,6 @@
 # Layout axioms — house0 + nolan (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-06-27 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-06-29 · Linear: OPS-407
 
 > What this is: finish the layout axioms this pass — **house0 and nolan** — porting the structural
 > validations into sema axioms, keeping the boot/round-trip green at each addition, and adding a
@@ -118,6 +118,21 @@ Two boundary decisions (2026-06-28) govern this spoke:
   bijection**: *for a component that has a `ConfigList`, its `ChannelName` set equals exactly the
   DataChannels whose `CapturedByNodeName` is that component's node.* Composes with the kept
   `ChannelCaptureConsistency` + `CapturedByNodeName` referential integrity.
+- **NEW — `CaptureNodeHasComponent` (recovers what the ConfigList drop silently removed).** The old global
+  `C == D` bijection guaranteed, for free, that every captured channel was tied to an actual
+  hardware-bearing component (it had to appear in *some* `ConfigList`). Once the no-binding components drop
+  their `ConfigList`, that guarantee is gone — `ChannelBindingIntegrity` only checks the capturer *resolves
+  to a node*, not that the node bears a component, so a raw reading could name a component-less logical/
+  command node as its capturer and still validate. Restore it with a small structural axiom, **house0 and
+  nolan both**: *for every `DataChannel`, if `CapturedByNodeName` is present, that ShNode SHALL have a
+  non-null `ComponentId`.* Composes with `ComponentReferenceIntegrity` (`ComponentId` → a real component),
+  so together they re-assert "captured by a real component." `DerivedChannel`s are **exempt** — they carry
+  `CreatedByNodeName` (a derived-generator, legitimately component-less), not a capturer.
+  - **The by-*kind* check stays pass-two.** That the component is of a *kind* able to capture the channel
+    (thermistor↔temp, flow-module↔flow, meter↔power) is the component↔channel **capability** axiom already
+    deferred above with the i2c board model — pulling it forward means encoding a channel-kind↔
+    component-kind capability map the board model is about to reorganize. Pass-one recovers the structural
+    "real component" guarantee; pass-two adds the semantic "right kind" guarantee.
 
 ## The per-axiom EDD recipe (learned from Cardinality)
 
