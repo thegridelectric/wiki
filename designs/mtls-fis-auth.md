@@ -46,10 +46,11 @@ node carries a stale alias until it is redeployed. Two requirements fall out:
   connection → `GNodeId`, looks up the registry's **current** alias, and **denies on
   mismatch**. A stale node cannot authorize, so it is forced to reconcile —
   convergence by authorization, not by message delivery (the registry's change
-  broadcast is then best-effort, not load-bearing). Surfacing the `current_alias`
-  back to the denied node needs a channel beyond the bare `auth-backend-http` deny
-  (a dedicated reject endpoint and/or the registry-API pull) — pinned in the FIS
-  build ([OPS-422](https://linear.app/gridworks/issue/OPS-422)).
+  broadcast is then best-effort, not load-bearing). The FIS deny is just the "stale"
+  signal — it needs **no** rich payload. A renamed node is recovered by **provisioning
+  redeploy** (provisioning reads the grid-node-registry's internal API and redeploys
+  affected nodes on a topology change); the FIS deny is the observable backstop that
+  catches any node provisioning missed. See OPS-419.
 
 ## Gateway boundary — a web login is not enough
 

@@ -12,6 +12,16 @@ Newest at the top.
 
 ---
 
+## 2026-06-28 — Drop vendored sema README; remove its rsync exclude <!-- pending commit -->
+
+**What:** Removed `src/gnr/sema/README.md` (stale "Sema Module" boilerplate with
+already-done integration steps) and dropped the now-unneeded `--exclude='README.md'`
+from `build_gnr_snapshot.sh`.
+
+**Why:** the snapshot's provenance lives in `build_gnr_snapshot.sh` +
+`gnr_seed_request.yaml` + the design; a hand-written doc inside a regenerated tree
+just rots. Decided with the OPS-419 open-question cleanup.
+
 ## 2026-06-28 — Reconcile to ids-only connectivity edges + regenerate snapshot (`ae3be8f`)
 
 **What:** Regenerated the vendored Sema snapshot against the edited

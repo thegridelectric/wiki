@@ -69,6 +69,30 @@ What is fixed vs. what changes, and how:
   within the footprint of the building it locates); recorded per-fix accuracy (R95)
   is deferred to the TaValidator/deed work (substrate-fit, OPS-391).
 
+## Write path & egress
+
+`gnr` is the sole accessor of the backing store; all access goes through a
+transport-agnostic handler core (the `AuthoritySource` interface) exposed over
+**rabbit (primary)** request-reply + a change broadcast, and a thin **HTTP/FastAPI
+façade** for non-rabbit consumers. The read API is an **internal service API** — its
+consumers (FIS, provisioning, analytics) run inside the GridWorks infra, so it needs
+**no mTLS**: the topology + `position_points` (home-location) privacy is handled by the
+**network perimeter** (internal-only, not publicly exposed), and internal services
+query it over plain HTTP. Two Sema message types carry a mutation:
+
+- **`g.node.reparent.cmd`** — the write command: the new node `N` (a `g.node.gt`) +
+  the moved child `GNodeId`s. The registry computes the recursive descendant alias
+  rewrite and the edge retire/create set, and applies them in one transaction.
+- **`g.node.topology.broadcast`** — the change event: the affected subtree as updated
+  `g.node.gt`s (new aliases) + the edge retire/create set. Best-effort (convergence
+  is by authorization, not delivery).
+
+**Write authority = the authenticated connection.** A command arrives over an
+mTLS+FIS-authenticated rabbit connection (principal = cert `CN=GNodeId`); the registry
+authorizes by checking the principal's `base_class = MarketMaker` and that the
+affected subtree is within its authority. A detached signed-command scheme stays
+available via the `AuthoritySource` seam for a future distributed/on-chain authority.
+
 ## Lifecycle — `GNodeStatus`
 
 ```
@@ -107,13 +131,14 @@ gwbase citizen), not HTTP.
 **Convergence-by-authorization.** Because the cert/principal binds the **immutable
 `GNodeId`** (not the alias), a node carrying a stale alias after a rename **cannot
 be authorized**: FIS resolves cert→`GNodeId`, finds the current alias here, and
-denies on mismatch. The node learns its current alias (from the FIS rejection and/or
-by re-querying the registry by `GNodeId`) and self-heals (re-provision + redeploy;
-renames run ~yearly, so a restart is fine). This makes broadcast delivery best-effort
-rather than load-bearing — a missed broadcast is caught by the auth gate. The
-FIS-side contract (cert-subject = `GNodeId`, alias-staleness check, and the channel
-that carries `current_alias` back to the denied node) lives in the mTLS+FIS auth
-work (OPS-420 / OPS-422).
+denies on mismatch. Recovery is by **provisioning redeploy** — provisioning (internal,
+reads the registry) redeploys a renamed node with fresh config, triggered by the
+broadcast; the FIS deny is the **backstop signal** (a missed node fails auth, which is
+observable → triggers redeploy). The node never self-queries; it just gets redeployed
+(~yearly, so a restart is fine). So broadcast delivery is best-effort, not
+load-bearing, and the FIS deny needs no rich payload. The FIS-side contract
+(cert-subject = `GNodeId`, alias-staleness check) lives in the mTLS+FIS auth work
+(OPS-420 / OPS-422).
 
 ## Stack
 

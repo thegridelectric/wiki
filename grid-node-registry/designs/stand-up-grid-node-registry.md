@@ -94,25 +94,27 @@ Algorand plumbing.
 ### The re-parent operation (recursive atomic alias rewrite)
 
 The core mutation. A new node `N` is introduced **downstream of** an existing
-node `E`; a **subset** of `E`'s children re-parent under `N`. Because the alias
+node `E`; a **subset (one or more)** of `E`'s children re-parent under `N`. Because the alias
 is a dotted **materialized path** (a parent's alias is a prefix of each child's),
 re-parenting is a **prefix rewrite of a whole subtree**:
 
 1. The moved children — and **every descendant** of them — get their `alias`
    recursively rewritten (`E.c…` → `E.N.c…`); each old alias → `prev_alias`.
-2. Connectivity edges adjust by **retire + recreate** on the immutable ids:
-   `E→C` retires (status, kept for history), `E→N` and `N→C` are created. A pure
-   rename touches **zero** edges (edges store ids, not aliases).
+2. Connectivity edges adjust by **retire + recreate** on the immutable ids: `E→N`
+   is created once, and **for each moved child `C`** the edge `E→C` retires (status,
+   kept for history) and `N→C` is created. A pure rename touches **zero** edges
+   (edges store ids, not aliases).
 3. The **entire** subtree rewrite + edge changes + history rows commit in **one
    transaction** — atomic, all-or-nothing.
 4. **Only after commit**, gnr **broadcasts** the new topology (best-effort). It does
    *not* need a delivery guarantee: convergence is **by authorization, not by
    delivery** — a renamed node carries the same immutable `GNodeId`, and FIS denies
-   any connection whose alias is stale. The node learns its current alias from the
-   FIS rejection and/or by re-querying the registry by `GNodeId`, then self-heals
-   (re-provision + redeploy; renames run ~yearly). (The `auth-backend-http` deny is a
-   bare allow/deny, so the channel that carries `current_alias` back is pinned in the
-   FIS build, OPS-422.) The fleet routes by alias and an actor only knows its alias at
+   any connection whose alias is stale. A renamed node is recovered by **provisioning
+   redeploy** — provisioning (internal, reads the registry) redeploys it with fresh
+   config, triggered by the broadcast, with the **FIS deny as the backstop signal** (a
+   missed node fails auth, which is observable → triggers redeploy). The node does not
+   self-query; it just gets redeployed (renames run ~yearly, so a restart is fine).
+   The fleet routes by alias and an actor only knows its alias at
    runtime (`gwbase/transport_encoding.py`), so a stale node simply fails to authorize
    until it adopts the new alias. No dual-routing, acks, or `prev_alias` delivery
    bridge — `prev_alias` stays as the registry-internal parent-resolution aid + audit.
@@ -168,30 +170,36 @@ From `legacy/g-node-factory` (+ `legacy/g-node-registry`, `legacy/old_words`):
   signing. Each maps to a non-chain equivalent (cert/JWT, signed command, the
   `AuthoritySource` seam above).
 
-## Resolved (the durable facts now live in `executor/primary.md`)
+## Write-path & recovery details (decided 2026-06-28)
 
-- **The Sema snapshot** stays in sync via a checked-in seed request
-  (`gnr_seed_request.yaml`, targets `g.node.gt` · `connectivity.edge.gt` ·
-  `position.point.gt`) + `build_gnr_snapshot.sh` (the gwta pattern, homed in the
-  consumer). `g.node.gt` is **v004** (`g.node.class` enum dropped from the closure).
-- **The 2026-06-28 grill** settled the mutation model: fleet-convergence is
-  **by-authorization, not by-delivery** (broadcast best-effort + FIS-rejection
-  backstop + ~yearly redeploy); **edges store ids only, retire+recreate**;
-  **`PositionPoint` immutable** (change = TaValidator re-cert, downstream; accuracy
-  by definition = within-footprint); **rabbit-primary + API = one core, two thin
-  adapters** (FIS reads over rabbit).
-- **The sema-type edits landed:** `connectivity.edge.gt` dropped its alias fields
-  (`565d9d0`) and `position.point.gt` gained the footprint/immutability semantics;
-  the gnr snapshot + models reconciled (`ae3be8f`).
+Durable forms live in `executor/primary.md`; the Sema words are authored at build
+step 5.
 
-## Open
-
-- **The signed re-parent command + broadcast payload shapes** — the Sema message
-  types for the write command and the topology-change broadcast (legacy
-  `basegnodes.broadcast` = `TopGNode` + `DescendantGNodeList` is the heritage shape).
-- **MarketMaker credential verification on the write path** — how the registry
-  authenticates the signed command (ties to the FIS principal / mTLS model, OPS-420).
-- **The `current_alias` push channel** for the FIS rejection (bare `auth-backend-http`
-  deny can't carry it) — pinned with the FIS build (OPS-422).
-- **Snapshot:** regen against sema `dev` once sim-vocab merges; whether the vendored
-  `src/gnr/sema/README.md` should move out of the generated tree.
+- **Re-parent command + broadcast — two Sema types.** Command `g.node.reparent.cmd`
+  carries the new node `N` (a `g.node.gt`) and the moved child `GNodeId`s; the
+  registry computes the recursive descendant rewrite. Broadcast
+  `g.node.topology.broadcast` carries the affected subtree — the updated `g.node.gt`s
+  (new aliases) + the edge retire/create set (heritage: legacy `basegnodes.broadcast`
+  = `TopGNode` + `DescendantGNodeList`).
+- **Write authority = the authenticated connection** (no separate signature scheme
+  initially). The command arrives over an mTLS+FIS-authenticated rabbit connection
+  (principal = cert `CN=GNodeId`); the registry authorizes by checking the
+  principal's `base_class = MarketMaker` **and** that the affected subtree is within
+  its authority. The detached signed-command option stays open via the
+  `AuthoritySource` seam (distributed-authority future).
+- **Rename recovery = provisioning redeploy, not a FIS push or a node self-query.**
+  The registry broadcasts the topology change; **provisioning** (internal, reads the
+  registry over the API) redeploys the affected nodes with fresh config. The FIS deny
+  is the **backstop signal** — a node provisioning missed connects with a stale alias,
+  fails auth, and that observable failure triggers a redeploy. The node never queries
+  the registry itself; it just gets redeployed (~yearly cadence, so a restart is fine).
+- **Read API needs no mTLS.** It is an **internal service API** — consumers are FIS,
+  provisioning, and analytics (e.g. data analysis) inside the GridWorks infra. The
+  topology + `position_points` (home-location) privacy is handled by the **network
+  perimeter** (internal-only, not publicly exposed), not per-request client certs —
+  so internal services query it over plain HTTP, no mTLS friction. (If remote
+  self-service is ever needed, add a separately-exposed authenticated endpoint then.)
+- **Snapshot tracking.** The vendored snapshot tracks whichever branch holds the
+  registry's words — `jm/sim-vocab` now, `dev` once that merges. The hand-written
+  `src/gnr/sema/README.md` is removed (stale boilerplate; provenance lives in
+  `build_gnr_snapshot.sh` + `gnr_seed_request.yaml` + this design).
