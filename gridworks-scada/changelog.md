@@ -12,6 +12,36 @@ Newest at the top.
 
 ---
 
+## 2026-06-29 — sema_to_dc projection + forward diff-and-adopt oracle (proven on oak) (`<!-- pending commit -->`)
+
+**What:** New durable `gw_spaceheat/sema_to_dc.py`: `sema_to_dc(House0Sema) -> House0Dc`
+(the forward partner of `sema_gen`) plus `sema_to_layout_dict` moved out of the retiring
+`house0_bijection.py` EDD harness (and the vestigial unused `gnode_src` kwarg dropped, per
+no-dead-code). A forward diff-and-adopt oracle canon-compares `sema_to_dc(sema_gen(home))`
+against the frozen `tests/config/<home>.json` fixture as a review aid.
+
+**Why:** gen-pipeline spoke — sema is authored, the dc layout is a generated output. The
+forward path `per-home config → sema_gen → sema_to_dc → loadable dc` now runs end-to-end on
+oak (a real 4-zone/3-tank home). The oracle shows the gen is *ahead* of the stale fixture
+(adds oak's 4 per-zone `heat-call` DerivedChannels) — the diff is the adopt worklist, not a
+bug. `dc_to_sema` retirement is a separate follow-on (it still backs the gwta round-trip).
+([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
+
+## 2026-06-28 — simple_sim: hp-relay node + relay-state channel names (`62d7d86f`)
+
+**What:** Added the sim's single heat-pump relay to the `simple_sim` names. New
+`SimpleSimNodeNames.hp_relay = "hp-relay"` (one `Relay` ShNode — the minimal control
+surface for the sim-run) in `names/simple_sim/node_names.py`, and the matching
+`SimpleSimChannelNames.hp_relay_state = "hp-relay"` (TelemetryName `RelayState`,
+`AboutNodeName` = the `hp-relay` node) in `names/simple_sim/channel_names.py`. Per the
+Nolan convention the relay-state channel name equals the relay node name.
+
+**Why:** Groundwork for the hardware-layout-pass-one sim-run — LocalControl (via
+hp-boss) actuates this relay to turn the heat pump on/off; in the sim a documented
+LocalControl fake does little/nothing at first and grows by iteration. The relay
+actuation path is deferred to iteration after the minimal boot works.
+([OPS-407](https://linear.app/gridworks/issue/OPS-407).)
+
 ## 2026-06-26 — Channel-config overhaul: drop Unit/Exponent/InPowerMetering, transactive-power DerivedChannel + layout axiom (`6e7dd24c`)
 
 **What:** Dropped `Unit`+`Exponent` from the six `ChannelConfigBase`-family types (bumped

@@ -107,13 +107,64 @@ PermanentlyDeactivated → (terminal)
 Beyond per-row Sema validation, the registry MUST enforce structure Sema can't —
 **not all are implemented yet** (see the standup design):
 
-- **Alias uniqueness through time** (not just live uniqueness).
+- **Alias uniqueness through time** — an alias, once held by a `GNodeId`, is
+  **permanently owned by that `GNodeId`** and MUST NOT ever bind to a different
+  one, even after the original node renames away from it. The binding
+  `alias → GNodeId` is a function frozen the first time it is defined. This is
+  stronger than live uniqueness and stronger than temporal-non-overlap: an alias
+  is never recycled across identities. (Why: the alias is the routing/addressing
+  handle for money and physical grid control, so a stale message, replayed
+  command, historical reading, or TaDeed reference addressed to a recycled alias
+  would silently bind the wrong physical entity.) Enforcement below.
 - **Active GNode tree is parent-closed**; the active *physical* subtree is
   parent-closed.
 - **ConnectivityEdge coverage** — for every non-root GNode `A` with parent `P`,
   the registry holds **exactly one** active edge `FromGNodeId = P, ToGNodeId = A`.
   (The legacy "edge consistency" invariant — that an edge's ids and aliases agree —
   is **gone**: edges store ids only, so there is no stored alias to keep consistent.)
+
+### Enforcing alias-uniqueness-through-time
+
+`g_nodes.alias UNIQUE` enforces only *live* uniqueness — it cannot carry the
+through-time invariant, because a rename legitimately frees the old value in that
+row (X renames `A→B`, then a new Y taking `A` passes live-unique but violates the
+invariant). The permanent binding lives in a **separate append-only ledger**:
+
+```
+alias_assignment(
+    alias              TEXT PRIMARY KEY,             -- one owner per alias, forever
+    g_node_id          UUID NOT NULL REFERENCES g_nodes(id),
+    first_assigned_at  timestamptz NOT NULL
+)
+```
+
+The `PRIMARY KEY (alias)` is the guarantee: at most one row per alias for all
+time. Every create and every rename writes the new alias here **inside the same
+transaction** as the GNode write, via `INSERT … ON CONFLICT (alias) DO NOTHING`
+followed by an ownership assertion (the existing row's `g_node_id` MUST equal the
+intended owner, else raise `AliasAlreadyOwned` and roll back the whole
+transaction). The unique index serializes concurrent inserts, so this is
+race-free with no app-level check-then-insert window. The three outcomes:
+brand-new alias is claimed; the same owner re-acquiring its own former alias is
+allowed; a *different* owner is rejected. A `BEFORE INSERT OR UPDATE OF alias`
+trigger on `g_nodes` running the same check is recommended defense-in-depth —
+gnr is the sole writer, but money + grid control warrant the belt-and-braces.
+
+Two consequences for the write path:
+
+- **Re-parent can self-collide.** The recursive subtree rewrite generates new
+  aliases (`E.c… → E.N.c…`); if a generated alias equals one any *other* (even
+  long-retired) node once owned, the ledger PK fires and the whole atomic
+  re-parent aborts — correct, but a real operational failure mode. The re-parent
+  handler SHALL pre-check the full target alias set against the ledger and fail
+  with an explicit alias-collision error, not a raw constraint violation.
+- **The ledger, not `prev_alias`, is the authority.** Every alias a node ever
+  held gets a ledger row (the original at create, each new alias at rename), so
+  the ledger answers the through-time question across arbitrarily many renames.
+  `prev_alias` on the live row stays only as the one-hop-back parent-resolution
+  aid. The ledger is naturally a **projection of the create/reparent command
+  log**, so it slots into the `AuthoritySource` seam if authority ever moves off
+  single-writer Postgres.
 
 ## Relationship to FIS
 
@@ -148,9 +199,14 @@ SQLAlchemy + **Alembic** migrations, Postgres 16 (`docker-compose.yaml`). Logs t
 
 ## Current status (2026-06-28)
 
-Models + Sema `gt` types + enums + an Alembic scaffold exist; the vendored Sema
-snapshot tracks sema (`g.node.gt` v004), and the `connectivity.edge.gt` ids-only +
-`position.point.gt` footprint/immutability edits have landed. **Not yet:** a
-working dev Postgres (the `docker-compose` Postgres roles are failing), generated
-tables, history tables, enforced invariants, managed lifecycle transitions, the
-rabbit/HTTP query surface, or tests/CI. The standup design sequences these.
+Models + Sema `gt` types + enums exist; the vendored Sema snapshot tracks sema
+(`g.node.gt` v004), and the `connectivity.edge.gt` ids-only +
+`position.point.gt` footprint/immutability edits have landed. **Build step 1 is
+done:** a dev Postgres runs (`docker compose up`, host port **5435** — 5432 is
+shadowed by a host-local Postgres on macOS), the initial Alembic migration
+creates all three tables, and a `GNodeGt` round-trips against the live DB
+(`gt → GNodeSql.from_gt → session → to_gt`, identical bytes back). `Settings`
+now loads `.env` (it didn't before — `gnr.settings`, was `gnr.config`), and the
+engine/session factory lives in `gnr.db.session`. **Not yet:** history tables,
+enforced invariants, managed lifecycle transitions, the rabbit/HTTP query
+surface, or tests/CI. The standup design sequences these.

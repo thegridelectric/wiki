@@ -22,11 +22,14 @@ mTLS+FIS auth work — it has to exist before FIS can enforce GNode identity.
 
 ## Build order
 
-1. **Dev Postgres + generated schema.** Fix the `docker-compose.yaml` Postgres
-   roles (the known blocker — they fail today), then `alembic upgrade head` to
-   create the tables. **Done-when:** a `GNodeGt` round-trips
-   (`gt → GNodeSql.from_gt → session → to_gt`) against a real Postgres.
-2. **History tables.** Append-only history for GNode + edge changes (alias
+1. **✅ DONE — Dev Postgres + generated schema.** The blocker was two-fold: a
+   stale `gnr_pgdata` volume (old creds, so init was skipped) and a host port
+   collision (a host-local Postgres shadows `localhost:5432`); fixed by
+   publishing the container on **5435**. `Settings` also wasn't loading `.env`
+   (no `env_file`) — fixed, and renamed `gnr.config` → `gnr.settings` to match
+   the docs. Initial Alembic migration applied; a `GNodeGt` round-trips against
+   the live DB. Details in `executor/primary.md` "Current status".
+2. **▶ NEXT — History tables.** Append-only history for GNode + edge changes (alias
    changes, status transitions) — the substrate for *alias uniqueness through
    time*.
 3. **Enforce the invariants** (the registry's reason to exist; see executor):
