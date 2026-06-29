@@ -9,9 +9,11 @@ experiment.
 > What this is: the path from the current `grid-node-registry` repo (models +
 > Sema `gt` types + an Alembic scaffold, no running DB or API) to a **deployed
 > registry FIS can query**. Current state + entities: see
-> [`../executor/primary.md`](../executor/primary.md). The spine of this plan is
+> [`../../executor/primary.md`](../../executor/primary.md). The spine of this plan is
 > the repo README's "Next steps," made ordered and given a FIS-facing API
 > contract.
+
+**▶ Active spoke: [`test-harness.md`](test-harness.md)** — the dev-universe layered test harness.
 
 ## Why now
 
@@ -64,7 +66,8 @@ mTLS+FIS auth work — it has to exist before FIS can enforce GNode identity.
    GNode by `alias` or `GNodeId`; **assert a `GNodeId` is `Active`**;
    `get gnode by {GNodeId}`; fetch parent/children edges. Pin this contract with FIS
    (OPS-422) — the handshake the auth path depends on; FIS reads it over rabbit.
-6. **Tests + CI.**
+6. **◐ Tests + CI** — the dev-universe layered harness; see
+   [`test-harness.md`](test-harness.md).
 7. **Deploy.** Where it runs (alongside FIS), how FIS reaches the API, `.env` /
    secrets, running Alembic on deploy.
 

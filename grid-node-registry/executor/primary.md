@@ -27,6 +27,26 @@ Enums (`src/gnr/sema/enums`): **`BaseGNodeClass`** (`ConnectivityNode` /
 (so the open namespace of classes — `TerminalAsset`, `Scada`, … — needn't bump
 an enum), held consistent with `base_class` and `alias` by the GT axioms below.
 
+## Universes
+
+A **universe** is the first dotted segment of a GNodeAlias, and its **kind** is
+that segment's first letter: **`d`** = dev, **`h`** = hybrid, **`w`** =
+production. There are **many** dev/hybrid universes (`d1`, `d2`, `hw1`, …) but
+exactly **one** production universe — the only place GridWorks MarketMakers
+manage real money. So `universe_of(alias) = alias.split(".")[0]`, and "is this
+real money?" ⇔ "is the universe the single production one?" (The full guardrail —
+a GNode may only talk on a broker in its own universe, the broker host/vhost
+encoding that universe, and the dev rabbit `gw-dev-rabbit` serving `d1__1` on
+localhost — lives in the scada `hardware-layout-pass-one` design; what binds
+*here* is that every alias the registry holds carries its universe in segment 0.)
+
+A registry instance is **scoped to one universe**: a dev registry holds the `d1`
+tree, the production registry holds the `w` tree. This is what lets a **dev
+universe** mirror production — the same GNode topology re-aliased into `d1.*` —
+without ever touching real money. The test harness (see the standup design) is
+exactly such a dev universe: the deployed systems (`hw1.isone.me.versant.keene.*`)
+and the parent GNodes they require, re-aliased into `d1`.
+
 ## Per-row Sema axioms (`g.node.gt` v004)
 
 The `GNodeGt` codec enforces five axioms on every row before insert/update:
@@ -102,10 +122,10 @@ Suspended→ {Active, PermanentlyDeactivated}
 PermanentlyDeactivated → (terminal)
 ```
 
-Plus the constrained-mutable **`base_class`** SM: the one sanctioned non-identity
-change is **`ConnectivityNode → MarketMaker`** (a CTN gains authority to re-parent
-its sub-topology when a copper-topology shift becomes a known constraint);
-`g_node_class` moves in lockstep (per-row axiom 1). Both SMs live in
+Plus the constrained-mutable **`base_class`** SM: a **CopperNode** may switch
+between its two forms **both directions** — **`ConnectivityNode ⇄ MarketMaker`**
+(a copper constraint emerges → a local market is needed; the constraint is
+relieved → it isn't); `g_node_class` moves in lockstep (per-row axiom 1). Both SMs live in
 `gnr.db.lifecycle` (`check_status_transition` / `check_base_class_transition`,
 grounded in legacy `g-node-factory` Update Axiom 3 + the role-change rule) — pure
 functions the step-5 write handlers call before applying any status/class change,
@@ -137,11 +157,20 @@ Beyond per-row Sema validation, the registry MUST enforce structure Sema can't �
   edge's ids and aliases agree — is **gone**: edges store ids only, so there is
   no stored alias to keep consistent.)
 - **Class hierarchy** — each non-root GNode's parent class is legal for its own
-  (the new-class form of legacy `g-node-factory` Creation Axiom 5 ROLE):
-  ConnectivityNode/MarketMaker parent the world root or each other;
-  LeafTransactiveNode parents a ConnectivityNode/MarketMaker; TerminalAsset
-  parents a LeafTransactiveNode (it sits behind an atomic-metered point); Logical
-  is unconstrained. Legacy→new mapping: `ConductorTopologyNode → ConnectivityNode`,
+  (the new-class form of legacy `g-node-factory` Creation Axiom 5 ROLE). A
+  **CopperNode** is a `ConnectivityNode` or a `MarketMaker` — the copper-topology
+  backbone (an MM is a CN that also runs a local market). The rules:
+  - **CopperNode** (MM/CN) → parent is the world root or another CopperNode (the
+    backbone is parent-closed);
+  - **LeafTransactiveNode** → parent is a CopperNode;
+  - **TerminalAsset** → parent is a LeafTransactiveNode (behind an atomic-metered
+    point); its alias ends `.ta` (per-row axiom 5);
+  - **Scada** (`g_node_class == "Scada"`, Logical base_class) → parent is a
+    LeafTransactiveNode (its metered unit's controller); its alias ends `.scada`
+    (per-row axiom 5);
+  - other **Logical** → unconstrained.
+
+  Legacy→new mapping: `ConductorTopologyNode → ConnectivityNode`,
   `AtomicTNode`/`AtomicMeteringNode → LeafTransactiveNode`, `Scada`/`Other → Logical`.
 
 These three structural invariants are enforced by `gnr.db.validate` —
@@ -249,7 +278,12 @@ TerminalAsset under a ConnectivityNode are each caught). **Build step 4 done:**
 `gnr.db.lifecycle` enforces the `GNodeStatus` SM and the `ConnectivityNode →
 MarketMaker` `base_class` SM, proven against live Postgres (a legal Pending→Active
 applies and persists; an illegal Active→Pending is rejected and the row is left
-unchanged). **Not yet:** edge change-history (status-history folds into the
-lifecycle SM; edge-history is best a projection of the step-5 command log),
-write-time enforcement (rides on the step-5 handlers — the validator + the SMs are
-what they call), the rabbit/HTTP query surface, or tests/CI.
+unchanged). **Build step 5 (handler core done):** `gnr.db.authority` — the
+`AuthoritySource` interface + `PostgresAuthority` (Sema in / Sema out):
+`get_by_id`/`get_by_alias`, `assert_active`, `fetch_edges`, and `apply_reparent`
+(the atomic re-parent — recursive subtree alias rewrite + edge retire/create +
+ledger claims + `validate_registry`, one transaction, returns a
+`GNodeTopologyBroadcast`). Proven against live Postgres. **Not yet:** edge
+change-history (status-history folds into the lifecycle SM; edge-history is best a
+projection of the step-5 command log), the two thin transport adapters over the
+core (rabbit consumer + FastAPI façade), or tests/CI.

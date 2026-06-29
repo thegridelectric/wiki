@@ -12,7 +12,54 @@ Newest at the top.
 
 ---
 
-## 2026-06-29 — Vendor g.node.reparent.cmd + g.node.topology.broadcast into the snapshot (`<pending>`) <!-- pending commit -->
+## 2026-06-29 — DB-free unit tests + pytest setup (`99ca7e8`)
+
+**What (planned):** added `pytest` (dev group) + `[tool.pytest.ini_options]`
+(testpaths, an `integration` marker for the future DB/broker layers) and a
+`tests/` suite that needs no infra — `test_g_node_naming.py` (axiom 5: `.ta`/`.scada`
+suffix iff), `test_class_hierarchy.py` (CopperNode backbone, LTN/TA/Scada parent
+rules), `test_reparent_rewrite.py` (the pure recursive prefix-rewrite). Extracted
+the rewrite's pure core (`in_subtree`/`rewrite_alias`/`moved_child_new_prefix`/
+`subtree_rewrite_map`) out of the session-coupled path in `authority.py` so it is
+unit-testable.
+
+**Why:** start the Layer-0 (unit, no-DB) tier of the dev-universe harness; the
+naming + copper-sub-tree + reparent logic are pure and worth pinning before the
+Postgres/broker layers. **Verified:** `pytest` green (17 passed).
+
+## 2026-06-29 — Enforce Scada parent + CopperNode; bidirectional CopperNode SM (`78fcd92`)
+
+**What (planned):** `gnr.db.validate` — named the `{ConnectivityNode, MarketMaker}`
+set **`COPPER_CLASSES`** ("CopperNode" = the copper-topology backbone) and added the
+**Scada parent rule** (a `g_node_class == "Scada"`, Logical-classed node must parent
+a LeafTransactiveNode). `gnr.db.lifecycle` — the `base_class` SM now allows
+**ConnectivityNode ⇄ MarketMaker both directions** (a constraint is relieved → an MM
+demotes to a CN), per legacy Update Axiom 5. Plus a universe note in `README.md`.
+
+**Why:** the GNode class rules Jessica named — the copper sub-tree is parent-closed,
+a Scada hangs off its home LTN, and a CopperNode can lose its market role when grid
+constraints relax. The `.ta`/`.scada` suffixes are already per-row `g.node.gt`
+axiom 5, so they are not re-checked here. **Verified:** the new unit tests +
+the live-Postgres validator proof both green.
+
+## 2026-06-29 — Add transport-agnostic AuthoritySource handler core (`ef5a705`)
+
+**What (planned):** `src/gnr/db/authority.py` — the `AuthoritySource` interface
+(read by id/alias, `assert_active`, `fetch_edges`, `apply_reparent`) + a
+`PostgresAuthority` implementation over `SessionLocal`. Sema types in/out
+(`GNodeGt`, `ConnectivityEdgeGt`, `GNodeReparentCmd` → `GNodeTopologyBroadcast`).
+The re-parent applies the recursive descendant alias rewrite + edge retire/create
++ alias-ledger claims + lifecycle, all in one transaction, and returns the
+topology broadcast.
+
+**Why:** build step 5 — the registry's logic lives in one transport-agnostic core
+(the design's "one core, two thin adapters"); the rabbit consumer + FastAPI façade
+are thin adapters that translate messages → these handlers. Building the core
+first keeps it provable against Postgres before any transport. **Verified:**
+against live Postgres (read/assert/edges; a re-parent rewrites a subtree and emits
+the broadcast).
+
+## 2026-06-29 — Vendor g.node.reparent.cmd + g.node.topology.broadcast into the snapshot (`ad6ead0`)
 
 **What:** added `g.node.reparent.cmd` + `g.node.topology.broadcast` to
 `gnr_seed_request.yaml` `initial_targets.types` (committed `3cb21c9`) and rebuilt
