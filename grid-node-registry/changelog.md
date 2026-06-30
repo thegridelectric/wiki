@@ -12,7 +12,7 @@ Newest at the top.
 
 ---
 
-## 2026-06-30 — Depend on published gridworks-base 0.5.3 (drop editable path) (`<pending>`) <!-- pending commit -->
+## 2026-06-30 — Depend on published gridworks-base 0.5.3 (drop editable path) (`39ffcd5`)
 
 **What (planned):** in `pyproject.toml`, `gridworks-base` → `gridworks-base>=0.5.3`
 and removed the `[tool.uv.sources]` editable path to `../gridworks-base`; relocked.

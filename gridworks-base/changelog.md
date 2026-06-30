@@ -12,7 +12,54 @@ Newest at the top.
 
 ---
 
-## 2026-06-29 — Add GridNodeRegistry transport class + broker exchanges (`<pending>`) <!-- pending commit -->
+## 2026-06-30 — Remove dead Optional imports; CI ruff check --no-fix (`de9a582`)
+
+**What (planned):** removed unused `Optional` imports from `actor_base.py`,
+`orchestrator.py`, `tests/_stubs.py` (F401) + reformatted; changed the CI/`ci.sh`
+lint step to `uv run ruff check --no-fix .`. Also **removed the per-repo
+`CLAUDE.md`** (the umbrella `wiki/GridWorks_CLAUDE.md` is the only Claude-facing
+doc — no sub-repo CLAUDE.md) and moved the `fix=true` / run-`ci.sh` note into the
+README's "Environment gotchas".
+
+**Why:** CI's `ruff check .` was failing on the dead imports — and because the
+repo config sets `fix = true`, CI *auto-fixed* (mutated) the files, after which
+the format step failed on the mutation (the confusing "`_stubs.py:10` would be
+reformatted" that local couldn't reproduce). `--no-fix` makes CI fail loudly on
+lint errors instead of mutating. **Verified:** `ruff check --no-fix .` →
+"All checks passed!" and `ruff format --check .` → all formatted.
+
+## 2026-06-30 — Pin ruff; document dev workflow (README + CLAUDE.md) (`f38a2ec`)
+
+**What (planned):** pinned `ruff==0.15.14` in `pyproject.toml` (was `>=0.5.6`,
+the latent-drift source) so the dev dep, `uv.lock`, and the `.pre-commit-config`
+ruff `rev` are all explicitly equal; relocked. Added a README "Environment
+gotchas" subsection and a repo `CLAUDE.md` covering: always `uv run` (never a
+hand-activated venv), the stale-`VIRTUAL_ENV` fix, repo-based pre-commit usage,
+the three-places ruff pin, and the topology→definitions regen.
+
+**Why:** a CI ruff-format failure that local couldn't reproduce traced to a
+stale `VIRTUAL_ENV` (old `~/Coding` path) + a loose ruff constraint that could
+drift from the pre-commit pin — confusing and unwritten. This makes the toolchain
+deterministic and the workflow explicit for humans and Claude. **Verified:**
+`uv run ruff format --check .` passes on the locked env; pre-commit passes with
+no venv on PATH.
+
+## 2026-06-30 — Make pre-commit hooks repo-based (PATH-independent) (`3bb9f80`)
+
+**What (planned):** `.pre-commit-config.yaml` — moved the standard hooks
+(`check-added-large-files`, `check-toml`/`yaml`, `end-of-file-fixer`,
+`trailing-whitespace`, `pyupgrade`) from `repo: local` + `language: system` to
+the canonical `repo:` form (pre-commit-hooks v5.0.0, pyupgrade v3.19.1). Kept the
+gwbase-specific `rabbit-definitions-drift` + `ci` local hooks and the ruff repo.
+Also dropped the deprecated `stages: [commit, push]` (→ default / `pre-push`).
+
+**Why:** the `language: system` hooks resolved their executables off the shell
+PATH, so a bare `git commit` (venv not active) failed with `Executable …
+not found`. Repo-based hooks install in pre-commit's own isolated envs and need
+no PATH. **Verified:** `pre-commit run` passes with the project venv NOT on PATH.
+(The `pre-commit-hooks` / `pyupgrade` dev deps are now redundant — a later tidy.)
+
+## 2026-06-29 — Add GridNodeRegistry transport class + broker exchanges (`3bb9f80`)
 
 **What (planned):** added `TransportClass.GridNodeRegistry` + `RoutingClass.gnr`
 (+ the map entry), opted it into `topology.AMQP_ACTOR_CLASSES` (so it gets

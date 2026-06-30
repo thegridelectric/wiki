@@ -12,6 +12,24 @@ Newest at the top.
 
 ---
 
+## 2026-06-30 — Drop ConfigList from bare-base components; orphan channel.config (`0507d3a`)
+
+**What:** removed the `ConfigList` field — and its `required` entry, example entry, `channel.config:001`
+dependency, and the now-obsolete `ChannelNameUniqueness` / `EmptyConfigList` axiom — from the 9 components
+that carried only a bare `channel.config` ConfigList: `gw108.gpio.sensor/002`, `hubitat/000`,
+`hubitat.poller/000`, `pico.btu.meter/001`, `pico.flow.module/001`, `pico.tank.module/012`,
+`sim.pico.tank.module/001`, `sim.sensor/000`, `web.server/002`. Remaining axioms renumbered
+(`pico.tank` / `sim.pico.tank` / `pico.flow`); `extended_description`s preserved (`hubitat`, `web.server`).
+All 9 added to the runtime-validation allowlist. Suite green (263). In place — all unpushed/mutable.
+
+**Why:** hardware-layout-pass-one (OPS-407). A bare `{ChannelName}` ConfigList is information-free: the
+channel→component binding is carried by `DataChannel.CapturedByNodeName`, and channel-name uniqueness is a
+layout-level invariant (`ChannelBindingIntegrity`), subsuming the per-component `ChannelNameUniqueness`
+axiom. So components with no per-channel hardware binding carry no ConfigList; only the specialty
+`*.channel.config` types do. `channel.config` is now referenced by no live type — **orphaned, not deleted**:
+`channel.config/000` is published, so immutability forbids removing it; it stays in the registry,
+referenced only by its own frozen historical component versions.
+
 ## 2026-06-30 — Strip capture params from the channel-config family (→ capture.tuning) (`543ff2c`)
 
 **What:** removed `CapturePeriodS` / `AsyncCapture` / `AsyncCaptureDelta` / `PollPeriodMs` from the 5
