@@ -10,27 +10,40 @@ Status: Accepted · Pass 2 · Updated 2026-06-29 · Linear: OPS-407
 
 ## ▶ Next move (start here — active spoke)
 
-The behavioral net is in place (`sim-run.md` ✅: scada boots + runs on `gw-dev-rabbit`, sim sensors
-self-generate, universe guardrail). **Do this reshape now, before the fleet gen files** — it pins the
-three-artifact shape every home's gen file targets, so each home is authored once, not re-authored after.
-The sim-run net + oak are the verification. The decision tree is resolved (Pass 2); execute in this order:
+**The sema reshape is DONE and committed on `jm/sim-vocab`:** ✅ `capture.tuning/000`; ✅ the
+`channel.config` family strip (capture params off the 5 specialty types) + the 9-component `ConfigList`
+drop, leaving `channel.config` **orphaned** (not deleted — `000` is published); ✅
+`gw.house0.operational.params/000` (`GNodes` home-identity + `CaptureTuningList`). The behavioral net is in
+place (`sim-run.md` ✅). See the four `wiki/sema/changelog.md` entries (2026-06-30) for exactly what changed.
 
-1. **Forced core (lands together — no broken interim):**
-   - **Define `capture.tuning`** (per-channel) and **collapse the `channel.config` family** — drop
-     `CapturePeriodS` / `AsyncCapture` / `AsyncCaptureDelta` / `PollPeriodMs` from the specialty types, and
-     **remove the bare `channel.config` base type entirely** (see [`layout-boundary.md`](layout-boundary.md)
-     for the base-removal + the 9-component `ConfigList` drop worklist).
-   - **Build `ops_and_sema_to_dc`** — extend `gw_spaceheat/sema_to_dc.py` to merge `static sema ⊕
-     operational-params` into a whole-`channel.config` dc, with the **assembly coverage** check + the
-     **`PollPeriodMs ≥ MinPollPeriodMs` floor** check.
-   - **Verify on oak** — `sema_gen(oak) → (static ⊕ ops) → ops_and_sema_to_dc → dc`, diff-and-adopt vs the
-     fixture, and **boot it in sim** (`sim_boot`) — the behavioral gate, not byte-equality.
-2. **Within the pass, right after the core boots:** define `cop.curve` + `heating.curve`, the layout-typed
-   `gw.house0.operational.params`, and migrate the rest of the fields (`SystemMode`, criticality,
-   thermal-mass, FLO knobs) out of `actors/config.py` + the static layout into the ops artifact.
+**The next move is in the `gridworks-scada` repo — make the code work with the reshaped sema types, then
+build the assembly and verify on oak.** Cut the `gridworks-scada` branch off **`jm/spruce-unlimbo`**
+(temporary directive), not `dev`.
 
-**Dependency to clear first:** the `channel.config` family + the new ops types are **sema** changes —
-confirm those types are still **unpushed/mutable** before editing in place (`git branch -r --contains`).
+1. **Hand-rewrite the gwsproto named-types to match the reshaped sema.** gwsproto types are written **by
+   hand** (one version per type) — they are **not** generated from a snapshot, and **gwta is not part of
+   this path**. The deltas: the **9 components lose `ConfigList`**; the **5 specialty `*.channel.config`
+   types lose the capture params**; **add `capture.tuning` and `gw.house0.operational.params`**;
+   `channel.config` is gone.
+2. **Validate the hand-written types against the sema CLI** — serialize a gwsproto instance and run
+   `sema validate <payload.json>` (decodes through the **canonical sema runtime**: fields, property formats,
+   axioms, version; exit 0 = conforms). Sema is the source of truth, so this — not a gwta snapshot — is what
+   proves the gwsproto copies are correct.
+3. **Refactor the scada code so it loads and runs** — every site that reads
+   `CapturePeriodS`/`AsyncCapture`/`AsyncCaptureDelta`/`PollPeriodMs` off a component's `ConfigList`,
+   constructs a component *with* a `ConfigList`, or references `channel.config`. This is the minimum to load
+   the new shapes and keep boot/round-trip green; the deep `H0N` + ~76-call-site sweep stays **pass-two**
+   (hub carried-caveats).
+4. **Build `ops_and_sema_to_dc`** — extend `gw_spaceheat/sema_to_dc.py` to merge `static layout sema ⊕
+   operational-params` into a whole-`channel.config` runtime dc, with the **assembly-coverage** check + the
+   **`PollPeriodMs ≥ MinPollPeriodMs` floor** check. (operational-params carries the capture params now;
+   assembly merges them back so device actors still read them off the dc — see "Why nothing breaks" below.)
+5. **Verify on oak** — `sema_gen(oak) → (static ⊕ ops) → ops_and_sema_to_dc → dc`, diff-and-adopt vs the
+   fixture, and **boot it in sim** (`sim_boot`) — the behavioral gate, not byte-equality.
+
+**Within the pass, after the core boots:** define `cop.curve` + `heating.curve`, extend
+`gw.house0.operational.params` (a new version) with the control/optimization fields, and migrate the rest
+(`SystemMode`, criticality, thermal-mass, FLO knobs) out of `actors/config.py` + the static layout.
 Forward-only throughout (no `dc_to_sema`).
 
 ## The artifact — one layout-typed type, a collection of sub-types

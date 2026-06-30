@@ -10,13 +10,21 @@ Status: Accepted · Pass 1 · Updated 2026-06-29 · Linear: OPS-407
 ## Working method — sema is the source of truth
 
 For all three mutating layout types (`gw.nolan.layout`, `gw.house0.layout`, `gw1.simple.sim.layout`)
-the loop is: **(1)** edit the layout type in sema (definition yaml + registry; `build_indexes.sh` +
-`regenerate_runtime.py`; `pytest`); **(2)** snapshot to gwta (`sema/build_gwta_snapshot.sh` does
-prepare → remap → build → copy-to-gwta); **(3)** hand-change the gwsproto class to match
-(`named_types/`); **(4)** run the boot / round-trip. Local class names are short — `House0Layout`,
-`SimpleSimLayout`, `NolanLayout` (via the snapshot `local_names.yaml`). gwsproto carries **one version
-per type at a time** (the current replaces the prior; no retained `XxxNNN` classes the way sema keeps
-them). Immutability tracks **pushed-to-GitHub** (unpushed sema words are mutable in place).
+the loop is: **(1)** edit the type in sema (definition yaml + registry; `build_indexes.sh` +
+`regenerate_runtime.py`; `pytest`); **(2)** **hand-rewrite the matching gwsproto named-type**
+(`named_types/`) to mirror the sema change — gwsproto types are written **by hand**, not generated from a
+snapshot; **(3)** **validate the hand-written type against the sema CLI** — serialize an instance and run
+`sema validate <payload.json>`, which decodes it through the **canonical sema runtime** (fields, property
+formats, axioms, version; exit 0 = conforms). Sema is the source of truth, so `sema validate` — not any
+generated copy — is what proves the gwsproto type is correct; **(4)** run the scada boot / round-trip.
+
+**gwta is a separate consumer, not a step in this loop.** `sema/build_gwta_snapshot.sh` builds a
+*restricted snapshot* for gridworks-terminalasset; it does **not** feed gwsproto and is **not** how the
+gwsproto types are produced or checked. Do not reach for gwta when updating gwsproto.
+
+gwsproto uses short local class names (`House0Layout`, `SimpleSimLayout`, `NolanLayout`), and carries **one
+version per type at a time** (the current replaces the prior; no retained `XxxNNN` classes the way sema
+keeps them). Immutability tracks **pushed-to-GitHub** (unpushed sema words are mutable in place).
 
 ## Field reality
 
