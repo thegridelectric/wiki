@@ -12,6 +12,26 @@ Newest at the top.
 
 ---
 
+## 2026-06-29 — Add capture.tuning/000 (per-channel operational capture tuning) (`c57df6e`)
+
+**What:** new versioned type word `capture.tuning/000` (`literal`, owner
+gridworks-energy): `ChannelName` + `CapturePeriodS` + `AsyncCapture` +
+optional `AsyncCaptureDelta` + optional `PollPeriodMs`; one axiom
+`CaptureAndPollingConsistency` (a: if `PollPeriodMs`, `CapturePeriodS`×1000 >
+`PollPeriodMs`; b: when sub-10×, must be an integer multiple) — moved here from
+`dfr.config`'s axiom 1, reshaped conditional on the now-optional `PollPeriodMs`.
+Registry entry + `check_axiom_1` runtime template + regen; `metadata.last_updated`
+bumped to 2026-06-29T19:40:00Z. Suite green (241).
+
+**Why:** first word of the hardware-layout-pass-one operational-params reshape
+(OPS-407). The per-channel capture params are *operational*, not topology — a
+channel's poll/report cadence changes without rewiring — so they leave the static
+`channel.config` family and live in operational-params as this per-channel
+sub-type. The hardware floor stays on the device type (`MinPollPeriodMs`); the
+`PollPeriodMs ≥ MinPollPeriodMs` check is an assembly-time concern
+(`ops_and_sema_to_dc`), not an axiom here. Next: strip the capture params from the
+specialty `*.channel.config` types and remove the bare `channel.config` base.
+
 ## 2026-06-29 — Release g.node.reparent.cmd + g.node.topology.broadcast (draft → released) (`7743882`)
 
 **What:** flipped both words from draft to released — `$id` and registry

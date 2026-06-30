@@ -12,6 +12,37 @@ Newest at the top.
 
 ---
 
+## 2026-06-29 — Add rabbit transport adapter (GnrRabbit) (`1850f90`)
+
+**What (planned):** `src/gnr/gnr_rabbit.py` — `GnrRabbit`, a thin gwbase
+`Orchestrator` (transport class `GridNodeRegistry`) wrapping `AuthoritySource`:
+`process_message` decodes a `g.node.reparent.cmd`, calls `apply_reparent`, and
+broadcasts the resulting `g.node.topology.broadcast` on the registry's mic
+exchange. Added `gridworks-base` as a dependency (editable path to the sibling
+`../gridworks-base` so it carries the new `GridNodeRegistry` class).
+
+**Why:** the design's rabbit adapter — one of the two thin transports over the
+handler core (build step 5). First cut is the write loop (command in → broadcast
+out); the read request/reply surface lands with its Sema request types. **Verified
+so far:** imports + constructs against the branched gwbase; the live boot-and-
+broadcast proof is harness Layer 2 (next). The read surface + the live Layer-2
+experiment are the remaining step-5/6 work.
+
+## 2026-06-29 — Dev-universe seed (mirror the fleet into d1) (`fcefa9d`)
+
+**What (planned):** `src/gnr/dev_universe.py` — `build_dev_universe()` /
+`seed_dev_universe(session)`: the copper-backbone parent chain
+(`d1` · `d1.isone` MM · `d1.isone.me` CN · `d1.isone.me.versant` CN ·
+`d1.isone.me.versant.keene` MM) plus each deployed home's LTN/Scada/TerminalAsset
+read from sibling `tlayouts/output/*.uploaded.json`, re-aliased `hw1 → d1`, with
+fresh GNodeIds and a shared placeholder PositionPoint, seeded with covering edges.
+The `fir` layout lacks an LTN block, so its LTN alias is derived from the Scada
+alias. Path overridable via `GNR_TLAYOUTS_DIR`.
+
+**Why:** the dev-universe substrate for the harness (test-harness spoke) — a
+production-shaped registry that never touches real money. **Verified:** seeds a
+clean `validate_registry` against live Postgres.
+
 ## 2026-06-29 — DB-free unit tests + pytest setup (`99ca7e8`)
 
 **What (planned):** added `pytest` (dev group) + `[tool.pytest.ini_options]`

@@ -12,7 +12,21 @@ Newest at the top.
 
 ---
 
-## 2026-06-11 — README doc on MQTT bridge tap (`e1a5fdf`)
+## 2026-06-29 — Add GridNodeRegistry transport class + broker exchanges (`<pending>`) <!-- pending commit -->
+
+**What (planned):** added `TransportClass.GridNodeRegistry` + `RoutingClass.gnr`
+(+ the map entry), opted it into `topology.AMQP_ACTOR_CLASSES` (so it gets
+`gnr_tx`/`gnrmic_tx`), and added the `MarketMaker ⇄ GridNodeRegistry` routing
+edges (a MarketMaker sends the re-parent command and gets the reply). Regenerated
+the committed `rabbit/rabbitconfig/{dev,prod}_definitions.json` and updated
+`tests/test_topology.py`'s actor-class assertion. Bumped the package version
+`0.5.2 → 0.5.3` (additive, backward-compatible) for the PyPI release.
+
+**Why:** the grid-node-registry needs a routable identity on the rabbit fabric so
+FIS / a MarketMaker can reach it (OPS-419). `TransportClass` is deliberately not a
+Sema enum — transport routing is decoupled from message decoding. **Verified:**
+`pytest` green (60); `gnr_tx`/`gnrmic_tx` render in the definitions and were
+imported live into `gw-dev-rabbit`.
 
 **What:** README "Dev Rabbit Broker" — note that `gwbase.topology` bridges the
 TimeCoordinator publish exchange to the MQTT plugin's `amq.topic` (the `rjb.#`
