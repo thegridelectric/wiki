@@ -61,13 +61,14 @@ mTLS+FIS auth work — it has to exist before FIS can enforce GNode identity.
    the rabbit adapter `gnr.gnr_rabbit.GnrRabbit` (gwbase `Orchestrator`, transport
    class **`GridNodeRegistry`** published in gridworks-base **0.5.3** with its
    `gnr_tx`/`gnrmic_tx` exchanges) — decodes `g.node.reparent.cmd` →
-   `apply_reparent` → broadcasts `g.node.topology.broadcast`. **▶ Remaining:** the
-   read request/reply Sema types + handlers (look up a GNode by `alias`/`GNodeId`,
+   `apply_reparent` → broadcasts `g.node.topology.broadcast`. The live Layer-2 proof
+   of this rabbit loop is **done** (step 6 harness). **▶ Remaining:** the read
+   request/reply Sema types + handlers (look up a GNode by `alias`/`GNodeId`,
    **assert a `GNodeId` is `Active`**, fetch parent/children edges — pin the
-   contract with FIS, OPS-422), the thin **FastAPI façade**, and the live Layer-2
-   proof of the rabbit loop (step 6 harness).
-6. **◐ Tests + CI** — the dev-universe layered harness; see
-   [`test-harness.md`](test-harness.md).
+   contract with FIS, OPS-422), and the thin **FastAPI façade**.
+6. **◐ Tests + CI** — the dev-universe layered harness is **done** (all three
+   layers green; see [`test-harness.md`](test-harness.md)); **CI wiring remains**
+   (Layer 0 always, the integration layers behind docker).
 7. **Deploy.** Where it runs (alongside FIS), how FIS reaches the API, `.env` /
    secrets, running Alembic on deploy.
 

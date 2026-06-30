@@ -12,6 +12,26 @@ Newest at the top.
 
 ---
 
+## 2026-06-30 — Harness Layer 2: the rabbit re-parent loop over a real broker <!-- pending commit -->
+
+**What (planned):** added `tests/test_layer2_rabbit.py` (the EDD experiment — boot
+`GnrRabbit` + a MarketMaker `Orchestrator` stub on a real RabbitMQ, seed the dev
+universe into a real Postgres, publish a `g.node.reparent.cmd` **as a MarketMaker**,
+and assert the `g.node.topology.broadcast` returns to a real subscriber **and** the
+DB reflects the recursive beech-subtree rewrite). Extended `tests/conftest.py` with
+the `rabbit_url` fixture (testcontainers `rabbitmq:3.13` by default; `GNR_TEST_RABBIT_URL`
+opt-in; self-skip) and an autouse XDG-under-tmp redirect so the gwbase actors' loggers
+stay out of `$HOME`. Added the `rabbitmq` testcontainers extra. The test provisions
+the gwbase broker fabric from `gwbase.topology` (the `MarketMaker ⇄ GridNodeRegistry`
+routing edges + the `gnr_tx`/`gnrmic_tx` pair are already in 0.5.3).
+
+**Why:** the test-harness spoke's Layer 2 — the experiment that proves the whole
+step-5 rabbit write loop end to end against reality (a real broker + the atomic
+recursive subtree rewrite, the failure mode in-process mocks can't see). **Verified:**
+green on a testcontainers RabbitMQ (~6.7s) and again via the `GNR_TEST_RABBIT_URL`
+opt-in against the shared `gw-dev-rabbit` on its `d1__1` vhost (~0.55s); full suite
+22 passed, unit-only deselects the 5 integration tests.
+
 ## 2026-06-30 — Harness Layer 1: AuthoritySource against a real Postgres (`7023969`)
 
 **What:** added `tests/conftest.py` (the harness Postgres fixtures —

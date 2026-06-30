@@ -284,15 +284,18 @@ unchanged). **Build step 5 (handler core done):** `gnr.db.authority` — the
 (the atomic re-parent — recursive subtree alias rewrite + edge retire/create +
 ledger claims + `validate_registry`, one transaction, returns a
 `GNodeTopologyBroadcast`). Proven against live Postgres. The rabbit adapter
-`GnrRabbit` (the write loop) also exists. **Harness (build step 6):** Layer 0 (the
-DB-free unit tier) and **Layer 1** (`AuthoritySource` against a real Postgres) are
-green — `tests/conftest.py` provisions the Postgres (testcontainers `postgres:16`
-by default; `GNR_TEST_PG_URL` opt-in for an already-running instance; self-skip
-otherwise), and `tests/test_layer1_postgres.py` proves the dev-universe seed loads
-`validate_registry`-clean, reads resolve, and a beech-home re-parent rewrites its
-subtree (aliases + edges + ledger) atomically. **Not yet:** edge change-history
-(status-history folds into the lifecycle SM; edge-history is best a projection of
-the step-5 command log), the read request/reply Sema types + FastAPI façade, the
-explicit re-parent alias-collision pre-check (today it aborts atomically via the
-ledger mid-rewrite), and **Layer 2** (the rabbit loop over a real broker — the EDD
-experiment that moves a spoke to Verified).
+`GnrRabbit` (the write loop) also exists. **Harness (build step 6) — all three
+layers green:** `tests/conftest.py` provisions the infra (testcontainers
+`postgres:16` + `rabbitmq:3.13` by default; `GNR_TEST_PG_URL` / `GNR_TEST_RABBIT_URL`
+opt-ins for already-running instances; self-skip otherwise). Layer 0 (DB-free unit
+tier), Layer 1 (`tests/test_layer1_postgres.py` — `AuthoritySource` against a real
+Postgres: seed loads `validate_registry`-clean, reads resolve, a beech-home re-parent
+rewrites its subtree atomically), and **Layer 2** (`tests/test_layer2_rabbit.py` —
+the EDD experiment: `GnrRabbit` + a MarketMaker stub on a real RabbitMQ; a published
+`g.node.reparent.cmd` yields the `g.node.topology.broadcast` to a real subscriber and
+the DB reflects the rewrite). Proven on testcontainers and against `gw-dev-rabbit` +
+the dev Postgres. **Not yet:** CI wiring (run Layer 0 always, integration behind
+docker), edge change-history (status-history folds into the lifecycle SM; edge-history
+is best a projection of the step-5 command log), the read request/reply Sema types +
+FastAPI façade, and the explicit re-parent alias-collision pre-check (today it aborts
+atomically via the ledger mid-rewrite).

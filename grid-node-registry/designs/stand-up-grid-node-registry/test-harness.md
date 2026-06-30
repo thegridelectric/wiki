@@ -15,23 +15,33 @@ build-out; this spoke is where confidence comes from an experiment, so its bar i
 > read + re-parent surface over rabbit + Postgres. Universes are defined in
 > [`../../executor/primary.md`](../../executor/primary.md) "Universes".
 
-**▶ Do this next — the Layer-2 live proof (the EDD experiment).** Layers 0 and 1
-are done: Layer 0 (the DB-free unit tests), the dev-universe **seed**
-(`gnr.dev_universe.seed_dev_universe`, loads `validate_registry`-clean), and now
-Layer 1 — `tests/test_layer1_postgres.py` exercises `PostgresAuthority` against a
-real Postgres (reads resolve; a beech-home re-parent rewrites its subtree —
-aliases + edges + ledger — atomically and leaves the registry valid; a generated-
-alias self-collision aborts the whole mutation). The harness Postgres comes from
-`tests/conftest.py`: `testcontainers` `postgres:16` by default, an already-running
-Postgres via `GNR_TEST_PG_URL` (e.g. the dev-compose on 5435) for a fast local
-loop, self-skip when neither is available. The rabbit adapter `GnrRabbit` exists.
+**All three layers are green — the EDD experiment passed.** The harness boots the
+real registry over a real broker against a real Postgres and proves the re-parent
+loop end to end. The remaining harness work is **CI** (run Layer 0 always, the
+integration layers behind docker); after that this spoke is complete and the design
+returns to the hub's build order (the read request/reply surface + FastAPI façade,
+then deploy).
 
-The next witnessable step: an `integration`-marked **Layer-2** test that boots
-`GnrRabbit` on a `testcontainers` RabbitMQ (or `gw-dev-rabbit`), seeds the dev
-universe into Postgres, publishes a `g.node.reparent.cmd` **as a MarketMaker**,
-and asserts the `g.node.topology.broadcast` returns **and** the DB reflects the
-recursive alias rewrite. That single experiment proves the whole step-5 rabbit
-loop end to end and moves a spoke to Verified.
+What landed:
+
+- **Layer 0** — the DB-free unit tests (naming, class-hierarchy, the pure recursive
+  re-parent rewrite).
+- **Layer 1** (`tests/test_layer1_postgres.py`) — `PostgresAuthority` against a real
+  Postgres: reads resolve; a beech-home re-parent rewrites its subtree (aliases +
+  edges + ledger) atomically and leaves the registry valid; a generated-alias
+  self-collision aborts the whole mutation.
+- **Layer 2** (`tests/test_layer2_rabbit.py`) — the experiment: `GnrRabbit` + a
+  MarketMaker `Orchestrator` stub on a real RabbitMQ; the MarketMaker publishes a
+  `g.node.reparent.cmd`, the fabric forwards it to `gnr_tx`, the registry applies the
+  atomic re-parent, and its `g.node.topology.broadcast` returns to a real subscriber
+  while the DB reflects the rewrite.
+
+Infra is in `tests/conftest.py`: `testcontainers` (`postgres:16` + `rabbitmq:3.13`)
+by default, an already-running Postgres/broker via `GNR_TEST_PG_URL` /
+`GNR_TEST_RABBIT_URL` (e.g. the dev-compose Postgres on 5435 and `gw-dev-rabbit` on
+`d1__1`) for a fast local loop, self-skip when neither is available. The Layer-2 test
+provisions the gwbase fabric from `gwbase.topology` (the `MarketMaker ⇄
+GridNodeRegistry` routing edges + `gnr_tx`/`gnrmic_tx` ship in gridworks-base 0.5.3).
 
 ## Why a dev universe (not mocks)
 
@@ -94,9 +104,9 @@ Pattern follows the gridworks-journalkeeper layered-harness approach (`unit` vs
   makes the right check fail.
 - ✅ Layer 1: the dev-universe seed loads `validate_registry`-clean; a re-parent on a
   mirrored home rewrites its subtree and leaves the registry valid.
-- Layer 2: a read request over the real broker returns the right GNode; a
-  `g.node.reparent.cmd` yields the matching `g.node.topology.broadcast` and the DB
-  reflects the rewrite.
+- ✅ Layer 2: a `g.node.reparent.cmd` over the real broker yields the matching
+  `g.node.topology.broadcast` and the DB reflects the rewrite. (The read
+  request/reply over rabbit lands with the read Sema types — hub build step 5.)
 
 ## Notes
 
