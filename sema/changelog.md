@@ -12,6 +12,22 @@ Newest at the top.
 
 ---
 
+## 2026-06-30 — Add gw.house0.operational.params/000 (the operational-params artifact) (`41e0a12`)
+
+**What:** new versioned type `gw.house0.operational.params/000` (`literal`, owner gridworks-energy):
+`GNodes` (a `List[g.node.gt/004]` — the home identity, **mirroring the hardware layout**) +
+`CaptureTuningList` (a `List[capture.tuning/000]`); one axiom `CaptureTuningChannelUniqueness` (ChannelName
+unique across the list). Registry entry + `check_axiom_1` template + regen; `metadata.last_updated` →
+2026-06-30T22:55:00Z. Added to the runtime-validation allowlist. Suite green (264).
+
+**Why:** hardware-layout-pass-one (OPS-407). The per-channel capture params left the static layout (the
+channel-config family strip, `543ff2c`); this type is their **authored home** — the third SCADA artifact
+alongside deployment config and the static layout. Pass-one scope is `CaptureTuningList` only (the control
+/ optimization sub-types — `cop.curve`, `heating.curve`, mode, criticality — land in a later version when
+those fields leave config). It carries the layout's `GNodes` so the two pair unambiguously, and its
+`extended_description` spells out the **TerminalAsset-vs-Scada** distinction (the asset itself vs. the GNode
+that controls it — a known point of confusion). Next: the `ops_and_sema_to_dc` assembly + the oak boot.
+
 ## 2026-06-30 — Drop ConfigList from bare-base components; orphan channel.config (`0507d3a`)
 
 **What:** removed the `ConfigList` field — and its `required` entry, example entry, `channel.config:001`
