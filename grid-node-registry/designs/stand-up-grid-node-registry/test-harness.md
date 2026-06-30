@@ -1,6 +1,6 @@
 # Test harness — a dev-universe layered harness (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-06-29
+Status: Draft · Pass 0 · Updated 2026-06-30
 
 **EDD: yes** the harness *is* the verification — the registry's behaviour is
 proven by a booted gnr talking real Sema over a real broker against a real
@@ -14,6 +14,17 @@ build-out; this spoke is where confidence comes from an experiment, so its bar i
 > the production systems and the parent GNodes they require, then exercises the
 > read + re-parent surface over rabbit + Postgres. Universes are defined in
 > [`../../executor/primary.md`](../../executor/primary.md) "Universes".
+
+**▶ Do this next — the Layer-2 live proof (the EDD experiment).** Layer 0 (the
+DB-free unit tests) and the dev-universe **seed** (`gnr.dev_universe.seed_dev_universe`,
+loads `validate_registry`-clean) are done, and the rabbit adapter `GnrRabbit`
+exists. The next witnessable step: an `integration`-marked test that boots
+`GnrRabbit` on `gw-dev-rabbit` (or a `testcontainers` broker), seeds the dev
+universe into Postgres, publishes a `g.node.reparent.cmd` **as a MarketMaker**,
+and asserts the `g.node.topology.broadcast` returns **and** the DB reflects the
+recursive alias rewrite. That single experiment proves the whole step-5 rabbit
+loop end to end. (Layer 1 — `AuthoritySource` reads + re-parent against the seeded
+Postgres — can land alongside it as the cheaper, broker-free integration tier.)
 
 ## Why a dev universe (not mocks)
 

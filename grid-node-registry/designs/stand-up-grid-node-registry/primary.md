@@ -1,6 +1,6 @@
 # Stand up grid node registry
 
-Status: Accepted · Pass 1 · Updated 2026-06-28 · Linear: OPS-419
+Status: Accepted · Pass 1 · Updated 2026-06-30 · Linear: OPS-419
 
 **EDD: no** build-out — verified by the suite plus a deployed registry that
 round-trips GNode I/O and answers FIS's validity queries; not a standalone
@@ -54,18 +54,18 @@ mTLS+FIS auth work — it has to exist before FIS can enforce GNode identity.
    persists; illegal move rejected, row unchanged). The step-5 handlers call
    these before applying a status/class change.
 5. **◐ IN PROGRESS — Egress: handler core + two transports** (see *Write model &
-   egress*). The two Sema words are **authored (draft) + validated** in `sema` on
-   `jm/gnr-commands` — `g.node.reparent.cmd/000` (NewNode + MovedChildGNodeIds) and
-   `g.node.topology.broadcast/000` (UpdatedNodes), extremely-simple v0 (edge set
-   deferred), `pytest` green. **▶ Next:** vendor them into the gnr snapshot
-   (round-trip proof), then build the transport-agnostic handler core. A
-   transport-agnostic handler core behind the `AuthoritySource` interface
-   (read / assert-active / fetch-edges / apply the signed re-parent command),
-   exposed over **rabbit (primary)** request-reply + a change broadcast and a thin
-   **FastAPI façade** for non-rabbit consumers. Minimum read surface: look up a
-   GNode by `alias` or `GNodeId`; **assert a `GNodeId` is `Active`**;
-   `get gnode by {GNodeId}`; fetch parent/children edges. Pin this contract with FIS
-   (OPS-422) — the handshake the auth path depends on; FIS reads it over rabbit.
+   egress*). **Done:** the two Sema words (`g.node.reparent.cmd/000`,
+   `g.node.topology.broadcast/000`) released + vendored; the transport-agnostic
+   `gnr.db.authority.AuthoritySource` handler core (read / assert-active /
+   fetch-edges / atomic recursive re-parent), proven against live Postgres; and
+   the rabbit adapter `gnr.gnr_rabbit.GnrRabbit` (gwbase `Orchestrator`, transport
+   class **`GridNodeRegistry`** published in gridworks-base **0.5.3** with its
+   `gnr_tx`/`gnrmic_tx` exchanges) — decodes `g.node.reparent.cmd` →
+   `apply_reparent` → broadcasts `g.node.topology.broadcast`. **▶ Remaining:** the
+   read request/reply Sema types + handlers (look up a GNode by `alias`/`GNodeId`,
+   **assert a `GNodeId` is `Active`**, fetch parent/children edges — pin the
+   contract with FIS, OPS-422), the thin **FastAPI façade**, and the live Layer-2
+   proof of the rabbit loop (step 6 harness).
 6. **◐ Tests + CI** — the dev-universe layered harness; see
    [`test-harness.md`](test-harness.md).
 7. **Deploy.** Where it runs (alongside FIS), how FIS reaches the API, `.env` /

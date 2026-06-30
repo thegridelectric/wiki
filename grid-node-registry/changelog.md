@@ -12,6 +12,16 @@ Newest at the top.
 
 ---
 
+## 2026-06-30 — Depend on published gridworks-base 0.5.3 (drop editable path) (`<pending>`) <!-- pending commit -->
+
+**What (planned):** in `pyproject.toml`, `gridworks-base` → `gridworks-base>=0.5.3`
+and removed the `[tool.uv.sources]` editable path to `../gridworks-base`; relocked.
+
+**Why:** the `GridNodeRegistry` transport class merged to gridworks-base `dev`/`main`
+(PR #159) and published to PyPI as **0.5.3**, so gnr no longer needs the local
+editable checkout — it must not ship depending on a path. **Verified:** `uv sync`
+resolves 0.5.3 from PyPI, `GnrRabbit` imports, unit suite green (17).
+
 ## 2026-06-29 — Add rabbit transport adapter (GnrRabbit) (`1850f90`)
 
 **What (planned):** `src/gnr/gnr_rabbit.py` — `GnrRabbit`, a thin gwbase
