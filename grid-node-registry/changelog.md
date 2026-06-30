@@ -12,6 +12,25 @@ Newest at the top.
 
 ---
 
+## 2026-06-30 — Harness Layer 1: AuthoritySource against a real Postgres (`7023969`)
+
+**What:** added `tests/conftest.py` (the harness Postgres fixtures —
+testcontainers `postgres:16` by default, an already-running Postgres via
+`GNR_TEST_PG_URL` opt-in, self-skip when neither is available; schema via
+`Base.metadata.create_all`) and `tests/test_layer1_postgres.py` (the `integration`
+tier: seed the `d1` dev universe, assert `validate_registry`-clean, reads resolve
+through `PostgresAuthority`, a re-parent of the beech home rewrites its whole
+subtree — aliases + edges + ledger — atomically and leaves the registry valid,
+and a generated-alias self-collision aborts the whole mutation). Added
+`testcontainers[postgres]` to the dev group.
+
+**Why:** the test-harness spoke's Layer 1 — the cheap, broker-free integration
+tier beneath the Layer-2 rabbit experiment. Proves the seeded `AuthoritySource`
+re-parent against a real Postgres (mocks pass where the atomic recursive subtree
+rewrite fails). **Verified:** 4 integration tests green on a testcontainers
+Postgres and again via the `GNR_TEST_PG_URL` opt-in against the dev-compose
+Postgres on 5435; full suite 21 passed, unit-only run deselects the 4.
+
 ## 2026-06-30 — Depend on published gridworks-base 0.5.3 (drop editable path) (`39ffcd5`)
 
 **What (planned):** in `pyproject.toml`, `gridworks-base` → `gridworks-base>=0.5.3`

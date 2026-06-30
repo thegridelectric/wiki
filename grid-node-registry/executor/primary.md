@@ -283,7 +283,16 @@ unchanged). **Build step 5 (handler core done):** `gnr.db.authority` — the
 `get_by_id`/`get_by_alias`, `assert_active`, `fetch_edges`, and `apply_reparent`
 (the atomic re-parent — recursive subtree alias rewrite + edge retire/create +
 ledger claims + `validate_registry`, one transaction, returns a
-`GNodeTopologyBroadcast`). Proven against live Postgres. **Not yet:** edge
-change-history (status-history folds into the lifecycle SM; edge-history is best a
-projection of the step-5 command log), the two thin transport adapters over the
-core (rabbit consumer + FastAPI façade), or tests/CI.
+`GNodeTopologyBroadcast`). Proven against live Postgres. The rabbit adapter
+`GnrRabbit` (the write loop) also exists. **Harness (build step 6):** Layer 0 (the
+DB-free unit tier) and **Layer 1** (`AuthoritySource` against a real Postgres) are
+green — `tests/conftest.py` provisions the Postgres (testcontainers `postgres:16`
+by default; `GNR_TEST_PG_URL` opt-in for an already-running instance; self-skip
+otherwise), and `tests/test_layer1_postgres.py` proves the dev-universe seed loads
+`validate_registry`-clean, reads resolve, and a beech-home re-parent rewrites its
+subtree (aliases + edges + ledger) atomically. **Not yet:** edge change-history
+(status-history folds into the lifecycle SM; edge-history is best a projection of
+the step-5 command log), the read request/reply Sema types + FastAPI façade, the
+explicit re-parent alias-collision pre-check (today it aborts atomically via the
+ledger mid-rewrite), and **Layer 2** (the rabbit loop over a real broker — the EDD
+experiment that moves a spoke to Verified).

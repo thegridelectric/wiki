@@ -15,16 +15,23 @@ build-out; this spoke is where confidence comes from an experiment, so its bar i
 > read + re-parent surface over rabbit + Postgres. Universes are defined in
 > [`../../executor/primary.md`](../../executor/primary.md) "Universes".
 
-**▶ Do this next — the Layer-2 live proof (the EDD experiment).** Layer 0 (the
-DB-free unit tests) and the dev-universe **seed** (`gnr.dev_universe.seed_dev_universe`,
-loads `validate_registry`-clean) are done, and the rabbit adapter `GnrRabbit`
-exists. The next witnessable step: an `integration`-marked test that boots
-`GnrRabbit` on `gw-dev-rabbit` (or a `testcontainers` broker), seeds the dev
+**▶ Do this next — the Layer-2 live proof (the EDD experiment).** Layers 0 and 1
+are done: Layer 0 (the DB-free unit tests), the dev-universe **seed**
+(`gnr.dev_universe.seed_dev_universe`, loads `validate_registry`-clean), and now
+Layer 1 — `tests/test_layer1_postgres.py` exercises `PostgresAuthority` against a
+real Postgres (reads resolve; a beech-home re-parent rewrites its subtree —
+aliases + edges + ledger — atomically and leaves the registry valid; a generated-
+alias self-collision aborts the whole mutation). The harness Postgres comes from
+`tests/conftest.py`: `testcontainers` `postgres:16` by default, an already-running
+Postgres via `GNR_TEST_PG_URL` (e.g. the dev-compose on 5435) for a fast local
+loop, self-skip when neither is available. The rabbit adapter `GnrRabbit` exists.
+
+The next witnessable step: an `integration`-marked **Layer-2** test that boots
+`GnrRabbit` on a `testcontainers` RabbitMQ (or `gw-dev-rabbit`), seeds the dev
 universe into Postgres, publishes a `g.node.reparent.cmd` **as a MarketMaker**,
 and asserts the `g.node.topology.broadcast` returns **and** the DB reflects the
 recursive alias rewrite. That single experiment proves the whole step-5 rabbit
-loop end to end. (Layer 1 — `AuthoritySource` reads + re-parent against the seeded
-Postgres — can land alongside it as the cheaper, broker-free integration tier.)
+loop end to end and moves a spoke to Verified.
 
 ## Why a dev universe (not mocks)
 
@@ -83,9 +90,9 @@ Pattern follows the gridworks-journalkeeper layered-harness approach (`unit` vs
 
 ## Done-when
 
-- Layer 0 green for the SMs + structural checks; deliberately breaking an invariant
+- ✅ Layer 0 green for the SMs + structural checks; deliberately breaking an invariant
   makes the right check fail.
-- Layer 1: the dev-universe seed loads `validate_registry`-clean; a re-parent on a
+- ✅ Layer 1: the dev-universe seed loads `validate_registry`-clean; a re-parent on a
   mirrored home rewrites its subtree and leaves the registry valid.
 - Layer 2: a read request over the real broker returns the right GNode; a
   `g.node.reparent.cmd` yields the matching `g.node.topology.broadcast` and the DB
@@ -97,5 +104,11 @@ Pattern follows the gridworks-journalkeeper layered-harness approach (`unit` vs
   not import scada code.
 - Keep the harness re-runnable; it is the evidence behind any `Verified` stamp on
   the registry (per EDD).
+- **OFI (surfaced by Layer 1):** the self-collision case currently aborts via
+  `claim_alias` raising `AliasAlreadyOwned` *mid-rewrite* (still atomic — the whole
+  transaction rolls back). The executor calls for an explicit **pre-check** of the
+  full target alias set against the ledger before mutating, failing with a clear
+  alias-collision error rather than a raw mid-rewrite constraint violation. Small,
+  not gating Layer 2.
 - The production universe token (`w…`) is not yet fixed; the dev universe only ever
   uses `d1`, so the harness is unaffected by that decision.
