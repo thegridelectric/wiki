@@ -42,13 +42,16 @@ full inventory + the artifact + assembly are built **this pass** in the
 rewiring test — swapping them *is* rewiring): `hp_model` and `hp_max_kw_el` (HP nameplate — already
 `# TODO: move to layout`), and `whitewire_threshold_watts`. They are physical specs, not tunable knobs.
 
-## Consequence — the `channel.config` base type is **removed**
+## Consequence — the `channel.config` base type is **orphaned** (unreferenced; not deleted)
 
 Once report tuning leaves, a bare `channel.config` would be **just `ChannelName`** — and a bare
 `{ChannelName}` ConfigList is information-free redundancy (the channel→component binding is already carried
 by `DataChannel.CapturedByNodeName`). So the endpoint is not "collapse the base to `ChannelName`" but
-**delete the base type entirely**. The only thing that earns a place in a component's `ConfigList` is the
-**specialty family types** — and they keep their *hardware-binding* fields, not tuning. E.g.
+**leave nothing referencing the base**. (`channel.config/000` is **published** — pushed to
+`origin/jm/sim-vocab` — so the *type* SHALL NOT be deleted; immutability forbids removing a published
+version. It is **orphaned** instead: referenced by no component, and necessarily still present in the
+registry — it cannot be removed.)
+The only thing that earns a place in a component's `ConfigList` is the **specialty family types** — and they keep their *hardware-binding* fields, not tuning. E.g.
 `ads.channel.config/001` (unpublished → mutable in place) becomes `ChannelName` + `TerminalBlockIdx` +
 `ThermistorDeviceType` + `DataProcessingMethod/Description`, no capture params.
 
@@ -57,7 +60,8 @@ per-channel hardware binding** (ADS terminal blocks, eGauge registers, thermisto
 with no per-channel binding, the channel→component binding is **solely `DataChannel.CapturedByNodeName`** —
 a bare `{ChannelName}` ConfigList is information-free redundancy and a drift risk (the no-dead-information
 maxim). When all bare-base users are reworked, **nothing references `channel.config` → the base type is
-removed.**
+orphaned** — referenced by nothing, but **not** deleted: `channel.config/000` is published, so immutability
+forbids removing it. It stays in the registry because it must.
 
 **The 9-component drop worklist.** Nine component types currently `$ref` the bare `channel.config` in their
 ConfigList (latest versions). Every one of them keeps its per-channel binding (where any) at the

@@ -12,6 +12,25 @@ Newest at the top.
 
 ---
 
+## 2026-06-30 — Strip capture params from the channel-config family (→ capture.tuning) (`543ff2c`)
+
+**What:** removed `CapturePeriodS` / `AsyncCapture` / `AsyncCaptureDelta` / `PollPeriodMs` from the 5
+specialty channel-config types **in place** (unpushed → mutable): `ads.channel.config/001`,
+`dfr.config/001`, `electric.meter.channel.config/001`, `i2c.thermistor.channel.config/002`,
+`relay.actor.config/004` — leaving `ChannelName` + hardware-binding only. `dfr`'s
+`CaptureAndPollingConsistency` axiom dropped (now on `capture.tuning`); `relay`'s two capture axioms
+dropped and its remaining relay axioms renumbered 1–3. The prev→latest upgrade templates drop the capture
+fields; registry summaries + the `electric.meter` dep (`positive.int`) reconciled. 7 component examples
+shed the stripped fields from their `ConfigList` items. New
+`tests/runtime/test_example_runtime_validation.py` runtime-decodes a growing allowlist of examples (closes
+the JSON-only gap). Suite green (254).
+
+**Why:** hardware-layout-pass-one operational-params reshape (OPS-407). Per-channel capture params are
+operational, not topology, so they leave the static channel-config family for operational-params
+(`capture.tuning`, `c57df6e`); the specialty types keep only per-channel hardware binding. Next: drop
+`ConfigList` from the 9 bare-base components and **orphan** `channel.config` (`000` is published → cannot
+be deleted, so it stays in the registry, unreferenced).
+
 ## 2026-06-29 — Add capture.tuning/000 (per-channel operational capture tuning) (`c57df6e`)
 
 **What:** new versioned type word `capture.tuning/000` (`literal`, owner
