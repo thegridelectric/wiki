@@ -12,6 +12,29 @@ Newest at the top.
 
 ---
 
+## 2026-06-30 — Add FleetIndexService transport class + registry routing edges; 0.5.4 (`af239fb`)
+
+**What:** added `TransportClass.FleetIndexService` (+ `RoutingClass`
+`"fis"` and the transport↔routing map entry) so FIS is a routable gwbase citizen;
+added `FleetIndexService` to `topology.AMQP_ACTOR_CLASSES` (it gets a `fis_tx`
+consume / `fismic_tx` publish pair) and the two `ROUTING_EDGES`
+`FleetIndexService → GridNodeRegistry` and `GridNodeRegistry → FleetIndexService`;
+regenerated the committed broker definitions (`dev_definitions.json` /
+`prod_definitions.json` gained the `fis_tx`/`fismic_tx` exchanges + the FIS↔gnr
+bindings); updated the `test_topology` expected class set; bumped the version to
+**0.5.4** and relocked.
+
+**Why:** the grid-node-registry standup (OPS-419) needs FIS to read the registry
+over **rabbit request-reply as a gwbase citizen** — which requires FIS to be a
+class in the closed transport taxonomy with a consume/publish exchange pair and
+direct-routing edges to/from the registry. Reply addressing is carried by the
+request **envelope's `from_alias`/`from_class`** and correlation is **app-specific**
+(a `request_id` in the Sema payload), so `on_message` continues to drop AMQP
+`reply_to`/`correlation_id` — no `actor_base` change needed. **Verified:** full
+suite 60 passed, incl. the definitions-drift guard (committed JSON matches the
+generator). NB: the running `gw-dev-rabbit` needs a definitions reload to gain the
+new exchanges; tests provision the fabric from `gwbase.topology` directly.
+
 ## 2026-06-30 — Remove dead Optional imports; CI ruff check --no-fix (`de9a582`)
 
 **What (planned):** removed unused `Optional` imports from `actor_base.py`,

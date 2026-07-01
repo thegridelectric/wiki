@@ -278,6 +278,15 @@ may be live (mirror your active-claims Scope). For Karan-style autonomy
 (Claude doing commits/merges with merge-safety guardrails) see
 `working-with-llms.md` "Karan's commit rules" — reference, not active.
 
+**Run the repo's CI entrypoint before suggesting a code-repo commit.** If a
+code repo has a CI script (`ci.sh` or the documented equivalent), run it — the
+**full gate**, not just `pytest`. It typically covers lint (`ruff check`),
+format (`ruff format --check`), and any drift/codegen checks (e.g. gwbase's
+broker-definitions drift gate) that `pytest` alone does not. A green `pytest`
+with a red `ruff` still fails CI. (`gridworks-base/ci.sh` also needs a running
+4.x dev broker on `localhost:5672`.) If the repo has no such script, run its
+tests. This applies to any code-repo cluster before I hand you a commit.
+
 **Never edit or commit locally on a code repo's `dev`/`main`/`master`.**
 Cut a `jm/<topic>` branch first, always. This is **absolute** — enforced by
 two hard-`deny` PreToolUse hooks (no override): `precheck-protected-branch.sh`

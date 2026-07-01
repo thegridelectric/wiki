@@ -12,9 +12,9 @@ Newest at the top.
 
 ---
 
-## 2026-06-30 — Harness Layer 2: the rabbit re-parent loop over a real broker <!-- pending commit -->
+## 2026-06-30 — Harness Layer 2: rabbit re-parent loop over a real broker (the EDD experiment) (`80694ef`)
 
-**What (planned):** added `tests/test_layer2_rabbit.py` (the EDD experiment — boot
+**What:** added `tests/test_layer2_rabbit.py` (the EDD experiment — boot
 `GnrRabbit` + a MarketMaker `Orchestrator` stub on a real RabbitMQ, seed the dev
 universe into a real Postgres, publish a `g.node.reparent.cmd` **as a MarketMaker**,
 and assert the `g.node.topology.broadcast` returns to a real subscriber **and** the
