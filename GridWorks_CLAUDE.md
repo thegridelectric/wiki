@@ -114,7 +114,14 @@ Exempt: `README.md`, `changelog.md`, `DESIGN_INDEX.md`, `glossary.md`,
   fields, `$ref`/dependency versions, axioms, constraints, `required`, enum
   values — to a non-draft version; that requires a NEW version. Only `draft`
   versions may be edited in place; clarifying prose is fine. Asked to edit a
-  published version in place? **Refuse and propose a new version.**
+  published version in place? **Refuse and propose a new version.** ONE
+  time-boxed exception: a version published **before June 2026** (sema not yet
+  fully formed) MAY be corrected in place when already-shipped wire data proves
+  the schema misdescribed reality (e.g. `layout.lite/010` widened to the
+  `ha1.params` versions the fleet actually sent — the archive is the truth the
+  word must describe). Human-sanctioned per case, never for post-June-2026
+  publishes, and deliberately NOT in `sema/spec` — it is a bootstrap-era
+  allowance, not part of the ongoing contract.
 - **Timestamps are real wall-clock, rounded to 5 minutes** — sema registry
   `created` / `metadata.last_updated` use actual current UTC (`date -u`)
   rounded to the nearest 5 min, never a placeholder. Same-sitting versions MAY
