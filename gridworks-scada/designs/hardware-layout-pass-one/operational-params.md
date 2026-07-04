@@ -16,35 +16,40 @@ drop, leaving `channel.config` **orphaned** (not deleted — `000` is published)
 `gw.house0.operational.params/000` (`GNodes` home-identity + `CaptureTuningList`). The behavioral net is in
 place (`sim-run.md` ✅). See the four `wiki/sema/changelog.md` entries (2026-06-30) for exactly what changed.
 
-**The next move is in the `gridworks-scada` repo — make the code work with the reshaped sema types, then
-build the assembly and verify on oak.** Cut the `gridworks-scada` branch off **`jm/spruce-unlimbo`**
-(temporary directive), not `dev`.
+**✅ Steps 1–3 done — the gwsproto types match the reshaped sema and the scada loads/runs**
+(`gridworks-scada` `jm/gwsproto-ops-params`, off `jm/delete-cac-id`, commit `9fe86665`):
+✅ added `CaptureTuning` + `GwHouse0OperationalParams` (both **validate clean through `sema validate`**);
+✅ `ChannelConfig` → `CaptureTuning` as the unified simple-config (`ComponentBase.ConfigList` + 9 bare
+components + every construction site), `channel_config.py` deleted; ✅ removed the two gwsproto-only legacy
+types with no sema counterpart — generic `ComponentGt` (→ `ComponentBase` as decode-fallback/umbrella) and
+dead `RESTPollerComponentGt`; ✅ suite green (115 passed / 3 skipped; the lone failure is a pre-existing
+async-MQTT timing flake). **Approach A holds:** the gwsproto config types are the *assembled runtime* shape,
+so they keep the capture params (filled at assembly) — the ~23 actor read sites are untouched (see "Why
+nothing breaks" below). The 7 live `tests/config` fixtures were field-bumped `channel.config/001` →
+`capture.tuning/000`.
 
-1. **Hand-rewrite the gwsproto named-types to match the reshaped sema.** gwsproto types are written **by
-   hand** (one version per type) — they are **not** generated from a snapshot, and **gwta is not part of
-   this path**. The deltas: the **9 components lose `ConfigList`**; the **5 specialty `*.channel.config`
-   types lose the capture params**; **add `capture.tuning` and `gw.house0.operational.params`**;
-   `channel.config` is gone.
-2. **Validate the hand-written types against the sema CLI** — serialize a gwsproto instance and run
-   `sema validate <payload.json>` (decodes through the **canonical sema runtime**: fields, property formats,
-   axioms, version; exit 0 = conforms). Sema is the source of truth, so this — not a gwta snapshot — is what
-   proves the gwsproto copies are correct.
-3. **Refactor the scada code so it loads and runs** — every site that reads
-   `CapturePeriodS`/`AsyncCapture`/`AsyncCaptureDelta`/`PollPeriodMs` off a component's `ConfigList`,
-   constructs a component *with* a `ConfigList`, or references `channel.config`. This is the minimum to load
-   the new shapes and keep boot/round-trip green; the deep `H0N` + ~76-call-site sweep stays **pass-two**
-   (hub carried-caveats).
-4. **Build `ops_and_sema_to_dc`** — extend `gw_spaceheat/sema_to_dc.py` to merge `static layout sema ⊕
-   operational-params` into a whole-`channel.config` runtime dc, with the **assembly-coverage** check + the
-   **`PollPeriodMs ≥ MinPollPeriodMs` floor** check. (operational-params carries the capture params now;
-   assembly merges them back so device actors still read them off the dc — see "Why nothing breaks" below.)
-5. **Verify on oak** — `sema_gen(oak) → (static ⊕ ops) → ops_and_sema_to_dc → dc`, diff-and-adopt vs the
-   fixture, and **boot it in sim** (`sim_boot`) — the behavioral gate, not byte-equality.
+**▶ The next move is step 4 — build `ops_and_sema_to_dc`.** Extend `gw_spaceheat/sema_to_dc.py` to merge
+`static layout sema ⊕ operational-params` into a whole-`channel.config` runtime dc: for each channel, splice
+the `capture.tuning` params (keyed by `ChannelName`) onto the runtime component `ConfigList` entry. Carry the
+two assembly-only checks — **assembly-coverage** (ops covers every channel the static layout declares) and
+the **`PollPeriodMs ≥ MinPollPeriodMs` floor** (layout owns the floor via the device type; ops owns
+`PollPeriodMs`).
+
+Then **step 5 — verify on oak:** `sema_gen(oak) → (static ⊕ ops) → ops_and_sema_to_dc → dc`, diff-and-adopt
+vs the fixture, and **boot it in sim** (`sim_boot`) — the behavioral gate, not byte-equality.
 
 **Within the pass, after the core boots:** define `cop.curve` + `heating.curve`, extend
 `gw.house0.operational.params` (a new version) with the control/optimization fields, and migrate the rest
 (`SystemMode`, criticality, thermal-mass, FLO knobs) out of `actors/config.py` + the static layout.
 Forward-only throughout (no `dc_to_sema`).
+
+**⏳ Come back to: author initial `operational-params.json` for the whole existing fleet.** Every deployed
+home (oak, elm, fir, beech-sieg, maple, the House0 variants, nolan) needs a **first** `operational-params.json`
+authored as part of this design — the `capture.tuning` list now (per-channel capture params lifted from the
+retiring `channel.config` params), and the control/curve fields once those leave `actors/config.py`. This
+rides the sema gen (`sema_gen` emits **both** the static sema and `operational-params.json` per home), so the
+fleet ops-params are produced by re-authoring, not hand-written JSON. Not started; do it alongside the
+`tests/config/` regeneration in [`gen-pipeline.md`](gen-pipeline.md).
 
 ## The artifact — one layout-typed type, a collection of sub-types
 
@@ -124,6 +129,14 @@ So moving a field here does **not** change the runtime `channel.config` — devi
 `CapturePeriodS` / `AsyncCaptureDelta` / `PollPeriodMs` off their component, because assembly merged them
 back. The split is in **authoring / source-of-truth**. The reshape (`channel.config` → `ChannelName`, base
 removed), the first-pass `operational-params.json`, and the assembly land **together** — no broken interim.
+
+**gwsproto config types are the assembled *runtime* shape, not the authoring shape (decided).** The
+capture-param fields (`CapturePeriodS` / `AsyncCapture` / `AsyncCaptureDelta` / `PollPeriodMs`) **stay on
+the gwsproto `*.channel.config` types** as optional fields; `ops_and_sema_to_dc` populates them per channel
+from `capture.tuning` (keyed by `ChannelName`). The **sema schema** is what strips them from the
+`channel.config` family (authoring source-of-truth = static ⊕ ops), so gwsproto deliberately does **not**
+mirror the stripped sema shape on these fields — it mirrors the runtime. This keeps the ~23 actor read
+sites (`cfg.CapturePeriodS`, `telemetry_config.AsyncCaptureDelta`, `cfg0.PollPeriodMs`, …) **unchanged**.
 Forward-only: no `dc_to_sema` / `dc_to_ops` — the fleet is re-authored via the sema gen, which now emits
 **both** the static sema and `operational-params.json`. A **live LTN update** → re-assemble → actor
 reconfig is the dynamic path (OPS-408's transport drives it).

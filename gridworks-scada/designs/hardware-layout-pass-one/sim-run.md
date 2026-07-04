@@ -1,6 +1,6 @@
-# Minimal House0 sim-run — the safety net (active spoke)
+# Minimal House0 sim-run — the safety net (spoke — done)
 
-Status: Accepted · Pass 1 · Updated 2026-06-29 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-07-04 · Linear: OPS-407
 
 > What this is: the cheapest high-value move in pass one. Before the layout rewrite touches ~76
 > call-sites, stand up a test we don't have today — the scada **boots a House0 layout and runs every
@@ -102,15 +102,22 @@ is iterated in, not for the boot.
   `services.send_threadsafe` / `publish_message` / `add_web_route` / `add_task` to no-ops; `PicoCycler`
   no-ops gracefully with no picos.
 
-## Open / next move
+## Shipped
 
-- **Re-orient (do this next): write the smallest "boots + runs N cycles" script** against `maple.json`
-  (existing fixture, existing `House0Layout`, `is_simulated=True`) **on `gw-dev-rabbit`**, injecting fake
-  readings at the device push-points each cycle and reading `scada._data.latest_channel_values`.
-  **Decided: approach (B)** — bring up the real `ScadaApp` standalone (no LTN parent) pointed at the dev
-  rabbit broker (Rabbit MQTT plugin), so the services + comms are wired the real way; entry via
-  **`ScadaApp.main()`** (mirroring `cli.py run` in `scada_app.py`), **not** the stale
-  `command_line_utils.get_scada`. Requires the `gw-dev-rabbit` container up (creds in
-  `gridworks-scada/.env`).
+All three milestones landed 2026-06-29 (detail in `wiki/gridworks-scada/changelog.md`):
+
+- **`b4623fe1`** — `gw_spaceheat/sim_boot.py`: boots the real `ScadaApp` standalone (approach (B)) on
+  `gw-dev-rabbit` (MQTT 1885), `is_simulated=True`, no LTN → LocalControl, bounded run, reports how
+  many channel values populated. Proven on `maple.json`.
+- **`d8ce5570`** — generic `SimSensorActor` (self-generating `SyncedReadings`, no pico / no faked HTTP)
+  + `sim_layout.py` (swaps the pico-fed sensor actors for `SimSensorActor`s → the simulated house0
+  layout; 55 of 92 channels populate vs 20 with real pico actors).
+- **`822b150c`** — the universe guardrail ([`universe-guardrail.md`](universe-guardrail.md)), with
+  `sim_layout.py` dev-ifying aliases so the sim layout is coherent with the dev broker.
+
+## Still open
+
 - Coordinate with sim-test-environment's `self-faking-actors` work so the two don't duplicate the seam
   — the minimal slice here should be a subset that the fuller spoke later subsumes.
+- The relay-actuation / LocalControl→`hp_boss` "turn on the heat pump" path stays iteration work (the
+  documented fake, above), grown against the running rig.

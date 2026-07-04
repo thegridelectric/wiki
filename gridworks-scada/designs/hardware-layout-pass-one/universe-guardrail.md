@@ -1,6 +1,6 @@
 # Universe guardrail — alias ↔ broker coherence (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-06-29
+Status: Draft · Pass 0 · Updated 2026-07-04
 
 **EDD: no** a boot-time validation guardrail; verified by the scada refusing to boot on a
 universe mismatch (a unit test + the `sim_boot` harness), not a standalone experiment.
@@ -39,11 +39,17 @@ universe_of(host)  = host.split(".")[0].split("-")[0] # hw1-1.electricity.. -> h
                      # localhost is the dev rabbit -> d1
 ```
 
-## The guardrail — alias ↔ broker host (cooperative, ship this pass)
+## The guardrail — alias ↔ broker host (cooperative — SHIPPED `822b150c`)
 
 At boot the scada asserts, for its GNodeAliases, `universe_of(alias) == universe_of(broker_host)`
 (`localhost ⇒ d1`). If they disagree it refuses to boot. This is the check that stops a `d1.*`
 scada landing on the `hw1` broker.
+
+**Shipped 2026-06-29 (`822b150c`):** `gw_spaceheat/universe.py` (`universe_of_alias` /
+`universe_of_host` / `assert_universe_coherence`), wired into `ScadaApp.make_app_for_cli` — the real
+`cli.py run` boot path, deliberately **not** generic construction, so unit tests loading `hw1`
+fixtures on localhost are unaffected. `sim_layout.py` dev-ifies aliases to match. Unit tests cover
+the helpers + the mismatch refusal.
 
 **Why the host is enough.** The broker guarantees its host and vhost encode the same universe
 (infra invariant: `hw1-1.electricity.works` only ever serves `hw1__1`), so the scada — which talks
@@ -77,7 +83,7 @@ hard boundary (defense-in-depth, needed once untrusted publishers exist).
 The layout-internal half — *if any component is `sim.*` then the universe kind ≠ production* — is a
 self-contained **sema layout axiom** (`check_axiom_n`, the layout has both the components and the
 aliases). Add it once the production universe token is fixed; it only fully bites when a `w`
-universe exists. The alias↔host boot check above is the part that ships this pass.
+universe exists. The alias↔host boot check above is the part that shipped this pass.
 
 ## What makes a universe REAL — TaDeed / TaValidator (future)
 

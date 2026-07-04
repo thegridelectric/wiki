@@ -1,6 +1,6 @@
 # Hardware layout — pass one (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-06-29 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-07-04 · Linear: OPS-407
 
 **EDD: yes** — and the verification that *matters* is behavioral, not static. The real bar is a
 House0-replicating simulated terminal asset (the sim plant, [OPS-40](https://linear.app/gridworks/issue/OPS-40);
@@ -66,19 +66,19 @@ the truth oracle. **That is backwards.** Settled direction:
   collapse; do it before the fleet gen files (the shape every gen targets). The LTN live-update transport
   is [OPS-408](https://linear.app/gridworks/issue/OPS-408) (Thomas), the consumer.
 - ✅ **[`sim-run.md`](sim-run.md)** — *done.* The behavioral safety net: the scada boots + runs every
-  device code path on `gw-dev-rabbit` with self-generating `SimSensorActor`s, plus the universe guardrail.
-  Shipped (`sema_to_dc` → `b4623fe1`/`d8ce5570`/`822b150c`); it's the gate the rest of the pass verifies
+  device code path on `gw-dev-rabbit` with self-generating `SimSensorActor`s.
+  Shipped (`b4623fe1`/`d8ce5570`/`822b150c`); it's the gate the rest of the pass verifies
   through. Richer coherent plant stays [OPS-40](https://linear.app/gridworks/issue/OPS-40).
-- **[`code-for-three-layouts.md`](code-for-three-layouts.md)** — *next, with sim-run.* What `gw_spaceheat`
+- **[`code-for-three-layouts.md`](code-for-three-layouts.md)** — What `gw_spaceheat`
   must change to run three layouts: discriminate by `TypeName`, a **command tree per layout**
   (House0 keeps pico-cycler/hp-boss/sieg; simple_sim is minimal, **no pico-cycler**; nolan its own), and
   the on-disk naming answer. The pass-one cut is the smallest change that boots `gw1.simple.sim.layout`.
-- **[`universe-guardrail.md`](universe-guardrail.md)** — the **universe** model (first alias segment =
-  `d1`/`hw1`/single-production `w`) and the cheap scada-side boot check that a GNode only talks on a
-  broker in its own universe (`universe_of(alias) == universe_of(broker_host)`, `localhost ⇒ d1`).
-  Stops sim/dev layouts reaching a real-money broker; the hard server-side boundary (rabbit perms) is
-  a `gridworks-base` follow-on. Forces `sim_layout.py` to dev-ify aliases.
-- **[`gen-pipeline.md`](gen-pipeline.md)** — *next.* The authoring pipeline: per-home config →
+- ✅ **[`universe-guardrail.md`](universe-guardrail.md)** — *done (boot check).* The **universe** model
+  (first alias segment = `d1`/`hw1`/single-production `w`) and the scada-side boot check
+  (`universe_of(alias) == universe_of(broker_host)`, `localhost ⇒ d1`). Shipped (`822b150c`), with
+  `sim_layout.py` dev-ifying aliases. The layout-internal sema axiom stays deferred (in the spoke);
+  the hard server-side boundary (rabbit perms) is a `gridworks-base` follow-on.
+- **[`gen-pipeline.md`](gen-pipeline.md)** — The authoring pipeline: per-home config →
   `sema_gen` → axiom-valid sema → `sema_to_dc` → dc fixture; retire `dc_to_sema`; the diff-and-adopt
   review aid; fleet status (oak ✅, elm/fir/beech-sieg/maple remaining); regenerate `tests/config/`.
   References [`generator-blueprint.md`](generator-blueprint.md) for the gen spec.
@@ -87,7 +87,9 @@ the truth oracle. **That is backwards.** Settled direction:
 - **[`sieg-primary-flow.md`](sieg-primary-flow.md)** — the deferred Siegenthaler / `primary-flow`
   behavior test (rides the simulated-plant focus).
 - **[`i2c-board-components.md`](i2c-board-components.md)** — the board-resident / i2c-bus actor model.
-  **Deferred to pass-two** (own chunk); documented, not executed this pass.
+  **Deferred to pass-two** (own chunk). The relay sema vocabulary was authored ahead (2026-07-03:
+  `relay.control.config`, `i2c`/`gpio.relay.component.gt`, `gw1.device.type/001`) so pass-two needs
+  no further sema round; the actor wiring + layout migration stay pass-two.
 - **[`gleanings.md`](gleanings.md)** — durable domain context (field reality, Nolan↔Spruce naming),
   the sema-source-of-truth working method, and the deferred sweeps.
 
@@ -102,6 +104,13 @@ the truth oracle. **That is backwards.** Settled direction:
   `house0_sema_gen_check.py`): full house0-stub equivalence reached and **oak passes** (real
   4-zone / 3-tank production home). Detail in [`gen-pipeline.md`](gen-pipeline.md).
 - Channel-config overhaul landed (scada `jm/delete-cac-id`, sema `jm/sim-vocab`); suites green.
+- The operational-params reshape, sema side + gwsproto catch-up: `capture.tuning/000`, the
+  `channel.config` family strip, `gw.house0.operational.params/000` (the four 2026-06-30
+  `wiki/sema/changelog.md` entries); gwsproto `CaptureTuning` + `GwHouse0OperationalParams`,
+  `channel_config.py` deleted (`9fe86665`). Detail in [`operational-params.md`](operational-params.md).
+- The board-resident relay vocabulary, authored ahead of pass-two (sema `11be3be` + `fae8d27`,
+  2026-07-03): `relay.control.config/000`, `i2c.relay.component.gt/000` / `gpio.relay.component.gt/000`,
+  `gw1.device.type/001`. Notes in [`i2c-board-components.md`](i2c-board-components.md).
 
 ## Carried caveats
 
@@ -112,5 +121,11 @@ the truth oracle. **That is backwards.** Settled direction:
   `sema/definitions/types/gw.nolan.layout/stash_axioms.md` (zone/tank structure reference).
 - **`gw.house0.layout/000` is unpushed → mutable in place** — axioms are added to `000` directly (no
   bump) per sema immutability tracking publication.
+- **The in-place channel-config reshape invalidated the embedded sema `examples:`** —
+  `gw.house0.layout`'s example now fails ~3399 runtime-validation errors (components still carry the
+  old `ConfigList` shapes), and the main sema suite doesn't see it (it checks examples structurally,
+  not through the generated runtime; the snapshot round-trip gate is what catches it). Fix by
+  regenerating the layout examples from the gen, not hand-editing; closing the suite gap is its own
+  sema-domain design (Draft; Linear issue pending).
 - **Deep code clean is pass-two:** ripping out `H0N`/`H0CN` (~61 files), the ~76 call-site sweep onto
   `self.hydronic.*`, the full actor migration onto sema types, the G/H RequiredTopologyNodes axioms.

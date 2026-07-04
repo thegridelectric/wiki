@@ -12,6 +12,28 @@ Newest at the top.
 
 ---
 
+## 2026-07-02 — gwsproto: CaptureTuning + operational.params; drop ChannelConfig/ComponentGt/rest.poller (`9fe86665`)
+
+**What:** Added two hand-written gwsproto named-types mirroring the reshaped sema —
+`CaptureTuning` (`capture.tuning/000`) and `GwHouse0OperationalParams`
+(`gw.house0.operational.params/000`); both validate clean through the canonical sema runtime
+(`sema validate`). Replaced the generic `channel.config` with `CaptureTuning` as the unified
+"ChannelName + capture params" simple-config: retyped `ComponentBase.ConfigList` and all 9 bare
+components/their construction sites, then deleted `channel_config.py`. Removed the two gwsproto-only
+legacy types that had no sema counterpart — generic `ComponentGt` (now `ComponentBase` serves as the
+decode fallback + umbrella annotation) and dead `RESTPollerComponentGt` (kept `rest_poller_gt.py`,
+which Hubitat uses). Bumped the 7 live `tests/config` fixtures' ConfigList entries
+`channel.config/001` → `capture.tuning/000`. Suite green (115 passed / 3 skipped; the lone failure is
+a pre-existing async-MQTT timing flake, passes in isolation).
+
+**Why:** hardware-layout-pass-one operational-params reshape (OPS-407), Next-move steps 1–3. The sema
+authoring schema stripped the per-channel capture params off the `channel.config` family into
+`capture.tuning`; under **approach A** the gwsproto types are the *assembled runtime* shape, so they
+keep the params (filled at assembly time) and the ~23 actor read sites stay unchanged — gwsproto
+deliberately does not mirror the stripped sema on those fields. `channel.config`, generic
+`component.gt`, and `rest.poller.component.gt` have no sema counterpart, so dropping them moves
+gwsproto closer to sema. Next: build `ops_and_sema_to_dc` (step 4) + verify on oak / boot sim (step 5).
+
 ## 2026-06-29 — Universe guardrail: alias↔broker coherence check at boot (`822b150c`)
 
 **What:** New `gw_spaceheat/universe.py` (`universe_of_alias` = first dotted segment;
