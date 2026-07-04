@@ -1,6 +1,6 @@
 # gridworks-base — Transport layer (§3)
 
-Status: Draft · Pass 0 · Updated 2026-06-10
+Status: Draft · Pass 0 · Updated 2026-07-03
 
 Sub-spec of the gridworks-base rebuild spec — **start at
 [`primary.md`](primary.md)**. Section numbers are global across the spec
@@ -372,6 +372,43 @@ AMQP-internal traffic only; cross-MQTT provenance (scada) must live in the
 `gw` **body** header instead (§4.7). This split — properties sidecar on the
 fabric, body envelope across the MQTT hop — is the current lean, pending the
 §4.7 envelope decision.
+
+**Principle — audit & identity live in the infrastructure, not the payload.** A
+message body is a **bare sema type**: its semantic content, kept deterministic and
+replayable, so it means the same thing wherever/whenever it is re-handled
+(location transparency). Everything about *this delivery* — who sent it, when, in
+what order — is the fabric's job, not baked into the body. Two infra audit trails
+cover it, so **no message type carries its own timestamp**:
+
+- **the ear** (`ear_tx`, §3.5) — the universal *comms* trail: every message with the
+  broker's receive-time and order, uniformly;
+- a service's own **command log** — an append-only, content-addressed record of
+  *applied mutations* (e.g. the grid-node-registry's `command_log`): the *write-side*
+  trail, and the primitive an on-chain record later inherits.
+
+**Three id layers, kept distinct.**
+
+- **entity id** — the identity of a thing (`GNodeId`, an edge id); payload;
+  deterministic where it lands in authoritative state (e.g. an edge id derived from
+  its endpoints).
+- **content-address** — the hash of a semantic command/state (idempotency, dedup, an
+  eventual chain tx-id); deterministic, payload-derived. Its *canonical* form is
+  chain-specific (Algorand SHA-512/256/base32 vs Ethereum Keccak-256/hex), so it stays
+  behind the owning service's authority seam, **not** fixed as a wire format.
+- **delivery id** — `correlation_id` / a per-send message id; an AMQP *property*
+  (above), never the body; identifies one *delivery*, not the content.
+
+**Timestamps + ordering.** A wall-clock **SHALL NOT** live in a sema body: it is
+non-deterministic (clock skew), redundant with the ear, and breaks any future
+content-address / signature (the same state would serialize to different bytes each
+send). Send-time is a fabric concern (properties + the ear). Where a consumer must
+*order* events (an event-sourced projection applying deltas), the ordering key is a
+**monotonic sequence** — a command-log height, later a block height — **not** a
+clock, and it is added to a specific type only when that convergence need is real.
+(The message-driven / event-sourced idiom: the log is the audit trail; payloads stay
+deterministic; the transport carries delivery metadata. The Sema-payload half —
+serialized artifacts stay deterministic, identity via `TypeName` + content-address,
+never an embedded clock — is the sema spec's to state.)
 
 ### 3.8 Threading and lifecycle
 

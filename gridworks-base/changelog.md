@@ -12,6 +12,22 @@ Newest at the top.
 
 ---
 
+## 2026-07-02 — Revert FleetIndexService transport class; 0.5.5 (`02cd709`)
+
+**What:** removed `TransportClass.FleetIndexService` (+ its `RoutingClass`
+`"fis"` and the map entry), dropped `FleetIndexService` from `topology.AMQP_ACTOR_CLASSES`
+and the two `ROUTING_EDGES` to/from `GridNodeRegistry`, regenerated the broker
+definitions (dev/prod lose the `fis_tx`/`fismic_tx` exchanges + FIS↔gnr bindings),
+reverted the `test_topology` expected set, bumped **0.5.4 → 0.5.5**, relocked.
+
+**Why:** forward-revert of 0.5.4 (published, so not rewritten). The registry's FIS
+read path was reconsidered and settled as **HTTP + a broadcast subscription**, not
+rabbit request-reply: FIS is a pure `g.node.topology.broadcast` **subscriber** (a
+`ServiceSettings` tap — subscribing needs no transport class), event-sourced from the
+bus, and reads/bootstrap go over the API. Nothing sends direct messages to FIS, so the
+transport class + routing edges had no consumer — dead fabric, removed per no-dead-code.
+**Verified:** `./ci.sh` green (lint + format + definitions-drift + tests, 60).
+
 ## 2026-06-30 — Add FleetIndexService transport class + registry routing edges; 0.5.4 (`af239fb`)
 
 **What:** added `TransportClass.FleetIndexService` (+ `RoutingClass`

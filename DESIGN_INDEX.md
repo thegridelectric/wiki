@@ -57,8 +57,10 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **rmqbot** — [`designs/broker-topology-canonical-in-gwbase.md`](rmqbot/designs/broker-topology-canonical-in-gwbase.md) (vhosts/exchanges/queues/bindings declared as code in gwbase → generated definitions; retires hand-edited rabbit_definitions.json; absorbs the topology half of the retired identities-in-definitions)
 - **rmqbot** — [`designs/prod-4x-upgrade.md`](rmqbot/designs/prod-4x-upgrade.md)
 - **rmqbot** — [`designs/prod-tls-fix.md`](rmqbot/designs/prod-tls-fix.md)
+- **sema** — [`designs/example-runtime-validation.md`](sema/designs/example-runtime-validation.md) (the main sema suite must decode every type's examples through the generated runtime, not just structurally — catches examples that go stale when a referenced type is reshaped in place; fix the stale layout examples it surfaces; Draft, no Linear yet)
 - **sema** — [`designs/practice-erb-pair-programming.md`](sema/designs/practice-erb-pair-programming.md)
 - **sema** — [`designs/web-app-words-to-types.md`](sema/designs/web-app-words-to-types.md)
+- **terminalasset-registry** — [`designs/stand-up-terminalasset-registry.md`](terminalasset-registry/designs/stand-up-terminalasset-registry.md) (stand up the Sema-correct seed DB + independent repo holding each terminal asset's hardware layout + operational-params — the durable source of truth provisioning/LTN/web/analytics consume; layout/params sibling of GNR, without the blockchain requirement; Draft, no Linear yet)
 
 ## Explorations
 

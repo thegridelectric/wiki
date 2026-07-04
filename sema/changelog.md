@@ -12,6 +12,66 @@ Newest at the top.
 
 ---
 
+## 2026-07-03 — Board-resident relay vocabulary: relay.control.config + i2c/gpio relay components (`fae8d27`)
+
+**What:** three new type words for the board-resident, one-relay-per-component model, plus a
+migration marker. `relay.control.config/000` = `relay.actor.config/004` **minus the positional
+`RelayIdx`** (same three relay event/state axioms, ported), for relays identified by name against
+their board rather than by index. `i2c.relay.component.gt/000` and `gpio.relay.component.gt/000` —
+board-**generic** thin per-relay components: `{ComponentId, DeviceType, RelayName|GpioName,
+ConfigList:[relay.control.config] (axiom ExactlyOneConfig), DisplayName?, HwUid?}`, referencing the
+board's `I2cRelays` / `NativeGpioOutputs` map (`gw1.scada.device.type.gt`) by `pascal.case` name; the
+board stays the single source of the physical address. `relay.actor.config` gains
+`replaced_by: [relay.control.config]` (advisory migration marker; not frozen — still in service for
+the legacy `i2c.multichannel.dt.relay.component.gt` multiplexer until krida becomes a board device
+type). Registry entries + runtime axiom templates ported + regen. Suite green (267).
+
+**Why:** hardware-layout-pass-one board-resident relay model (OPS-407). The relay decommission
+(i2c-board-components spoke, previously pass-two): retire the positional multiplexer for one relay per
+component, identified by name against the board. Authored ahead of the layout/actor migration so
+future work needs no further sema round — `RelayIdx` is obsolete once krida is also a
+`scada.device.type` with named `I2cRelays`, at which point `relay.actor.config` fully retires. Pairs
+with `gw1.device.type/001` (`Gw108I2cRelay`/`Gw108GpioRelay`, `11be3be`).
+
+## 2026-07-03 — gw1.device.type/001: add Gw108I2cRelay + Gw108GpioRelay (`11be3be`)
+
+**What:** additive version bump of the `gw1.device.type` versioned enum (v000 → v001),
+appending two board-resident relay device categories — `Gw108I2cRelay` and
+`Gw108GpioRelay` — to the end of the value list (the existing 20 values unchanged and in
+order; default `EgaugePowerMeter` unchanged). Registry `latest_version` → `001` with the
+`added_values` entry; `last_updated` → 2026-07-03T19:45:00Z; regenerated `indexes/` +
+runtime (`gw1_device_type.py` gains the two `auto()` members; `old_versions/gw1_device_type_000.py`
+frozen). Suite green (267).
+
+**Why:** hardware-layout-pass-one / the board-resident relay model (OPS-407). The
+board-resident per-relay components being authored next (`i2c.relay.component.gt`,
+`gpio.relay.component.gt`) each carry their own coarse `gw1.device.type` value — a relay
+on a gw108 board is its own device category, distinct from the board itself
+(`GridworksScadaGw108`), which the node reaches via `BoardComponentId`. Minting the enum
+values first (nothing `$ref`s the enum — components carry `DeviceType` as an open
+`pascal.case` string, so the bump does not cascade) lets those component types land without
+a second sema round. Next: `relay.control.config` (= `relay.actor.config` − `RelayIdx`) +
+the two component types.
+
+## 2026-07-03 — Forest topology vocabulary + g.node.gt v005 (≥2-word alias) (`e5f4141`)
+
+**What:** the Grid Node Registry's topology vocabulary reworked to the
+**forest** model (OPS-419). `g.node.gt` **v004 → v005** adds axiom 6
+`GNodeAliasHasBody` (`Alias` — and `PrevAlias` when present — SHALL have ≥2 dotted
+words; the universe segment is a namespace, not a GNodeAlias) with its identity
+upgrade template. **Retired** the flat `g.node.topology.broadcast` (unpushed) in
+favour of one reused **`g.node.forest`** payload (`Roots` as `left.right.dot` +
+`Nodes` as `g.node.gt/005` + `Edges` as `connectivity.edge.gt` + an optional `Proof`
+seam), plus a **`g.node.forest.request`** read query (`Roots` + `RequestId`).
+`g.node.reparent.cmd`'s `NewNode` `$ref` bumped to `g.node.gt/005` in place; `created`
+stamps forward-bumped where dependencies shifted.
+
+**Why:** the forest is the registry's scaling unit — one payload for the change
+broadcast, the chunked snapshot, and the API read-response — so a million assets
+never move as one message (see the grid-node-registry standup design + executor). The
+≥2-word axiom canonizes "the universe token is a namespace, not a GNode." **Verified:**
+(pending) regen + snapshot round-trip gate green.
+
 ## 2026-06-30 — Add gw.house0.operational.params/000 (the operational-params artifact) (`41e0a12`)
 
 **What:** new versioned type `gw.house0.operational.params/000` (`literal`, owner gridworks-energy):

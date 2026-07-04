@@ -47,6 +47,17 @@ without ever touching real money. The test harness (see the standup design) is
 exactly such a dev universe: the deployed systems (`hw1.isone.me.versant.keene.*`)
 and the parent GNodes they require, re-aliased into `d1`.
 
+**The universe segment is a namespace, not a GNode.** `d1` (the bare universe
+token) is **not** a GNode — it is the namespace the registry is scoped to. So the
+registry holds a **forest of copper subtrees**, not one rooted tree: the forest
+roots are the **top-level copper nodes** (a top-level MarketMaker like `d1.isone`,
+whose alias-parent is the bare universe token). This is the natural shape — the
+world was only ever a forest of copper subtrees, and a single `Logical` "world
+root" GNode was an artifact of forcing it into one tree. A GNode is a **forest
+root** iff its alias-parent is the bare universe segment (there is no GNode there).
+Consequently `Logical` narrows to what it means — Scada + logical controllers — and
+never labels a universe root.
+
 ## Per-row Sema axioms (`g.node.gt` v004)
 
 The `GNodeGt` codec enforces five axioms on every row before insert/update:
@@ -87,31 +98,128 @@ What is fixed vs. what changes, and how:
   consequence) — that machinery is downstream (the TaDeed/validator plane), not the
   registry's. The type guarantees accuracy by **definition** (a point SHALL fall
   within the footprint of the building it locates); recorded per-fix accuracy (R95)
-  is deferred to the TaValidator/deed work (substrate-fit, OPS-391).
+  is deferred to the TaValidator/deed work (substrate-fit, OPS-391). **The registry
+  enforces *nothing* about a position beyond per-row presence (axiom 2)** — no
+  distinctness, no accuracy, no premises/PCC boundary; location *trust* is
+  TaValidation's job, and residential topology is trusted-by-description. The
+  reasoning (and the deferred CIM `ServiceLocation`/`ServiceDeliveryPoint` option)
+  is in [`../explorations/position-point-semantics.md`](../explorations/position-point-semantics.md).
+- **`position_point_id` is an opaque location *identity*, not an FK.** It is a
+  random `UUID4Str` carried in the command (satisfies axiom 2, deterministic-by-record,
+  leaks nothing — never derived from the coordinates). The **coordinate data** is a
+  separate, later, encrypted, **TaValidator-owned** artifact — so `g_nodes.position_point_id`
+  is a plain column, **not** a foreign key into `position_points`. This is what lets the
+  MVP **populate `g_nodes` with an open API while `position_points` stays empty +
+  private**: topology open, geography behind an opaque id, encrypted when TaValidator
+  populates it. Plan (encryption at rest + asymmetric app-encryption, gnr write-only;
+  the `position_points` shape change; DB-column vs vault) in
+  [`../explorations/positions-staging-and-encryption.md`](../explorations/positions-staging-and-encryption.md).
 
 ## Write path & egress
 
 `gnr` is the sole accessor of the backing store; all access goes through a
-transport-agnostic handler core (the `AuthoritySource` interface) exposed over
-**rabbit (primary)** request-reply + a change broadcast, and a thin **HTTP/FastAPI
-façade** for non-rabbit consumers. The read API is an **internal service API** — its
-consumers (FIS, provisioning, analytics) run inside the GridWorks infra, so it needs
-**no mTLS**: the topology + `position_points` (home-location) privacy is handled by the
-**network perimeter** (internal-only, not publicly exposed), and internal services
-query it over plain HTTP. Two Sema message types carry a mutation:
+transport-agnostic handler core (the `AuthoritySource` interface). **Writes ride
+rabbit** (a MarketMaker is a fleet bus citizen; the change event is genuinely
+pub/sub); **reads ride an HTTP/FastAPI façade** (point/forest queries — internal
+service API, no mTLS, privacy by the network perimeter). This split is by traffic
+shape, not by consumer.
+
+**The write + its change event:**
 
 - **`g.node.reparent.cmd`** — the write command: the new node `N` (a `g.node.gt`) +
   the moved child `GNodeId`s. The registry computes the recursive descendant alias
   rewrite and the edge retire/create set, and applies them in one transaction.
-- **`g.node.topology.broadcast`** — the change event: the affected subtree as updated
-  `g.node.gt`s (new aliases) + the edge retire/create set. Best-effort (convergence
-  is by authorization, not delivery).
+- **On commit the registry broadcasts a forest** of the affected subtree (see below).
+  Best-effort (convergence is by authorization, not delivery).
+
+**The forest — one payload, three uses.** A **forest** is a set of subtrees, each
+rooted at one of a chosen set of nodes and carrying every descendant. It is the
+**scaling unit**: the registry never moves the whole world in one message — it
+addresses by root-set, so each message is bounded by that slice of topology (this is
+what survives a million assets; heritage: legacy `basegnodes.broadcast` =
+`TopGNode` + `DescendantGNodeList` + `IncludeAllDescendants`). A single **`g.node.forest`**
+payload (`roots: [GNodeId]` + the subtree `g.node.gt`s with current aliases + the
+`connectivity.edge.gt`s) is **reused** as:
+
+1. the **change-delta broadcast** — the forest under the re-parented root(s);
+2. a **snapshot broadcast** — a forest under the world root, **chunked** by root-set at
+   scale (never one unbounded message);
+3. the **API forest-response** to a **`g.node.forest.request`** (`roots: [GNodeId|Alias]`
+   + an app-level `RequestId`) — a caller names a root-set and gets their forest back.
+
+**FIS is a pure broadcast subscriber, scoped to its authority.** FIS is a
+`ServiceSettings` bus tap (subscribing needs **no** transport class) that maintains an
+in-memory `GNodeId ↔ alias` map, **event-sourced** from `g.node.forest` change
+broadcasts. It bootstraps/resyncs with a **`g.node.forest.request` scoped to just the
+subtrees it authorizes** (its MarketMakers/roots) — so each FIS holds a **bounded
+slice**, not the whole fleet, and the million-asset case dissolves. Steady-state auth
+is then an in-memory lookup fed over the mutually-authenticated mTLS bus — no separate
+secure GNR→FIS channel to build, and no direct GNR→FIS message (the broadcast carries
+the re-aliasing payload; a durable subscriber queue delivers it reliably). Provisioning
+and analytics use the same `g.node.forest.request` over HTTP, scoped to what they need.
 
 **Write authority = the authenticated connection.** A command arrives over an
 mTLS+FIS-authenticated rabbit connection (principal = cert `CN=GNodeId`); the registry
 authorizes by checking the principal's `base_class = MarketMaker` and that the
 affected subtree is within its authority. A detached signed-command scheme stays
 available via the `AuthoritySource` seam for a future distributed/on-chain authority.
+
+## Distributed-readiness (keep the swap a swap, not a rewrite)
+
+The registry's authority is meant to be **swappable** — a single-writer Postgres
+today, a more distributed / on-chain authoritative record later (the Algorand-era
+*cryptographic-veracity / distributed-trust* principle, without the Algorand
+plumbing). Four properties keep that a swap behind the `AuthoritySource` seam. The
+first two are **implemented** (`gnr.ids`, `gnr.db.models.CommandLogSql`,
+`gnr.db.authority.apply_reparent`) and pay off now (reproducible state + free audit
+history + replay safety), so they are not speculative:
+
+1. **Deterministic mutation — ✅ done.** `apply(command)` is a pure
+   `(state, command) → state'` — any consensus/replicated backend re-executes it on
+   many validators that must agree byte-for-byte. So an id that lands in authoritative
+   state is **either carried in the command** (submitter-assigned, frozen by the
+   log/tx — e.g. a `GNodeId`, or a `position_point_id`) **or derived from inputs every
+   validator holds** (public data — e.g. `gnr.ids.edge_id` from the two endpoint ids);
+   it is **never handler-minted** (the old `uuid.uuid4()` edge id was that illegal
+   third case) and **never derived from a secret** (deriving `position_point_id` from
+   the coordinates would both leak the location *and* be unreproducible by validators
+   who correctly can't see the encrypted plaintext). Edge ids serialize into
+   `g.node.forest` (authoritative state); the whole dev universe is deterministic too
+   (`gnr.ids.deterministic_uuid4`). `created_at` stays wall-clock — it is **not** in any
+   Sema type, so it is local audit metadata, not authoritative state (full log-replay
+   byte-identity would additionally want a command-carried logical time, deferred).
+2. **The command log is the primitive; state is a projection — ✅ done.** A
+   ledger/chain is an ordered log of signed commands with state derived from it. Every
+   mutation is appended to an **append-only `command_log`** (`CommandLogSql`) in the
+   same transaction as the state change, keyed by a **content hash** of the command's
+   canonical bytes (`gnr.ids.command_hash`); the `g_nodes`/edge rows are a
+   **materialized projection** rebuildable from the log. **The `alias_ledger` is not
+   dropped — it is reframed:** it becomes one such projection (`alias → first-owner`)
+   that *also* serves as the through-time uniqueness **enforcement index** (its `alias`
+   PK is the race-free constraint). Idempotency is free: a command whose hash is
+   already in the log is rejected (replay-safe). On-chain later = the log moves to the
+   chain and the local Postgres becomes an **indexer**; the uniqueness invariant moves
+   into consensus rules. **The content-address stays gnr-internal, NOT a Sema format:**
+   transaction hashes are chain-specific (Algorand SHA-512/256/base32 vs Ethereum
+   Keccak-256/hex), so the canonical public content-address is **machinery of the
+   chosen chain**, adopted behind the seam later — see
+   [`../explorations/content-address-and-deterministic-ids.md`](../explorations/content-address-and-deterministic-ids.md).
+3. **Self-verifying commands + proof-carrying broadcasts.** A mutation is a
+   **signed, self-describing Sema command** (an optional MarketMaker signature on
+   `g.node.reparent.cmd`), and a `g.node.forest` broadcast carries a **proof** field
+   (today gnr's signature as single authority; later a chain-inclusion proof).
+   Consumers (FIS) verify a proof regardless of backend — the *same bytes* are
+   verified-and-applied centrally today or submitted to a chain later.
+4. **Reads are a projection, distinct from authority.** The read surface (forest
+   queries, the FIS subscription) reads a **materialized projection** that could be
+   rebuilt from the log/chain — it never reaches into the write backend's internals.
+   Keep `read`/`subscribe` conceptually separate from `apply(command)` on
+   `AuthoritySource`, so reads stay a local indexer even when authority moves off
+   single-writer Postgres.
+
+Not building the chain, a real signature scheme, or pure event-sourced state now —
+these are **shape**, not machinery. #1–#3 fold into the forest rework; #4 is a
+discipline on the interface.
 
 ## Lifecycle — `GNodeStatus`
 
@@ -146,22 +254,25 @@ Beyond per-row Sema validation, the registry MUST enforce structure Sema can't �
   handle for money and physical grid control, so a stale message, replayed
   command, historical reading, or TaDeed reference addressed to a recycled alias
   would silently bind the wrong physical entity.) Enforcement below.
-- **Active GNode tree is parent-closed** — an active non-root GNode's
-  alias-parent exists and is Active. The active *physical* subtree is
-  parent-closed as a consequence of the class hierarchy below (physical classes
-  only parent physical classes, up to the world root).
-- **ConnectivityEdge coverage** — for every active non-root GNode `A` with parent
-  `P`, the registry holds **exactly one** active edge `FromGNodeId = P,
-  ToGNodeId = A` (no missing edge, no extra incoming edge, and the one edge is
-  from the alias-parent). (The legacy "edge consistency" invariant — that an
-  edge's ids and aliases agree — is **gone**: edges store ids only, so there is
-  no stored alias to keep consistent.)
+- **Active GNode forest is parent-closed** — a **forest root** (alias-parent is the
+  bare universe token, so no GNode parent) is a top; every **other** active GNode's
+  alias-parent exists and is Active. The active *physical* subtree is parent-closed as
+  a consequence of the class hierarchy below (physical classes only parent physical
+  classes, up to a forest root).
+- **ConnectivityEdge coverage** — for every active GNode `A` **that is not a forest
+  root**, with parent `P`, the registry holds **exactly one** active edge
+  `FromGNodeId = P, ToGNodeId = A` (no missing edge, no extra incoming edge, and the
+  one edge is from the alias-parent). A **forest root has no incoming edge** (its
+  alias-parent is the namespace, not a GNode). (The legacy "edge consistency"
+  invariant — that an edge's ids and aliases agree — is **gone**: edges store ids
+  only, so there is no stored alias to keep consistent.)
 - **Class hierarchy** — each non-root GNode's parent class is legal for its own
   (the new-class form of legacy `g-node-factory` Creation Axiom 5 ROLE). A
   **CopperNode** is a `ConnectivityNode` or a `MarketMaker` — the copper-topology
   backbone (an MM is a CN that also runs a local market). The rules:
-  - **CopperNode** (MM/CN) → parent is the world root or another CopperNode (the
-    backbone is parent-closed);
+  - **CopperNode** (MM/CN) → it is a **forest root** (alias-parent is the bare
+    universe token) or its parent is another CopperNode (the backbone is
+    parent-closed; a top-level MarketMaker is a forest root);
   - **LeafTransactiveNode** → parent is a CopperNode;
   - **TerminalAsset** → parent is a LeafTransactiveNode (behind an atomic-metered
     point); its alias ends `.ta` (per-row axiom 5);
@@ -230,8 +341,10 @@ up (with a query interface) is a prerequisite for the mTLS+FIS auth work.
 
 **They are separate services** (registry = slow-changing system of record,
 swappable/on-chain later; FIS = hot-path per-connection authorizer holding lease
-state). FIS **reads + caches** the registry over **rabbit request-reply** (it is a
-gwbase citizen), not HTTP.
+state). FIS **reads + caches** the registry over the **HTTP read façade** (`gnr.api`:
+a `g.node.forest.request` scoped to its authority roots → a `g.node.forest`), and
+**subscribes** to `g.node.forest` change broadcasts on the bus for cache invalidation
+— it does not do rabbit request-reply.
 
 **Convergence-by-authorization.** Because the cert/principal binds the **immutable
 `GNodeId`** (not the alias), a node carrying a stale alias after a rename **cannot
@@ -294,8 +407,21 @@ rewrites its subtree atomically), and **Layer 2** (`tests/test_layer2_rabbit.py`
 the EDD experiment: `GnrRabbit` + a MarketMaker stub on a real RabbitMQ; a published
 `g.node.reparent.cmd` yields the `g.node.topology.broadcast` to a real subscriber and
 the DB reflects the rewrite). Proven on testcontainers and against `gw-dev-rabbit` +
-the dev Postgres. **Not yet:** CI wiring (run Layer 0 always, integration behind
+the dev Postgres. **FIS read path settled (2026-07-02):** writes ride rabbit, reads
+ride HTTP, and FIS is a **pure `g.node.forest` broadcast subscriber** (a `ServiceSettings`
+tap — no transport class), event-sourced and authority-scoped (see *Write path & egress*).
+gwbase **0.5.5** forward-reverted the speculative `FleetIndexService` add; gnr stays on
+0.5.3. **Not yet (read/egress):** author the two forest Sema words `g.node.forest` +
+`g.node.forest.request` in sema + re-vendor the snapshot; replace the flat
+`g.node.topology.broadcast` with the forest payload; rework `apply_reparent` to return a
+`g.node.forest` + update `GnrRabbit`/the Layer-2 test; the **FastAPI read façade**
+(`g.node.forest.request` → forest); and **root-keyed broadcasts** (`radio_channel` = the
+affected copper root) so a FIS subscribes only to the subtrees it authorizes. **Forest-root rework (root = namespace decision, 2026-07-02):** `gnr.db.validate` +
+`gnr.dev_universe` currently seed `d1` as a `Logical` root GNode; rework them so the
+universe token is **not** a GNode — a `is_forest_root(alias)` helper (alias-parent is
+the bare universe segment), the three structural checks exempt forest roots (no parent
+GNode, no incoming edge), and the dev seed drops the `d1` node so `d1.isone` (MM) is a
+forest root. **Not yet (other):** CI wiring (run Layer 0 always, integration behind
 docker), edge change-history (status-history folds into the lifecycle SM; edge-history
-is best a projection of the step-5 command log), the read request/reply Sema types +
-FastAPI façade, and the explicit re-parent alias-collision pre-check (today it aborts
-atomically via the ledger mid-rewrite).
+is best a projection of the step-5 command log), and the explicit re-parent
+alias-collision pre-check (today it aborts atomically via the ledger mid-rewrite).

@@ -61,11 +61,33 @@ mTLS+FIS auth work — it has to exist before FIS can enforce GNode identity.
    the rabbit adapter `gnr.gnr_rabbit.GnrRabbit` (gwbase `Orchestrator`, transport
    class **`GridNodeRegistry`** published in gridworks-base **0.5.3** with its
    `gnr_tx`/`gnrmic_tx` exchanges) — decodes `g.node.reparent.cmd` →
-   `apply_reparent` → broadcasts `g.node.topology.broadcast`. The live Layer-2 proof
-   of this rabbit loop is **done** (step 6 harness). **▶ Remaining:** the read
-   request/reply Sema types + handlers (look up a GNode by `alias`/`GNodeId`,
-   **assert a `GNodeId` is `Active`**, fetch parent/children edges — pin the
-   contract with FIS, OPS-422), and the thin **FastAPI façade**.
+   `apply_reparent` → broadcasts the affected subtree. The live Layer-2 proof of this
+   rabbit loop is **done** (step 6 harness). **FIS read path settled (2026-07-02):**
+   writes ride rabbit, **reads ride HTTP**, and FIS is a **pure broadcast subscriber**
+   (a `ServiceSettings` tap — no transport class), event-sourced from change broadcasts
+   and bootstrapped by an API query scoped to **its authority subtrees**. So gwbase
+   **0.5.5** forward-reverted the speculative `FleetIndexService` add (dead fabric); gnr
+   tracks 0.5.5. **Forest model (settled):** one reused **`g.node.forest`** payload
+   (`roots` + subtree `g.node.gt`s + `connectivity.edge.gt`s) is the body of the change
+   broadcast, the (chunked) snapshot broadcast, and the **`g.node.forest.request`** API
+   response — the scaling unit that never moves the whole world at once (see *Write model
+   & egress*). The universe token is a **namespace, not a GNode** — the registry holds a
+   **forest of copper subtrees** (see executor *Universes* + invariants). **Done:**
+   ✅ the forest words authored in sema (`g.node.gt` **v005** + axiom 6 ≥2-word alias;
+   `g.node.forest` with a `Proof` seam field, `g.node.forest.request`; `g.node.topology.broadcast`
+   retired), re-vendored into gnr; ✅ `apply_reparent` returns a `g.node.forest` + `GnrRabbit`
+   broadcasts it (Layer-2 green); ✅ the **forest-root rework** (`is_forest_root`, `d1` dropped
+   from the seed) shipped in the dev_universe cleanup; ✅ **distributed-readiness #1/#2** —
+   `apply_reparent` derives edge ids (`gnr.ids`) + appends to an append-only `command_log`
+   (content-addressed, replay-safe); ✅ the **HTTP read façade** (`gnr.api`, routes `/<service>/<sema-type-with-hyphens>`):
+   `POST /gnr/g-node-forest-request` → `g.node.forest` (`get_forest`), `GET /gnr/g-node-by-id/{id}`,
+   `GET /gnr/g-node-by-alias/{alias}` (`resolve_alias` — current **or** past alias → the current
+   GNode) for FIS bootstrap + provisioning/analytics. **▶ Remaining:** (a) **root-keyed broadcasts**
+   (`radio_channel` = affected copper root) so a FIS subscribes only to its authority subtrees —
+   coupled to the FIS wildcard-subscription model (mtls-fis-auth, OPS-422); (b) the reparent
+   command's optional **signature** (#3) + the chain-defined content-address, when the auth /
+   distributed-authority model lands. FIS-as-subscriber + authority-scoped bootstrap is a
+   FIS-side concern (OPS-422).
 6. **◐ Tests + CI** — the dev-universe layered harness is **done** (all three
    layers green; see [`test-harness.md`](test-harness.md)); **CI wiring remains**
    (Layer 0 always, the integration layers behind docker).

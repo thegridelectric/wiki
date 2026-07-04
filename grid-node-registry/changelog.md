@@ -12,6 +12,134 @@ Newest at the top.
 
 ---
 
+## 2026-07-04 — CI: GitHub Actions runs the full layered suite <!-- pending commit -->
+
+**What (planned):** `.github/workflows/tests.yml` — on push/PR, `uv sync --group dev --locked`
++ `pytest` on Python 3.12, with **Postgres 16** and the **dev-rabbit** broker as `services:`
+containers. `GNR_TEST_PG_URL`/`GNR_TEST_RABBIT_URL` point the harness at them (the conftest
+opt-in), so all 30 tests — Layer 0 unit **and** the Layer 1/2 + read-façade integration tiers —
+run in CI rather than self-skipping.
+
+**Why:** build step 6 — lock the layered harness in as a re-runnable gate (it's the evidence
+behind any `Verified` stamp). Mirrors the gwbase house pattern (service containers + the baked
+dev broker). Lint (ruff) is a recommended follow-up — gnr has no ruff config yet. **Verified:**
+the same services shape (Postgres 5435 + `gw-dev-rabbit` d1__1) was already proven locally via
+the `GNR_TEST_*` opt-in.
+
+## 2026-07-04 — Squash migrations to one FK-free baseline; position_point_id is not an FK <!-- pending commit -->
+
+**What (planned):** `g_nodes.position_point_id` → a plain `UUID4Str` column, **dropping the
+FK** to `position_points` (and the SQLAlchemy relationship). Collapsed the three incremental
+Alembic migrations (initial → alias_assignment → command_log) into **one clean baseline**
+(`a0b1c2d3e4f5_initial_schema`) reflecting the current model — gnr isn't deployed anywhere, so
+nothing to migrate.
+
+**Why:** the MVP launch populates `g_nodes` with an **open** API *before* the TaValidator work,
+while home locations stay **private + encrypted**. `position_point_id` is the location's opaque
+**identity** (carried in the command, satisfies axiom 2, leaks nothing); the **coordinate data**
+is a separate, later, encrypted, TaValidator-owned artifact — so an enforced FK from gnr into a
+table it write-only-populates-later is the wrong coupling. This lets `g_nodes` be populated with
+`position_points` left empty. No sema change. Plan in
+`explorations/positions-staging-and-encryption.md`. **Verified:** full suite 30 passed; the
+squashed migration applies to a fresh DB and `alembic check` reports no diff vs the models.
+
+## 2026-07-03 — HTTP read façade (forest + point lookups) <!-- pending commit -->
+
+**What (planned):** the read surface over the `AuthoritySource` core, in `gnr.api` (FastAPI),
+routed by the house pattern `POST /<service>/<sema-type-with-hyphens>` where the body is a full
+Sema type; scalar point lookups are the sanctioned GET exception:
+- `POST /gnr/g-node-forest-request` → `g.node.forest` (`get_forest(roots)`: the subtree under
+  each root alias + its internal edges) — FIS's authority-scoped bootstrap;
+- `GET /gnr/g-node-by-id/{g_node_id}` → `g.node.gt` | 404;
+- `GET /gnr/g-node-by-alias/{alias}` → `g.node.gt` | 404 — new `AuthoritySource.resolve_alias`
+  resolves an alias **current or past**: a stale (renamed-away) alias returns the same GNode in
+  its current form, so the caller detects staleness by queried-vs-returned `Alias` (leans on
+  alias-uniqueness-through-time; the "when it retired" timestamp is deferred — not tracked, and
+  the deny doesn't need it);
+- `GET /ping`. Added `httpx` (dev) for the `TestClient`; `tests/test_read_facade.py`.
+
+**Why:** the read surface FIS actually consults — it bootstraps its authority-scoped
+`GNodeId ↔ alias` map from a forest query, resolves possibly-stale aliases via the by-alias
+lookup, and rides `g.node.forest` broadcasts for deltas; provisioning + analytics use the same
+queries. Thin twin of the `GnrRabbit` write adapter over the same core. **Verified:** full suite
+30 passed (5 read-façade tests, incl. stale-alias resolution after a rename).
+
+## 2026-07-03 — Distributed-readiness: deterministic ids + append-only command_log (`e95c854`)
+
+**What:** new `gnr.ids` (`deterministic_uuid4`, `edge_id`, `command_hash` — internal hash salts,
+slash-delimited so they can't be read as Sema names). `apply_reparent` now (#1) derives edge ids
+from their endpoints (`edge_id`) instead of `uuid.uuid4()` — the ids serialize into
+`g.node.forest`, i.e. authoritative state — and (#2) appends every applied command to a new
+append-only **`CommandLogSql`** (`command_log` table + Alembic migration), content-addressed by
+`command_hash`, with a **replay guard** (a command already in the log is rejected). The dev
+universe is now fully deterministic (node/position/edge ids all derived, no `uuid.uuid4()`). Two
+Layer-1 tests: deterministic edges + command logged, and replay rejected.
+
+**Why:** distributed-readiness #1/#2 (executor *Distributed-readiness*) — a pure
+`(state, command) → state'` + the command log as the primitive make the eventual chain swap a
+swap, and pay off now (reproducible state, audit history, replay safety). The content-address
+stays gnr-internal, **not** a Sema format: transaction hashes are chain-specific (Algorand
+SHA-512/256/base32 vs Ethereum Keccak-256/hex), so the public form is the chosen chain's
+machinery, behind the `AuthoritySource` seam (see the content-address exploration). **Verified:**
+full suite 25 passed.
+
+## 2026-07-03 — Vendor the forest words; broadcast g.node.forest (retire topology.broadcast) (`15bb75e`)
+
+**What:** re-vendored the Sema snapshot off `jm/sim-vocab` — `gnr_seed_request.yaml`
+swaps `g.node.topology.broadcast` for `g.node.forest` + `g.node.forest.request`, and
+`g.node.gt` is now **v005** (axiom 6, ≥2-word alias). Regenerated `src/gnr/sema/`
+(`GNodeForest`, `GNodeForestRequest`, `g.node.gt/005` + `old_versions/g_node_gt_004`;
+`topology.broadcast` dropped). `apply_reparent` now returns a **`GNodeForest`** (roots =
+[N.alias], nodes = the updated subtree, edges = the created E→N / N→child edges);
+`GnrRabbit.broadcast_topology` publishes it; the Layer-1/2 tests assert on the forest.
+
+**Why:** the forest is the registry's one reusable topology payload (broadcast / snapshot /
+read-response) and the scaling unit (see executor *Write path & egress*). **Verified:** full
+suite 23 passed — Layer 2 publishes a `g.node.forest` over a real broker and the DB reflects
+the recursive rewrite. NB the vendored snapshot tracks `jm/sim-vocab` (the words are not yet
+on sema `dev`); re-vendor when that merges.
+
+## 2026-07-03 — dev_universe + validate cleanup: static forest, services, sema format typing (`8aecfd2`)
+
+**What:**
+- **`gnr.dev_universe`** — dropped the `tlayouts` dependency + `PROD_UNIVERSE`/`_to_dev`;
+  the dev universe is now a static `alias -> (base_class, g_node_class)` map. Dropped the
+  `d1` root GNode (the universe token is a **namespace, not a GNode**); `d1.isone` is now a
+  **forest root**. Added three Logical simulation services — `d1.time` (TimeCoordinator),
+  `d1.isone.me.weather` (WeatherForecastService), `d1.isone.me.price` (PriceForecastService).
+  Distinct **deterministic oceanic** `PositionPoint`s per physical node (SHA-256 of the
+  alias, uuid4-format id; ~32°N 40°W mid-Atlantic ridge — nowhere a home could be),
+  replacing the single shared placeholder (a smell that also sat on plausible land, Maine).
+- **`gnr.db.validate`** — `is_root` → **`is_forest_root`** (alias-parent is the bare universe
+  token); `parent_alias` always returns a value; the three structural checks exempt forest
+  roots (no parent GNode, no incoming edge), and a forest root may only be a CopperNode or a
+  non-Scada Logical node.
+- **Sema format typing** for the primitive references: `LeftRightDot` for every GNodeAlias
+  and `UUID4Str` for every GNodeId (`g_node_id`, alias-ledger owners, `Violation.g_node_id`,
+  `_det_uuid4` return) across `dev_universe`, `validate`, `authority`, `alias_ledger`,
+  `gnr_rabbit` (SQLAlchemy `Mapped[str]` columns unchanged); `apply_reparent` now guards
+  with `is_forest_root`.
+- **README** canonizes "the universe segment is a namespace, not a GNode; every GNodeAlias has
+  ≥2 words; the registry holds a forest of copper subtrees." Layer-0 fixtures updated + a new
+  `test_leaf_or_ta_cannot_be_a_forest_root`.
+
+**Why:** decouple the dev universe from the layout pipeline (being reworked elsewhere) and
+canonize the forest/namespace model in code — the registry stores positions but enforces
+nothing about them (location trust is TaValidation's, see
+`explorations/position-point-semantics.md`). **Verified:** full suite 23 passed; the dev
+universe (now with the three services, no `d1` root) loads `validate_registry`-clean; 16
+physical nodes get 16 distinct ocean points.
+
+## 2026-07-02 — Track gwbase 0.5.5 (`dbdc2b9`)
+
+**What:** `pyproject.toml` `gridworks-base>=0.5.3` → `>=0.5.5`; relocked.
+
+**Why:** stay on the current published gwbase. 0.5.5 forward-reverted the 0.5.4
+`FleetIndexService` add (which gnr never needed — the FIS read path settled as HTTP +
+a broadcast subscription), so 0.5.5 is functionally 0.5.3 for gnr's purposes; the bump
+is hygiene, not a new capability. **Verified:** `uv sync` resolves 0.5.5 from PyPI,
+full suite 22 passed.
+
 ## 2026-06-30 — Harness Layer 2: rabbit re-parent loop over a real broker (the EDD experiment) (`80694ef`)
 
 **What:** added `tests/test_layer2_rabbit.py` (the EDD experiment — boot
