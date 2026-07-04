@@ -12,9 +12,72 @@ Newest at the top.
 
 ---
 
-## 2026-07-04 — CI: GitHub Actions runs the full layered suite <!-- pending commit -->
+## 2026-07-04 — Track gwbase 0.5.6 (`7cd46fa`)
 
-**What (planned):** `.github/workflows/tests.yml` — on push/PR, `uv sync --group dev --locked`
+**What:** `pyproject.toml` `gridworks-base>=0.5.5` → `>=0.5.6`; relocked.
+
+**Why:** 0.5.6 carries the `gnrmic_tx → amq.topic` broadcast bridge (gnr's own
+forest broadcasts reaching MQTT-native listeners) and the prod→hybrid definitions
+rename; gnr's consumed API is unchanged. **Verified:** full suite 30 passed on 0.5.6.
+
+## 2026-07-04 — README: crisp universe-kind ladder (`db7e8d4`)
+
+**What:** the README's Universes section now states the kind ladder —
+**dev = runs locally on a single computer (all comms through localhost brokers)**;
+**hybrid = most flexible** (distributed, real+simulated mix, re-runnable
+`hw1__n`); **production = Validation certs required** for Scadas/MarketMakers +
+the only real money. Self-contained (READMEs stand alone).
+
+**Why:** the crisper definitions canonized 2026-07-04; the authoritative
+treatment lives in the wiki executor's *Universes* section — the README carries
+the adopter-facing summary. **Verified:** doc-only.
+
+## 2026-07-04 — Write-path hardening: collision pre-check + idempotent replay (`906bbd6`)
+
+**What:** `apply_reparent` gains (1) an **alias-collision pre-check** —
+before any mutation it computes the full target alias set (N + every rewritten
+subtree alias, each with its intended owner) and checks the ledger; any target
+permanently owned by a *different* GNodeId raises an explicit
+`ReparentError("alias collision — …")` naming the collisions, instead of a raw
+`AliasAlreadyOwned` abort mid-rewrite (which stays as defense-in-depth); and
+(2) **idempotent replay** — a command whose content hash is already in the
+`command_log` returns the affected subtree's current forest (success) instead of
+an error, so an at-least-once retrier can't confuse "already applied" with
+"rejected". Layer-1 tests updated (`test_reparent_replay_idempotent`; the
+squatter test asserts the explicit collision message).
+
+**Why:** the two write-path OFIs carried since the ledger + command-log work —
+kind semantics for real writers before the populate/deploy step. **Verified:**
+full suite 30 passed.
+
+## 2026-07-04 — Root-keyed forest broadcasts + snapshot (radio_channel = audience-known alias) (`189ccad`)
+
+**What:** `GnrRabbit` now publishes the re-parent's `g.node.forest` with
+**`radio_channel = parent_alias(cmd.new_node.alias)`** — the deepest change-stable
+ancestor (E), a proper prefix of every moved node's old alias, so every affected
+listener's ancestor-binding set matches it. (Keying on N's *new* alias would reach
+nobody: listeners bind prefixes of the aliases they knew.) `broadcast_topology` takes
+the channel explicitly. The Layer-2 test's MarketMaker stub now binds the channel
+**exact-match** (`radio_channel=keene`) and asserts the received envelope's channel —
+an un-channeled binding would not match a channeled key, so the pass proves the
+radio_channel path end to end. Also adds **`broadcast_snapshot(root)`** — the
+snapshot case of the channel rule (nothing changed ⇒ channel = the current
+alias): broadcasts `get_forest([root])` on `radio_channel = root`, the
+anti-entropy / bootstrap-refresh path; cadence is deploy config. The Layer-2 test
+gains a snapshot leg (same keene binding hears it; asserts the post-rename
+subtree).
+
+**Why:** the scalable passive-listening pattern — every GNode binds O(depth) ancestor
+channels once, hears one bounded forest per relevant change, no polling; a subtree
+monitor (FIS) binds one trailing-`#` per authority root. Channel rule + listener
+pattern canonized in the executor and `explorations/root-keyed-forest-broadcasts.md`.
+Needs no gwbase bump (radio_channel is long-standing envelope API); gwbase **0.5.6**
+separately bridges `gnrmic_tx → amq.topic` so the MQTT side hears too. **Verified:**
+Layer 2 green over a real broker with the channeled binding; full suite 30 passed.
+
+## 2026-07-04 — CI: GitHub Actions runs the full layered suite (`0e893b5`)
+
+**What:** `.github/workflows/tests.yml` — on push/PR, `uv sync --group dev --locked`
 + `pytest` on Python 3.12, with **Postgres 16** and the **dev-rabbit** broker as `services:`
 containers. `GNR_TEST_PG_URL`/`GNR_TEST_RABBIT_URL` point the harness at them (the conftest
 opt-in), so all 30 tests — Layer 0 unit **and** the Layer 1/2 + read-façade integration tiers —
@@ -26,9 +89,9 @@ dev broker). Lint (ruff) is a recommended follow-up — gnr has no ruff config y
 the same services shape (Postgres 5435 + `gw-dev-rabbit` d1__1) was already proven locally via
 the `GNR_TEST_*` opt-in.
 
-## 2026-07-04 — Squash migrations to one FK-free baseline; position_point_id is not an FK <!-- pending commit -->
+## 2026-07-04 — Squash migrations to one FK-free baseline; position_point_id is not an FK (`df6689b`)
 
-**What (planned):** `g_nodes.position_point_id` → a plain `UUID4Str` column, **dropping the
+**What:** `g_nodes.position_point_id` → a plain `UUID4Str` column, **dropping the
 FK** to `position_points` (and the SQLAlchemy relationship). Collapsed the three incremental
 Alembic migrations (initial → alias_assignment → command_log) into **one clean baseline**
 (`a0b1c2d3e4f5_initial_schema`) reflecting the current model — gnr isn't deployed anywhere, so
@@ -43,9 +106,9 @@ table it write-only-populates-later is the wrong coupling. This lets `g_nodes` b
 `explorations/positions-staging-and-encryption.md`. **Verified:** full suite 30 passed; the
 squashed migration applies to a fresh DB and `alembic check` reports no diff vs the models.
 
-## 2026-07-03 — HTTP read façade (forest + point lookups) <!-- pending commit -->
+## 2026-07-03 — HTTP read façade (forest + point lookups) (`2d7daf3`)
 
-**What (planned):** the read surface over the `AuthoritySource` core, in `gnr.api` (FastAPI),
+**What:** the read surface over the `AuthoritySource` core, in `gnr.api` (FastAPI),
 routed by the house pattern `POST /<service>/<sema-type-with-hyphens>` where the body is a full
 Sema type; scalar point lookups are the sanctioned GET exception:
 - `POST /gnr/g-node-forest-request` → `g.node.forest` (`get_forest(roots)`: the subtree under

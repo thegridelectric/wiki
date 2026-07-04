@@ -12,6 +12,34 @@ Newest at the top.
 
 ---
 
+## 2026-07-04 — gnr broadcast bridge to amq.topic; rename prod->hybrid definitions; 0.5.6 (`a657b92`)
+
+**What:** two changes in one commit (PR #170).
+- **Bridge:** `gwbase.topology` gains a `gnrmic_tx → amq.topic` binding (`rjb.#`,
+  broadcasts only — the TimeCoordinator-bridge precedent) so MQTT-native actors
+  (scadas) can hear the registry's `g.node.forest` broadcasts; regenerated broker
+  definitions; `test_topology` bindings count +1 and an explicit bridge assertion.
+  The `TransportClass` docstring now maps classes to runtime tiers (Orchestrator
+  non-GNode: Supervisor/TimeCoordinator/GridNodeRegistry; GridworksActor:
+  TA/LTN/MM/Price/Weather; no gwbase runtime: Scada (MQTT-native),
+  ConnectivityNode (passive)).
+- **Rename:** `rabbit/rabbitconfig/prod_definitions.json` → `hybrid_definitions.json`
+  (git mv + `DEFINITION_ARTIFACTS` + the drift-guarded regen;
+  `test_prod_definitions_have_no_baked_credential` → `test_hybrid_definitions…`).
+  Version **0.5.6**, relocked.
+
+**Why:** the registry's root-keyed forest broadcasts (radio_channel = the
+audience-known alias) are how every GNode passively hears ancestor renames;
+without the bridge the MQTT side is deaf to them (forests carry aliases +
+immutable ids only — never coordinates — so crossing is safe). And `hw1` is a
+**hybrid** universe — calling its definitions "prod" misnamed the artifact; the
+single production `w` universe doesn't exist yet. Canonized alongside in
+`executor/provisioning.md`: vhost = **`<universe>__<run>`**, uniform across all
+kinds (`d1__1`, `hw1__1`, `w__1`); for a real universe the run number is the
+fabric generation; "live" is a provisioning pointer, never a name. **Verified:**
+`./ci.sh` fully green (lint, format, definitions-drift, 60 tests against the
+live dev broker).
+
 ## 2026-07-02 — Revert FleetIndexService transport class; 0.5.5 (`02cd709`)
 
 **What:** removed `TransportClass.FleetIndexService` (+ its `RoutingClass`

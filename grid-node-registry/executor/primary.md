@@ -29,14 +29,31 @@ an enum), held consistent with `base_class` and `alias` by the GT axioms below.
 
 ## Universes
 
+**This section is the authoritative definition of universes** — other docs
+(gwbase provisioning, the gnr README, the scada guardrail design) summarize and
+point here.
+
 A **universe** is the first dotted segment of a GNodeAlias, and its **kind** is
-that segment's first letter: **`d`** = dev, **`h`** = hybrid, **`w`** =
-production. There are **many** dev/hybrid universes (`d1`, `d2`, `hw1`, …) but
-exactly **one** production universe — the only place GridWorks MarketMakers
-manage real money. So `universe_of(alias) = alias.split(".")[0]`, and "is this
-real money?" ⇔ "is the universe the single production one?" (The full guardrail —
-a GNode may only talk on a broker in its own universe, the broker host/vhost
-encoding that universe, and the dev rabbit `gw-dev-rabbit` serving `d1__1` on
+that segment's first letter. The kinds form a ladder — each step adds a
+requirement (canonized 2026-07-04):
+
+- **`d` — dev: runs locally on a single computer.** The defining property: **all
+  comms go through localhost brokers.** That is the isolation guarantee (nothing
+  can reach a real system or real money), and why the test harness and CI are dev
+  universes — a laptop or a CI runner *is* the single computer.
+- **`h` — hybrid: the most flexible.** Distributed comms; real and simulated
+  participants mixed in one tree; real hardware allowed; re-runnable
+  (`hw1__1`, `hw1__2`, …). Trust is by configuration/mTLS — **no validation-cert
+  requirement** — and still no real money.
+- **`w` — production: validation required.** Scadas and MarketMakers MUST carry
+  **Validation certs** (the TaValidator/TaDeed plane) — the full trust machinery
+  — and it is the **only** place GridWorks MarketMakers manage real money.
+
+There are **many** dev/hybrid universes (`d1`, `d2`, `hw1`, …) but exactly
+**one** production universe. So `universe_of(alias) = alias.split(".")[0]`, and
+"is this real money?" ⇔ "is the universe the single production one?" (The
+enforcement guardrail — a GNode may only talk on a broker in its own universe,
+the broker host/vhost encoding that universe, `gw-dev-rabbit` serving `d1__1` on
 localhost — lives in the scada `hardware-layout-pass-one` design; what binds
 *here* is that every alias the registry holds carries its universe in segment 0.)
 
@@ -46,6 +63,35 @@ universe** mirror production — the same GNode topology re-aliased into `d1.*` 
 without ever touching real money. The test harness (see the standup design) is
 exactly such a dev universe: the deployed systems (`hw1.isone.me.versant.keene.*`)
 and the parent GNodes they require, re-aliased into `d1`.
+
+**Universes are durable; runs are ephemeral (canonized 2026-07-04).** A broker
+vhost is **`<universe>__<run>`**, **uniform across all kinds including
+production** (`d1__1`, `hw1__1`, `w__1`): the universe
+names a **durable set of GNodes** (the registry's tree — real and simulated
+members alike in a hybrid), and a **run** is one execution of time against it —
+its own message fabric, sim-clock state, event history, and FIS lease state.
+Re-running the same universe (same topology, same recorded weather/price feeds)
+under different bidding strategies is `hw1__1` vs `hw1__2`: a controlled
+experiment on identical structure. Consequences: **the registry is per-universe
+and shared across all its runs** (one `hw1` registry serves every `hw1__n`);
+topology-*mutating* experiments belong in their own dev universe (a re-parent in
+one run would bleed into sibling runs through the shared registry); **real
+hardware may participate in any run whose clock it can physically follow** — a
+field device serving a real house lives in the wall-clock ("live") run, while a
+bench rig can join a re-run as hardware-in-the-loop (physical hardware always
+experiences wall-clock time, so it can't follow a sped-up sim clock); and
+single-writer authority is per **(GNodeId, run)**, since the same GNode identity
+legitimately runs in several runs at once (a FIS-design consequence,
+OPS-420/422). For a real universe the run number doubles as **fabric
+generation**: reality executes once, but the message fabric can be rebuilt —
+broker migration or disaster recovery mints `w__2` with the same universe, same
+registry, same identities. **Which run is "live" is deployment state — a pointer
+in provisioning config, never encoded in a name** (state in names goes stale; the
+same reason alias ≠ GNodeId). And **no message body carries its run**: the run is
+a property of the fabric (the vhost a connection is on), recorded where messages
+are *persisted* — the ear's capture keys and the JournalKeeper's storage carry
+the vhost — per the audit principle (gwbase `transport.md` §3.7: delivery
+metadata lives in the infrastructure, not the payload).
 
 **The universe segment is a namespace, not a GNode.** `d1` (the bare universe
 token) is **not** a GNode — it is the namespace the registry is scoped to. So the
@@ -129,8 +175,19 @@ shape, not by consumer.
 - **`g.node.reparent.cmd`** — the write command: the new node `N` (a `g.node.gt`) +
   the moved child `GNodeId`s. The registry computes the recursive descendant alias
   rewrite and the edge retire/create set, and applies them in one transaction.
-- **On commit the registry broadcasts a forest** of the affected subtree (see below).
-  Best-effort (convergence is by authorization, not delivery).
+- **On commit the registry broadcasts a forest** of the affected subtree (see below),
+  keyed on a **`radio_channel` = the alias the audience is bound to** — for a
+  re-parent introducing N under E, that is **E's alias** (the deepest change-stable
+  ancestor, a prefix of every moved node's old alias; `parent_alias(new_node.alias)`
+  in `GnrRabbit`); for a pure rename, the top node's `prev_alias`; for a periodic
+  snapshot (not yet implemented), the current `alias`. Listener logic is identical in
+  all cases: upsert the forest, react if your GNodeId carries a new alias. Listeners
+  bind ancestor channels **self-inclusively** (GridworksActor tier, O(depth) exact
+  bindings); subtree monitors (FIS) bind one trailing-`#` per authority root.
+  Best-effort, **no re-broadcast on old channels** (convergence is by authorization,
+  not delivery; durable subscriber queues cover downtime; the FIS deny is the
+  backstop). Reasoning in
+  [`../explorations/root-keyed-forest-broadcasts.md`](../explorations/root-keyed-forest-broadcasts.md).
 
 **The forest — one payload, three uses.** A **forest** is a set of subtrees, each
 rooted at one of a chosen set of nodes and carrying every descendant. It is the
@@ -239,6 +296,33 @@ grounded in legacy `g-node-factory` Update Axiom 3 + the role-change rule) — p
 functions the step-5 write handlers call before applying any status/class change,
 rejecting an illegal move before the mutation commits. Identity transitions are
 no-ops.
+
+## Time coordinators (canonized 2026-07-04)
+
+**TimeCoordinators are GNodes** (`base_class: Logical`, `g_node_class:
+TimeCoordinator`), and **TC trees hang off the copper**: `<uni>.time` (e.g.
+`d1.time`) is the universe-level clock — a Logical forest root — and a house
+clock is a **child of the LTN**, sibling of `.scada`/`.ta`. A regional clock is a
+child of a copper node. Which clock a *simulated* GNode marches to is **derived
+from registry state alone**:
+
+> Walk **self, then ancestors, nearest first**; the first node with a
+> TimeCoordinator child names your clock. If none, `<uni>.time` is the default
+> (uniformly: the bare universe token is the virtual top ancestor whose
+> "children" are the forest roots).
+
+Lexical scoping for time domains — a simulated house overrides the regional
+clock; everything else defaults up the chain. Self-inclusive matters: an LTN with
+its own TC child marches to it. Rationale (and why TCs earn registry rows — alias
+addressing, FIS-era `CN=GNodeId` identity) in
+[`../explorations/root-keyed-forest-broadcasts.md`](../explorations/root-keyed-forest-broadcasts.md).
+Supporting invariant, **queued as a sema-first axiom** (sema enforcement keeps
+the future chain lift light): **at most one TimeCoordinator child per GNode** —
+as a `g.node.forest` axiom, or structurally via a `.time` ⇔ TimeCoordinator
+suffix rule (then alias uniqueness enforces it for free; costs a `g.node.gt`
+version step — decide at authoring). Also queued: **`.ta`/`.scada` are terminal**
+(no node's alias-parent is a TerminalAsset or Scada), forest axiom + a
+`gnr.db.validate` mirror.
 
 ## Intended invariants (the registry's reason to exist)
 
@@ -354,7 +438,11 @@ reads the registry) redeploys a renamed node with fresh config, triggered by the
 broadcast; the FIS deny is the **backstop signal** (a missed node fails auth, which is
 observable → triggers redeploy). The node never self-queries; it just gets redeployed
 (~yearly, so a restart is fine). So broadcast delivery is best-effort, not
-load-bearing, and the FIS deny needs no rich payload. The FIS-side contract
+load-bearing, and the FIS deny needs no rich payload — **and mechanically cannot
+carry one**: the `rabbitmq-auth-backend-http` protocol returns only
+`allow`/`deny`, so there is no channel to hand the denied client a hint (the
+legacy FIS writeup, `gridworks-infra/authority/fleet-index-service/`, maps
+`NOT_AUTHORIZED`/`REJECTED` → bare `{"result": "deny"}`). The FIS-side contract
 (cert-subject = `GNodeId`, alias-staleness check) lives in the mTLS+FIS auth work
 (OPS-420 / OPS-422).
 
@@ -410,18 +498,18 @@ the DB reflects the rewrite). Proven on testcontainers and against `gw-dev-rabbi
 the dev Postgres. **FIS read path settled (2026-07-02):** writes ride rabbit, reads
 ride HTTP, and FIS is a **pure `g.node.forest` broadcast subscriber** (a `ServiceSettings`
 tap — no transport class), event-sourced and authority-scoped (see *Write path & egress*).
-gwbase **0.5.5** forward-reverted the speculative `FleetIndexService` add; gnr stays on
-0.5.3. **Not yet (read/egress):** author the two forest Sema words `g.node.forest` +
-`g.node.forest.request` in sema + re-vendor the snapshot; replace the flat
-`g.node.topology.broadcast` with the forest payload; rework `apply_reparent` to return a
-`g.node.forest` + update `GnrRabbit`/the Layer-2 test; the **FastAPI read façade**
-(`g.node.forest.request` → forest); and **root-keyed broadcasts** (`radio_channel` = the
-affected copper root) so a FIS subscribes only to the subtrees it authorizes. **Forest-root rework (root = namespace decision, 2026-07-02):** `gnr.db.validate` +
-`gnr.dev_universe` currently seed `d1` as a `Logical` root GNode; rework them so the
-universe token is **not** a GNode — a `is_forest_root(alias)` helper (alias-parent is
-the bare universe segment), the three structural checks exempt forest roots (no parent
-GNode, no incoming edge), and the dev seed drops the `d1` node so `d1.isone` (MM) is a
-forest root. **Not yet (other):** CI wiring (run Layer 0 always, integration behind
-docker), edge change-history (status-history folds into the lifecycle SM; edge-history
-is best a projection of the step-5 command log), and the explicit re-parent
-alias-collision pre-check (today it aborts atomically via the ledger mid-rewrite).
+gwbase **0.5.5** forward-reverted the speculative `FleetIndexService` add. **All since
+done (2026-07-03/04):** the forest words authored + vendored (`g.node.gt` v005,
+`g.node.forest`, `g.node.forest.request`; `topology.broadcast` retired);
+`apply_reparent` returns a `g.node.forest` and `GnrRabbit` broadcasts it **root-keyed**
+(`radio_channel` = the change-stable parent alias; Layer-2-proven, incl. the exact-match
+channel binding); the forest-root rework (`is_forest_root`, `d1` not a GNode); the
+**FastAPI read façade**; **CI** (GitHub Actions runs all 30 tests against service
+containers); gwbase **0.5.6** adds the `gnrmic_tx → amq.topic` bridge so MQTT-native
+actors hear forest broadcasts. The write path is **replay-idempotent** (a duplicate command returns the affected
+subtree's current forest) and **pre-checks alias collisions** (explicit error
+naming the collisions; the mid-rewrite ledger abort stays as defense-in-depth);
+`GnrRabbit.broadcast_snapshot(root)` is the anti-entropy path (cadence = deploy
+config). **Known present-state limits** (facts, fine at MVP scale): write-time
+validation scans the whole registry per write. The work queue — populate, deploy,
+the queued sema-first axioms — lives in the standup design, not here.

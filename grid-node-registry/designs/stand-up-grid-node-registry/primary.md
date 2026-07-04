@@ -82,17 +82,32 @@ mTLS+FIS auth work — it has to exist before FIS can enforce GNode identity.
    (content-addressed, replay-safe); ✅ the **HTTP read façade** (`gnr.api`, routes `/<service>/<sema-type-with-hyphens>`):
    `POST /gnr/g-node-forest-request` → `g.node.forest` (`get_forest`), `GET /gnr/g-node-by-id/{id}`,
    `GET /gnr/g-node-by-alias/{alias}` (`resolve_alias` — current **or** past alias → the current
-   GNode) for FIS bootstrap + provisioning/analytics. **▶ Remaining:** (a) **root-keyed broadcasts**
-   (`radio_channel` = affected copper root) so a FIS subscribes only to its authority subtrees —
-   coupled to the FIS wildcard-subscription model (mtls-fis-auth, OPS-422); (b) the reparent
-   command's optional **signature** (#3) + the chain-defined content-address, when the auth /
-   distributed-authority model lands. FIS-as-subscriber + authority-scoped bootstrap is a
-   FIS-side concern (OPS-422).
-6. **◐ Tests + CI** — the dev-universe layered harness is **done** (all three
-   layers green; see [`test-harness.md`](test-harness.md)); **CI wiring remains**
-   (Layer 0 always, the integration layers behind docker).
-7. **Deploy.** Where it runs (alongside FIS), how FIS reaches the API, `.env` /
-   secrets, running Alembic on deploy.
+   GNode) for FIS bootstrap + provisioning/analytics. ✅ **root-keyed broadcasts**
+   (`radio_channel` = the change-stable parent alias, Layer-2-proven; gwbase **0.5.6**
+   bridges `gnrmic_tx → amq.topic` for MQTT-native listeners; channel rule + listener
+   pattern in the executor and the root-keyed-forest-broadcasts exploration).
+   ✅ write-path hardening (idempotent replay; alias-collision pre-check) and the
+   snapshot broadcast (`broadcast_snapshot(root)`, channel = current alias; cadence is
+   deploy config). **▶ Remaining:** (a) the queued sema-first axioms
+   (at-most-one-TC-child, terminal `.ta`/`.scada` — with a `gnr.db.validate` mirror)
+   when the sema claim frees; (b) the gwbase `subscribe_ancestors` helper
+   (GridworksActor tier, self-inclusive prefix bindings + rebind-on-rename) + a
+   periodic snapshot driver at deploy; (c) scoping write-time validation to the
+   affected subtree (whole-registry scan is fine at MVP scale, wrong at 10⁶); (d) the
+   reparent command's optional **signature** (#3) + the chain-defined content-address,
+   when the auth / distributed-authority model lands. FIS-as-subscriber +
+   authority-scoped bootstrap is a FIS-side concern (OPS-422).
+6. **✅ Tests + CI** — the dev-universe layered harness (all three layers green; see
+   [`test-harness.md`](test-harness.md)) and GitHub Actions running all 30 tests
+   against Postgres + dev-rabbit service containers.
+7. **Populate + deploy** (the MVP: launch and populate on EC2). **Populate:** ingest
+   the real fleet into `g_nodes` **through the handler core as commands** (populating
+   `command_log` + the alias ledger from birth, never raw SQL), with opaque
+   `position_point_id`s and `position_points` left **empty** (the staging plan —
+   see `explorations/positions-staging-and-encryption.md`). **Deploy:** EC2 alongside
+   FIS; the open surface is the read-only HTTP API; **`gnr_tx` stays unreachable from
+   outside until mTLS+FIS lands** (hard requirement); `.env`/secrets; Alembic on
+   deploy; README brought to standalone-adopter grade.
 
 ## Write model & egress (the mutation contract)
 

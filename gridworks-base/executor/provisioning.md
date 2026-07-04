@@ -30,11 +30,27 @@ on them.
 - **Identities** — users, vhost, and permissions live *here*, not in the
   conf's `default_*` lines (which would race the definitions import at boot).
 
+**Vhost = `<universe>__<run>` (canonized 2026-07-04).** A vhost names one
+**run** of a universe — the universe is the durable GNode set, a run is one
+execution of time against it, with its own message fabric / sim-clock / event
+history / FIS leases. The grammar is **uniform across all kinds, including
+production** (`d1__1`, `hw1__1`, `w__1`): for a real universe the run number is
+the **fabric generation** (broker migration/DR mints `w__2`, same universe and
+identities), and which run is "live" is deployment state — a provisioning
+pointer, never a name. The `__` separator cannot collide with alias content
+(aliases are dot-separated words). **The authoritative definition of universes
+(the `d`/`h`/`w` ladder: dev = all-localhost, hybrid = distributed + flexible,
+production = validation certs + real money) and of runs lives in
+`wiki/grid-node-registry/executor/primary.md` "Universes"** — this doc owns only
+the vhost grammar and the definitions artifacts.
+
 **Generator → per-vhost definitions JSON.** The build logic lives in the
 package (`gwbase.rabbit_definitions.build_definitions`, unit-tested);
 `for_docker/gen_definitions.py` is the thin CLI the broker-image build and
 the CI guard call. It renders a RabbitMQ management-plugin definitions JSON,
-parameterized by `--vhost` (`d1__1` dev, `hw1__1` prod). Output is
+parameterized by `--vhost` (`d1__1` dev, `hw1__1` hybrid run 1; the committed
+artifacts are `dev_definitions.json` / `hybrid_definitions.json` — provisioning
+a further run regenerates with that run's vhost). Output is
 **deterministic** (fixed dev-password salt + sorted keys) so it can be
 regenerated-and-diffed. The **drift guard** is
 `tests/test_definitions_drift.py` (runs in the normal `uv run pytest` / CI),
@@ -46,9 +62,9 @@ dev, and prod topologies cannot diverge.
 
 **Identities & secrets.** Definitions store a `password_hash`, not
 plaintext. **Dev** commits the `smqPublic` user + hash (non-secret).
-**Prod** never bakes its user/hash into a published artifact — inject at
-deploy (compose secrets / conf env interpolation) or keep prod definitions
-private. With identities removed, the conf collapses to **one parameterized
+**Hybrid (and the eventual prod universe)** never bakes a user/hash into a
+published artifact — inject at deploy (compose secrets / conf env
+interpolation) or keep those definitions private. With identities removed, the conf collapses to **one parameterized
 template** whose only env-specific line is `mqtt.vhost`. The conf points the
 broker at the definitions with the RabbitMQ 4.x keys
 `definitions.import_backend = local_filesystem` +

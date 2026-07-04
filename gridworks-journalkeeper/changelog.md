@@ -12,6 +12,81 @@ Newest at the top.
 
 ---
 
+## 2026-07-04 — CI trim: drop redundant cache + setup-python steps; prune dead dependabot watchers (`2aa9b74`)
+
+**What:** `tests.yml` loses the manual `actions/cache` step
+(`~/.cache/uv`) and the `actions/setup-python` step — `setup-uv` already owns
+both (its `enable-cache: true` caches uv keyed on `uv.lock`; its
+`python-version: "3.12"` installs Python), so the workflow was double-caching
+and double-provisioning. `dependabot.yml` drops the pip watchers on
+`/.github/workflows` and `/docs` — those constraint files don't exist
+(hypermodern-cookiecutter legacy); the github-actions and root-pip watchers stay.
+
+**Why:** the dependabot triage (PRs #166–#168) surfaced the redundancy — #166
+wanted to bump the cache action, but bumping a redundant step is polishing dead
+code; #166 closed, the step removed instead (same pattern as gwbase's
+`tests.yml`, which runs on `setup-uv` alone). **Verified:** both YAMLs parse;
+suite 23 passed locally; the real proof is the PR's own CI run (it exercises the
+trimmed workflow).
+
+## 2026-07-04 — PR #169 merged: import improvements (Joe) (`ec7d107`)
+
+**What:** (Joe, `jds/import-improvements`, commits `cd33623`…`d5b5af0` + the
+review-fix commits below) the s3 importer grows a real CLI — `--message-path`
+(single message), `--start`/`--end` date ranges, `--message-types` include/`~`
+exclude filters, `--dry-run`, `--abort-on-error`, `--db-echo`, `-v` — with
+continue-past-failures as the default loop behavior. `report.event` `created_at`
+/timestamp timezone fixes; weather-forecast unit scales corrected
+(`forecast-oat` ×1000 → ×100, matching FahrenheitX100); zone **heat-call**
+channels synthesized from `whitewire-pwr` readings (pseudo-channel + per-site
+wattage thresholds); `snapshot.spaceheat`, `new.command.tree`, `atn.bid`
+re-enabled for persistence; `layout.lite` 010/011 accept the `ha1.params`
+versions the fleet actually shipped (paired with sema PR #32); `gw_data` → 0.3.1.
+
+**Why:** the S3 archive backfill path — the journal ingests the historical
+eventstore, including the mixed-version layouts real deployments produced.
+Carried caveats: pre-fix `forecast-oat` rows remain ×10 (needs backfill —
+`on_conflict_do_nothing` skips them on re-import); the heat-call synthesis has a
+known interaction with spruce-unlimbo's layout-declared derived channels, parked
+with its fix shape in the registry-projection-and-ear-capture design.
+**Verified:** 23 passed on the merged state (gwbase 0.5.6 + gw_data 0.3.1 +
+regen'd snapshot); CI green.
+
+## 2026-07-04 — review fixes on PR #169 (`8c2ee05`, `338c295`, `fb9200b`)
+
+Three commits on Joe's `jds/import-improvements` from the PR-169 review:
+
+- **s3 importer: fix default type selection + testable CLI parsing** —
+  (a) `str(args.message_types)` turned an omitted flag into the truthy "None", so
+  the default date-range run selected `{"None"}` and silently imported nothing;
+  now `args.message_types` is tested directly and the include-list strips
+  whitespace (matching the `~` exclude branch). (b) `main()` → `main(argv=None)`
+  + `parse_args(argv)` so pytest's own args can't leak into the parser (the PR's
+  one failing test). Adds `test_omitted_message_types_defaults_to_all_known`,
+  `test_message_types_include_list_strips_whitespace`; the continue-past-failure
+  test passes explicit argv.
+- **re-lock gw-data to registry 0.3.1** — the committed lock pinned
+  `{ directory = "../gridworks-data" }` (only builds beside a sibling checkout;
+  CI/fresh clones fail `uv sync`); `gw_data` 0.3.1 is on PyPI, so the lock now
+  resolves from the registry with pinned hashes.
+- **regen sema snapshot from jds/import-fixes** — adopts the regen output over
+  the PR's hand-edits to generated `src/gjk/sema/` (2 lines: true
+  `last_updated`/`generated_at` stamps). With sema PR #32 as source, the
+  vendored widening now reproduces exactly under `scripts/regen_sema_snapshot.sh`
+  — the "next regen reverts it" hazard is gone.
+
+**Verified:** full gjk suite 22 passed after each step.
+
+## 2026-07-04 — bump to gwbase 0.5.6 (`560035a`)
+
+**What:** `pyproject.toml` `gridworks-base>=0.5.2` → `>=0.5.6`; relocked.
+
+**Why:** stay on the current published gwbase. 0.5.6 adds the `gnrmic_tx → amq.topic`
+broadcast bridge (registry `g.node.forest` broadcasts reach MQTT-native actors) and
+renames the definitions artifact `prod_definitions.json` → `hybrid_definitions.json`
+(vhost = `<universe>__<run>`); nothing in the 0.5.2→0.5.6 span changes this repo's
+consumed API. **Verified:** full suite 21 passed on 0.5.6.
+
 ## 2026-06-12 — README: document the docker-gated integration test (`e9086c2`)
 
 **What:** README "Run tests" — note the suite includes a Layer-2 liveness test

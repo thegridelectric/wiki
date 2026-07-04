@@ -398,6 +398,16 @@ cover it, so **no message type carries its own timestamp**:
 - **delivery id** — `correlation_id` / a per-send message id; an AMQP *property*
   (above), never the body; identifies one *delivery*, not the content.
 
+**Run context is fabric context.** A message body SHALL NOT carry which
+**run** (`<universe>__<run>` vhost) it rode — the run *is* the fabric the
+connection is on, so it is delivery metadata by definition, and keeping it out of
+bodies keeps commands run-agnostic (the same recorded command replays into a new
+run byte-identically). The run is stamped where messages are **persisted**: the
+ear's capture keys (file/S3 key prefixed by vhost) and the JournalKeeper's
+storage (a vhost column / partition key). A replayer feeding recorded messages
+into a new run is just a publisher on that run's vhost; the recording's
+provenance lives in the recording store.
+
 **Timestamps + ordering.** A wall-clock **SHALL NOT** live in a sema body: it is
 non-deterministic (clock skew), redundant with the ear, and breaks any future
 content-address / signature (the same state would serialize to different bytes each
