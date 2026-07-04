@@ -12,6 +12,61 @@ Newest at the top.
 
 ---
 
+## 2026-07-04 — LayoutLite010: Allow Ha1Params v004 LayoutLite011: Allow Ha1Params v004,v005 (`1b8a6ca`)
+
+**What:** (Joe, PR `jds/import-fixes`) `layout.lite/010` `Ha1Params` widened in
+place from `$ref ha1.params/005` to `oneOf[004|005]`, and `011` from `/006` to
+`oneOf[004|005|006]`, with the matching registry `direct_dependencies`/summary
+updates, index rebuild, runtime regen (the `Ha1Params004|005(|006)` unions in
+`old_versions/layout_lite_*.py`), and upgrade-template adjustments (the
+009→010/010→011 per-step ha1 lifts drop; 011→012 walks ha1 to 006).
+
+**Why:** a **sanctioned in-place mutation of published versions** — the ruling:
+the already-published wire data is the source of truth, and the fleet genuinely
+shipped `layout.lite:010/011` messages carrying `ha1.params:004/005` payloads
+(the S3 archive holds them), so the published schemas misdescribed reality and
+correcting the word beats minting a new version that the historical data could
+never carry. Unblocks the journalkeeper ingesting those archives (gjk PR #169
+vendors this — its snapshot now regens identically from this branch).
+**Verified:** full sema suite 177 passed incl. the round-trip gate and the
+upgrade-summary↔template mirror; gjk regen + suite green downstream.
+
+## 2026-07-04 — all examples decode through the runtime; stash stale gw.house0.layout example (`0ac441f`)
+
+**What:** on `jm/example-runtime-validation` (off `jm/sim-vocab`).
+`tests/runtime/test_example_runtime_validation.py` drops its grown-as-touched allowlist and now
+decodes **every** non-draft type example through the generated runtime at the example's **own
+version** (`auto_upgrade=False`, the snapshot round-trip gate's semantics) — 133 example-bearing
+versions covered. Draft versions are skipped (no generated runtime class); a non-draft version whose
+example can't find a runtime class fails. The one stale example this surfaces —
+`gw.house0.layout/000`, broken by the in-place channel-config reshape (3399 runtime errors) — is
+**stashed**: moved out of `000.yaml` into the type's `stash_axioms.md` as the structural reference
+until the tlayouts generator authors the reshaped layout (the generated instance becomes the fresh
+example). The `x-gridworks` axioms block stays in `000.yaml` untouched.
+
+**Why:** an example that doesn't decode through the current runtime is a broken contract advertised
+as a worked example; it should fail the main suite the moment a reshape lands, not later at a
+consumer's snapshot build. Design: OPS-442. **Verified:** full suite green (377 passed, 1 xpassed);
+ruff check + format clean; index + runtime regen are no-ops.
+
+## 2026-07-04 — layouts reference g.node.gt v005 (`b901ee1`)
+
+**What:** the three unpushed layout-family types that carry GNode identity —
+`gw.house0.layout/000`, `gw.nolan.layout/000`, `gw.house0.operational.params/000` — bumped their
+`g.node.gt` `$ref` `004` → `005` **in place** (no version bump; all three are unpushed → mutable).
+Registry: the three `direct_dependencies` entries → `g.node.gt:005`, their `created` forward-bumped
+to `2026-07-04T14:50:00Z` (dependency ordering — `005` was created 2026-07-03; the cascade stops at
+these three, nothing references them), `metadata.last_updated` same stamp. The six embedded example
+GNode instances (3 in house0.layout, 3 in operational.params; nolan has none) bumped to
+`"Version": "005"` — their aliases already satisfy the new axiom 6 (≥2 dotted words). Indexes +
+runtime regenerated.
+
+**Why:** `g.node.gt/005` (`e5f4141`) canonized "the universe segment is a namespace, not a
+GNodeAlias" (axiom 6, ≥2-word alias); the layouts we are actively authoring should bind to that
+contract rather than pre-axiom `004`. `fis.authority.manifest/000` deliberately stays on `004` —
+FIS-domain, not this pass's to move. gwsproto `GNodeGt` catch-up (add `check_axiom_6`, docstring →
+`/005`) is the scada-side follow-on. **Verified:** suite green after regen (267 passed, 1 xpassed).
+
 ## 2026-07-03 — Board-resident relay vocabulary: relay.control.config + i2c/gpio relay components (`fae8d27`)
 
 **What:** three new type words for the board-resident, one-relay-per-component model, plus a

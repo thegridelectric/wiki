@@ -1,6 +1,6 @@
 # The authoring pipeline — sema_gen → sema_to_dc (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-06-29 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-07-04 · Linear: OPS-407
 
 > What this is: the one flow that makes sema the authored source of truth and the dc layout an output.
 > `per-home config → sema_gen → axiom-valid gw.house0.layout → sema_to_dc → the dc HardwareLayout the
@@ -31,21 +31,35 @@ authored side and the transform becomes `ops_and_sema_to_dc`:** the gen authors 
 stripped from `channel.config`), and `ops_and_sema_to_dc(static ⊕ ops)` assembles the runtime dc — whose
 `channel.config` is whole again, so device actors are unchanged. This is pass-one work (the
 `channel.config` reshape forces it); the operational-params artifact is built this pass in the
-[`operational-params.md`](operational-params.md) spoke.
+[`operational-params.md`](operational-params.md) spoke. **Both halves are built (2026-07-04):** the
+tlayouts gen emits the two artifacts per home (`gen_artifacts`), and scada's
+`sema_to_dc.assemble_runtime_layout` / `ops_and_sema_to_dc` reassemble them with the coverage +
+poll-floor checks — proven end to end on oak (assembled dc loads; only the known stale-fixture
+DerivedChannels diff remains to adopt).
 
-## Where the gen files live — machinery in scada, per-home gen in `tlayouts`
+## Where the gen files live — everything authoring-side in `tlayouts` (moved 2026-07-04)
 
-- **Machinery (reusable) — `gridworks-scada/gw_spaceheat`:** `House0SemaGenConfig`, `sema_gen`,
-  `sema_to_dc`. The generic pipeline, shared by every home.
-- **Per-home gen files — the `tlayouts` sibling repo:** each home is its own `gen_<home>.py` that
-  builds that home's `House0SemaGenConfig` and runs the pipeline, exactly where the legacy dc-based
-  `gen_maple.py`/`gen_oak.py`/… already live (they import gw_spaceheat today; the sema versions
-  import `house0_sema_gen` + `sema_to_dc` the same way). The per-home configs currently parked in
-  `house0_sema_gen_check.py` (oak, house0-stub) **move out to `tlayouts`** as each home's gen file;
-  gw_spaceheat keeps only the machinery (and `house0_sema_gen_check.py` is retiring).
-- **Two outputs, both sema-authored:** production layouts → **`tlayouts/output/`** (what scadas
-  deploy); test fixtures → **`gridworks-scada/tests/config/`** (what the suite loads). The same
-  per-home config feeds both.
+- **The gen machinery lives in `tlayouts`, on the sema snapshot** (`src/tlayouts/house0_sema_gen.py`
+  + `src/tlayouts/sema/` + the `src/tlayouts/names/` mirror + `layout_id_map.py`): no gwsproto, no
+  scada venv — `uv run python gen_<home>_sema.py` is the whole authoring stack. This supersedes the
+  earlier machinery-in-scada split: the gen is authoring-side and belongs with the per-home gen
+  files. The ported gen builds the STATIC sema shape natively (the snapshot component types reject
+  capture params) and accumulates `capture.tuning` as the emitters run; `gen_artifacts(config,
+  reference)` returns the (static layout, operational params) pair, both snapshot-validated before
+  writing.
+- **Per-home gen files — `tlayouts/gen_<home>_sema.py`:** each home's config inline (oak +
+  house0-stub moved out of the retired `house0_sema_gen_check.py`), alongside the legacy dc-based
+  `gen_oak.py`/… until those retire.
+- **Scada keeps the consuming side** — `gw_spaceheat/sema_to_dc.py`: `assemble_runtime_layout` /
+  `ops_and_sema_to_dc` (static ⊕ ops → runtime dc, with the coverage + poll-floor checks) and the
+  file-based diff-and-adopt oracle.
+- **Two outputs, both sema-authored:** production layouts → **`tlayouts/output/<home>/`**
+  (`gw.house0.layout.json` + `gw.house0.operational.params.json`); test fixtures →
+  **`gridworks-scada/tests/config/`** (adopted from the assembled artifacts). The same per-home
+  config feeds both.
+- **Naming vocabulary OFI:** `src/tlayouts/names/` is a mirror of `gwsproto/names` pending the
+  names-in-sema design (encode the closed name sets as sema enums, the zone/tank/flow patterns as a
+  naming word; gridworks-terminalasset needs the same vocabulary) — see the mirror's README.
 
 ## Retire dc_to_sema
 
@@ -54,10 +68,12 @@ so the reverse direction is dead weight on the ship path. Sequence:
 
 1. ✅ Build `sema_to_dc` (`gw_spaceheat/sema_to_dc.py`) — done; `sema_to_layout_dict` moved there out
    of the `house0_bijection.py` harness (and the vestigial `gnode_src` kwarg + dead imports dropped).
-2. Move the gwta wire round-trip (`layout_roundtrip.py`) onto a `sema_gen` layout instead of
+2. Move the gwta wire round-trip (`layout_roundtrip.py`) onto a tlayouts-authored layout instead of
    `dc_to_sema(load(...))` — nothing on the ship path needs the reverse.
-3. Delete `dc_to_sema`, the `house0_sema_gen_check.py` equivalence oracle, and the
-   `_to_new_convention` rename bridge (a temporary comparison-target hack).
+3. Delete `dc_to_sema` and the `_to_new_convention` rename bridge (a temporary comparison-target
+   hack). ✅ The `house0_sema_gen_check.py` equivalence oracle went early (2026-07-04), deleted with
+   the gen's move to tlayouts — its `_canon` lives on in `sema_to_dc.py`, its per-home configs in
+   the tlayouts gen files.
 
 ## The oracle — diff-and-adopt, relaxed
 

@@ -1,6 +1,6 @@
 # operational-params — the third SCADA artifact (spoke)
 
-Status: Accepted · Pass 2 · Updated 2026-06-29 · Linear: OPS-407
+Status: Accepted · Pass 2 · Updated 2026-07-04 · Linear: OPS-407
 
 > What this is: a third SCADA artifact alongside deployment config and the static hardware layout — the
 > **operational / optimization parameters** (`operational-params.json`): the tunable state that changes
@@ -28,15 +28,17 @@ so they keep the capture params (filled at assembly) — the ~23 actor read site
 nothing breaks" below). The 7 live `tests/config` fixtures were field-bumped `channel.config/001` →
 `capture.tuning/000`.
 
-**▶ The next move is step 4 — build `ops_and_sema_to_dc`.** Extend `gw_spaceheat/sema_to_dc.py` to merge
-`static layout sema ⊕ operational-params` into a whole-`channel.config` runtime dc: for each channel, splice
-the `capture.tuning` params (keyed by `ChannelName`) onto the runtime component `ConfigList` entry. Carry the
-two assembly-only checks — **assembly-coverage** (ops covers every channel the static layout declares) and
-the **`PollPeriodMs ≥ MinPollPeriodMs` floor** (layout owns the floor via the device type; ops owns
-`PollPeriodMs`).
+**✅ Step 4 done (2026-07-04) — `ops_and_sema_to_dc` built**, forced by the gen machinery's move to
+tlayouts (scada now consumes the two authored files): `sema_to_dc.assemble_runtime_layout` splices each
+channel's `capture.tuning` onto its component's ConfigList entry (bare components get theirs rebuilt from
+the channels their nodes capture), carrying both assembly checks — **assembly-coverage** and the
+**`PollPeriodMs ≥ MinPollPeriodMs` floor**. Proven on oak: tlayouts authors → assemble → the dc LOADS OK,
+only the known stale-fixture DerivedChannels diff remains.
 
-Then **step 5 — verify on oak:** `sema_gen(oak) → (static ⊕ ops) → ops_and_sema_to_dc → dc`, diff-and-adopt
-vs the fixture, and **boot it in sim** (`sim_boot`) — the behavioral gate, not byte-equality.
+**▶ The next move is step 5 — adopt + sim boot:** diff-and-adopt the assembled oak dc vs the frozen fixture
+(`sema_to_dc.py oak` prints the worklist — the 4 heat-call DerivedChannels the stale fixture lacks), and
+**boot it in sim** (`sim_boot`) — the behavioral gate, not byte-equality. Adopting also freezes the
+heat-call channel UUIDs (today they re-mint each run because the reference lacks those channels).
 
 **Within the pass, after the core boots:** define `cop.curve` + `heating.curve`, extend
 `gw.house0.operational.params` (a new version) with the control/optimization fields, and migrate the rest
@@ -48,8 +50,13 @@ home (oak, elm, fir, beech-sieg, maple, the House0 variants, nolan) needs a **fi
 authored as part of this design — the `capture.tuning` list now (per-channel capture params lifted from the
 retiring `channel.config` params), and the control/curve fields once those leave `actors/config.py`. This
 rides the sema gen (`sema_gen` emits **both** the static sema and `operational-params.json` per home), so the
-fleet ops-params are produced by re-authoring, not hand-written JSON. Not started; do it alongside the
-`tests/config/` regeneration in [`gen-pipeline.md`](gen-pipeline.md).
+fleet ops-params are produced by re-authoring, not hand-written JSON. **The fork is built into the
+gen** (`tlayouts.house0_sema_gen.gen_artifacts` returns the static-layout + operational-params pair; the
+snapshot types enforce the capture-stripped static shape structurally) and **the first two pairs are
+gen-emitted** — `tlayouts/gen_oak_sema.py` (82 capture tunings) and `gen_house0_stub_sema.py` (36, the
+all-sim skeleton), each written to `tlayouts/output/<home>/` after decoding through the sema snapshot.
+Remaining homes ride the per-home gen build-out alongside the `tests/config/` regeneration in
+[`gen-pipeline.md`](gen-pipeline.md).
 
 ## The artifact — one layout-typed type, a collection of sub-types
 

@@ -12,9 +12,36 @@ Newest at the top.
 
 ---
 
-## 2026-07-04 — gwsproto GNodeGt: track g.node.gt v005 (axiom 6, ≥2-word alias) <!-- pending commit -->
+## 2026-07-04 — gen machinery moves to tlayouts; sema_to_dc gains ops_and_sema_to_dc <!-- pending commit -->
 
-**What (planned):** `gwsproto/named_types/g_node_gt.py` — docstring → `Sema: …/g.node.gt/005`,
+**What (planned):** on `jm/spruce-unlimbo`. `house0_sema_gen.py` and `house0_sema_gen_check.py`
+leave gw_spaceheat — the gen now lives in tlayouts on the sema snapshot (`tlayouts.house0_sema_gen`,
+no gwsproto, no scada venv; per-home configs moved into `gen_oak_sema.py` / `gen_house0_stub_sema.py`
+there; the equivalence-check harness retires with the move, its `_canon` oracle absorbed into
+`sema_to_dc.py`). The ported gen builds the STATIC sema shape natively (the snapshot types reject
+capture params — the reshape enforced structurally) and accumulates `capture.tuning` as the emitters
+run; `gen_artifacts(config, reference)` returns the (static layout, operational params) pair.
+`sema_to_dc.py` reworks around the consuming side: `assemble_runtime_layout(static ⊕ ops)` splices
+each channel's tuning back onto its component's ConfigList (bare components get theirs rebuilt from
+the channels their nodes capture), carrying the two assembly checks — **coverage** (ops covers every
+declared channel) and the **poll floor** (`PollPeriodMs ≥ MinPollPeriodMs` via the layout's device
+types); `ops_and_sema_to_dc(static_path, ops_path)` → dc; `diff_against_fixture` now reads the
+authored tlayouts files instead of running the gen in-process.
+
+**Why:** the gen is authoring-side and belongs with the per-home gen files on the snapshot (the
+seed request's contract: tlayouts needs no gwsproto, no scada venv); scada keeps only the consuming
+half — which forced building the operational-params spoke's step 4 (`ops_and_sema_to_dc`) now.
+**Verified:** ported-gen oak artifacts semantically identical to the pre-port ones (only the four
+per-zone heat-call DerivedChannel UUIDs differ — random each run, since the frozen reference lacks
+those channels; pre-existing); house0-stub gen exercises the sim emitters (36 tunings); the full
+cross-repo loop runs — tlayouts authors → `sema_to_dc.py oak` assembles → dc LOADS OK with only the
+known 19-vs-15 DerivedChannels fixture diff; scada suite green (116 passed / 3 skipped); ruff check
++ format clean on `sema_to_dc.py`. One authored-value fix surfaced by the snapshot's strict formats:
+the house0-stub hubitat mac lowercased (`mac.address` format).
+
+## 2026-07-04 — gwsproto GNodeGt: track g.node.gt v005 (axiom 6, ≥2-word alias) (`221d3645`)
+
+**What:** `gwsproto/named_types/g_node_gt.py` — docstring → `Sema: …/g.node.gt/005`,
 `Version` Literal `"004"` → `"005"`, new `check_axiom_6` (GNodeAliasHasBody: `Alias` — and
 `PrevAlias` when present — SHALL have ≥2 dotted words; the universe segment is a namespace, not a
 GNodeAlias). The 24 embedded GNode instances in the 8 `tests/config` fixtures (3 per layout) bumped

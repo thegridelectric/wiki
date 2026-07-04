@@ -1,6 +1,6 @@
 # example-runtime-validation — the main suite must decode every example through the runtime
 
-Status: Draft · Pass 0 · Updated 2026-07-03
+Status: Accepted · Pass 1 · Updated 2026-07-04 · Linear: OPS-442
 
 **EDD: no** build-out — a test-coverage change plus the example fixes it surfaces, verified by the
 sema suite going green (every example decodes through the runtime); no standalone experiment.
@@ -27,10 +27,17 @@ a consumer's snapshot build.
 
 ## Requirement
 
-**The main sema test suite SHALL decode every published type version's `examples:` through the
+**The main sema test suite SHALL decode every registered type version's `examples:` through the
 generated runtime** — the same decode the snapshot round-trip gate performs (fields, property formats,
 axioms, and the *current* shapes of all referenced sub-types), not merely a structural JSON-Schema
 check. A stale example SHALL fail the main suite.
+
+The decode is at the example's **own version** (`auto_upgrade=False`), matching the snapshot
+round-trip gate — decoding-then-upgrading would falsely redden every version behind a
+context-dependent upgrade (~28 reds instead of the true 5, measured 2026-07-04). **Draft versions
+are skipped**: a draft version has no generated runtime class ("Unknown type" / "Unsupported
+version"), so there is nothing to decode it against; the test asserts a runtime class exists for
+every non-draft version it covers.
 
 An existing test, `tests/runtime/test_example_runtime_validation.py`, already runtime-decodes a
 **growing allowlist** of examples (it closed the JSON-only gap for a subset). This design **removes the
@@ -42,19 +49,24 @@ way — a version with a context-dependent upgrade still round-trips at its **ow
 
 1. **The test.** Extend `test_example_runtime_validation.py` from an allowlist to all examples (or add
    a comprehensive companion). Reuse the snapshot round-trip's decode path so the two gates agree.
-2. **Fix the examples it surfaces.** Regenerate the stale examples to the reshaped shapes:
-   `gw.house0.layout`, `gw.nolan.layout`, `gw1.simple.sim.layout`, and any other referrer of the
-   reshaped component / channel-config family. These layout examples are best produced by the tlayouts
-   generator once it authors reshaped layouts (the generated instance becomes the fresh example) — so
-   the fix is coupled to the tlayouts port, not hand-editing 3399 lines.
+2. **Fix the examples it surfaces.** Measured 2026-07-04 (own-version decode over all 137
+   example-bearing versions): the one genuinely stale example is `gw.house0.layout/000` (3399
+   validation errors); `gw.nolan.layout` and `gw1.simple.sim.layout` already decode green. The
+   remaining four reds are draft versions with no runtime class (`fsm.atomic.report.i2c.action/000`,
+   `fsm.atomic.report.simple.action/000`, `fsm.atomic.report/002`,
+   `gw108.gpio.relay.component.gt/001`) — covered by the draft-skip rule, not example fixes. The
+   `gw.house0.layout` example is best produced by the tlayouts generator once it authors reshaped
+   layouts (the generated instance becomes the fresh example) — so that fix is coupled to the
+   tlayouts port, not hand-editing 3399 lines.
 3. **Going-forward discipline.** When a type is reshaped in place (or a new version lands), its own
    example and every embedding referrer's example are updated **in the same change** — the new test is
    what enforces it.
 
-## Open
+## Sequencing (settled 2026-07-04)
 
-- **Sequencing of the example fixes** vs the tlayouts generator (which produces the reshaped layout
-  instances). The test can land first (red on the stale examples), or alongside the regenerated
-  examples so the suite stays green — decide when the tlayouts gen port lands.
-- **Linear.** Not yet an issue (Draft → Backlog); create the `design`-labeled Ops issue when this
-  reaches Accepted (or sooner).
+The test lands **first**, on a branch off `jm/sim-vocab`, before the tlayouts-generated example fix —
+it fails if ANY existing example fails runtime decode at its own version. The one known red
+(`gw.house0.layout/000`) is not carried as a red or an xfail: the super-stale example is **stashed** —
+moved out of `000.yaml` into the type's existing `stash_axioms.md` (the nolan-precedent stash) as the
+structural reference until the tlayouts generator authors the fresh example. Latest versions MAY omit
+an example, so the suite is green from the moment the test lands.
