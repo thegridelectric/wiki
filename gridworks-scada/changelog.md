@@ -12,6 +12,22 @@ Newest at the top.
 
 ---
 
+## 2026-07-04 — gwsproto GNodeGt: track g.node.gt v005 (axiom 6, ≥2-word alias) <!-- pending commit -->
+
+**What (planned):** `gwsproto/named_types/g_node_gt.py` — docstring → `Sema: …/g.node.gt/005`,
+`Version` Literal `"004"` → `"005"`, new `check_axiom_6` (GNodeAliasHasBody: `Alias` — and
+`PrevAlias` when present — SHALL have ≥2 dotted words; the universe segment is a namespace, not a
+GNodeAlias). The 24 embedded GNode instances in the 8 `tests/config` fixtures (3 per layout) bumped
+`"Version": "004"` → `"005"` — the Literal would reject them otherwise; all fixture aliases already
+have ≥2 words.
+
+**Why:** sema `g.node.gt/005` landed (`e5f4141`) and the three layout types now `$ref` it
+(sema `b901ee1`); the hand-written gwsproto twin must mirror the current sema contract per the
+scada protocol (axioms as `check_axiom_n`, validated via `sema validate`). **Verified:** a
+serialized instance passes the canonical runtime (`sema validate` → `OK: g.node.gt (version 005)`);
+a one-word `Alias` and a one-word `PrevAlias` are each rejected with the Axiom 6 message; scada
+suite green (116 passed / 3 skipped — the async-MQTT flake passed this run).
+
 ## 2026-07-02 — gwsproto: CaptureTuning + operational.params; drop ChannelConfig/ComponentGt/rest.poller (`9fe86665`)
 
 **What:** Added two hand-written gwsproto named-types mirroring the reshaped sema —

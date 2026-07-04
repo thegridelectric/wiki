@@ -171,14 +171,16 @@ Short pointers to durable facts; the live plan lives in `build-plant.md`.
 - Relationship: subsumes [OPS-40](https://linear.app/gridworks/issue/OPS-40)'s original `gen_orange` dev-layout checklist;
   related to **[OPS-118](https://linear.app/gridworks/issue/OPS-118)** (Dev mosquitto in Docker — the dev broker).
 
-## TODO — revert the temporary `GridWorks_CLAUDE.md` directives
+## TODO — revert the temporary Claude-protocol directives
 
-Two temporary directives were added to `GridWorks_CLAUDE.md` (2026-06-12); remove
-each when its condition is met:
+Two temporary directives were added 2026-06-12; remove each when its condition
+is met:
 
-1. **Plant simplicity** — "keep the terminalasset plant as simple as possible …
-   and no simpler; when in doubt err simpler and leave a question." **Remove once
-   the plant MVP (Phase A comms pipe + best-guess physics) is working.**
+1. **Plant simplicity** (in `wiki/gridworks-scada/CLAUDE.md`; moved out of
+   `GridWorks_CLAUDE.md` 2026-07-04) — "keep the terminalasset plant as simple
+   as possible … and no simpler; when in doubt err simpler and leave a
+   question." **Remove once the plant MVP (Phase A comms pipe + best-guess
+   physics) is working.**
 2. **Sema-words commit permission** — Claude may make bounded, test-passing sema
    commits on `jm/sim-vocab`. **Remove once Jessica has reviewed the
    simulated-test-environment sema words** (the words committed under this
