@@ -12,6 +12,16 @@ Newest at the top.
 
 ---
 
+## 2026-07-04 — Track gwbase 0.5.6 (`047b530`)
+
+**What:** `pyproject.toml` `gridworks-base>=0.5.2` → `>=0.5.6`; relocked.
+
+**Why:** stay on the current published gwbase. 0.5.6 adds the `gnrmic_tx → amq.topic`
+broadcast bridge (registry `g.node.forest` broadcasts reach MQTT-native actors) and
+renames the definitions artifact `prod_definitions.json` → `hybrid_definitions.json`
+(vhost = `<universe>__<run>`); nothing in the 0.5.2→0.5.6 span changes this repo's
+consumed API. **Verified:** both tests passed on 0.5.6 (incl. the broker-gated one against gw-dev-rabbit).
+
 ## 2026-06-11 — From-scratch rebuild: tc-hello broadcasts sim.timestep
 
 **What:** On branch `jm/hello-world` (off `legacy`): delete everything,
