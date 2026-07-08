@@ -1,6 +1,6 @@
 # Stand up grid node registry
 
-Status: Accepted · Pass 1 · Updated 2026-06-30 · Linear: OPS-419
+Status: Accepted · Pass 1 · Updated 2026-07-06 · Linear: OPS-419
 
 **EDD: no** build-out — verified by the suite plus a deployed registry that
 round-trips GNode I/O and answers FIS's validity queries; not a standalone
@@ -13,7 +13,10 @@ experiment.
 > the repo README's "Next steps," made ordered and given a FIS-facing API
 > contract.
 
-**▶ Active spoke: [`test-harness.md`](test-harness.md)** — the dev-universe layered test harness.
+**▶ Active spoke: [`populate-and-deploy.md`](populate-and-deploy.md)**
+
+Spokes: [`test-harness.md`](test-harness.md) ✅ DONE ·
+**[`populate-and-deploy.md`](populate-and-deploy.md)** (active).
 
 ## Why now
 
@@ -31,15 +34,16 @@ mTLS+FIS auth work — it has to exist before FIS can enforce GNode identity.
    (no `env_file`) — fixed, and renamed `gnr.config` → `gnr.settings` to match
    the docs. Initial Alembic migration applied; a `GNodeGt` round-trips against
    the live DB. Details in `executor/primary.md` "Current status".
-2. **◐ IN PROGRESS — History tables.** The `alias_assignment` ledger (the
+2. **✅ DONE — History tables.** The `alias_assignment` ledger (the
    substrate for *alias uniqueness through time*) is **done + enforced** —
    `gnr.db.models.AliasAssignmentSql` (`alias` PK) + `gnr.db.alias_ledger.claim_alias`
    (`INSERT … ON CONFLICT` + ownership assertion), proven against live Postgres
    (mechanism in `executor/primary.md` "Enforcing alias-uniqueness-through-time").
-   **▶ Open branch:** the status/edge change-history — whether GNode status
-   transitions and edge retire/create share the ledger's append-only spine or get
-   their own tables, ideally authored as a projection of the create/reparent
-   command log.
+   The open branch (status/edge change-history) resolved into the append-only
+   **`command_log`** (distributed-readiness #2): edge history is the retired edge
+   rows plus the commands that produced them, alias history is the ledger, and a
+   status/class change will get its own command word when that write surface is
+   built (post-MVP — no status-change command exists yet).
 3. **✅ DONE (audit form) — Enforce the invariants** (the registry's reason to
    exist; see executor). `gnr.db.validate.validate_registry` enforces
    alias-uniqueness-through-time (the ledger), parent-closed active tree,
@@ -54,60 +58,28 @@ mTLS+FIS auth work — it has to exist before FIS can enforce GNode identity.
    persists; illegal move rejected, row unchanged). The step-5 handlers call
    these before applying a status/class change.
 5. **◐ IN PROGRESS — Egress: handler core + two transports** (see *Write model &
-   egress*). **Done:** the two Sema words (`g.node.reparent.cmd/000`,
-   `g.node.topology.broadcast/000`) released + vendored; the transport-agnostic
-   `gnr.db.authority.AuthoritySource` handler core (read / assert-active /
-   fetch-edges / atomic recursive re-parent), proven against live Postgres; and
-   the rabbit adapter `gnr.gnr_rabbit.GnrRabbit` (gwbase `Orchestrator`, transport
-   class **`GridNodeRegistry`** published in gridworks-base **0.5.3** with its
-   `gnr_tx`/`gnrmic_tx` exchanges) — decodes `g.node.reparent.cmd` →
-   `apply_reparent` → broadcasts the affected subtree. The live Layer-2 proof of this
-   rabbit loop is **done** (step 6 harness). **FIS read path settled (2026-07-02):**
-   writes ride rabbit, **reads ride HTTP**, and FIS is a **pure broadcast subscriber**
-   (a `ServiceSettings` tap — no transport class), event-sourced from change broadcasts
-   and bootstrapped by an API query scoped to **its authority subtrees**. So gwbase
-   **0.5.5** forward-reverted the speculative `FleetIndexService` add (dead fabric); gnr
-   tracks 0.5.5. **Forest model (settled):** one reused **`g.node.forest`** payload
-   (`roots` + subtree `g.node.gt`s + `connectivity.edge.gt`s) is the body of the change
-   broadcast, the (chunked) snapshot broadcast, and the **`g.node.forest.request`** API
-   response — the scaling unit that never moves the whole world at once (see *Write model
-   & egress*). The universe token is a **namespace, not a GNode** — the registry holds a
-   **forest of copper subtrees** (see executor *Universes* + invariants). **Done:**
-   ✅ the forest words authored in sema (`g.node.gt` **v005** + axiom 6 ≥2-word alias;
-   `g.node.forest` with a `Proof` seam field, `g.node.forest.request`; `g.node.topology.broadcast`
-   retired), re-vendored into gnr; ✅ `apply_reparent` returns a `g.node.forest` + `GnrRabbit`
-   broadcasts it (Layer-2 green); ✅ the **forest-root rework** (`is_forest_root`, `d1` dropped
-   from the seed) shipped in the dev_universe cleanup; ✅ **distributed-readiness #1/#2** —
-   `apply_reparent` derives edge ids (`gnr.ids`) + appends to an append-only `command_log`
-   (content-addressed, replay-safe); ✅ the **HTTP read façade** (`gnr.api`, routes `/<service>/<sema-type-with-hyphens>`):
-   `POST /gnr/g-node-forest-request` → `g.node.forest` (`get_forest`), `GET /gnr/g-node-by-id/{id}`,
-   `GET /gnr/g-node-by-alias/{alias}` (`resolve_alias` — current **or** past alias → the current
-   GNode) for FIS bootstrap + provisioning/analytics. ✅ **root-keyed broadcasts**
-   (`radio_channel` = the change-stable parent alias, Layer-2-proven; gwbase **0.5.6**
-   bridges `gnrmic_tx → amq.topic` for MQTT-native listeners; channel rule + listener
-   pattern in the executor and the root-keyed-forest-broadcasts exploration).
-   ✅ write-path hardening (idempotent replay; alias-collision pre-check) and the
-   snapshot broadcast (`broadcast_snapshot(root)`, channel = current alias; cadence is
-   deploy config). **▶ Remaining:** (a) the queued sema-first axioms
-   (at-most-one-TC-child, terminal `.ta`/`.scada` — with a `gnr.db.validate` mirror)
-   when the sema claim frees; (b) the gwbase `subscribe_ancestors` helper
+   egress*). Shipped and Layer-2-proven: the Sema words (`g.node.reparent.cmd`;
+   `g.node.forest` + `g.node.forest.request` on `g.node.gt` v005), the
+   transport-agnostic handler core
+   (`gnr.db.authority`), the rabbit adapter (`GnrRabbit` — root-keyed forest
+   broadcasts + `broadcast_snapshot`, gwbase 0.5.6), the HTTP read façade
+   (`gnr.api`), distributed-readiness #1/#2 (derived ids + the append-only
+   `command_log`), and write-path hardening (idempotent replay, alias-collision
+   pre-check). The full inventory of what landed, with module pointers, is
+   `executor/primary.md` "Current status". **▶ Remaining:** (a) the queued
+   sema-first axioms (at-most-one-TC-child, terminal `.ta`/`.scada` — with a
+   `gnr.db.validate` mirror); (b) the gwbase `subscribe_ancestors` helper
    (GridworksActor tier, self-inclusive prefix bindings + rebind-on-rename) + a
    periodic snapshot driver at deploy; (c) scoping write-time validation to the
-   affected subtree (whole-registry scan is fine at MVP scale, wrong at 10⁶); (d) the
-   reparent command's optional **signature** (#3) + the chain-defined content-address,
-   when the auth / distributed-authority model lands. FIS-as-subscriber +
-   authority-scoped bootstrap is a FIS-side concern (OPS-422).
+   affected subtree (whole-registry scan is fine at MVP scale, wrong at 10⁶);
+   (d) the reparent command's optional **signature** (#3) + the chain-defined
+   content-address, when the auth / distributed-authority model lands.
+   FIS-as-subscriber + authority-scoped bootstrap is a FIS-side concern (OPS-422).
 6. **✅ Tests + CI** — the dev-universe layered harness (all three layers green; see
    [`test-harness.md`](test-harness.md)) and GitHub Actions running all 30 tests
    against Postgres + dev-rabbit service containers.
-7. **Populate + deploy** (the MVP: launch and populate on EC2). **Populate:** ingest
-   the real fleet into `g_nodes` **through the handler core as commands** (populating
-   `command_log` + the alias ledger from birth, never raw SQL), with opaque
-   `position_point_id`s and `position_points` left **empty** (the staging plan —
-   see `explorations/positions-staging-and-encryption.md`). **Deploy:** EC2 alongside
-   FIS; the open surface is the read-only HTTP API; **`gnr_tx` stays unreachable from
-   outside until mTLS+FIS lands** (hard requirement); `.env`/secrets; Alembic on
-   deploy; README brought to standalone-adopter grade.
+7. **◐ IN PROGRESS — Populate + deploy** (the MVP: launch and populate on EC2)
+   — the plan is the [`populate-and-deploy.md`](populate-and-deploy.md) spoke.
 
 ## Write model & egress (the mutation contract)
 
@@ -238,9 +210,9 @@ step 5.
 
 - **Re-parent command + broadcast — two Sema types.** Command `g.node.reparent.cmd`
   carries the new node `N` (a `g.node.gt`) and the moved child `GNodeId`s; the
-  registry computes the recursive descendant rewrite. Broadcast
-  `g.node.topology.broadcast` carries the affected subtree — the updated `g.node.gt`s
-  (new aliases) + the edge retire/create set (heritage: legacy `basegnodes.broadcast`
+  registry computes the recursive descendant rewrite. The broadcast is a
+  `g.node.forest` of the affected subtree — the updated `g.node.gt`s
+  (new aliases) + the edges (heritage: legacy `basegnodes.broadcast`
   = `TopGNode` + `DescendantGNodeList`).
 - **Write authority = the authenticated connection** (no separate signature scheme
   initially). The command arrives over an mTLS+FIS-authenticated rabbit connection

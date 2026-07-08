@@ -170,6 +170,10 @@ Short pointers to durable facts; the live plan lives in `build-plant.md`.
   component types).
 - Relationship: subsumes [OPS-40](https://linear.app/gridworks/issue/OPS-40)'s original `gen_orange` dev-layout checklist;
   related to **[OPS-118](https://linear.app/gridworks/issue/OPS-118)** (Dev mosquitto in Docker — the dev broker).
+- The gridworks-terminalasset side needs the spaceheat node/channel naming vocabulary (today a
+  per-repo constants copy, gwsproto + a tlayouts mirror) — encoding it in sema so terminalasset
+  consumes it from a snapshot is **[OPS-444](https://linear.app/gridworks/issue/OPS-444)**
+  (spaceheat-naming-vocabulary).
 
 ## TODO — revert the temporary Claude-protocol directives
 

@@ -1,6 +1,6 @@
 # grid-node-registry — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-06-28
+Status: Draft · Pass 0 · Updated 2026-07-06
 
 > What this is: the faithful spec of the **Grid Node Registry** (`gnr`) — the
 > authoritative record of GridWorks GNodes, their geographic positions, and the
@@ -22,8 +22,8 @@ codec) before any insert/update. Three entities (`src/gnr/db/models.py`):
 | `connectivity_edges` | `ConnectivityEdgeGt` | a parent→child edge keyed on **immutable ids only**: `from/to_g_node_id` (FK), `status`; unique `(from, to)`. Aliases are **derived on read**, not stored |
 
 Enums (`src/gnr/sema/enums`): **`BaseGNodeClass`** (`ConnectivityNode` /
-`MarketMaker` / `Logical` / …) and **`GNodeStatus`**. As of `g.node.gt` v004,
-**`GNodeClass` is no longer an enum** — it is an axiom-governed open `str`
+`MarketMaker` / `Logical` / …) and **`GNodeStatus`**.
+**`GNodeClass` is not an enum** — it is an axiom-governed open `str`
 (so the open namespace of classes — `TerminalAsset`, `Scada`, … — needn't bump
 an enum), held consistent with `base_class` and `alias` by the GT axioms below.
 
@@ -35,7 +35,7 @@ point here.
 
 A **universe** is the first dotted segment of a GNodeAlias, and its **kind** is
 that segment's first letter. The kinds form a ladder — each step adds a
-requirement (canonized 2026-07-04):
+requirement:
 
 - **`d` — dev: runs locally on a single computer.** The defining property: **all
   comms go through localhost brokers.** That is the isolation guarantee (nothing
@@ -64,7 +64,7 @@ without ever touching real money. The test harness (see the standup design) is
 exactly such a dev universe: the deployed systems (`hw1.isone.me.versant.keene.*`)
 and the parent GNodes they require, re-aliased into `d1`.
 
-**Universes are durable; runs are ephemeral (canonized 2026-07-04).** A broker
+**Universes are durable; runs are ephemeral.** A broker
 vhost is **`<universe>__<run>`**, **uniform across all kinds including
 production** (`d1__1`, `hw1__1`, `w__1`): the universe
 names a **durable set of GNodes** (the registry's tree — real and simulated
@@ -104,9 +104,9 @@ root** iff its alias-parent is the bare universe segment (there is no GNode ther
 Consequently `Logical` narrows to what it means — Scada + logical controllers — and
 never labels a universe root.
 
-## Per-row Sema axioms (`g.node.gt` v004)
+## Per-row Sema axioms (`g.node.gt` v005)
 
-The `GNodeGt` codec enforces five axioms on every row before insert/update:
+The `GNodeGt` codec enforces six axioms on every row before insert/update:
 
 1. **ClassConsistency** — if `base_class ≠ Logical`, `g_node_class` equals the
    `base_class` value; if `Logical`, `g_node_class` is not any other
@@ -118,6 +118,9 @@ The `GNodeGt` codec enforces five axioms on every row before insert/update:
 4. **GNodeClassNamespacing** — `g_node_class` is non-empty and whitespace-free.
 5. **AliasSuffixSemantics** — `alias` ends with `.ta` iff `g_node_class` is
    `TerminalAsset`; ends with `.scada` iff `Scada`.
+6. **GNodeAliasHasBody** — `alias` (and `prev_alias` when present) has at least
+   two dotted words: the universe segment alone is a namespace, not a
+   GNodeAlias.
 
 ## Mutability & change model
 
@@ -138,6 +141,7 @@ What is fixed vs. what changes, and how:
   binds the two, so both change together. A small allowed-transition SM, not a free
   edit.
 - **`status` — mutable** per the lifecycle SM below.
+- **`display_name` — mutable.** Presentation only; no axiom or invariant binds it.
 - **`PositionPoint` — immutable.** Location anchors the TaDeed / TaTradingRights,
   so it is not edited in place. A location change is a heavyweight **TaValidator
   re-certification** (a new validated `GNodeGt`, audited, with a validator-reputation
@@ -164,7 +168,9 @@ What is fixed vs. what changes, and how:
 ## Write path & egress
 
 `gnr` is the sole accessor of the backing store; all access goes through a
-transport-agnostic handler core (the `AuthoritySource` interface). **Writes ride
+transport-agnostic handler core (the `AuthoritySource` interface) — one core, two
+thin adapters, so no transport ever grows its own parallel logic (the legacy
+registry's REST api and rabbit actor each had their own). **Writes ride
 rabbit** (a MarketMaker is a fleet bus citizen; the change event is genuinely
 pub/sub); **reads ride an HTTP/FastAPI façade** (point/forest queries — internal
 service API, no mTLS, privacy by the network perimeter). This split is by traffic
@@ -179,8 +185,8 @@ shape, not by consumer.
   keyed on a **`radio_channel` = the alias the audience is bound to** — for a
   re-parent introducing N under E, that is **E's alias** (the deepest change-stable
   ancestor, a prefix of every moved node's old alias; `parent_alias(new_node.alias)`
-  in `GnrRabbit`); for a pure rename, the top node's `prev_alias`; for a periodic
-  snapshot (not yet implemented), the current `alias`. Listener logic is identical in
+  in `GnrRabbit`); for a pure rename, the top node's `prev_alias`; for a snapshot
+  broadcast, the current `alias`. Listener logic is identical in
   all cases: upsert the forest, react if your GNodeId carries a new alias. Listeners
   bind ancestor channels **self-inclusively** (GridworksActor tier, O(depth) exact
   bindings); subtree monitors (FIS) bind one trailing-`#` per authority root.
@@ -231,21 +237,21 @@ first two are **implemented** (`gnr.ids`, `gnr.db.models.CommandLogSql`,
 `gnr.db.authority.apply_reparent`) and pay off now (reproducible state + free audit
 history + replay safety), so they are not speculative:
 
-1. **Deterministic mutation — ✅ done.** `apply(command)` is a pure
+1. **Deterministic mutation (implemented).** `apply(command)` is a pure
    `(state, command) → state'` — any consensus/replicated backend re-executes it on
    many validators that must agree byte-for-byte. So an id that lands in authoritative
    state is **either carried in the command** (submitter-assigned, frozen by the
    log/tx — e.g. a `GNodeId`, or a `position_point_id`) **or derived from inputs every
    validator holds** (public data — e.g. `gnr.ids.edge_id` from the two endpoint ids);
-   it is **never handler-minted** (the old `uuid.uuid4()` edge id was that illegal
-   third case) and **never derived from a secret** (deriving `position_point_id` from
+   it is **never handler-minted** (a handler-minted `uuid.uuid4()` edge id would be
+   that illegal third case) and **never derived from a secret** (deriving `position_point_id` from
    the coordinates would both leak the location *and* be unreproducible by validators
    who correctly can't see the encrypted plaintext). Edge ids serialize into
    `g.node.forest` (authoritative state); the whole dev universe is deterministic too
    (`gnr.ids.deterministic_uuid4`). `created_at` stays wall-clock — it is **not** in any
    Sema type, so it is local audit metadata, not authoritative state (full log-replay
    byte-identity would additionally want a command-carried logical time, deferred).
-2. **The command log is the primitive; state is a projection — ✅ done.** A
+2. **The command log is the primitive; state is a projection (implemented).** A
    ledger/chain is an ordered log of signed commands with state derived from it. Every
    mutation is appended to an **append-only `command_log`** (`CommandLogSql`) in the
    same transaction as the state change, keyed by a **content hash** of the command's
@@ -275,8 +281,7 @@ history + replay safety), so they are not speculative:
    single-writer Postgres.
 
 Not building the chain, a real signature scheme, or pure event-sourced state now —
-these are **shape**, not machinery. #1–#3 fold into the forest rework; #4 is a
-discipline on the interface.
+these are **shape**, not machinery; #4 is a discipline on the interface.
 
 ## Lifecycle — `GNodeStatus`
 
@@ -293,11 +298,11 @@ between its two forms **both directions** — **`ConnectivityNode ⇄ MarketMake
 relieved → it isn't); `g_node_class` moves in lockstep (per-row axiom 1). Both SMs live in
 `gnr.db.lifecycle` (`check_status_transition` / `check_base_class_transition`,
 grounded in legacy `g-node-factory` Update Axiom 3 + the role-change rule) — pure
-functions the step-5 write handlers call before applying any status/class change,
+functions the write handlers call before applying any status/class change,
 rejecting an illegal move before the mutation commits. Identity transitions are
 no-ops.
 
-## Time coordinators (canonized 2026-07-04)
+## Time coordinators
 
 **TimeCoordinators are GNodes** (`base_class: Logical`, `g_node_class:
 TimeCoordinator`), and **TC trees hang off the copper**: `<uni>.time` (e.g.
@@ -316,18 +321,17 @@ clock; everything else defaults up the chain. Self-inclusive matters: an LTN wit
 its own TC child marches to it. Rationale (and why TCs earn registry rows — alias
 addressing, FIS-era `CN=GNodeId` identity) in
 [`../explorations/root-keyed-forest-broadcasts.md`](../explorations/root-keyed-forest-broadcasts.md).
-Supporting invariant, **queued as a sema-first axiom** (sema enforcement keeps
+Supporting invariant, **to be enforced sema-first** (sema enforcement keeps
 the future chain lift light): **at most one TimeCoordinator child per GNode** —
 as a `g.node.forest` axiom, or structurally via a `.time` ⇔ TimeCoordinator
 suffix rule (then alias uniqueness enforces it for free; costs a `g.node.gt`
-version step — decide at authoring). Also queued: **`.ta`/`.scada` are terminal**
+version step — open at authoring). Likewise **`.ta`/`.scada` are terminal**
 (no node's alias-parent is a TerminalAsset or Scada), forest axiom + a
 `gnr.db.validate` mirror.
 
 ## Intended invariants (the registry's reason to exist)
 
-Beyond per-row Sema validation, the registry MUST enforce structure Sema can't —
-**not all are implemented yet** (see the standup design):
+Beyond per-row Sema validation, the registry MUST enforce structure Sema can't:
 
 - **Alias uniqueness through time** — an alias, once held by a `GNodeId`, is
   **permanently owned by that `GNodeId`** and MUST NOT ever bind to a different
@@ -369,8 +373,9 @@ Beyond per-row Sema validation, the registry MUST enforce structure Sema can't �
   `AtomicTNode`/`AtomicMeteringNode → LeafTransactiveNode`, `Scada`/`Other → Logical`.
 
 These three structural invariants are enforced by `gnr.db.validate` —
-`validate_registry` runs the audit pass; the step-5 write handlers will run the
-relevant check on the affected subtree at write time.
+`validate_registry` runs the audit pass, and the write handlers run it at write
+time (today a whole-registry scan; scoping to the affected subtree is queued in
+the standup design).
 
 ### Enforcing alias-uniqueness-through-time
 
@@ -450,66 +455,63 @@ legacy FIS writeup, `gridworks-infra/authority/fleet-index-service/`, maps
 
 Python 3.12, `uv`, `pydantic-settings` (`gnr.settings.Settings` ← `.env`),
 SQLAlchemy + **Alembic** migrations, Postgres 16 (`docker-compose.yaml`). Logs to
-`~/.local/state/gridworks/gnr/log/` (GridWorks convention).
+`~/.local/state/gridworks/gnr/log/` (GridWorks convention). The vendored Sema
+snapshot (`src/gnr/sema`) is built by `build_gnr_snapshot.sh` from
+`gnr_seed_request.yaml`; it tracks whichever sema branch holds the registry's
+words (`jm/sim-vocab` until that merges to `dev`).
 
-## Current status (2026-06-28)
+## Implementation map
 
-Models + Sema `gt` types + enums exist; the vendored Sema snapshot tracks sema
-(`g.node.gt` v004), and the `connectivity.edge.gt` ids-only +
-`position.point.gt` footprint/immutability edits have landed. **Build step 1 is
-done:** a dev Postgres runs (`docker compose up`, host port **5435** — 5432 is
-shadowed by a host-local Postgres on macOS), the initial Alembic migration
-creates all three tables, and a `GNodeGt` round-trips against the live DB
-(`gt → GNodeSql.from_gt → session → to_gt`, identical bytes back). `Settings`
-now loads `.env` (it didn't before — `gnr.settings`, was `gnr.config`), and the
-engine/session factory lives in `gnr.db.session`. **Build step 2 (partial):**
-the `alias_assignment` ledger (`gnr.db.models.AliasAssignmentSql`, `alias` PK)
-and its enforcement primitive `gnr.db.alias_ledger.claim_alias` have landed and
-are proven against the live DB — a different `GNodeId` cannot claim a vacated
-alias (`AliasAlreadyOwned`), the original owner may re-acquire it, and bindings
-stay permanent. **Build step 3 (structural invariants done):**
-`gnr.db.validate.validate_registry` is a whole-registry audit pass enforcing
-**parent-closed active tree** (active non-root ⇒ active alias-parent),
-**ConnectivityEdge coverage** (active non-root ⇒ exactly one active edge from its
-alias-parent), and the **class-hierarchy** parent rule (the new-class form of
-legacy Creation Axiom 5 — which also yields "active physical subtree
-parent-closed"). All proven against live Postgres (clean 5-node tree passes; a
-suspended parent, a missing edge, a wrong-source extra edge, and a
-TerminalAsset under a ConnectivityNode are each caught). **Build step 4 done:**
-`gnr.db.lifecycle` enforces the `GNodeStatus` SM and the `ConnectivityNode →
-MarketMaker` `base_class` SM, proven against live Postgres (a legal Pending→Active
-applies and persists; an illegal Active→Pending is rejected and the row is left
-unchanged). **Build step 5 (handler core done):** `gnr.db.authority` — the
-`AuthoritySource` interface + `PostgresAuthority` (Sema in / Sema out):
-`get_by_id`/`get_by_alias`, `assert_active`, `fetch_edges`, and `apply_reparent`
-(the atomic re-parent — recursive subtree alias rewrite + edge retire/create +
-ledger claims + `validate_registry`, one transaction, returns a
-`GNodeTopologyBroadcast`). Proven against live Postgres. The rabbit adapter
-`GnrRabbit` (the write loop) also exists. **Harness (build step 6) — all three
-layers green:** `tests/conftest.py` provisions the infra (testcontainers
-`postgres:16` + `rabbitmq:3.13` by default; `GNR_TEST_PG_URL` / `GNR_TEST_RABBIT_URL`
-opt-ins for already-running instances; self-skip otherwise). Layer 0 (DB-free unit
-tier), Layer 1 (`tests/test_layer1_postgres.py` — `AuthoritySource` against a real
-Postgres: seed loads `validate_registry`-clean, reads resolve, a beech-home re-parent
-rewrites its subtree atomically), and **Layer 2** (`tests/test_layer2_rabbit.py` —
-the EDD experiment: `GnrRabbit` + a MarketMaker stub on a real RabbitMQ; a published
-`g.node.reparent.cmd` yields the `g.node.topology.broadcast` to a real subscriber and
-the DB reflects the rewrite). Proven on testcontainers and against `gw-dev-rabbit` +
-the dev Postgres. **FIS read path settled (2026-07-02):** writes ride rabbit, reads
-ride HTTP, and FIS is a **pure `g.node.forest` broadcast subscriber** (a `ServiceSettings`
-tap — no transport class), event-sourced and authority-scoped (see *Write path & egress*).
-gwbase **0.5.5** forward-reverted the speculative `FleetIndexService` add. **All since
-done (2026-07-03/04):** the forest words authored + vendored (`g.node.gt` v005,
-`g.node.forest`, `g.node.forest.request`; `topology.broadcast` retired);
-`apply_reparent` returns a `g.node.forest` and `GnrRabbit` broadcasts it **root-keyed**
-(`radio_channel` = the change-stable parent alias; Layer-2-proven, incl. the exact-match
-channel binding); the forest-root rework (`is_forest_root`, `d1` not a GNode); the
-**FastAPI read façade**; **CI** (GitHub Actions runs all 30 tests against service
-containers); gwbase **0.5.6** adds the `gnrmic_tx → amq.topic` bridge so MQTT-native
-actors hear forest broadcasts. The write path is **replay-idempotent** (a duplicate command returns the affected
-subtree's current forest) and **pre-checks alias collisions** (explicit error
-naming the collisions; the mid-rewrite ledger abort stays as defense-in-depth);
-`GnrRabbit.broadcast_snapshot(root)` is the anti-entropy path (cadence = deploy
-config). **Known present-state limits** (facts, fine at MVP scale): write-time
-validation scans the whole registry per write. The work queue — populate, deploy,
-the queued sema-first axioms — lives in the standup design, not here.
+Where the spec lives in `src/gnr`, all proven against a real Postgres and (for
+the write loop) a real broker by the layered suite:
+
+- **`gnr.settings`** — pydantic-settings `Settings` ← `.env`.
+- **`gnr.db.session`** — engine/session factory. Dev Postgres: `docker compose
+  up`, host port **5435** (5432 is commonly shadowed by a host-local Postgres);
+  the Alembic baseline creates all tables.
+- **`gnr.db.models`** — `GNodeSql` / `PositionPointSql` / `ConnectivityEdgeSql`
+  rows that round-trip their Sema GTs through the codec, plus
+  `AliasAssignmentSql` (the through-time ledger) and `CommandLogSql` (the
+  append-only command log).
+- **`gnr.db.alias_ledger.claim_alias`** — the race-free uniqueness primitive
+  (`INSERT … ON CONFLICT` + ownership assertion).
+- **`gnr.db.validate.validate_registry`** — the structural-invariant audit pass
+  (parent-closed active forest, edge coverage, class hierarchy).
+- **`gnr.db.lifecycle`** — the `GNodeStatus` + `base_class` SMs (pure functions
+  the write handlers call).
+- **`gnr.db.authority`** — `AuthoritySource` + `PostgresAuthority` (Sema in /
+  Sema out): reads (`get_by_id` / `get_by_alias` / `resolve_alias` — current or
+  past alias → the current GNode — / `get_forest`, `assert_active`,
+  `fetch_edges`) and `apply_reparent` (recursive subtree alias rewrite + edge
+  retire/create + ledger claims + command-log append + validation, one
+  transaction, returns a `g.node.forest`). The write path is
+  **replay-idempotent** (a duplicate command returns the affected subtree's
+  current forest) and **pre-checks alias collisions** (explicit error naming
+  the collisions; the mid-rewrite ledger abort kept as defense-in-depth).
+- **`gnr.ids`** — the derived ids (`edge_id`, `command_hash`,
+  `deterministic_uuid4`).
+- **`gnr.gnr_rabbit.GnrRabbit`** — the rabbit write loop (gwbase
+  `Orchestrator`, transport class `GridNodeRegistry`, `gnr_tx`/`gnrmic_tx`
+  exchanges): decodes `g.node.reparent.cmd` → `apply_reparent` → root-keyed
+  `g.node.forest` broadcast; `broadcast_snapshot(root)` is the anti-entropy
+  path (cadence is deploy config). The `gnrmic_tx → amq.topic` bridge
+  (gwbase ≥ 0.5.6) carries broadcasts to MQTT-native listeners.
+- **`gnr.api`** — the FastAPI read façade (routes
+  `/<service>/<sema-type-with-hyphens>`, no logic of its own):
+  `POST /gnr/g-node-forest-request`, `GET /gnr/g-node-by-id/{id}`,
+  `GET /gnr/g-node-by-alias/{alias}`.
+- **`gnr.dev_universe`** — the dev-universe seed (direct inserts through the
+  codec + `claim_alias`; see the limits below).
+- **`tests/`** — the layered harness (Layer 0 unit / Layer 1 real Postgres /
+  Layer 2 real broker; `testcontainers` by default, `GNR_TEST_PG_URL` /
+  `GNR_TEST_RABBIT_URL` opt-ins for already-running infra, self-skip
+  otherwise). GitHub Actions runs the full suite against Postgres + rabbit
+  service containers.
+
+**Known limits** (facts, fine at MVP scale): write-time validation scans the
+whole registry per write; and **creation has no command path** — the only write
+command is `g.node.reparent.cmd`, and the dev-universe seed inserts directly
+(bypassing `command_log`), fine for the ephemeral test universe but not for a
+deployed registry, whose rows must be born as commands. The create command is
+the populate step's first move. The work queue — populate, deploy, the
+sema-first axioms — lives in the standup design, not here.

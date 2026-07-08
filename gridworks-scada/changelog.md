@@ -12,9 +12,45 @@ Newest at the top.
 
 ---
 
-## 2026-07-04 — gen machinery moves to tlayouts; sema_to_dc gains ops_and_sema_to_dc <!-- pending commit -->
+## 2026-07-06 — NewCommandTree: relabel 001 → 002 (sema numbering) (`25d8249e`)
 
-**What (planned):** on `jm/spruce-unlimbo`. `house0_sema_gen.py` and `house0_sema_gen_check.py`
+**What:** on `jm/spruce-unlimbo`. `gwsproto/named_types/new_command_tree.py` `Version`
+Literal `"001"` → `"002"` + the protocol `Sema:` docstring (`…/new.command.tree/002`); the type's
+test fixture bumped to match. No shape change — the class already carried 303 nodes, i.e. sema
+002's contract; only the label had drifted.
+
+**Why:** the conformance sweep surfaced that gwsproto's "001" label was a scada-side bump
+(2026-01-28, `46739eaa`) that sema never registered, and the branch's shape had since drifted to
+what sema registered as 002. The historical wire version — spruce's 001-with-301-nodes — is now
+retroactively registered sema-side (sema `aa6ca2b`), so the archive stays decodable; this commit
+aligns the forward-going label. Spruce keeps emitting 001 until spruce-unlimbo deploys there.
+**Verified:** a serialized instance passes the canonical runtime (`sema validate` → `OK:
+new.command.tree (version 002)`); scada suite green (116 passed / 3 skipped); ruff clean; the
+sweep's new.command.tree version-drift finding is gone (layout.lite + scada.control.capabilities
+remain, known catch-ups).
+
+## 2026-07-04 — gwsproto ↔ sema conformance sweep (`8b696943`)
+
+**What:** new `gw_spaceheat/gwsproto_sema_conformance.py` — walks every class in
+`gwsproto.named_types` and reports it against the sibling sema checkout (branch printed for
+provenance): **no-word** (gwsproto TypeName absent from the registry), **version-drift** (gwsproto
+`Version` ≠ sema `latest_version`), **example-reject** (the sema example for the gwsproto-declared
+version fails `model_validate`), **dump-drift** (decodes but the `by_alias`/`exclude_none` re-dump
+≠ the example document), **no-example** (informational). `--cli` additionally pushes each clean
+re-dump through `uv run sema validate`. YAML is read via one subprocess into the sema repo's uv env
+— the scada venv stays yaml-free. Exit 1 when any non-informational category is non-empty.
+
+**Why:** the "update gwsproto by checking all of its types against the sema cli" sweep — makes
+gwsproto↔sema drift mechanically visible instead of discovered at decode time. First run
+(sema @ `jm/sim-vocab`): 34 fully conformant, 39 without a sema word, 3 version drifts
+(`layout.lite` 013→015, `scada.control.capabilities` 000→002, `new.command.tree` pinned to an
+unregistered 001), 23 example-rejects — dominated by the deliberate runtime-vs-authoring split on
+the channel-config family (gwsproto requires the capture params sema stripped), plus the two
+version-drift types. **Verified:** sweep runs clean on the scada venv; ruff check + format clean.
+
+## 2026-07-04 — gen machinery moves to tlayouts; sema_to_dc gains ops_and_sema_to_dc (`e3160e1f`)
+
+**What:** on `jm/spruce-unlimbo`. `house0_sema_gen.py` and `house0_sema_gen_check.py`
 leave gw_spaceheat — the gen now lives in tlayouts on the sema snapshot (`tlayouts.house0_sema_gen`,
 no gwsproto, no scada venv; per-home configs moved into `gen_oak_sema.py` / `gen_house0_stub_sema.py`
 there; the equivalence-check harness retires with the move, its `_canon` oracle absorbed into

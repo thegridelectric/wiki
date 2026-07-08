@@ -1,6 +1,6 @@
 # Test harness — a dev-universe layered harness (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-06-30
+Status: Draft · Pass 0 · Updated 2026-07-06
 
 **EDD: yes** the harness *is* the verification — the registry's behaviour is
 proven by a booted gnr talking real Sema over a real broker against a real
@@ -15,12 +15,12 @@ build-out; this spoke is where confidence comes from an experiment, so its bar i
 > read + re-parent surface over rabbit + Postgres. Universes are defined in
 > [`../../executor/primary.md`](../../executor/primary.md) "Universes".
 
-**All three layers are green — the EDD experiment passed.** The harness boots the
-real registry over a real broker against a real Postgres and proves the re-parent
-loop end to end. The remaining harness work is **CI** (run Layer 0 always, the
-integration layers behind docker); after that this spoke is complete and the design
-returns to the hub's build order (the read request/reply surface + FastAPI façade,
-then deploy).
+**This spoke is COMPLETE.** All three layers are green — the EDD experiment
+passed — and CI runs the full suite (GitHub Actions, all 30 tests against
+Postgres + dev-rabbit service containers). The harness boots the real registry
+over a real broker against a real Postgres and proves the re-parent loop end to
+end. The design's active work is back in the hub's build order
+(populate + deploy).
 
 What landed:
 
@@ -33,7 +33,7 @@ What landed:
 - **Layer 2** (`tests/test_layer2_rabbit.py`) — the experiment: `GnrRabbit` + a
   MarketMaker `Orchestrator` stub on a real RabbitMQ; the MarketMaker publishes a
   `g.node.reparent.cmd`, the fabric forwards it to `gnr_tx`, the registry applies the
-  atomic re-parent, and its `g.node.topology.broadcast` returns to a real subscriber
+  atomic re-parent, and its `g.node.forest` broadcast returns to a real subscriber
   while the DB reflects the rewrite.
 
 Infra is in `tests/conftest.py`: `testcontainers` (`postgres:16` + `rabbitmq:3.13`)
@@ -95,7 +95,7 @@ Pattern follows the gridworks-journalkeeper layered-harness approach (`unit` vs
 - **Layer 2 — the rabbit adapter over a real broker.** Boot the gnr gwbase actor
   on `testcontainers` RabbitMQ (or `gw-dev-rabbit`), with a gwbase test-publisher
   send a request → assert the reply (`assert_active`, `get gnode`), and send a
-  `g.node.reparent.cmd` → assert the `g.node.topology.broadcast` and the persisted
+  `g.node.reparent.cmd` → assert the `g.node.forest` broadcast and the persisted
   rewrite. This is the experiment that moves a spoke to Verified.
 
 ## Done-when
@@ -105,8 +105,7 @@ Pattern follows the gridworks-journalkeeper layered-harness approach (`unit` vs
 - ✅ Layer 1: the dev-universe seed loads `validate_registry`-clean; a re-parent on a
   mirrored home rewrites its subtree and leaves the registry valid.
 - ✅ Layer 2: a `g.node.reparent.cmd` over the real broker yields the matching
-  `g.node.topology.broadcast` and the DB reflects the rewrite. (The read
-  request/reply over rabbit lands with the read Sema types — hub build step 5.)
+  `g.node.forest` broadcast and the DB reflects the rewrite.
 
 ## Notes
 
@@ -114,11 +113,9 @@ Pattern follows the gridworks-journalkeeper layered-harness approach (`unit` vs
   not import scada code.
 - Keep the harness re-runnable; it is the evidence behind any `Verified` stamp on
   the registry (per EDD).
-- **OFI (surfaced by Layer 1):** the self-collision case currently aborts via
-  `claim_alias` raising `AliasAlreadyOwned` *mid-rewrite* (still atomic — the whole
-  transaction rolls back). The executor calls for an explicit **pre-check** of the
-  full target alias set against the ledger before mutating, failing with a clear
-  alias-collision error rather than a raw mid-rewrite constraint violation. Small,
-  not gating Layer 2.
+- **OFI (surfaced by Layer 1) — resolved:** the explicit alias-collision
+  **pre-check** landed (the write path fails with a clear error naming the
+  collisions); the mid-rewrite `AliasAlreadyOwned` ledger abort stays as
+  defense-in-depth.
 - The production universe token (`w…`) is not yet fixed; the dev universe only ever
   uses `d1`, so the harness is unaffected by that decision.
