@@ -12,6 +12,30 @@ Newest at the top.
 
 ---
 
+## 2026-07-06 — retroactively register new.command.tree/001 (the spruce wire version) (`4529883`)
+
+**What:** `new.command.tree/001` registered mid-chain between the existing 000 and 002:
+`ShNodes` as a single `$ref spaceheat.node.gt/301` (no oneOf), same FromGNodeAlias/UnixMs/axiom 1
+(PrefixClosedHandles, validator ported from 000's template). Its `created` is **backdated** to
+`2026-06-26T03:35:00Z` (same sitting as 002, ordered before it, after every dependency) so the
+spec's version-order/created-order SHALL holds untouched — a deliberate one-off against the
+real-wall-clock timestamp maxim, sanctioned for this bootstrap catch-up; the 001 schema description
+records the retroactive story and the backdate. Upgrade chain re-split: `000_to_002` template
+deleted, `000_to_001` (lift nodes to 301) + `001_to_002` (lift 301→303) added; 002's registry
+summary re-mirrored to the new 001→002 delta. Indexes + runtime regenerated (new
+`NewCommandTree001` old-version class). No spec or test changes.
+
+**Why:** the gwsproto↔sema conformance sweep surfaced gwsproto pinning `new.command.tree/001` —
+a version sema never had. Archaeology: the scada protocol bumped 000→001 on 2026-01-28
+(`46739eaa`, spaceheat.node.gt 300→301 gaining BoardComponentId), and the spruce scada
+(`actual-spruce`) has emitted `"Version": "001"` with 301 nodes ever since — real wire data with
+no describing word (the archive is the truth the word must describe). Mainline dev emits 000/300
+(covered by 000's oneOf); jm/spruce-unlimbo's "001" had silently drifted to 303 nodes and is
+relabeled 002 scada-side (`25d8249e`). **Verified:** suite green (379 passed, 1 xpassed — includes
+the all-examples runtime decode of 001's example at own version); witnessed chain: 000 example
+auto-upgrades → 002; 001 example decodes at own version and `upgrade()` reaches 002 with nodes
+at 303.
+
 ## 2026-07-04 — LayoutLite010: Allow Ha1Params v004 LayoutLite011: Allow Ha1Params v004,v005 (`1b8a6ca`)
 
 **What:** (Joe, PR `jds/import-fixes`) `layout.lite/010` `Ha1Params` widened in
