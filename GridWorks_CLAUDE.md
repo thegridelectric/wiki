@@ -10,16 +10,6 @@ Status: Draft · Pass 0 · Updated 2026-07-04
 > [`wiki/README.md`](wiki/README.md). Coordination before editing is under
 > Multi-session.
 
-## ⏳ Sema-words commit permission (REMOVE after Jessica reviews)
-
-Claude MAY make **bounded, test-passing** commits of sema vocabulary
-additions/bumps — one word/change per commit, `pytest` green, title-only, on
-the same `jm/` topic branch (currently `jm/sim-vocab`; do not proliferate
-branches), each with its `wiki/sema/changelog.md` entry. No `push`/PR without
-asking; Jessica merges and may adjust the words after — committing is not
-finalizing. (Added 2026-06-12; on removal, restore `precheck-no-claude-commits.sh`
-to `.claude/settings.json`.)
-
 ## ⏳ Until the proactor port — sema words are FLAT (REVERT note)
 
 Sema vocabulary words do NOT inherit from one another: every type schema is
@@ -210,6 +200,11 @@ was loaded, not worked from memory. Ephemeral coordination (session names,
   wiki.
 - **Sema:** before ANY sema edit, Read `sema/CLAUDE.md` and follow it
   verbatim. Adding or modifying a sema word → suggest `/make-sema-word`.
+  **The sema spec (`sema/spec/`) is change-controlled: ANY change to the
+  spec — however small, additions included — requires discussion with the
+  human before editing.** Never fold a spec edit into another change; when a
+  task appears to force one, stop and raise it. Prefer moving rapidly beyond
+  an exceptional case over adding exception machinery to the spec.
 - **Scada:** before editing `gridworks-scada` (gwsproto above all), Read
   [`wiki/gridworks-scada/CLAUDE.md`](wiki/gridworks-scada/CLAUDE.md) and
   follow it.
@@ -361,6 +356,16 @@ SHALL NOT reference the wiki. Exempt: the wiki's own README and any
 **Authoring** — capture *why* + design intent, not a restatement of code; pin
 volatile specifics with `file:line`. One canonical doc — update it, don't
 duplicate; delete what's wrong. Open every doc with a one-line "what this is".
+
+**Durable docs state what is, now.** Transition narrative — "retired X",
+"was Y, now Z", dated "settled/canonized" asides, build-step
+cross-references, or any mention of a thing that never shipped — does not
+belong in `executor/` or `explorations/`; the domain `changelog.md` and git
+history are its only homes. When work lands, rewrite the affected section to
+present tense and put the what/why of the change in the changelog entry. A
+design may track its own build status (✅/◐) while alive — designs are
+deleted on completion. Comparisons to *legacy* systems are rationale, not
+transition; those stay.
 
 **Voice** — wiki prose is Jessica's voice: plain sentences she can align to.
 DO NOT use the AI-cadence drumroll — an em-dash setup resolved by a punchy
