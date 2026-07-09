@@ -12,6 +12,62 @@ Newest at the top.
 
 ---
 
+## 2026-07-09 — ruff format sweep (`4511242`)
+
+**What:** on `jm/heat-call-rollback`. `ruff format .` over the 13 files that
+had drifted (persistors, config, importer, scripts, tests). No semantic
+change.
+
+**Why:** `ruff format --check` was failing repo-wide; kept as its own commit
+so the reformat noise stays out of the semantic diffs either side of it.
+**Verified:** ruff check + format --check clean; suite 23 passed.
+
+## 2026-07-09 — remove unused sqlalchemy import; move heat-call pseudo channel into its own module (`c8927d3`)
+
+**What:** on `jm/heat-call-rollback`. `flo_params_house0_persistor.py` drops
+`from sqlalchemy import literal, select`, orphaned since the
+pseudo-channel-pattern refactor (`e45f197`) deleted the CTE-based
+`insert_reading_with_channel` helpers that used them. New
+`zone_heat_call_pseudo_channel.py` holds `ZoneHeatCallPseudoChannel`, now a
+working class that bakes in the heat-call channel construction
+(`"Heat Call"`, `Gw1Unit.Unitless`) the persistor previously spelled out
+inline; `report_event_persistor.get_pseudo_channels` uses it. The broken
+original (`__init__` referencing undefined names — the F821s ruff flagged)
+is gone.
+
+**Why:** salvages the housekeeping from the reverted heat-call-removal
+commit while keeping the working synthesis chain it also deleted: the
+`whitewire-pwr` → `heat-call` pseudo channels + threshold derivation stay,
+because only spruce reports heat-call natively today and the analytics crew
+needs JK to synthesize the pseudo channels for the rest of the fleet until
+spruce-unlimbo reaches it. Giving the class its own module keeps the
+heat-call shim easy to find (and eventually retire) as one piece. dev was
+rewritten: `b25e8a9` (PR #173 merge, carrying the removal as `9caf347`) →
+`013aea2` + these two commits; the old tip stays reachable on
+`jm/systemd-service`.
+**Verified:** ruff check + format --check clean; suite 23 passed.
+
+## 2026-07-09 — run journalkeeper under systemd (`013aea2`)
+
+**What:** on `jm/systemd-service`. New `service/` dir mirroring
+`gridworks-scada/service/`: `journalkeeper.service` (simple unit,
+`Restart=always`, `ubuntu` @ `/home/ubuntu/gridworks-journalkeeper`,
+`.venv` python), `journalkeeper-restart.service` + 15-min `.timer`
+(catches manual-stop-and-forget), `install`/`uninstall` symlink scripts,
+and `jk*` helper commands. New `run_journal_keeper.py` entrypoint at the
+repo root (`start()` is non-blocking, so it joins the consuming thread to
+hold the process open). README "Production notes" gains the install steps;
+spec spoke: `wiki/gridworks-journalkeeper/executor/operational.md`.
+
+**Why:** the new-line production journalkeeper should run under systemd
+from day one rather than inheriting the old deployment's tmux habit
+(the legacy-branch JK on journalmaker stays untouched as fallback of
+record). **Verified:** `run_journal_keeper.py` ran locally against the
+production broker for 90 s and persisted 17 messages (15
+`snapshot.spaceheat`, 2 `gridworks.event.problem`) into a local gw_data
+postgres; the auto-delete queue cleaned up on disconnect. The unit files
+themselves await the production host.
+
 ## 2026-07-04 — CI trim: drop redundant cache + setup-python steps; prune dead dependabot watchers (`2aa9b74`)
 
 **What:** `tests.yml` loses the manual `actions/cache` step

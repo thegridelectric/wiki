@@ -1,6 +1,6 @@
 # gridworks-journalkeeper — rebuild spec
 
-Status: Draft · Pass 0 · Updated 2026-06-12
+Status: Draft · Pass 0 · Updated 2026-07-09
 
 > Faithful-rebuild hub: enough to build journalkeeper from scratch.
 > **Part I — Functional specification** is the durable contract (what gjk
@@ -220,7 +220,8 @@ deployment while this window is open.
 - [`captured-types.md`](captured-types.md) — the per-type capture matrix.
 - **`retention.md`** (Open) — largely a `gridworks-data` schema decision; see
   `explorations/scale-strategy-starter.md`.
-- **`operational.md`** (Open) — start/stop, supervisor wiring, restart.
+- [`operational.md`](operational.md) — start/stop, supervisor wiring
+  (systemd), restart semantics.
 
 ## Cross-refs
 

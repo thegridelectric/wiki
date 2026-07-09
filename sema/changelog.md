@@ -12,6 +12,45 @@ Newest at the top.
 
 ---
 
+## 2026-07-08 — governance: promotion is owner-on-a-branch via PR <!-- pending commit -->
+
+**What:** `spec/governance.md` gains a "Promotion (staging → published)" section: the word's
+owner promotes on a branch (`sema promote`) and opens a PR; the diff — flipped status line, hash
+pin, regenerated public registry — IS the promotion record; validation gates the merge; clusters
+promote bottom-up on one branch.
+
+**Why:** OPS-445 built the mechanism but left the workflow implicit; this pins who promotes and
+how it is reviewed, decided 2026-07-08. Spec edit sanctioned in conversation.
+
+## 2026-07-07 — staging word status: required statuses, hash pins, published-only snapshots, sema promote (`059f6ad`)
+
+**What:** the OPS-445 staging tier, whole stack. Every registry entry now carries an explicit
+`status` (250 lines written; absence is a validation error): types + versioned enums per version
+`draft|staging|published`; versionless types + literal enums word-level three-tier; formats
+word-level `draft|published` (never stage). Initial partition per the reviewed derivation —
+published is owed to the broker archive (wire-reached broker-crossing words + their `$ref`
+closure + everything non-layout); the layout-work cluster and anything using it is staging (110
+published / 62 staging type versions, 7 staging enum versions + `i2c.adc.channel`).
+`build_public_registry` builds the ACTIVE surface (staging + published), requires statuses,
+enforces formats-never-stage and the published-closure rule (published may not `$ref`
+staging/draft). New `definitions/published_hashes.yaml`: sha256 pin per published schema file,
+suite-enforced (`test_published_hashes.py`) — editing a published file fails CI. `sema snapshot
+prepare` defaults to published-only (fails listing staging offenders); `--allow-staged` builds a
+dev-only snapshot marked machine-readably (`indexes/staging.yaml`) and with a "PLEASE ONLY USE IN
+DEV" README banner. New `sema promote <name> [version]`: verifies the closure is published, flips
+the one status line (never touches `created`), records the pin, regenerates the public registry.
+Spec updated to match (structure.md Status Field rewrite incl. promotion-never-rewrites-`created`;
+primary.md publication paragraph + glossary; snapshot.md published-only section; consequential
+status lines in registry/types.md, enums.md, formats.md). `build_gwta_snapshot.sh` passes
+`--allow-staged`.
+
+**Why:** the vocabulary is in real cross-repo use (tlayouts, gwta, scada) while the layout words
+are still being reshaped — draft-vs-published had no honest place for that. Staging names it:
+mutable, snapshot-consumable, dev brokers only. The strength of sema is that published means
+trustably immutable, so the tier comes with teeth rather than an honor system — hash pins, the
+published-only snapshot default, and closure coherence. Suite green (381 passed); runtime regen
+zero-diff; promote exercised live (error paths + a real flip, restored).
+
 ## 2026-07-06 — retroactively register new.command.tree/001 (the spruce wire version) (`4529883`)
 
 **What:** `new.command.tree/001` registered mid-chain between the existing 000 and 002:

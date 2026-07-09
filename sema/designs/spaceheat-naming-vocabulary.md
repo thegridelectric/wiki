@@ -85,7 +85,7 @@ types, so the coercion default does not bite.
   `_RELAY_KINDS` string literals, and the `DeviceType` constants class are deleted. Thin combinator
   code (expanding zone/tank patterns) stays code; the vocabulary it expands is sema.
 - **gwsproto:** the `names/` package and relay/device-type enums are checked against the sema words
-  by the gwsproto↔sema conformance sweep (`gw_spaceheat/gwsproto_sema_conformance.py`) — names
+  by the gwsproto↔sema conformance sweep (`packages/gridworks-scada-protocol/gwsproto_sema_conformance.py`) — names
   drift between repos becomes mechanically detectable.
 - **gridworks-terminalasset:** consumes the same words from its own snapshot instead of a third
   copy. This is the dependency that pulls the design forward (referenced from the

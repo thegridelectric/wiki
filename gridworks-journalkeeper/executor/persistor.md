@@ -55,10 +55,19 @@ itself — it defines the channels the others write against.
 
 ## What each custom persistor projects (and drops)
 
-- **`report.event`** → `readings`, two sub-paths:
+- **`report.event`** → `readings`, three sub-paths:
   - **channel readings** — `report.channel_reading_list` → readings keyed to
     *existing* `reading_channels` by name; **channels not already present are
     silently skipped**. These reference the rigorous data/derived channels.
+  - **zone heat-call synthesis** — for every `*-whitewire-pwr` channel whose
+    layout declares no matching `*-heat-call` channel, a `heat-call` pseudo
+    channel is invented and each whitewire-pwr reading derives a 0/1 heat-call
+    reading (on-threshold per site: beech 100 W, elm 1 W, default 20 W). This
+    exists because most of the deployed fleet does not report heat-call
+    natively (spruce is the exception); the analytics crew reads these pseudo
+    channels. Where a layout *does* declare heat-call channels, the synthesis
+    steps aside — that interaction is what the per-site layout migration has
+    to preserve.
   - **machine states (the smush)** — `report.state_list` is flattened onto
     `SemaEnumPseudoChannel`s via a hand-maintained `STATE_CHANNELS` map
     (`machine_handle` → pseudo enum channels, with `auto.h→auto.lc`,
