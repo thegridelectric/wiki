@@ -1,6 +1,6 @@
 # grid-node-registry — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-07-06
+Status: Draft · Pass 0 · Updated 2026-07-08
 
 > What this is: the faithful spec of the **Grid Node Registry** (`gnr`) — the
 > authoritative record of GridWorks GNodes, their geographic positions, and the
@@ -19,7 +19,7 @@ codec) before any insert/update. Three entities (`src/gnr/db/models.py`):
 |---|---|---|
 | `g_nodes` | `GNodeGt` | a GNode: `id` (GNodeId), unique `alias` (LeftRightDot), `prev_alias`, `base_class`, `g_node_class`, `status`, optional `position_point_id`, `display_name` |
 | `position_points` | `PositionPointGt` | a geographic point: `latitude_micro_deg`, `longitude_micro_deg` (**immutable**; see Mutability model) |
-| `connectivity_edges` | `ConnectivityEdgeGt` | a parent→child edge keyed on **immutable ids only**: `from/to_g_node_id` (FK), `status`; unique `(from, to)`. Aliases are **derived on read**, not stored |
+| `connectivity_edges` | `ConnectivityEdgeGt` | a **non-tree** copper edge (tie, loop, meshed feed) keyed on **immutable ids only**: `from/to_g_node_id` (FK), `status`; unique `(from, to)`. Parent-child tree edges are **not stored** — the tree is the alias structure, derived on read |
 
 Enums (`src/gnr/sema/enums`): **`BaseGNodeClass`** (`ConnectivityNode` /
 `MarketMaker` / `Logical` / …) and **`GNodeStatus`**.
@@ -132,9 +132,9 @@ What is fixed vs. what changes, and how:
   rename survivable.
 - **`alias` — mutable** via the re-parent operation (recursive **atomic** subtree
   rewrite, one transaction; old value → `prev_alias`, recorded append-only). A
-  rename touches only the renamed GNode rows + the structural edges of the actual
-  re-parent — **never** edges merely because an endpoint was renamed (edges store
-  ids, not aliases).
+  re-parent touches **zero** edge rows: the parent-child structure is the alias
+  prefix itself, and `connectivity_edges` holds only non-tree copper (which
+  stores ids, not aliases).
 - **`base_class` + `g_node_class` — constrained-mutable in lockstep.** A
   `ConnectivityNode` MAY become a `MarketMaker` (gaining authority to re-parent its
   sub-topology) when a copper-topology shift becomes a known constraint. Axiom 1
@@ -176,11 +176,34 @@ pub/sub); **reads ride an HTTP/FastAPI façade** (point/forest queries — inter
 service API, no mTLS, privacy by the network perimeter). This split is by traffic
 shape, not by consumer.
 
+**A write is not a projection.** Two different things put registry-shaped rows
+into a database, and they must not be conflated:
+
+- **A command changes truth.** An authorized principal sends a write command
+  over the write channel; the registry authorizes it, appends it to
+  `command_log`, claims aliases in the ledger, mutates state, and validates —
+  one transaction inside the authority boundary. gnr's own tables are the
+  materialized projection *of that log*, maintained in the same transaction;
+  that is what makes them authoritative.
+- **A projection mirrors truth.** Downstream copies of registry state
+  (`gw_data.g_nodes` via gjk, FIS's in-memory map) consume the **interface** —
+  `g.node.forest` broadcasts + `g.node.forest.request` — never gnr's Postgres
+  (the OPS-443 seam). They hold no authority: no authorization beyond bus
+  membership, no ledger claims, no invariant enforcement, no write-back —
+  idempotent upserts keyed on immutable ids, eventually consistent, healed by
+  the snapshot broadcast. A projection can be deleted and rebuilt at any time
+  with no loss; the command log cannot — it is the registry's memory.
+
+Populating the registry is a write, not a projection: ingesting the existing
+fleet *establishes* truth in the authority, so it enters as authorized
+commands — even though the same nodes then flow onward to `gw_data` as
+broadcasts, where they land as a projection. Same data, opposite roles.
+
 **The write + its change event:**
 
 - **`g.node.reparent.cmd`** — the write command: the new node `N` (a `g.node.gt`) +
   the moved child `GNodeId`s. The registry computes the recursive descendant alias
-  rewrite and the edge retire/create set, and applies them in one transaction.
+  rewrite and applies it in one transaction; no edge rows change.
 - **On commit the registry broadcasts a forest** of the affected subtree (see below),
   keyed on a **`radio_channel` = the alias the audience is bound to** — for a
   re-parent introducing N under E, that is **E's alias** (the deepest change-stable
@@ -201,8 +224,9 @@ rooted at one of a chosen set of nodes and carrying every descendant. It is the
 addresses by root-set, so each message is bounded by that slice of topology (this is
 what survives a million assets; heritage: legacy `basegnodes.broadcast` =
 `TopGNode` + `DescendantGNodeList` + `IncludeAllDescendants`). A single **`g.node.forest`**
-payload (`roots: [GNodeId]` + the subtree `g.node.gt`s with current aliases + the
-`connectivity.edge.gt`s) is **reused** as:
+payload (`roots: [GNodeId]` + the subtree `g.node.gt`s with current aliases + any
+**non-tree** `connectivity.edge.gt`s among them — empty in a purely radial fleet;
+parent-child edges are derived from the aliases) is **reused** as:
 
 1. the **change-delta broadcast** — the forest under the re-parented root(s);
 2. a **snapshot broadcast** — a forest under the world root, **chunked** by root-set at
@@ -347,13 +371,16 @@ Beyond per-row Sema validation, the registry MUST enforce structure Sema can't:
   alias-parent exists and is Active. The active *physical* subtree is parent-closed as
   a consequence of the class hierarchy below (physical classes only parent physical
   classes, up to a forest root).
-- **ConnectivityEdge coverage** — for every active GNode `A` **that is not a forest
-  root**, with parent `P`, the registry holds **exactly one** active edge
-  `FromGNodeId = P, ToGNodeId = A` (no missing edge, no extra incoming edge, and the
-  one edge is from the alias-parent). A **forest root has no incoming edge** (its
-  alias-parent is the namespace, not a GNode). (The legacy "edge consistency"
-  invariant — that an edge's ids and aliases agree — is **gone**: edges store ids
-  only, so there is no stored alias to keep consistent.)
+- **Edges are non-tree only** — the alias hierarchy is a **spanning tree** of
+  the grid graph (the Milestone 1 framing), so `connectivity_edges` holds only
+  the copper connectivity the tree cannot express: ties, loops, meshed feeds.
+  An active edge's endpoints MUST exist and be Active, and an edge MUST NOT
+  mirror a tree edge — `from_g_node_id` MUST NOT be the GNode at the
+  alias-parent of `to_g_node_id` (and never the reverse either: no stored edge
+  may duplicate any parent-child pair in either direction). The tree itself is
+  never stored as edges; consumers derive parent-child edges from aliases.
+  (Edges store ids only — the legacy invariant that an edge's ids and aliases
+  agree has no object to apply to.)
 - **Class hierarchy** — each non-root GNode's parent class is legal for its own
   (the new-class form of legacy `g-node-factory` Creation Axiom 5 ROLE). A
   **CopperNode** is a `ConnectivityNode` or a `MarketMaker` — the copper-topology
@@ -372,7 +399,7 @@ Beyond per-row Sema validation, the registry MUST enforce structure Sema can't:
   Legacy→new mapping: `ConductorTopologyNode → ConnectivityNode`,
   `AtomicTNode`/`AtomicMeteringNode → LeafTransactiveNode`, `Scada`/`Other → Logical`.
 
-These three structural invariants are enforced by `gnr.db.validate` —
+These structural invariants are enforced by `gnr.db.validate` —
 `validate_registry` runs the audit pass, and the write handlers run it at write
 time (today a whole-registry scan; scoping to the affected subtree is queued in
 the standup design).
@@ -465,7 +492,11 @@ words (`jm/sim-vocab` until that merges to `dev`).
 Where the spec lives in `src/gnr`, all proven against a real Postgres and (for
 the write loop) a real broker by the layered suite:
 
-- **`gnr.settings`** — pydantic-settings `Settings` ← `.env`.
+- **`gnr.settings`** — pydantic-settings `Settings` ← `.env`. `universe` is
+  REQUIRED (no default): the one universe this instance serves, validated
+  (single lowercase word, kind letter `d`/`h`/`w`); a `w…` universe **refuses
+  to boot** while its trust machinery is stubs (`PROD_STUBS` — Proof
+  verification, the validation-cert plane, encrypted positions).
 - **`gnr.db.session`** — engine/session factory. Dev Postgres: `docker compose
   up`, host port **5435** (5432 is commonly shadowed by a host-local Postgres);
   the Alembic baseline creates all tables.
@@ -476,15 +507,19 @@ the write loop) a real broker by the layered suite:
 - **`gnr.db.alias_ledger.claim_alias`** — the race-free uniqueness primitive
   (`INSERT … ON CONFLICT` + ownership assertion).
 - **`gnr.db.validate.validate_registry`** — the structural-invariant audit pass
-  (parent-closed active forest, edge coverage, class hierarchy).
+  (parent-closed active forest, non-tree-only edge rules, class hierarchy).
 - **`gnr.db.lifecycle`** — the `GNodeStatus` + `base_class` SMs (pure functions
   the write handlers call).
 - **`gnr.db.authority`** — `AuthoritySource` + `PostgresAuthority` (Sema in /
   Sema out): reads (`get_by_id` / `get_by_alias` / `resolve_alias` — current or
   past alias → the current GNode — / `get_forest`, `assert_active`,
-  `fetch_edges`) and `apply_reparent` (recursive subtree alias rewrite + edge
-  retire/create + ledger claims + command-log append + validation, one
-  transaction, returns a `g.node.forest`). The write path is
+  `fetch_edges`) and the two mutations — `apply_create` (a single node enters:
+  parent-first check, ledger claim, command-log append, validation, one
+  transaction) and `apply_reparent` (recursive subtree alias rewrite + ledger
+  claims + command-log append + validation, one transaction) — each returning
+  a `g.node.forest`; edge rows are untouched by both (the tree is the alias
+  structure), and both reject an alias outside the configured universe. The
+  write path is
   **replay-idempotent** (a duplicate command returns the affected subtree's
   current forest) and **pre-checks alias collisions** (explicit error naming
   the collisions; the mid-rewrite ledger abort kept as defense-in-depth).
@@ -509,9 +544,10 @@ the write loop) a real broker by the layered suite:
   service containers.
 
 **Known limits** (facts, fine at MVP scale): write-time validation scans the
-whole registry per write; and **creation has no command path** — the only write
-command is `g.node.reparent.cmd`, and the dev-universe seed inserts directly
-(bypassing `command_log`), fine for the ephemeral test universe but not for a
-deployed registry, whose rows must be born as commands. The create command is
-the populate step's first move. The work queue — populate, deploy, the
-sema-first axioms — lives in the standup design, not here.
+whole registry per write; the dev-universe seed inserts directly (bypassing
+`command_log` — fine for the ephemeral test universe; the deployed registry's
+rows are born as `g.node.create.cmd`s); and `g.node.create.cmd` is
+`status: staging` in sema, so the vendored snapshot is **dev-only**
+(`build_gnr_snapshot.sh --allow-staged`) — the word must be promoted to
+`published` before any non-dev deployment. The work queue — populate, deploy,
+the sema-first axioms — lives in the standup design, not here.

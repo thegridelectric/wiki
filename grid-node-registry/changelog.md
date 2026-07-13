@@ -12,6 +12,44 @@ Newest at the top.
 
 ---
 
+## 2026-07-08 — Create accepts a Pending parent (fleet bootstrap) <!-- pending commit -->
+
+**What:** `apply_create`'s parent check widens from Active-only to
+Pending-or-Active; new Layer-1 test (a Pending copper chain builds
+parents-first; an Active child under a Pending parent is still rejected via
+the parent-closed-active invariant).
+
+**Why:** the fleet enters the deployed registry as `Pending` (activation comes
+with the TaValidator / encryption work, which also adds GPS positions), so at
+ingest the parent chain is itself Pending when children arrive.
+**Verified:** full suite 42 passed.
+
+## 2026-07-08 — Create command path, universe guardrails, edges reserved for non-tree copper (`13767e3`)
+
+**What:** `AuthoritySource.apply_create` + `GnrRabbit` decode of the vendored
+`g.node.create.cmd` (parent-first, ledger claim, command-log append, validate,
+one transaction; idempotent replay; alias + universe pre-checks).
+`Settings.universe` is REQUIRED — single lowercase word, kind letter `d`/`h`/`w`;
+a `w…` universe refuses to boot while `PROD_STUBS` (Proof verification,
+validation-cert plane, encrypted positions) stand. `validate_registry(session,
+universe)` gains the universe-scope check. `connectivity_edges` is reserved for
+**non-tree** copper: covering parent-child edges are no longer stored, a
+re-parent touches zero edge rows, and the coverage check is replaced by
+endpoint + no-tree-mirror rules; the dev seed inserts no edges. Snapshot
+rebuilt `--allow-staged` (dev-only while the create word is staging). Tests
+30 → 41: create path, loop-enters-as-non-tree-edge, stored-tree-edge rejected,
+settings guard-rails; CI env gains `GNR_UNIVERSE`.
+
+**Why:** three decisions of 2026-07-06/08. Edges: the alias hierarchy is the
+spanning tree of the grid graph, loops WILL exist, and the table's one honest
+job is the copper the tree cannot express — storing tree edges was redundancy
+that needed its own policing (decision B; the loop tests are the executable
+statement of how a loop occurs). Universe: a registry is scoped to one
+universe, and the deployer must declare it — the config value is what every
+money guard keys off. Create: populate requires rows born in `command_log`,
+never raw SQL. **Verified:** 41 passed including Layers 1–2 against a real
+Postgres + real broker.
+
 ## 2026-07-04 — Track gwbase 0.5.6 (`7cd46fa`)
 
 **What:** `pyproject.toml` `gridworks-base>=0.5.5` → `>=0.5.6`; relocked.

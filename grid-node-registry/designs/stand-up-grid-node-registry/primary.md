@@ -1,6 +1,6 @@
 # Stand up grid node registry
 
-Status: Accepted · Pass 1 · Updated 2026-07-06 · Linear: OPS-419
+Status: Accepted · Pass 1 · Updated 2026-07-08 · Linear: OPS-419
 
 **EDD: no** build-out — verified by the suite plus a deployed registry that
 round-trips GNode I/O and answers FIS's validity queries; not a standalone
@@ -40,14 +40,14 @@ mTLS+FIS auth work — it has to exist before FIS can enforce GNode identity.
    (`INSERT … ON CONFLICT` + ownership assertion), proven against live Postgres
    (mechanism in `executor/primary.md` "Enforcing alias-uniqueness-through-time").
    The open branch (status/edge change-history) resolved into the append-only
-   **`command_log`** (distributed-readiness #2): edge history is the retired edge
-   rows plus the commands that produced them, alias history is the ledger, and a
-   status/class change will get its own command word when that write surface is
-   built (post-MVP — no status-change command exists yet).
+   **`command_log`** (distributed-readiness #2): topology history is the command
+   log (the tree's history is the alias history), alias history is the ledger,
+   and a status/class change will get its own command word when that write
+   surface is built (post-MVP — no status-change command exists yet).
 3. **✅ DONE (audit form) — Enforce the invariants** (the registry's reason to
    exist; see executor). `gnr.db.validate.validate_registry` enforces
    alias-uniqueness-through-time (the ledger), parent-closed active tree,
-   ConnectivityEdge coverage, and the class-hierarchy parent rule (= "active
+   the edge rules, and the class-hierarchy parent rule (= "active
    physical subtree parent-closed"), each proven against live Postgres. The
    whole-registry validator pass is the audit form; **write-time** enforcement on
    the affected subtree rides on the step-5 handlers. The `base_class` CTN→MM
@@ -133,10 +133,10 @@ re-parenting is a **prefix rewrite of a whole subtree**:
 
 1. The moved children — and **every descendant** of them — get their `alias`
    recursively rewritten (`E.c…` → `E.N.c…`); each old alias → `prev_alias`.
-2. Connectivity edges adjust by **retire + recreate** on the immutable ids: `E→N`
-   is created once, and **for each moved child `C`** the edge `E→C` retires (status,
-   kept for history) and `N→C` is created. A pure rename touches **zero** edges
-   (edges store ids, not aliases).
+2. Edge rows do not change: the parent-child structure *is* the alias prefix,
+   and `connectivity_edges` holds only **non-tree** copper (ties, loops — see
+   executor *Intended invariants*, "Edges are non-tree only"). The whole
+   re-parent is the subtree alias rewrite.
 3. The **entire** subtree rewrite + edge changes + history rows commit in **one
    transaction** — atomic, all-or-nothing.
 4. **Only after commit**, gnr **broadcasts** the new topology (best-effort). It does
