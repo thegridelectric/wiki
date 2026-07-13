@@ -1,6 +1,6 @@
 # Hardware layout — pass one (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-07-04 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-07-08 · Linear: OPS-407
 
 **EDD: yes** — and the verification that *matters* is behavioral, not static. The real bar is a
 House0-replicating simulated terminal asset (the sim plant, [OPS-40](https://linear.app/gridworks/issue/OPS-40);
@@ -54,7 +54,7 @@ the truth oracle. **That is backwards.** Settled direction:
 - ✅ **channel-config overhaul** ([OPS-427](https://linear.app/gridworks/issue/OPS-427)) — landed
   2026-06-26; the `ChannelConfigBase` family carries neither `Unit` nor `Exponent`; the
   `transactive-power` metering boundary. Notes in [`gleanings.md`](gleanings.md).
-- **[`layout-boundary.md`](layout-boundary.md)** — *the session's core output.* What a layout IS (static
+- **[`layout-boundary.md`](layout-boundary.md)** — *the pass's core statement.* What a layout IS (static
   physical topology + control nodes) vs is NOT; the **three-artifact split** (config / layout / operational
   params, the [`operational-params.md`](operational-params.md) spoke); the rewiring test; the bare
   `channel.config` base type is **removed** (specialty `ConfigList`s only); **sema axioms as sole validity
@@ -100,9 +100,12 @@ the truth oracle. **That is backwards.** Settled direction:
   homes via the (now-retiring) `dc_to_sema` path. The commit-by-commit story is in the changelogs
   (`wiki/{sema, gridworks-scada, gridworks-terminalasset}/changelog.md`); the durable distillate is in
   [`../../executor/hardware-layout.md`](../../executor/hardware-layout.md).
-- The sema-native gen + diff harness (`gw_spaceheat/house0_sema_gen.py`,
-  `house0_sema_gen_check.py`): full house0-stub equivalence reached and **oak passes** (real
-  4-zone / 3-tank production home). Detail in [`gen-pipeline.md`](gen-pipeline.md).
+- The sema-native gen, authoring-side in **tlayouts on the sema snapshot** (2026-07-04):
+  `tlayouts.house0_sema_gen.gen_artifacts` emits each home's (static layout, operational params)
+  pair, snapshot-validated; oak + house0-stub gens live (`gen_oak_sema.py`, `gen_house0_stub_sema.py`);
+  scada keeps the consuming side (`gw_spaceheat/sema_to_dc.py`: `assemble_runtime_layout` /
+  `ops_and_sema_to_dc` + the file-based diff-and-adopt oracle). The `house0_sema_gen_check.py`
+  equivalence oracle retired with the move. Detail in [`gen-pipeline.md`](gen-pipeline.md).
 - Channel-config overhaul landed (scada `jm/delete-cac-id`, sema `jm/sim-vocab`); suites green.
 - The operational-params reshape, sema side + gwsproto catch-up: `capture.tuning/000`, the
   `channel.config` family strip, `gw.house0.operational.params/000` (the four 2026-06-30
@@ -119,13 +122,16 @@ the truth oracle. **That is backwards.** Settled direction:
   the fixtures from sema, not by patching JSON.
 - **`gw.nolan.layout/000`** is un-drafted; its axioms are parked in
   `sema/definitions/types/gw.nolan.layout/stash_axioms.md` (zone/tank structure reference).
-- **`gw.house0.layout/000` is unpushed → mutable in place** — axioms are added to `000` directly (no
-  bump) per sema immutability tracking publication.
-- **The in-place channel-config reshape invalidated the embedded sema `examples:`** —
-  `gw.house0.layout`'s example now fails ~3399 runtime-validation errors (components still carry the
-  old `ConfigList` shapes), and the main sema suite doesn't see it (it checks examples structurally,
-  not through the generated runtime; the snapshot round-trip gate is what catches it). Fix by
-  regenerating the layout examples from the gen, not hand-editing; closing the suite gap is its own
-  sema-domain design (Draft; Linear issue pending).
+- **`gw.house0.layout/000` is `staging` → mutable in place** — axioms are added to `000` directly
+  (no bump). The whole layout cluster is staging under the OPS-445 status model (dev brokers only);
+  it promotes via `sema promote` when this pass settles, and scada's conformance sweep
+  `--release-gate` stays red until then.
+- **An orphaned nolan intent from the deleted `jm/nolan` sema branch** (May-14 WIP, never in dev):
+  `gw.nolan.layout/000` gains `gw1.heat.call.interpretation:000` as an axiom dependency (it also
+  sketched a `gw1.scada.device.type.gt/001` that was never authored). If still wanted, fold it into
+  the staging `000` directly when nolan's axioms are drafted.
+- **Layout `examples:` regenerate from the gen, never by hand** — the main sema suite decodes every
+  example through the generated runtime (OPS-442), so a reshape that stales an embedded example is
+  caught in CI; the fix is re-emitting from the tlayouts gen.
 - **Deep code clean is pass-two:** ripping out `H0N`/`H0CN` (~61 files), the ~76 call-site sweep onto
   `self.hydronic.*`, the full actor migration onto sema types, the G/H RequiredTopologyNodes axioms.

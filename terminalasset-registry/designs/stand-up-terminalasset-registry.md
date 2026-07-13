@@ -29,9 +29,10 @@ Phase 1 is underway. State as of 2026-07-03:
 - ⛔ **The snapshot build is blocked** — its round-trip gate rejects the stale layout
   `examples:` (reshaped in place; `gw.house0.layout` fails 3399 runtime-decode errors).
 
-**The single next move: implement [`../../sema/designs/example-runtime-validation.md`](../../sema/designs/example-runtime-validation.md)** —
-make the main sema suite runtime-decode every example, and regenerate the stale layout examples
-(`gw.house0.layout`, `gw.nolan.layout`, `gw1.simple.sim.layout`) to the reshaped shapes. That
+**The single next move rides [OPS-442](https://linear.app/gridworks/issue/OPS-442)
+(example-runtime-validation — Done):** the main sema suite now runtime-decodes every
+example, so regenerate the stale layout examples (`gw.house0.layout`, `gw.nolan.layout`,
+`gw1.simple.sim.layout`) to the reshaped shapes. That
 unblocks `./build_tlayouts_snapshot.sh`. **Then** Phase-1 step 2: port `layout_gen` +
 `house0_sema_gen` into `tlayouts` on `sema.runtime.types` (import swaps), emitting the two Sema
 JSON artifacts — at which point the *generated* reshaped layouts become the fresh examples
@@ -112,7 +113,9 @@ edge-authoritative with the upstream as a published projection — see Open.)
 
 ## What we reuse from the GNR template (and what we drop)
 
-Reuse (from [`../../grid-node-registry/designs/stand-up-grid-node-registry/primary.md`](../../grid-node-registry/designs/stand-up-grid-node-registry/primary.md)):
+Reuse (from the grid-node-registry standup,
+[OPS-419](https://linear.app/gridworks/issue/OPS-419) — durable forms in
+`wiki/grid-node-registry/executor/primary.md`):
 
 - **One service is the sole accessor of the backing store**; everyone else uses a read
   API + a write channel. Keeps the backing store swappable and the meaning explicit.

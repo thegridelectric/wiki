@@ -52,7 +52,8 @@ hardware that produces it. This is the altitude every existence axiom below is w
 
 ## house0 — slice list (simplest-first)
 
-`gw.house0.layout/000` is **unpushed → mutable in place**; axioms are added to `000` directly (no bump).
+`gw.house0.layout/000` is **`staging` → mutable in place** (OPS-445 status model); axioms are added to
+`000` directly (no bump).
 Already present: ① GlobalIdUniqueness, ② EssentialNodesExistence, ③ ZoneHeatCallChannel (per-zone
 `heat-call` DerivedChannel + a `whitewire-pwr`|`opto-input` source — *replaced* the old
 ZoneWhitewirePwrChannel 2026-06-23), ④ PrimaryFlowSourceChannelAgreement, ⑤ TransactivePowerChannel

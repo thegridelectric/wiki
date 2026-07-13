@@ -12,6 +12,100 @@ Newest at the top.
 
 ---
 
+## 2026-07-09 — relay mux resolves pins from the krida device-type record (`ba6c6e65`)
+
+**What:** on `jm/spruce-unlimbo`. `I2cRelayMultiplexer` gains `relay_pin_map()` — RelayIdx →
+(board, PCF8575 pin) resolved from the layout's `KridaDoubleRelayBoard16`
+`gw1.scada.device.type.gt` record when the layout carries it (RelayName `Relay{k}` = the panel
+marking; ExpanderIdx + RegisterIndex/BitIndex carry the position, first-bank inversion included),
+with the legacy `gw_to_pin` arithmetic as the fallback for layouts that predate the record (it
+retires with the fleet regen). `initialize_boards` iterates the map per board instead of the
+hardcoded `range(1,17)` × `num_boards = 2` (board count now follows `I2cAddressList`). Dead
+helpers `krida_to_gw` / `gw_to_board_idx` deleted. New `tests/test_misc/test_krida_record.py`
+pins the record against the legacy arithmetic for all 32 markings (the sim path never exercises
+real pins, so this equivalence test is the guard) and asserts the DIP-selectable expander shape.
+
+**Why:** the physical label→pin truth now lives in one declared, mechanically-checkable place —
+the device-type record the layouts carry — instead of driver arithmetic. No wire change. Suite
+118 passed / 3 skipped, ruff clean, oak sim-boots green.
+
+## 2026-07-09 — oak fixture: krida device-type record in DeviceTypes (`7000d3a7`)
+
+**What:** on `jm/spruce-unlimbo`. `tests/config/oak.json` re-adopted from the regenerated
+tlayouts gen output: the `KridaDoubleRelayBoard16` `gw1.scada.device.type.gt` record joins
+`DeviceTypes` (474 added lines — the 32 relay capabilities with the basement markings +
+first-bank inversion as pin data, the two DIP-addressable expanders). Nothing else changes;
+running code does not yet read the record (the mux still uses `gw_to_pin` — its record-based
+rewrite is the flagged next bite).
+
+**Why:** the layout becomes the carrier of the krida panel's physical truth, per the
+capability-round decisions. Verified: dc loads, diff-and-adopt oracle at 0 diffs, oak sim-boots
+on `gw-dev-rabbit`, suite 116 passed / 3 skipped.
+
+## 2026-07-09 — functional relay names + capability board records; adopt sema-authored oak (`4182d88c`)
+
+**What:** on `jm/spruce-unlimbo`. Three connected moves.
+
+*Functional relay names.* Relay node names go functional and equal to their relay-state channel
+name (`relay1` → `vdc-relay`, `relay17` → `zone1-<zone>-failsafe-relay`); the krida board position
+lives in `House0RelayIdx` / `relay.actor.config.RelayIdx`, not the name. Flipped in both name
+systems (`data_classes/house_0_names.py` H0N + H0CN — the H0CN relay-state entries collapse to
+direct H0N references — and `names/house0/`, whose zone class now takes the zone name; the orphaned
+`krida_*_relay_suffix` helpers deleted; the latent `boiler-scada_ops-relay` underscore fixed —
+SpaceheatName forbids `_`). The four actor sites that built `relay{idx}` strings (`relay.py`,
+`sh_node_actor.py` via ZoneNodes, `ltn.py`, `scada.py` admin dispatch) now use the name classes.
+All seven old-convention fixtures bridge-renamed mechanically (nodes, handles, channels — UUIDs
+untouched); the fleet regen from the sema gen supersedes them. `gwadmin` reads the board position
+from the config's `RelayIdx` instead of parsing the channel-name suffix (the physical `Relay N`
+markings stay visible to field support), suffix parse kept for old-named deployments.
+
+*Capability board records (gwsproto side of the sema round).* `I2cRelayConfig` →
+`I2cRelayCapability` (position now expander-relative: ExpanderIdx + Register/Bit, no address);
+new `I2cExpander` (fixed vs DIP-selectable addressing, axiom-enforced exactly-one);
+`I2cAdcConfig`/`I2cDacConfig`/`I2cThermistorInterfaceConfig` → `*Capability`; `ScadaDeviceTypeGt`
+gains `Expanders` + Axiom 2 ExpanderMembership. `scada_gw108.py` rewritten to the new shape;
+new `scada_krida.py`: the `KridaDoubleRelayBoard16` record — the two-board GridWorks panel as one
+device, `Relay1`–`Relay32` matching the basement markings, the first-bank inversion written down
+as pin data (harvested from `gw_to_pin`), DIP range 0x20–0x27 on both expanders. Both records
+validate through `sema validate`.
+
+*Oak adoption + sim net.* `tests/config/oak.json` regenerated from the sema gen: the 4 per-zone
+heat-call DerivedChannels land with frozen UUIDs, relay nodes/channels functional (ShNodeIds
+preserved via an old-name fallback in the gen id map), empty `SynthChannels` dropped.
+`sim_layout.simulate_sensors` emits `ConfigList: []` on swapped sim components — the dc
+channel-set equality check in `hardware_layout.check_data_channel_consistency` relaxes to a
+subset check (component references ⊆ declared channels), since `DataChannel.CapturedByNodeName`
+is the sole channel→node binding and `SimSensorActor` needs no ConfigList.
+
+**Why:** hardware-layout-pass-one (OPS-407). The gw108 board replaces the krida panel at beech
+next week — `relay1`-style positional names become ambiguous, so the naming slice of pass-two's
+relay decommission was pulled forward, and the krida panel's field markings (`Relay1`–`Relay32`,
+inversion included) got canonized as declared data in the device-type record rather than driver
+arithmetic. Verified: scada suite 116 passed / 3 skipped, oak + maple sim-boot green on
+`gw-dev-rabbit`, ruff at parity (all findings pre-existing). Companion sema commit on
+`jm/i2c-relay-capability` (see `wiki/sema/changelog.md`); tlayouts catches up next (gwsproto.names
+dependency replaces its names mirror, gen emits the krida record into `DeviceTypes`).
+
+## 2026-07-07 — conformance sweep: --release-gate + move into the protocol package + README docs (`d8c920e5`)
+
+**What:** on `jm/spruce-unlimbo`. `gwsproto_sema_conformance.py` gains `--release-gate`: every
+gwsproto-pinned (TypeName, Version) must carry sema status `published`; staging, draft, and
+unregistered pins land in a new UNPUBLISHED PIN section and fail the exit code. The sweep moves
+from `gw_spaceheat/` into the protocol package (`packages/gridworks-scada-protocol/`, beside
+`src/`, not in the wheel) — its only project import is `gwsproto.named_types`, so it is a
+property of the package, runnable there via `uv run`. It also gets its first human-facing docs:
+a "Sema conformance" section in the gwsproto sub-README (twin-of-sema contract, how to run, the
+two modes) plus a pointer section in the repo README — previously the script's docstring was the
+only place a teammate could learn it exists. (Companion 4-line change in the tlayouts repo,
+`2a52de4`: `build_tlayouts_snapshot.sh` passes `--allow-staged`, since the layout closure is
+staging until it promotes.)
+
+**Why:** OPS-445 — staging vocabulary runs on dev brokers only, and the sweep is where scada
+checks itself against sema, so the deploy gate lives there: a non-dev deploy must pass
+`--release-gate`. Run against the branch it correctly reports 40 unpublished pins — exactly the
+staging layout vocabulary this branch's gwsproto tracks — i.e. spruce-unlimbo cannot ship beyond
+dev until the layout words promote. Ruff clean.
+
 ## 2026-07-06 — NewCommandTree: relabel 001 → 002 (sema numbering) (`25d8249e`)
 
 **What:** on `jm/spruce-unlimbo`. `gwsproto/named_types/new_command_tree.py` `Version`

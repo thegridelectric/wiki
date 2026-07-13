@@ -12,6 +12,23 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-07-09 — snapshot rebuild: capability words + catch-up to current sema
+
+**What:** on `jm/delete-cac-id`. The gwta sema snapshot (`src/gwta/sema/`) rebuilt from current
+sema `jm/i2c-relay-capability` (~96 files). Two things at once: (a) the capability round — the
+seed's explicit i2c targets swap `i2c.{adc,dac,relay}.config` → `i2c.{adc,dac,relay}.capability`
++ `i2c.expander`, and the reshaped `gw1.scada.device.type.gt` (Expanders, ExpanderMembership
+axiom) comes through the layout closure; (b) a catch-up across the rounds since the last rebuild
+(2026-06-22) — the channel-config overhaul (`capture.tuning` replacing the `channel.config`
+family, specialty configs stripped of capture params), `g.node.gt/005`, the operational-params
+words, and the current layout shapes. The seed request now records `--allow-staged` (the layout
+closure is staging under OPS-445). Snapshot round-trip green (47 samples); gwta suite green.
+
+**Why:** hardware-layout-pass-one (OPS-407) — gwta decodes what scada emits, so its snapshot must
+track the vocabulary the tlayouts gen now authors (functional relay names, the krida
+`KridaDoubleRelayBoard16` record in `DeviceTypes`). The stale i2c words would have rejected the
+new-shape board records at decode.
 ## 2026-06-22 — refactor snapshot w improved components; also i2c vocab (`7909c37`)
 
 **What:** Rebuilt the gwta sema snapshot (`src/gwta/sema/`) from the current sema source —

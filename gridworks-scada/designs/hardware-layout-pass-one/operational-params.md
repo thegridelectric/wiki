@@ -35,12 +35,16 @@ the channels their nodes capture), carrying both assembly checks — **assembly-
 **`PollPeriodMs ≥ MinPollPeriodMs` floor**. Proven on oak: tlayouts authors → assemble → the dc LOADS OK,
 only the known stale-fixture DerivedChannels diff remains.
 
-**▶ The next move is step 5 — adopt + sim boot:** diff-and-adopt the assembled oak dc vs the frozen fixture
-(`sema_to_dc.py oak` prints the worklist — the 4 heat-call DerivedChannels the stale fixture lacks), and
-**boot it in sim** (`sim_boot`) — the behavioral gate, not byte-equality. Adopting also freezes the
-heat-call channel UUIDs (today they re-mint each run because the reference lacks those channels).
+**✅ Step 5 done (2026-07-08) — oak adopted + sim-booted:** `tests/config/oak.json` regenerated from the
+assembled gen output — the 4 heat-call DerivedChannels frozen (UUIDs now stable via the LayoutIDMap
+reference), the 21 relay DataChannels on the new-convention functional names (`vdc-relay1` → `vdc-relay`,
+same Ids). The oracle converges (0 diffs, content-identical) and the behavioral gate passes: the adopted
+oak boots in sim on `gw-dev-rabbit` (101 channels, 55 non-null). En route, `sim_layout.simulate_sensors`
+gained `_as_capture_tuning` — swapped sim components' ConfigLists project to their `capture.tuning/000`
+core (specialty entries like `ads.channel.config` fail `sim.sensor.component.gt` validation; pre-existing,
+it bit maple too).
 
-**Within the pass, after the core boots:** define `cop.curve` + `heating.curve`, extend
+**▶ The next move — within the pass, now the core boots:** define `cop.curve` + `heating.curve`, extend
 `gw.house0.operational.params` (a new version) with the control/optimization fields, and migrate the rest
 (`SystemMode`, criticality, thermal-mass, FLO knobs) out of `actors/config.py` + the static layout.
 Forward-only throughout (no `dc_to_sema`).

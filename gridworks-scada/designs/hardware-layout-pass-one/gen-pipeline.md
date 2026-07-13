@@ -16,8 +16,12 @@ per-home config ──sema_gen──▶ gw.house0.layout (sema, axiom-valid) ─
 ```
 
 - **`sema_gen(config)`** emits a `gw.house0.layout` directly from a per-home config, pulling stable IDs
-  by name from a reference layout (`LayoutIDMap`). Already landed: `gw_spaceheat/house0_sema_gen.py`.
-  Full house0-stub equivalence reached and **oak passes** (real 4-zone / 3-tank production home).
+  by name from a reference layout (`LayoutIDMap`). Full house0-stub equivalence reached and **oak
+  passes** (real 4-zone / 3-tank production home). **Channel UUIDs — DataChannels and DerivedChannels
+  alike — are durable identity, keyed by `(home, channel name)`:** the archive's time series join on
+  channel id, so a re-mint splits a channel's history. The gen mints an id only for a name absent from
+  the reference; adoption is the mint-once event that promotes new ids into the stable reference (a
+  *renamed* channel is deliberately a new channel — new id, new series).
 - **`sema_to_dc(sema_layout)`** projects the sema layout to the dc `House0Layout` the running scada
   loads. **Built** (`gw_spaceheat/sema_to_dc.py`), forward-proven on oak — `sema_to_dc(sema_gen(oak))`
   loads cleanly. The projection plumbing already existed as `sema_to_layout_dict` inside the retiring

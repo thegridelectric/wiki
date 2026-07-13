@@ -12,7 +12,56 @@ Newest at the top.
 
 ---
 
-## 2026-07-08 — governance: promotion is owner-on-a-branch via PR <!-- pending commit -->
+## 2026-07-09 — capability words: i2c.relay.capability + i2c.expander; board record reshaped (`3c7e3fb`)
+
+**What:** on `jm/i2c-relay-capability`. Five new staging words + one staging reshape.
+`i2c.relay.capability/000` replaces `i2c.relay.config` — RelayName (the device's physical
+marking), ExpanderIdx, RegisterIndex, BitIndex, SupportedWiringConfigs; no I²C address.
+New `i2c.expander/000`: one GPIO expander on a board — ExpanderIdx, I2cBus, and exactly one of
+`I2cAddress` (soldered) / `AllowedI2cAddressList` (DIP-selectable), axiom-enforced. The three
+staging siblings rename for the same reason: `i2c.adc.config` → `i2c.adc.capability`,
+`i2c.dac.config` → `i2c.dac.capability`, `i2c.thermistor.interface.config` →
+`i2c.thermistor.interface.capability` (old staging words deleted). `gw1.scada.device.type.gt/000`
+(staging, in place) gains `Expanders`, re-points its refs to the capability words, extends Axiom 1
+BusMembership to Expanders and adds Axiom 2 ExpanderMembership, and swaps its giant gw108 example
+for a minimal krida-flavored one. Published `i2c.relay.config/000` stays frozen with word-level
+`replaced_by: [i2c.relay.capability]`; `i2c.bit.address` stays published (the bus-op words use it).
+Created-timestamp cascade forward-bumps `gw1.scada.device.type.gt:000` and the two layouts
+(`gw.house0.layout:000`, `gw.nolan.layout:000`) to the new words' stamp. Axiom validators
+implemented in the templates (the expander stub + the reshaped board axioms); the
+gw1.scada.device.type.gt counterexample fixture rewritten to the new shape + an Axiom 2
+counterexample added. Indexes + runtime regenerated; suite 384 passed.
+
+**Why:** hardware-layout-pass-one (OPS-407), prompted by the gw108-at-beech board swap. Two words
+both named "config" meant opposite things — `relay.control.config` is the *chosen* configuration,
+`i2c.relay.config` the *offer*; "capability" says what is possible. The DIP-switch reality forced
+the address out of the per-relay entry: allowed addresses are a board-type fact (the expander
+entry), the chosen address a deployment fact (the component's `I2cAddressList`, index-aligned with
+Expanders). Supersede-not-demote keeps published history immutable — nothing ever moves published →
+staging in a commit. The record's RelayNames carry physical markings (`Relay1`–`Relay32` on the
+krida panel) so field support can identify relays from the record; the panel's first-bank inversion
+becomes declared pin data instead of `gw_to_pin` driver arithmetic (scada-side instance in the
+companion `gridworks-scada` commit).
+
+## 2026-07-08 — g.node.create.cmd v000: registrar-facing create (staging) + branching note (`24fdd1f`)
+
+**What:** new type `g.node.create.cmd/000` (`status: staging`) — `NewNode` =
+`g.node.gt/005` + optional opaque `Proof` string; registry entry + indexes +
+runtime regen. `CLAUDE.md` gains a Branching section (topic branches off `dev`,
+PR back; no long-lived vocabulary branch — new with the staging tier).
+
+**Why:** the grid-node-registry populate step requires every row born as a
+command (`command_log` from birth), and creation had no word. One generic
+registrar word, one node per command, parents-first — the multi-party
+certification ceremony (TaValidator plane) arrives upstream later and *feeds*
+this word rather than replacing it (legacy review in the gnr
+create-words-and-validation-stubs exploration). `Proof` mirrors
+`g.node.forest`'s seam: opaque until the authority substrate fixes a format.
+Staging while the write surface converges; promotion to published gates the
+EC2 deploy. **Verified:** sema suite 382 passed; vendored into gnr
+(`--allow-staged` dev-only snapshot), gnr suite 41 passed.
+
+## 2026-07-08 — governance: promotion is owner-on-a-branch via PR (`4c6545e`)
 
 **What:** `spec/governance.md` gains a "Promotion (staging → published)" section: the word's
 owner promotes on a branch (`sema promote`) and opens a PR; the diff — flipped status line, hash

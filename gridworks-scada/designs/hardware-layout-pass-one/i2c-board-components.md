@@ -1,6 +1,23 @@
 # I²C / board-resident components — actor layer (spoke — deferred to pass-two)
 
-Status: Accepted · Pass 1 · Updated 2026-07-04 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-07-09 · Linear: OPS-407
+
+**Capability reshape (2026-07-09, landed with the functional-relay-names work):** the board-record
+vocabulary went through a naming + shape correction. `i2c.relay.config` → **`i2c.relay.capability`**
+(the record describes what the board OFFERS, not a chosen configuration — the "config" name collided
+with `relay.control.config`, which IS the chosen configuration); siblings renamed the same way
+(`i2c.adc.capability`, `i2c.dac.capability`, `i2c.thermistor.interface.capability`). New
+**`i2c.expander`** word: per-relay entries carry expander-relative position (ExpanderIdx +
+Register/Bit), and the board's `Expanders` list carries the addressing — fixed `I2cAddress`
+(soldered, gw108) or `AllowedI2cAddressList` (DIP switches, krida); the chosen address is a
+deployment fact on the component's `I2cAddressList`, index-aligned with Expanders. The published
+`i2c.relay.config/000` stays frozen with `replaced_by`. **`KridaDoubleRelayBoard16` now has its
+`gw1.scada.device.type.gt` record** (`gwsproto/data_classes/device_types/scada_krida.py`): the
+two-board GridWorks panel is ONE device — its basement markings `Relay1`–`Relay32` are the
+RelayNames, and the first-bank inversion (marking 1 → pin 7, …, 8 → pin 0) is declared pin data,
+harvested from the multiplexer's `gw_to_pin`. Remaining from that thread: the mux resolves pins
+from the record instead of `gw_to_pin` (small, standalone); the tlayouts gen emits the krida record
+into each House0 layout's `DeviceTypes`.
 
 > What this is: the board-resident / i2c-bus model and the relay decommission. **Deferred to
 > pass-two** — it is a value-changing layout migration that touches the actor runtime (Phase 3), which
