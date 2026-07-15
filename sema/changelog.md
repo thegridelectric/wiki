@@ -12,6 +12,27 @@ Newest at the top.
 
 ---
 
+## 2026-07-13 — cop.curve + heating.curve; operational-params control block (`7657167`)
+
+**What:** on `jm/i2c-relay-capability`. Two new staging words: `cop.curve/000` (Intercept,
+OatCoeff, LwtCoeff, Min, MinOatF — COP = Intercept + OatCoeff·OatF + LwtCoeff·LwtF, floored at
+Min below MinOatF) and `heating.curve/000` (AlphaTimes10, BetaTimes100, GammaEx6 heat-loss
+coefficients + the intermediate and design-day anchor points + MaxEwtF).
+`gw.house0.operational.params/000` (staging, in place) gains the control/optimization block —
+SystemMode (`gw1.system.mode`), SeasonalStorageMode (`gw1.seasonal.storage.mode`), CopCurve,
+HeatingCurve, HpTurnOnMinutes, ShortCycleBuffer, LoadOverestimationPercent, OilBoilerBackup,
+HorizonHours, Latitude, Longitude — all REQUIRED (no assumed defaults); description, example,
+and extended_description rewritten to present tense. Created-stamp cascade bumps ops-params to
+the new words' stamp. Indexes + runtime regenerated; suite 386 passed.
+
+**Why:** hardware-layout-pass-one (OPS-407), the operational-params spoke's post-boot step: the
+tunable state that changes without rewiring hardware moves out of scada deployment config into
+the authored third artifact. The two curves get their own words because they are reusable
+concepts (`flo_params` assembly is the eventual DRY consumer). The hydronic-sourced trio
+(UseSiegLoop, CriticalZoneList, ZoneKwhPerDegFList) is deliberately NOT added yet — it moves
+when `gw.house0.hydronic` strips, so every value has exactly one authored home at every commit
+point. Companion gwsproto + tlayouts commits.
+
 ## 2026-07-09 — capability words: i2c.relay.capability + i2c.expander; board record reshaped (`3c7e3fb`)
 
 **What:** on `jm/i2c-relay-capability`. Five new staging words + one staging reshape.

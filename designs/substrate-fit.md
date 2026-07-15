@@ -1,6 +1,6 @@
 # Substrate fit (design — parked brainstorm)
 
-Status: Draft · Pass 0 · Updated 2026-06-10 · Linear: OPS-391
+Status: Draft · Pass 0 · Updated 2026-07-13 · Linear: OPS-391
 
 > What this is: the parking lot for the substrate question — evaluating the
 > fit of blockchain / alternative substrates for the crypto / validation /
@@ -72,6 +72,25 @@ _(append freely; no order, no vetting)_
   (alert #10 "Rebooting") per `../observability/designs/consolidate-from-infra-scada-jk.md`.
   Journalkeeper does health; the neutral witness does adjudication. Keep them
   separate.
+- **The validator/owner-keys ceremony design grows from two explorations
+  (from OPS-419).** When the TaValidator plane starts (post-MVP deploy:
+  activation + encrypted positions + GPS), graduate
+  `../grid-node-registry/explorations/create-words-and-validation-stubs.md`
+  (which words, which parties, what order; the registrar split as the MVP
+  stand-in) and
+  `../gridworks-scada/explorations/deeds-and-trading-rights.md` into the
+  ceremony design — likely cross-cutting; slug coined at triage. Binding
+  constraint, canonical in
+  [`../vision/data-meaning-sovereignty.md`](../vision/data-meaning-sovereignty.md)
+  "Sovereignty of the person": the TaOwner holds the keys — a first-class
+  signing principal, with TaDaemon-style delegation-without-custody.
+  Substrate consequence: whatever substrate is chosen must serve owner-held
+  keys (generation, delegation, revocation, recovery); platform custody
+  would empty the substrate choice of meaning. Bootstrap note: the MVP fleet
+  enters `Pending` under registrar attestation alone, so **Pending→Active is
+  where owner-attested provenance begins** — the activation ceremony is the
+  natural point to re-attest each asset's binding under its owner's key,
+  and the bootstrap era then never needs a separate provenance migration.
 - **TaValidator certifies the GNode's location (from OPS-419).** The grid-node-
   registry makes `position.point.gt` **immutable** and guarantees accuracy only
   *by definition* (a point falls within the footprint of the building it locates);

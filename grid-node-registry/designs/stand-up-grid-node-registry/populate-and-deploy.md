@@ -1,6 +1,6 @@
 # Populate + deploy — the MVP registry on EC2 (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-07-08 · Linear: OPS-419
+Status: Accepted · Pass 1 · Updated 2026-07-13 · Linear: OPS-419
 
 **EDD: no** build-out/integration; verified by the deployed registry answering
 real forest queries over its live surface (plus the suite staying green), not a
@@ -93,30 +93,17 @@ registry state). The `w` registry is minted when that universe exists.
 
 ## Rebuild from the message log (the durability story)
 
-The ear's capture and gnr's `command_log` are the same stream seen from two
-places, joined by the content hash (`gnr.ids.command_hash`): the command log
-holds every command *applied*; the ear also holds the *refused* commands (the
-audit of the registry saying no) and the `g.node.forest` broadcasts (the
-announced results). Deterministic apply (executor *Distributed-readiness* #1)
-is what makes replay valid: a rebuild replays the captured commands in capture
-order through the handler core — refusals re-refuse, applies re-apply
-byte-identically — and cross-checks the resulting forests against the captured
-broadcasts. Two independent witnesses that must reconcile. This rests on:
+Canonical: executor *Durability — the message log is the system of record*
+(no required DB backups; `command_log` + the ear capture are one stream
+joined by the content hash; rebuild = ordered replay through the handler
+core + forest cross-check). What this step must deliver:
 
-- the ear capture running **before ingest** (above) and landing somewhere
-  durable (S3, versioning on) — the capture bucket, not the database, is the
-  crown-jewel store;
-- replay preserving capture order (topology commands are rare and
-  parents-first, so ordering is unambiguous at this scale; a command-carried
-  logical time stays the deferred backstop, per the executor);
-- **the rebuild script existing and being exercised** — an EDD experiment in
-  the dev harness: capture a seed + mutations, wipe the DB, rebuild, assert
-  `validate_registry`-clean and forests matching the captured broadcasts. An
-  untested restore path is not a restore path.
-
-Unlike the one-shot ingest script (operator-run, not checked in), the rebuild
-script IS repo code: it is the durability mechanism, so it is checked in and
-tested.
+- the ear capture running **before ingest** (above), landing in durable
+  storage (OPS-443, both sinks);
+- the **rebuild script** — checked in and tested, unlike the one-shot ingest
+  script, because it is the durability mechanism itself — with its
+  dev-harness EDD experiment (capture a seed + mutations → wipe → rebuild →
+  `validate_registry`-clean, forests matching the captured broadcasts).
 
 ## Done-when
 

@@ -38,6 +38,15 @@ Migrated from `gridworks-infra/{rmqbot,authority/tls,authority/certbot}`.
 - **Auth is password-based** over the public internet (SCADAs ↔ broker) — a
   current exposure given TLS is broken. The committed direction is encryption
   TLS, then **mTLS with FIS authorization** (cert subject → FIS `principal`).
+- **Audit-tap consumers get a dedicated read-only user.** `analytics.ear.reader`
+  (no tags; password in 1Password) is scoped so a leaked cred cannot touch the
+  control plane: configure/write `^analytics\..*$`, read `^(analytics\..*|ear_tx)$`
+  — it can declare its own `analytics.*` queues and bind them to `ear_tx`, and
+  can publish nowhere (no exchange matches its write pattern). Consumers use
+  non-durable auto-delete queues per the deferred-shovel arrangement
+  (`../designs/analytics-broker-shovel.md`). Note: the user lives in the
+  broker's data store, not `rabbit_definitions.json` — recreate (or fold into
+  the definitions file) if the container is ever recreated.
 - Admin control is via **Tailscale-protected textual interfaces** — adequate to
   ~30 homes; it hits Tailscale's ~100-device limit at the 100-home scale, which
   is the forcing function for the later security phases.

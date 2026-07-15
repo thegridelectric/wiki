@@ -107,13 +107,12 @@ Boot- and write-time checks in gnr, mostly `NotImplementedError` seams:
   `assert_active`, so activation must precede or accompany the mTLS+FIS
   enforcement cutover.
 - Does the generic-registrar-word / upstream-ceremony split hold, or does any
-  class (Scada key registration?) need its own word sooner? **A settled
-  anchor for whenever this is designed: the TaOwner's direct involvement
-  matters to the vision** — the ceremony must fully honor and integrate the
-  sovereignty of those involved. The owner generates and holds their own keys
-  (legacy: the TaOwner put the Scada key on the device; a TaDaemon acted on
-  their behalf without owning them); the registrar split stands for the MVP,
-  but the eventual ceremony keeps the owner a first-class signing principal,
-  not an implementation detail.
+  class (Scada key registration?) need its own word sooner? **The settled
+  anchor is now canonical in the vision**
+  ([`../../vision/data-meaning-sovereignty.md`](../../vision/data-meaning-sovereignty.md)
+  "Sovereignty of the person"): the TaOwner holds the keys and is a
+  first-class signing principal in the eventual ceremony; the registrar split
+  stands for the MVP. What remains open here is the mechanism — which words,
+  which parties, in what order.
 - Proof semantics when it does bind: who signs a create (MarketMaker of the
   parent subtree? the validator? the registrar)?

@@ -12,7 +12,7 @@ Newest at the top.
 
 ---
 
-## 2026-07-08 — Create accepts a Pending parent (fleet bootstrap) <!-- pending commit -->
+## 2026-07-08 — Create accepts a Pending parent (fleet bootstrap) (`9ff7271` + test in `a799004`)
 
 **What:** `apply_create`'s parent check widens from Active-only to
 Pending-or-Active; new Layer-1 test (a Pending copper chain builds

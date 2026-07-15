@@ -44,10 +44,31 @@ gained `_as_capture_tuning` — swapped sim components' ConfigLists project to t
 core (specialty entries like `ads.channel.config` fail `sim.sensor.component.gt` validation; pre-existing,
 it bit maple too).
 
-**▶ The next move — within the pass, now the core boots:** define `cop.curve` + `heating.curve`, extend
-`gw.house0.operational.params` (a new version) with the control/optimization fields, and migrate the rest
-(`SystemMode`, criticality, thermal-mass, FLO knobs) out of `actors/config.py` + the static layout.
-Forward-only throughout (no `dc_to_sema`).
+**✅ The control block is authored (2026-07-13):** `cop.curve/000` + `heating.curve/000` defined;
+`gw.house0.operational.params/000` extended in place (staging — no version bump) with the full
+control/optimization block, every field required. gwsproto twins (`CopCurve`, `HeatingCurve`, the
+extended `GwHouse0OperationalParams`) decode the gen's output clean; the tlayouts gen takes a required
+`OpsSpec` per home and oak + house0-stub emit full artifacts (currently the `actors/config.py` default
+values — the field-deployed per-home overrides still need confirming). The hydronic-sourced trio
+(`UseSiegLoop`, `CriticalZoneList`, `ZoneKwhPerDegFList`) deliberately waits for the
+`gw.house0.hydronic` strip so each value has exactly one authored home at every commit point.
+
+**✅ Scada read sites migrated (2026-07-13):** the running scada loads the authored ops artifact at
+startup (`load_operational_params`; `ScadaSettings.operational_params_path`, defaulting to the
+per-home sibling dir of the layout), `ScadaData.ops` holds it, `Ha1Params` builds from it, and all 45
+actor read sites went through `ShNodeActor.ops` — the 22 fields are gone from `ScadaSettings`. Test
+envs use per-home ops fixtures (`tests/config/<home>/gw.house0.operational.params.json`); the nolan
+fixture rides the house0 word as a dev bridge until `gw.nolan.operational.params` drafts. LTN-side
+reads stay on LTN settings — its artifact path is OPS-408's transport question, and `Ha1Params`
+still reaches it on the wire.
+
+**▶ The next move:** confirm the fleet's field-deployed per-home control values (the piles' `.env`
+overrides — the authored oak block currently carries the former config.py defaults, including a
+placeholder lat/lon), then the hydronic trio (`UseSiegLoop`, `CriticalZoneList`,
+`ZoneKwhPerDegFList` move when `gw.house0.hydronic` strips) and fleet ops authoring (rides the
+per-home gen build-out in [`gen-pipeline.md`](gen-pipeline.md)). Forward-only throughout (no
+`dc_to_sema`). Deploy note: every pile needs its ops artifact placed before taking the migration
+commit.
 
 **⏳ Come back to: author initial `operational-params.json` for the whole existing fleet.** Every deployed
 home (oak, elm, fir, beech-sieg, maple, the House0 variants, nolan) needs a **first** `operational-params.json`

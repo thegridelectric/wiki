@@ -12,6 +12,21 @@ Newest at the top.
 
 ---
 
+## 2026-07-13 — gen authors the operational-params control block (OpsSpec) (`b69e483`)
+
+**What:** on `jm/spruce`. `House0SemaGenConfig` gains a required `ops: OpsSpec` — the
+control/optimization block of `gw.house0.operational.params` (modes, COP + heating curve
+coefficients, HP cycling / load-estimation knobs, FLO horizon, lat/lon), every field required
+with no defaults. `gen_artifacts` emits the full artifact (CopCurve / HeatingCurve sub-types +
+inline scalars); oak and house0-stub gens declare their blocks explicitly, currently the scada
+`actors/config.py` defaults + the LTN's 48h horizon. Snapshot rebuilt on the extended
+ops-params word; both homes regenerate and snapshot-validate.
+
+**Why:** hardware-layout-pass-one (OPS-407) — the authoring side of the ops-params control
+block. CAVEAT: oak's block carries the config.py DEFAULTS; the field-deployed per-home values
+(the pile's `.env` overrides — notably the real lat/lon) still need confirming before the oak
+artifact is treated as field truth. Companion sema + gwsproto commits.
+
 ## 2026-07-09 — names from gwsproto (temporary dep); krida record in DeviceTypes; snapshot rebuild (`d75cae0`)
 
 **What:** on `jm/spruce`. Three moves. (a) The `src/tlayouts/names/` mirror is DELETED — names

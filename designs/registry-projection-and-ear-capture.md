@@ -1,6 +1,6 @@
 # Registry projection + ear raw capture (audit taps, pass one)
 
-Status: Draft · Pass 0 · Updated 2026-07-04 · Linear: OPS-443
+Status: Draft · Pass 0 · Updated 2026-07-13 · Linear: OPS-443
 
 **EDD: yes** the verification is a local multi-service dev-universe experiment —
 gnr + gjk + an ear capture consumer + broker + both Postgres instances on one
@@ -58,6 +58,23 @@ this) that binds its slice of `ear_tx` and appends raw messages to
 files/S3 keyed **`<vhost>/<date>/…`** — the run in the key per "run context is
 fabric context", never in bodies. No decoding, no filtering: the point is
 lossless capture; parquet/columnar is a later batch step (scale-story).
+
+**Two sinks, two custodians.** The consumer is a plain bus subscriber, so a
+second capture path is just a **second independent instance with a different
+sink**: one writes S3 (durability by replication), one writes plain files on
+GridWorks-owned hardware outside any hyperscaler — the system's memory must
+not depend on one corporation's continued goodwill, and this capture is the
+grid-node-registry's durability store (executor *Durability*), so a
+sovereignty-aligned copy matters beyond ops. Same stream, same content
+hashes: the two stores reconcile by hash-set comparison, and divergence
+detection doubles as the capture's own anti-entropy check. The non-AWS box
+is deliberately the *second* copy — weaker operations are acceptable because
+independent failure domains are the point — with disk encryption and clear
+physical custody. Neither sink is ever on the write path: capture is
+best-effort per consumer; durability is the union. This second-sink pattern
+is also the near-term, honest step toward the decentralized record — the
+full answer for the *registry* specifically is the chain seam
+(gnr executor *Distributed-readiness*), which this does not replace.
 
 ## The experiment (what Verified means here)
 

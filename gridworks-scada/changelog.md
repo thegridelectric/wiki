@@ -12,6 +12,51 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-07-13 — scada reads the ops artifact: control-block read sites migrated off settings
+
+**What:** on `jm/spruce-unlimbo`. The running scada now LOADS the authored
+`gw.house0.operational.params.json` at startup — `load_operational_params` in
+`actors/scada_data.py`, path from the new `ScadaSettings.operational_params_path` (empty means
+the per-home sibling dir of the hardware layout, mirroring the tlayouts output shape); the
+artifact is REQUIRED, with a clear error when absent. `ScadaData` holds it as `.ops` and builds
+`Ha1Params` from it directly (the scaled ints come pre-scaled; `HpMaxKwEl` stays on settings —
+layout-destined nameplate). Every actor reaches it via a new `ShNodeActor.ops` /
+`Scada.ops` property; 45 read sites across 12 actor files re-pointed
+(`settings.system_mode` → `ops.SystemMode`, seasonal mode, short-cycle buffer, oil-boiler
+backup, HP turn-on minutes, load overestimation, lat/lon). The 22 migrated fields are DELETED
+from `ScadaSettings` in the same change. Test wiring: per-home ops fixtures in
+`tests/config/<home>/gw.house0.operational.params.json` for the seven boot-able layouts — oak's
+is the authored tlayouts artifact; the others are mechanical bridges (capture tunings from the
+fixture's inline params + the control values these homes ran with), superseded home-by-home by
+the fleet gen. The nolan fixture deliberately uses the house0 word as a dev bridge until
+`gw.nolan.operational.params` drafts. `tests/conftest.py` pins the env var to the nolan ops
+fixture; `sim_boot` derives the ops path from the layout it boots. LTN settings untouched
+(its artifact path is OPS-408's transport question; Ha1Params still flows to it on the wire).
+
+**Why:** the operational-params spoke's read-site migration: one authored home per value, no
+defaults hiding required declarations — deployment config keeps only what is genuinely
+deployment (brokers, logging, simulation flag, the layout-destined TODOs). Suite 118 passed /
+3 skipped, oak + maple sim-boot green on `gw-dev-rabbit`, ruff at parity (remaining findings
+pre-exist). Deploy note: every pile needs its ops artifact placed (or
+`SCADA_OPERATIONAL_PARAMS_PATH` set) before taking this commit.
+
+## 2026-07-13 — gwsproto: CopCurve + HeatingCurve; operational-params control block (`ce2522c8`)
+
+**What:** on `jm/spruce-unlimbo`. New `CopCurve` and `HeatingCurve` named types mirroring the
+new sema words (`heating.curve` scaled ints as StrictInt, powers as PositiveFloat, anchors as
+PositiveInt); `GwHouse0OperationalParams` gains the required control/optimization block
+(SystemMode, SeasonalStorageMode, CopCurve, HeatingCurve, HpTurnOnMinutes, ShortCycleBuffer,
+LoadOverestimationPercent, OilBoilerBackup, HorizonHours, Latitude, Longitude). The
+`SeasonalStorageMode` docstring's misspelled sema URL (`stoarge`) fixed. The regenerated oak
+ops artifact decodes clean through the extended type and `sema validate`; the assembly path is
+untouched (it reads only CaptureTuningList), oracle still at 0 diffs.
+
+**Why:** hardware-layout-pass-one (OPS-407) — the gwsproto twin of the sema ops-params
+extension. Read-site migration (actors still reading these values off `actors/config.py`
+Settings) is deliberately NOT in this commit; the artifact side lands first, forward-only, so
+the migration has a verified target. Suite 118 passed / 3 skipped, ruff clean, oak sim-boots.
+
 ## 2026-07-09 — relay mux resolves pins from the krida device-type record (`ba6c6e65`)
 
 **What:** on `jm/spruce-unlimbo`. `I2cRelayMultiplexer` gains `relay_pin_map()` — RelayIdx →

@@ -127,5 +127,6 @@ and to push back when the focus runs too small or pulls away from it (see
   [`../gridworks-marketmaker/research/gnode-taxonomy.md`](../gridworks-marketmaker/research/gnode-taxonomy.md)).
 - **Data, meaning, and sovereignty** — formal enough to compose, open enough to
   keep growing, built so the past stays legible; the EAR keeps everything while
-  downstream stores stay opinionated; shared meaning, owned facts. See
+  downstream stores stay opinionated; shared meaning, owned facts — and
+  sovereignty reaching the person: the TaOwner holds the keys. See
   [`data-meaning-sovereignty.md`](data-meaning-sovereignty.md).

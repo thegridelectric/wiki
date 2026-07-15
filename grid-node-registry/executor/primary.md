@@ -1,6 +1,6 @@
 # grid-node-registry — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-07-08
+Status: Draft · Pass 0 · Updated 2026-07-13
 
 > What this is: the faithful spec of the **Grid Node Registry** (`gnr`) — the
 > authoritative record of GridWorks GNodes, their geographic positions, and the
@@ -306,6 +306,35 @@ history + replay safety), so they are not speculative:
 
 Not building the chain, a real signature scheme, or pure event-sourced state now —
 these are **shape**, not machinery; #4 is a discipline on the interface.
+
+## Durability — the message log is the system of record
+
+The registry requires **no database backups**. Its Postgres is a materialized
+view of the logged command stream, and that stream is held in two places
+joined by the content hash (`gnr.ids.command_hash`): the in-band
+**`command_log`** (every command *applied*, transactional with state) and the
+**ear's durable capture** of the bus (every command *published* — including
+refused ones, the audit of the registry saying no — plus the `g.node.forest`
+broadcasts, the announced results). Deterministic apply (#1 above) is what
+makes replay valid: a rebuild replays the captured commands in capture order
+through the handler core — refusals re-refuse, applies re-apply
+byte-identically — and cross-checks the resulting forests against the
+captured broadcasts. Two independent witnesses that must reconcile. Three
+conditions carry the posture:
+
+1. **The capture witnesses genesis.** The ear capture consumer runs before
+   the registry is populated and lands in durable storage — the capture
+   store, not the database, is the crown-jewel copy (capture mechanics,
+   including the second non-hyperscaler sink: OPS-443).
+2. **The rebuild script is repo code, proven by experiment** — the
+   dev-harness EDD run (capture → wipe → replay → `validate_registry`-clean,
+   forests matching). An untested restore path is not a restore path.
+3. **Replay preserves capture order** (topology commands are rare and
+   parents-first, so ordering is unambiguous at fleet scale; a
+   command-carried logical time is the deferred backstop, #1 above).
+
+Database snapshots MAY be taken as restore accelerators; they are never the
+durability story.
 
 ## Lifecycle — `GNodeStatus`
 
