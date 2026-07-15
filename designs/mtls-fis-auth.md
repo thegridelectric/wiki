@@ -1,6 +1,6 @@
 # mTLS + FIS auth
 
-Status: Draft · Pass 0 · Updated 2026-06-23 · Linear: OPS-420
+Status: Draft · Pass 0 · Updated 2026-07-15 · Linear: OPS-420
 
 **EDD: yes** verified by a real SCADA proving identity to the prod broker with a
 client certificate and FIS authorizing it (and denying an unknown/suspended
@@ -72,13 +72,48 @@ authority to issue a control command:
 - authority **scales with impact** (read < low-impact preference < mode change <
   relay/actuator) — the strongest proof gates the strongest action.
 
+## The on-ramp — notches 2–4 of the TLS ratchet
+
+OPS-423 ships notch 1 (encryption-only TLS: fresh CA + broker cert, conf at
+`verify_peer` with `fail_if_no_peer_cert = false` — client certs optional,
+verified when presented). This design owns the remaining notches, which run
+after the RabbitMQ 4.x upgrade (OPS-424):
+
+2. **Client certs** — mint per-client certs and migrate actors one at a time;
+   `verify_peer` checks each cert as it appears, so there is no flag day
+   (this is the N-home cutover dimension below).
+3. **Require certs** — `fail_if_no_peer_cert = true`: no valid cert, no
+   connection. Passwords still do the login.
+4. **Cert is the identity** — `rabbitmq_auth_mechanism_ssl`
+   (`auth_mechanisms = EXTERNAL`, `mqtt.ssl_cert_login = true`): the CN
+   becomes the username, each account loses its password, PLAIN is dropped,
+   and the plaintext listeners 5672/1883 close. The management UI (15671)
+   keeps password login over HTTPS.
+
+Notches 3 and 4 may combine into one restart once every client presents a
+cert and every CN has its passwordless user; written as separate notches,
+handshake failures (TLS layer) stay distinguishable from auth failures
+(CN→user mapping) on cutover day.
+
+Notch 2 forces one naming question beyond the GNode story: the CN for
+**non-GNode principals** (service principals — `analytics.ear.reader`,
+web-backend's gateway). GNodes bind `CN=<GNodeId>`; services need an equally
+immutable subject, presumably from the FIS principal row.
+
 ## The design work — pin these three open dimensions
 
 These are why it was an exploration; turning it into a design means settling them:
 
-- **Cert lifecycle** for per-SCADA client certs — issue / rotate / revoke. Likely
-  mirrors the GNode path (FIS-issued, or FIS-via-certbot), minted by provisioning
-  alongside the `principal` row.
+- **Cert lifecycle** for per-client certs — issue / rotate / revoke, with
+  **renewal automation as the core of it** (certificates made by the agents
+  themselves and signed centrally — `authority/certbot/README.md` names this
+  as the next iteration). Lifetime policy carried in from OPS-423: 2 years
+  while renewal is manual, expiries steered to summer and staggered so the
+  fleet never shares an expiry cliff; once renewal is automatic, drop hard
+  (90–180 days) — short-lived certs are also the practical revocation story,
+  since no realistic CRL/OCSP distribution to the fleet exists. Likely
+  mirrors the GNode path (FIS-issued, or FIS-via-certbot), minted by
+  provisioning alongside the `principal` row.
 - **FIS ↔ broker wire format** — the exact `auth-backend-http` request/response
   (principal-model half-specs it; pin it).
 - **N-home cutover** — old 3.9-era SCADAs may not speak mTLS cleanly; sequence the
@@ -87,8 +122,8 @@ These are why it was an exploration; turning it into a design means settling the
 ## Domain split
 
 - **rmqbot** — broker conf: require + verify client certs, the `auth-backend-http`
-  endpoint, the `validated-user-id` plugin; the one parameterized broker conf
-  (the broker conf parameterization folds in here for the TLS/auth-backend era).
+  endpoint, the `validated-user-id` plugin — extending the parameterized conf
+  OPS-423 ships with the require-cert and auth-backend knobs.
 - **FIS** — the `principal` table + `/auth/*` endpoints + the handshake; this is
   the authoritative auth spec (FIS `principal-model`).
 - **provisioning** — mint client cert + `principal` row for both GNode and
