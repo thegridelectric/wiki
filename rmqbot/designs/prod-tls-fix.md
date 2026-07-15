@@ -97,8 +97,11 @@ HTTPS in every era.
   `gridworks-infra/rmqbot/rmq-docker/config/rabbitmq.conf` using RabbitMQ's
   `$(VAR)` env interpolation (3.9+; prod runs 3.9.13). Ports, cert paths, and
   log level become variables fed by a per-deployment env file.
-- The default user's password leaves the conf: a docker compose secret feeds
-  the env var (the rmq-docker README's standing TODO).
+- The default user's password leaves the conf: compose injects it as an env
+  var from the box's `.env` (mode 600, never committed — the same custody as
+  `RMQ1_CERTS` today). This resolves the rmq-docker README's standing TODO;
+  a literal compose `secrets:` block cannot feed `$(VAR)` interpolation,
+  which reads env vars, not files.
 - TLS block per the ratchet: `verify_peer` + `fail_if_no_peer_cert = false`.
 - Conf standard across deployments (the dev conf stays in gridworks-base):
   **every difference between the dev and prod confs is a declared parameter

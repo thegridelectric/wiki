@@ -13,6 +13,24 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-07-15 — prod-tls-fix pre-stage: conf flip, secret-fed password, contract harness, cert inventory
+
+Branch `jm/prod-tls-fix`, staged ahead of restart day (design: OPS-423,
+Accepted Pass 1). `rabbitmq.conf`: TLS flips from demanding client certs
+(`fail_if_no_peer_cert=true` — which made the TLS ports unusable) to
+encryption-only with optional client certs (`verify_peer` + `false`), the
+per-client on-ramp to mTLS; the default user's password moves out of the conf
+into env interpolation fed from the box's `.env`; the management UI serves the
+same single keypair as the broker listeners (one cert, one expiry).
+`compose.yaml` gains the env injection and drops the separate mgmt-cert
+mounts, with the no-data-volume recreate warning made explicit.
+`tests/check-broker-contract.py` is the EDD harness (TLS both ways, plaintext
+auth, the analytics.ear.reader permission contract). `authority/
+cert-inventory.md` starts the cert register the November-2025 expiry showed
+we were missing. README recipes drop the client-cert flags and record the
+password TODO as resolved.
+
 ## 2026-07-13 — clarification
 
 New section in `authority/tls/how-tls-works.md`: our private CA vs public CAs
