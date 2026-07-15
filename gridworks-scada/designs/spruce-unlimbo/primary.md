@@ -2,14 +2,17 @@
 
 Status: Accepted · Pass 1 · Updated 2026-07-15 · Linear: OPS-392
 
+**▶ Active spoke: [`spruce-relay-control.md`](spruce-relay-control.md)**
+
 > What this is: the hub for un-limboing the spruce scada integration —
 > getting the branch that runs Matt Polstein's house (the Nolan layout)
 > out of limbo and onto a path that merges to main without breaking the
 > House0 fleet. Grew out of Jessica's 2026-06-09 seed; the seed's
 > *Reported* items have now been verified or corrected (below). Spokes:
-> `both-cases-survey.md` (verified survey of layout gen, testing, and
-> local control for both house cases); `hello-world.md` (first plan
-> step: LTN ↔ SCADA over dev rabbit, consumed by a dev JK);
+> `spruce-relay-control.md` (chunk A execution: scada actuating spruce's
+> i2c relays); `both-cases-survey.md` (verified survey of layout gen,
+> testing, and local control for both house cases); `hello-world.md`
+> (first plan step: LTN ↔ SCADA over dev rabbit, consumed by a dev JK);
 > `admin-for-nolan.md` (admin UI sees and operates a Nolan house).
 > The simulated-actors spoke moved to the simulated-test-environment
 > design (2026-06-11, harness elevated to the top); the merge gate's

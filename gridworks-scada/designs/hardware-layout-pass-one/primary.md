@@ -13,6 +13,10 @@ being able to run House0 in sim means we don't have to be fussy about static byt
 
 **▶ Active spoke: [`operational-params.md`](operational-params.md)**
 
+> **Paused 2026-07-15** — work jumped to spruce relay control ([OPS-392](https://linear.app/gridworks/issue/OPS-392),
+> the spruce-unlimbo design) for the coming days. Resume at the active spoke's ▶ next move; the first
+> item (fleet per-home control values) needs JM input.
+
 > What this is: the first critical pass on the scada hardware-layout / components model. Sema becomes
 > the **authored source of truth** for a layout; the dc `HardwareLayout` the running scada loads is a
 > generated **output** (`sema_to_dc`). Drop UUID `cac_id`s for a readable `gw1.device.type`
