@@ -12,8 +12,7 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-07-09 — snapshot rebuild: capability words + catch-up to current sema
+## 2026-07-15 — snapshot rebuild: capability words + catch-up to current sema (`0a18bd7`)
 
 **What:** on `jm/delete-cac-id`. The gwta sema snapshot (`src/gwta/sema/`) rebuilt from current
 sema `jm/i2c-relay-capability` (~96 files). Two things at once: (a) the capability round — the

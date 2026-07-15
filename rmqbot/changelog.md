@@ -13,8 +13,7 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-07-13 — private vs public CA note in how-tls-works
+## 2026-07-13 — clarification
 
 New section in `authority/tls/how-tls-works.md`: our private CA vs public CAs
 (Let's Encrypt), and the name collision between GridWorks' "certbot" box and

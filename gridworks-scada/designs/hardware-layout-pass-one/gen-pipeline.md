@@ -1,6 +1,6 @@
 # The authoring pipeline — sema_gen → sema_to_dc (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-07-04 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-07-15 · Linear: OPS-407
 
 > What this is: the one flow that makes sema the authored source of truth and the dc layout an output.
 > `per-home config → sema_gen → axiom-valid gw.house0.layout → sema_to_dc → the dc HardwareLayout the
@@ -83,8 +83,9 @@ so the reverse direction is dead weight on the ship path. Sequence:
 
 The static check flips to the dc side and **relaxes to a review aid** (the real gate is behavioral —
 House0 runs in sim, [`sim-run.md`](sim-run.md)). Implemented as `sema_to_dc.diff_against_fixture(home)`
-(canon, order-insensitive). On oak it already shows the gen *ahead* of the frozen fixture — 19 vs 15
-DerivedChannels, the 4 extra being the per-zone `heat-call` the stale fixture lacks (adopt):
+(canon, order-insensitive). Oak has been through the full cycle: the gen ran ahead of the frozen
+fixture (19 vs 15 DerivedChannels — the 4 per-zone `heat-call` the stale fixture lacked), the
+corrected output was adopted (`4182d88c`/`7000d3a7`), and the oracle sits at 0 diffs:
 
 1. Author the home's sema (axiom-valid, **with** heat-call etc.) → `sema_to_dc` → generated dc.
 2. **Diff generated-dc against the frozen fixture.** The diff is the worklist: where the gen omits a

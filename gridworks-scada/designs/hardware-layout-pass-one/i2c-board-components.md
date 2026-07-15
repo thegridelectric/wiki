@@ -1,6 +1,6 @@
 # I²C / board-resident components — actor layer (spoke — deferred to pass-two)
 
-Status: Accepted · Pass 1 · Updated 2026-07-09 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-07-15 · Linear: OPS-407
 
 **Capability reshape (2026-07-09, landed with the functional-relay-names work):** the board-record
 vocabulary went through a naming + shape correction. `i2c.relay.config` → **`i2c.relay.capability`**
@@ -15,14 +15,16 @@ deployment fact on the component's `I2cAddressList`, index-aligned with Expander
 `gw1.scada.device.type.gt` record** (`gwsproto/data_classes/device_types/scada_krida.py`): the
 two-board GridWorks panel is ONE device — its basement markings `Relay1`–`Relay32` are the
 RelayNames, and the first-bank inversion (marking 1 → pin 7, …, 8 → pin 0) is declared pin data,
-harvested from the multiplexer's `gw_to_pin`. Remaining from that thread: the mux resolves pins
-from the record instead of `gw_to_pin` (small, standalone); the tlayouts gen emits the krida record
-into each House0 layout's `DeviceTypes`.
+harvested from the multiplexer's `gw_to_pin`. Both follow-ons from that thread landed 2026-07-09:
+the mux resolves pins from the krida record instead of `gw_to_pin` (scada `ba6c6e65`), and the
+tlayouts gen emits the record into each House0 layout's `DeviceTypes` (tlayouts `d75cae0`; oak
+fixture adopted in scada `7000d3a7`).
 
 > What this is: the board-resident / i2c-bus model and the relay decommission. **Deferred to
 > pass-two** — it is a value-changing layout migration that touches the actor runtime (Phase 3), which
-> pass-one defers. Pass-one keeps today's positional `relayN` dc shape so `sema_to_dc` reproduces the
-> current layout. Documented here so the next agent has the plan; the actor layer is **not executed
+> pass-one defers. The **naming slice was pulled forward into pass-one** (scada `4182d88c`,
+> 2026-07-09): relay ShNodes carry functional names, the krida board position lives in `RelayIdx`.
+> Documented here so the next agent has the plan; the actor layer is **not executed
 > this pass** (the sema vocabulary was authored ahead — see below).
 
 The durable model lives in [`../../executor/hardware-layout.md`](../../executor/hardware-layout.md)
@@ -54,8 +56,9 @@ the **actor wiring** to make the board the resolved source of truth at runtime.
    `relay.actor.config` carries the advisory `replaced_by` marker. *Scada half remains:* retire
    `I2cMultichannelDtRelayComponent`, remove `i2c_relay_multiplexer` + `i2c_relay_board`, rework
    `relay.py` to resolve `RelayName` against the board and write via `I2cBus`. Layout + fixture
-   migration (every relay node re-pointed) — its own chunk. This is also where **functional relay
-   ShNode names** replace the positional `relay{krida-idx}` the gen builds today.
+   migration (every relay node re-pointed) — its own chunk. The **functional relay ShNode names**
+   half was pulled forward into pass-one (scada `4182d88c`, 2026-07-09; board position in
+   `RelayIdx`) — what remains here is the component/actor migration.
 4. **Wire the `I2cBus` actor.** Have it receive the composed bus-ops and reply `I2cResult` to the
    **requester** (today it goes to `primary_scada`; needs the `Header.Src` reply-to so the result
    returns with its `TriggerId`). Route the ADC reads through `I2cBus` per the executor decision.

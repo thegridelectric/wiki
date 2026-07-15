@@ -12,8 +12,7 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-07-13 — scada reads the ops artifact: control-block read sites migrated off settings
+## 2026-07-15 — scada reads the ops artifact: control-block read sites migrated off settings (`82caac3e`)
 
 **What:** on `jm/spruce-unlimbo`. The running scada now LOADS the authored
 `gw.house0.operational.params.json` at startup — `load_operational_params` in

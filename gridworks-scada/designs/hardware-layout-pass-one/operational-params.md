@@ -1,6 +1,6 @@
 # operational-params — the third SCADA artifact (spoke)
 
-Status: Accepted · Pass 2 · Updated 2026-07-04 · Linear: OPS-407
+Status: Accepted · Pass 2 · Updated 2026-07-15 · Linear: OPS-407
 
 > What this is: a third SCADA artifact alongside deployment config and the static hardware layout — the
 > **operational / optimization parameters** (`operational-params.json`): the tunable state that changes
@@ -44,7 +44,8 @@ gained `_as_capture_tuning` — swapped sim components' ConfigLists project to t
 core (specialty entries like `ads.channel.config` fail `sim.sensor.component.gt` validation; pre-existing,
 it bit maple too).
 
-**✅ The control block is authored (2026-07-13):** `cop.curve/000` + `heating.curve/000` defined;
+**✅ The control block is authored (2026-07-13; sema `7657167`, tlayouts `b69e483`, gwsproto
+`ce2522c8`):** `cop.curve/000` + `heating.curve/000` defined;
 `gw.house0.operational.params/000` extended in place (staging — no version bump) with the full
 control/optimization block, every field required. gwsproto twins (`CopCurve`, `HeatingCurve`, the
 extended `GwHouse0OperationalParams`) decode the gen's output clean; the tlayouts gen takes a required
@@ -53,7 +54,7 @@ values — the field-deployed per-home overrides still need confirming). The hyd
 (`UseSiegLoop`, `CriticalZoneList`, `ZoneKwhPerDegFList`) deliberately waits for the
 `gw.house0.hydronic` strip so each value has exactly one authored home at every commit point.
 
-**✅ Scada read sites migrated (2026-07-13):** the running scada loads the authored ops artifact at
+**✅ Scada read sites migrated (scada `82caac3e`, 2026-07-15):** the running scada loads the authored ops artifact at
 startup (`load_operational_params`; `ScadaSettings.operational_params_path`, defaulting to the
 per-home sibling dir of the layout), `ScadaData.ops` holds it, `Ha1Params` builds from it, and all 45
 actor read sites went through `ShNodeActor.ops` — the 22 fields are gone from `ScadaSettings`. Test

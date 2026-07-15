@@ -1,6 +1,6 @@
 # Hardware layout — pass one (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-07-08 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-07-15 · Linear: OPS-407
 
 **EDD: yes** — and the verification that *matters* is behavioral, not static. The real bar is a
 House0-replicating simulated terminal asset (the sim plant, [OPS-40](https://linear.app/gridworks/issue/OPS-40);
@@ -42,8 +42,10 @@ the truth oracle. **That is backwards.** Settled direction:
   we don't have to be fussy about exact fixture equality now.
 - **`tests/config/` becomes sema-authored.** Each fixture is regenerated from its authored sema MVP;
   the obvious variants are added (beech **sieg** variant; House0Sieg vs no-sieg; zone/tank counts).
-- **Pass-one keeps the current dc *shape*.** Positional house0 relay names (`relayN`), today's
-  component decomposition. The board-resident / functional-relay / i2c-bus model is **pass-two**
+- **Pass-one keeps the current dc *shape*** — today's component decomposition. One slice of pass-two
+  was pulled forward (2026-07-09, forced by the gw108 board replacing the krida panel at beech): relay
+  node names are **functional** (`relay1` → `vdc-relay`), with the krida board position held in
+  `RelayIdx`, not the name. The board-resident / i2c-bus actor model stays **pass-two**
   ([`i2c-board-components.md`](i2c-board-components.md)).
 
 ## Spokes (in order)
@@ -87,9 +89,11 @@ the truth oracle. **That is backwards.** Settled direction:
 - **[`sieg-primary-flow.md`](sieg-primary-flow.md)** — the deferred Siegenthaler / `primary-flow`
   behavior test (rides the simulated-plant focus).
 - **[`i2c-board-components.md`](i2c-board-components.md)** — the board-resident / i2c-bus actor model.
-  **Deferred to pass-two** (own chunk). The relay sema vocabulary was authored ahead (2026-07-03:
-  `relay.control.config`, `i2c`/`gpio.relay.component.gt`, `gw1.device.type/001`) so pass-two needs
-  no further sema round; the actor wiring + layout migration stay pass-two.
+  **Deferred to pass-two** (own chunk). The sema vocabulary is fully authored ahead (2026-07-03:
+  `relay.control.config`, `i2c`/`gpio.relay.component.gt`, `gw1.device.type/001`; 2026-07-09: the
+  capability reshape — `i2c.*.capability` + `i2c.expander` — and the krida board record) and the
+  functional-naming slice landed in pass-one, so pass-two needs no further sema round; the actor
+  wiring + layout migration stay pass-two.
 - **[`gleanings.md`](gleanings.md)** — durable domain context (field reality, Nolan↔Spruce naming),
   the sema-source-of-truth working method, and the deferred sweeps.
 
@@ -114,12 +118,25 @@ the truth oracle. **That is backwards.** Settled direction:
 - The board-resident relay vocabulary, authored ahead of pass-two (sema `11be3be` + `fae8d27`,
   2026-07-03): `relay.control.config/000`, `i2c.relay.component.gt/000` / `gpio.relay.component.gt/000`,
   `gw1.device.type/001`. Notes in [`i2c-board-components.md`](i2c-board-components.md).
+- Functional relay names + the capability round (2026-07-09; scada `4182d88c`/`ba6c6e65`/`7000d3a7`,
+  sema `3c7e3fb`, tlayouts `d75cae0`): relay nodes named by function with board position in `RelayIdx`;
+  the `i2c.*.capability` + `i2c.expander` board vocabulary and the `KridaDoubleRelayBoard16` record in
+  oak's `DeviceTypes`, with the relay mux resolving pins from the record instead of `gw_to_pin`;
+  sema-authored oak adopted (heat-call DerivedChannels frozen, oracle at 0 diffs). Notes in
+  [`i2c-board-components.md`](i2c-board-components.md).
+- The operational-params control block end to end (2026-07-13/15; sema `7657167`, tlayouts `b69e483`,
+  scada `ce2522c8` + `82caac3e`): `cop.curve`/`heating.curve` + the inline control scalars on
+  `gw.house0.operational.params`, the gen's required `OpsSpec`, the gwsproto twins, and the scada
+  loading the authored artifact — 45 actor read sites off settings, the 22 fields deleted from
+  `ScadaSettings`. Detail in [`operational-params.md`](operational-params.md).
+- gwta snapshot rebuilt to the capability vocabulary + a catch-up to current sema (2026-07-15,
+  `0a18bd7`); snapshot round-trip green (47 samples).
 
 ## Carried caveats
 
-- **All fleet fixtures are stale on the heat-call axis** — each carries the `*-whitewire-pwr` source
-  DataChannel but no per-zone `*-heat-call` DerivedChannel (house0 Axiom 3). Resolved by regenerating
-  the fixtures from sema, not by patching JSON.
+- **Fleet fixtures other than oak are stale on the heat-call axis** — each carries the
+  `*-whitewire-pwr` source DataChannel but no per-zone `*-heat-call` DerivedChannel (house0 Axiom 3).
+  Resolved by regenerating each fixture from sema, as oak was (`4182d88c`), not by patching JSON.
 - **`gw.nolan.layout/000`** is un-drafted; its axioms are parked in
   `sema/definitions/types/gw.nolan.layout/stash_axioms.md` (zone/tank structure reference).
 - **`gw.house0.layout/000` is `staging` → mutable in place** — axioms are added to `000` directly
@@ -135,3 +152,5 @@ the truth oracle. **That is backwards.** Settled direction:
   caught in CI; the fix is re-emitting from the tlayouts gen.
 - **Deep code clean is pass-two:** ripping out `H0N`/`H0CN` (~61 files), the ~76 call-site sweep onto
   `self.hydronic.*`, the full actor migration onto sema types, the G/H RequiredTopologyNodes axioms.
+  Pass-two is gated on the sim plant ([OPS-40](https://linear.app/gridworks/issue/OPS-40)) — a
+  migration that wide verifies behaviorally, against the simulated terminal asset, before it starts.
