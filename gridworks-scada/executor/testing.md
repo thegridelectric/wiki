@@ -1,14 +1,67 @@
-Status: Draft · Pass 0 · Updated 2026-06-09
+Status: Draft · Pass 0 · Updated 2026-07-15
 
-# Testing LTN ↔ SCADA (in-process live-test harness)
+# Testing the SCADA — the two harnesses
 
-What this is: how to exercise a real **LTN talking to a real SCADA** in a single
-process, with no external broker — the `ScadaLiveTest` harness. Use it to verify
+What this is: the two ways to exercise real scada code without hardware. The
+**sim-boot harness** boots the real scada on the real dev broker — the behavioral
+gate layout and actor changes verify through. The **in-process `ScadaLiveTest`
+harness** exercises a real LTN talking to a real SCADA in one process — for
 anything that crosses the LTN↔SCADA link (addressing, topics, contract/heartbeat
-flow, event upload), including the routing-key shape an LTN actually puts on the
-wire.
+flow, event upload).
 
-## The harness
+## The sim-boot harness (on-broker behavioral gate)
+
+`gw_spaceheat/sim_boot.py` boots a real `ScadaApp` standalone against
+`gw-dev-rabbit` (MQTT `localhost:1885` via the Rabbit MQTT plugin, exactly as a
+real house connects), `is_simulated=True`, with **no LTN parent** so the scada
+sits in LocalControl. It runs the actor tree for a bounded number of seconds
+(`asyncio.wait_for` around `proactor.run_forever()`) and reports how many channel
+values populated:
+
+```
+cd gw_spaceheat && ./venv/bin/python sim_boot.py [layout.json] [seconds]
+```
+
+Requires the `gw-dev-rabbit` container up (creds in `gridworks-scada/.env`).
+
+- **Any real per-home fixture boots** — `simulate_sensors` (`sim_layout.py`)
+  transforms the layout in-memory: the pico-fed sensor actors (`ApiTankModule`,
+  `ApiFlowModule`, `ApiBtuMeter`, the poller) swap for a generic
+  **`SimSensorActor`** that self-generates `SyncedReadings` on a timer (no picos,
+  no faked HTTP), swapped components' ConfigLists project to their
+  `capture.tuning/000` core, and aliases are dev-ified so the layout is
+  universe-coherent with the dev broker. No on-disk sim fixture needed.
+- **The universe guardrail runs at boot** — `app.assert_universe_coherence()`:
+  `universe_of(alias) == universe_of(broker_host)`, `localhost ⇒ d1`. A simulated
+  layout can never reach a real-money broker.
+- **The ops artifact rides beside the layout** — `sim_boot` derives
+  `operational_params_path` from the booted layout's per-home sibling dir
+  (`tests/config/<home>/gw.house0.operational.params.json`).
+- **Why on-broker, not in-process:** an in-process harness shares a backdoor
+  transport and a wall clock and goes green while real comms behavior stays
+  invisible (the EDD bar). Booting on the dev broker exercises the real MQTT
+  wiring; this harness is the seed the fuller sim rig
+  ([OPS-40](https://linear.app/gridworks/issue/OPS-40)) grows from — its
+  self-faking slice is the subset that work subsumes.
+- **Boot path:** the live entry is `cli.py run` → `ScadaApp.main()`; `Scada` is a
+  proactor `PrimeActor` taking a `ScadaAppInterface`, so the App is required.
+  `sim_boot` mirrors that entry, bounded. The older `command_line_utils.get_scada`
+  / `run_scada.py` path is stale — it no longer matches the PrimeActor signature;
+  don't use it.
+- **What `is_simulated` covers vs what SimSensorActor adds:** the flag already
+  makes the actuation side skip hardware (I2cBus / Relay / the mux /
+  MultipurposeSensor / PowerMeter — `SimulatedPin`, no smbus2/GPIO). The gap it
+  never covered is **sensor input** — device actors get readings *pushed* (pico
+  HTTP POSTs, the thermostat REST poller); `SimSensorActor` fills exactly that.
+- **Current limits:** the relay-actuation paths are not exercised, and
+  LocalControl runs a documented sim placeholder for the "turn on the heat pump"
+  path — real relay-actuation control grows by iteration against the running rig.
+
+## The in-process harness (`ScadaLiveTest`)
+
+Exercises a real **LTN talking to a real SCADA** in a single process, with no
+external broker. Use it to verify anything that crosses the LTN↔SCADA link,
+including the routing-key shape an LTN actually puts on the wire.
 
 `tests/utils/scada_live_test_helper.py::ScadaLiveTest` extends
 `gwproactor_test`'s `TreeLiveTest`. It boots a **proactor tree** in-process and

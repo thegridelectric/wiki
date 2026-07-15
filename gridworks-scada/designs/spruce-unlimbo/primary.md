@@ -1,6 +1,6 @@
 # Spruce un-limbo (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-07-15 · Linear: OPS-392
 
 > What this is: the hub for un-limboing the spruce scada integration —
 > getting the branch that runs Matt Polstein's house (the Nolan layout)
@@ -17,9 +17,12 @@ Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-392
 
 ## The commitment (the deadline driver)
 
-**July 15: air conditioning at Matt Polstein's, with pride in the scada
-code.** The promised shape: AC runs off-peak, plus pre-cooling the room a
-bit during the afternoon shoulder. Constraints:
+**Air conditioning at Matt Polstein's, with pride in the scada code**
+(committed for July 15). As of 2026-07-15 the **monobloc heat pump is
+providing the air conditioning**; the remaining bar — the near-term goal —
+is the **scada controlling spruce's i2c relays**, so the promised shape
+runs under scada control: AC off-peak, plus pre-cooling the room a bit
+during the afternoon shoulder. Constraints:
 
 - Cooling uses the **fan coil units directly from the heat pump**. NOT the
   radiant floor and NOT the store tanks (that would require reversing water

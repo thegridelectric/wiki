@@ -99,7 +99,8 @@ it predates channel-config-overhaul (it still references the retired `InPowerMet
 
 ## gw1.simple.sim.layout — its own word (not a house0 variant)
 
-The simplified sim stand-in for House0 ([`sim-run.md`](sim-run.md)) is authored as
+The simplified sim stand-in for House0 (booted by the sim-boot harness,
+[`../../executor/testing.md`](../../executor/testing.md)) is authored as
 **`gw1.simple.sim.layout`** (no buffer, single tank, relays deferred) — **not** shoehorned into
 `gw.house0.layout`. So **house0 keeps buffer as a required part of its shape**; the no-buffer case does
 not relax a house0 axiom. `gw1.simple.sim.layout` carries its own (minimal) axioms appropriate to the

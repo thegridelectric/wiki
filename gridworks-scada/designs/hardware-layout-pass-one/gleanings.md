@@ -47,7 +47,7 @@ house; Matt Polstein built the Nolan house — an honored legacy, not a name to 
 - `sim.pico.tank.module.component.gt` exists to **unit-test `api_tank_module.py`** — same channels as a
   real `PicoTankModule3` but its `DeviceType` marks it a sim sensor.
 - **Nolan has exactly 1 storage tank** (buffer + tank1); the **simple sim is 1 storage tank, 360
-  gallons**. The simplified **sim House0** ([`sim-run.md`](sim-run.md)) is no-buffer + single tank.
+  gallons**. The simplified **sim House0** ([`axioms.md`](axioms.md)) is no-buffer + single tank.
   Tank gallons are articulated fragilely — firm this up when building the sim layouts.
 
 ## Channel-config overhaul (scada half) — landed 2026-06-26

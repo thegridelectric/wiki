@@ -14,7 +14,8 @@ Status: Accepted · Pass 2 · Updated 2026-07-15 · Linear: OPS-407
 `channel.config` family strip (capture params off the 5 specialty types) + the 9-component `ConfigList`
 drop, leaving `channel.config` **orphaned** (not deleted — `000` is published); ✅
 `gw.house0.operational.params/000` (`GNodes` home-identity + `CaptureTuningList`). The behavioral net is in
-place (`sim-run.md` ✅). See the four `wiki/sema/changelog.md` entries (2026-06-30) for exactly what changed.
+place (the sim-boot harness, [`../../executor/testing.md`](../../executor/testing.md)). See the four
+`wiki/sema/changelog.md` entries (2026-06-30) for exactly what changed.
 
 **✅ Steps 1–3 done — the gwsproto types match the reshaped sema and the scada loads/runs**
 (`gridworks-scada` `jm/gwsproto-ops-params`, off `jm/delete-cac-id`, commit `9fe86665`):

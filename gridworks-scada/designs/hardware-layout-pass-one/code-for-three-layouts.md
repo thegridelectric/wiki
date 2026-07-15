@@ -88,7 +88,8 @@ the runtime file is a content-typed deployment artifact.
 Confirmed against the code: House0 `set_command_tree` unconditionally re-parents the vdc relay under
 `auto.pico-cycler`, and `house_0_layout.py` requires a pico-cycler when pico actors are present. The
 **simple_sim** layout has neither a pico-cycler node nor a vdc/pico relay — only the single `hp-relay`
-([`sim-run.md`](sim-run.md)). So `SimpleSimLayout`'s command tree omits the pico-cycler special case
+([`axioms.md`](axioms.md) "gw1.simple.sim.layout — its own word"). So `SimpleSimLayout`'s command tree
+omits the pico-cycler special case
 entirely, and `required_actuators` for the sim is just its own (the hp-relay), not
 `{relay_multiplexer, zero_ten_out_multiplexer}`.
 
@@ -96,7 +97,8 @@ entirely, and `required_actuators` for the sim is just its own (the hp-relay), n
 
 - **Pass-one (enough to boot the sim):** relax the `isinstance(House0Layout)` guard to a TypeName
   dispatch; add a `SimpleSimLayout` dc class with a minimal command tree (no pico-cycler) + minimal
-  `required_actuators`; the documented LocalControl fake ([`sim-run.md`](sim-run.md)). This is the
+  `required_actuators`; the documented LocalControl fake
+  ([`../../executor/testing.md`](../../executor/testing.md) "Current limits"). This is the
   smallest cut that lets `gw1.simple.sim.layout` boot.
 - **Pass-two (full generalization):** the `H0N`/`H0CN` names sweep (~61 files) and the ~76 call-site
   sweep onto `self.hydronic.*` (gleanings); the `NolanLayout` dc class; the declarative

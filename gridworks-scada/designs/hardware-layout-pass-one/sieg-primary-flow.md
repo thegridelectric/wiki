@@ -5,7 +5,8 @@ Status: Accepted · Pass 1 · Updated 2026-06-27 · Linear: OPS-407
 > What this is: the deferred behavior test for the `sum`/topology + tank-calibration work. The
 > `FlowTopology` structure landed; the EDD bar that verifies it rides the sim plant / `ScadaLiveTest`
 > and so **waits for the simulated-plant focus** ([OPS-40](https://linear.app/gridworks/issue/OPS-40))
-> — it cannot be verified before it. The minimal sim-run ([`sim-run.md`](sim-run.md)) is the precursor.
+> — it cannot be verified before it. The minimal sim-boot harness (shipped;
+> [`../../executor/testing.md`](../../executor/testing.md)) is the precursor.
 
 ## The landed structure
 

@@ -67,10 +67,11 @@ the truth oracle. **That is backwards.** Settled direction:
   out of config + the static layout, with `ops_and_sema_to_dc` assembly. Forces the `channel.config`
   collapse; do it before the fleet gen files (the shape every gen targets). The LTN live-update transport
   is [OPS-408](https://linear.app/gridworks/issue/OPS-408) (Thomas), the consumer.
-- ✅ **[`sim-run.md`](sim-run.md)** — *done.* The behavioral safety net: the scada boots + runs every
+- ✅ **sim-run** — *done, distilled.* The behavioral safety net: the scada boots + runs every
   device code path on `gw-dev-rabbit` with self-generating `SimSensorActor`s.
   Shipped (`b4623fe1`/`d8ce5570`/`822b150c`); it's the gate the rest of the pass verifies
-  through. Richer coherent plant stays [OPS-40](https://linear.app/gridworks/issue/OPS-40).
+  through. Distillate in [`../../executor/testing.md`](../../executor/testing.md) ("The sim-boot
+  harness"). Richer coherent plant stays [OPS-40](https://linear.app/gridworks/issue/OPS-40).
 - **[`code-for-three-layouts.md`](code-for-three-layouts.md)** — What `gw_spaceheat`
   must change to run three layouts: discriminate by `TypeName`, a **command tree per layout**
   (House0 keeps pico-cycler/hp-boss/sieg; simple_sim is minimal, **no pico-cycler**; nolan its own), and
@@ -134,9 +135,11 @@ the truth oracle. **That is backwards.** Settled direction:
 
 ## Carried caveats
 
-- **Fleet fixtures other than oak are stale on the heat-call axis** — each carries the
-  `*-whitewire-pwr` source DataChannel but no per-zone `*-heat-call` DerivedChannel (house0 Axiom 3).
-  Resolved by regenerating each fixture from sema, as oak was (`4182d88c`), not by patching JSON.
+- **Fleet fixtures other than oak are stale on the heat-call axis** — each carries a per-zone
+  source DataChannel but no per-zone `*-heat-call` DerivedChannel, failing house0 Axiom 3
+  (`ZoneHeatCallChannel`: the source may be `*-whitewire-pwr` or `*-opto-input`, per zone; these
+  House0 homes are all whitewire-sourced). Resolved by regenerating each fixture from sema, as oak
+  was (`4182d88c`), not by patching JSON.
 - **`gw.nolan.layout/000`** is un-drafted; its axioms are parked in
   `sema/definitions/types/gw.nolan.layout/stash_axioms.md` (zone/tank structure reference).
 - **`gw.house0.layout/000` is `staging` → mutable in place** — axioms are added to `000` directly

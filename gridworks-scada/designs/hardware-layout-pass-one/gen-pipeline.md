@@ -82,7 +82,8 @@ so the reverse direction is dead weight on the ship path. Sequence:
 ## The oracle — diff-and-adopt, relaxed
 
 The static check flips to the dc side and **relaxes to a review aid** (the real gate is behavioral —
-House0 runs in sim, [`sim-run.md`](sim-run.md)). Implemented as `sema_to_dc.diff_against_fixture(home)`
+House0 runs in sim — the sim-boot harness, [`../../executor/testing.md`](../../executor/testing.md)).
+Implemented as `sema_to_dc.diff_against_fixture(home)`
 (canon, order-insensitive). Oak has been through the full cycle: the gen ran ahead of the frozen
 fixture (19 vs 15 DerivedChannels — the 4 per-zone `heat-call` the stale fixture lacked), the
 corrected output was adopted (`4182d88c`/`7000d3a7`), and the oracle sits at 0 diffs:

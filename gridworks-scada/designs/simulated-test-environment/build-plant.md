@@ -1,6 +1,6 @@
 # Build the simulated loop — gwta emits `sim.plant.flux`, scada reads it
 
-Status: Accepted · Pass 1 · Updated 2026-06-13 · Linear: OPS-40
+Status: Accepted · Pass 1 · Updated 2026-07-15 · Linear: OPS-40
 
 > What this is: simulated-test-environment spoke — the **construction plan** for
 > the whole simulated **message-passing loop**: a `gridworks-terminalasset` (gwta)
@@ -14,20 +14,21 @@ Status: Accepted · Pass 1 · Updated 2026-06-13 · Linear: OPS-40
 > `gleanings.md`; new sema words awaiting Jessica's sign-off are in
 > `new-sema-words-to-review.md`.
 
-## Do this now — wait on the hardware-layout pass, then Phase A
+## Do this now — the simple terminal asset first, then Phase A on it
 
-The device-type model and the high-volume scada migration the sim layout depends on are a
-**separate, shared piece of work** — its own Ops issue (**[OPS-407](https://linear.app/gridworks/issue/OPS-407)**), depended on by this
-harness and spruce-unlimbo Chunk B. Its durable home is `executor/hardware-layout.md`
-("Resolution"): device identity becomes a `gw1.device.type` enum value (`DeviceType`,
-`pascal.case` format), **ALL `cac_id` / UUID identity is removed** (scada and sema), and
-`layout_gen` is restructured around it. The sim component types
-(`sim.sensor.component.gt`, `sim.relay.component.gt`) land in that pass — flat, carrying
-`DeviceType`, no `cac_id`.
+The blocking dependency has landed: the hardware-layout pass
+(**[OPS-407](https://linear.app/gridworks/issue/OPS-407)**) delivered the device-type model
+(`gw1.device.type` as `DeviceType`, all `cac_id` / UUID identity removed), the sema-authored
+layout pipeline (durable home `executor/hardware-layout.md`), and the scada-side sim seams
+(`SimSensorActor`, `sim_layout.py`, the sim-boot harness — `executor/testing.md`).
 
-**This spoke's work resumes at Phase A** once that pass lands the new component shape:
-build + prove the comms loop with the sim layout using `sim.sensor.component.gt` /
-`sim.relay.component.gt`. **Then Phase B** — first-pass plant physics.
+**Ordering (decided 2026-07-15): make the SIMPLE terminal asset FIRST.** Build and prove
+the gwta plant against the simplest-possible layout (`gw1.simple.sim.layout`) before any
+House0 replication. The destination stays what it was: **fully simulated house0 layouts
+driven against a simulated house0 in gridworks-terminalasset** — the codebase is changing
+enough that House0 needs simulated end-to-end coverage — but that lands *after* the simple
+loop works. So: Phase A (comms loop on the simple plant) → Phase B (first-pass physics) →
+House0 replication.
 
 ## Why one layout file — plant and scada read the same `hardware-layout.json`
 
@@ -98,10 +99,10 @@ referential-integrity checks (`CapturedByNodeName` / `AboutNodeName` /
 The build order, recorded here so it survives across files (the hub just points at
 this spoke; the ordered plan lives here):
 
-0. **Device-type pivot + SCADA migration** — see "Do this now" above: mint
-   `gw1.device.type` (+ the `DeviceType` `pascal.case` field), drop ALL `cac_id`
-   (scada and sema), then the high-volume scada migration (`layout_gen`,
-   `CACS_BY_MAKE_MODEL`).
+0. ✅ **Device-type pivot + SCADA migration** — landed via
+   [OPS-407](https://linear.app/gridworks/issue/OPS-407): `gw1.device.type` as the
+   universal `DeviceType` key, all `cac_id` gone, the layout gen sema-native in
+   tlayouts (the deep `H0N`/`H0CN` call-site sweep stays that design's pass-two).
 1. **Phase A** — build + prove the comms loop (format-correct plant →
    `SimSensorActor` → real `ScadaApp(is_simulated)` + `LtnApp` + dashboard;
    done-when 10 minutes, zero watchdog-pat deaths). Stand up the hardware layout
