@@ -1,6 +1,6 @@
 # Circulator pump 0–10 V models
 
-Status: Draft · Pass 0 · Updated 2026-06-15 · Linear: OPS-27
+Status: Draft · Pass 0 · Updated 2026-07-15 · Linear: OPS-27
 
 > What this is: a design for representing the different circulator-pump models we deploy —
 > as **device types** — and their differing 0–10 V control responses across hardware layouts,
@@ -86,6 +86,63 @@ This fits the device-type model **better**, two ways:
   installed.
 - Update the admin DAC widget (`dac_widget_info.py`) to display pump name + device type alongside
   the voltage.
+
+## Field data — Grundfos at spruce (2026-07-15)
+
+The first Grundfos is deployed: a **UPMS 20-78** as spruce's secondary pump (heat-exchanger
+side), driven from the gw108 DAC. Its 0–10 V response (manual p.21; Grundfos manuals folder
+in the team Drive): **0.5–1 V = off; 2–3 V = min speed; 3–10 V = linear min → max. The
+0–0.5 V / cable-break behavior is contradicted between Grundfos's own documents** — the
+data booklet says signal-fail ⇒ *minimum* speed; the I&O manual's voltage table and
+cable-break note say *maximum*. **Field-verified 2026-07-15 on the spruce unit: MINIMUM**
+(the booklet is right for this hardware). Requirement note: for our application we would
+WANT max-on-signal-loss (keep the heat exchanger flowing if the DAC path dies while the
+HP runs) — the verified min-on-fail means signal loss degrades flow, an operational
+consideration the pump device-type record should carry (`SignalLossBehavior: MinSpeed`,
+verified) and control logic must not assume the I&O manual's max. Interim
+scada-side handling
+(`starter-scripts/spruce_summer_hack.py`): a per-model `grundfos_upms_20_78_volts(percent)`
+mapping percent-of-max onto the 3–10 V linear band, **never commanding below 3 V** — off is
+the pump relay's job. That per-model function is precisely the content
+`circulator.pump.device.type.gt` exists to carry as declared curve data.
+
+**The type key settles how "IS 0–10 V" gets encoded** (UPMS Data Booklet p.6, in the
+Grundfos Drive folder): the full designation is e.g. `UPMS 20-58 F 165 115V CB 9H`, and
+one position is **External signal: `A` = PWM (heating profile), `R` = 0–10 V** —
+combinable as `AR` (both; a faceplate button selects which). The catalog's productized
+range makes the trap concrete: **`UPMS 20-78 F 165 AR`, `25-78 130 AR`, and `15-58 LUNA4
+AR` have external signal; `UPMS 20-58 F (N) 165 ships constant-curve ONLY`** — the same
+hydraulic family exists in controllable and non-controllable variants, which is exactly
+what bit us (4× plain 20-58 bought, no 0–10 V).
+
+Design consequences:
+
+- **Hydraulic size ≠ device type.** The `gw1.device.type` value must be minted from the
+  full designation including the signal letters (e.g. `GrundfosUpms2078F165AR`), never
+  from the family name — "UPMS 20-58" does not determine code-relevant behavior.
+- The `circulator.pump.device.type.gt` record carries a **`ControlSignal`** category fact
+  (None / Pwm / ZeroTen / PwmAndZeroTen) alongside the response-curve fields; UPMS
+  profile-R fail-state is documented: **signal loss / near-0 V ⇒ minimum speed** (not max,
+  not off).
+- **Physical verification in hand:** external-signal models have the extra faceplate
+  button + the 0-10V/PWM LED icons and a Mini Superseal signal connector; constant-curve
+  models have only the I/II/III LEDs. (George's LED-logo observation is the documented
+  discriminator.)
+- **Purchasing spec:** order by full designation with the signal letters (…`AR`) or by
+  Grundfos product number — never by hydraulic family alone.
+- **Researched 2026-07-15 (web sweep, sourced): a UPMS 20-58 with 0–10 V does NOT exist
+  as a catalog product.** The AR (PWM+0-10V, button-selectable) hardware ships only on
+  `20-78 F 165 AR(/CB)`, `25-78 130 AR`, and `15-58 LUNA4 AR` (composite boiler-OEM
+  housing, 45 psi limit — not a drop-in). Cheapest path to 58-like behavior in this frame:
+  a **20-78 AR capped via the 0-10V command**. Open-market stock (Central Boiler service
+  channel, ~$200–275) is constant-curve only; AR units come via a Grundfos OEM/distributor
+  quote for the exact designation. **The whole US UPMS line is 115 V-only** (no 230 V
+  code exists) — pump feeds must be 115 V. UPM3/UPM4 (230 V, cheap EU spares) are
+  **PWM-only, no 0-10V anywhere in their type keys**; the only Grundfos 230V+0-10V
+  options are the larger UPML/UPMXL "VDC" variants. Physical in-hand check: AR models
+  cycle **5** button states (I/II/III/0-10V/PWM) vs 3, show the 0-10V/PWM LED icons, and
+  have a live 3-pin Mini Superseal signal connector (blanking plug on internal-only
+  units); signal pigtail accessory PN 92733734.
 
 ## Open questions
 

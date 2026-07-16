@@ -1,6 +1,6 @@
 # Generator blueprint — the gen spec (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-06-27 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-07-16 · Linear: OPS-407
 
 > What this is: the spec `sema_gen` emits — the invariant House0 skeleton plus the config axes. The
 > `required_topology_nodes` + `required_system_actor_nodes` sets (`house_0_layout.py:541–619`) are the
@@ -19,6 +19,12 @@ Status: Accepted · Pass 1 · Updated 2026-06-27 · Linear: OPS-407
   (`vdc`/`tstat-common`/`charge-discharge`/`hp-failsafe`/`hp-scada-ops`/`thermistor-common`/
   `aquastat-ctrl`/`store-pump-failsafe`/`primary-pump-scada-ops`/`primary-pump-failsafe`); the three
   010V outputers; `buffer` depths.
+  **`primary-pump-scada-ops` + `primary-pump-failsafe` become OPTIONAL per home** (decided
+  2026-07-16, [OPS-450](https://linear.app/gridworks/issue/OPS-450)): their presence in a layout
+  declares that the scada's primary-pump override interrupt is physically wired at that house;
+  when present, the heat pump's device-type record MUST carry `PrimaryPumpOverridable: true`
+  (cross-consistency axiom, once the `hp.*.device.type.gt` records exist). Maple's regen drops
+  them (its unit runs the pump itself); the pump doctor keys off layout presence.
 - **Config-driven parts** (the four axes): `Zones` · `TotalStoreTanks` · sieg (plumbed? controlled?) ·
   per-position flow/temp sourcing. Detailed below.
 

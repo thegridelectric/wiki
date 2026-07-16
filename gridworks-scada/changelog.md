@@ -12,6 +12,26 @@ Newest at the top.
 
 ---
 
+## 2026-07-15 — names: hp-ctrl-box for the monobloc indoor box; hp-odu/hp-idu doc comments; drop unused heat-pump entry (`1ded34cc`)
+
+**What:** on `jm/spruce-unlimbo`, in `gwsproto/names/hydronic_spaceheat/`. The unused
+`idu = "idu"` node-name entry becomes `hp_ctrl_box = "hp-ctrl-box"` — a monobloc's indoor
+box (control electronics + water-pump feed + backup heater, no compressor; confirmed
+against the spruce Samsung AE055FEYMCG nameplate) — with the companion
+`hp_ctrl_box_pwr` channel name (the metered circuit is the box's feed; that it ≈
+primary-pump power is an interpretation, so the channel is deliberately not
+primary-pump-pwr). Doc comments added for `hp_odu` (a monobloc IS its hp-odu; multi-
+outdoor-compressor systems index hp-odu1/hp-odu2) and `hp_idu` (indoor units with their
+own refrigerant cycle — the cascade hydro kits). The tentative
+`heat_pump = "heat-pump"` entry and its `heat_pump_pwr` channel are deleted — dead
+vocabulary under the settled naming (a monobloc is named hp-odu).
+
+**Why:** spruce-relay-control (OPS-392) — canonize the spruce/monobloc naming before the
+CT channel and layout entries land. Neither `idu` nor `heat-pump` had any consumer or
+fixture usage; suite parity verified (the 10 failures pre-exist the change — same set
+fails with the change stashed; link-wait timeouts), imports + named-type/enum tests
+green (74 passed).
+
 ## 2026-07-15 — scada reads the ops artifact: control-block read sites migrated off settings (`82caac3e`)
 
 **What:** on `jm/spruce-unlimbo`. The running scada now LOADS the authored
