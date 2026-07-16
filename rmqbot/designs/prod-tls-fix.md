@@ -62,10 +62,15 @@ HTTPS in every era.
 
 ### New CA
 
-- `gwcert ca create Gridworks-Self-Signed-CA-2026 --valid-days 3650` on
-  certbot. A ten-year root: leaf lifetime is the rotation knob, not the
-  root's. The year in the CN keeps any stray 2023 `ca.crt` unmistakable in
-  logs and error output.
+- A ten-year root, CN `Gridworks-Self-Signed-CA-2026`, minted on certbot
+  with plain openssl into gwcert's default directory layout. `gwcert ca
+  create` cannot mint it: its ownca dependency caps every cert at 825 days
+  (the public-leaf browser rule misapplied to a private root — the same
+  default that killed the 2023 CA in 27 months). `gwcert key add` is
+  verified working against an openssl-minted root, so leaf minting keeps
+  the existing tooling. Leaf lifetime is the rotation knob, not the root's;
+  the year in the CN keeps any stray 2023 `ca.crt` unmistakable in logs and
+  error output.
 - The 2023 CA is archived, not deleted: on certbot,
   `~/.local/share/gridworks/ca` → `ca-2023-expired`; the 1Password entry is
   renamed `certbot CA 2023 — EXPIRED, superseded by 2026`. gwcert mints the

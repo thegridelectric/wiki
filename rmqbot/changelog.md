@@ -13,8 +13,7 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-07-15 — prod-tls-fix pre-stage: conf flip, secret-fed password, contract harness, cert inventory
+## 2026-07-15 — prod-tls-fix pre-stage: conf flip, env-fed password, contract harness, CA mint recipe, new ca.crt
 
 Branch `jm/prod-tls-fix`, staged ahead of restart day (design: OPS-423,
 Accepted Pass 1). `rabbitmq.conf`: TLS flips from demanding client certs
@@ -29,7 +28,12 @@ mounts, with the no-data-volume recreate warning made explicit.
 auth, the analytics.ear.reader permission contract). `authority/
 cert-inventory.md` starts the cert register the November-2025 expiry showed
 we were missing. README recipes drop the client-cert flags and record the
-password TODO as resolved.
+password TODO as resolved. `authority/tls/tls-certs.md` replaces the
+`gwcert ca create` recipe with the openssl root-mint recipe (gwcert's ownca
+dependency caps certs at 825 days — the flaw that killed the 2023 CA) and
+records the year-stamped 1Password custody entries. `authority/ca.crt` is
+the new root's public certificate, committed for client distribution
+(CN `Gridworks-Self-Signed-CA-2026`, valid to 2036-07-13).
 
 ## 2026-07-13 — clarification
 

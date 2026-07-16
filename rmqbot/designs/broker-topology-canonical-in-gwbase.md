@@ -26,30 +26,35 @@ definitions files across two repos, in two exchange-naming eras:
 
 The prod broker boots from the legacy-era file; gwbase's code speaks the
 current naming. The RabbitMQ 4.x upgrade (OPS-424) is the moment to load a
-clean generated topology rather than reconcile by hand twice. gwbase already
-declares exchanges/queues/bindings as code (`provision_topology` does this for
-dev); this extends it to be the canonical source for every deployment.
+clean generated topology rather than reconcile by hand twice.
+
+The dev half of this design is already built in gwbase:
+`for_docker/gen_definitions.py` generates definitions from the declared
+topology (`--vhost`, default `d1__1`; `--check` drift mode), guarded by
+`tests/test_definitions_drift.py`, a pre-commit hook, and the broker-image
+workflow; `dev_definitions.json` and `hybrid_definitions.json` are generated
+artifacts today, and the dev broker image (`for_docker/dev_rabbitmq.conf`,
+RabbitMQ 4.1) already runs vhost `d1__1`. This design extends that machinery
+to be the canonical source for every deployment.
 
 ## Scope — topology only
 
 Identities and permissions are **not** here — they go to FIS (OPS-420). This
 design is vhosts + exchanges + queues + bindings:
 
-- gwbase declares the topology as code (the rabbit-actor contract).
-- **A gwbase CLI outputs a definitions JSON** from that declared topology.
-  Vhost is a parameter, default `d1__1`; customers are dev (`d1__1`), prod
-  (`hw1__1`), and the analytics vhost (`hw1_analytics`).
-- **Deployed copies are generated artifacts**: the file in infra's deploy path
-  is committed with a generated-from-gwbase header and never hand-edited.
-- **A drift test** proves every committed definitions artifact matches what
-  the CLI generates from current gwbase — the enforceable form of "no
-  hand-edited definitions".
-- **The five-file cleanup**: which of the definitions files above survive
-  (as generated artifacts), which are deleted.
-- **The dev conf's vhost is corrected to `d1__1`**: today
-  `gridworks-base/rabbit/rabbitconfig/rabbitmq.conf` says `hw1__1` in both
-  `default_vhost` and `mqtt.vhost`, contradicting `dev_definitions.json` in
-  the same directory. Dev is the `d1` universe.
+- gwbase declares the topology as code (the rabbit-actor contract);
+  `gen_definitions.py` generates the definitions JSON from it (built).
+- **Extend the generator's target set to prod and analytics**: prod
+  (`hw1__1`) and the analytics vhost (`hw1_analytics`) join dev + hybrid as
+  generated outputs.
+- **Prod's deployed copy becomes a generated artifact**: the file in infra's
+  deploy path is committed with a generated-from-gwbase header and never
+  hand-edited, and the existing drift check extends to cover it.
+- **Legacy cleanup**: retire the two hand-edited legacy-era files
+  (`rabbit_definitions_hybrid.json`, `rabbit_analytics_definitions_hybrid.json`)
+  and decide the fate of the `rabbit/` deploy kit (`broker_arm.yml` + the
+  `hw1__1` conf at `rabbit/rabbitconfig/rabbitmq.conf` — the only remaining
+  consumers of the legacy files).
 - The binding table remains the authoritative "who may route to whom"
   ([`../../gridworks-base/executor/transport.md`](../../gridworks-base/executor/transport.md)).
 
@@ -71,8 +76,8 @@ invisible to any definitions file.
 ## Done-when
 
 - The prod broker boots from gwbase-generated definitions.
-- No hand-edited `rabbit_definitions.json` remains in the deploy path.
-- The drift test is in gwbase CI.
+- No hand-edited definitions file remains in any deploy path.
+- The existing drift check covers prod's committed artifact.
 
 ## Sequencing
 
