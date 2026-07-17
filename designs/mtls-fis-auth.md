@@ -100,6 +100,21 @@ Notch 2 forces one naming question beyond the GNode story: the CN for
 web-backend's gateway). GNodes bind `CN=<GNodeId>`; services need an equally
 immutable subject, presumably from the FIS principal row.
 
+**Notch-2 pilot (beech): COMPLETE, 2026-07-17.** One house ran ahead of the
+design as its feeding experiment. Beech presents a client cert with
+CN = `19ee09df-80ba-437b-b6c1-1eebe9d34801` (the scada GNodeId; CA-2026;
+expires 2028-06-06 per the summer-stagger leaf policy); the broker log shows
+the plaintext 1883 connection closing and the same house accepted on 8883 —
+encrypted, cert verified at the handshake, telemetry continuous through the
+LTN. Findings for the rollout: stock `getkeys.py` cannot set the CN (mint
+with `gwcert key add --common-name <GNodeId>` on certbot, getkeys
+`--copy-only` for the transfer); the laptop rclone `certbot` remote needs
+`key_use_agent = true` with the per-person ssh key; the proactor needed
+nothing beyond `SCADA_GRIDWORKS_MQTT__TLS__USE_TLS=true` — port and cert
+paths defaulted correctly. Per-house recipe: mint (with consent) → copy →
+flip → restart → confirm the 8883 accept in the broker log.
+**Fleet rollout waits for this design's grill and Accepted · Pass ≥ 1.**
+
 ## The design work — pin these three open dimensions
 
 These are why it was an exploration; turning it into a design means settling them:

@@ -13,6 +13,37 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-07-17 — production inventory: what runs where
+
+New top-level `production-inventory.md`: every production box, its services,
+and which broker credential it holds — mapped by walking the boxes during
+the prod-TLS restart sweep, which surfaced a nameless JournalKeeper box, a
+weather service nobody had listed, and a dead-but-running old journalkeeper.
+Known-gaps section doubles as the follow-up queue (DNS name for the JK box,
+scoped credentials via OPS-420). The ssh-access audit (OPS-448) extends it
+with the authorized-keys map. The rmq-docker README gains the
+runtime-created-users recipe (`analytics.ear.reader` add_user +
+set_permissions) next to the recreate warning that makes it necessary —
+deliberately a runbook snippet, not a script, since the analytics
+arrangement moves with the broker separation. The README also gains the
+harness run instructions (venv, password placeholders and the
+ACCESS_REFUSED-from-a-placeholder gotcha) — added right after the 6/6
+verification run that stamped the design Verified. `authority/certbot/
+README.md` rewritten to present truth: the box's job, CA-2026 custody, the
+mint recipes (and the 825-day trap), leaf policy, per-person ssh, and a
+rebuild-from-1Password section — replacing the 2023-era "TLS is not working
+/ WORK IN PROGRESS" content the prod-tls-fix design retired.
+
+## 2026-07-17 — tls explanations
+
+`how-tls-works.md` gains a FAQ: how the password is protected — the encrypted
+tunnel is fully established (cert verify, key agreement, symmetric session
+keys) before AMQP's PLAIN auth ever runs, so "plain" means plain within the
+channel. Written when the question came up live during the restart-day
+sweep. `tls-certs.md`'s 1Password section now records the certbot ssh
+posture: per-person keys only, the fleet key deliberately removed.
+
 ## 2026-07-15 — prod-tls-fix pre-stage: conf flip, env-fed password, contract harness, CA mint recipe, new ca.crt
 
 Branch `jm/prod-tls-fix`, staged ahead of restart day (design: OPS-423,
