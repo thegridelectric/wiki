@@ -1,6 +1,6 @@
 # analytics-broker-shovel
 
-Status: Draft · Pass 0 · Updated 2026-06-25 · Linear: OPS-426
+Status: Draft · Pass 0 · Updated 2026-07-17 · Linear: OPS-426
 
 > Stand up a second RabbitMQ broker — the **analytics broker** —
 > separate from the production control broker (`hw1__1`). All audit /
@@ -94,7 +94,13 @@ Three landable chunks:
    RabbitMQ version as the upgraded prod (post-4.x). Same generated
    definitions shape. Distinct
    hostname (`analytics.electricity.works` or similar). TLS from day
-   one (no "encryption only" phase like prod has had).
+   one (no "encryption only" phase like prod has had). Instance:
+   **t4g.small** (~$12/mo) — burstable is appropriate here, unlike the
+   prod broker: this is not the control plane and the shovel feeding it
+   is lossy-tolerant by design (invariant 3). Standup reuses the hw1-1
+   green-box recipe from the 4.x upgrade (OPS-424): stock Ubuntu LTS
+   arm64, Docker, the rmq-docker pattern with generated definitions,
+   its own dedicated ssh key.
 
 2. **Configure the prod-side shovel.** RabbitMQ `shovel` plugin (or
    `federation` — evaluate during execution). Source: `ear_tx` on

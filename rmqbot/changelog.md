@@ -14,26 +14,64 @@ Newest at the top.
 ---
 
 <!-- pending commit -->
-## 2026-07-17 — production inventory: what runs where
+## 2026-07-17 — rabbit 4x prep: LTN boxes, debug tap, queue-depth alert note
+
+Branch `jm/rabbit-4x-prep`, from the pre-upgrade broker audit. The
+production inventory gains the two LTN boxes (`atn/ltn` 34.194.147.127
+elastic, `atn2/ltn2` 3.83.88.118 not elastic — found from the broker's
+connection list, not yet walked; the name/connection-count mismatch and
+spruce's unaccounted LTN go to the known-gaps queue). The orphaned
+consumer-less `ear` queue on the prod broker (579 messages, silently
+growing) was renamed live to `debug.beech-scada` — declared new + rebound +
+old deleted after it drained; contents were duplicates of the ear→S3 and
+JournalKeeper archives. The rmq-docker README's runtime-created section
+grows a queues half with the re-creation recipe; the scada-alerts register
+gains the planned broker queue-depth alert (any `hw1__1` queue > 1000,
+management API — a new data source for the alerter) that backstops the
+standing tap.
+
+## 2026-07-17 — certbot README rewrite
+
+`authority/certbot/README.md` rewritten to present truth: the box's job,
+CA-2026 custody, the mint recipes (and the 825-day trap), leaf policy,
+per-person ssh, and a rebuild-from-1Password section — replacing the
+2023-era "TLS is not working / WORK IN PROGRESS" content the prod-tls-fix
+design retired.
+
+## 2026-07-17 — update alertsmanager info; include test recipe for hw1-1 rmqbot
+
+The inventory's alert-manager entry gains what a rebuild would need: the
+repo home (github.com/thdfw/alert-manager — personal GitHub, not the org),
+the run form (`uv run alert-manager`), and the existing-but-idle
+`alert-manager-sheet` entrypoint. The rmq-docker README gains the
+from-a-laptop harness run recipe (throwaway venv, both password
+placeholders, and the ACCESS_REFUSED-from-a-placeholder gotcha that looks
+exactly like a broken rotation) — added right after the 6/6 verification
+run that stamped the prod-tls-fix design Verified.
+
+## 2026-07-17 — production inventory update
+
+Two corrections from looking closer at the alerting path: the old
+journalkeeper on journalmaker is not merely superseded — it is what keeps
+journaldb fresh for gwalert's detection and the web dashboard, so the
+decommission ordering is alerting-off-journaldb first. And the journaldb
+row now records the post-OPS-451 alerting reality: gwalert re-enabled under
+`MemoryMax=512M` (unit canonical in the gridworks-alerts repo), the
+alert-manager Telegram dispatcher in tmux and not reboot-safe.
+
+## 2026-07-17 — various
 
 New top-level `production-inventory.md`: every production box, its services,
 and which broker credential it holds — mapped by walking the boxes during
 the prod-TLS restart sweep, which surfaced a nameless JournalKeeper box, a
-weather service nobody had listed, and a dead-but-running old journalkeeper.
+weather service nobody had listed, and a still-running old journalkeeper.
 Known-gaps section doubles as the follow-up queue (DNS name for the JK box,
-scoped credentials via OPS-420). The ssh-access audit (OPS-448) extends it
+scoped credentials via OPS-420); the ssh-access audit (OPS-448) extends it
 with the authorized-keys map. The rmq-docker README gains the
 runtime-created-users recipe (`analytics.ear.reader` add_user +
 set_permissions) next to the recreate warning that makes it necessary —
 deliberately a runbook snippet, not a script, since the analytics
-arrangement moves with the broker separation. The README also gains the
-harness run instructions (venv, password placeholders and the
-ACCESS_REFUSED-from-a-placeholder gotcha) — added right after the 6/6
-verification run that stamped the design Verified. `authority/certbot/
-README.md` rewritten to present truth: the box's job, CA-2026 custody, the
-mint recipes (and the 825-day trap), leaf policy, per-person ssh, and a
-rebuild-from-1Password section — replacing the 2023-era "TLS is not working
-/ WORK IN PROGRESS" content the prod-tls-fix design retired.
+arrangement moves with the broker separation.
 
 ## 2026-07-17 — tls explanations
 

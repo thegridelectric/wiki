@@ -13,8 +13,8 @@ The following are intentionally NOT danglers and are skipped:
     hub-and-spoke convention's planned-but-unwritten spokes
   - links inside inline code spans or fenced code blocks (examples/placeholders
     such as `Concern: [[this]]`)
-  - targets git **ignores** (e.g. the per-session `active-claims.md`, the
-    gitignored `knifes-edge-development/` private materials): present in a working
+  - targets git **ignores** (e.g. the per-session `active-claims.md`):
+    present in a working
     tree but absent in a clean checkout like CI, so a missing-but-ignored target
     is a legitimate runtime/local reference, not a broken link.
 

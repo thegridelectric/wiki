@@ -1,6 +1,6 @@
 # broker-topology-canonical-in-gwbase
 
-Status: Draft · Pass 0 · Updated 2026-07-15 · Linear: OPS-425
+Status: Draft · Pass 0 · Updated 2026-07-17 · Linear: OPS-425
 
 **EDD: no** build-out — verified by the prod broker booting from gwbase-generated
 definitions with the suite green, not a standalone experiment.
@@ -43,13 +43,21 @@ Identities and permissions are **not** here — they go to FIS (OPS-420). This
 design is vhosts + exchanges + queues + bindings:
 
 - gwbase declares the topology as code (the rabbit-actor contract);
-  `gen_definitions.py` generates the definitions JSON from it (built).
-- **Extend the generator's target set to prod and analytics**: prod
-  (`hw1__1`) and the analytics vhost (`hw1_analytics`) join dev + hybrid as
-  generated outputs.
-- **Prod's deployed copy becomes a generated artifact**: the file in infra's
-  deploy path is committed with a generated-from-gwbase header and never
-  hand-edited, and the existing drift check extends to cover it.
+  `gen_definitions.py` generates the definitions JSON from it (built —
+  `hybrid_definitions.json` is already the generated `hw1__1` artifact).
+- **Analytics topology generation is deferred to OPS-426** with the
+  analytics broker itself. No `hw1_analytics` vhost on the prod broker: the
+  end-state is a separate analytics broker, so a prod-side vhost would be
+  state the separation later removes. Today's analytics consumer
+  (`analytics.ear.reader`) reads `ear_tx` on `hw1__1` and is untouched.
+- **Prod's deployed copy becomes a generated artifact**: infra's
+  `rmqbot/rmq-docker/config/rabbit_definitions.json` becomes a
+  byte-identical copy of gwbase's generated `hybrid_definitions.json` and
+  is never hand-edited. Byte-identical rather than headed: a provenance
+  header would break diff-equality, and the drift check IS a diff — one
+  documented command (README) comparing the deploy copy against the
+  sibling gwbase checkout's artifact, run before any broker recreate.
+  Provenance lives in the README line next to it.
 - **Legacy cleanup**: retire the two hand-edited legacy-era files
   (`rabbit_definitions_hybrid.json`, `rabbit_analytics_definitions_hybrid.json`)
   and decide the fate of the `rabbit/` deploy kit (`broker_arm.yml` + the
@@ -57,6 +65,31 @@ design is vhosts + exchanges + queues + bindings:
   consumers of the legacy files).
 - The binding table remains the authoritative "who may route to whom"
   ([`../../gridworks-base/executor/transport.md`](../../gridworks-base/executor/transport.md)).
+
+## Cutover — who actually consumes the legacy-era names
+
+Loading the generated (current-era) topology drops the legacy exchange
+names the prod broker booted with, so every live consumer of a legacy name
+must be accounted for before the restart. From the local checkouts:
+
+- **weather** consumes legacy `ws_tx`
+  (`gridworks-weather-forecast/src/gwwf/weather_actor.py:114`, a deliberate
+  match to the prod fabric — the comment says "not `weather_tx`").
+  **Resolved: retarget, no shim** — the `ws_tx` pin is a self-described
+  compat override; deleting it lets the base class consume canonical
+  `weather_tx`, which the generated topology provides. A legacy-alias
+  binding would fossilize the exact drift this design retires. The
+  retargeted weather build deploys at cutover (OPS-424 runbook). Low
+  stakes either way: the consume path is idle in practice (0 messages at
+  audit; `rj.*`-keyed publishes over MQTT route to `ear_tx`, not `ws_tx`).
+- **ear** and the **JournalKeeper** consume `ear_tx`, which exists
+  identically in both eras. Unaffected.
+- **SCADAs** ride `amq.topic` over MQTT and never touch the era-named
+  exchanges. Unaffected.
+- **Web gateways** (web-backend, web-api2) and the **old journalkeeper** on
+  journalmaker have no local checkout to read — the pre-cutover audit on the
+  running broker (`rabbitmqctl list_bindings` / `list_connections`, see
+  OPS-424 step 2) is the authoritative answer for them.
 
 ## Conf standard (shared with OPS-423)
 
