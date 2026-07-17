@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-05-30
+Status: Draft · Pass 0 · Updated 2026-07-17
 
 > What this is: detailed Versant Bangor Hydro District (BHD)
 > tariff schedules relevant to transactive / storage-controlled
@@ -74,14 +74,12 @@ conservation):
 
 ### Why this matters
 
-For storage-controlled load that runs **entirely off-peak**, total
-delivery is **6.4 ¢ / kWh** — vs Rate D-4's effective ~14.8 ¢/kWh
-(optimistic floor reading) or ~64 ¢/kWh (strict floor reading) for
-the same load on a commercial single-customer arrangement.
-
-The structural difference: A-1 has **no demand charges and no NCP
-transmission**, so storage-controlled load that avoids the peak
-period pays close to *cost-causal* delivery rates.
+For load running **entirely off-peak**, A-1 total delivery is
+**$0.06426 / kWh** with no customer charge on the bonus meter and
+no demand charge. The structural difference from the commercial
+schedules: A-1 has **no demand charges and no NCP transmission**,
+so storage-controlled load that avoids the peak period pays close
+to *cost-causal* delivery rates.
 
 ---
 
@@ -167,22 +165,39 @@ $0.02213 / kWh flat across TOU periods.
   load during the **60-minute interval coincident with each monthly
   BHD system peak**) in lieu of NCP.
 
-**CP election is gated to:**
+**CP election is gated to** (verbatim, p. 20.1.1, Twelfth Revision):
 
-> *"separately metered Electric Vehicle Charging and/or Battery
-> Storage devices known as the 'DC Fast Charging and Storage Eco
-> option'."* — Rate D-4 schedule, p. 20.1.1.
+> *"An optional Coincident Peak rate for Transmission charges is
+> available on an opt-in basis for separately metered Electric
+> Vehicle Charging and/or Battery Storage devices known as the
+> "DC Fast Charging and Storage Eco option"."*
 
 - "Battery Storage" means **electrical / electrochemical** storage.
   **Thermal storage does NOT qualify** per the plain tariff text.
-- Requires a **separate AMI meter** at the premises hosting the
-  EV / battery devices.
+  "Battery Storage" is not a defined term in the schedule — the
+  entire technology gate is those two words.
+- The AMI-meter sentence — *"The 'DC Fast Charging and Storage Eco
+  option' requires installation of an AMI meter at the customer
+  premises where the Electric Vehicle Charging and/or Battery
+  Storage devices are being used."* — appears on the **M-1 and M-2
+  pages** of the consolidated tariff but **not on the D-4 page**
+  (p. 20.1.1, Twelfth Revision). The same CP-election sentence and
+  option appear on M-1 and M-2 (current rates in their sections
+  below), so the same words govern all three schedules.
+- **Freshness caveat:** this D-4 section is sourced from the
+  July 1, 2025 consolidated PDF. M-1/M-2 transmission rates were
+  revised effective Jan 1, 2026 (e.g., NCP $17.41 → $19.08 on M-1),
+  so D-4's January 2026 sheet should be pulled and these numbers
+  re-verified.
+- On election, per the D-4 rate table: *"Non-Coincident Peak Demand
+  Charge is zero"* — the elected load escapes NCP entirely.
 - CP applies only to the separately-metered load; the bulk of the
   premises stays on NCP.
 
-This is the load-bearing distortion. Policy ask to expand the
-eligible-technology list to include thermal storage:
-[`regulatory-change-for-cp.md`](regulatory-change-for-cp.md).
+This is the load-bearing distortion for storage-controlled load:
+CP election makes transmission demand avoidable by control, while
+the default NCP does not, and the gate between them is the two
+undefined words "Battery Storage."
 
 ### Billing demand floor
 
@@ -198,33 +213,56 @@ eligible-technology list to include thermal storage:
 
 **Interpretation:** billing demand is
   floored at 500 kW *per TOU period*, regardless of actual peak in
-  that period.
-
-
-The difference is ~$170k / year HOA / ~$1,700/year/home for a
-100-home transactive-load case. **Tariff specialist or Versant rep
-confirmation is the load-bearing next step before committing.**
+  that period. The two readings differ materially; the ambiguity is
+  unresolved in the tariff text itself.
 
 ---
 
 ## Rate M-1 — Medium Power Primary
 
-**Page reference:** searched M-1.
+**Current sheet:** [Rate M-1, p. 15.1.1, Sixteenth Revision,
+eff. Jan 1, 2026](https://www.versantpower.com/docs/default-source/rates/january-2026/rate_m1_medpowerprimary.pdf).
 
-- **Threshold:** ≥ 25 kW, < 500 kW.
+- **Threshold:** ≥ 25 kW, < 500 kW; 25 kW billing-demand floor
+  (no 500 kW floor).
 - **Voltage:** primary, customer-owned transformer.
-- **Demand:** **$32.52 / kW-month flat NCP** (no TOU).
-- **No 500 kW floor.**
+- **Demand: $34.19 / kW-month total NCP** ($15.11 distribution +
+  $19.08 transmission NCP), **or opt in** to the Coincident Peak
+  transmission election ("DC Fast Charging and Storage Eco option";
+  separately metered Electric Vehicle Charging and/or Battery
+  Storage devices; AMI meter required): $15.11 distribution NCP +
+  **$31.77 / kW-month on coincident-peak load**, and
+  "Non-Coincident Peak Demand Charge is zero."
+- Customer charge $74.80 / month; public policy charge
+  $147.23 / month; energy $0.01516 / kWh delivery +
+  $0.00935 / kWh conservation.
 
 Below the 500 kW threshold, M-1 is the primary-voltage commercial
-alternative to D-4. Flat NCP demand without TOU savings. For
-storage-controlled load, M-1 sacrifices the TOU spread but avoids
-the D-4 floor.
+alternative to D-4. A CP-elected storage load escapes the
+transmission-demand component entirely. (July 2026 M-1 sheet not
+yet pulled — the M-2 July 2026 revision moved several components,
+so re-verify M-1 before relying on these numbers.)
 
 ## Rate M-2 — Medium Power Secondary
 
-- Same threshold (≥ 25 kW, < 500 kW) at **secondary voltage**.
-- Demand: **$34.82 / kW-month flat NCP**.
+**Current sheet:** [Rate M-2, p. 16.1.1, Seventeenth Revision,
+eff. July 1, 2026](https://www.versantpower.com/docs/default-source/business-rates-bhd/july-1-2026/rate_m2_medpowersecondary8f2a6a81822a4a40b9061108093a80e0.pdf?sfvrsn=1c002021_2)
+(Dockets 2026-00082, 2026-00149).
+
+- **Threshold: ≥ 25 kW** (25 kW billing-demand floor). **No upper
+  demand limit appears in the schedule text** — the < 500 kW cap
+  is an M-1 eligibility condition only.
+- **Secondary voltage** — no customer-owned transformer or
+  substation required.
+- **Demand: $35.97 / kW-month total NCP** ($16.22 distribution +
+  $19.75 transmission NCP), **or opt in** to the Coincident Peak
+  transmission election (same clause and AMI-meter requirement as
+  M-1): $16.22 distribution NCP + **$32.90 / kW-month on
+  coincident-peak load**, and "Non-Coincident Peak Demand Charge
+  is zero."
+- Customer charge $86.83 / month; public policy charge
+  $147.23 / month; total delivery energy $0.00772 / kWh
+  ($0.00581 stranded variable + $0.001906 conservation).
 
 
 

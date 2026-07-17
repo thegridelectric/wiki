@@ -10,4 +10,3 @@ __pycache__/
 .pytest_cache/
 .venv/
 *.egg-info/
-heating-system-design/knifes-edge-development/

@@ -51,14 +51,13 @@ practice:
    in Maine if the use-case fits residential service.
 2. **Rate D-4 is the wrong tariff for transactive load** at
    moderate scale (100s of homes / 500 kW–2 MW). The 500 kW
-   peak-period demand floor + NCP transmission bills the load as
-   firm even when it's not. See
-   [`boe-delivery.md`](../../heating-system-design/knifes-edge-development/scenarios/boe-delivery.md)
-   for what this costs in concrete numbers.
+   per-time-period demand floors + NCP transmission bill the load
+   as firm even when it's not (see the billing-demand-floor section
+   of [`tariffs.md`](tariffs.md)).
 3. **The CP transmission election is gated to "Battery Storage"
-   only** — explicitly not thermal storage. **The policy ask** to
-   expand this is documented in
-   [`regulatory-change-for-cp.md`](regulatory-change-for-cp.md).
+   only** — an undefined term; thermal storage does not qualify on
+   the plain text. See the CP section of
+   [`tariffs.md`](tariffs.md).
 4. **No public retail interruptible tariff** in BHD's rate book for
    loads in the 0.5–2.5 MW range. Versant's retail path for "I can
    drop on signal" is participation in the **Maine statewide

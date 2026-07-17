@@ -102,7 +102,16 @@ while the hack runs, manual DAC use from a second process (the interactive
   **Grundfos UPMS 20-78 with 0-10V control** (curve + type-key analysis in the OPS-27
   design, `../circulator-pump-0-10v-models.md`).
 
-## HP make/model tracking (settled direction — hardware-layout territory, NEXT UP)
+## HP make/model tracking
+
+**Canonized 2026-07-17 into the hardware-layout design:**
+[`../hardware-layout-pass-one/hp-device-types.md`](../hardware-layout-pass-one/hp-device-types.md)
+is now the single source — the two record families, the three primary-pump facts, the
+enum values, layout carriage, open decisions, and the execution checklist. The section
+below is superseded by that spoke and kept only until this design's next consolidation
+pass removes it.
+
+## HP make/model tracking (superseded — see pointer above)
 
 `gwsproto.enums.HpModel` (4 values, never sema-registered) rides `ScadaSettings.hp_model`
 with a silent default (`config.py:58`, `# TODO: move to layout`); consumers branch control

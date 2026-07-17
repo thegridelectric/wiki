@@ -44,7 +44,6 @@ folder next to the code repos.
 | Rebuild / understand gridworks-base | [`gridworks-base/executor/primary.md`](gridworks-base/executor/primary.md) |
 | Find / understand the LTN (per-house transactive agent) | [`gridworks-ltn/executor/primary.md`](gridworks-ltn/executor/primary.md) — code currently lives in `gridworks-scada/gw_spaceheat/actors/ltn/`, not a standalone repo |
 | Understand Sema | [`sema/primary.md`](sema/primary.md) → the in-repo spec it points to |
-| See heating / Polstein lifecycle economics | [`heating-system-design/knifes-edge-development/reference-materials/polstein-design.md`](heating-system-design/knifes-edge-development/reference-materials/polstein-design.md) |
 | Trace *why* a change was made | the domain's `changelog.md` |
 
 ## Domain shape

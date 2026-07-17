@@ -91,6 +91,10 @@ the truth oracle. **That is backwards.** Settled direction:
   References [`generator-blueprint.md`](generator-blueprint.md) for the gen spec.
 - **[`axioms.md`](axioms.md)** — finish the layout axioms, **house0 and nolan** this pass, each with a
   generated counterexample (the gen is the fixture factory).
+- **[`hp-device-types.md`](hp-device-types.md)** — retire `HpModel` into the device-type model:
+  `hp.device.type.gt` + `hp.control.box.device.type.gt`, the three primary-pump facts, the
+  nameplate-grounded enum values. Converged 2026-07-17; ready for an executing session
+  (`/make-sema-word`), two decisions open.
 - **[`sieg-primary-flow.md`](sieg-primary-flow.md)** — the deferred Siegenthaler / `primary-flow`
   behavior test (rides the simulated-plant focus).
 - **[`i2c-board-components.md`](i2c-board-components.md)** — the board-resident / i2c-bus actor model.
