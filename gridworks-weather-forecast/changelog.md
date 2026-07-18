@@ -13,6 +13,28 @@ Newest at the top.
 
 ---
 
+## 2026-07-18 — add sample weather json from legacy weather
+
+Adds
+`tests/hw1.isone.ws-weather-1784374799353-ear.electricity.works.json` —
+the byte-exact S3 eventstore object (filename = the S3 key basename, for
+provenance), which is the LAST message the legacy weather service on
+journalmaker ever published (11:40 UTC 2026-07-18, retired that morning).
+This is the wire-parity target for the gwwf standup (OPS-454): the design
+requires gwwf to demonstrably reproduce this exact shape before any
+deploy work. Fixture only — the parity test itself waits for the OPS-454
+design to reach Accepted (implementation gate).
+## 2026-07-18 — weather actor uses modern exchange
+
+Deletes the `_consume_exchange = "ws_tx"` override (and its F-007 drift
+comment): the prod broker runs the gwbase-generated fabric since the 4.x
+upgrade (OPS-424/OPS-425), so the base class's canonical resolution —
+`TransportClass.WeatherForecastService` → routing code `weather` →
+`weather_tx` — is now correct on prod too, and the compat pin would break
+instead of help. The consume path was idle in practice on the legacy
+fabric (0 messages at the 2026-07-17 audit), so the change is behaviorally
+safe either side of the cutover; deploys on journalmaker at the flip.
+
 ## 2026-05-26 — port actual weather out of journalkeeper
 
 **Why:** The legacy `weather_service.py` lived inside

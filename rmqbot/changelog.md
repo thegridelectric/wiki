@@ -14,6 +14,85 @@ Newest at the top.
 ---
 
 <!-- pending commit -->
+## 2026-07-18 — inventory: weather successor pointer to OPS-436
+
+One-line fix: the journalmaker known-gaps bullet pointed the weather
+successor at OPS-454, which was canceled the same day as an accidental
+duplicate of OPS-436 (`stand-up-weather-forecast`, the pre-existing design
+slug that absorbed its content). The pointer now names the live issue.
+## 2026-07-18 — Rabbit at 4.1
+
+Branch `jm/green-broker-4x` — the flip-day paper trail (the flip itself:
+EIP re-associated to the new box at ~07:44 ET, full census in ~90s).
+
+The definitions copy leaves this repo (`git rm`; deliberately no
+`.gitignore` entry — an ignored file could sit stale and invisible in a
+checkout, while untracked noise prompts deletion): canonical home is
+gwbase's generated artifact alone; the provisioning recipe loads it onto
+the box at the path compose mounts, so the file exists only there. Not in the repo is not the same as not on the
+box — the box always has the file, git never does, and the live broker's
+arrangement is already exactly this. The manual diff-before-recreate
+ritual is replaced by `tests/check_topology_drift.py`: a loud LIVE check
+of the running broker's vhost/exchanges/exchange-bindings against the
+canonical artifact over the management API, which also catches
+runtime-declared strays (the legacy weather actor's `ws_tx` was the
+proven case) — first run on the new broker: IN SYNC.
+
+The README gains the full recreate-the-box recipe (WorldRabbit template →
+Docker → code by rsync → 1Password secrets with the uid-999 keyfile
+gotcha → boot → users → verify → human-run EIP move), verified end-to-end
+by the green-box build it documents; its debug-tap section adopts the
+general `debug` queue convention (rebind to the house under
+investigation) with the `debug-cap` policy (max-length 1000, drop-oldest)
+as the structural backstop alongside the planned OPS-453 alert. The
+`WorldRabbit` launch template's new default version (v4) pins the
+green-box shape — nothing baked in a custom AMI.
+
+The inventory's hw1-1 row becomes the new box (RabbitMQ 4.1.8,
+m8g.medium, Ubuntu 26.04, generated topology, all users runtime-created,
+`rmqbot-2026` key only) plus a rollback-standby row for the old 3.9.13
+box (terminate after soak, with the AMI + template cleanup per OPS-424);
+journalmaker's row drops the weather service (retired by hand on cutover
+morning — successor tracked as OPS-454). `how-tls-works.md`'s FAQ gains
+the browser-trust entry (why 15671 shows "Not Secure" despite encryption,
+and the one-time CA import that fixes it).
+
+## 2026-07-17 — green standup finds: 4.x skips conf user seeding, rabbitmqadmin v2
+
+Branch `jm/green-broker-4x`, from actually booting green (the EDD half of
+the staging commit). The big find: with `definitions.local.path` set, 4.x
+creates NO vhost or users from conf — green booted with full topology and
+an empty user table. The conf drops the now-dead
+`default_user`/`default_pass`/`default_vhost`/`default_permissions.*` keys
+(no `$(VAR)` interpolation remains); the README gains the
+create-the-default-user step after `up -d` (creds stay inside the container
+env) and the recreate warning now covers ALL users, default included. The
+compose env-injection comment reflects its real remaining consumer (the
+in-container recipes). Second find: the 4.x image ships rabbitmqadmin v2
+(Rust rewrite) — the debug-queue recipe rewritten in its flag syntax. The
+design's conf-migration section records both; its open list shrinks to
+restart-day timing.
+
+## 2026-07-17 — green broker staging: 4.1.8, migrated conf, generated definitions
+
+Branch `jm/green-broker-4x` — the green box's config, per the Accepted
+Pass-1 designs (OPS-424 blue/green + OPS-425 generated topology).
+`compose.yaml` pins `rabbitmq:4.1.8-management` (latest patch of the 4.1
+line dev validated; official multi-arch image replaces the arm64v8/ 3.9.13
+pin) and drops the 3.x erl-args definitions mechanism for a conf-side
+load. `rabbitmq.conf` gains `definitions.import_backend = local_filesystem`
++ `definitions.local.path` (the mounted file carries no users, so
+default-user seeding from `.env` still runs); `mqtt.subscription_ttl`
+(ms) becomes `mqtt.max_session_expiry_interval_seconds = 86400` (s); the
+`mqtt.default_user/pass` anonymous-fallback keys are dropped, not migrated
+— with `mqtt.allow_anonymous = false` they had no effect, and 4.x removed
+them. `config/rabbit_definitions.json` becomes a byte-identical copy of
+gwbase's generated `hybrid_definitions.json` — current-era exchange fabric
+(the weather retarget rides the cutover; see the OPS-425 design's cutover
+section) — with the README gaining the never-hand-edit rule and the
+sibling-checkout drift-diff command. TLS, management, and default-user
+conf blocks carry over from OPS-423 unchanged.
+
 ## 2026-07-17 — rabbit 4x prep: LTN boxes, debug tap, queue-depth alert note
 
 Branch `jm/rabbit-4x-prep`, from the pre-upgrade broker audit. The

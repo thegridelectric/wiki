@@ -96,6 +96,13 @@ Exempt: `README.md`, `changelog.md`, `DESIGN_INDEX.md`, `glossary.md`,
   that demand acks on that path.
 - **No phantom references** — cite only durable, openable things (file paths,
   real Linear ids, commit hashes). Ephemeral session task numbers are phantom.
+- **References carry a small searchable quote.** When citing a document
+  (PDF, filing, article, web page), put a short verbatim snippet under the
+  link — something the reader can paste into the source's search box to
+  land on the passage. Quote only text actually read this session (or in a
+  cited extraction); when no verbatim text was captured, mark the reference
+  "quote not captured; read before citing" — never paraphrase inside quote
+  marks. A citation that must carry its own quote cannot be invented.
 - **Sema regen touches more than you changed** — bumping one type's version
   rewrites the generated runtime of unchanged referrers (versionless class ref
   rebinds; old version gets an explicit `XxxNNN` class). Expected, not a stray
