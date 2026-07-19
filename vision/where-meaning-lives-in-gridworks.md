@@ -1,12 +1,12 @@
 # Where Does Meaning Live in the GridWorks System
 
-Status: Draft · Pass 0 · Updated 2026-05-23
+Status: Draft · Pass 0 · Updated 2026-07-19
 
-What this is: a GridWorks-specific architecture position paper naming
-Sema as the semantic authority of the GridWorks system. Moved out of
-`sema/docs/` because it is GridWorks-flavored framing, not part of Sema's
-ecosystem-neutral motivation — the sema `README.md` "Why this matters"
-section covers the generic "why Sema exists."
+What this is: the GridWorks architecture position naming Sema as the
+semantic authority of the GridWorks system. The vision-grade *why* under
+this position is [`data-meaning-sovereignty.md`](data-meaning-sovereignty.md);
+the sema `README.md` "Why this matters" section covers the ecosystem-neutral
+"why Sema exists."
 
 ---
 
@@ -22,13 +22,41 @@ More precisely: **Sema is the authority over meaning,** while a small, stable, s
 
 The canonical seed database holds the core relational facts of the GridWorks universe — grid nodes, layouts, identities, and other foundational relationships that change slowly and matter everywhere. It is **Sema-correct by construction**: rows reference Sema types, versions, and identities explicitly, so facts cannot silently drift from their declared meaning.
 
-This is a case of **tight and careful semantic coupling.** Meaning is declared once, in Sema. Facts are asserted once, in the seed database. Other databases, caches, and analytics systems consume projections of that truth rather than redefining it. Those downstream systems are free to optimize for their own needs. Being "Sema-aware" does not require using Sema types directly in code: developers may reference the declarative definitions informally or use full Sema-typed models; both are acceptable. What matters is that meaning remains explicit and externally defined - personally, I find the typed approach clearer and more durable, but the system does not require it.
+This is a case of **tight and careful semantic coupling.** Meaning is declared once, in Sema. Facts are asserted once, in the seed database. Other databases, caches, and analytics systems consume projections of that truth rather than redefining it. Those downstream systems are free to optimize for their own needs. Being "Sema-aware" does not require using Sema types directly in code: developers may reference the declarative definitions informally or use full Sema-typed models; both are acceptable. What matters is that meaning remains explicit and externally defined; the typed approach tends to be clearer and more durable, but the system does not require it.
 
 This approach:
   - Does not block multi-reader architectures
   - Does not require a bijection between all tables and Sema types
   - Allows Sema to continue evolving in production
   - Treats Sema as the semantic contract of the system
+
+## The `.gt` suffix: where the bijection holds
+
+The system does not require a bijection between all tables and Sema types,
+but where the bijection does hold, the name says so. A TypeName ending in
+`.gt` declares that the type is coupled bijectively with one table in a
+canonical seed database: the table's rows are instances of the type, and
+that table is where those facts are asserted. Message types that cross the
+wire and are gone (`bid`, `report`, `heartbeat.a`) carry no `.gt`; the
+`.gt` words are the system's durable records.
+
+The coupling runs in the direction this whole position describes: Sema
+declares what a row means; the seed table asserts which instances currently
+hold. For example, `hp.device.type.gt` defines the category-level facts of
+a compressor-bearing heat pump unit (capacity, electrical limits, the
+primary-pump facts); the corresponding seed table holds one row per
+registered device category (e.g. `SamsungAE055FCYDCG`). Each seed-coupled
+`.gt` schema carries a short note to this effect in its
+`extended_description`, naming which seed database the word belongs to —
+layout words to the terminalasset registry, grid topology and identity to
+the grid node registry, runtime instances to the FIS — so the convention is
+visible to a reader of the public schema who has never seen this document.
+
+A few words carry `.gt` by naming inertia and are not seed-coupled:
+`position.point.gt`, `hubitat.gt`, `hubitat.poller.gt`, and
+`maker.api.attribute.gt` are value objects embedded in other types, not
+tables of their own. They carry no note, and neither do retired words
+(`replaced_by` set) nor drafts.
 
 ## Semantic Snapshots and Meaning-Preserving Exports
 
@@ -40,7 +68,7 @@ Because the seed is Sema-correct by construction, conventional exports such as p
 
 This mirrors the role already played by the S3 persistent store for message history: operational systems run on live infrastructure, while meaning-preserving artifacts ensure long-term coherence and interpretability.
 
-I'm happy to help design or implement this export layer if it's useful. The goal is not to constrain how other systems are built, but to make it easy for them to know exactly what the data means, even as schemas, pipelines, and use cases evolve.
+The goal is not to constrain how other systems are built, but to make it easy for them to know exactly what the data means, even as schemas, pipelines, and use cases evolve.
 
 ## Is This a Common Pattern?
 

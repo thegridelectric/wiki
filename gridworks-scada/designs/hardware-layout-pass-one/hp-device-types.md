@@ -1,6 +1,6 @@
 # HP device types — hp.device.type.gt + hp.control.box.device.type.gt (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-07-17 · Linear: OPS-407
+Status: Draft · Pass 0 · Updated 2026-07-19 · Linear: OPS-407
 
 > What this is: the converged design for retiring `gwsproto.enums.HpModel` into the
 > device-type model — two new sema record families for heat pumps, the enum values, and
@@ -28,10 +28,16 @@ is the running cost of these facts having no structured home.
   ODUs *and* IDUs (the cascade IDUs carry their own refrigerant cycle).
   Required: `DeviceType`, `MaxKwEl` (absorbs `HpMaxKwEl` from settings),
   `HeatingCapacityBtuHr`, `CoolingCapacityBtuHr`, + the three pump facts below.
-  Optional: `Refrigerant`, `CompressorRatedAmps`, `Mca`, `Mop`, `DisplayName`.
-- **`hp.control.box.device.type.gt/000`** — control boxes (no compressor; the
-  monobloc's indoor box). Required: `DeviceType` + the three pump facts.
-  Optional: `WaterPumpRatedAmps`, `BackupHeaterKwList`, `Mca`, `Mop`, `DisplayName`.
+  Optional: `Refrigerant`, `CompressorRatedAmps`, `Mca`, `Mop`, `ProductInfoUrl`,
+  `DisplayName`.
+- **`hp.control.box.device.type.gt/000`** — control boxes (the monobloc's indoor unit:
+  hydraulics, control electronics, local touch-screen, ODU comms; no compressor).
+  Required: `DeviceType` + the three pump facts. Optional: `WaterPumpRatedAmps`,
+  `BackupHeaterKwList`, `Mca`, `Mop`, `ProductInfoUrl`, `DisplayName`.
+- **`ProductInfoUrl`** (plain string, both families) links the publicly accessible
+  product-info folder — the GridWorks pattern of a public Drive folder per device
+  category (manuals, nameplates, wiring diagrams, controls notes). Deliberately
+  unconstrained (no url format yet; scheme uncertainty), single field not a list.
 
 **The three primary-pump facts — REQUIRED on both families** (the unit owning the pump
 signal varies by architecture; the maple bug is the cost of assumed defaults):
@@ -70,17 +76,18 @@ for the spruce pair is transcribed in the Samsung AE055 Drive folder.
   `hp-ctrl-box` = the monobloc indoor box; multi-outdoor-compressor systems index
   `hp-odu1`/`hp-odu2` (the Arctic case); the tentative `heat-pump` entry was deleted.
 
-## Open decisions for the executing session (ask JM)
+## Decisions (resolved 2026-07-19, JM)
 
-- **(a)** Append the two values to staging `gw1.device.type/001` in place (lean — staging
-  is mutable, no cascade) vs mint `002`.
-- **(e)** Sema branch: `jm/i2c-relay-capability` (lean — the line the gwta snapshot
-  tracks) vs fresh `jm/<topic>`.
+- **(a)** Append the two values to staging `gw1.device.type/001` in place — staging is
+  mutable, no cascade.
+- **(e)** Sema branch: `jm/i2c-relay-capability` — the line the gwta snapshot tracks;
+  the single-bus-owner sema round (`Gw108Adc` + thermistor-reader `/003`) shares it.
 
 ## Execution checklist (sema round only)
 
 Read `sema/CLAUDE.md` verbatim → `/make-sema-word` ritual → the two schemas + registry
-entries (`versioning_strategy: string`, `status: staging`) + enum values per (a) →
+entries (`versioning_strategy: literal` — the registry-wide convention; the earlier
+`string` note was a slip — `status: staging`) + enum values per (a) →
 `scripts/build_indexes.sh` + `scripts/regenerate_runtime.py` → pytest + registry
 validation green → suggest commit (JM commits). **Follow-on, separate (scada side, its
 own gating):** gwsproto twins, `HpModel` enum retirement + the three consumer call

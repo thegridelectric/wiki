@@ -12,6 +12,43 @@ Newest at the top.
 
 ---
 
+## 2026-07-19 — hp device-type families; SamsungAE055 values; .gt seed-coupling notes <!-- pending commit -->
+
+**What:** on `jm/i2c-relay-capability`. Two new staging record families, flat,
+`DeviceType`-keyed (the `ads111x.based.device.type.gt` pattern): `hp.device.type.gt/000`
+(compressor-bearing units — required DeviceType, MaxKwEl, HeatingCapacityBtuHr,
+CoolingCapacityBtuHr + the three primary-pump facts; optional Refrigerant,
+CompressorRatedAmps, Mca, Mop, ProductInfoUrl, DisplayName) and
+`hp.control.box.device.type.gt/000` (control boxes — the monobloc's indoor unit:
+hydraulics, control electronics, local touch-screen, ODU comms; required DeviceType + the
+three pump facts; optional WaterPumpRatedAmps, BackupHeaterKwList, Mca, Mop,
+ProductInfoUrl, DisplayName). `ProductInfoUrl` (plain string, both families) links the
+publicly accessible product-info folder — the GridWorks pattern of a public Drive folder
+per device category with manuals, nameplates, wiring diagrams, controls notes. The `.gt`-convention
+`extended_description` note (`.gt` = coupled bijectively with a canonical-seed table;
+position doc: `wiki/vision/where-meaning-lives-in-gridworks.md`) swept across all 30
+seed-coupled `.gt` words (latest non-draft versions), each naming its seed database —
+terminalasset registry for layout words, grid node registry for `g.node.gt` +
+`connectivity.edge.gt`, FIS for `g.node.instance.gt`. Excluded as not seed-coupled
+(embedded value objects, `.gt` by naming inertia): `position.point.gt`, `hubitat.gt`,
+`hubitat.poller.gt`, `maker.api.attribute.gt`; also excluded: the two `replaced_by` CAC
+words and the draft `gw108.gpio.relay.component.gt`. The 7 published words in the sweep
+were re-pinned via `published_hashes --rewrite` (JM-sanctioned; prose-only, no validation
+change). The three primary-pump facts
+(PrimaryPumpFactoryInstalled / PrimaryPumpOverridable / PrimaryPumpAlwaysOn) are REQUIRED
+on both — no assumed defaults. Staging `gw1.device.type/001` appended in place:
+`SamsungAE055FCYDCG` (spruce ODU) + `SamsungAE055FEYMCG` (spruce control box). Indexes +
+runtime regenerated; suite 386 passed; new-type round-trip smoke-checked.
+
+**Why:** hardware-layout-pass-one (OPS-407), the hp-device-types spoke: retire
+`gwsproto.enums.HpModel` + `ScadaSettings.hp_model`'s silent default into the device-type
+model — heat pumps need exact-designation identity because control code branches on model,
+and the maple pump-doctor defect (OPS-450) is the running cost of the pump facts having no
+structured home. Enum values appended in place per JM decision (a); nameplate-grounded
+mints for the legacy four HpModel values follow as nameplates are confirmed. Scada-side
+follow-on (gwsproto twins, consumer call sites, thin `hp-ctrl-box` components) is its own
+gating.
+
 ## 2026-07-13 — cop.curve + heating.curve; operational-params control block (`7657167`)
 
 **What:** on `jm/i2c-relay-capability`. Two new staging words: `cop.curve/000` (Intercept,

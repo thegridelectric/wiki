@@ -3,7 +3,7 @@
 Status: Draft · Pass 0 · Updated 2026-06-23
 
 Design intent from Jessica + foundational reads (`sema/CLAUDE.md`,
-[[../../../sema/research/where-meaning-lives-in-gridworks]]).
+[[../../vision/where-meaning-lives-in-gridworks]]).
 
 ## What Sema is (and isn't)
 
@@ -30,7 +30,7 @@ Core rules (from `sema/CLAUDE.md`):
 
 Meaning is **explicit**: any fact that matters for validation/composition is
 declared in the Sema schema, never inferred from naming or implementation
-([[../../../sema/research/where-meaning-lives-in-gridworks]]).
+([[../../vision/where-meaning-lives-in-gridworks]]).
 
 ## In the SCADA
 
@@ -60,5 +60,5 @@ hierarchies. See [[../principles]].
 
 ## Links
 
-`sema/CLAUDE.md` · [[../../../sema/research/where-meaning-lives-in-gridworks]] ·
+`sema/CLAUDE.md` · [[../../vision/where-meaning-lives-in-gridworks]] ·
 `gridworks-scada/CLAUDE.md` (Boundary protocol vs. runtime) · [[../principles]]

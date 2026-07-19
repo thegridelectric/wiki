@@ -10,7 +10,7 @@ standalone experiment.
 > holds every terminal asset's **hardware layout** and **operational-params**, and is
 > the durable source of truth that provisioning, the LTN, the web frontend, and
 > analytics consume. It is the layout/params sibling of the grid-node-registry — same
-> *seed* pattern (see [`../../sema/research/where-meaning-lives-in-gridworks.md`](../../sema/research/where-meaning-lives-in-gridworks.md)),
+> *seed* pattern (see [`../../vision/where-meaning-lives-in-gridworks.md`](../../vision/where-meaning-lives-in-gridworks.md)),
 > deliberately **without** GNR's decentralizable / on-chain requirement. The Sema
 > words and the authoring gen come from hardware-layout-pass-one
 > ([OPS-407](https://linear.app/gridworks/issue/OPS-407)); this is where the asserted

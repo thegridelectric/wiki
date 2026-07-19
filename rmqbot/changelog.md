@@ -13,13 +13,6 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-07-18 — inventory: weather successor pointer to OPS-436
-
-One-line fix: the journalmaker known-gaps bullet pointed the weather
-successor at OPS-454, which was canceled the same day as an accidental
-duplicate of OPS-436 (`stand-up-weather-forecast`, the pre-existing design
-slug that absorbed its content). The pointer now names the live issue.
 ## 2026-07-18 — Rabbit at 4.1
 
 Branch `jm/green-broker-4x` — the flip-day paper trail (the flip itself:

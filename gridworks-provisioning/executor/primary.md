@@ -71,7 +71,7 @@ trust model; the substrate becomes postgres + signatures + FIS.
 
 ## The gem — Sema-coupled GNode registry
 
-Per [`../../sema/research/where-meaning-lives-in-gridworks.md`](../../sema/research/where-meaning-lives-in-gridworks.md):
+Per [`../../vision/where-meaning-lives-in-gridworks.md`](../../vision/where-meaning-lives-in-gridworks.md):
 
 The gem is the **canonical seed database**. It holds Sema-typed GNode
 facts (`g.node.gt` records) as its primary content. The legacy
@@ -219,7 +219,7 @@ Carried forward from the legacy design + extended:
 
 ## Cross-references
 
-- [`../../sema/research/where-meaning-lives-in-gridworks.md`](../../sema/research/where-meaning-lives-in-gridworks.md) — the gem as canonical seed
+- [`../../vision/where-meaning-lives-in-gridworks.md`](../../vision/where-meaning-lives-in-gridworks.md) — the gem as canonical seed
 - [`../../gridworks-fleet-index-service/executor/primary.md`](../../gridworks-fleet-index-service/executor/primary.md) — FIS auth model (Invariants #2, #3, #4 generalize to operator certs and installer certs)
 - [`../../gridworks-scada/explorations/non-gnode-interfaces.md`](../../gridworks-scada/explorations/non-gnode-interfaces.md) — original framing of provisioning as an open concern
 - Legacy code reference: `~/Claude/GNodeRegistry/` (gnf.gnf_db.py, gnf.django.models.py, gnf.basegnode_scada_create.py, gnf.rest_api.py)

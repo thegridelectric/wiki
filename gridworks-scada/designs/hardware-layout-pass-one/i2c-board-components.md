@@ -1,6 +1,15 @@
 # I²C / board-resident components — actor layer (spoke — deferred to pass-two)
 
-Status: Accepted · Pass 1 · Updated 2026-07-15 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-07-19 · Linear: OPS-407
+
+**Nolan slice pulled forward (2026-07-19):** the spruce relay work
+([OPS-392](https://linear.app/gridworks/issue/OPS-392), the spruce-unlimbo design's
+`spruce-relay-control.md` spoke) executes this model for the nolan/gw108 case now:
+the `Gw108Adc` value + thermistor-reader `/003` (steps 1–2), `I2cBus` wiring with
+reply-to (step 4), and the nolan layout's relay nodes on `i2c.relay.component.gt`
+with `relay.py` resolving `RelayName` against the board record (the nolan half of
+step 3). The krida decommission and the House0 layout migration remain pass-two,
+this spoke.
 
 **Capability reshape (2026-07-09, landed with the functional-relay-names work):** the board-record
 vocabulary went through a naming + shape correction. `i2c.relay.config` → **`i2c.relay.capability`**

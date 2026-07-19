@@ -46,7 +46,7 @@ So channel meaning lives in **two different places** depending on the channel:
   This is a deliberate convenience, but it means **the meaning of a pseudo
   channel is encoded in gjk rather than in Sema** — the one place the
   ecosystem otherwise insists meaning must be explicit (see
-  `wiki/sema/research/where-meaning-lives-in-gridworks.md`).
+  `wiki/vision/where-meaning-lives-in-gridworks.md`).
 
 `LayoutLitePersistor` is the channel registry keeper: it syncs all three kinds
 into `reading_channels`, deactivating (via `deactivated_date`) any whose

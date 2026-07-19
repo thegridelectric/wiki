@@ -1,6 +1,6 @@
 # Spruce relay control — chunk A execution (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-07-15 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-07-19 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke — get the scada actuating spruce's i2c relays, with
 > the heat pump under a single reliable on/off relay. Design-side record only. Everything
@@ -70,11 +70,22 @@ consumer; (4) `I2cBus`/`I2cRelayBoard` unregistered in `actors/__init__.py`; (5)
 bypasses all five (direct expander writes); the scada-actor path is the build that
 retires it.
 
-**The fork (open):** extend the gw108 component family minimally vs pull pass-two's thin
-`i2c.relay.component.gt` model forward (sema vocabulary already authored). Deploy
-question: spruce runs `actual-spruce` (= `td/orig-pred-set`); the scada-actor build lands
-on `jm/spruce-unlimbo` per branch discipline — upgrading spruce to it requires the ops
-artifact placed first (`82caac3e` deploy note).
+**The fork (resolved 2026-07-19): pull pass-two's thin `i2c.relay.component.gt` model
+forward, scoped to the nolan/gw108 slice.** The alternative (extending the gw108
+component family minimally) would mint a third relay-modeling scheme and another
+hard-coded `relay.py` branch — the axis-3 leak the hub's conceptual model exists to
+remove. The sema vocabulary is already authored (2026-07-03/09), so the remaining cost
+is actor wiring either way; the single-bus-owner prerequisite below already routes ADC
+reads through `I2cBus`, and the OPS-452 hardening (expander init-guard, input-register
+readback) gets built once, in the durable actor. The slice: `Gw108Adc` device-type
+value + thermistor-reader `/003`, `I2cBus` wiring with reply-to, i2c relay nodes in the
+nolan layout gen on `i2c.relay.component.gt`, and a `relay.py` path resolving
+`RelayName` against the board record. The krida decommission and the House0 layout
+migration stay pass-two
+([`../hardware-layout-pass-one/i2c-board-components.md`](../hardware-layout-pass-one/i2c-board-components.md)).
+Deploy note: spruce runs `actual-spruce` (= `td/orig-pred-set`); the scada-actor build
+lands on `jm/spruce-unlimbo` per branch discipline — upgrading spruce to it requires the
+ops artifact placed first (`82caac3e` deploy note).
 
 **Prerequisite (JM 2026-07-15): single bus owner before scada-driven i2c relays.** The
 deployed thermistor reader (`i2c_thermistor_reader.py`, blinka/ADS1115, direct at its own

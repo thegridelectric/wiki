@@ -5,7 +5,7 @@ Status: Draft · Pass 0 · Updated 2026-07-13
 > What this is: the vision-grade *why* under how GridWorks holds data and
 > meaning — formal enough to compose, open enough to keep growing, and built so
 > the past stays legible. The concrete architecture position is
-> [`../sema/research/where-meaning-lives-in-gridworks.md`](../sema/research/where-meaning-lives-in-gridworks.md);
+> [`where-meaning-lives-in-gridworks.md`](where-meaning-lives-in-gridworks.md);
 > this doc keeps only the dream. A north star, held lightly.
 
 ## Formal, yet open to new expression
