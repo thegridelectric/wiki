@@ -1,6 +1,6 @@
 # Populate + deploy — the MVP registry on EC2 (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-07-13 · Linear: OPS-419
+Status: Accepted · Pass 1 · Updated 2026-07-19 · Linear: OPS-419
 
 **EDD: no** build-out/integration; verified by the deployed registry answering
 real forest queries over its live surface (plus the suite staying green), not a
@@ -27,9 +27,10 @@ SQL, so `command_log` + the alias ledger hold every row from birth (executor
 2. **Ingest:** the deployed fleet from `tlayouts/output/*.uploaded.json` — the
    parent copper chain plus each home's LTN/Scada/TA — as `g.node.create.cmd`s
    **published over rabbit**, parents-first, so the ear's capture holds the
-   fleet's birth record alongside the command log. **Prerequisite: the
-   durable ear capture (OPS-443, strand 2) is deployed first** — genesis must
-   be witnessed, since the capture is the registry's durability story. The ingest script is
+   fleet's birth record alongside the command log. Genesis is witnessed by
+   the ear, which is live and captures this traffic today; durable backup of
+   that capture is OPS-443 strand 2, tracked separately — not a gate on the
+   ingest. The ingest script is
    operator-run and deliberately **not checked in** (a one-shot; the command
    log + ear capture are the record, not the tool). **Every node enters
    `Pending`**; activation comes with the TaValidator / encryption work — the
@@ -57,29 +58,48 @@ rabbit adapter rides the live run's fabric, vhost **`hw1__1`** (the registry is
 per-universe and shared across runs; the vhost is broker-connection config, not
 registry state). The `w` registry is minted when that universe exists.
 
-## Deploy — EC2 alongside FIS
+## Deploy — Hetzner US (the first service off AWS)
 
+- **Host: a Hetzner US cloud instance** (CPX21-class, 3 vCPU / 4 GB). The
+  registry is the first GridWorks service hosted off AWS, part of the move
+  away from the big-cloud providers. It is the right first mover: fully
+  containerized, rebuildable from the message log, and its only broker
+  coupling is an **outbound** AMQP connection, which works the same from any
+  provider. FIS is not co-located — it sits on the broker's auth hot path
+  and belongs broker-adjacent; it consumes the registry over rabbit forest
+  broadcasts, so nothing depends on a shared box. The box fronts a **Hetzner
+  Floating IP** (the EIP analog — AWS EIPs cannot leave AWS), so replacing
+  the server is an atomic re-point, never a DNS change. The
+  `<name>.electricity.works` A record points at the Floating IP and stays in
+  the existing Route 53 zone at MVP — one record; moving the zone off
+  Route 53 is its own later item, deliberately not riding this deploy.
 - **Promote `g.node.create.cmd` to `published` first** (sema promotion PR) and
   drop `--allow-staged` from `build_gnr_snapshot.sh`: staging words are
   dev-broker-only, so a dev-only snapshot cannot ship to `hw1`.
-- **Surface:** the read-only HTTP API (`gnr.api`) is the open surface —
-  internal service API, privacy by the network perimeter. **`gnr_tx` stays
-  unreachable from outside until mTLS+FIS lands** (hard requirement).
-- **Postgres: a container on the box.** Chosen for infra-awareness and
-  portability (a likely move off AWS once the stack is clear; the broker is
-  already a container). The data directory lives on a **KMS-encrypted EBS
-  volume**. **Durability is message-log-first, not database-backup-first**
-  (see *Rebuild from the message log* below): Postgres is a materialized view
-  of the logged commands. EBS snapshots MAY be taken as a restore
-  accelerator; they are not the durability story and are not required.
+- **Surface: public read-only HTTPS.** The registry is backbone
+  infrastructure and its topology is readable by anyone, not rabbit-only:
+  the read façade (`gnr.api`) is served publicly over TLS (Caddy +
+  Let's Encrypt in front; a DNS name created at deploy — DNS changes are
+  operator-run), CORS-open, strictly read-only. Privacy rides on the data
+  shape, not a network perimeter: topology only, opaque
+  `position_point_id`s, `position_points` empty (the staging plan). Writes
+  never ride HTTP; **`gnr_tx` stays unreachable from outside until mTLS+FIS
+  lands** (hard requirement).
+- **Postgres: a container on the box.** The data directory lives on a
+  **LUKS-encrypted volume** (OS-level, provider-agnostic). **Durability is
+  message-log-first, not database-backup-first** (see *Rebuild from the
+  message log* below): Postgres is a materialized view of the logged
+  commands. Volume snapshots MAY be taken as a restore accelerator; they are
+  not the durability story and are not required.
 - **gnr runs as a container too** (matching the broker and the direction of
   travel; write the `Dockerfile` in this step). `.env` injected at run;
   logs/state on a mounted volume.
-- **Security: minimum new build only.** A purpose-built `gnr` security group —
-  SSH from admin, the HTTP façade reachable only inside the perimeter,
-  Postgres not exposed at all. The estate-wide cleanup is its own design
-  (`ec2-security-group-cleanup`), deliberately decoupled because it may
-  impact existing services.
+- **Security: minimum new build only.** The provider firewall opens SSH and
+  443 and nothing else; Postgres is not exposed at all. SSH access is by
+  **individual per-person keys** (the certbot/rmqbot precedent); a shared
+  key exists only as an **automation role key** (e.g. a future provisioning
+  role) — never as a stand-in for multiple humans. The AWS estate-wide
+  cleanup stays its own design (`ec2-security-group-cleanup`), unaffected.
 - **Migrations:** `alembic upgrade head` on deploy, against the single squashed
   FK-free baseline.
 - **Config/secrets:** `.env` from `template.env`; broker creds never hardcoded.
@@ -98,8 +118,8 @@ Canonical: executor *Durability — the message log is the system of record*
 joined by the content hash; rebuild = ordered replay through the handler
 core + forest cross-check). What this step must deliver:
 
-- the ear capture running **before ingest** (above), landing in durable
-  storage (OPS-443, both sinks);
+- the ear witnessing the ingest (it is live and captures this traffic;
+  durable backup of its capture is OPS-443 strand 2, tracked separately);
 - the **rebuild script** — checked in and tested, unlike the one-shot ingest
   script, because it is the durability mechanism itself — with its
   dev-harness EDD experiment (capture a seed + mutations → wipe → rebuild →

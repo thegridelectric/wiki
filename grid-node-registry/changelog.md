@@ -12,6 +12,21 @@ Newest at the top.
 
 ---
 
+## 2026-07-19 — Service entry points + Dockerfile <!-- pending commit -->
+
+**What:** real `gnr` CLI (`gnr rabbit` runs the write loop via a new runner;
+`gnr api` runs the read façade under uvicorn) replacing the hello-world stub;
+`RabbitRunSettings` (super/time-coordinator aliases — required, no defaults) +
+`ApiRunSettings` (loopback bind) in `gnr.settings`; template.env documents the
+new `GNR_`/`GWBASE_` deploy vars; one Dockerfile, two commands.
+
+**Why:** the deploy step (populate-and-deploy spoke) needs the registry
+runnable as containers; until now only tests could construct `GnrRabbit`, and
+the console script printed hello-world. Orchestration aliases are deployer
+declarations, so they refuse to boot unconfigured rather than assume `d1`.
+**Verified:** 23 unit tests pass (19 integration self-skip locally); CLI
+smoke-tested. Docker image build not yet run (no local daemon).
+
 ## 2026-07-08 — Create accepts a Pending parent (fleet bootstrap) (`9ff7271` + test in `a799004`)
 
 **What:** `apply_create`'s parent check widens from Active-only to

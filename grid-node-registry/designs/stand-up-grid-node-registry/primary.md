@@ -1,6 +1,6 @@
 # Stand up grid node registry
 
-Status: Accepted · Pass 1 · Updated 2026-07-08 · Linear: OPS-419
+Status: Accepted · Pass 1 · Updated 2026-07-19 · Linear: OPS-419
 
 **EDD: no** build-out — verified by the suite plus a deployed registry that
 round-trips GNode I/O and answers FIS's validity queries; not a standalone
@@ -226,12 +226,14 @@ step 5.
   is the **backstop signal** — a node provisioning missed connects with a stale alias,
   fails auth, and that observable failure triggers a redeploy. The node never queries
   the registry itself; it just gets redeployed (~yearly cadence, so a restart is fine).
-- **Read API needs no mTLS.** It is an **internal service API** — consumers are FIS,
-  provisioning, and analytics (e.g. data analysis) inside the GridWorks infra. The
-  topology + `position_points` (home-location) privacy is handled by the **network
-  perimeter** (internal-only, not publicly exposed), not per-request client certs —
-  so internal services query it over plain HTTP, no mTLS friction. (If remote
-  self-service is ever needed, add a separately-exposed authenticated endpoint then.)
+- **Read API is public, read-only HTTPS.** The registry is backbone
+  infrastructure; its topology is not rabbit-only — anyone may read it (FIS,
+  provisioning, analytics, and outside readers alike) over TLS with no client
+  certs. Privacy is carried by the data shape, not a network perimeter: the
+  API exposes topology only, and home location stays behind opaque
+  `position_point_id`s (`position_points` empty until the TaValidator
+  encryption work). Writes never ride HTTP — mutation stays on the rabbit
+  path behind its mTLS+FIS gate.
 - **Snapshot tracking.** The vendored snapshot tracks whichever branch holds the
   registry's words — `jm/sim-vocab` now, `dev` once that merges. The hand-written
   `src/gnr/sema/README.md` is removed (stale boilerplate; provenance lives in
