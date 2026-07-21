@@ -12,6 +12,49 @@ Newest at the top.
 
 ---
 
+## 2026-07-19 — thermistor reader /003: board-record resolution; DeviceType enum to /001 (`75746bfe`)
+
+**What:** on `jm/spruce-unlimbo`, companion to sema `e9b050f`. `I2cThermistorReaderComponentGt`
+twin → `/003` (drops `Bus`/`AdcAddress`/`AdcReferenceVolts`/`SeriesResistanceKOhms`, adds
+required `AdcName`; the redundant ConfigUniqueness axiom and the now-moot AddressValidity axiom
+deleted with their fields). The actor resolves address/reference/series from the board record's
+`ThermistorAdcs` entry via `AdcName` — the krida pin-resolution pattern; no more per-component
+physical facts. `DeviceType` enum aligned to `gw1.device.type/001` +5 values (the two Gw108
+relays it was missing, the two SamsungAE055 values, `Gw108Adc`). The nolan gen emits the FULL
+`gw108_device_type` record (was a bare DeviceType+DisplayName stub — the record gains its
+`DisplayName` at source) and constructs the /003 reader with `AdcName` from the record; stale
+pre-strip `Unit=`/`Exponent=` kwargs (incl. nonexistent `Unit.Celcius`) removed from the nolan
+gen path. `nolan-layout.json` patched surgically (reader → /003 + full board record) because
+the fixture and its generator have drifted — wholesale regen would revert the
+`transactive-power` DerivedChannel and Hydronic facts (dangler logged in the
+i2c-board-components spoke). Twin tests → /003. Verified: `sema validate` OK on the
+(pre-ops-merge) reader payload and the board record; layout check clean
+(transactive-power intact); non-broker suite green (96 + 59); conformance sweep count
+unchanged (the reader stays in the known ChannelConfigBase transitional class).
+
+**Why:** the single-bus-owner prerequisite (spruce-relay-control spoke): the board record is
+the single source of physical truth, and the fixture's 5.6 kΩ vs the record's 5.65 kΩ series
+resistance was live proof of the double-bookkeeping this ends. Next: the reader actor off
+blinka/adafruit onto `I2cBus` bus-ops with reply-to routing (the bench gw108 rig is the
+witness), then the relay path.
+
+## 2026-07-19 — gwsproto: HpDeviceTypeGt + HpControlBoxDeviceTypeGt twins (`a7716865`)
+
+**What:** on `jm/spruce-unlimbo`. Two hand-written gwsproto named types mirroring the new
+sema words (`hp.device.type.gt/000`, `hp.control.box.device.type.gt/000`, sema `69bcac8`):
+PascalCase-native, `Sema:`-URL docstrings, `extra="allow"`, no axioms to mirror. Exported
+via `named_types/__init__.py` + `named_types/device_types.py`, which enrolls them in the
+`DeviceTypeDecoder` union (regex `.*\.device\.type\.gt`). Verified: serialized instances
+pass `sema validate` (both OK); the decoder resolves both TypeNames; the conformance
+sweep reports both words fully conformant (canonical sema example → twin decode →
+canonical re-serialization). Suite: 108 passed; the 10 failures are the broker-dependent
+link/live/admin tests with no local broker running — environmental, untouched by this
+change.
+
+**Why:** hp-device-types spoke, first scada-side follow-on step: the twins are the
+landing pad for retiring `HpModel` + `ScadaSettings.hp_max_kw_el` (the remaining
+consumer-call-site and thin-component work is its own gating).
+
 ## 2026-07-15 — names: hp-ctrl-box for the monobloc indoor box; hp-odu/hp-idu doc comments; drop unused heat-pump entry (`1ded34cc`)
 
 **What:** on `jm/spruce-unlimbo`, in `gwsproto/names/hydronic_spaceheat/`. The unused

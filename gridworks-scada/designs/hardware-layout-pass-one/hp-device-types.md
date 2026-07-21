@@ -83,14 +83,27 @@ for the spruce pair is transcribed in the Samsung AE055 Drive folder.
 - **(e)** Sema branch: `jm/i2c-relay-capability` — the line the gwta snapshot tracks;
   the single-bus-owner sema round (`Gw108Adc` + thermistor-reader `/003`) shares it.
 
-## Execution checklist (sema round only)
+## Execution state
 
-Read `sema/CLAUDE.md` verbatim → `/make-sema-word` ritual → the two schemas + registry
-entries (`versioning_strategy: literal` — the registry-wide convention; the earlier
-`string` note was a slip — `status: staging`) + enum values per (a) →
-`scripts/build_indexes.sh` + `scripts/regenerate_runtime.py` → pytest + registry
-validation green → suggest commit (JM commits). **Follow-on, separate (scada side, its
-own gating):** gwsproto twins, `HpModel` enum retirement + the three consumer call
-sites reading DeviceType from the layout, thin components into layouts/gens, the
-OPS-450 maple sweep. First data for the records beyond nameplates: spruce steady-state
-compressor draw 1.7–1.8 kW vs 4.3 kW circuit rating (2026-07-16).
+- ✅ **Sema round** (sema `69bcac8`, 2026-07-19): the two schemas + registry entries
+  (`versioning_strategy: literal` — the registry-wide convention; the earlier `string`
+  note was a slip), enum values appended per (a), `ProductInfoUrl` on both families.
+- ✅ **Nameplate examples** (sema `2925363`, merged to dev): real AE055 values from the
+  Drive transcription; `MaxKwEl: 4.35` derived (18.9 A × 230 V), JM to confirm.
+- ✅ **gwsproto twins** (scada `a7716865`): `HpDeviceTypeGt` +
+  `HpControlBoxDeviceTypeGt`, in the `DeviceTypeDecoder` union; `sema validate` OK;
+  conformance sweep fully conformant.
+- **Remaining (scada side, its own gating):** `HpModel` enum retirement + the three
+  consumer call sites reading DeviceType from the layout
+  (`orig_sieg_loop.py`, `sh_node_actor.py:1325`, `all_tanks_tou.py`), retire
+  `ScadaSettings.hp_model`/`hp_max_kw_el`, thin `hp-ctrl-box` components into
+  layouts/gens, the OPS-450 maple sweep. First data beyond nameplates: spruce
+  steady-state compressor draw 1.7–1.8 kW vs 4.3 kW circuit rating (2026-07-16).
+
+## Open wrinkle: control-box Mca/Mop are per-heater-config
+
+The AE055FEYMCG nameplate lists MCA/MOP per backup-heater configuration (2 kW: 12.0/15.0;
+4 kW: 22.9/25.0) — the flat optional `Mca`/`Mop` fields cannot carry both, so the box
+example omits them. Options when it matters: a per-stage list shaped like
+`BackupHeaterKwList`, or treating Mca/Mop at the category level as unset where
+config-dependent. Decide before the fields are load-consumed.

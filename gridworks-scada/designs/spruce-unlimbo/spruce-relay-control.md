@@ -1,6 +1,6 @@
 # Spruce relay control — chunk A execution (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-07-19 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-07-21 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke — get the scada actuating spruce's i2c relays, with
 > the heat pump under a single reliable on/off relay. Design-side record only. Everything
@@ -12,13 +12,49 @@ Status: Draft · Pass 0 · Updated 2026-07-19 · Linear: OPS-392
 
 ## ▶ Next move (active spoke)
 
-Hardware completion, in order: (1) replace the blown control-box fuse (details in the
-PRIMARY doc); (2) land the RIB contact (dead-work procedure, PRIMARY doc) and set the one
-Samsung config value that hands on/off authority to the contact; (3) witness the close/open
-pair — the running schedule service makes every TOU boundary a free witnessed test. Then:
-the ctrl-box CT lands (channel `hp-ctrl-box-pwr`) and the spruce layout regen picks it up
-(gen_spruce.py in tlayouts). After spruce is up: HP make/model tracking (below) and the
-OPS-27 pump device types.
+Two lanes:
+
+**Field (spruce, with George):** hardware completion, in order: (1) replace the blown
+control-box fuse (details in the PRIMARY doc); (2) land the RIB contact (dead-work
+procedure, PRIMARY doc) and set the one Samsung config value that hands on/off authority
+to the contact; (3) witness the close/open pair — the running schedule service makes
+every TOU boundary a free witnessed test. Then: the ctrl-box CT lands (channel
+`hp-ctrl-box-pwr`) and the spruce layout regen picks it up (gen_spruce.py in tlayouts).
+
+**Scada (the I2cBus build, on `jm/spruce-unlimbo`):** the single-bus-owner data model is
+landed (sema `e9b050f`, scada `75746bfe` — the board record owns the physical facts; the
+reader resolves via `AdcName`). What remains is the bus-op path itself: `I2cResult`
+reply-to routing (`Header.Src`, results return with their `TriggerId`), the reader actor
+off blinka/adafruit onto `I2cBus` ops (decide: raw reg-ops from the reader vs an ADC-read
+primitive on the bus actor — lean primitive, every ADC consumer repeats the same
+sequence), the OPS-452 init-guard + input-register readback folded into the bus actor.
+
+**Verification: reader→bus experiments run directly on spruce, ADC path only** (JM
+2026-07-21; the home bench gw108 would not power up). The arrangement that keeps this
+safe:
+
+- **Broker isolation.** The experiment scada (`jm/spruce-unlimbo` code + the ops
+  artifact) runs in its own environment on the spruce pi with NO production-broker
+  credentials — dev broker only, aliases dev-ified (the universe guardrail enforces
+  `d1` ⇔ dev broker). This keeps the staging layout tier inside its dev-brokers-only
+  boundary. Prod-affecting steps on the pi (stopping services, placing env files) are
+  JM's to execute; the session preps commands + a watch-list.
+- **One ADS reader at a time.** The deployed `actual-spruce` scada is STOPPED during
+  experiment windows — ADS1115 reads are multi-transaction with per-device state, so
+  two readers on the same ADC corrupt each other. The summer hack never touches the
+  ADS chips, so hack + experiment are disjoint on the bus.
+- **The experiment's `I2cBus` touches ONLY the ADS devices.** No expander access (the
+  OPS-452 clear-then-configure init-guard would stomp the hack's relay states — the
+  init-guard is built but enabled only for devices the actor owns, ADS in this phase)
+  and no TCA9548A mux access (the documented shared-state hazard).
+- **Cooling continuity is never in the experiment's hands** — the summer hack stays
+  untouched as the TOU/failsafe authority throughout.
+- **Relay-path actuation experiments do NOT ride this arrangement.** They need
+  deliberate, scheduled hack-off windows (failsafe direction is safe: contacts open,
+  HP off, cooling pauses) or a working bench board; the OPS-452 half-2 induced-reset
+  reproducer is parked on the same condition.
+
+Then the relay path rides the same bus actor, gated on that windows/bench decision.
 
 ## The control design (settled 2026-07-15)
 

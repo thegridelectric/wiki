@@ -1,6 +1,6 @@
 # Hardware layout — pass one (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-07-19 · Linear: OPS-407
+Status: Accepted · Pass 1 · Updated 2026-07-21 · Linear: OPS-407
 
 **EDD: yes** — and the verification that *matters* is behavioral, not static. The real bar is a
 House0-replicating simulated terminal asset (the sim plant, [OPS-40](https://linear.app/gridworks/issue/OPS-40);
@@ -11,7 +11,7 @@ gates are: each home's `gw.house0.layout` / `gw.nolan.layout` is axiom-valid, an
 **review aid** (diff to see what changed, then adopt the corrected fixture), **not** a strict gate —
 being able to run House0 in sim means we don't have to be fussy about static byte-equality now.
 
-**▶ Active spoke: [`hp-device-types.md`](hp-device-types.md)**
+**▶ Active spoke: [`operational-params.md`](operational-params.md)**
 
 > What this is: the first critical pass on the scada hardware-layout / components model. Sema becomes
 > the **authored source of truth** for a layout; the dc `HardwareLayout` the running scada loads is a
@@ -63,7 +63,7 @@ the truth oracle. **That is backwards.** Settled direction:
   `channel.config` base type is **removed** (specialty `ConfigList`s only); **sema axioms as sole validity
   authority** (drop the dc
   `check_*`); forward-only transforms; **sieg as its own layout**; the board is not a layout factor.
-- **[`operational-params.md`](operational-params.md)** — The third artifact
+- **[`operational-params.md`](operational-params.md)** — *active.* The third artifact
   `operational-params.json`: capture tuning + `SystemMode` + criticality/thermal-mass + FLO knobs split
   out of config + the static layout, with `ops_and_sema_to_dc` assembly. Forces the `channel.config`
   collapse; do it before the fleet gen files (the shape every gen targets). The LTN live-update transport
@@ -88,7 +88,9 @@ the truth oracle. **That is backwards.** Settled direction:
   References [`generator-blueprint.md`](generator-blueprint.md) for the gen spec.
 - **[`axioms.md`](axioms.md)** — finish the layout axioms, **house0 and nolan** this pass, each with a
   generated counterexample (the gen is the fixture factory).
-- **[`hp-device-types.md`](hp-device-types.md)** — *active.* Retire `HpModel` into the device-type model:
+- ✅ **[`hp-device-types.md`](hp-device-types.md)** — executed 2026-07-19 (sema words + examples +
+  gwsproto twins landed; the `HpModel` consumer retirement is separately gated — state in the spoke).
+  Retire `HpModel` into the device-type model:
   `hp.device.type.gt` + `hp.control.box.device.type.gt`, the three primary-pump facts, the
   nameplate-grounded enum values. Converged 2026-07-17; ready for an executing session
   (`/make-sema-word`), two decisions open.

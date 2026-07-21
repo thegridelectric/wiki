@@ -49,14 +49,17 @@ the **actor wiring** to make the board the resolved source of truth at runtime.
 
 ## Remaining build steps (rough dependency order — pass-two)
 
-1. **Device-type values first.** ✅ *Relay values minted* — `gw1.device.type/001` appended
-   `Gw108I2cRelay` + `Gw108GpioRelay` (sema `11be3be`, 2026-07-03). The ADC value ("ADC on gw108",
-   e.g. `Gw108Adc`) is still to mint before step 2.
-2. **Thermistor reader → `i2c.thermistor.reader.component.gt/003`.** A version bump dropping
-   `AdcAddress`, `AdcReferenceVolts`, `SeriesResistanceKOhms`, and `Bus` (all now on the board); keep
-   `TempCalcMethod` + `ConfigList`; `DeviceType` becomes the `Gw108Adc` value; the reader names its
-   board ADC by `Name`. Full version ritual (schema `/003` + registry + `002→003` upgrade template +
-   regen), then align the gwsproto type and set the moved facts in `scada_gw108`.
+1. ✅ **Device-type values.** `gw1.device.type/001` carries `Gw108I2cRelay` + `Gw108GpioRelay`
+   (sema `11be3be`, 2026-07-03) and `Gw108Adc` (sema `e9b050f`, 2026-07-19).
+2. ✅ **Thermistor reader → `i2c.thermistor.reader.component.gt/003`** (sema `e9b050f` + scada,
+   2026-07-19). `AdcAddress`, `AdcReferenceVolts`, `SeriesResistanceKOhms`, `Bus` dropped (board
+   facts); required `AdcName` names the board's `ThermistorAdcs` entry; `DeviceType` = `Gw108Adc`;
+   `002→003` upgrade is context-dependent (`upgrade_requires_context`). gwsproto twin aligned; the
+   actor resolves address/reference/series from the board record via `AdcName` (the krida
+   pin-resolution pattern); `gw.nolan.layout/000` moved to `:003` in place. The reader's
+   sema example still trips the known `ChannelConfigBase` conformance class (gwsproto base
+   requires capture cadence that sema-flat data doesn't carry) — resolves with the
+   ops-params completion.
 3. **Relay decommission → `i2c.relay.component.gt`.** *Sema half* ✅ (sema `fae8d27`, 2026-07-03):
    `relay.control.config/000` (= `relay.actor.config/004` minus the positional `RelayIdx`, axioms
    ported) + the board-generic thin per-relay components `i2c.relay.component.gt/000` and
@@ -76,6 +79,15 @@ the **actor wiring** to make the board the resolved source of truth at runtime.
    all component `ConfigList`s.
 
 ## Open
+
+- **The nolan fixture and its generator have drifted** (found 2026-07-19): `genlayout mktest
+  --layout nolan` regenerates from `StubConfig` and would revert fixture content added since
+  (the `transactive-power` DerivedChannel, `TotalStoreTanks: 1` vs the stub's 3, a `Critical`
+  zone flag). The /003 reader migration was applied to the fixture surgically for this reason.
+  Reconcile the builder with the fixture before the next wholesale regen. Related cleanup done
+  en route: stale `Unit=`/`Exponent=` kwargs (pre-channel-config-strip, incl. the nonexistent
+  `Unit.Celcius`) stripped from the nolan gen path; the same strays remain in the house0 path
+  (`multi.py`, `tank3.py`, `btu.py`).
 
 - **`I2cResult` routing** — the reply-to (step 4) so a relay can confirm its own actuation by
   `TriggerId`.
