@@ -4,9 +4,12 @@ Status: Draft · Pass 0 · Updated 2026-07-03
 
 > What this is: the contemplation behind a deliberate **non-decision** — the Grid
 > Node Registry **stores** each physical GNode's `PositionPoint` but enforces
-> **nothing** about it (no distinctness, no accuracy, no premises boundary). This
-> records *why*, so a future agent doesn't re-lit the question or bolt a location
-> axiom onto gnr. Location *trust* lives in TaValidation, not the registry.
+> **nothing about its content** (no distinctness, no accuracy, no premises
+> boundary). This records *why*, so a future agent doesn't re-lit the question or
+> bolt a location axiom onto gnr. Location *trust* lives in TaValidation, not the
+> registry. (One lifecycle rule does exist — executor *Intended invariants*: an
+> Active physical GNode must **hold** its `position_points` row. Presence at
+> activation, never content.)
 
 ## The question that prompted it
 
@@ -36,8 +39,10 @@ TaDeed plane that certifies asset reality, already owning "a point SHALL fall
 within the footprint of the building it locates" (see substrate-fit, OPS-391). Put
 the nuanced, still-evolving location logic there, where new knowledge will surface,
 and keep **gnr as simple as possible**: it stores the `PositionPoint`, enforces
-nothing about it. (Per-row Sema axiom 2 still requires a physical GNode to *have* a
-`position_point_id` — presence, not correctness.)
+nothing about its content. (Presence is still required, at two levels: per-row
+Sema axiom 2 requires a physical GNode to *have* a `position_point_id`, and the
+registry-level activation rule requires the `position_points` row itself to
+exist before a physical GNode goes Active — presence, not correctness.)
 
 ## What we borrowed, and the one divergence to remember
 

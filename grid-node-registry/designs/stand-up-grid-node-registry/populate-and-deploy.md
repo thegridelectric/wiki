@@ -30,9 +30,10 @@ SQL, so `command_log` + the alias ledger hold every row from birth (executor
    fleet's birth record alongside the command log. Genesis is witnessed by
    the ear, which is live and captures this traffic today; durable backup of
    that capture is OPS-443 strand 2, tracked separately — not a gate on the
-   ingest. The ingest script is
-   operator-run and deliberately **not checked in** (a one-shot; the command
-   log + ear capture are the record, not the tool). **Every node enters
+   ingest. The ingest is **operator-run, one node per `gnr create`**
+   (alias + class in, existence-checked, Pending out, published with the
+   write Proof) — the operator sets the cadence; only the per-run command
+   sheet stays out of the repo. **Every node enters
    `Pending`**; activation comes with the TaValidator / encryption work — the
    same step that adds the GPS positions — via the status-change command word
    (post-MVP, hub step 2). Sequencing caveat: a Pending node fails
@@ -91,9 +92,16 @@ registry state). The `w` registry is minted when that universe exists.
   message log* below): Postgres is a materialized view of the logged
   commands. Volume snapshots MAY be taken as a restore accelerator; they are
   not the durability story and are not required.
-- **gnr runs as a container too** (matching the broker and the direction of
-  travel; write the `Dockerfile` in this step). `.env` injected at run;
-  logs/state on a mounted volume.
+- **gnr runs native under systemd** — the flattened service pattern
+  (canonical: `wiki/gridworks-base/executor/service-deployment.md`):
+  `gnr-rabbit.service` + `gnr-api.service` run the repo venv's `gnr` binary
+  as the `gnr` login user; the repo is cloned in the homedir with `.env`
+  beside it; a homedir README says what runs, where the logs are
+  (`~/.local/state/gridworks/gnr/log/`), and the systemctl commands. No
+  wrapper scripts, no image flow — Postgres is the box's only container.
+  (Self-hosted rather than managed-RDS on purpose: the registry's Postgres is
+  a materialized view of the message log, so the choice is cheaply
+  reversible, and maintaining our own infrastructure stays a kept ability.)
 - **Security: minimum new build only.** The provider firewall opens SSH and
   443 and nothing else; Postgres is not exposed at all. SSH access is by
   **individual per-person keys** (the certbot/rmqbot precedent); a shared
@@ -103,13 +111,15 @@ registry state). The `w` registry is minted when that universe exists.
 - **Migrations:** `alembic upgrade head` on deploy, against the single squashed
   FK-free baseline.
 - **Config/secrets:** `.env` from `template.env`; broker creds never hardcoded.
-- **Snapshot cadence:** a periodic `broadcast_snapshot(root)` driver, cadence
-  as deploy config (hub remaining item (b)).
-- **README to standalone-adopter grade.** The "Next steps" list is stale — it
-  still carries the retired "ConnectivityEdge consistency (ids and aliases
-  match)" invariant (edges are ids-only now) and finished steps. Rewrite from
-  the executor; READMEs stand alone (no wiki references).
-- **Cleanup:** delete `scratch.py` (dead code) before the deploy commit.
+- ✅ DONE — **Snapshot cadence:** `gnr snapshot` (one-shot: broadcasts every
+  forest root, or the roots given) driven by `service/gnr-snapshot.timer` →
+  `.service`; the cadence lives in the timer file (deploy config: edit,
+  re-copy, daemon-reload).
+- ✅ DONE — **README to standalone-adopter grade**: rewritten from the
+  executor (what the registry is, universes, invariants, one-prefix config,
+  local dev, the public read API, running as a service, tests); the stale
+  "Next steps" list is gone; no wiki references.
+- ✅ DONE — **Cleanup:** `scratch.py` deleted (it was empty and untracked).
 
 ## Rebuild from the message log (the durability story)
 
@@ -120,10 +130,17 @@ core + forest cross-check). What this step must deliver:
 
 - the ear witnessing the ingest (it is live and captures this traffic;
   durable backup of its capture is OPS-443 strand 2, tracked separately);
-- the **rebuild script** — checked in and tested, unlike the one-shot ingest
-  script, because it is the durability mechanism itself — with its
-  dev-harness EDD experiment (capture a seed + mutations → wipe → rebuild →
-  `validate_registry`-clean, forests matching the captured broadcasts).
+- ✅ DONE (the replay core) — `gnr.rebuild.replay` + the
+  `gnr rebuild <capture> [--wipe]` CLI, proven by the dev-harness EDD
+  experiment (`tests/test_rebuild_layer2.py`: a real ear tap on a real
+  broker captures genesis + a re-parent to JSONL → wipe → rebuild →
+  identical `validate_registry`-clean forest, every broadcast checkpoint
+  matching; checkpoints pair FIFO with replay-produced forests, with
+  current-state equality as the snapshot fallback). The JSONL feed is
+  provisional and the rebuild surface stays **off dev**: rebuilding from
+  the TRUE persistent store (the ear's S3 eventstore) is its own gated
+  design — OPS-457 (gates: the store's durable backup, and TaValidator
+  activation making positions rebuildable).
 
 ## Done-when
 

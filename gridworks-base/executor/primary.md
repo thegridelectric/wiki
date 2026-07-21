@@ -25,6 +25,7 @@ sub-specs below; section numbers are **global** across all of them (so a
 | §3.6 | [`provisioning.md`](provisioning.md) | Topology generation, dev/prod delivery, GHCR, identities |
 | §4 | [`codec.md`](codec.md) | SemaType, SemaCodec, versioning, property formats, the `gw` envelope + wrap/unwrap |
 | §5–§6 | [`actors.md`](actors.md) | ActorBase / Orchestrator / GridworksActor tiers; settings, XDG file locations & logging; the hello example; diagnostics |
+| §8 | [`service-deployment.md`](service-deployment.md) | Recommended box pattern: systemd unit → venv binary, homedir README, XDG logs; vendored runtimes as containers |
 
 ## The central commitment
 

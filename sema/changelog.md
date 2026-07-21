@@ -12,7 +12,74 @@ Newest at the top.
 
 ---
 
-## 2026-07-19 — hp device-type families; SamsungAE055 values; .gt seed-coupling notes <!-- pending commit -->
+## 2026-07-21 — g.node.reparent.cmd/001: optional Proof, published <!-- pending commit -->
+
+**What:** new version 001 adds optional `Proof` (opaque authorization
+artifact, mirroring `g.node.create.cmd`'s field); 000 untouched. Upgrade
+template is a pass-through version lift; promoted `staging → published` in
+the same change (pin recorded). Runtime regen rebinds the versionless class
+to 001 and adds the explicit `GNodeReparentCmd000`.
+
+**Why:** the registry's stop-gap write authorization hash-verifies a Proof on
+every write command; create already carried the field, re-parent did not. A
+new version rather than an in-place edit — 000 was published (2026-07-20) and
+published means immutable, even at one day old with zero wire traffic.
+**Verified:** sema suite 391 green (incl. the generated 001 round-trip +
+upgrade tests); promote's closure check.
+
+## 2026-07-20 — Publish g.node.create.cmd v000 (`f1155e4`)
+
+**What:** `sema promote g.node.create.cmd 000` — `staging → published`,
+schema sha256 pinned in `definitions/published_hashes.yaml`, public registry
+regenerated. No schema content change.
+
+**Why:** the grid-node-registry deploys to the `hw1` broker, and staging
+words are dev-broker-only; with this flip every word the gnr snapshot vendors
+is published, clearing the word-status gate for the deploy.
+**Verified:** promote's own closure check + full sema suite 389 green.
+
+---
+
+## 2026-07-19 — Gw108Adc + i2c.thermistor.reader.component.gt/003: board-resident ADC (`e9b050f`)
+
+**What:** on `jm/single-bus-owner` (off dev post-merge). `Gw108Adc` appended in place to
+staging `gw1.device.type/001` (board-resident ADC category, the `Gw108I2cRelay` pattern).
+New `i2c.thermistor.reader.component.gt/003` (staging): drops `Bus`, `AdcAddress`,
+`AdcReferenceVolts`, `SeriesResistanceKOhms` — all facts on the board record's
+thermistor-interface capability entries — and adds required `AdcName` naming that entry
+in the board's `ThermistorAdcs`; `DeviceType` value becomes the ADC's own (`Gw108Adc`,
+was the board's). The `002→003` upgrade is context-dependent
+(`upgrade_requires_context`, same as this type's `001→002`): `AdcName` derives from
+matching `AdcAddress` against the board record, which a standalone payload doesn't
+carry. Delta recorded in the three coupled places; axiom 1 (ChannelNameUniqueness)
+ported to the 003 axiom template. `gw.nolan.layout/000` (staging, in place, the reader's
+only referrer) moves its Components oneOf to `:003`, with the created-stamp
+forward-bump the dependency-ordering rule requires; no embedded example to re-emit.
+Suite 390 passed.
+
+**Why:** the single-bus-owner prerequisite (spruce-relay-control spoke) and step 2 of
+the pulled-forward i2c-board-components plan: the board record is the single source of
+physical truth, so the reader component stops carrying physical facts and the scada's
+ADC reads can move onto the serialized `I2cBus` actor. Companion scada work follows
+(twin alignment, reader actor off blinka/adafruit onto bus-ops).
+
+## 2026-07-19 — adding examples to the new hp-related device types (`2925363`)
+
+**What:** on `jm/i2c-relay-capability`. `examples:` added in place (staging) to
+`hp.device.type.gt/000` and `hp.control.box.device.type.gt/000`, with real Samsung AE055
+nameplate data from the Drive transcription doc ("Nameplate data — AE055FCYDCG +
+AE055FEYMCG (transcribed)"): ODU 54,600 Btu/h heat & cool, compressor 18.9 A, R32,
+MCA/MOP 32/40; box water pump 0.9 A, BackupHeaterKwList [2, 4]. `MaxKwEl: 4.35` is
+derived (18.9 A × 230 V), not a nameplate line — JM to confirm or correct. Box example
+omits Mca/Mop (nameplate lists them per backup-heater config — wrinkle captured in the
+hp-device-types spoke). Suite 388 (each example now decodes through the generated
+runtime).
+
+**Why:** the examples are the conformance fixtures: the scada `gwsproto_sema_conformance`
+sweep decodes each word's canonical example through the gwsproto twins — with them, both
+hp words moved to fully conformant (36 → 38). Companion gwsproto commit adds the twins.
+
+## 2026-07-19 — hp device-type families; SamsungAE055 values; .gt seed-coupling notes (`69bcac8`)
 
 **What:** on `jm/i2c-relay-capability`. Two new staging record families, flat,
 `DeviceType`-keyed (the `ads111x.based.device.type.gt` pattern): `hp.device.type.gt/000`
@@ -101,7 +168,7 @@ krida panel) so field support can identify relays from the record; the panel's f
 becomes declared pin data instead of `gw_to_pin` driver arithmetic (scada-side instance in the
 companion `gridworks-scada` commit).
 
-## 2026-07-08 — g.node.create.cmd v000: registrar-facing create (staging) + branching note (`24fdd1f`)
+## 2026-07-08 — g.node.create.cmd v000: registrar-facing create (staging) + branching note (`24fdd1f`; re-landed on dev-lineage 2026-07-20 as `29af7e8` — the authoring branch had strayed from the no-long-lived-vocabulary-branch rule its own branching note states)
 
 **What:** new type `g.node.create.cmd/000` (`status: staging`) — `NewNode` =
 `g.node.gt/005` + optional opaque `Proof` string; registry entry + indexes +

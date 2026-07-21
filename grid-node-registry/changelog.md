@@ -12,20 +12,139 @@ Newest at the top.
 
 ---
 
-## 2026-07-19 — Service entry points + Dockerfile <!-- pending commit -->
+## 2026-07-21 — Write-proof gate + gnr create <!-- pending commit -->
+
+**What:** stop-gap write authorization: `Settings.write_proof_sha256`
+(`GNR_WRITE_PROOF_SHA256`) + `PostgresAuthority._check_proof` refusing any
+create/re-parent whose `Proof` doesn't hash-match — before all other checks,
+including the idempotent-replay short-circuit. Snapshot rebuilt on
+`g.node.reparent.cmd/001` (the sema-side version adding optional Proof; 000
+retired to `old_versions`). New `gnr create <alias> <base-class>
+[--g-node-id …]` operator command: existence check via the read API, builds
+the node Pending with a staged position, confirms interactively, publishes
+over the broker as `<universe>.registrar` with the Proof from env or prompt
+(never an argument). 5 new Layer-1 guardrail tests (missing/wrong proof
+bounce atomically on both commands; correct proof lands).
+
+**Why:** anyone with fleet broker credentials could otherwise mint arbitrary
+GNodes from the public schemas; the Proof field is the schemas' designed
+authorization hook, and the hash-gate is its primitive form until mTLS+FIS
+(OPS-420) makes identity the credential. The operator enters the fleet one
+node at a time at their own cadence.
+**Verified:** suite 57 green including the guardrails.
+
+## 2026-07-20 — Published-words snapshot (drop --allow-staged) (`394fc7a`)
+
+**What:** `build_gnr_snapshot.sh` drops `--allow-staged` (the comment now says
+promote, never re-flag) and the snapshot is rebuilt from published words only:
+the dev-only markers (`indexes/staging.yaml`, the banner README) disappear,
+and the vendored registry carries `g.node.create.cmd/000: published`.
+
+**Why:** staging words are dev-broker-only; the registry deploys to `hw1`.
+With the sema-side promotion (sema repo, same day) every vendored word is
+published — the word-status gate for the deploy is clear.
+**Verified:** snapshot round-trip 7 samples OK; gnr suite 52 green.
+
+## 2026-07-20 — Snapshot driver, adopter-grade README (`3bca4e1`)
+
+**What:** `gnr snapshot` — a one-shot that broadcasts a `g.node.forest`
+snapshot for every forest root (or the roots given) and exits — plus
+`service/gnr-snapshot.timer`/`.service` (oneshot under the timer; cadence is
+the timer file, per the flattened box pattern). README rewritten to
+standalone-adopter grade from the executor (overview, universes, invariants,
+one-prefix config, local dev, the public read API, service table); the stale
+"Next steps" (retired edge-consistency invariant, finished steps) is gone.
+`scratch.py` deleted (empty, untracked).
+
+**Why:** the anti-entropy path needs a deploy-config cadence, not a sleep
+loop inside the write-loop process; a repo README stands alone for a human
+adopter.
+**Verified:** suite 52 green on the branch; `gnr --help` shows the command.
+
+## 2026-07-20 — Deterministic forest serialization (`6b47826`)
+
+**What:** `get_forest` orders nodes by alias and edges by id.
+
+**Why:** forest serialization is part of the durability contract — broadcasts
+and replays compare byte-identically — and full-suite ordering during the
+rebuild work exposed that the equality had held only by insertion-order luck.
+Dev-bound regardless of the rebuild surface's holding pattern.
+**Verified:** full suite 54 green, run twice for order-independence.
+
+## 2026-07-20 — Rebuild replay core + CLI, JSONL feed (`2cabc1b`, on `jm/gnr-rebuild` — held off dev)
+
+**What:** `gnr.rebuild` — replay a capture through the handler core (commands
+re-apply, refusals re-refuse and are counted; every captured `g.node.forest`
+is a checkpoint, paired FIFO with replay-produced broadcasts — bursts
+interleave on a real bus — with current-state equality as the snapshot
+fallback) — plus the `gnr rebuild <capture> [--wipe]` CLI (`--wipe` clears
+`command_log` too, else idempotent replay short-circuits against wiped
+state). Layer-1 test (wipe → replay → identical state, poisoned command
+re-refusing) + the Layer-2 EDD experiment (a bare-ActorBase ear tap on a real
+broker captures genesis + a re-parent → wipe → rebuild from the file alone →
+identical validate-clean forest).
+
+**Why:** the restore path is the registry's durability story and must be repo
+code proven by experiment (executor *Durability*). The JSONL feed is
+provisional, so this surface stays on the standup branch — off dev — until
+OPS-457 (rebuild from the true persistent store, gated on the store's durable
+backup + TaValidator activation) lands.
+**Verified:** the same 54-green suite runs as the entry above.
+
+## 2026-07-19 — README: running as a service (`78a2f62`)
+
+**What:** the README's thin "Logs" section becomes "Running as a service" —
+units, copy-not-symlink, the clean-pushed-SHA discipline, and the
+process/logs table (matching the box's homedir README, seeded from
+gridworks-infra `gnr/instance-README.md`).
+
+**Why:** a repo README stands alone; someone landing here should see how the
+service actually runs without the wiki.
+
+## 2026-07-19 — systemd units for the box (`906983d`)
+
+**What:** `service/gnr-rabbit.service` + `service/gnr-api.service` — the
+flattened pattern (gridworks-base executor §8): venv binary invoked directly,
+`User=gnr`, `WorkingDirectory` at the repo root so `.env` resolves,
+`Restart=always`; copied to `/etc/systemd/system/` at box setup.
+
+**Why:** units are versioned repo content, reviewed like code; the box carries
+only copies of a pushed SHA.
+
+## 2026-07-19 — Entry points, public sema-linked read API, active-position invariant (`f114ab9`, squashed)
 
 **What:** real `gnr` CLI (`gnr rabbit` runs the write loop via a new runner;
-`gnr api` runs the read façade under uvicorn) replacing the hello-world stub;
-`RabbitRunSettings` (super/time-coordinator aliases — required, no defaults) +
-`ApiRunSettings` (loopback bind) in `gnr.settings`; template.env documents the
-new `GNR_`/`GWBASE_` deploy vars; one Dockerfile, two commands.
+`gnr api` runs the read façade under uvicorn) replacing the hello-world stub.
+Settings for the deploy posture: `RabbitRunSettings` extends gwbase
+`ServiceSettings` under the one `GNR_` prefix (broker URL + service alias +
+required super/time-coordinator aliases, one `.env`) with
+`service_name="gnr"` so actor logs land at
+`~/.local/state/gridworks/gnr/log/<alias>.log`; `ApiRunSettings` binds
+loopback; the dead `Settings.log_dir`/`log_level` knobs are deleted;
+`gnr.db.session` builds its engine **lazily on first use** (a module-import
+`Settings()` made even `gnr --help` demand a configured env). The read façade
+is public-facing per the deploy decision: docstring corrected (was "internal
+service API"), CORS-open middleware (read verbs only), routes returning the
+sema types themselves (`response_model_exclude_none` — byte-identical to
+`to_dict()`, pinned by the DB-free `test_api_wire.py`) so `/docs` shows real
+sema schemas, and an OpenAPI post-pass deriving each schema's definition link
+from its TypeName/Version (constant currently the public sema GitHub
+`blob/dev` URL; flips to schemas.electricity.works when that host stands up).
+New registry invariant **active physical ⇒ PositionPoint row held**
+(`check_active_physical_have_position`, audit pass + write path; presence at
+activation only — position content trust stays TaValidation's) with 5 DB-free
+unit tests + a Layer-1 write-guardrail test (violating create bounces
+atomically; Pending ingest posture lands). The dev universe gains `willow`, a
+seventh home held Pending with its position staged (opaque id, no row) — the
+seed exercises mixed status everywhere.
 
 **Why:** the deploy step (populate-and-deploy spoke) needs the registry
-runnable as containers; until now only tests could construct `GnrRabbit`, and
+runnable as services; until now only tests could construct `GnrRabbit`, and
 the console script printed hello-world. Orchestration aliases are deployer
 declarations, so they refuse to boot unconfigured rather than assume `d1`.
-**Verified:** 23 unit tests pass (19 integration self-skip locally); CLI
-smoke-tested. Docker image build not yet run (no local daemon).
+The box pattern is native systemd (canonized in gridworks-base executor
+§8 service-deployment), so no image machinery entered the tree.
+**Verified:** full suite 52 green including integration tiers.
 
 ## 2026-07-08 — Create accepts a Pending parent (fleet bootstrap) (`9ff7271` + test in `a799004`)
 

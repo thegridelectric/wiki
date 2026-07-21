@@ -251,6 +251,16 @@ authorizes by checking the principal's `base_class = MarketMaker` and that the
 affected subtree is within its authority. A detached signed-command scheme stays
 available via the `AuthoritySource` seam for a future distributed/on-chain authority.
 
+**Until mTLS+FIS lands, a stop-gap proof gate holds the write path**: with
+`GNR_WRITE_PROOF_SHA256` configured, `_check_proof` refuses any
+create/re-parent whose `Proof` doesn't sha256-hash to it — checked before
+anything else, including the idempotent-replay short-circuit, so an unproven
+command touches nothing and learns nothing. The secret lives only with the
+operator; the deploy holds the hash; rotation is a `.env` edit + restart.
+Honest limit: the Proof rides inside commands, so it appears in
+`command_log` and the ear capture — the key is exactly as secret as the
+capture store. Retired by OPS-420.
+
 ## Distributed-readiness (keep the swap a swap, not a rewrite)
 
 The registry's authority is meant to be **swappable** — a single-writer Postgres
@@ -333,8 +343,19 @@ conditions carry the posture:
    parents-first, so ordering is unambiguous at fleet scale; a
    command-carried logical time is the deferred backstop, #1 above).
 
+Forest serialization is **deterministic** — `get_forest` orders nodes by
+alias and edges by id — which is what makes the byte-identical
+broadcast/replay compare possible at all (`gnr.rebuild` is the replay
+implementation; `gnr rebuild <capture> [--wipe]` the operator surface).
 Database snapshots MAY be taken as restore accelerators; they are never the
 durability story.
+
+Open: `position_points` ride outside the command stream, so a rebuild
+restores them only as far as the stream implies — complete today (the fleet
+ingests Pending with positions empty), but the activation mechanism must
+make positions rebuildable (carried in its command, or restored from the
+TaValidator store) before Active-with-positions is the normal state.
+Resolves in OPS-457's scope, with the rebuild-from-the-true-store path.
 
 ## Lifecycle — `GNodeStatus`
 
@@ -427,6 +448,14 @@ Beyond per-row Sema validation, the registry MUST enforce structure Sema can't:
 
   Legacy→new mapping: `ConductorTopologyNode → ConnectivityNode`,
   `AtomicTNode`/`AtomicMeteringNode → LeafTransactiveNode`, `Scada`/`Other → Logical`.
+- **Active physical GNodes hold their PositionPoint** — a GNode whose
+  `base_class` is physical (≠ Logical: TerminalAsset, LeafTransactiveNode,
+  ConnectivityNode, MarketMaker) MUST NOT be Active unless its
+  `position_point_id` resolves to a `position_points` row. Grid position is
+  part of what activation asserts (the TaValidator plane supplies it), so a
+  node whose position is still staged stays Pending. Presence only — position
+  *content* trust remains TaValidation's concern. Logical nodes carry no
+  location requirement.
 
 These structural invariants are enforced by `gnr.db.validate` —
 `validate_registry` runs the audit pass, and the write handlers run it at write
