@@ -48,5 +48,5 @@ this is purely about bounding the queue *behind* it.
 ## Pointers
 
 - The trade-off is recorded as a caveat in
-  [`../executor/transport.md`](../executor/transport.md) §3.8.
+  [`../executor/transport.md`](../executor/transport.md) "Threading and lifecycle".
 - Originating fix: [OPS-383](https://linear.app/gridworks/issue/OPS-383) (thread-safe `ActorBase.send`).

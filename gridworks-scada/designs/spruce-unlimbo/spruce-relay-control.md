@@ -1,6 +1,6 @@
 # Spruce relay control — chunk A execution (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-07-21 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-07-22 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke — get the scada actuating spruce's i2c relays, with
 > the heat pump under a single reliable on/off relay. Design-side record only. Everything
@@ -23,15 +23,27 @@ every TOU boundary a free witnessed test. Then: the ctrl-box CT lands (channel
 
 **Scada (the I2cBus build, on `jm/spruce-unlimbo`):** the single-bus-owner data model is
 landed (sema `e9b050f`, scada `75746bfe` — the board record owns the physical facts; the
-reader resolves via `AdcName`). What remains is the bus-op path itself: `I2cResult`
-reply-to routing (`Header.Src`, results return with their `TriggerId`), the reader actor
-off blinka/adafruit onto `I2cBus` ops (decide: raw reg-ops from the reader vs an ADC-read
-primitive on the bus actor — lean primitive, every ADC consumer repeats the same
-sequence), the OPS-452 init-guard + input-register readback folded into the bus actor.
+reader resolves via `AdcName`; `75746bfe` is local-only — push before any box pull).
+What remains is the bus-op path itself, sharpened by the 2026-07-22 code survey:
+
+- `I2cBus` already consumes `I2cWriteBit`/`I2cReadBit` and echoes `TriggerId` on
+  `I2cResult`, but the reply is hardcoded to `primary_scada`
+  (`actors/i2c_bus.py:91-105`) — reply-to is a **rerouting** change (read
+  `Header.Src`), not a new reply path.
+- The reader still reads blinka/adafruit-direct
+  (`actors/i2c_thermistor_reader.py:72-77`); moving it onto `I2cBus` ops is the
+  build (decide: raw reg-ops from the reader vs an ADC-read primitive on the bus
+  actor — lean primitive, every ADC consumer repeats the same sequence).
+- `I2cBus` and `I2cRelayBoard` exist as `ActorClass` values but are NOT registered
+  in `actors/__init__.py` — a layout declaring a bus node fails to instantiate
+  until registration lands; move layout and registration together.
+- No actor-level i2c tests exist (only named-type serialization) — the reader→bus
+  build brings the first.
+- The OPS-452 init-guard + input-register readback fold into the bus actor.
 
 **Verification: reader→bus experiments run directly on spruce, ADC path only** (JM
-2026-07-21; the home bench gw108 would not power up). The arrangement that keeps this
-safe:
+2026-07-21; decided when the home bench gw108 would not power up — since revived,
+see the 2026-07-23 update below). The arrangement that keeps this safe:
 
 - **Broker isolation.** The experiment scada (`jm/spruce-unlimbo` code + the ops
   artifact) runs in its own environment on the spruce pi with NO production-broker
@@ -55,6 +67,70 @@ safe:
   reproducer is parked on the same condition.
 
 Then the relay path rides the same bus actor, gated on that windows/bench decision.
+
+**Update 2026-07-23 — the bench gw108 is alive** (the fuse was loose) and wired to
+the pi `honeysuckle` (tailscale `100.118.30.38`). That reopens the bench option the
+2026-07-21 arrangement assumed away: relay-path actuation and the OPS-452
+induced-reset reproducer can run on the bench with zero cooling stakes, and the
+reader→bus path can shake down there before any spruce window. Access note:
+honeysuckle does not yet accept the fleet (`gridworks-hybrid`) or per-person
+(`gridworks-jessica-ed25519`) key as user `pi` — both open every house pi
+(password auth is off there); add them to honeysuckle before scripting against it.
+
+### Readiness — the dev-spruce layout and the boot ladder
+
+The experiment scada boots on a **dev-spruce layout**: the spruce house on the Nolan
+scheme with identity `d1.isone.me.versant.keene.spruce.scada`. Identity comes wholly
+from the layout (`MyScadaGNode` etc. — `scada_app.py:142-146`), carried as full
+`g.node.gt` records with freshly minted dev ids. The layout is the scada's local
+authority for its GNode trio — the same role the sema-validated `g.node.gt.json`
+artifact plays for a gwbase service (`gwbase/gridworks_actor.py`); the fleet
+authority stays the grid-node-registry, and FIS reconciles the two (the
+mtls-fis-auth design binds cert CN to the immutable GNodeId and checks the alias
+against the registry). The universe guardrail passes because `localhost ⇒ d1`
+(`universe.py:32-37`); the broker the pi sees must present as localhost — SSH
+tunnel to the laptop's `gw-dev-rabbit` for the first window; a rabbit container on
+the pi if windows become routine (open choice).
+
+**The layout is built in tlayouts on a branch off `jm/spruce`** (the sema-native
+machinery). The `actual-spruce` `gen_spruce.py` is a working Nolan gen but rides
+the retired scada `layout_gen` machinery and the single-artifact format; the scada
+repo's own spruce gen (`scratch2.py`) is broken scaffolding. In order:
+
+1. **Sema snapshot rebuild** (`./build_tlayouts_snapshot.sh`) after the sema
+   `jm/single-bus-owner` ↔ `dev` merge lands — picks up reader `/003`,
+   `gw1.device.type` (incl. `Gw108Adc`), `gw108.gpio.relay.component.gt` (add to
+   `tlayouts_seed_request.yaml` explicitly if closure does not reach it).
+2. **Port the Nolan emitters** into `house0_sema_gen.py` — the machinery is
+   House0/krida-flavored today (no gw108 zones or relays); mirror
+   `layout_gen/gw108_nolan_zones.py` + `add_nolan_relays`.
+3. **`gen_spruce_sema.py`**: d1 identity, a spruce `OpsSpec` (cooling-season
+   values — oak's block is heating defaults), and the deployed-gen content carried
+   over: the hp-ctrl-box eGauge register (9010), the gw108 CT notes (CT1
+   current-type 100A→50mA, store pump; CT2 egauge-type 20A, secondary pump), the
+   zone-5 fancoil cooling zone, the identity derived channels, real pico HW uids.
+   UUID stability via `LayoutIDMap` keyed off the deployed `spruce.json`.
+
+**Boot ladder, cheapest gate first:** suite green on `jm/spruce-unlimbo` (conftest
+pins the nolan fixture + its ops artifact, `tests/conftest.py:34-58`) → gen-time
+validation (the gen refuses to write a layout that does not decode; `sema validate`
+for hand-written gwsproto types) → **sim-boot the dev-spruce artifacts on local
+`gw-dev-rabbit`** (the oak precedent) → the box window.
+
+**Known blockers for unlimbo code on the box:**
+
+- The deployed `spruce.json` does not decode on unlimbo gwsproto (the
+  CaptureTuning reshape, reader `/003` board-record resolution, DeviceType `/001`)
+  — regeneration is mandatory, not optional.
+- The ops artifact is a boot requirement since `82caac3e`
+  (`SCADA_OPERATIONAL_PARAMS_PATH`; default is the sibling dir of
+  `SCADA_PATHS__HARDWARE_LAYOUT`, itself defaulting to
+  `~/.config/gridworks/scada/hardware-layout.json`).
+- The layout must carry the gw108 board record for `AdcName` resolution.
+- The `hw1` hardcodes sit in the LTN (`ltn.py` P_NODE constants, price-service
+  URLs) — inert while the experiment runs scada-only.
+- Fresh checkout + venv on the pi (`tools/mkenv.sh`), its own `.env`, dev
+  credentials only.
 
 ## The control design (settled 2026-07-15)
 

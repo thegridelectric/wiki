@@ -1,4 +1,4 @@
-# §8 Deploying a gwbase service — the recommended box pattern
+# Deploying a gwbase service — the recommended box pattern
 
 Status: Draft · Pass 0 · Updated 2026-07-19
 
@@ -10,7 +10,7 @@ Status: Draft · Pass 0 · Updated 2026-07-19
 > and journalctl are the interface. First applied to the grid-node-registry
 > box. A recommendation, not a mandate: existing boxes migrate when touched.
 
-## §8.1 The pattern
+## The pattern
 
 1. **One login user per service** — the obvious name (`gnr`, `journal`, …).
    The service repo is cloned in its homedir; `.env` sits at the repo root
@@ -31,8 +31,14 @@ Status: Draft · Pass 0 · Updated 2026-07-19
    box: what runs here, the unit names, where the logs are, the three
    commands that matter (`systemctl status/restart/stop <unit>`,
    `journalctl -u <unit>`). One screen, current, no wiki references.
+   Convenience aliases MAY ship (`service/bash_aliases`, sourced from the
+   login's `.bashrc` at setup): pure spelling over systemctl/tail —
+   `<svc>start`/`<svc>stop`/`<svc>restart`/`<svc>log` — never logic; the
+   heritage wrapper *scripts* stay dropped. Pair with a narrow sudoers
+   drop-in granting the login exactly those systemctl invocations on its
+   own units (NOPASSWD, exact-argument lines).
 4. **Logs in the XDG state home** — `~/.local/state/gridworks/
-   <service_name>/log/<service_alias>.log` (§6, gwbase paths convention);
+   <service_name>/log/<service_alias>.log` (`actors.md` "Diagnostics", gwbase paths convention);
    stdout-only processes (e.g. a uvicorn façade) rely on journald.
 5. **Vendored runtimes are containers; our services are native.** Postgres
    and the broker run as pinned containers (data on an encrypted volume)
@@ -41,7 +47,7 @@ Status: Draft · Pass 0 · Updated 2026-07-19
    systemd. This keeps the image build/push/pull machinery out of the
    change-to-box path entirely.
 
-## §8.2 Unit skeleton
+## Unit skeleton
 
 ```ini
 [Unit]
@@ -60,7 +66,7 @@ RestartSec=1
 WantedBy=multi-user.target
 ```
 
-## §8.3 Scope of the self-hosted-database stance
+## Scope of the self-hosted-database stance
 
 Running our own Postgres (as a container on the box) is recommended where
 the database is a **rebuildable projection** — message-log-first services

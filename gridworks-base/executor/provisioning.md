@@ -1,18 +1,18 @@
-# gridworks-base — Provisioning & delivery (§3.6)
+# gridworks-base — Provisioning & delivery
 
 Status: Draft · Pass 0 · Updated 2026-05-22
 
 Sub-spec of the gridworks-base rebuild spec — **start at
 [`primary.md`](primary.md)**. Section numbers are global; this file holds
-§3.6 (the broker's dev/prod home). The topology it provisions is described
-in [`transport.md`](transport.md) §3.5.
+`provisioning.md` (the broker's dev/prod home). The topology it provisions is described
+in [`transport.md`](transport.md) `transport.md` "AMQP topology".
 
 ---
 
-## 3.6 Provisioning & delivery — the broker's dev/prod home
+## Provisioning & delivery
 
 The exchange set, the routing fabric, and the broker identities are **not**
-created by application code (§3.5). They are a generated artifact, derived
+created by application code (`transport.md` "AMQP topology"). They are a generated artifact, derived
 from one declarative source so they cannot drift from the code that depends
 on them.
 
@@ -24,9 +24,9 @@ on them.
   (MQTT-only, reached via `amq.topic`); **`cn` is excluded** (passive /
   non-runtime — opt it in if it ever becomes a GNodeActor). A newly-added
   `RoutingClass` gets **no** exchanges until explicitly opted in.
-- `ROUTING_EDGES` — the direct-only `(src, dst)` list (§3.5), with
+- `ROUTING_EDGES` — the direct-only `(src, dst)` list (`transport.md` "AMQP topology"), with
   `direct_binding_key(src, dst)` deriving the 6-token pattern from the
-  routing-key grammar (§3.3).
+  routing-key grammar (`transport.md` "Routing-key grammar").
 - **Identities** — users, vhost, and permissions live *here*, not in the
   conf's `default_*` lines (which would race the definitions import at boot).
 

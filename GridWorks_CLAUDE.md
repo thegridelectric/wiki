@@ -128,9 +128,24 @@ Exempt: `README.md`, `changelog.md`, `DESIGN_INDEX.md`, `glossary.md`,
   actors over AMQP (`localhost:5672`), scada over MQTT (`localhost:1885`, TLS
   off, Rabbit MQTT plugin — topic dots become slashes; payloads intact). Mgmt
   UI `15672`. Creds live in each repo's `.env`; never hardcode them.
+- **No cross-service declarations in a repo.** A repo SHALL NOT state what
+  another service does with it ("JournalKeeper overrides this hook as a
+  permanent legacy_hack") — such claims go stale silently when the other
+  repo moves. The filter: is this a declaration that can go out of sync,
+  or an illustration? Illustrations ("e.g., journalkeeper") are fine;
+  declarations live in the wiki or in the repo whose behavior they
+  describe.
 - **No dead code, no assumed defaults** — when a refactor orphans a symbol,
   delete it in the same change. Do not introduce a default that hides a value
   the caller must declare — make it required, sourced from a `names` constant.
+- **Prod boxes run committed code only.** NEVER scp/edit uncommitted content
+  into a repo checkout on a deployed box — not even "the same file that's
+  about to be committed". The only path onto a box is land-in-git → push →
+  pull on the box. Hand-deploys dirty the prod tree, block the next pull,
+  and break the box-runs-a-pushed-SHA guarantee (gwbase executor
+  `service-deployment.md`).
+  Non-repo box state (a sudoers drop-in, a `.bashrc` line) is fine to place
+  directly but MUST be recorded in the box's instance-README.
 
 ## Experiment-Driven Design (EDD) — the verification bar
 
@@ -356,13 +371,23 @@ prevents.
 *why* + specs. Confirm before editing a code repo's non-wiki files when the
 task is documentation.
 
-**Standalone READMEs** — a repo's `README.md` stands alone for a human;
-SHALL NOT reference the wiki. Exempt: the wiki's own README and any
-`CLAUDE.md` (Claude-facing).
+**Repos do not know about the wiki.** The only references to wiki files
+are in the wiki itself: a code repo's `README.md`, source comments,
+docstrings, and configs SHALL NOT cite wiki paths, executor specs, or
+design names. A repo's `README.md` additionally stands alone for a human.
+Exempt: the wiki's own README and any `CLAUDE.md` (Claude-facing). The
+wiki points at code (`file:line`); code never points back.
 
 **Authoring** — capture *why* + design intent, not a restatement of code; pin
 volatile specifics with `file:line`. One canonical doc — update it, don't
 duplicate; delete what's wrong. Open every doc with a one-line "what this is".
+
+**Headers are reference slugs.** In canonized locations (`executor/`,
+`sema/spec`, other spec-grade docs) a `##` header is a near-immutable
+reference slug: cite it as `file.md "Header text"`. Renaming one is a known
+major cost — every reference (wiki, designs, protocol files) moves in the
+same change. Get the name right by Accepted; deeper headers carry no such
+weight. No global section numbers.
 
 **Durable docs state what is, now.** Transition narrative — "retired X",
 "was Y, now Z", dated "settled/canonized" asides, build-step

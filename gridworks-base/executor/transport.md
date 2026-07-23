@@ -1,17 +1,17 @@
-# gridworks-base — Transport layer (§3)
+# gridworks-base — Transport layer
 
 Status: Draft · Pass 0 · Updated 2026-07-03
 
 Sub-spec of the gridworks-base rebuild spec — **start at
 [`primary.md`](primary.md)**. Section numbers are global across the spec
-(this file holds §3 except §3.6, which is in
+(this file holds `transport.md` except `provisioning.md`, which is in
 [`provisioning.md`](provisioning.md)).
 
 ---
 
-## 3. The transport layer
+## The transport layer
 
-### 3.1 TransportClass (closed taxonomy)
+## TransportClass
 
 A **TransportClass** is the routable kind of an actor. It is intentionally
 NOT the same vocabulary as Sema `GNodeClass`: for example `Supervisor` is
@@ -27,7 +27,7 @@ keys (the lower-case abbreviation, e.g. `ta`, `ltn`, `cn`, `mm`, `scada`,
 transport layer parses routing-key tokens via RoutingClass and converts
 them to TransportClass for the application.
 
-### 3.2 MessageCategory
+## MessageCategory
 
 Three live categories of message exist; their structure differs:
 
@@ -39,7 +39,7 @@ Three live categories of message exist; their structure differs:
 
 (A `Serial` token `s` is reserved but unimplemented.)
 
-### 3.3 Routing-key grammar
+## Routing-key grammar
 
 Aliases in routing keys are written with hyphens (LRH = "left-right-hyphen")
 because dots are token separators in AMQP topic routing keys. The
@@ -71,9 +71,9 @@ subscribed, so a key it cannot fully classify must not be silently dropped.
 (History: an earlier strict parser raised on any unknown RoutingClass and
 `on_message` acked-then-`return`ed — silent data loss of every production
 message whose class slot used a short_name, ~48 dropped in one 5-min prod run.
-Fixed in 0.5.2; see §3.6 receive callback and the class-token note in §3.4.)
+Fixed in 0.5.2; see `provisioning.md` receive callback and the class-token note in `transport.md` "RoutingEnvelope".)
 
-### 3.4 RoutingEnvelope
+## RoutingEnvelope
 
 The `RoutingEnvelope` is the single value object that crosses the boundary
 between transport and application. It is a discriminated record:
@@ -99,7 +99,7 @@ WrappedRoutingEnvelope    : RoutingEnvelope
 
 **Routing key per envelope.** Each envelope's `routing_key` is a pure
 function of its fields. On the wire, aliases and type names are in **LRH**
-(hyphen) form and classes are **RoutingClass** tokens (§3.1):
+(hyphen) form and classes are **RoutingClass** tokens (`transport.md` "TransportClass"):
 
 | Envelope                   | Cat.  | `routing_key`                                                      | Published to            |
 | -------------------------- | ----- | ----------------------------------------------------------------- | ----------------------- |
@@ -116,7 +116,7 @@ Worked examples:
   `snapshot.spaceheat` on optional radio channel `weather`.
 - `gw.d1-ltn.to.scada.heartbeat-a` — `d1.ltn` sends a `gw`-wrapped
   `heartbeat.a` toward a Scada (the `gw` body carries the
-  `GridworksHeader` + inner payload; §4.7 in [`codec.md`](codec.md)).
+  `GridworksHeader` + inner payload; `codec.md` "The gw application envelope" in [`codec.md`](codec.md)).
 
 **How each is delivered:**
 
@@ -126,7 +126,7 @@ Worked examples:
   binding `rj.*.*.*.*.<to-alias>` on its `<to-class>_tx` matches.
 - **Broadcast (`rjb`):** no fabric forwarding; a *subscriber* binds its
   queue directly to the publisher's `<from-class>mic_tx` with the `rjb`
-  pattern (§3.5).
+  pattern (`transport.md` "AMQP topology").
 - **Wrapped (`gw`):** published to `amq.topic`, which reaches MQTT
   subscribers (scada) and the ear tap.
 
@@ -140,7 +140,7 @@ happens because the consumer subscribed to `amq.topic` (or the MQTT peer to its
 own topic), never because the broker matched the class — so gwbase resolves it
 best-effort and never depends on it. A `gw` consumer already knows who it is
 talking to, so it needs the `to`-class neither for routing nor to disambiguate
-partners. This asymmetry is *why* tolerant class-token parsing (§3.3) is safe:
+partners. This asymmetry is *why* tolerant class-token parsing (`transport.md` "Routing-key grammar") is safe:
 the only slot that is load-bearing for routing — the `rj` cross-class fabric —
 always carries gwbase's own long-form tokens; the short_name tokens that need
 tolerance only ever appear in `gw` `to` / `rjb` `from` slots, where the class is
@@ -170,11 +170,11 @@ that fill in `from_alias` and `from_class` automatically:
 `direct_envelope`, `broadcast_envelope`, `wrapped_envelope`. The
 application only specifies the destination.
 
-### 3.5 AMQP topology
+## AMQP topology
 
 The topology is built on a **two-exchange-per-class** pattern. For every
 class that runs as an AMQP actor — the `AMQP_ACTOR_CLASSES` opt-in set in
-`gwbase/topology.py` (§3.6, [`provisioning.md`](provisioning.md)):
+`gwbase/topology.py` (`provisioning.md`, [`provisioning.md`](provisioning.md)):
 `{ta, ltn, mm, price, weather, time, super}`; `scada` is MQTT-only and
 `cn` is passive, so neither gets exchanges — the broker has:
 
@@ -192,7 +192,7 @@ binding into the destination `<dst>_tx`. **The broker's binding table is
 therefore the authoritative "who may talk to whom" policy**, enforced at
 the broker and declared out-of-band — actors cannot grant themselves
 reach. (This complements the connection-level FIS authorization done via
-`client_properties` at connect time, §3.8: FIS controls *who may
+`client_properties` at connect time, `transport.md` "Threading and lifecycle": FIS controls *who may
 connect*; the binding table controls *who may route to whom*.)
 
 **What an actor declares at startup vs. what must pre-exist.** Infra owns
@@ -212,7 +212,7 @@ actor:
 It does **not** declare exchange params, any `<rc>mic_tx`, or any
 cross-class binding. The entire exchange set + routing fabric **must be
 provisioned before any actor runs** — generated from `gwbase/topology.py`
-(§3.6). `tests/_stubs.py` derives the same set from that one source, so
+(`provisioning.md`). `tests/_stubs.py` derives the same set from that one source, so
 test / dev / prod cannot diverge.
 
 **Publish targets:**
@@ -235,7 +235,7 @@ pattern (an `ActorBase.subscribe_broadcast` helper). So the cross-class
 fabric is **direct-only**.
 
 **The cross-class direct-edge fabric** — generated from `ROUTING_EDGES`
-(§3.6). Initial edges:
+(`provisioning.md`). Initial edges:
 
 | From          | To        | Routing key           |
 | ------------- | --------- | --------------------- |
@@ -286,7 +286,7 @@ connects through RabbitMQ's MQTT plugin, publishing and subscribing on
   `gw.<ltn-alias>.to.scada.<inner-type>` — which the scada's MQTT
   subscription receives. The `gw` body carries the `GridworksHeader`
   (src / dst / message-id / ack) the scada needs for correlation and
-  replay (§4.7).
+  replay (`codec.md` "The gw application envelope").
 - **Any non-scada AMQP actor ↔ scada uses the same `amq.topic` seam.** A
   simulated `ta`, or an admin/provisioning controller, reaches scada by
   publishing to `amq.topic` on the topic the scada subscribes to, and
@@ -316,8 +316,8 @@ gw.hw1-isone-me-versant-keene-maple-scada.to.ltn.snapshot-spaceheat
 =  gw.<from-alias>.to.<to-class>.<inner-type>
 ```
 
-This is exactly the `WrappedRoutingEnvelope` grammar (§3.4), and the body
-is a `gw` `Message{Header, Payload}` — the same envelope as §4.7. So
+This is exactly the `WrappedRoutingEnvelope` grammar (`transport.md` "RoutingEnvelope"), and the body
+is a `gw` `Message{Header, Payload}` — the same envelope as `codec.md` "The gw application envelope". So
 gwbase's `gw` routing key + envelope and the scada interface are the **same
 wire format**: a `ta ↔ scada` bridge can use the existing
 `WrappedRoutingEnvelope` (→ `amq.topic`) plus `wrap_bytes` / `unwrap_bytes`
@@ -329,7 +329,7 @@ which does *not* match the production key above — so it appears to be a
 different or older code path. The production routing key is authoritative;
 confirm which encoder proactor actually uses when wiring the bridge.)
 
-### 3.7 Message properties
+## Message properties
 
 When publishing, the transport sets these AMQP `BasicProperties`:
 
@@ -346,7 +346,7 @@ These properties are advisory; the routing key is authoritative.
 *connect* time (client_properties → broker → FIS), but an audit trail wants
 to know which runtime instance sent each *message*. The working lean keeps
 `rj`/`rjb` bodies as **bare sema types** (the JSON *is* the type — see the
-open envelope question in [`codec.md`](codec.md) §4.7) and carries
+open envelope question in [`codec.md`](codec.md) `codec.md` "The gw application envelope") and carries
 provenance in the AMQP `headers` table rather than a body envelope:
 
 ```python
@@ -369,9 +369,9 @@ A verifier (FIS / ear / a peer) checks `sig` against the GNode's public
 certificate (the same identity mTLS authenticates at connect). **Caveat:**
 AMQP `headers` do **not** survive the MQTT hop, so this covers
 AMQP-internal traffic only; cross-MQTT provenance (scada) must live in the
-`gw` **body** header instead (§4.7). This split — properties sidecar on the
+`gw` **body** header instead (`codec.md` "The gw application envelope"). This split — properties sidecar on the
 fabric, body envelope across the MQTT hop — is the current lean, pending the
-§4.7 envelope decision.
+`codec.md` "The gw application envelope" envelope decision.
 
 **Principle — audit & identity live in the infrastructure, not the payload.** A
 message body is a **bare sema type**: its semantic content, kept deterministic and
@@ -380,7 +380,7 @@ replayable, so it means the same thing wherever/whenever it is re-handled
 what order — is the fabric's job, not baked into the body. Two infra audit trails
 cover it, so **no message type carries its own timestamp**:
 
-- **the ear** (`ear_tx`, §3.5) — the universal *comms* trail: every message with the
+- **the ear** (`ear_tx`, `transport.md` "AMQP topology") — the universal *comms* trail: every message with the
   broker's receive-time and order, uniformly;
 - a service's own **command log** — an append-only, content-addressed record of
   *applied mutations* (e.g. the grid-node-registry's `command_log`): the *write-side*
@@ -420,7 +420,7 @@ deterministic; the transport carries delivery metadata. The Sema-payload half �
 serialized artifacts stay deterministic, identity via `TypeName` + content-address,
 never an embedded clock — is the sema spec's to state.)
 
-### 3.8 Threading and lifecycle
+## Threading and lifecycle
 
 The transport runs an AMQP event loop on a dedicated **consumer thread**
 (daemon). The application's main thread is free; subclasses may spawn
@@ -457,7 +457,7 @@ low-rate traffic; if it ever bites under a high-throughput load, the answer is a
 construct  -> identity from ServiceSettings (alias, instance_id); build
               queue name; build logger. (Orchestrator additionally sets its
               class exchanges from transport_class; GridworksActor loads +
-              Sema-validates g.node.gt.json — see actors.md §5.)
+              Sema-validates g.node.gt.json — see actors.md `actors.md` "The application layer".)
 start()    -> local_start() hook
               spawn consumer thread, which:
                   connect -> open channel -> assert consume exchange (passive)
@@ -483,7 +483,7 @@ consume resets the delay to 0.
 2. ACK the delivery immediately (fire-and-forget at the broker level;
    the application is responsible for any retry semantics).
 3. Parse the routing key into a `RoutingEnvelope`. On parse failure (now rare
-   — only a bad category / arity / alias, never an unknown class token, §3.3),
+   — only a bad category / arity / alias, never an unknown class token, `transport.md` "Routing-key grammar"),
    call the overridable `on_routing_key_parse_error(routing_key, body, error)`
    hook **instead of silently returning**. The delivery is already ACKed and the
    body is handed in, so an override can salvage it. Default = log + drop
@@ -494,7 +494,7 @@ consume resets the delay to 0.
 4. Call `dispatch_message(envelope, body)` on the application
    (`Orchestrator` filters control-plane types, then forwards to
    `process_message`; a bare tap implements `dispatch_message` directly;
-   see [`actors.md`](actors.md) §5).
+   see [`actors.md`](actors.md) `actors.md` "The application layer").
 
 **Send** (`send(envelope, body, correlation_id?)`) — runs the cheap checks
 synchronously on the caller's thread, then *schedules* the publish on the
@@ -507,7 +507,7 @@ ioloop (see "Publishing is thread-confined" above):
 3. **Synchronous channel-open pre-check** — if the channel is obviously closed,
    return `CHANNEL_NOT_OPEN` now (the common case; this is the diagnostic a
    caller can act on).
-4. Build the `BasicProperties` (§3.7) and **schedule** a callback on the ioloop
+4. Build the `BasicProperties` (`transport.md` "Message properties") and **schedule** a callback on the ioloop
    that will do the actual `basic_publish`. Guard the *schedule* call itself
    (the connection may be closed/reconnecting) so `send` never raises.
 5. Return `MESSAGE_SENT` — meaning **scheduled**, not confirmed.

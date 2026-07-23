@@ -13,19 +13,20 @@ pika.
 > yet built; everything else is intended as normative.
 
 This is the **hub** document — short by design. Depth lives in the
-sub-specs below; section numbers are **global** across all of them (so a
-"§3.4" reference resolves regardless of which file it sits in).
+sub-specs below. Sections are cited by header slug — `file.md "Header
+text"` — and a `##` header in these files is a near-immutable reference
+slug (see the wiki conventions "Headers are reference slugs").
 
 ## Map of the spec
 
-| Sections | File | Covers |
-| --- | --- | --- |
-| §1–§2, §7 | **primary.md** (this file) | Overview, identity, glossary, the cross-cutting invariant checklist |
-| §3 (excl. §3.6) | [`transport.md`](transport.md) | TransportClass/RoutingClass, routing-key grammar, RoutingEnvelopes, AMQP topology, scada/MQTT bridge, message properties, threading/lifecycle |
-| §3.6 | [`provisioning.md`](provisioning.md) | Topology generation, dev/prod delivery, GHCR, identities |
-| §4 | [`codec.md`](codec.md) | SemaType, SemaCodec, versioning, property formats, the `gw` envelope + wrap/unwrap |
-| §5–§6 | [`actors.md`](actors.md) | ActorBase / Orchestrator / GridworksActor tiers; settings, XDG file locations & logging; the hello example; diagnostics |
-| §8 | [`service-deployment.md`](service-deployment.md) | Recommended box pattern: systemd unit → venv binary, homedir README, XDG logs; vendored runtimes as containers |
+| File | Covers |
+| --- | --- |
+| **primary.md** (this file) | Overview, identity, glossary, the cross-cutting invariant checklist |
+| [`transport.md`](transport.md) | TransportClass/RoutingClass, routing-key grammar, RoutingEnvelopes, AMQP topology, scada/MQTT bridge, message properties, threading/lifecycle |
+| [`provisioning.md`](provisioning.md) | Topology generation, dev/prod delivery, GHCR, identities |
+| [`codec.md`](codec.md) | SemaType, SemaCodec, versioning, property formats, the `gw` envelope + wrap/unwrap |
+| [`actors.md`](actors.md) | ActorBase / Orchestrator / GridworksActor tiers; settings, XDG file locations & logging; the hello example; diagnostics |
+| [`service-deployment.md`](service-deployment.md) | Recommended box pattern: systemd unit → venv binary, homedir README, XDG logs; vendored runtimes as containers |
 
 ## The central commitment
 
@@ -36,7 +37,8 @@ them is a single value object (a `RoutingEnvelope`) plus a `bytes` payload.
 
 Note: "envelope" here means the transport-layer routing record. There is a
 *separate*, application-layer envelope (`Gw`) that wraps inner messages for
-end-to-end hop traversal — see §4.7 ([`codec.md`](codec.md)). The two are
+end-to-end hop traversal — see [`codec.md`](codec.md) "The gw application
+envelope". The two are
 distinguished by name (`RoutingEnvelope` vs. `Gw` / "gw envelope") and live
 at different layers.
 
@@ -45,17 +47,17 @@ at different layers.
 `gridworks-base` (module `gwbase`) is the **shared foundation for the
 GridWorks GNode service fleet**: the RabbitMQ-transport actor framework, the
 Sema codec boundary, and `gwbase.topology` — the single source of truth for
-the broker fabric (every service's exchanges/bindings derive from it, §3.6).
+the broker fabric (every service's exchanges/bindings derive from it, `provisioning.md`).
 Services import it as a package and subclass `GridworksActor`, one per
 `TransportClass`. Imported today by **gridworks-ear** and
 **gridworks-journalkeeper**; intended as the base for **gridworks-ltn**
 (`ltn`), **gridworks-marketmaker** (`mm`), and the **weather** (`weather`)
 and **price** (`price`) forecast services. The routing taxonomy for all of
-them already lives here in `gwbase` (§3.1).
+them already lives here in `gwbase` (`transport.md` "TransportClass").
 
 ---
 
-## 1. The two layers
+## The two layers
 
 ```
 +---------------------------------------------------------------+
@@ -101,7 +103,7 @@ without changing the other.
 
 ---
 
-## 2. Identity
+## Identity
 
 Every actor has identifiers that together place it in the system:
 
@@ -112,7 +114,7 @@ Identity scope matches base-class scope across the three tiers
 | --------------------- | ----------- | --------------- | ------------------------------------------------- | --------------------------------------------- |
 | `alias`               | Durable     | ActorBase       | `ServiceSettings.service_alias` (`LeftRightDot`)  | Routable address (e.g. `d1.hello`)            |
 | `instance_id`         | Per-process | ActorBase       | `ServiceSettings.instance_id`, else fresh UUID    | Identifies one process lifetime (FIS uses it) |
-| `transport_class`     | Per-process | Orchestrator    | `Orchestrator.__init__` param (intrinsic to role) | Routing taxonomy (closed enum — §3.1)         |
+| `transport_class`     | Per-process | Orchestrator    | `Orchestrator.__init__` param (intrinsic to role) | Routing taxonomy (closed enum — `transport.md` "TransportClass")         |
 | `g_node_id`           | Durable     | GridworksActor  | `g.node.gt.json` (`GNodeId`, UUID; Sema-validated)| Stable GNode identity across reboots          |
 | `g_node_class`        | Durable     | GridworksActor  | `g.node.gt.json` (`GNodeClass`; Sema-validated)   | Free-form Sema class (e.g. `Scada`)           |
 
@@ -131,43 +133,43 @@ discriminator between a GNode and a plain service.
 
 The `ServiceSettings` / `GNodeSettings` shapes (one `GWBASE_` env prefix), the
 XDG file locations (config / data / state, keyed on `service_name`), and the
-per-actor logger are detailed in [`actors.md`](actors.md) §5.5. gwbase uses
+per-actor logger are detailed in [`actors.md`](actors.md) `actors.md` "Settings, file locations, and logging". gwbase uses
 **plain XDG** for those locations — the `<PREFIX>_PATHS__BASE/NAME` path object
 is gwproactor's, for the on-device (scada/LTN) world. **All cloud actors are
 gwbase ⇒ uniformly plain-XDG; a gwbase service never pulls in gwproactor for
-`Paths`** (the cloud/edge boundary — see §5.5).
+`Paths`** (the cloud/edge boundary — see `actors.md` "Settings, file locations, and logging").
 
 ---
 
 ## Glossary
 
 - **TransportClass / RoutingClass** — the routable kind of an actor and
-  its short routing-key token (§3.1). A closed taxonomy, *not* sema
+  its short routing-key token (`transport.md` "TransportClass"). A closed taxonomy, *not* sema
   vocabulary; `Supervisor` is a TransportClass but not a GNode.
-- **RoutingEnvelope** — the transport-layer routing record (§3.4):
+- **RoutingEnvelope** — the transport-layer routing record (`transport.md` "RoutingEnvelope"):
   `Direct`, `Broadcast`, `Wrapped`. Its `routing_key` and `category` are
   derived, not stored.
-- **`gw` / GridworksHeader** — the *application-layer* envelope (§4.7):
+- **`gw` / GridworksHeader** — the *application-layer* envelope (`codec.md` "The gw application envelope"):
   header + opaque payload, for end-to-end hop traversal. Distinct from
   RoutingEnvelope.
 - **SemaType / SemaCodec** — a named, versioned, JSON-on-the-wire message
-  type, and its registry/transformer (§4).
+  type, and its registry/transformer (`codec.md`).
 - **`<rc>_tx` / `<rc>mic_tx`** — per-class consume (internal) and publish
-  exchanges (§3.5). The binding table between them is the broker-enforced
+  exchanges (`transport.md` "AMQP topology"). The binding table between them is the broker-enforced
   "who may talk to whom" policy.
-- **ear / `ear_tx`** — the universal passive audit tap (§3.5; full spec in
+- **ear / `ear_tx`** — the universal passive audit tap (`transport.md` "AMQP topology"; full spec in
   [`../../ear/executor/broker-tap.md`](../../ear/executor/broker-tap.md)).
 - **ActorBase / Orchestrator / GridworksActor** — the three actor tiers:
   the transport-only ear-tap base (non-GNode services ride it directly), the
   class-routing + control-plane orchestrator (Supervisor, TimeCoordinator),
-  and the GNode-identity actor (§5, [`actors.md`](actors.md)).
+  and the GNode-identity actor (`actors.md` "The application layer", [`actors.md`](actors.md)).
 - **`dispatch_message` / `process_message`** — the transport-level
   framework hook (ActorBase) and the application hook (GridworksActor)
   respectively.
 
 ---
 
-## 7. Faithful-reimplementation checklist
+## Faithful-reimplementation checklist
 
 If you are porting `gridworks-base` to another language, the following
 invariants are load-bearing — preserve them.
@@ -186,7 +188,7 @@ invariants are load-bearing — preserve them.
    `rj.*.*.*.*.<my-alias-lrh>` by default.
 5. Actors **passively** assert their consume exchange exists and never
    declare `mic_tx` or cross-class bindings — infra owns the fabric
-   (§3.5–§3.6).
+   (`transport.md` "AMQP topology"–`provisioning.md`).
 6. Default prefetch 1; subclass-tunable.
 7. Reconnect backoff: 0 on a known-good prior consume; otherwise +1 per
    failed attempt, capped at 30 seconds.
@@ -196,7 +198,7 @@ invariants are load-bearing — preserve them.
    publish is **marshaled onto the ioloop thread** (pika:
    `add_callback_threadsafe`); `MESSAGE_SENT` means *scheduled*, not confirmed.
    (Publishing from the caller's thread corrupts the shared connection under
-   load — it breaks consuming too. See transport.md §3.8.)
+   load — it breaks consuming too. See transport.md `transport.md` "Threading and lifecycle".)
 10. AMQP `client_properties` advertise `ServiceAlias` +
     `ServiceInstanceId` at connect time (every actor); a GNode
     (`GridworksActor`) additionally advertises `GNodeClass`. The presence of

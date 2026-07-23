@@ -12,6 +12,101 @@ Newest at the top.
 
 ---
 
+## 2026-07-23 — Strip wiki and downstream-service references (`af6e83b`)
+
+**What:** every wiki citation in the repo is gone — nine source/test files
+plus `for_docker/dev_rabbitmq.conf` (a comment in the baked image config).
+Module docstrings drop their `Spec: wiki/…` pointers; docstring
+parentheticals citing the executor spec are removed with the substantive
+sentence kept in place; the two design-name references
+(`'ltn-sends-gw-wrapped'`, `'must-accept-current-ltn-messages'`) are
+dropped — design files are deleted on completion, so a code comment naming
+one is a dangling pointer by construction. Also gone: every mention of a
+downstream inheriting service (JournalKeeper's `legacy_hack`, the
+journalkeeper/ear tier examples, the README's named-consumer list —
+now "non-GNode consumers" generically) and the `d1.journal`/
+`journalkeeper` test fixture strings (now neutral `d1.tap1`/`tap1`) —
+what a downstream repo does with a hook goes stale here. The "ear-tap"
+metaphor and the `ear_tx` fabric entity stay: gwbase's own vocabulary.
+Comment-only plus fixture renames; no behavior change.
+
+**Why:** the canonized principle (GridWorks_CLAUDE.md "Repos do not know
+about the wiki"): the only references to wiki files are in the wiki
+itself — the wiki points at code (`file:line`); code never points back.
+Supersedes the interim § → header-slug rewrite from earlier the same day,
+which had turned the citations into slug form before the principle removed
+them outright.
+**Verified:** grep-clean for wiki/executor/design references; offline
+suite 52 passed; pre-commit run (pyupgrade/ruff-format flip-flop
+pre-exists on clean `dev`, unrelated).
+
+## 2026-07-23 — Improve README, make sure it stays current w routing keys (`6dfa8ad`)
+
+**What:** a "Message transport" README section (linked from the repo
+intro): the three live category shapes with real fleet examples (beech
+LTN `bid` → keene MarketMaker; keene `latest.price` broadcast; beech
+scada `gw.….to.ltn.power-watts` — MQTT-plugin-bridged, key carries the
+**inner** payload's TypeName), the dots-render-as-dashes rule, a
+**routing-class table** (the closed `RoutingClass` taxonomy of
+`transport_encoding.py`), and a "How messages move" subsection — the
+`<rc>mic_tx` / `<rc>_tx` pairs, the direct fabric's
+`*.*.<src>.*.<dst>.*` bindings, broadcast subscriber-binding, the MQTT
+seam, the ear taps — ending in a `bid`'s end-to-end journey, with
+RabbitMQ doc links (topic exchanges, e2e bindings, MQTT plugin). New
+`tests/test_readme_transport.py` fails the suite if the README table
+drifts from the enum. Rides along (squashed in): the pre-commit and Black
+badges dropped (the repo is ruff-formatted), and `rabbit/README.md`
+rewritten from its 2023 fossil state (retired EC2 recipe, `jessmillar`
+Docker Hub per-arch builds as "LATEST VERSIONS") to what the directory is
+today — the GHCR image Dockerfile + `build-and-push.sh` tag convention
+and the generated `rabbitconfig/` artifacts; the legacy Docker Hub images
+are recorded in gridworks-infra's `legacy-infra.md`.
+
+**Why:** the transport grammar was documented nowhere outside
+`wiki/gridworks-base/executor/`; the repo README must stand alone, and
+the ear README now leans on this pattern (its object keys are built from
+the routing key's from-alias + TypeName), so the public home for the
+grammar is gwbase's own README — with the class tokens finally named as
+routing classes rather than left vague.
+**Verified:** `test_readme_transport.py` green; shapes and mechanics
+checked against `parse_routing_key`, `gwbase.topology`, and the scada's
+actual uplink topic (`H0N.ltn`, `MQTTTopic.encode`).
+
+## 2026-07-22 — Declarative debug queue + cap policy (0.5.8) (`62e165d`)
+
+**What:** `gwbase.topology` gains `QueueSpec`/`PolicySpec` + `queues()`/
+`policies()`; the definitions builder emits them. First entries: the
+standing `debug` queue (durable, deliberately unbound — which slice it taps
+is investigation state, hand-bound per session) and its `debug-cap` policy
+(`^debug$`, max-length 1000, drop-head). Artifacts regenerated; version
+0.5.8.
+
+**Why:** first slice of the definitions-complete broker (OPS-459): a
+container recreate reproduces the debug tap from files, no hand recipe. The
+users tier (password hashes — must never enter this public artifact) stays
+OPS-459's remaining scope via a box-side render step.
+**Verified:** full ci.sh green incl. the new topology test.
+
+## 2026-07-21 — gnr_ear_tx: the registry's scoped audit exchange (0.5.7) (`87fa950`)
+
+**What:** new internal exchange `gnr_ear_tx` + two fabric bindings
+(`gnr_tx → gnr_ear_tx`, `gnrmic_tx → gnr_ear_tx`, both `#`) in
+`gwbase.topology`; definitions artifacts regenerated (dev + hybrid);
+topology tests assert the pair; version 0.5.7. Rides along: a README "How
+to commit changes" section (`pre-commit run --all-files`, `./ci.sh`, the
+regenerate-definitions step, the stray-`SSL_CERT_FILE` TLS gotcha) — the
+commit gates existed but were undocumented, and this change hit two of them
+blind.
+
+**Why:** the registry's meaning-bearing slice — everything said to it and by
+it (forest broadcasts AND write verdicts, which ride the registry's own mic)
+— gets a fabric-defined audit feed for the seed-store capture. The slice
+lives in git and boots with the broker, never in a tap's runtime binding.
+**Verified:** full ci.sh green (ruff, format, drift-guard, 58+ tests incl.
+the updated topology contract).
+
+---
+
 ## 2026-07-04 — gnr broadcast bridge to amq.topic; rename prod->hybrid definitions; 0.5.6 (`a657b92`)
 
 **What:** two changes in one commit (PR #170).

@@ -103,10 +103,36 @@ if [ -n "$CLAUDE_CODE_SESSION_ID" ]; then
   echo "$NAME" > "$HOME/.claude/.session-by-id/$CLAUDE_CODE_SESSION_ID"
 fi
 
+# Open scratch rows in the estimates log (timers without a Stopped value) —
+# surfaced so every session sees running work at start. estimates.md is a
+# shared coordination file (see the active-claims protocol).
+ESTIMATES="$GW/wiki/estimates.md"
+OPENROWS=""
+if [ -f "$ESTIMATES" ]; then
+  OPENROWS=$(awk -F'|' '
+    /^## Active hours/ { f=1; next }
+    f && /^## /        { f=0 }
+    f && /^\|/ && $2 !~ /^ *Work *$/ && $2 !~ /^ *-+ *$/ {
+      s = $5; gsub(/ /, "", s)
+      if (s == "") print $0
+    }' "$ESTIMATES")
+fi
+
 # Build additionalContext for Claude.
 CTX="You are session ${NAME} (hash ${HASH}). Your starter row was inserted into wiki/active-claims.md.
 
-**Read wiki/active-claims.md now** for the full multi-session protocol (it lives below the table in that file). The key first-turn action: **ASK the user for the session Focus** — a 1-line statement of intent (e.g., \"Decouple Sema from Transport\") — and fill the Focus column."
+**Read wiki/active-claims.md now** for the full multi-session protocol (it lives below the table in that file). The key first-turn action: **ASK the user for the session Focus** — a 1-line statement of intent (e.g., \"Decouple Sema from Transport\") — and fill the Focus column.
+
+**After Focus is set — the estimate ritual.** wiki/estimates.md is a shared coordination file: no Scope claim needed, but touch only your own rows. If the Focus has no scoreboard row there, agree an estimate with the user (point + 90% low/high hours), add the row, and post the full scope as a comment on the Linear issue. Then start a scratch row under \"Active hours — scratch\" (Work · Day · Started, ET). At wrap, sum the scratch rows into Actual and log hours on the issue."
+
+if [ -n "$OPENROWS" ]; then
+  CTX+="
+
+**Open scratch rows in wiki/estimates.md (timers not yet stopped):**
+${OPENROWS}
+
+Continue or close the ones that belong to this session's Focus; mention any that look stale to the user."
+fi
 
 if [ -n "$STALE" ]; then
   CTX+="

@@ -62,8 +62,8 @@ This yields the governing principle:
 - `<rc>mic_tx → ear_tx (#)` for every `AMQP_ACTOR_CLASSES` member
 - `amq.topic → ear_tx (#)`
 
-See `wiki/gridworks-base/executor/transport.md` §3.5 and
-`provisioning.md` §3.6 for how `ear_tx` sits in the generated topology
+See `wiki/gridworks-base/executor/transport.md` "AMQP topology" and
+`provisioning.md` for how `ear_tx` sits in the generated topology
 (start at that domain's `primary.md`).
 
 **Out of gwbase scope** (provisioned as deployment/analytics infra):

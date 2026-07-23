@@ -41,7 +41,7 @@ half-done.
 Wave-1 ships `ActorBase.logger` writing a bijective human-readable format
 that maps 1:1 onto a future `observability.log-entry/000` Sema type. The
 as-built logger is specified in
-[`../../executor/actors.md`](../executor/actors.md) §5.5; the field-level
+[`../../executor/actors.md`](../executor/actors.md) "Settings, file locations, and logging"; the field-level
 bijection it is designed to satisfy:
 
 Per-record format: `<iso-ts> <LEVEL> <alias> > <message>[ key=val ...]`,

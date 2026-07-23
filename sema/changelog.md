@@ -12,7 +12,24 @@ Newest at the top.
 
 ---
 
-## 2026-07-21 — g.node.reparent.cmd/001: optional Proof, published <!-- pending commit -->
+## 2026-07-21 — g.node.cmd.ack + g.node.cmd.nack v000, published (`a663914`)
+
+**What:** the registry's write-command reply words. `g.node.cmd.ack/000`
+(`CommandHash`) and `g.node.cmd.nack/000` (`CommandHash`, `Reason`) — success
+vs refusal discriminated by TypeName, never a field; correlation by the
+command's content hash (an opaque string — the hashing scheme stays
+registry-internal per the content-address exploration). Both promoted to
+published in the same change.
+
+**Why:** the write path was fire-and-forget, so a refusal was silence — the
+operator learned of it by a 20-second poll timeout, and the reason lived only
+in the registry's journal. With typed replies riding the bus, the sender gets
+an instant verdict and the ear's capture makes every refusal a first-class
+audit record with its reason attached.
+**Verified:** sema suite 393 green (incl. both words' generated round-trip
+tests); promote closure checks.
+
+## 2026-07-21 — g.node.reparent.cmd/001: optional Proof, published (`c4b3536`)
 
 **What:** new version 001 adds optional `Proof` (opaque authorization
 artifact, mirroring `g.node.create.cmd`'s field); 000 untouched. Upgrade

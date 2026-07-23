@@ -1,15 +1,15 @@
-# gridworks-base — Application layer & diagnostics (§5–§6)
+# gridworks-base — Application layer & diagnostics
 
 Status: Draft · Pass 0 · Updated 2026-06-10
 
 Sub-spec of the gridworks-base rebuild spec — **start at
 [`primary.md`](primary.md)**. Section numbers are global; this file holds
-§5 (the application layer) and §6 (diagnostics). Transport mechanics are in
+the application layer and diagnostics. Transport mechanics are in
 [`transport.md`](transport.md); the codec in [`codec.md`](codec.md).
 
 ---
 
-## 5. The application layer
+## The application layer
 
 The actor framework is a **three-tier linear hierarchy** — each tier adds
 exactly the capability its name implies, so a service rides the tier that
@@ -46,7 +46,7 @@ ceremony + sim.timestep pulse).
 | Supervisor, TimeCoordinator | `Orchestrator` | `ServiceSettings` | env `service_alias` |
 | SCADA, LTN, MarketMaker, forecast services | `GridworksActor` | `GNodeSettings` | `g.node.gt.json` ↔ `service_alias` |
 
-### 5.1 ActorBase (transport-only base — a passive ear-tap)
+## ActorBase
 
 `ActorBase` is the "I am a RabbitMQ-connected actor" base class, and by
 default a **passive ear-tap**: it consumes the universal audit exchange and
@@ -54,11 +54,11 @@ publishes nothing. Non-GNode services (journalkeeper, ear's actor-side,
 audit-tap consumers) ride it directly with `ServiceSettings` — no
 `g.node.gt.json`, no GNode identity. It provides:
 
-- Identity (§2): `alias` + `instance_id` from `ServiceSettings`. **No**
+- Identity (`primary.md` "Identity"): `alias` + `instance_id` from `ServiceSettings`. **No**
   `transport_class` — a tap has no routing identity to name.
 - A per-actor `logger` (XDG state-home, bijective human format — see the
   logging substrate).
-- Connection / channel / queue / consume lifecycle (§3.8), reconnect-with-
+- Connection / channel / queue / consume lifecycle (`transport.md` "Threading and lifecycle"), reconnect-with-
   backoff in a dedicated consumer thread.
 - Default consume exchange `ear_tx`, and **no automatic binding**:
   `bind_queue()` is a no-op for the tap — the subclass binds its slice of
@@ -66,7 +66,7 @@ audit-tap consumers) ride it directly with `ServiceSettings` — no
   `subscribe_broadcast` / `subscribe_amq_topic`.
 - **No publish exchange** (`_publish_exchange is None`). `send` of a
   `WrappedRoutingEnvelope` still reaches `amq.topic`; `send` of a
-  Direct/Broadcast returns `NO_PUBLISH_EXCHANGE` (§6) — a tap cannot
+  Direct/Broadcast returns `NO_PUBLISH_EXCHANGE` (`actors.md` "Diagnostics") — a tap cannot
   class-route.
 - `wrapped_envelope(...)` (the only envelope helper here — it needs no
   `from_class`). `direct_envelope` / `broadcast_envelope` live one tier up.
@@ -88,7 +88,7 @@ import `gwbase.sema` — alias/uuid wire formats come from the codec-free
 `gwbase.transport_format`.) Any subclass that talks in typed messages owns
 its own codec instance.
 
-### 5.2 Orchestrator (class-routing + the control-plane rhythm)
+## Orchestrator
 
 `Orchestrator` is the first tier that **class-routes**, and the home of the
 GridWorks orchestration rhythm. Supervisor and TimeCoordinator — which are
@@ -139,7 +139,7 @@ Behavioral rules of note:
   time coordinator (defaults to the latest observed simulated time). It uses
   `instance_id` for the `from_g_node_instance_id` slot.
 
-### 5.3 GridworksActor (GNode identity)
+## GridworksActor
 
 `GridworksActor` adds durable GNode identity on top of `Orchestrator`. It is
 the canonical actor for GridWorks GNodes — SCADA, LTN, MarketMaker, the
@@ -148,7 +148,7 @@ fixed `transport_class` up to `Orchestrator`.
 
 At construction it:
 
-- Loads its `g.node.gt.json` (default path via XDG, §2) and **Sema-validates
+- Loads its `g.node.gt.json` (default path via XDG, `primary.md` "Identity") and **Sema-validates
   it as a `GNodeGt`** (axioms 1–5 fire) — rather than reading three untyped
   strings the way the old base did. A typo, missing field, or drifted
   schema fails at boot with a clear `ValueError`, not a mid-run crash.
@@ -156,13 +156,13 @@ At construction it:
   (provisioning-drift guard).
 - Sets `g_node_id`, `g_node_class`, and decorates the FIS handshake
   `client_properties` with `GNodeClass` (the GNode-vs-service discriminator,
-  §2). `g_node_alias` / `g_node_instance_id` survive as back-compat property
+  `primary.md` "Identity"). `g_node_alias` / `g_node_instance_id` survive as back-compat property
   aliases for `alias` / `instance_id`.
 
-### 5.4 Example: hello_rabbit
+## Example: hello_rabbit
 
 The minimal end-to-end shape (a `LeafTransactiveNode` GNode — scada is
-MQTT-native with no AMQP exchanges, §3.5):
+MQTT-native with no AMQP exchanges, `transport.md` "AMQP topology"):
 
 ```
 class HelloGNode(GridworksActor):
@@ -199,7 +199,7 @@ A **non-GNode tap** (e.g. journalkeeper) instead subclasses `ActorBase`
 directly, constructs with `ServiceSettings(service_alias=...)` and no
 `g.node.gt.json`, and binds its slice of `ear_tx` in `local_rabbit_startup`.
 
-### 5.5 Settings, file locations, and logging
+## Settings, file locations, and logging
 
 Every actor is constructed from settings and writes to per-service XDG
 locations — no root or `/etc` needed.
@@ -257,7 +257,7 @@ requests) is out of scope here — see
 
 ---
 
-## 6. Diagnostics
+## Diagnostics
 
 Both ends of the boundary expose enums rather than raising on
 transport-or-decode failure paths, so the broker event loop is never

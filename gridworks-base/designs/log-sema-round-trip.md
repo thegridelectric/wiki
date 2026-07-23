@@ -4,7 +4,7 @@ Status: Draft · Pass 0 · Updated 2026-05-30
 
 > Two CLI tools shipped with gwbase that round-trip between the
 > bijective human-readable log format (per
-> [`../executor/actors.md`](../executor/actors.md) §5.5)
+> [`../executor/actors.md`](../executor/actors.md) "Settings, file locations, and logging")
 > and `observability.log-entry/000` Sema events: `gwbase log-to-sema`
 > parses the human format into Sema events; `gwbase sema-to-log`
 > goes the reverse. Lossless by design — the human format was
@@ -104,7 +104,7 @@ CI test asserts both directions on a fixture corpus.
 
 ## Cross-references
 
-- [`../executor/actors.md`](../executor/actors.md) §5.5
+- [`../executor/actors.md`](../executor/actors.md) "Settings, file locations, and logging"
   — the bijective format this tool round-trips
 - [`../explorations/logging-for-observability.md`](../explorations/logging-for-observability.md)
   — the v-next concern that names these tools in its shipping list

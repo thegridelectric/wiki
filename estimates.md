@@ -14,15 +14,31 @@ Status: Draft · Pass 0 · Updated 2026-07-19
 | Est. date | Work | Point (h) | 90% low (h) | 90% high (h) | Actual (h) | In interval? |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-07-19 | OPS-419 step 7 — populate + deploy registry | 13 | 8 | 24 | | |
+| 2026-07-22 | OPS-392 — dev-spruce layout readiness | 10 | 6 | 18 | | |
+| 2026-07-22 | OPS-458 — ear poetry to uv | 2 | 0.5 | 3 | | |
 
 ## Active hours — scratch
 
-Running per-day hours for work that is active (not yet wrapped). At wrap: sum
-into the Actual column above, log on the Linear issue, delete the rows here.
+Running per-day hours for work that is active (not yet wrapped). Times in ET.
+At wrap: sum into the Actual column above, log on the Linear issue, delete
+the rows here.
 
-| Work | Day | Hours |
-| --- | --- | --- |
-| OPS-419 step 7 | 2026-07-19 | started 11:30 ET |
+| Work | Day | Started | Stopped | Hours |
+| --- | --- | --- | --- | --- |
+| OPS-419 step 7 | 2026-07-19 | 11:30 | 13:00 | 1.5 |
+| OPS-419 step 7 | 2026-07-19 | 14:45 | 15:15 | 0.5 |
+| OPS-419 step 7 | 2026-07-19 | 17:15 | 17:45 | 0.5 |
+| OPS-419 step 7 | 2026-07-20 | 11:45 | 12:15 | 0.5 |
+| OPS-419 step 7 | 2026-07-21 | 8:30 | 9:30 | 1.0 |
+| OPS-419 step 7 | 2026-07-21 | 10:00 | 11:00 | 1.0 |
+| OPS-419 step 7 | 2026-07-21 | 13:00 | 13:30 | 0.5 |
+| OPS-419 step 7 | 2026-07-22 | 8:15  |8:45   | 0.5 |
+| OPS-419 step 7 | 2026-07-22 | 17:15  | 17:45 |  |
+| OPS-419 step 7 | 2026-07-23 | 7:45  |  |  |
+| OPS-392 dev-spruce readiness | 2026-07-22 |  | | |
+| OPS-392 dev-spruce readiness | 2026-07-23 | 9:40 | | |
+| OPS-458 ear poetry→uv | 2026-07-22 | 8:15 | 8:40 | 0.4 |
+
 
 ## How to use
 

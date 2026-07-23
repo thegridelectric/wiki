@@ -39,10 +39,11 @@ identical, `validate_registry`-clean, checkpoints matching.
 
 ## Plan
 
-1. **Verify the live ear hears the registry** — publish a staged command on
-   the deployed broker and confirm the S3 object lands (the ear service
-   predates gnr; its bindings may not cover the gnr exchanges). If not,
-   that wiring is a prerequisite fix.
+1. ✅ VERIFIED (2026-07-21, by the genesis itself) — **the live ear hears the
+   registry**: the first real create (`hw1.isone`) landed in the S3
+   eventstore as both witnesses — the raw command
+   (`hw1.registrar-g.node.create.cmd-1784643507026-…`) and the registry's
+   forest broadcast 123 ms later. No binding fix needed.
 2. **Store adapter** — an `iter_s3_capture(bucket, world_instance, start,
    end)` source yielding capture lines to the existing `replay` core;
    injectable client so it unit-tests without AWS; `boto3` becomes a gnr

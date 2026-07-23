@@ -90,7 +90,7 @@ in provisioning config, never encoded in a name** (state in names goes stale; th
 same reason alias ≠ GNodeId). And **no message body carries its run**: the run is
 a property of the fabric (the vhost a connection is on), recorded where messages
 are *persisted* — the ear's capture keys and the JournalKeeper's storage carry
-the vhost — per the audit principle (gwbase `transport.md` §3.7: delivery
+the vhost — per the audit principle (gwbase `transport.md` "Message properties": delivery
 metadata lives in the infrastructure, not the payload).
 
 **The universe segment is a namespace, not a GNode.** `d1` (the bare universe

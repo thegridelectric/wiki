@@ -12,19 +12,117 @@ Newest at the top.
 
 ---
 
-## 2026-07-21 — Write-proof gate + gnr create <!-- pending commit -->
+## 2026-07-21 — Minor adjustment (`b41f6f5`)
+
+**What:** broker CA trust scoped to the CLI's own process —
+`GNR_BROKER_CA_FILE` replaces the shell-wide `SSL_CERT_FILE` export in the
+operator env template; `gnr create` sets the override just before its broker
+connect.
+
+**Why:** a shell-wide `SSL_CERT_FILE` poisons every other tool's TLS (the
+env var replaces Python's default bundle — uv/pip fetches were failing in
+the operator's shell against a bundle holding only the private CA).
+
+## 2026-07-21 — add deploy script (`70c083f`)
+
+**What:** `deploy.sh` — the one-word deploy: puts the box on the pushed tip
+of **main** (hard reset = the clean-SHA guarantee; handles the dev→main
+branch switch on first run), `uv sync --frozen`, restarts both services,
+health-checks, prints the running SHA.
+
+**Why:** deploys should be a script the operator runs, not hand-work — the
+merge-to-main PR is the deploy decision, `./deploy.sh` is the go.
+
+## 2026-07-21 — Typed write verdicts (ack/nack) + refusal no longer kills the channel (`a6d7f0d`)
+
+**What:** the registry replies to every write command with a typed verdict,
+direct to the sender — `g.node.cmd.ack` on apply, `g.node.cmd.nack` with the
+verbatim reason on refusal — correlated by the content hash of the bytes as
+published. The same change fixes the defect the first production refusal
+exposed: `CreateError`/`ReparentError` escaping `process_message` tore down
+the consume channel; refusals are now answers, not exceptions to die on.
+`gnr create` waits on the verdict (instant ✗-with-reason; ~10s fallback to
+the old poll against a pre-verdict registry) and keeps the API poll after an
+ack as the visibility proof. Snapshot vendors the two new published words.
+New Layer-2 experiment (`test_layer2_replies.py`): refused command → nack
+with reason → same connection applies and acks the next valid command.
+
+**Why:** fire-and-forget made refusals silence — a 20-second timeout with
+the reason buried in the box journal — and each one cost a connection
+bounce. Because verdicts ride the bus, the ear now captures every refusal
+with its reason: the audit of the registry saying no, out loud.
+**Verified:** suite 58 green including the new experiment.
+
+## 2026-07-21 — Operator env template + pinned public CA for API polls (`bcf4c57`)
+
+**What:** `template.operator.env` → gitignored `operator.env` (the
+`template.env` idiom for the operator side): the four exports for writes
+against the deployed registry (API base, hw1 AMQPS URL, `GNR_WRITE_PROOF`,
+the CA file), sourced into the working shell. README gains the operator-setup
+recipe; the secret's 1Password name is standardized as "Grid Node Registry
+Write Proof".
+
+**Why:** shareable team workflow — the template documents the shape, the
+secrets ride 1Password, nothing sensitive can land in git.
+
+Rides along, found by explaining `SSL_CERT_FILE`: the env var **replaces**
+the process's default CA bundle, so `gnr create`'s HTTPS ✓-poll against the
+API's Let's Encrypt cert would have failed whenever the broker CA was set.
+`_api_get` now pins its own context to the public bundle (`certifi`, made an
+explicit dependency) — the env var's scope shrinks to its one job, the
+broker handshake. Verified positively: a 200 through the pinned context with
+`SSL_CERT_FILE` set, and the control (default context) still failing.
+
+## 2026-07-21 — gnrstatus alias (`4fc6779`)
+
+**What:** `gnrstatus` — `systemctl status` over both services + the snapshot
+timer, no pager. Read-only, so no sudoers change.
+
+**Why:** the at-a-glance health check alongside start/stop/restart/log.
+
+## 2026-07-21 — Box ergonomics: aliases + write-gate docs (`cd19145`)
+
+**What:** `service/bash_aliases` — `gnrstart`/`gnrstop`/`gnrrestart`/`gnrlog`,
+pure spelling over systemctl/tail, sourced from the box login's `.bashrc`
+and paired with the narrow `/etc/sudoers.d/gnr` grant (exact-argument
+NOPASSWD on the gnr units only; the drop-in lives on the box). README gains
+the write-proof-gate prose (was only a template.env comment).
+
+**Why:** the scada-style ergonomics without reviving wrapper scripts —
+aliases carry no logic, so the flattened pattern holds (§8 amended to say
+so).
+**Verified:** on the box — passwordless restart through the exact grant,
+aliases resolving in the login shell.
+
+## 2026-07-21 — Update cli with dropdown etc (`6cd7a6d`)
+
+**What:** bare `gnr create` becomes an interactive wizard: a GNodeClass menu
+(the four physical classes + known Logical classes + free-form other),
+**BaseGNodeClass inferred mechanically from g.node.gt axiom 1**, then
+alias / display-name / GNodeId prompts with defaults; the arg form
+`gnr create <alias> <GNodeClass> [--g-node-id …]` skips the prompts. Broker
+connection rides the settings chain (.env locally; exported env wins for a
+remote target).
+
+**Why:** the operator flow is choose-class-then-name; the inference belongs
+to the axiom, not a lookup table that can drift.
+**Verified:** suite 57 green; wizard smoke-tested through to the publish
+confirm.
+
+## 2026-07-21 — Write-proof gate, reparent 001 snapshot, gnr create (`eb76383`)
 
 **What:** stop-gap write authorization: `Settings.write_proof_sha256`
 (`GNR_WRITE_PROOF_SHA256`) + `PostgresAuthority._check_proof` refusing any
 create/re-parent whose `Proof` doesn't hash-match — before all other checks,
 including the idempotent-replay short-circuit. Snapshot rebuilt on
 `g.node.reparent.cmd/001` (the sema-side version adding optional Proof; 000
-retired to `old_versions`). New `gnr create <alias> <base-class>
-[--g-node-id …]` operator command: existence check via the read API, builds
-the node Pending with a staged position, confirms interactively, publishes
-over the broker as `<universe>.registrar` with the Proof from env or prompt
-(never an argument). 5 new Layer-1 guardrail tests (missing/wrong proof
-bounce atomically on both commands; correct proof lands).
+retired to `old_versions`). New `gnr create` operator command: existence
+check via the read API, the node built Pending with a staged position, an
+explicit publish confirm, then publish over the broker as
+`<universe>.registrar` with the Proof from env or prompt (never an
+argument), and a poll until the node appears. 5 new Layer-1 guardrail tests
+(missing/wrong proof bounce atomically on both commands; correct proof
+lands).
 
 **Why:** anyone with fleet broker credentials could otherwise mint arbitrary
 GNodes from the public schemas; the Proof field is the schemas' designed

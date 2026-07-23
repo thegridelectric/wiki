@@ -61,6 +61,11 @@ verbatim; deviation is a defect, not a stylistic choice. RFC 2119 keywords
 - **Before extending into a new path or area, you MUST re-check this file**
   and update your row. If the new area overlaps another active session's
   scope, you MUST stop and raise it; you MUST NOT edit across the boundary.
+- **Shared coordination files.** `wiki/estimates.md` is, like this file
+  itself, edited by every session without a claim: append your own
+  scoreboard and scratch rows and close your own timers; you MUST NOT edit
+  another session's rows. It MUST NOT appear in any Scope cell. (Unlike
+  this gitignored file it stays committed — durable calibration data.)
 - **Commits:** Human does all commits. You MUST stage only your own paths;
   you MUST NOT `git add -A` while other sessions may be live. (See
   `GridWorks_CLAUDE.md` "Commit suggestions".)

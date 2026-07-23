@@ -1,21 +1,21 @@
-# gridworks-base — Codec layer / Sema (§4)
+# gridworks-base — Codec layer / Sema
 
 Status: Draft · Pass 0 · Updated 2026-05-21
 
 Sub-spec of the gridworks-base rebuild spec — **start at
 [`primary.md`](primary.md)**. Section numbers are global; this file holds
-§4. The codec is wholly independent of the transport
+`codec.md`. The codec is wholly independent of the transport
 ([`transport.md`](transport.md)).
 
 ---
 
-## 4. The codec layer (Sema)
+## The codec layer
 
 Sema is a schema system for **named, versioned message types** with
 JSON-on-the-wire serialization. It is wholly independent of the
 transport.
 
-### 4.1 SemaType
+## SemaType
 
 A `SemaType` is a typed message value. Every concrete subclass declares,
 as class-level defaults:
@@ -54,7 +54,7 @@ format.
 `exclude_none=True`: optional fields that are null are omitted entirely
 from the wire form.
 
-### 4.2 SemaCodec
+## SemaCodec
 
 A `SemaCodec` is a registry plus a bidirectional transformer. Each
 codec instance holds:
@@ -90,7 +90,7 @@ files under a sibling `old_versions/` directory.
 `from_bytes` is `from_dict ∘ json_parse`. `to_bytes` defers to the
 type's own `to_bytes`.
 
-### 4.3 DegradedSemaType
+## DegradedSemaType
 
 A best-effort decode result when the schema is unknown or the version
 is unsupported. It is NOT a `SemaType` and MUST NOT drive control
@@ -103,7 +103,7 @@ Useful for:
   schema.
 - Forwarding/relaying without round-tripping through a strict decode.
 
-### 4.4 Versioning model
+## Versioning model
 
 - Versions are zero-padded integer strings: `"000"`, `"001"`, …
 - The latest version of each type lives under the canonical class
@@ -117,7 +117,7 @@ Useful for:
   correctly as text); a renaming or breaking change requires a new
   `type_name`, not just a version bump.
 
-### 4.5 Property formats
+## Property formats
 
 Common scalar shapes are encoded as named property formats and validated
 on the way in:
@@ -134,7 +134,7 @@ Sema is the authority on `LeftRightDot`. The transport layer mirrors
 the pattern with hyphens instead of dots (`LRH`) for routing-key
 tokens; the two must remain in sync.
 
-### 4.6 Built-in types
+## Built-in types
 
 The bundled type catalog (in `gwbase.sema.types`):
 
@@ -146,7 +146,7 @@ The bundled type catalog (in `gwbase.sema.types`):
 - `g.node.gt` — durable GNode definition (id, alias, class, status).
 - `g.node.instance.gt` — runtime GNode instance.
 - `gridworks.header` — header fields of the `gw` application envelope
-  (see §4.7): `Src`, `Dst`, `MessageType`, `MessageId`, `AckRequired`.
+  (see `codec.md` "The gw application envelope"): `Src`, `Dst`, `MessageType`, `MessageId`, `AckRequired`.
 - `gw` — the application envelope itself: `Header` (`GridworksHeader`)
   plus `Payload` (an opaque PascalCase dict whose `TypeName` matches
   `Header.MessageType`).
@@ -158,7 +158,7 @@ reimplementation should either generate code from the same YAML or
 hand-port the types and treat YAML as the source of truth for the wire
 shape.
 
-### 4.7 The `gw` application envelope (and wrap/unwrap helpers)
+## The `gw` application envelope
 
 The `gw` Sema type is an **application-layer envelope**, distinct from
 the transport-layer `RoutingEnvelope`. It carries a `GridworksHeader`
@@ -263,7 +263,7 @@ non-repudiation. That raises a structural fork:
   bodies as **bare sema types** (the JSON *is* the type — valued for its
   clean simplicity), carry `GNodeInstanceId`/signing in AMQP
   `BasicProperties.headers` on the fabric ([`transport.md`](transport.md)
-  §3.7), and keep the `gw` **body** envelope only for the cross-MQTT hop
+  `transport.md` "Message properties"), and keep the `gw` **body** envelope only for the cross-MQTT hop
   where properties don't survive (gwproactor/scada already publish `gw`).
   Two mechanisms, but each body stays as clean as it can be.
 
