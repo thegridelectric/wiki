@@ -26,7 +26,7 @@ slug (see the wiki conventions "Headers are reference slugs").
 | [`provisioning.md`](provisioning.md) | Topology generation, dev/prod delivery, GHCR, identities |
 | [`codec.md`](codec.md) | SemaType, SemaCodec, versioning, property formats, the `gw` envelope + wrap/unwrap |
 | [`actors.md`](actors.md) | ActorBase / Orchestrator / GridworksActor tiers; settings, XDG file locations & logging; the hello example; diagnostics |
-| [`service-deployment.md`](service-deployment.md) | Recommended box pattern: systemd unit → venv binary, homedir README, XDG logs; vendored runtimes as containers |
+| [`service-deployment.md`](service-deployment.md) | Recommended box pattern: systemd unit → venv binary (template units for multi-instance), homedir README, XDG logs; vendored runtimes as containers; the ci.sh gate |
 
 ## The central commitment
 

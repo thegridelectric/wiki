@@ -1,6 +1,6 @@
 # Rebuild from the persistent store
 
-Status: Draft · Pass 0 · Updated 2026-07-20 · Linear: OPS-457
+Status: Draft · Pass 0 · Updated 2026-07-25 · Linear: OPS-457
 
 **EDD: yes** the verification IS the real-store experiment: a real ingest
 witnessed by the live ear, then a scratch registry rebuilt from S3 alone —
@@ -15,18 +15,32 @@ identical, `validate_registry`-clean, checkpoints matching.
 > rebuild (`gnr.rebuild` + the `gnr rebuild` CLI) stays **off dev**, held
 > on the standup branch.
 
-## Gates (both, before execution)
+## Gates (rescoped 2026-07-25)
 
-1. **The persistent store has its durable backup** (OPS-443 strand 2's
-   second, non-hyperscaler sink). The store being restored *from* must
-   itself be the crown-jewel copy; a rebuild path onto a single-sink store
-   overclaims durability.
-2. **Nodes are Active with TaValidator-authorized PositionPoints** — the
-   activation mechanism has landed. This gate is also what closes the
-   executor Durability "Open": positions ride outside the command stream,
-   so rebuildability requires the activation command to carry them (or a
-   restore from the TaValidator store); that decision is part of this
-   design's scope, made when activation's shape is real.
+1. ✅ SATISFIED — **the persistent store has its durable backup**: B2
+   `gw-seedstore` is the compact primary (OPS-443 strand 2, live since
+   2026-07-23).
+2. **Nodes are Active with TaValidator-authorized PositionPoints** — this
+   gates only the *activation-era completeness claim* (positions ride
+   outside the command stream; the activation command must make them
+   rebuildable, or the TaValidator store must restore them). It does NOT
+   gate testing: the Pending-era registry is fully command-stream-born and
+   was rebuilt from the true store on 2026-07-25 (below).
+
+## Proven (2026-07-25): Pending-era rebuild from the true store
+
+The full production registry rebuilt locally from the B2 `gw-seedstore`
+capture alone: 149 unique publishes fetched and ms-ordered (the 5
+dual-witnessed objects verified byte-identical across witnesses), fed as
+the provisional JSONL to the held branch's `gnr rebuild` against a scratch
+Postgres running the production proof hash. Result: 27 applied /
+1 re-refused (the empty-proof command re-refusing — the stream agreeing
+with itself), **102/102 forest checkpoints matching**,
+`validate_registry`-clean, and the end state node-for-node identical to
+the live registry (24-node `hw1.isone` forest + `hw1.time`). The executor
+*Durability* section carries the durable claim. Remaining here: the
+in-repo `--s3` source (plan step 2), landing the branch, and the
+activation-era position decision (gate 2).
 
 ## The store (facts, from gjk's importer)
 

@@ -12,6 +12,42 @@ Newest at the top.
 
 ---
 
+## 2026-07-24 — CLI addresses hw1.gnr (`f02b0ea`)
+
+**What:** `gnr create`'s direct envelope targets
+`to_alias=f"{universe}.gnr"` (was `.registry`); the Layer-2 tests' own
+registry alias follows (`d1.gnr`).
+
+**Why:** the service-alias rename was incomplete — the box answered as
+`hw1.gnr` while the CLI still addressed `hw1.registry`, so the first
+post-rename create entered `gnr_tx`, matched no queue binding, and died
+unrouted. The failure mode was instructive: the seed ear (binding `#` on
+the tap) captured the command anyway, so the audit saw a command with no
+verdict and no apply — the archive recording a message the addressee
+never received.
+**Verified:** suite 58 green; the real proof is the next `gnr create`
+applying with an ack.
+
+## 2026-07-24 — gnregistrar alias + daily snapshot cadence (`d186466`)
+
+**What:** the operator CLI's publisher alias becomes
+`<universe>.gnregistrar` (was `.registrar` — two letters away from the
+service's old `hw1.registry`, an invited confusion), and
+`gnr-snapshot.timer` drops from hourly to daily (`OnUnitActiveSec=24h`).
+Companion box-config change, not in this diff: `GNR_SERVICE_ALIAS` on the
+gnr box goes `hw1.registry` → `hw1.gnr` — one registry among future
+registries, named like its box, repo, and exchanges.
+
+**Why:** naming and noise. The forest snapshot broadcast is anti-entropy
+for subscribers, and no subscriber exists yet (gjk's projection is
+unbuilt) — hourly was 24 near-identical forests a day into the seed
+store's precious slice. Daily keeps the mechanism warm at one object a
+day; revisit cadence when gjk consumes. On-change broadcasts are
+unaffected.
+**Verified:** gnr suite 58 passed; alias visible in the next
+`gnr create`'s command keys; timer cadence visible on the box after
+re-copy.
+
 ## 2026-07-21 — Minor adjustment (`b41f6f5`)
 
 **What:** broker CA trust scoped to the CLI's own process —

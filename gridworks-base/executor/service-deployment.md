@@ -1,6 +1,6 @@
 # Deploying a gwbase service — the recommended box pattern
 
-Status: Draft · Pass 0 · Updated 2026-07-19
+Status: Draft · Pass 0 · Updated 2026-07-23
 
 > What this is: the recommended way to run a gwbase service on a production
 > box. Heritage: the gwproactor/scada service setup (a systemd unit running
@@ -65,6 +65,40 @@ RestartSec=1
 [Install]
 WantedBy=multi-user.target
 ```
+
+**Multi-instance services use a systemd template unit.** When one codebase
+runs as several deployed instances (the ears: one code, N slices), the
+repo ships a single generic `\<name\>@.service` with `%i` in `User=` /
+paths, and the instance name IS the login (`ear@ear`, `ear@gnr-ear`). The
+repo stays exactly as generic as its code — one unit, one
+`template.env` documenting the config surface — and the instance roster
+(which instances exist, on which box) is an operational fact recorded in
+gridworks-infra, not in the repo. A new instance costs a login + a `.env`
++ `systemctl enable --now \<name\>@\<login\>`; no repo change.
+
+## The ci.sh gate
+
+Every service repo ships a `ci.sh` at its root: one command that runs
+locally everything the repo's CI workflow runs, so a push won't go red.
+It is the gate the commit-suggestion rule invokes ("run the repo's CI
+entrypoint before suggesting a code-repo commit"). Shape, from
+`gridworks-base/ci.sh` and `gridworks-ear/ci.sh`:
+
+1. `uv sync --locked` — resolve the env exactly as CI does.
+2. **Directory-form lint first**: `ruff check --no-fix .` +
+   `ruff format --check .`. Ordering is load-bearing:
+   `pre-commit run --all-files` only sees git-TRACKED files, so a
+   brand-new untracked file sails through pre-commit and then fails in
+   CI; the directory form sees everything.
+3. The repo's actual CI lint job (pre-commit, drift guards — whatever
+   the workflow runs).
+4. Tests, broker-aware: if the suite needs the dev broker, probe
+   `localhost:5672` and either run the full suite or fall back to the
+   suite's CI self-skip mode with a printed note — never hang, never
+   silently skip.
+
+A repo whose CI gains a job updates its `ci.sh` in the same change; the
+two drifting apart recreates the push-and-pray loop this exists to end.
 
 ## Scope of the self-hosted-database stance
 

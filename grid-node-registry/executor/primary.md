@@ -1,13 +1,14 @@
 # grid-node-registry — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-07-13
+Status: Draft · Pass 0 · Updated 2026-07-25
 
 > What this is: the faithful spec of the **Grid Node Registry** (`gnr`) — the
 > authoritative record of GridWorks GNodes, their geographic positions, and the
 > connectivity (parent/child) edges between them. It is the registry the **Fleet
 > Index Service (FIS)** consults to authorize a GNode runtime instance. Current
-> state plus the intended invariants; the standup plan is the
-> `stand-up-grid-node-registry` design (Linear [OPS-419](https://linear.app/gridworks/issue/OPS-419)).
+> state plus the intended invariants. Stood up and deployed 2026-07
+> ([OPS-419](https://linear.app/gridworks/issue/OPS-419)); operational facts
+> (box, credentials, runbooks) live in `gridworks-infra`, not here.
 
 ## What it is
 
@@ -172,9 +173,14 @@ transport-agnostic handler core (the `AuthoritySource` interface) — one core, 
 thin adapters, so no transport ever grows its own parallel logic (the legacy
 registry's REST api and rabbit actor each had their own). **Writes ride
 rabbit** (a MarketMaker is a fleet bus citizen; the change event is genuinely
-pub/sub); **reads ride an HTTP/FastAPI façade** (point/forest queries — internal
-service API, no mTLS, privacy by the network perimeter). This split is by traffic
-shape, not by consumer.
+pub/sub); **reads ride an HTTP/FastAPI façade** — public, read-only,
+TLS (Caddy + Let's Encrypt in front), CORS-open. The registry is backbone
+infrastructure: anyone may read its topology (FIS, provisioning, analytics,
+outside readers alike). Privacy rides on the data shape, not a network
+perimeter — topology only, opaque `position_point_id`s, `position_points`
+empty until the TaValidator encryption work. Writes never ride HTTP; the
+write path stays on rabbit behind its gate. This split is by traffic shape,
+not by consumer.
 
 **A write is not a projection.** Two different things put registry-shaped rows
 into a database, and they must not be conflated:
@@ -346,16 +352,27 @@ conditions carry the posture:
 Forest serialization is **deterministic** — `get_forest` orders nodes by
 alias and edges by id — which is what makes the byte-identical
 broadcast/replay compare possible at all (`gnr.rebuild` is the replay
-implementation; `gnr rebuild <capture> [--wipe]` the operator surface).
+implementation and `gnr rebuild <capture> [--wipe]` the operator surface —
+held on the `jm/gnr-rebuild` branch until OPS-457 lands the true-store
+source).
 Database snapshots MAY be taken as restore accelerators; they are never the
 durability story.
 
+**Proven against the true store** (2026-07-25): the full production
+registry rebuilt locally from the B2 `gw-seedstore` capture alone — 149
+unique publishes (dual-witnessed objects verified byte-identical), replayed
+with the production proof hash so the one refused command re-refused, 102/102
+forest checkpoints matching, and the end state node-for-node identical to
+the live registry (24-node `hw1.isone` forest + `hw1.time`),
+`validate_registry`-clean. The feed was the provisional JSONL form (stream
+assembled by hand from the store); the in-repo `--s3` source is OPS-457.
+
 Open: `position_points` ride outside the command stream, so a rebuild
-restores them only as far as the stream implies — complete today (the fleet
-ingests Pending with positions empty), but the activation mechanism must
-make positions rebuildable (carried in its command, or restored from the
+restores them only as far as the stream implies — complete for the
+Pending-era registry (proven above), but the activation mechanism must make
+positions rebuildable (carried in its command, or restored from the
 TaValidator store) before Active-with-positions is the normal state.
-Resolves in OPS-457's scope, with the rebuild-from-the-true-store path.
+Resolves in OPS-457's scope.
 
 ## Lifecycle — `GNodeStatus`
 
@@ -542,8 +559,7 @@ Python 3.12, `uv`, `pydantic-settings` (`gnr.settings.Settings` ← `.env`),
 SQLAlchemy + **Alembic** migrations, Postgres 16 (`docker-compose.yaml`). Logs to
 `~/.local/state/gridworks/gnr/log/` (GridWorks convention). The vendored Sema
 snapshot (`src/gnr/sema`) is built by `build_gnr_snapshot.sh` from
-`gnr_seed_request.yaml`; it tracks whichever sema branch holds the registry's
-words (`jm/sim-vocab` until that merges to `dev`).
+`gnr_seed_request.yaml`; the registry's words are `published` in sema.
 
 ## Implementation map
 
@@ -585,7 +601,11 @@ the write loop) a real broker by the layered suite:
   `deterministic_uuid4`).
 - **`gnr.gnr_rabbit.GnrRabbit`** — the rabbit write loop (gwbase
   `Orchestrator`, transport class `GridNodeRegistry`, `gnr_tx`/`gnrmic_tx`
-  exchanges): decodes `g.node.reparent.cmd` → `apply_reparent` → root-keyed
+  exchanges). Alias convention, deployed and CLI-assumed: the registry
+  serves as **`<universe>.gnr`** and the operator CLI speaks as
+  **`<universe>.gnregistrar`** — the CLI addresses `<universe>.gnr`, so a
+  deployed registry must run that alias (the two are literals in `cli.py`
+  and the box `.env`; they drifted once and cost an unrouted command): decodes `g.node.reparent.cmd` → `apply_reparent` → root-keyed
   `g.node.forest` broadcast; `broadcast_snapshot(root)` is the anti-entropy
   path (cadence is deploy config). The `gnrmic_tx → amq.topic` bridge
   (gwbase ≥ 0.5.6) carries broadcasts to MQTT-native listeners.
@@ -593,6 +613,12 @@ the write loop) a real broker by the layered suite:
   `/<service>/<sema-type-with-hyphens>`, no logic of its own):
   `POST /gnr/g-node-forest-request`, `GET /gnr/g-node-by-id/{id}`,
   `GET /gnr/g-node-by-alias/{alias}`.
+- **`gnr.cli`** — the operator surface: `gnr rabbit` / `gnr api` /
+  `gnr snapshot` runners and `gnr create` (interactive wizard or arg form:
+  GNodeClass menu with `BaseGNodeClass` inferred from `g.node.gt` axiom 1;
+  existence pre-check over the read API; publishes with the write Proof
+  from env or prompt; waits on the typed verdict, then polls the API as the
+  visibility proof).
 - **`gnr.dev_universe`** — the dev-universe seed (direct inserts through the
   codec + `claim_alias`; see the limits below).
 - **`tests/`** — the layered harness (Layer 0 unit / Layer 1 real Postgres /
@@ -602,10 +628,10 @@ the write loop) a real broker by the layered suite:
   service containers.
 
 **Known limits** (facts, fine at MVP scale): write-time validation scans the
-whole registry per write; the dev-universe seed inserts directly (bypassing
-`command_log` — fine for the ephemeral test universe; the deployed registry's
-rows are born as `g.node.create.cmd`s); and `g.node.create.cmd` is
-`status: staging` in sema, so the vendored snapshot is **dev-only**
-(`build_gnr_snapshot.sh --allow-staged`) — the word must be promoted to
-`published` before any non-dev deployment. The work queue — populate, deploy,
-the sema-first axioms — lives in the standup design, not here.
+whole registry per write (subtree scoping queued for scale); the
+dev-universe seed inserts directly (bypassing `command_log` — fine for the
+ephemeral test universe; the deployed registry's rows are born as
+`g.node.create.cmd`s). Queued enforcement: the sema-first axioms
+(at-most-one-TimeCoordinator-child; `.ta`/`.scada` terminal — see *Time
+coordinators*), and the gwbase `subscribe_ancestors` helper for
+GridworksActor-tier listeners.

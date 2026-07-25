@@ -12,7 +12,100 @@ Newest at the top.
 
 ---
 
-## 2026-07-23 — S3 endpoint_url, aws → s3 rename, service-deployment pattern, witness = service alias, repo sweep <!-- pending commit -->
+## 2026-07-24 — Recovery-only heartbeat probe (`8768ba8`, squash incl. generic aliases)
+
+**What:** the minute probe runs only while `s3_put_works` is False, and
+its first success immediately drains the local cache (no more waiting
+for the hourly chore). A healthy ear writes zero heartbeat objects —
+real traffic already proves the put path. Tests updated: probe-drains-
+cache, and healthy-tick-writes-nothing.
+
+**Why:** in a versioned bucket every same-key overwrite is a kept
+version — the healthy-state probe had deposited 970 heartbeat versions
+into `gw-seedstore` in under two days (purged). A probe's real function
+is recovery detection; proving liveness twice a minute alongside live
+traffic proved nothing.
+**Verified:** `./ci.sh` green (11 tests). Squashed in: one generic
+`service/bash_aliases` replaces the two per-instance alias files — the
+aliases target `ear@$(whoami)`, so `earstart` … `earlog` spell
+identically on every ear login and control that login's own instance
+(the `gnrear*` spellings are gone; the seed-ear alias file was the last
+instance knowledge living in the repo).
+
+## 2026-07-23 — minor (`0ca4363`)
+
+**What:** `earlog` / `gnrearlog` become
+`cd "$HOME"/.local/state/gridworks/ear/log && tail -F state.txt` — since
+aliases run in the calling shell, ctrl-C out of the tail leaves the
+operator standing in the log directory, next to `message.txt` and the
+rotated files. Still pure spelling, no logic.
+
+## 2026-07-23 — Port to modern gwbase 0.5. patch a few bugs, add some tests, drop gw package (`e58656e`, squash)
+
+**What:** the ear leaves gwbase 0.2.4 — the last production service on the
+old tier. `EarSettings` now extends `ServiceSettings` (`EAR_` prefix): the
+witness identity is literally `EAR_SERVICE_ALIAS`; the 0.2-era fossils
+(`G_NODE_ALIAS`, `MY_FQDN`, `UNIVERSE_TYPE_VALUE`,
+`MY_TIME_COORDINATOR_ALIAS`, `MY_SUPER_ALIAS`, the buried Algorand `sk`)
+are gone from the config surface, and `template.env` shrinks to the six
+wires that matter. The actor is a modern `ActorBase` tap: the framework
+parses routing keys into `RoutingEnvelope`s, and — the substantive win —
+**the witness no longer drops unparseable routing keys**: the
+`on_routing_key_parse_error` override stores those bodies verbatim under
+`_unparsed_<routing-key>` object keys; the malformed utterances are
+exactly what an audit wants. The in-process periodic chores keep their
+behavior (store probe, silence check, hourly cache retry, day-folder
+roll) but lose the misleading "cron" name (`periodic_tick`, driven by the
+CLI loop). Deps: `gridworks-base>=0.5.8,<0.6`; `slack-sdk` (webhook
+machinery deleted — ear-silence alerting belongs to the observability
+stack), `pendulum`, and the `gridworks` (`gw`) package all dropped —
+modern gwbase doesn't pull `gw` either, so the venv is `gw`-free. The
+`ear dummy` dev command and its `DummyScada` are deleted; the liveness
+test publishes via plain pika instead.
+
+**Why:** "we should be on the modern base" — and the port pays for itself
+in audit fidelity (lossless witness) and the `.env` cleanup the old tier
+forced us to carry.
+**Verified:** pre-commit + a real unit suite (10 tests): object-key
+grammar pinned by regex, the `_unparsed_` lossless path, failed-put →
+local-cache fallback, cache retry (upload+unlink / leave-on-failure),
+probe recovery of `s3_put_works`, hourly silence warning + counter
+reset, and the UTC day-folder roll — whose first run caught an inherited
+strict-`>` boundary defect in the periodic conditions, fixed to `>=`.
+Then the real-broker experiment: the ported ear consuming the production
+broker with a local-folder sink (`--no-s3`) — 21 live messages, key
+grammar and `gw` inner-TypeName handling verified — before any box
+deploy. Squashed in: the CI fixture-annotation fixes and `ci.sh` (the
+gwbase-pattern gate, canonized in the gwbase executor
+`service-deployment.md` "The ci.sh gate"; directory-form ruff runs first
+because pre-commit only sees tracked files — the exact hole that let the
+new test files go red in CI).
+
+## 2026-07-23 — gnr-ear login; one generic template unit (ear@) replaces per-instance units (`9ce2491`)
+
+**What:** two deployment refinements in one cluster. (1) The seed ear's
+login is `gnr-ear`, not `gnrear` (which parses as "gn rear") — box
+renamed to match via usermod. (2) The per-instance unit and env files
+collapse into generic ones: `service/ear@.service` (systemd template
+unit, `%i` = login, instances `ear@ear` / `ear@gnr-ear`) replaces
+`ear.service` + `gnr-ear.service`, and one `service/template.env`
+documenting the config surface replaces the two instance templates —
+which also carried a fix, `EAR_MY_SUPER_ALIAS` = self (production's
+convention), not the guessed `hw1.super1`. Aliases now spell
+`systemctl <verb> ear@<login>`; README's Deployment section describes the
+pattern and points the instance roster at gridworks-infra.
+
+**Why:** the repo should be exactly as generic as its code. The
+per-instance units were a deployment roster living in the code repo — the
+same goes-stale shape as cross-service declarations. With the template
+unit, a new scoped ear (e.g. a future terminalasset-registry seed) costs
+a login + a `.env`, zero repo changes; which instances exist is an
+operational fact and lives in gridworks-infra. Canonized in the gwbase
+service-deployment spec ("Unit skeleton").
+**Verified:** pre-commit + CI-mode suite green; box swap to the template
+unit happens after this lands on main.
+
+## 2026-07-23 — EAR_S3 rename + endpoint_url; witness identity = service alias; in-repo systemd deployment; repo sweep (`b880428`)
 
 **What:** four moves in one redeploy-shaped cluster. (1) `endpoint_url` on
 the S3 settings model (default empty = AWS); the boto3 resource passes it
@@ -33,7 +126,10 @@ box/ops content moved to gridworks-infra (`persistent-storage/ear.md`).
 coverage/isort/ruff-exclude pyproject sections, and the docs-stack dev deps
 all deleted; `rich` moved from dev to runtime deps (it's imported by the
 CLI); `click` held `<8.2` (typer 0.12 breaks against newer click — the uv
-resolve had silently broken `ear --help`). (5) Witness identity is the
+resolve had silently broken `ear --help`); the `kafka_topic` locals renamed
+`from_alias_and_type` — no medium-term Kafka plans, and the old name
+described an aspiration, not what the variable holds (the
+`<from_alias>-<type_name>` head of the object key). (5) Witness identity is the
 **service alias**, not an fqdn: `my_fqdn` deleted; the object key's last
 segment is now `g_node_alias` (`hw1.ear` / `hw1.gnr.ear`) — one identity
 per instance regardless of machine, which two ears on one box made

@@ -156,20 +156,28 @@ full answer for the *registry* specifically is the chain seam
    key (1Password "Backblaze B2 — gw-seedstore writer"; endpoint
    `s3.us-east-005.backblazeb2.com`). Still open: broker users for the two
    ear logins. No AWS credential for the seed store — it is B2.
-4. **Both ears deploy to the gnr box** (committed code only) — the
-   universal ear leaves EC2 in the same redeploy: the machine moves now,
-   any gwdev store port is a separate later decision. The gridworks-ear
-   repo follows the gwbase service-deployment pattern: `service/` holds `ear.service` (login `ear`,
-   exchange `ear_tx`, `gwdev` on AWS) and `gnr-ear.service` (login
-   `gnrear`, exchange `gnr_ear_tx`, `gw-seedstore` on B2), with per-login
-   aliases and env templates; the env wire is `EAR_S3__*` (renamed from
-   `EAR_AWS__*` — allowed because both instances get fresh `.env`s).
+4. **Both ears deploy to a new Hetzner ear box** (committed code only) —
+   its own instance, deliberately NOT the gnr box: the registry box stays
+   registry-only, so an instance freeze takes out one function, never the
+   authority plus both witnesses together. (An earlier draft colocated
+   the ears on the gnr box; the blast-radius argument won.) The universal
+   ear leaves EC2 in the same redeploy: the machine moves now, any gwdev
+   store port is a separate later decision. The gridworks-ear repo
+   follows the gwbase service-deployment pattern: `service/` holds one
+   generic template unit `ear@.service` — instance name = login —
+   run as `ear@ear` (exchange `ear_tx`, `gwdev` on AWS) and `ear@gnr-ear`
+   (exchange `gnr_ear_tx`, `gw-seedstore` on B2), with per-login aliases
+   and one generic env template; the
+   env wire is `EAR_S3__*` (renamed from `EAR_AWS__*` — allowed because
+   both instances get fresh `.env`s). The box needs no inbound surface
+   beyond ssh — outbound AMQP to the broker and HTTPS to the stores.
    Bring-up order avoids an audit gap: the new universal ear is up and
    landing objects **before** the EC2 ear stops — a brief overlap means a
    few duplicate keys (distinct receipt-ms, harmless); a gap means
-   unwitnessed messages. Then the EC2 ear box retires.
-   `gnr/instance-README.md`, `production-inventory.md`, and
-   `persistent-storage/ear.md` updated.
+   unwitnessed messages. Then the EC2 ear box retires. New-box
+   instance-README, `production-inventory.md`, and
+   `persistent-storage/ear.md` updated (gridworks-infra is with another
+   session — coordinate the docs handoff).
 5. **Proof**: a `gnr create` appears in B2's `gw-seedstore` seconds later —
    one command, three custodians (gwdev, B2, the box's `command_log`), zero
    hunting.
@@ -180,6 +188,24 @@ full answer for the *registry* specifically is the chain seam
    aspirational**: the B2 app key hard-expires (B2 caps duration < 1000
    days); a yearly Linear recurring issue (OPS-460) rotates it, with the
    seed-ear broker user on the same beat.  **While setting up loops**: daily test that the rabbit definition on the main branch matches the hw1__1 rmqbot.
+7. **Post-launch (clock stopped before here) — gridworks-base cleanup**:
+   the treatment the ear repo got — conform to the service-deployment
+   template where applicable, clean up the README, and remove the old
+   poetry cruft generally. Its own small work item, not part of this
+   launch's hours.
+8. **Post-launch — design ↔ Linear reconciliation**: the bijection sweep
+   the session hooks keep flagging (wiki designs without `design`-labeled
+   issues, labeled issues whose design files were deleted on completion
+   but kept the label). Routine per `linear.md` "Keeping in sync".
+9. **Post-launch — verify platform services match pushed main**: nothing
+   today checks that what a box runs is what GitHub main says (the
+   box-runs-a-pushed-SHA guarantee is discipline, unverified). Think
+   through a standing check — per-box `git -C <repo> rev-parse HEAD` vs
+   `origin/main`, dirty-tree detection, service-restart-since-pull —
+   surfaced as a loop (the recurring-Linear-issue pattern, like OPS-460,
+   or a small cron that files drift as an issue). Same family as the
+   daily rabbit-definitions-vs-broker check in step 6; maybe one
+   "platform drift" loop covers both.
 
 ### Forward note — terminalasset-registry seed capture
 

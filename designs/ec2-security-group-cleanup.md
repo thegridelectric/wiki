@@ -9,9 +9,10 @@ affected service), not a standalone experiment.
 > What this is: remediation of the AWS account's security groups and launch
 > templates, surveyed 2026-07-06. Deliberately its own design — every change
 > here MAY impact a running service, so each tier is staged and verified
-> against the services it touches. New builds (the gnr deployment) do NOT wait
-> on this: they get purpose-built minimal groups (see the
-> stand-up-grid-node-registry populate-and-deploy spoke).
+> against the services it touches. New builds do NOT wait
+> on this: they get purpose-built minimal firewalls (the gnr and ear
+> Hetzner boxes are the precedent — ssh + the served port and nothing
+> else).
 
 ## Findings (2026-07-06 survey)
 
