@@ -12,8 +12,61 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-07-23 — Board-generic gpio components in gwsproto; NolanLayout mirrors axiom 1
+## 2026-07-29 — Boot assembles the sema-authored artifact pair <!-- pending commit -->
+
+**What:** `scada_app._load_hardware_layout` detects a sema-authored static
+artifact by TypeName and assembles it with the home's operational-params
+artifact (`sema_to_dc.ops_and_sema_to_dc`) instead of requiring a
+runtime-shaped layout file. `sema_to_dc` dispatches the sema model by
+TypeName (`SEMA_LAYOUT_BY_TYPENAME`: `gw.house0.layout` → `House0Layout`,
+`gw.nolan.layout` → `NolanLayout`) — `NolanLayout` was authored but never
+exported or referenced; now exported from `named_types`. The ops-artifact
+path resolution is extracted as `scada_data.operational_params_path` and
+shared by the loader and `load_operational_params`.
+
+**Why:** the honeysuckle bench pi carries the two authored tlayouts
+artifacts verbatim; the boot path only accepted pre-assembled layouts, so
+the bench experiment could not boot. With this the scada consumes exactly
+what the gen emits — no hand-assembled intermediate on any box (OPS-392).
+Verified: suite green + a bounded local sim-boot of the honeysuckle pair on
+`gw-dev-rabbit` populated 20/42 channels, incl. all four bench-zone
+thermistor channels (sim values).
+
+---
+
+## 2026-07-28 — GwHydronic: the hydronic block is strategy-shared (`822dbab7`)
+
+**What:** gwsproto mirrors the `gw.hydronic` rename: `House0Hydronic` →
+`GwHydronic` (`named_types/gw_hydronic.py`, TypeName `gw.hydronic`),
+`NolanLayout.Hydronic` goes from `dict` to the typed block, and every
+committed fixture's Hydronic TypeName follows (oak, beech, elm, maple, fir,
+house0-layout, gw.house0.layout, nolan-layout). The assemble→validate→load
+chain works for nolan artifacts with no special-casing.
+
+**Why:** Nolan is a hydronic heating system; the layout words now share the
+typed hydronic block across strategies, matching the names hierarchy
+(OPS-392).
+
+---
+
+## 2026-07-27 — gwsproto mirrors the board-resident model (`58c3d08d`)
+
+**What (this cluster):** the component-base hierarchy splits per the sema
+model — `ComponentBase` (common fields, no DeviceType), `DeviceComponentBase`
+(components that are their own device), `BoardResidentComponentBase`
+(required BoardComponentId, no DeviceType) — with the three board-resident
+classes re-based and 14 device classes on the device base. New
+`ScadaBoardComponentGt` (+ dc wrapper + decoder registration) and
+`I2cCtInterfaceCapability` (replacing `I2cAdcCapability`; the gw108 record's
+CtAdc re-typed with `AdcReferenceVolts=3.3`). `ScadaDeviceTypeGt` mirrors
+axiom 3 (BoardIdentifierUniqueness); `NolanLayout` mirrors axiom 2
+(BoardResolution) and its union gains the board component. `SendToDerived`
+is gone from `GpioSensorComponentGt` and `I2cThermistorChannelConfig`; the
+gpio-sensor and thermistor-reader actors compute derived routing from
+DerivedChannel InputChannelNames. The layout loader's device-type join and
+show_layout tolerate DeviceType-less components. The nolan fixture gains its
+first `scada.board.component.gt` instance; sensor/relay/reader records carry
+BoardComponentId.
 
 **What:** gwsproto adopts the modern sema gpio words: `GpioRelayComponentGt`
 (`gpio.relay.component.gt/000`, GpioName + one `relay.control.config`) and

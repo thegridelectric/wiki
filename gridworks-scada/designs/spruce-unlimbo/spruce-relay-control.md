@@ -1,6 +1,6 @@
 # Spruce relay control — chunk A execution (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-07-22 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-07-29 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke — get the scada actuating spruce's i2c relays, with
 > the heat pump under a single reliable on/off relay. Design-side record only. Everything
@@ -12,7 +12,36 @@ Status: Draft · Pass 0 · Updated 2026-07-22 · Linear: OPS-392
 
 ## ▶ Next move (active spoke)
 
-Two lanes:
+**NOW: the honeysuckle bench experiment** — boot the unlimbo scada on the
+bench pi against its generated layout and get real ADS reads flowing. The
+artifacts are already on the pi (`~/.config/gridworks/scada/hardware-layout.json`
++ `hardware-layout/gw.house0.operational.params.json`, identity
+`d1.bench.honeysuckle.scada` — verbatim the tlayouts `output/honeysuckle/`
+files, md5-checked 2026-07-29). The checklist:
+
+1. Push `jm/spruce-unlimbo` — three local-only commits as of 2026-07-29
+   (`75746bfe`, `58c3d08d`, `822dbab7`); then on honeysuckle: fetch +
+   checkout that branch in `~/gridworks-scada` (sits on dev `8a0e1689`
+   today).
+2. Venv: the pi's existing venv imports gwproactor/gwproto cleanly
+   (checked 2026-07-29); rebuild only if the branch's requirements
+   diverge — `tools/mkenv.sh gw_spaceheat/requirements/dev.txt
+   install_admin no_flo` (third arg skips the private gridworks-flo
+   editable, which is LTN-side).
+3. Create the pi's `.env` (`SCADA_` prefix, dev creds only — none exists
+   yet). Broker as localhost: from the laptop,
+   `ssh -R 1885:localhost:1885 honeysuckle` forwards the local
+   `gw-dev-rabbit` MQTT port to the pi; the universe guardrail passes
+   (`d1` ⇔ localhost).
+4. Boot; first prize is the thermistor reader resolving `Thermistors`
+   against the board record and publishing on all four ADS channels
+   (bench inputs may be floating unless thermistors are wired — raw
+   microvolt channels still prove the bus path). `/usr/sbin/i2cdetect -y 1`
+   sanity first (full path — not on the non-interactive PATH):
+   0x48/0x49/0x20/0x21/0x70 (re-verified 2026-07-29).
+5. Log findings here (EDD: the harness run is the verification).
+
+Two lanes behind it:
 
 **Field (spruce, with George):** hardware completion, in order: (1) replace the blown
 control-box fuse (details in the PRIMARY doc); (2) land the RIB contact (dead-work
@@ -83,15 +112,20 @@ is the **CT ADC** (`CtAdc`, plain `I2cAdcCapability`, ct1–ct4 per
 `starter-scripts/gw108_test_code.py` — a current-sensing circuit, not a divider).
 The `gw108_nolan_zones.py` single-thermistor-ADC guard stays valid; CT sensing is
 a separate capability, which is where the actual-spruce CT1/CT2 notes land in the
-port. Bench blockers: `~/gridworks-scada` there is mid-update (dev @ `8a0e1689`,
-venv broken on the private gridworks-flo editable) — see fleet-inventory.
+port. Bench readiness is the Next-move checklist at the top of this spoke.
 
-### Readiness — the dev-spruce layout and the boot ladder
+### Readiness — the spruce + honeysuckle layouts and the boot ladder
 
-The experiment scada boots on a **dev-spruce layout**: the spruce house on the Nolan
-scheme with identity `d1.isone.me.versant.keene.spruce.scada`. Identity comes wholly
-from the layout (`MyScadaGNode` etc. — `scada_app.py:142-146`), carried as full
-`g.node.gt` records with freshly minted dev ids. The layout is the scada's local
+The identity split (settled 2026-07-28): **the honeysuckle bench owns the dev
+role** — `honeysuckle_sema_gen.py` mints a `d1.bench.honeysuckle` trio, and
+the bench pi (wired to the bench gw108) is where the reader→bus experiment
+boots against a dev broker. **The spruce layout carries the real identity**:
+`spruce_sema_gen.py` emits the deployed `hw1.isone.me.versant.keene.spruce`
+aliases and GNodeIds verbatim (upgraded to `g.node.gt/005` shape), with all
+69 channel UUIDs carried from the deployed layout — the artifact for the
+eventual spruce deployment, not a dev variant. Sim-booting the spruce layout
+on a dev broker goes through `sim_layout.devify_aliases`. Identity comes
+wholly from the layout (`MyScadaGNode` etc. — `scada_app.py:142-146`). The layout is the scada's local
 authority for its GNode trio — the same role the sema-validated `g.node.gt.json`
 artifact plays for a gwbase service (`gwbase/gridworks_actor.py`); the fleet
 authority stays the grid-node-registry, and FIS reconciles the two (the
@@ -101,24 +135,19 @@ against the registry). The universe guardrail passes because `localhost ⇒ d1`
 tunnel to the laptop's `gw-dev-rabbit` for the first window; a rabbit container on
 the pi if windows become routine (open choice).
 
-**The layout is built in tlayouts on a branch off `jm/spruce`** (the sema-native
-machinery). The `actual-spruce` `gen_spruce.py` is a working Nolan gen but rides
-the retired scada `layout_gen` machinery and the single-artifact format; the scada
-repo's own spruce gen (`scratch2.py`) is broken scaffolding. In order:
-
-1. **Sema snapshot rebuild** (`./build_tlayouts_snapshot.sh`) after the sema
-   `jm/single-bus-owner` ↔ `dev` merge lands — picks up reader `/003`,
-   `gw1.device.type` (incl. `Gw108Adc`), `gw108.gpio.relay.component.gt` (add to
-   `tlayouts_seed_request.yaml` explicitly if closure does not reach it).
-2. **Port the Nolan emitters** into `house0_sema_gen.py` — the machinery is
-   House0/krida-flavored today (no gw108 zones or relays); mirror
-   `layout_gen/gw108_nolan_zones.py` + `add_nolan_relays`.
-3. **`gen_spruce_sema.py`**: d1 identity, a spruce `OpsSpec` (cooling-season
-   values — oak's block is heating defaults), and the deployed-gen content carried
-   over: the hp-ctrl-box eGauge register (9010), the gw108 CT notes (CT1
-   current-type 100A→50mA, store pump; CT2 egauge-type 20A, secondary pump), the
-   zone-5 fancoil cooling zone, the identity derived channels, real pico HW uids.
-   UUID stability via `LayoutIDMap` keyed off the deployed `spruce.json`.
+**The layout machinery lives in tlayouts on `jm/dev-spruce`** (sema-native,
+cut off `jm/spruce`). As of 2026-07-29 the ladder there is built: the sema
+snapshot is rebuilt post-merge (`jm/single-bus-owner` landed on sema dev,
+`c1cab63`), the Nolan emitters are ported, and both gens exist —
+`honeysuckle_sema_gen.py` (the `d1.bench.honeysuckle` trio; its
+`output/honeysuckle/` artifacts are the ones on the bench pi) and
+`spruce_sema_gen.py` (the deployed identity + carried deployed-gen content:
+hp-ctrl-box eGauge register 9010, gw108 CT notes, zone-5 fancoil cooling
+zone, identity derived channels, real pico HW uids; UUID stability via
+`LayoutIDMap` keyed off the deployed `spruce.json`). The `actual-spruce`
+`gen_spruce.py` rides the retired scada `layout_gen` machinery and the
+single-artifact format; the scada repo's own spruce gen (`scratch2.py`) is
+broken scaffolding — neither is the path.
 
 **Boot ladder, cheapest gate first:** suite green on `jm/spruce-unlimbo` (conftest
 pins the nolan fixture + its ops artifact, `tests/conftest.py:34-58`) → gen-time
@@ -246,46 +275,10 @@ while the hack runs, manual DAC use from a second process (the interactive
 
 ## HP make/model tracking
 
-**Canonized 2026-07-17 into the hardware-layout design:**
+Canonized 2026-07-17 into the hardware-layout design:
 [`../hardware-layout-pass-one/hp-device-types.md`](../hardware-layout-pass-one/hp-device-types.md)
-is now the single source — the two record families, the three primary-pump facts, the
-enum values, layout carriage, open decisions, and the execution checklist. The section
-below is superseded by that spoke and kept only until this design's next consolidation
-pass removes it.
-
-## HP make/model tracking (superseded — see pointer above)
-
-`gwsproto.enums.HpModel` (4 values, never sema-registered) rides `ScadaSettings.hp_model`
-with a silent default (`config.py:58`, `# TODO: move to layout`); consumers branch control
-behavior on it. Direction: retire `hp.model` into the device-type model — mint
-`gw1.device.type` values per real model (nameplate-grounded: spruce outdoor
-`AE055FCYDCG`, control box `AE055FEYMCG`) with **two record families**:
-
-- **`hp.device.type.gt`** — compressor-bearing units (hp-odu): capacity, refrigerant,
-  compressor amps, MCA/MOP; absorbs `HpMaxKwEl`.
-- **`hp.control.box.device.type.gt`** — control boxes (hp-ctrl-box): water-pump amps,
-  backup-heater options.
-- **Primary-pump facts, three per-model + one per-install (refined 2026-07-16):** on both
-  record families as applicable — `PrimaryPumpFactoryInstalled` (pump ships inside the
-  unit vs field-supplied), `PrimaryPumpOverridable` (the unit exposes its pump-control
-  signal so an interrupt can be wired — the Samsung/LG two-stage terminal-block pattern;
-  false where the pump is sealed inside, e.g. the AE055 box), `PrimaryPumpAlwaysOn`
-  (under the unit's own control the pump never stops — maple's unit). The per-install
-  fact — *is the override interrupt wired at this house* — is NOT a new schema: **the
-  presence of the `primary-pump-ops`/`primary-pump-failsafe` relay nodes in the layout IS
-  that declaration** (failsafe de-energized = unit keeps control, the relay-semantics
-  pattern). Capability-wired-but-unused, if it ever needs a tunable, follows the
-  `SiegLoopPlumbed`(layout)/`UseSiegLoop`(ops) precedent. Cross-consistency axiom
-  (relays present ⇒ record says overridable) is a later add — the layout words are
-  staging. The live defect this exposed is
-  [OPS-450](https://linear.app/gridworks/issue/OPS-450) (maple's pump doctor runs
-  against unattached relays).
-
-The control box appears as a **thin component** on the `hp-ctrl-box` node (identity +
-DeviceType + ConfigList; model facts on the record); layout, not ops (rewiring test).
-Nameplate/manual artifacts live in the team Drive folder; sema minting goes through
-`/make-sema-word` with the sema-spec discussion rule. Executes under
-hardware-layout-pass-one when it resumes.
+is the single source — the two record families, the three primary-pump facts,
+the enum values, layout carriage, open decisions, and the execution checklist.
 
 ## Provenance
 

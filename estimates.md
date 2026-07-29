@@ -14,8 +14,9 @@ Status: Draft · Pass 0 · Updated 2026-07-19
 | Est. date | Work | Point (h) | 90% low (h) | 90% high (h) | Actual (h) | In interval? |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-07-19 | OPS-419 step 7 — populate + deploy registry | 13 | 8 | 24 | 7.5 | no (under) |
-| 2026-07-22 | OPS-392 — dev-spruce layout readiness | 10 | 6 | 18 | | |
+| 2026-07-22 | OPS-392 — dev-spruce layout readiness | 10 | 6 | 18 | 8.5 | yes |
 | 2026-07-22 | OPS-458 — ear poetry to uv | 2 | 0.5 | 3 | 0.5 | yes (at bound) |
+| 2026-07-29 | OPS-392 — honeysuckle bench boot | 4 | 2 | 8 | | |
 
 ## Active hours — scratch
 
@@ -25,8 +26,8 @@ the rows here.
 
 | Work | Day | Started | Stopped | Hours |
 | --- | --- | --- | --- | --- |
-| OPS-392 dev-spruce readiness | 2026-07-22 |  | | |
-| OPS-392 dev-spruce readiness | 2026-07-23 | 9:40 | | |
+| OPS-392 — honeysuckle bench boot | 2026-07-29 | 11:45 | 12:30 | 0.75 |
+| OPS-392 — honeysuckle bench boot | 2026-07-29 | 13:00 | | |
 
 
 ## How to use

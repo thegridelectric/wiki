@@ -2,6 +2,10 @@
 
 Status: Accepted · Pass 1 · Updated 2026-07-15 · Linear: OPS-392
 
+**EDD: yes** bench (honeysuckle) and box harness runs are the verification;
+spokes reach Verified only when an experiment runs against the real bus or a
+real broker.
+
 **▶ Active spoke: [`spruce-relay-control.md`](spruce-relay-control.md)**
 
 > What this is: the hub for un-limboing the spruce scada integration —
