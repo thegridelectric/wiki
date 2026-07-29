@@ -142,6 +142,12 @@ What is fixed vs. what changes, and how:
   binds the two, so both change together. A small allowed-transition SM, not a free
   edit.
 - **`status` — mutable** per the lifecycle SM below.
+- **An edge's `Id` — immutable for its `(From, To)` pair.** One edge per
+  ordered pair (`uq_connectivity_edges_from_to`); lifecycle is carried by
+  `Status` on the same `Id` — a suspended edge re-activates under its
+  original identity. There is no command that re-creates a pair under a new
+  `Id`, and consumers projecting the forest treat a new id claiming a held
+  pair as an anomaly to surface, not an identity change to absorb.
 - **`display_name` — mutable.** Presentation only; no axiom or invariant binds it.
 - **`PositionPoint` — immutable.** Location anchors the TaDeed / TaTradingRights,
   so it is not edited in place. A location change is a heavyweight **TaValidator

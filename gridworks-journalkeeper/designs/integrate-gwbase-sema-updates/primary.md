@@ -1,6 +1,6 @@
 # Integrate gwbase + sema updates into JournalKeeper
 
-Status: Accepted · Pass 1 · Updated 2026-06-22 · Linear: OPS-386
+Status: Accepted · Pass 1 · Updated 2026-07-29 · Linear: OPS-386
 
 **EDD: no** build-out/integration; verified by the test suite (incl. the Layer-2
 liveness test, `tests/test_live_amqp.py`), not gated on a standalone real-world
@@ -12,6 +12,32 @@ experiment.
 > toolchain ([OPS-380](https://linear.app/gridworks/issue/OPS-380)). Structure: **what to do next at the top, the ordered spoke
 > list, then notes.** Durable facts from completed items are distilled into
 > `executor/primary.md`; this hub is deleted when the last item lands.
+
+## Item #5 — registry-projection deployment preconditions (added 2026-07-29)
+
+The `g.node.forest` fan-out (landed on `jm/forest-snapshot`) projects the
+registry into `gridworks.g_nodes` / `connectivity_edges`. Three schema/data
+fixups gate its deployment; the first is on the gjk box, the other two are
+`gridworks-data` repo changes (model + alembic migration + PyPI release +
+gjk pin bump), coordinated with Joe:
+
+1. **Remove/re-id the six January 2026 hand-seeded `g_nodes` rows.** Their
+   aliases are the six houses the registry now owns under DIFFERENT
+   GNodeIds (verified: beech is `4da8659f…` in gnr, `8cfa8d31…` in the
+   deployed table). Left in place, the first live broadcast hits the alias
+   unique constraint and the persist transaction fails. One-time SQL: remap
+   to the registry's ids (updating any `installations` rows that FK them)
+   or delete outright if nothing references them.
+2. **Add a sent-time column** to `g_nodes` + `connectivity_edges` (the
+   per-row memory for a do-not-upsert-earlier-send-times guard; consumed
+   once `g.node.forest/001` carries `SendTimeMs` — see
+   the sema sender-time design).
+3. **Drop the `position_point_id` FK** on `g_nodes` (keep the nullable
+   uuid column). gnr deliberately carries the position point as an opaque
+   location IDENTITY, not an enforced FK — the coordinate data is owned
+   and populated later by a separate system. The projection should follow:
+   with the FK, the persistor must NULL references it cannot resolve and
+   the identity is lost until re-broadcast.
 
 ## ▶ Do this now — item #4: close session loose ends
 

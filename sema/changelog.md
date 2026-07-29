@@ -12,6 +12,134 @@ Newest at the top.
 
 ---
 
+## 2026-07-29 — g.node.forest/001: optional SendTimeMs, published (`6f910aa`)
+
+**What:** New version 001 of `g.node.forest`:
+optional `SendTimeMs` ($ref `utc.milliseconds`) — the sender's clock at
+forest assembly, per the sender-time standard (wiki sema design, OPS-472).
+The word's description records the invariant: the registry stamps
+wall-clock; it is a notary and is never simulated. Registry entry
+(latest 001, utc.milliseconds joins structural deps), upgrade template
+000→001 (dump → version bump → validate; docstring mirrors summary),
+indexes + runtime regenerated, promoted to published (hash pin).
+
+**Why:** first adopter of one uniform name for
+time-as-the-sender-understands-it — the created-at field zoo
+(CreatedMs/TimeCreatedMs/UnixMs/…) converges on SendTimeMs as words
+naturally version. Immediate consumer value: gjk's registry projection
+gains an order-aware guard input; hybrid-universe sim-time analytics get
+a uniform slot.
+**Verified:** registry validation + full sema suite green.
+
+## 2026-07-28 — snapshot CLI: clean-checkout guard; no repo-tree writes (`e161c90`)
+
+**What:** two pieces, squashed to one commit. (1) New executable
+`template_regen_snapshot.sh` at the repo root, beside
+`template_seed_request.yaml`: the generic form of a consumer repo's
+`scripts/regen_sema_snapshot.sh` (prepare + build + rsync-mirror), with
+three CHANGEME facts (package name, seed path, vendor dir) and a loud
+refusal while unedited — the seed template covered what a snapshot
+contains, but each new consumer repo reinvented the wiring script; the
+pair now travels together. (2) `cli/snapshot.py`. `sema snapshot
+prepare`/`build` refuse to run from a dirty sema checkout (SystemExit
+listing the dirt; skipped gracefully outside a git checkout). `prepare`
+computes the public registry in memory instead of rewriting
+`indexes/public_registry.yaml` in place — the snapshot path now writes
+nothing into the repo tree (`output/` only) — and refuses when the
+committed index is stale against `definitions/registry.yaml` (fix:
+`scripts/build_indexes.sh`). `build_indexes.sh` and `sema promote` keep
+writing the index; that is their job. The three snapshot test files drop
+their monkeypatches around the old in-place write.
+
+**Why:** a consumer regen (gjk, 2026-07-28) showed the in-place write
+riding a branch switch and getting swept into an accidental commit
+alongside concurrent WIP. A snapshot must be reproducible from a commit
+hash and leave the repo exactly as it found it; consumer regen scripts no
+longer need their own guard/restore choreography.
+**Verified:** suite 393 passed + 1 xpassed; ruff check + format clean on
+the four touched files.
+
+## 2026-07-28 — gw.hydronic: the hydronic block is strategy-shared (`6d496b1`)
+
+**What:** `gw.house0.hydronic` renames to `gw.hydronic` (staging, in place —
+single referrer, no independent artifacts): nothing in it was
+house0-specific (Zones, TotalStoreTanks, UseSiegLoop, SiegLoopPlumbed,
+PrimaryFlowSource, and Strategy — whose job is distinguishing House0 from
+Nolan). `gw.house0.layout` re-points its Hydronic `$ref`; `gw.nolan.layout`'s
+Hydronic goes from open object to the typed `$ref` — Nolan is a hydronic
+heating system and now says so in the contract.
+
+**Why:** the names hierarchy already shares the hydronic layer across
+strategies; the layout words now match it.
+
+---
+
+## 2026-07-27 — Board-resident model + description-placement sweep: BoardComponentId anchoring, scada.board.component.gt, CT capability (`f6f5462`)
+
+**What (this cluster, 7/23 + 7/27):** the board-resident component model lands
+whole. New words: `scada.board.component.gt/000` (the physical board instance
+that device components anchor to), `i2c.ct.interface.capability/000` (CT
+sibling of the thermistor interface; circuit facts land as extracted from the
+schematic), `gpio.sensor.component.gt/000`. In-place staging reshapes:
+`gpio.sensor` and `gpio.relay` and `i2c.thermistor.reader/003` gain required
+`BoardComponentId` and lose `DeviceType` (TypeName is the kind; the board
+component carries board identity); `SendToDerived` dropped from
+`gpio.sensor.component.gt` and `i2c.thermistor.channel.config/002` (derived
+routing is computable from DerivedChannel InputChannelNames);
+`gw1.scada.device.type.gt` gains axiom 3 (BoardIdentifierUniqueness — one
+silk-screen namespace per record) and its CtAdc re-types to the CT capability;
+`gw.nolan.layout` union gains the board component and axiom 2
+(BoardResolution: BoardComponentId resolves, board record matches, named
+pin/ADC exists). Deleted outright: `i2c.adc.capability` (staging-only, single
+referrer, no independent artifacts — the gw108.gpio.relay-placeholder
+precedent); `replaced_by` on the two gw108-prefixed words.
+
+Also in this cluster: `i2c.relay.component.gt` reshaped the same way
+(required BoardComponentId, no DeviceType), and the description-placement
+sweep — property descriptions and top-level word descriptions no longer
+reference other sema words informally; those pointers moved to
+`extended_description` (33 words touched; formal `$ref`s untouched).
+
+**Why:** function belongs to the board's pin registry and node/channel names,
+never the vocabulary word; silk-screen names are only unique per board, so
+resolution must run through an explicit board instance; overlapping layout
+information is legible when axioms enforce its consistency; prose references
+in descriptions drift, so informal cross-word pointers live only in
+`extended_description`. Decided with Jessica 7/26-27.
+
+**What:** new staging word `gpio.sensor.component.gt/000` (the native-GPIO
+input sibling of `gpio.relay.component.gt`: GpioName against the board's
+NativeGpioInputs, SenseMode, SendToDerived, no ConfigList); `replaced_by`
+markers on `gw108.vdc.relay.component.gt` (→ gpio.relay.component.gt) and
+`gw108.gpio.sensor.component.gt` (→ gpio.sensor.component.gt); the
+`gw.nolan.layout/000` components union swaps to the two board-generic words;
+indexes + runtime regenerated.
+
+**Why:** parallel structure — function (Vdc) belongs to the board's pin
+registry and the node/channel names, never the vocabulary word; the modern
+mechanism-named pair already existed with board-record pin resolution, and
+the gw108-prefixed words were the odd ones out on both axes. Decided with
+Jessica ahead of the dev-spruce layout gen so the first artifact emits the
+modern shapes.
+
+---
+
+## 2026-07-23 — bump data channel and g node in gw.nolan.layout (`ea08ebb`)
+
+**What:** in-place staging update of `gw.nolan.layout/000`: the `sh_nodes`
+and `data_channels` `$ref`s move from `spaceheat.node.gt/302` and
+`data.channel.gt/002` to `/303` and `/003`; registry deps + summary updated;
+indexes and runtime regenerated.
+
+**Why:** the word pinned the pre-InPowerMetering-fold versions while its own
+axiom 1 declares that flag replaced by the transactive-power channel — and
+the consumer already runs post-fold (scada's `nolan-layout.json` fixture is
+303/003; gwsproto NolanLayout uses latest). Staging words are mutable in
+place; this aligns the contract with demonstrated reality ahead of the
+dev-spruce layout gen (OPS-392).
+
+---
+
 ## 2026-07-21 — g.node.cmd.ack + g.node.cmd.nack v000, published (`a663914`)
 
 **What:** the registry's write-command reply words. `g.node.cmd.ack/000`

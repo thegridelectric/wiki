@@ -12,6 +12,70 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-07-28 — g.node.forest fan-out: project the registry into gw_data
+
+**What:** on `jm/forest-snapshot`. New `g_node_forest_persistor.py`
+registered in `custom_persistor_lookup` (`g.node.forest` leaves
+`BASIC_MSG_TYPES` — the custom path owns it now): upserts forest nodes
+into `gridworks.g_nodes` and edges into `gridworks.connectivity_edges`
+via the `additional_db_operations` seam, so raw message + projection
+commit in one transaction. Keyed on immutable ids; nodes flush before
+edges (FK order). Pure upsert converges: gnr's reparent never touches
+edge rows (the tree is the alias prefix) and the alias ledger makes
+cross-node alias collisions impossible. Missing-endpoint edges skip with
+a warning; edge ids are immutable per (from,to) pair, so a new id
+claiming an existing pair is an anomaly — skipped with a warning, never
+absorbed; an unresolvable `position_point_id` stores NULL with a warning (the
+forest carries the reference, not the point — known gap until a
+position-point source exists). Tests: hermetic id-determinism +
+registration, plus a live-Timescale scenario (project, replay-idempotent,
+alias update, endpoint skip, pair supersede). And the live/replay seam:
+`persist_message` takes a required `live` keyword (actor True, S3
+importer False); each custom persistor declares `fanout_on_import` —
+True on the four history fan-outs, False on the forest projection — so
+a persistent-store backfill can never regress the current-state
+projection (the raw message is stored either way). Replays welcome
+everywhere else. Snapshot regenerated for `g.node.forest/001`
+(sender-time first adopter): versionless `GNodeForest` rebinds to 001,
+000 moves to `old_versions` (archives still decode), and `persist_v001`
+turns `SendTimeMs` — the registry's clock at forest assembly — into the
+message's `created_at`.
+
+**Why:** OPS-443 strand 1 step 2 — gw_data's registry projection comes
+alive, so analytics and the fleet's consumers read GNodes and wiring from
+the same store as everything else.
+**Verified:** suite 26 passed (incl. ephemeral-TimescaleDB integration);
+ruff check clean.
+
+## 2026-07-28 — updated sema snapshot: adding g.node.forest + g.node.forest.request (`3fb6d87`)
+
+**What:** on `jm/forest-snapshot`. Seed
+gains `g.node.forest` and `g.node.forest.request` (include_all_versions —
+closure pulls `g.node.gt/005`, `connectivity.edge.gt`, the
+`base.g.node.class`/`g.node.status` enums, and samples); `layout.lite`
+pinned to published `["007","012"]`. Snapshot regenerated from sema `dev`
+via `scripts/regen_sema_snapshot.sh`. With 012 now the snapshot's latest,
+`LayoutLite` rebinds to it: `layout_lite_012` old-version imports drop from
+`pseudo_channels.py` and `layout_lite_persistor.py` (persist_v012 takes
+`LayoutLite`; dead `persist_v013` deleted — dispatch is
+`getattr(f"persist_v{version}")`). `g.node.forest` joins
+`BASIC_MSG_TYPES` (no id/created fields), so gjk binds and persists the
+broadcast; `g.node.forest.request` is vendored but deliberately not
+registered — it is gjk's outbound bootstrap call, not a captured message.
+(The sema snapshot CLI now guards its own checkout — clean-tree refusal
+and no repo-tree writes live there, not in this repo's regen script.)
+
+**Why:** first step of the registry-projection strand — gjk can decode the
+registry's `g.node.forest` broadcast, and `g.node.forest.request` covers
+the bootstrap/resync call against gnr's read API. The layout.lite pin: the
+sema staging tier (OPS-445) makes published-only snapshots the default, and
+the June snapshot had silently vendored what are now staging words
+(layout.lite/013 + staging component versions). Nothing live sends 013 —
+prod scada emits 011, spruce's running commit 012; 013 exists only on an
+unlanded WIP branch. Widen the pin when 013+ promote.
+**Verified:** suite 23 passed; ruff check + format --check clean.
+
 ## 2026-07-09 — ruff format sweep (`4511242`)
 
 **What:** on `jm/heat-call-rollback`. `ruff format .` over the 13 files that

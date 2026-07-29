@@ -12,6 +12,24 @@ Newest at the top.
 
 ---
 
+## 2026-07-29 — g.node.forest includes a send time (`c021791`)
+
+**What:** on `jm/forest-send-time`. Vendored sema snapshot regenerated for
+`g.node.forest/001`; the three forest assembly sites (`get_forest`, the
+create and reparent broadcasts) stamp `SendTimeMs` via a `_send_time_ms()`
+helper whose docstring records the invariant: always wall-clock — the
+registry is a notary and is never simulated. Deprecated `datetime.utcnow`
+replaced with timezone-aware `datetime.now(UTC)` across `db/models.py` (5
+column defaults) and `db/alias_ledger.py`. New
+`scripts/regen_sema_snapshot.sh`, instantiated from sema's
+`template_regen_snapshot.sh`.
+
+**Why:** first adopter of the sender-time standard (sema sender-time
+design, OPS-472) — consumers projecting the forest gain an order-aware
+guard input. The utcnow sweep clears the Python deprecation before it
+bites.
+**Verified:** suite 58 passed post-regen; ruff clean.
+
 ## 2026-07-24 — CLI addresses hw1.gnr (`f02b0ea`)
 
 **What:** `gnr create`'s direct envelope targets

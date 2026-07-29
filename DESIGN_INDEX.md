@@ -26,8 +26,6 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **gridworks-base** — [`designs/mock-transport-for-tests.md`](gridworks-base/designs/mock-transport-for-tests.md)
 - **gridworks-base** — [`designs/neutral-message-metadata.md`](gridworks-base/designs/neutral-message-metadata.md)
 - **gridworks-base** — [`designs/publish-backpressure.md`](gridworks-base/designs/publish-backpressure.md) (bound the marshaled-send queue; backlog follow-up to OPS-383; Linear OPS-384)
-- **gridworks-data** — [`designs/dev-branch-and-pr-gate.md`](gridworks-data/designs/dev-branch-and-pr-gate.md)
-- **gridworks-data** — [`designs/gw-data-analytics-deployment.md`](gridworks-data/designs/gw-data-analytics-deployment.md)
 - **gridworks-fleet-index-service** — [`designs/stand-up-fis.md`](gridworks-fleet-index-service/designs/stand-up-fis.md) (build + deploy the FIS auth service: FastAPI `/auth/*` + single-writer instance lease; reads grid-node-registry; 2026-summer; Linear OPS-422)
 - **gridworks-homeassistant** — [`designs/btu-meter-integration.md`](gridworks-homeassistant/designs/btu-meter-integration.md) (BTU meter → HA via HACS integration; Linear OPS-47)
 - **gridworks-journalkeeper** — [`designs/integrate-gwbase-sema-updates/primary.md`](gridworks-journalkeeper/designs/integrate-gwbase-sema-updates/primary.md) (integrate gwbase 0.5.x + sema updates into JK; hub; folds ex-upgrade-gjk-sema-snapshot; Linear OPS-386)
@@ -56,9 +54,9 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **gridworks-weather-forecast** — [`designs/stand-up-weather-forecast.md`](gridworks-weather-forecast/designs/stand-up-weather-forecast.md) (deploy gwwf as the fleet's production weather source — legacy run_weather retired 2026-07-18, fleet has no weather source until this lands; replicate-the-legacy-wire first (byte-exact S3 fixture committed), then home/identity/gwbase-update; follow-on grill: fleet weather distribution replacing six duplicate scada-side fetchers, absorbing the gwbase-native forecast-service intent; 2026-summer; Linear OPS-436)
 - **observability** — [`designs/consolidate-from-infra-scada-jk.md`](observability/designs/consolidate-from-infra-scada-jk.md)
 - **rmqbot** — [`designs/analytics-broker-shovel.md`](rmqbot/designs/analytics-broker-shovel.md)
+- **sema** — [`designs/sender-time.md`](sema/designs/sender-time.md) (one standard name for the sender's clock — optional `SendTimeMs`, simulated or real; applied as words naturally version; first adopter g.node.forest/001, gnr stamping wall-clock; Draft, OPS-472)
 - **sema** — [`designs/spaceheat-naming-vocabulary.md`](sema/designs/spaceheat-naming-vocabulary.md) (encode the node/channel naming vocabulary in sema — closed name sets as additive enums, zone/tank/flow derivation patterns as a naming word, relay event/state vocabularies as enum words; deletes the tlayouts names mirror and pre-empts a third copy in gridworks-terminalasset; Draft, OPS-444)
 - **sema** — [`designs/practice-erb-pair-programming.md`](sema/designs/practice-erb-pair-programming.md)
-- **sema** — [`designs/web-app-words-to-types.md`](sema/designs/web-app-words-to-types.md)
 - **terminalasset-registry** — [`designs/stand-up-terminalasset-registry.md`](terminalasset-registry/designs/stand-up-terminalasset-registry.md) (stand up the Sema-correct seed DB + independent repo holding each terminal asset's hardware layout + operational-params — the durable source of truth provisioning/LTN/web/analytics consume; layout/params sibling of GNR, without the blockchain requirement; Draft, no Linear yet)
 
 ## Explorations

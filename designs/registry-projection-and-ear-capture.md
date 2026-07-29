@@ -40,12 +40,25 @@ Consequences for `gw_data`:
 gjk's central commitment already fits: `all_known_message_types()` is the single
 source of truth for what it binds and persists. So:
 
-1. Add `g.node.forest` to gjk's vendored snapshot + known-types set → the
-   message is captured into `messages` like any other Sema type (zero new
-   transport code; gjk binds the broadcast alongside its existing slices).
-2. A **fan-out step** (the `readings` precedent) upserts the forest's nodes and
-   edges into `gw_data.g_nodes` / `connectivity_edges` keyed on immutable ids —
-   idempotent, so deltas, snapshots, and replays all converge the same way.
+1. ✅ (2026-07-28, `jm/forest-snapshot`) Add `g.node.forest` to gjk's
+   vendored snapshot + known-types set → the message is captured into
+   `messages` like any other Sema type (zero new transport code; gjk binds
+   the broadcast alongside its existing slices). `g.node.forest.request`
+   vendored too for step 3. Side condition hit: the sema staging tier makes
+   published-only snapshots the default, so `layout.lite` is pinned to
+   published `["007","012"]` until 013+ promote.
+2. ✅ (2026-07-28, `jm/forest-snapshot`) A **fan-out step** (the `readings`
+   precedent) upserts the forest's nodes and edges into `gw_data.g_nodes` /
+   `connectivity_edges` keyed on immutable ids — idempotent, so deltas,
+   snapshots, and replays all converge the same way. Grounding that held:
+   gnr's reparent never touches edge rows (the tree is the alias prefix)
+   and the alias ledger forbids cross-node alias collisions, so pure upsert
+   converges; missing-endpoint edges skip until a forest carries them; an
+   edge id is immutable for its (from,to) pair — lifecycle rides Status on
+   the same id, so a new id claiming a held pair is skipped as an anomaly,
+   never absorbed. Open: the forest
+   references position points it does not carry — projected NULL until a
+   position-point source exists.
 3. Bootstrap/resync: one `g.node.forest.request` per configured root against
    gnr's read API (`POST /gnr/g-node-forest-request`); the periodic snapshot
    broadcast is the ongoing anti-entropy.
@@ -196,23 +209,26 @@ full answer for the *registry* specifically is the chain seam
 8. **Post-launch — design ↔ Linear reconciliation**: the bijection sweep
    the session hooks keep flagging (wiki designs without `design`-labeled
    issues, labeled issues whose design files were deleted on completion
-   but kept the label). Routine per `linear.md` "Keeping in sync". Include
-   the checker fix: `precheck-design-bijection.sh` should skip
-   Done/Canceled issues — a completed design correctly has no file, so
-   every properly-retired design (OPS-419 now among them) is pure noise
-   in the drift list.
-9. ◐ **Verify platform services match pushed main** — DECIDED and built
-   (2026-07-25): `check-drift.sh`, a SessionStart hook self-throttled to
-   once per calendar day — live ssh checks (checkout == origin/main +
-   clean; every service process newer than the checkout's last commit;
-   ear retry caches empty), printing only problems. Chosen over a
-   box-side cron or a recurring Linear issue: the check only matters when
-   an operator is present to act, and this way needs no new secrets, no
-   box machinery, no issue ceremony. First run found real drift (gnr-api
-   running pre-pull code) — fixed. ◐ pending only placement: the script
-   waits on the `wiki/tools/` claim with the loop-watcher and staleness
-   hooks. The rabbit-definitions-vs-broker diff (step 6's wish) still
-   wants adding to it — needs an rmqbot ssh path from this machine.
+   but kept the label). Routine per `linear.md` "Keeping in sync". The
+   checker fix shipped 2026-07-27 — `precheck-design-bijection.sh` skips
+   closed issues on the issue→wiki side, clearing the 19 false alarms.
+   Triage done 2026-07-27: 8 Backlog issues created (OPS-464–471), 3
+   designs deleted (web-app-words-to-types + both gridworks-data). One
+   deliberate remainder: `layered-test-harness` flags until the OPS-386
+   block distills-and-deletes it (the harness shipped).
+9. ✅ **Verify platform services match pushed main** — `check-drift.sh`
+   installed in `wiki/tools/` and registered as a SessionStart hook
+   (2026-07-27), self-throttled to once per calendar day — live ssh
+   checks (checkout == origin/main + clean; every service process newer
+   than the checkout's last commit; ear retry caches empty; the
+   rabbit-definitions-vs-broker diff from step 6's wish, via the rmqbot
+   ssh entry), printing only problems. Chosen over a box-side cron or a
+   recurring Linear issue: the check only matters when an operator is
+   present to act, and this way needs no new secrets, no box machinery,
+   no issue ceremony. Maiden runs found real drift (gnr-api running
+   pre-pull code — fixed; the gjk host-key change — with Joe). The
+   loop-watcher (`check-loops.sh`) and dep-staleness advisory hooks
+   installed alongside it.
 
 ### Forward note — terminalasset-registry seed capture
 
