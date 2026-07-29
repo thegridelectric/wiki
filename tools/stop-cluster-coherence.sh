@@ -28,10 +28,9 @@ INPUT=$(cat)
 # a rare "silence everything" fallback. See wiki/tools/bulk-aliases.sh
 # for the user's `bulk-on <session-name>` / `bulk-on --global` commands.
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
-SESSION_NAME=""
-if [ -n "$SESSION_ID" ] && [ -f "$HOME/.claude/.session-by-id/$SESSION_ID" ]; then
-  SESSION_NAME=$(cat "$HOME/.claude/.session-by-id/$SESSION_ID")
-fi
+# shellcheck source=_session-scope.sh
+. "$UMBRELLA/wiki/tools/_session-scope.sh"
+resolve_session_scope "$SESSION_ID"
 if [ -n "$SESSION_NAME" ] && [ -f "$HOME/.claude/.bulk-stop-override.$SESSION_NAME" ]; then
   exit 0
 fi
@@ -42,21 +41,11 @@ fi
 # shellcheck source=_repo-domain-pairs.sh
 . "$UMBRELLA/wiki/tools/_repo-domain-pairs.sh"
 
-# Scope-aware: only flag dirty repos that fall within THIS session's
-# claimed scope per wiki/active-claims.md. Repos owned by another
-# session (or unclaimed) are that session's problem, not ours. If we
-# can't identify the session or it has no claim row, fall back to the
-# umbrella-wide check so unclaimed sessions are still protected.
-ACTIVE_CLAIMS="$UMBRELLA/wiki/active-claims.md"
-SCOPE_PATHS=""
-if [ -n "$SESSION_NAME" ] && [ -f "$ACTIVE_CLAIMS" ]; then
-  row=$(grep "^| $SESSION_NAME " "$ACTIVE_CLAIMS" 2>/dev/null | head -1)
-  if [ -n "$row" ]; then
-    scope_cell=$(echo "$row" | awk -F'|' '{print $4}')
-    SCOPE_PATHS=$(echo "$scope_cell" | sed 's|<br>|\
-|g' | sed 's|^ *||;s| *$||;s|/$||' | grep -v '^$' || true)
-  fi
-fi
+# Scope-aware (via _session-scope.sh): only flag dirty repos within THIS
+# session's claimed scope. Repos owned by another session (or unclaimed)
+# are that session's problem, not ours. If the session can't be
+# identified, fall back to the umbrella-wide check so unclaimed sessions
+# are still protected.
 
 # For each code repo:domain pair, if the repo has dirty files but no
 # pending changelog entry exists, flag it (subject to scope filter).

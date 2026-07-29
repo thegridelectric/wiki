@@ -12,6 +12,33 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-07-23 — Board-generic gpio components in gwsproto; NolanLayout mirrors axiom 1
+
+**What:** gwsproto adopts the modern sema gpio words: `GpioRelayComponentGt`
+(`gpio.relay.component.gt/000`, GpioName + one `relay.control.config`) and
+`GpioSensorComponentGt` (`gpio.sensor.component.gt/000`, GpioName + SenseMode
++ SendToDerived) replace the Gw108VdcRelay/Gw108GpioSensor classes; new
+`RelayControlConfig` named type (word axioms 1–3 mirrored); actors resolve
+the physical BCM pin by GpioName against the board record's
+NativeGpioOutputs/Inputs (the AdcName pattern); the retired `layout_gen`
+nolan slice (gw108_nolan_zones.py, add_nolan_relays, make_nolan_fixture_layout,
+mktest nolan option) is deleted — the sema-native gen in tlayouts supersedes
+it; `tests/config/nolan-layout.json` transformed to the modern shapes.
+Includes the earlier steps of the same cluster: NolanLayout's `check_axiom_1`
+(TransactivePowerChannel), the canonical `Sema: <url>` docstring, and the
+stale 38-axiom comment stash removed (sema `stash_axioms.md` owns it).
+
+**Why:** function (Vdc) belongs to the board's pin registry and the
+node/channel names, not the vocabulary word — the sema modernization retired
+the gw108-prefixed words for the board-generic pair, and gwsproto must carry
+the full sema definitions, axioms included. Verified: NolanLayout validates
+the transformed fixture and axiom 1 fires on a violating layout; targeted
+suite (59 tests) green; the transformed components validate via
+`sema validate` (static projections, per the two-artifact split).
+
+---
+
 ## 2026-07-19 — thermistor reader /003: board-record resolution; DeviceType enum to /001 (`75746bfe`)
 
 **What:** on `jm/spruce-unlimbo`, companion to sema `e9b050f`. `I2cThermistorReaderComponentGt`

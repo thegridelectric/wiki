@@ -19,19 +19,7 @@ set -e
 
 input=$(cat)
 
-# Session-aware override check (per-session > global). See
-# wiki/tools/bulk-aliases.sh for the user-facing `bulk-on` / `bulk-off`.
 SESSION_ID=$(echo "$input" | jq -r '.session_id // empty' 2>/dev/null || true)
-SESSION_NAME=""
-if [ -n "$SESSION_ID" ] && [ -f "$HOME/.claude/.session-by-id/$SESSION_ID" ]; then
-  SESSION_NAME=$(cat "$HOME/.claude/.session-by-id/$SESSION_ID")
-fi
-if [ -n "$SESSION_NAME" ] && [ -f "$HOME/.claude/.bulk-stop-override.$SESSION_NAME" ]; then
-  exit 0
-fi
-if [ -f "$HOME/.claude/.bulk-stop-override" ]; then
-  exit 0
-fi
 
 tool_name=$(echo "$input" | jq -r '.tool_name // ""')
 [ "$tool_name" = "Bash" ] || exit 0
@@ -56,8 +44,58 @@ cwd=$(echo "$input" | jq -r '.tool_input.cwd // empty')
 repo_root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || true)
 [ -n "$repo_root" ] || exit 0
 
+# The wiki repo is exempt: wiki changes are not cluster-checked (umbrella
+# CLAUDE.md "Working-tree hygiene"), and its tree is the multi-session
+# coordination surface — practically always dirty with several sessions'
+# in-flight prose. Burial protection there is the claims protocol's job.
+[ "$(basename "$repo_root")" = "wiki" ] && exit 0
+
 status_short=$(git -C "$repo_root" status --short 2>/dev/null || true)
 [ -z "$status_short" ] && exit 0
+
+# Claim-aware disposition (via _session-scope.sh). Three tiers:
+#   1. Own-scoped + declared cluster (pending changelog marker for the
+#      repo's domain): the dirt IS the declared in-flight work — a bulk
+#      op over it is the work continuing, not burial. Silent.
+#   2. Own-scoped, undeclared: stop (topic-less accumulation), unless
+#      the user's bulk-on override is set.
+#   3. Foreign or unclaimed dirt: ALWAYS stop — the bulk-on override
+#      never silences this case (bulk-on is a volume knob for a
+#      session's own sweeps, not a license over others' WIP).
+# Unidentified session: scope unknown — honor the override, else stop.
+TOOLS_DIR="/Users/jessica/GridWorks/wiki/tools"
+# shellcheck source=_session-scope.sh
+. "$TOOLS_DIR/_session-scope.sh"
+# shellcheck source=_repo-domain-pairs.sh
+. "$TOOLS_DIR/_repo-domain-pairs.sh"
+resolve_session_scope "$SESSION_ID"
+
+repo_name=$(basename "$repo_root")
+own_scoped=""
+if [ -n "$SCOPE_PATHS" ] && echo "$SCOPE_PATHS" | grep -qx "$repo_name"; then
+  own_scoped="yes"
+fi
+
+if [ "$own_scoped" = "yes" ]; then
+  domain=""
+  for pair in $REPO_DOMAIN_PAIRS; do
+    [ -z "$pair" ] && continue
+    [ "${pair%%:*}" = "$repo_name" ] && domain="${pair##*:}"
+  done
+  if [ -n "$domain" ] \
+     && grep -q "pending commit" "/Users/jessica/GridWorks/wiki/$domain/changelog.md" 2>/dev/null; then
+    exit 0
+  fi
+fi
+
+if [ "$own_scoped" = "yes" ] || [ -z "$SCOPE_PATHS" ]; then
+  if [ -n "$SESSION_NAME" ] && [ -f "$HOME/.claude/.bulk-stop-override.$SESSION_NAME" ]; then
+    exit 0
+  fi
+  if [ -f "$HOME/.claude/.bulk-stop-override" ]; then
+    exit 0
+  fi
+fi
 
 msg="Bulk-transform command on a dirty working tree.
 

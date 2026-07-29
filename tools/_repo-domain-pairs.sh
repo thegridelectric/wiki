@@ -16,6 +16,7 @@
 
 REPO_DOMAIN_PAIRS="
 sema:sema
+grid-node-registry:grid-node-registry
 gridworks-base:gridworks-base
 gridworks-data:gridworks-data
 gridworks-journalkeeper:gridworks-journalkeeper
@@ -23,4 +24,5 @@ gridworks-weather-forecast:gridworks-weather-forecast
 gridworks-scada:gridworks-scada
 gridworks-fleet-index-service:gridworks-fleet-index-service
 gridworks-ear:ear
+tlayouts:tlayouts
 "

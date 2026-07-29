@@ -196,16 +196,23 @@ full answer for the *registry* specifically is the chain seam
 8. **Post-launch — design ↔ Linear reconciliation**: the bijection sweep
    the session hooks keep flagging (wiki designs without `design`-labeled
    issues, labeled issues whose design files were deleted on completion
-   but kept the label). Routine per `linear.md` "Keeping in sync".
-9. **Post-launch — verify platform services match pushed main**: nothing
-   today checks that what a box runs is what GitHub main says (the
-   box-runs-a-pushed-SHA guarantee is discipline, unverified). Think
-   through a standing check — per-box `git -C <repo> rev-parse HEAD` vs
-   `origin/main`, dirty-tree detection, service-restart-since-pull —
-   surfaced as a loop (the recurring-Linear-issue pattern, like OPS-460,
-   or a small cron that files drift as an issue). Same family as the
-   daily rabbit-definitions-vs-broker check in step 6; maybe one
-   "platform drift" loop covers both.
+   but kept the label). Routine per `linear.md` "Keeping in sync". Include
+   the checker fix: `precheck-design-bijection.sh` should skip
+   Done/Canceled issues — a completed design correctly has no file, so
+   every properly-retired design (OPS-419 now among them) is pure noise
+   in the drift list.
+9. ◐ **Verify platform services match pushed main** — DECIDED and built
+   (2026-07-25): `check-drift.sh`, a SessionStart hook self-throttled to
+   once per calendar day — live ssh checks (checkout == origin/main +
+   clean; every service process newer than the checkout's last commit;
+   ear retry caches empty), printing only problems. Chosen over a
+   box-side cron or a recurring Linear issue: the check only matters when
+   an operator is present to act, and this way needs no new secrets, no
+   box machinery, no issue ceremony. First run found real drift (gnr-api
+   running pre-pull code) — fixed. ◐ pending only placement: the script
+   waits on the `wiki/tools/` claim with the loop-watcher and staleness
+   hooks. The rabbit-definitions-vs-broker diff (step 6's wish) still
+   wants adding to it — needs an rmqbot ssh path from this machine.
 
 ### Forward note — terminalasset-registry seed capture
 

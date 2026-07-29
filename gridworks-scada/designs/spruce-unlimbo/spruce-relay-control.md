@@ -69,13 +69,22 @@ see the 2026-07-23 update below). The arrangement that keeps this safe:
 Then the relay path rides the same bus actor, gated on that windows/bench decision.
 
 **Update 2026-07-23 — the bench gw108 is alive** (the fuse was loose) and wired to
-the pi `honeysuckle` (tailscale `100.118.30.38`). That reopens the bench option the
-2026-07-21 arrangement assumed away: relay-path actuation and the OPS-452
-induced-reset reproducer can run on the bench with zero cooling stakes, and the
-reader→bus path can shake down there before any spruce window. Access note:
-honeysuckle does not yet accept the fleet (`gridworks-hybrid`) or per-person
-(`gridworks-jessica-ed25519`) key as user `pi` — both open every house pi
-(password auth is off there); add them to honeysuckle before scripting against it.
+the pi `honeysuckle` (tailscale `100.118.30.38`, key-only ssh since 2026-07-23).
+That reopens the bench option the 2026-07-21 arrangement assumed away: relay-path
+actuation and the OPS-452 induced-reset reproducer can run on the bench with zero
+cooling stakes, and the reader→bus path can shake down there before any spruce
+window. **i2c scan (2026-07-23): the bench board matches the standard gw108 map**
+— ADS1115s at 0x48 and 0x49 (config regs fingerprinted), expanders at 0x20/0x21,
+the TCA9548A mux at 0x70 (DACs behind mux channels 1–3). The two ADCs are
+role-distinct, exactly as the device type models them
+(`gwsproto/data_classes/device_types/scada_gw108.py`): 0x49 is the thermistor ADC
+(`ThermistorAdcs`, `I2cThermistorInterfaceCapability`, divider parameters), 0x48
+is the **CT ADC** (`CtAdc`, plain `I2cAdcCapability`, ct1–ct4 per
+`starter-scripts/gw108_test_code.py` — a current-sensing circuit, not a divider).
+The `gw108_nolan_zones.py` single-thermistor-ADC guard stays valid; CT sensing is
+a separate capability, which is where the actual-spruce CT1/CT2 notes land in the
+port. Bench blockers: `~/gridworks-scada` there is mid-update (dev @ `8a0e1689`,
+venv broken on the private gridworks-flo editable) — see fleet-inventory.
 
 ### Readiness — the dev-spruce layout and the boot ladder
 
@@ -213,6 +222,16 @@ while the hack runs, manual DAC use from a second process (the interactive
 
 ## Field facts (GridWorks side)
 
+- **CT sensing wants its own device-type vocabulary.** The gw108 `CtAdc`
+  (0x48) will carry physically different CTs per channel — spruce's notes: CT1
+  is a current-output CT (100 A → 50 mA, external burden on the board), CT2 an
+  eGauge-style voltage-output CT (20 A, internal burden, mV out). A future
+  sema word (e.g. `ct.device.type.gt`) should record OutputKind
+  (CurrentOutput | VoltageOutput), rated primary amps, and rated output
+  (mA or mV), with the CT-ADC channel config referencing it per channel —
+  mirroring how `AdsChannelConfig.ThermistorDeviceType` works. Not part of the
+  dev-spruce layout (the deployed layout has no CT channels yet); the notes
+  ride as comments in `gen_spruce_sema.py` until the word exists.
 - **The gw108 expander map** is authored in `starter-scripts/gw108_test_code.py` (two
   TCA9555 expanders, all relays named; zone opto inputs ×6; ADS1115 CTs + thermistors;
   three MCP4728 DACs behind a TCA9548A mux). The board's `gw1.scada.device.type.gt`

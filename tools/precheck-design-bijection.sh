@@ -140,7 +140,7 @@ linear_side_findings() {
   command -v curl >/dev/null 2>&1 || return 0
 
   local q resp issues
-  q='{"query":"{ issues(filter:{labels:{name:{eq:\"design\"}}}, first:250){ nodes{ identifier title } } }"}'
+  q='{"query":"{ issues(filter:{labels:{name:{eq:\"design\"}}}, first:250){ nodes{ identifier title state{ type } } } }"}'
   resp="$(curl -s --max-time 8 -X POST https://api.linear.app/graphql \
             -H "Authorization: $LINEAR_API_KEY" \
             -H "Content-Type: application/json" \
@@ -149,8 +149,8 @@ linear_side_findings() {
 
   # Linear slug set: project each design issue title to a slug.
   local linear_slugs roots wiki_slugs no_issue="" no_wiki=""
-  linear_slugs="$(echo "$resp" | jq -r '.data.issues.nodes[] | "\(.identifier)\t\(.title)"' \
-                  | while IFS=$'\t' read -r id title; do printf '%s\t%s\n' "$(slugify "$title")" "$id"; done)"
+  linear_slugs="$(echo "$resp" | jq -r '.data.issues.nodes[] | "\(.identifier)\t\(.state.type)\t\(.title)"' \
+                  | while IFS=$'\t' read -r id stype title; do printf '%s\t%s\t%s\n' "$(slugify "$title")" "$id" "$stype"; done)"
   roots="$(design_roots | sort)"
   wiki_slugs="$(echo "$roots" | cut -f1 | sort -u)"
 
@@ -162,9 +162,12 @@ linear_side_findings() {
 "
   done <<< "$wiki_slugs"
 
-  # (b) design issue with no wiki slug.
-  while IFS=$'\t' read -r slug id; do
+  # (b) design issue with no wiki slug. Closed issues are skipped: designs
+  # are deleted on completion, so a Done/Canceled issue without a wiki file
+  # is the convention working, not drift.
+  while IFS=$'\t' read -r slug id stype; do
     [ -z "$slug" ] && continue
+    case "$stype" in completed|canceled|duplicate) continue ;; esac
     echo "$wiki_slugs" | grep -qxF "$slug" || \
       no_wiki="${no_wiki}  - $id  (title projects to \"$slug\" — no matching wiki/**/designs/ file)
 "

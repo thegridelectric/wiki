@@ -16,26 +16,50 @@ set -e
 UMBRELLA=/Users/jessica/GridWorks
 WIKI="$UMBRELLA/wiki"
 
-# repo-dir : wiki-domain pairs (only those that have a changelog.md).
-# Add new pairs here as wiki domains gain changelogs.
-PAIRS="
-sema:sema
-gridworks-base:gridworks-base
-gridworks-data:gridworks-data
-gridworks-journalkeeper:gridworks-journalkeeper
-gridworks-weather-forecast:gridworks-weather-forecast
-gridworks-scada:gridworks-scada
-gridworks-fleet-index-service:gridworks-fleet-index-service
-gridworks-ear:ear
-"
+INPUT=$(cat 2>/dev/null || true)
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
+
+# shellcheck source=_repo-domain-pairs.sh
+. "$UMBRELLA/wiki/tools/_repo-domain-pairs.sh"
+PAIRS="$REPO_DOMAIN_PAIRS"
+
+# Scope-aware (via _session-scope.sh): a pending marker or unreconciled
+# HEAD is dispositionable only by the session claiming that domain —
+# nagging every other session is pure noise. Unidentified session ⇒
+# umbrella-wide fallback.
+# shellcheck source=_session-scope.sh
+. "$UMBRELLA/wiki/tools/_session-scope.sh"
+resolve_session_scope "$SESSION_ID"
+
+domain_in_scope() {  # $1 = wiki domain, $2 = repo dir ("" if unknown)
+  [ -z "$SCOPE_PATHS" ] && return 0
+  echo "$SCOPE_PATHS" | grep -qx "wiki/$1" && return 0
+  [ -n "$2" ] && echo "$SCOPE_PATHS" | grep -qx "$2" && return 0
+  return 1
+}
+
+repo_for_domain() {  # reverse lookup in PAIRS
+  for p in $PAIRS; do
+    [ "${p##*:}" = "$1" ] && printf '%s' "${p%%:*}" && return 0
+  done
+  return 0
+}
 
 flags=""
 
-# (1) Pending markers
+# (1) Pending markers (scoped to this session's claimed domains)
 pending=$(grep -l '<!-- pending commit -->' "$WIKI"/*/changelog.md 2>/dev/null || true)
-if [ -n "$pending" ]; then
+scoped_pending=""
+for f in $pending; do
+  d=$(basename "$(dirname "$f")")
+  if domain_in_scope "$d" "$(repo_for_domain "$d")"; then
+    scoped_pending="${scoped_pending}${f}
+"
+  fi
+done
+if [ -n "$scoped_pending" ]; then
   flags="${flags}Pending changelog markers (reconcile or remove):
-$(echo "$pending" | sed 's|^|  - |')
+$(printf '%s' "$scoped_pending" | sed 's|^|  - |')
 
 "
 fi
@@ -49,6 +73,7 @@ for pair in $PAIRS; do
   changelog="$WIKI/$domain/changelog.md"
   [ -d "$repo_path/.git" ] || continue
   [ -f "$changelog" ] || continue
+  domain_in_scope "$domain" "$repo" || continue
 
   hash=$(git -C "$repo_path" log -1 --pretty=format:'%h' 2>/dev/null || true)
   subject=$(git -C "$repo_path" log -1 --pretty=format:'%s' 2>/dev/null || true)

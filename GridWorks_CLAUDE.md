@@ -382,6 +382,17 @@ wiki points at code (`file:line`); code never points back.
 volatile specifics with `file:line`. One canonical doc — update it, don't
 duplicate; delete what's wrong. Open every doc with a one-line "what this is".
 
+**Durable prose earns its place by teaching the reader something they cannot
+be presumed to bring or see** — not industry common knowledge, not what the
+artifacts in front of them already show. Two kinds qualify: information that
+exists nowhere else (decisions, intent, constraints, operational facts), and
+GridWorks fundamentals (demand response as continuous transactive load, not
+event curtailment; meaning living in Sema). The measure is the reader, not
+the corpus: this is not DRY, though a restated fundamental converges on its
+canonical home, never forks it. Everything else: don't write it; delete it
+where found. And "omit needless words" — durable prose is loaded into every
+future session, so each word costs tokens on every read.
+
 **Headers are reference slugs.** In canonized locations (`executor/`,
 `sema/spec`, other spec-grade docs) a `##` header is a near-immutable
 reference slug: cite it as `file.md "Header text"`. Renaming one is a known
