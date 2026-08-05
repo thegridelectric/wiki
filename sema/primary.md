@@ -17,9 +17,7 @@ Not a runtime framework.
 
 | Source | Covers |
 |---|---|
-| `sema/spec/primary.md` | **THE spec hub** — core principles, glossary, TOC. The rebuild spec; spokes live under `sema/spec/{registry,authoring}/` and `sema/spec/governance.md`. The previous monolithic version is archived at `sema/docs/orig-spec.md`. |
-| `sema/effortless_CLAUDE.md` | the **committed, team-shared** ERB-lens working rules (rulebook-as-SSoT, `effortless build` discipline). |
-| `sema/CLAUDE.md` (gitignored) | **per-developer personal lens** — typically the dev-branch sema-vocabulary frame (`spec/primary.md`, `/make-sema-word`, axiom/registry invariants). The two-lens pattern is intentional; see [`explorations/two-claudes.md`](explorations/two-claudes.md). |
+| `sema/spec/primary.md` | **THE spec hub** — core principles, glossary, TOC. The rebuild spec; spokes live under `sema/spec/{registry,authoring}/` and `sema/spec/governance.md`. |
 | `sema/README.md` | repo landing page, including the "Why this matters" motivation that used to live in `sema/docs/motivation.md`. |
 | `wiki/sema/research/` | GridWorks-specific context that used to live in `sema/docs/`: `sema-and-domain-protocols.md`. |
 | [`../vision/where-meaning-lives-in-gridworks.md`](../vision/where-meaning-lives-in-gridworks.md) | the GridWorks architecture position: Sema = authority over meaning, a canonical seed database = authority over asserted facts; the `.gt` bijection convention. |

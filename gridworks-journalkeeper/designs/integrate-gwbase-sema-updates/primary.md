@@ -19,7 +19,8 @@ The `g.node.forest` fan-out (landed on `jm/forest-snapshot`) projects the
 registry into `gridworks.g_nodes` / `connectivity_edges`. Three schema/data
 fixups gate its deployment; the first is on the gjk box, the other two are
 `gridworks-data` repo changes (model + alembic migration + PyPI release +
-gjk pin bump), coordinated with Joe:
+gjk pin bump) — ours to design and deploy, with a heads-up to Joe since
+gridworks-data and its schema are his day-to-day surface:
 
 1. **Remove/re-id the six January 2026 hand-seeded `g_nodes` rows.** Their
    aliases are the six houses the registry now owns under DIFFERENT
@@ -52,7 +53,7 @@ persist *mechanism* (seed → snapshot-regen → persistor recipe) stays here as
 reference in **`persisted-type-set.md`**. Correction carried over: `ally.inactive`
 was **never authored** — the `jm/proactor-link-vocab` branch it was parked against
 is merged into sema dev and carries no unique commits, so it must still be coined
-via `/make-sema-word`.
+via sema word-authoring.
 
 ## Spokes (in order)
 

@@ -92,7 +92,7 @@ derived channels; `usable-energy` / `required-energy` present by name; the
 referential-integrity checks (`CapturedByNodeName` / `AboutNodeName` /
 `InputChannelNames` resolve) — and **not** the fuller axiom set being spelled out in
 `gw.nolan.layout`. Match current behavior first; richer axioms later. Mint via
-`/make-sema-word` (read `sema/CLAUDE.md` first) when ready to author.
+sema word-authoring (read `sema/spec/primary.md` first) when ready to author.
 
 ## Next tasks (ordered)
 
@@ -163,7 +163,7 @@ from `house0.imaginary`'s sensor channels, output **exactly** the 20 sensor
 channels/units (3 Power, 8 Temperature, 9 Voltage), witnessed by an independent
 observer — 0 missing, 0 extra, quantity-consistent. Reproducer
 `sim-time-experiment/sim_sensor_experiment.py`; worked example in
-`../../experiments/logbook.md`. That proved the **output shape**; this spoke makes
+`experiments/logbook.md`. That proved the **output shape**; this spoke makes
 it real and physics-driven.
 
 ## What we build

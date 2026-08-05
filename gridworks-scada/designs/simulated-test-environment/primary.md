@@ -29,7 +29,7 @@ Status: Accepted · Pass 1 · Updated 2026-06-13 · Linear: OPS-40
   sim/real trust boundary. Moved here from spruce-unlimbo 2026-06-11.
 - [`sim-time.md`](sim-time.md) — scada on coordinator timesteps: code census, the
   1-minute bridge for the existing proactor stack, the watchdog-pat gate. The
-  bridge crossing is Verified (`../../experiments/logbook.md`).
+  bridge crossing is Verified (`experiments/logbook.md`).
 - [`experimentation-tools.md`](experimentation-tools.md) — the replicable
   real-broker experiment toolset; absorbed from world/designs/experimentation-harness
   2026-06-11 (all simulation/experimentation work consolidates here).
@@ -107,7 +107,7 @@ Short pointers to durable facts; the live plan lives in `build-plant.md`.
 - **The sim-time bridge crossing is Verified** — a real `tc-hello` broadcasting
   `sim.timestep` over AMQP reaches MQTT subscribers; a real scada-side
   `SimTimeListener` receives every step. Scoped claim in `sim-time.md`; worked
-  example in `../../experiments/logbook.md`.
+  example in `experiments/logbook.md`.
 - **The sim seam is decided** — device boundary via a `Sim*` `DeviceType`, the
   plant pushes on `AsyncCaptureDelta`, one flat actor branch, no driver hierarchy,
   sensors outside the command tree, controls as leaves. Full statement in
@@ -163,7 +163,7 @@ Short pointers to durable facts; the live plan lives in `build-plant.md`.
   `Accepted` (Pass ≥ 1) on every spoke before scada/base edits matching its
   scope begin.
 - **Any Sema change** (new `Sim*` `gw1.device.type` values, sim component
-  types) goes through `/make-sema-word` — read `sema/CLAUDE.md` and follow it.
+  types) goes through sema word-authoring — read `sema/spec/primary.md` and follow it.
 - Touch points: `gridworks-scada` (`drivers/`, `actors/` factories, `layout_gen/`,
   `tests/utils/`), `gridworks-base` (simulated terminal asset GNode actor,
   dev-broker test topology), `gridworks-protocol`/`sema` (`gw1.device.type` + sim

@@ -93,7 +93,7 @@ the truth oracle. **That is backwards.** Settled direction:
   Retire `HpModel` into the device-type model:
   `hp.device.type.gt` + `hp.control.box.device.type.gt`, the three primary-pump facts, the
   nameplate-grounded enum values. Converged 2026-07-17; ready for an executing session
-  (`/make-sema-word`), two decisions open.
+  (sema word-authoring), two decisions open.
 - **[`sieg-primary-flow.md`](sieg-primary-flow.md)** — the deferred Siegenthaler / `primary-flow`
   behavior test (rides the simulated-plant focus).
 - **[`i2c-board-components.md`](i2c-board-components.md)** — the board-resident / i2c-bus actor model.

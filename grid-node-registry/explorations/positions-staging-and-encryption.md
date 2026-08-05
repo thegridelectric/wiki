@@ -74,3 +74,15 @@ When positions are populated, protect `position_points`:
   the FK drop keeps both open.
 - **Crypto substrate:** `pgcrypto` `pgp_pub_encrypt` vs AWS KMS envelope encryption
   (`kms:Decrypt` gated to the one reader's IAM role).
+
+## Stale PositionPointIds in old tlayout outputs — do not use
+
+The pre-registry `tlayouts/output/*.json` files assign each GNode a
+`PositionPointId` that does NOT match the registry's (verified 2026-07-30:
+beech LTN is `4f2ce336…` in the live registry, `9756f665…` in
+`beech.generated.json`). Neither set carries coordinates — the tlayout ids
+are bare identities minted before the registry existed, with no data value
+to harvest. When position points get populated (the work above, alongside
+the mTLS/validator plane), the registry's ids are the fleet's location
+identities; the tlayout ids are historical artifacts to ignore, and any
+document or tool still holding one needs re-pointing, not honoring.

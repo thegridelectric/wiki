@@ -273,7 +273,7 @@ case + tooling story.
 ### Stage 2 — gwbase Sema types + report_problem hook
 
 - Land `observability.problem-event/000` in sema (via
-  `/make-sema-word`)
+  sema word-authoring)
 - Land `ActorBase.report_problem(...)` in gwbase (Wave-2 per
   [`../../gridworks-base/explorations/logging-for-observability.md`](../../gridworks-base/explorations/logging-for-observability.md))
 - Glitch + ProblemEvent stay as legacy emitters

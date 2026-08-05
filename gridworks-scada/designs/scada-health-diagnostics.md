@@ -32,7 +32,7 @@ back-office reflect the down state well inside the current ~10-minute lag.
 
 ## Emit — the live `ally.inactive` / `ally.active` signal
 
-1. **A semantic liveness-announcement pair**, new sema words (via `/make-sema-word`
+1. **A semantic liveness-announcement pair**, new sema words (via sema word-authoring
    at build; deliberately under-prescribed here). Vocabulary ruling (2026-06-11):
    **these two are not peers** — the relationship has a natural implied tree order,
    so the words speak **parent and child** (a parent announcing a child gone dark

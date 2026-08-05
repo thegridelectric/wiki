@@ -73,7 +73,7 @@ annotated "was MakeModel GRIDWORKS__SIMPM1"). **Stale-language note:** `primary.
 
 ## The work
 
-1. **New sema words** (`/make-sema-word`): `sim.pico.btu.meter.component.gt` and
+1. **New sema words**: `sim.pico.btu.meter.component.gt` and
    `sim.pico.flow.module.component.gt`, mirroring the real components via `SimulatesTypeName` /
    `SimulatesVersion` consts (exactly like `sim.pico.tank.module.component.gt → pico.tank.module.component.gt/012`).
    Each carries the real component's config plus any synth params. (`sim.pico.tank.module.component.gt`

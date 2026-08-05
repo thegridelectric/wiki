@@ -18,7 +18,7 @@ Read them as their current replacement.
 | Legacy term | Read as / replaced by | Notes |
 |---|---|---|
 | `atn`, `AtomicTNode` | **LeafTransactiveNode (LTN)** | The LTN is being separated out of `gridworks-scada` into a rabbit-native extension of gridworks-base; its presence there (`ltn_app.py`, `actors/ltn/`) is temporary, not a permanent actor subpackage. |
-| `ASL`, `Application Shared Language` | **Sema** | Sema is the current boundary-infrastructure language for serialized-JSON contracts. See `sema/CLAUDE.md` and `sema/docs/`. |
+| `ASL`, `Application Shared Language` | **Sema** | Sema is the current boundary-infrastructure language for serialized-JSON contracts. See `sema/spec/primary.md`. |
 
 ## Key GridWorks-specific sema formats
 

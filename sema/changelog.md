@@ -12,6 +12,87 @@ Newest at the top.
 
 ---
 
+## 2026-08-05 — Guardrails: metaschema gate, fail-loud generator, enum order and field-case enforcement (`2ea5da2`)
+
+**Why:** The api-types review exposed two enforcement gaps. First, the
+runtime generator silently degraded a metaschema-illegal construct
+(`type: [{$ref: …}, "null"]`) to `list[Any | None]`, so a format
+mismatch stayed invisible. Second, gjk and gridworks-web-backend store
+enum states as positional indexes — a scheme resting on the spec's
+append-only enum-order rule (`spec/authoring/enums.md` "Evolution
+Rules"), which was declared but not mechanically enforced. Four
+guardrails: (1) every schema file under `definitions/` must validate
+against the JSON Schema 2020-12 metaschema — a registry test plus a
+build gate at the top of runtime regeneration, so an illegal schema
+fails the build instead of generating garbage (new `jsonschema`
+dependency); (2) the generator's bare-`Any` fallbacks (unresolvable
+$ref, un-narrowable type list, unknown construct) now raise naming the
+schema and property — the deliberate open-object `dict[str, Any]`
+mapping stays, it is a faithful rendering; (3) each versioned enum
+version's `enum` list must start with the previous version's list
+verbatim (append-only, enforced across versions; published-hash
+pinning only froze each version's own file); (4) generated runtime
+enum classes must carry values in exactly the definition file's order
+(artifact-level check that catches generator reordering bugs the
+prefix test cannot); (5) every property key in a type schema —
+recursively through inline objects — must be PascalCase (spec Principle
+2, previously unenforced: the existing name tests police lowercase
+dotted word names, not the wire field names). A coverage audit found
+the other suspected gaps already closed (enum default membership,
+examples decoding through the generated runtime). Negative tests
+(`tests/test_guardrails_fire.py`)
+prove each guard actually fires on the original illegal construct —
+they also documented that non-canonical $ref URLs were already rejected
+by `normalize_ref` before the generator's new check (kept as
+defense-in-depth).
+
+## 2026-08-05 — PR changes to synced.readings.bundle and operating.state.sequence (`e071165`)
+
+**Why:** Review of the jds/api-types PR against field data (beech report
+`f32945f7`, 2026-02-10) showed `operating.state.sequence/000` could not
+carry real machine states: values are PascalCase enum values, which
+`spaceheat.name` rejects (masked because the invalid
+`items: {type: [$ref, "null"]}` union generated `list[Any | None]` —
+nothing was enforced), and real transitions arrive milliseconds apart
+(12 ms in the beech report), so `utc.iso8601.seconds` timestamps
+collide. Revised in place (staging): ValueList → `pascal.case`,
+TimestampList → `utc.iso8601.millis`, new strictly-increasing axiom,
+extended_description reframing the type as a projection of
+`machine.states` into an analytics channel — with a verbatim beech
+example on a curated analytics channel
+(local-control-all-tanks-state) and a note that debugging a failed state change
+means going back to the reports' `machine.states` (the projection drops
+StateEnum and the chain-of-command MachineHandle). The
+extended_description also pins the gap decision: unknown-state spans are
+expressed by absence, and `None` is deliberately not a defined value
+(field reports re-assert every machine's state each slot, so gaps only
+mean the SCADA wasn't reporting — window-shaped information, not a
+sentinel's job).
+`synced.readings.bundle/003`: described LatePersistenceTimePeriodList
+(windows whose readings were persisted late/backfilled) and added axiom
+6 well-formedness (exactly-two elements, ordered, within the bundle
+span); fixed stale `ChannelDefinitions` references left from an older
+shape, scoped the "rectangular, time-aligned" language to
+ChannelReadingsList (state sequences are event-form, not grid-aligned),
+and gave the bundle example a non-empty
+OperatingStateSequenceList (the beech local-control sequence rebased
+into the example's window, real millisecond digits kept). Runtime tests
+added for both.
+
+## 2026-08-04 — Remove CLAUDE.md; move contributor mechanics into README (`a8d75af`)
+
+**Why:** The repo shipped a tracked `CLAUDE.md` that presumed a specific
+AI-assisted setup — a `/make-sema-word` slash command and umbrella-wiki
+machinery that don't exist in this repo — and its Universal MUSTs restated
+what the spec already governs. A public repo should not presume
+contributors' tooling; the spec stays canonical for all vocabulary rules.
+The durable contributor mechanics moved to `README.md`: the
+topic-branch-off-`dev` convention (Contributing) and the new-type-version
+delta discipline (the three coupled places + the nested-upgrade lift
+rule). Also dropped a private-wiki pointer from `snapshot_lint.py`'s
+docstring — repo files stand alone; the follow-up reference now points at
+the in-repo snapshot spec.
+
 ## 2026-07-29 — g.node.forest/001: optional SendTimeMs, published (`6f910aa`)
 
 **What:** New version 001 of `g.node.forest`:

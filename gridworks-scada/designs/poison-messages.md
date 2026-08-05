@@ -102,4 +102,4 @@ store, both processes on the dev rabbit):
   design — whichever builds first creates it.
 - Code lands in gwproactor (reupload loop, ack policy) + a glitch
   emission; sema involvement only if glitch needs a variant
-  (`/make-sema-word` if so).
+  (sema word-authoring if so).

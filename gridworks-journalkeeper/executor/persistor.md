@@ -1,6 +1,6 @@
 # gjk persistors — what the custom persistors do
 
-Status: Draft · Pass 0 · Updated 2026-06-09
+Status: Draft · Pass 0 · Updated 2026-08-05
 
 > Sub-spec of [`primary.md`](primary.md): the persistor stack in depth, with
 > emphasis on the **channel model** and the fact that the `readings` fan-out is
@@ -72,12 +72,22 @@ itself — it defines the channels the others write against.
     `SemaEnumPseudoChannel`s via a hand-maintained `STATE_CHANNELS` map
     (`machine_handle` → pseudo enum channels, with `auto.h→auto.lc`,
     `a.aa→ltn.la` rewrites). Each state string is converted to an **integer**
-    via `get_sema_enum_value`, which **hashes unrecognized values** as a
-    fallback. So a richly-typed machine-state stream — which *also* has
+    — its positional index in the enum's declaration order, stable because
+    sema enum evolution is append-only (CI-enforced in the sema repo:
+    cross-version prefix test + runtime-order test). The value↔int contract
+    this creates on the `readings` table is specified in
+    `wiki/gridworks-data/executor/primary.md` "Enum channel values".
+    A state string the local sema snapshot does not recognize falls back to
+    **sha256-of-string as an integer** — which cannot work as written: the
+    hash (~10^77) overflows the `BigInteger` column (max ~9.2e18), so the
+    insert errors rather than stores, and even conceptually the hash is
+    one-way. Open: replacement behavior under discussion (skip the reading
+    and warn; the string survives in `messages`).
+    So a richly-typed machine-state stream — which *also* has
     rigorous Sema types (`machine.states` / `single.machine.state`) — is
     re-expressed as integer readings on invented channels. Two
     non-aligned representations of the same fact; the readings one is lossy
-    (enum→int, hash collisions possible, mapping maintained by hand).
+    (enum→int, mapping maintained by hand).
 - **`flo.params.house0`** → 3 pseudo channels (`buffer-available-kwh`,
   `lmp-usd-per-mwh`, `total-usd-per-mwh`), taking only the **first** element of
   the forecast arrays (`lmp_forecast[0]`, …). The flo params object is large;

@@ -220,7 +220,7 @@ cheap recipe. (Some may already be sema words; some are proactor-internal
 pydantic and need a faithful sema type coined.)
 
 **Sema protocol (MUST, for both A and B):** before any sema edit, read
-`sema/CLAUDE.md` + `spec/primary.md` and use `/make-sema-word` (the per-word
+`sema/spec/primary.md` and follow the sema authoring discipline (the per-word
 ritual + a Task Prompt). Universal MUSTs apply: CamelCase serialized fields,
 `TypeName` left.right.dot, formats immutable, enums additive, correct dependency
 declarations, `pytest` + registry validation green.
@@ -240,6 +240,6 @@ declarations, `pytest` + registry validation green.
 - JK suite green.
 - The captured types are modeled (clean word verified, or coined per "Sema
   words to coin here") and added via the recipe.
-- `ally.inactive` sema word coined (versioned, via `/make-sema-word`) and JK
+- `ally.inactive` sema word coined (versioned, via sema word-authoring) and JK
   ingests + persists it.
 

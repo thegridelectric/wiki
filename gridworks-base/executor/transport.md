@@ -1,6 +1,6 @@
 # gridworks-base — Transport layer
 
-Status: Draft · Pass 0 · Updated 2026-07-03
+Status: Draft · Pass 0 · Updated 2026-07-29
 
 Sub-spec of the gridworks-base rebuild spec — **start at
 [`primary.md`](primary.md)**. Section numbers are global across the spec
@@ -19,11 +19,12 @@ a TransportClass but is not a GNode.
 
 Members: `TerminalAsset`, `LeafTransactiveNode`, `ConnectivityNode`,
 `MarketMaker`, `Scada`, `PriceForecastService`,
-`WeatherForecastService`, `TimeCoordinator`, `Supervisor`.
+`WeatherForecastService`, `TimeCoordinator`, `Supervisor`,
+`GridNodeRegistry`.
 
 Each TransportClass has a short **RoutingClass** token used in routing
 keys (the lower-case abbreviation, e.g. `ta`, `ltn`, `cn`, `mm`, `scada`,
-`price`, `weather`, `time`, `super`). The mapping is bijective; the
+`price`, `weather`, `time`, `super`, `gnr`). The mapping is bijective; the
 transport layer parses routing-key tokens via RoutingClass and converts
 them to TransportClass for the application.
 
@@ -59,6 +60,23 @@ Where `<from-class>` and `<to-class>` are RoutingClass tokens.
 `heartbeat.a` or `sim.timestep`) with dots replaced by hyphens.
 `<radio-channel>` (optional) is one or more extra dotted segments
 appended to a broadcast routing key.
+
+Worked example — the Grid Node Registry's forest snapshot broadcast:
+
+```
+rjb.hw1-gnr.gnr.g-node-forest.hw1.isone
+```
+
+`hw1.gnr`'s alias takes wire form `hw1-gnr`; `gnr` is its RoutingClass
+token; `g.node.forest` hyphenates to `g-node-forest`; and the radio
+channel — the forest root `hw1.isone` — **keeps its dots**, so the channel
+is a multi-segment tail. Two consequences for consumers: the type token is
+NOT the last segment of a channel-keyed broadcast, so a type binding must
+be positional (`rjb.*.*.g-node-forest.#` — and since `#` matches zero
+segments it also hears a channel-less broadcast); and the dotted tail is
+what lets a listener bind by alias hierarchy
+(`rjb.*.*.g-node-forest.hw1.isone.me.#` hears only that subtree's
+broadcasts).
 
 Parsing is **tolerant of class tokens**. The `<from-class>` / `<to-class>`
 slots are read as **opaque short_names** and resolved to a `TransportClass`

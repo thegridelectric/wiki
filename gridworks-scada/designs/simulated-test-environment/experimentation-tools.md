@@ -96,15 +96,20 @@ evidence, not a throwaway (the distinction Jessica drew: steady-state
 behavior is repeatable, not "evidence for a moment"). Three things are
 kept, each in its right home:
 
-- **A terse logbook** — `experiments/logbook.md`, per domain: one dated
+- **A terse logbook** — `experiments/logbook.md`, top-level in the
+  standalone experiments repo (fleet-wide, not per-domain): one dated
   entry per run — why we ran it, what we found (the verified claim in a
-  line), pointers to the reproducer + raw bundle. An index, not a write-up;
-  terse by design so it doesn't become the `findings.md` graveyard the
-  conventions outlawed.
-- **The reproducer package** — the harness (re-runnable) plus its summary,
-  kept together so the claim can be re-checked. It IS the evidence behind a
-  `Verified` stamp, so it lives as code (scada repo / `experiments/`), not
-  as wiki prose.
+  line), pointing at the run's `experiments/<date>-<slug>/` folder. An
+  index, not a write-up; terse by design so it doesn't become the
+  `findings.md` graveyard the conventions outlawed. The wiki's verified
+  claims cite logbook entries; the repo never points back at the wiki.
+- **The reproducer package** — the harness (re-runnable) plus its summary
+  and raw data bundle, kept together per experiment
+  (`experiments/<date>-<slug>/` in the standalone experiments repo — one
+  folder: harness + results-summary + data) so the claim can be
+  re-checked. It IS the evidence behind a `Verified` stamp, so it lives as
+  code, not as wiki prose. Pin the commit hash of any code-under-test in
+  the summary — reproducers go stale against moving code.
 - **The verified claim** — distilled UP into the relevant spec (`executor/`
   or the design), maturity raised, **scoped honestly to what was actually
   exercised**, naming the experiment that validated it. This is the

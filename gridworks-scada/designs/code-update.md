@@ -22,7 +22,7 @@ Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-401
 | Signing | **Deferred to the crypto-key work** (substrate-fit design) — part of the metering-trust fabric ([`metering.md`](../../economy-energy-markets/executor/metering.md)). Interim: sha256 pinning end-to-end, no false precision about signatures. |
 | Picos | **Out of scope. No field firmware downloads to picos** (see Boundaries). |
 | OS | **Out of scope by posture** (see Boundaries). |
-| Wire vocabulary | Own small sema words at build time (`/make-sema-word`); **NOT layout.lite** (firmware isn't layout). Deliberately under-prescribed until the mechanism is built. |
+| Wire vocabulary | Own small sema words at build time (sema word-authoring); **NOT layout.lite** (firmware isn't layout). Deliberately under-prescribed until the mechanism is built. |
 
 ## Architecture
 
@@ -157,7 +157,7 @@ failed, loud). Announce doubles as fleet inventory.
 3. **Deploy service** — handshake + per-house manifest + revert
    blacklist + staleness alarm. Done: bench Pi driven end-to-end from
    it.
-4. **Sema words** — announce/offer/status via `/make-sema-word`.
+4. **Sema words** — announce/offer/status via sema word-authoring.
 5. **Field: backup pi2, over the summer** — real hardware, real
    residential network, zero comfort stakes. Run no-op bump, broken
    release, normal cadence **until updates are boring**. Exercise the

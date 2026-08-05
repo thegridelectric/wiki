@@ -220,8 +220,12 @@ was loaded, not worked from memory. Ephemeral coordination (session names,
   human asks.** They are operative protocol and burden every future session;
   the human decides when one is warranted. LLM-facing material lives in the
   wiki.
-- **Sema:** before ANY sema edit, Read `sema/CLAUDE.md` and follow it
-  verbatim. Adding or modifying a sema word → suggest `/make-sema-word`.
+- **Sema:** before ANY sema edit, Read `sema/spec/primary.md`. Adding or
+  modifying a vocabulary word: first read the `sema/spec/registry/` and
+  `sema/spec/authoring/` spokes for the kind (format / enum / type) being
+  touched, then post a summary of that kind's registry, authoring,
+  dependency, and axiom/projection rules and WAIT for confirmation — the
+  summary proves the spec was read this session, not recalled.
   **The sema spec (`sema/spec/`) is change-controlled: ANY change to the
   spec — however small, additions included — requires discussion with the
   human before editing.** Never fold a spec edit into another change; when a

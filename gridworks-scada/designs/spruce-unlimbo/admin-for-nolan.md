@@ -77,7 +77,7 @@ The deleted `jm/scada-control` branch was the scada-side
    Nolan `gw108.vdc.relay` hardware, gwa consumption). The broader shape change beyond
    the node version (items 1–4 above) rides on top of `scc/002`.
 
-Sema changes go through `/make-sema-word` (v002 + upgrade template +
+Sema changes go through sema word-authoring (v002 + upgrade template +
 registry deltas). **Sieg-loop visibility in admin** (can/should gwa see
 SiegLoop state?) is noted and **deferred to sieg-semantic-harmonization
 ([OPS-400](https://linear.app/gridworks/issue/OPS-400))** — that design already owns the valve-telemetry-not-emitted

@@ -13,7 +13,66 @@ Newest at the top.
 ---
 
 <!-- pending commit -->
-## 2026-07-28 — g.node.forest fan-out: project the registry into gw_data
+## 2026-08-05 — minor; remove wiki references (`3bfc97b`)
+
+**Why:** Repo files stand alone — `scripts/point_at_dev_hack.py` and
+`scripts/point_at_prod_observe.py` cited `wiki/gridworks-journalkeeper`
+paths a repo reader cannot follow. The docstrings keep their operative
+content (what the hack is, when to remove it); only the private-wiki
+pointers go.
+
+## 2026-07-30 — hack script: re-id January-seeded g_nodes to registry GNodeIds
+
+**What:** on `jm/forest-snapshot`. `scripts/hack_reid_g_nodes.py` —
+temporary (delete after it runs in prod). The six old→new id pairs are
+hardcoded in the script — the mapping IS the reviewable plan (pairs
+verified against the live registry read API 2026-07-30). One transaction
+re-points `installations.g_node_id`,
+`connectivity_edges.from/to_g_node_id`, and the `g_nodes` primary key.
+Dry-run by default; `--execute` applies; refuses if the database does not
+match the plan (alias check per row; already-applied rows skip
+idempotently). DB from `GJK_DB_URL`.
+
+**Why:** step 1 of the disentangle-installations design (OPS-473) and a
+deployment precondition of the forest projection (OPS-386 item #5): the
+six January-seeded rows carry the right aliases under wrong ids, and the
+first live broadcast would collide on the alias unique constraint.
+**Verified:** dry run against the live journaldb shows the six intended
+re-ids and no unknowns.
+
+## 2026-07-30 — bind all three transport grammars; pin forest projection to the registry (`d5a287f`)
+
+Also: the forest persistor takes a required `registry_alias`
+(derived at registration from the service alias — `<universe>.gnr`, one
+convention, no second literal) and projects only forests from that
+sender; anything else is witnessed into `messages` with a warning, never
+projected. from_alias is self-asserted in the routing key until the
+broker enforces publish-time alias pinning (the mtls-fis-auth design's
+new section); the app-side pin is correct now and harmless then.
+
+**What:** on `jm/forest-snapshot`. `bind_queue` binds each known type
+exactly once per gwbase transport grammar: `gw.*.to.*.<token>` (wrapped,
+type last), `rjb.*.*.<token>.#` (broadcast — the radio channel keeps its
+dots, so it is a multi-segment tail and the type sits mid-key; `#`
+matches zero segments, covering channel-less broadcasts too), and
+six-segment `rj.*.*.<token>.*.*` (direct). The old single `#.<token>`
+binding missed both non-type-last grammars — every channel-keyed
+broadcast and every rj direct of a known type sailed past the queue
+unbound — while over-matching anything type-last. Spec-exact now: keys
+outside the three grammars are the ear's to witness, not jk's to
+consume, and the S3 import path replays history without touching live
+bindings (pre-OPS-387 `broadcast.*` strays included — the parse-error
+hack stays for that path).
+
+**Why:** found live, first try of the dev rig — gnr's forest snapshot
+broadcast (radio channel = the forest root) never reached d1.journal;
+zero rows, zero messages. The in-code tests could not see this: they
+publish with type-last keys. The rig is the experiment the projection
+needed before any box deploy.
+**Verified:** dev rig end-to-end — snapshot broadcast → gjk projects
+nodes + edge into gw_data with SendTimeMs as created_at; suite green.
+
+## 2026-07-29 — g.node.forest fan-out into gw_data: live-only projection, persist_v001 send time (`da4bdb3`)
 
 **What:** on `jm/forest-snapshot`. New `g_node_forest_persistor.py`
 registered in `custom_persistor_lookup` (`g.node.forest` leaves

@@ -6,7 +6,7 @@ Status: Draft · Pass 0 · Updated 2026-07-19 · Linear: OPS-407
 > device-type model — two new sema record families for heat pumps, the enum values, and
 > how the layout carries them. Design converged 2026-07-15..17 (spruce field work +
 > maple pump-doctor bug); written here for a fresh session to EXECUTE via
-> `/make-sema-word` (read `sema/CLAUDE.md` + `spec/primary.md` + the authoring spokes
+> sema word-authoring (read `sema/spec/primary.md` + the authoring spokes
 > first — the ritual, not this doc, governs the mechanics).
 
 ## Why (the one-paragraph case)

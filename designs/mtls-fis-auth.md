@@ -1,6 +1,6 @@
 # mTLS + FIS auth
 
-Status: Draft · Pass 0 · Updated 2026-07-15 · Linear: OPS-420
+Status: Draft · Pass 0 · Updated 2026-07-30 · Linear: OPS-420
 
 **EDD: yes** verified by a real SCADA proving identity to the prod broker with a
 client certificate and FIS authorizing it (and denying an unknown/suspended
@@ -51,6 +51,40 @@ node carries a stale alias until it is redeployed. Two requirements fall out:
   redeploy** (provisioning reads the grid-node-registry's internal API and redeploys
   affected nodes on a topology change); the FIS deny is the observable backstop that
   catches any node provisioning missed. See OPS-419.
+
+## Publish-time alias pinning
+
+Connect-time auth proves who a client IS; nothing above ties the
+**routing key's from-alias segment** — asserted per message — to that
+identity. An authorized client could still publish keys wearing someone
+else's alias. The closure is one FIS rule in machinery this design
+already specifies: with RabbitMQ **topic authorization** enabled, the
+broker's `/auth/resource` call carries the routing key on every topic
+publish, and FIS enforces
+
+> publish is authorized iff segment 2 of the routing key equals the
+> wire-form (hyphenated) of the connection's verified current alias.
+
+One rule covers all three transport grammars — `rj`, `rjb`, and `gw` all
+put the from-alias at segment 2. The from-alias in every routing key
+becomes broker-authenticated for every consumer at once: consumers do no
+crypto and hold no identity state, they trust the broker (the one-authz-
+layer principle). Together with `validated-user-id`, header and key
+cannot disagree by construction — `user_id` is the connection's GNodeId,
+and the key's from-alias is that GNodeId's current alias, both enforced
+against the same connection. The alias ↔ GNodeId binding is the
+registry's alias ledger, which FIS already consults at connect; this
+rule extends the same lookup to publish-time.
+
+Cost: the broker caches topic-auth verdicts per
+connection/exchange/routing-key, and the fleet's set of distinct keys is
+small — a handful of FIS calls per connection lifetime, accepted.
+
+Until this lands, consumers that project current state from a specific
+authority pin the sender app-side (e.g. a registry projection accepts
+only its universe's `<universe>.gnr`, witnessing but not projecting
+anything else) — correct under the honor-system broker today and
+redundant-but-harmless once the broker enforces it.
 
 ## Gateway boundary — a web login is not enough
 
@@ -121,8 +155,8 @@ These are why it was an exploration; turning it into a design means settling the
 
 - **Cert lifecycle** for per-client certs — issue / rotate / revoke, with
   **renewal automation as the core of it** (certificates made by the agents
-  themselves and signed centrally — `authority/certbot/README.md` names this
-  as the next iteration). Lifetime policy carried in from OPS-423: 2 years
+  themselves and signed centrally — `gridworks-infra/authority/certbot/README.md`
+  names this as the next iteration). Lifetime policy carried in from OPS-423: 2 years
   while renewal is manual, expiries steered to summer and staggered so the
   fleet never shares an expiry cliff; once renewal is automatic, drop hard
   (90–180 days) — short-lived certs are also the practical revocation story,

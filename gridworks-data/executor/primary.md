@@ -6,7 +6,7 @@ the roles that access it, the alembic-managed migration story, and the
 boundary application services see (a database URL + a small set of
 SQLAlchemy model classes).
 
-> Status: Draft · Pass 0 · Updated 2026-05-23
+> Status: Draft · Pass 0 · Updated 2026-08-05
 >
 > Acceptable-minimum bootstrap. Items marked "Open" are unwritten on
 > purpose; raise them when a real decision arrives.
@@ -115,6 +115,29 @@ Notable today:
   (`DataChannelSql`) — `about_node_name`, `captured_by_node_name`,
   `telemetry_name`, `start_s`, `in_power_metering` do not survive here.
   Open: are those fields needed and missing, or genuinely obsolete?
+
+**Enum channel values.** `readings.value` is `BigInteger` for every
+channel. For channels with `unit = 'Enum'`, the stored integer is the
+**positional index** of the state string in the sema enum named by the
+channel's `unit_type`, in that enum's declaration order. Consequences:
+
+- Interpreting a stored value requires the sema enum definitions in
+  hand — the database alone is not self-interpreting for these channels
+  (the verbatim strings survive upstream in `messages`).
+- The same integer means different things on different channels; the
+  scope of the mapping is per enum, resolved through `unit_type`.
+- Index stability across enum versions rests on sema's append-only
+  evolution rule, which is CI-enforced in the sema repo (cross-version
+  prefix test on definitions; runtime-order test on generated enums).
+- Writer: the journalkeeper report persistor (string → index; see
+  `wiki/gridworks-journalkeeper/executor/persistor.md`). Readers
+  resolve index → string via their vendored sema snapshot; a reader
+  whose snapshot lags an append can meet an index beyond its known
+  values — the sema soft-enum convention's graceful degradation is the
+  enum's declared default.
+- Open: whether to record the int↔string mapping in-database (an
+  interned dictionary keyed by enum name), making the archive
+  self-interpreting without external definitions.
 
 ## §6 — Migration workflow (Open)
 

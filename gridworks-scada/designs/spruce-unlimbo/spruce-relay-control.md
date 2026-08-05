@@ -12,12 +12,28 @@ Status: Draft · Pass 0 · Updated 2026-07-29 · Linear: OPS-392
 
 ## ▶ Next move (active spoke)
 
-**NOW: the honeysuckle bench experiment** — boot the unlimbo scada on the
-bench pi against its generated layout and get real ADS reads flowing. The
-artifacts are already on the pi (`~/.config/gridworks/scada/hardware-layout.json`
+**NOW: the reader→bus build, shaken down on the bench.** The honeysuckle
+boot harness works (run log below) — the next move is moving the thermistor
+reader's ADS reads onto `I2cBus` ops (the single-bus-owner build, sharpened
+in the scada lane below), re-running the same bounded bench boot after each
+step as the verification. Two routes to real temperature values: wire bench
+thermistors (or divider jumpers) on honeysuckle, or a spruce box window —
+spruce's thermistors are wired. The spruce experiment keeps the REAL spruce
+identity (hw1 aliases, not dev-ified — it is actually spruce); isolation is
+credential-structural: the experiment `.env` carries dev-broker credentials
+only, never `hw1`, with the upstream host the localhost tunnel, so the
+words cannot reach the prod broker. The cli-run universe guardrail would
+refuse hw1 on localhost; the experiment boots through the bounded harness,
+inside the guardrail's designed test-boot exemption. Prepared on the box:
+`~/envs/prod.env` (preserved copy) + `~/envs/dev.env`. The deployed
+`actual-spruce` scada must be stopped for the window — one ADS reader at a
+time.
+
+The bench-boot checklist that got the harness up (kept as the reproducer;
+artifacts on the pi at `~/.config/gridworks/scada/hardware-layout.json`
 + `hardware-layout/gw.house0.operational.params.json`, identity
 `d1.bench.honeysuckle.scada` — verbatim the tlayouts `output/honeysuckle/`
-files, md5-checked 2026-07-29). The checklist:
+files, md5-checked 2026-07-29):
 
 1. Push `jm/spruce-unlimbo` — three local-only commits as of 2026-07-29
    (`75746bfe`, `58c3d08d`, `822dbab7`); then on honeysuckle: fetch +
@@ -41,6 +57,36 @@ files, md5-checked 2026-07-29). The checklist:
    0x48/0x49/0x20/0x21/0x70 (re-verified 2026-07-29).
 5. Log findings here (EDD: the harness run is the verification).
 
+**Run log 2026-07-30 — reader→bus verified on the bench.** Same bounded
+real boot (scada `09e0f917`, regenerated artifacts with the `i2c-bus`
+node): the reader produced the same four floating-input
+`i2c-thermistor-broken` verdicts as the blinka-era run, with every sample
+now flowing reader → `I2cBus` → serialized block ops, and the ADS
+config-readback gate silently passing on every conversion sequence
+(~80 in the run). The single-bus-owner precondition for scada-driven i2c
+relays holds on real hardware.
+
+**Run log 2026-07-29 — the bench boot happened.** A bounded 30 s real boot
+(`is_simulated=false`, artifacts from the pi's default paths, dev broker via
+the laptop tunnel) came up as `d1.bench.honeysuckle.scada`: universe
+guardrail passed, 18 actors instantiated, 12/42 channels populated.
+
+- **The i2c read path is real:** `I2cThermistorReader` initialized against
+  the ADS at 0x49 and read all four channels; each classified
+  `i2c-thermistor-broken` — correct, the bench inputs are floating (rail
+  voltage = broken/missing thermistor). The glitches are the bus-path
+  proof; positive microvolt values need thermistors (or divider jumpers)
+  wired on the bench.
+- **GPIO both directions:** the four zone opto inputs read 1; the
+  pico-cycler actuated `vdc-relay-gpio-23` (energize/de-energize) on the
+  real board.
+- Boot required: the driver venv (`tools/mkenv-pi.sh` — the dev-requirements
+  venv has no blinka/adafruit stack) and `settings.paths.mkdirs()` (the
+  event-persister dir; `cli.py run` creates it, a bare `ScadaApp` does not).
+- The boot consumes the two authored artifacts directly since scada
+  `c755195b` (boot-path assembly; the gap found was `NolanLayout` authored
+  but unwired — see the 2026-07-29 changelog entry).
+
 Two lanes behind it:
 
 **Field (spruce, with George):** hardware completion, in order: (1) replace the blown
@@ -49,6 +95,10 @@ procedure, PRIMARY doc) and set the one Samsung config value that hands on/off a
 to the contact; (3) witness the close/open pair — the running schedule service makes
 every TOU boundary a free witnessed test. Then: the ctrl-box CT lands (channel
 `hp-ctrl-box-pwr`) and the spruce layout regen picks it up (gen_spruce.py in tlayouts).
+Queued field items (2026-08-04): the eGauge register-map fix is its own design
+([OPS-483](https://linear.app/gridworks/issue/OPS-483)). Same visit: restore FSV
+2091=1, re-land the secondary-pump 0-10V on a healthy DAC channel (or replace
+dac3), swap the secondary-BTU pico.
 
 **Scada (the I2cBus build, on `jm/spruce-unlimbo`):** the single-bus-owner data model is
 landed (sema `e9b050f`, scada `75746bfe` — the board record owns the physical facts; the
@@ -76,9 +126,9 @@ see the 2026-07-23 update below). The arrangement that keeps this safe:
 
 - **Broker isolation.** The experiment scada (`jm/spruce-unlimbo` code + the ops
   artifact) runs in its own environment on the spruce pi with NO production-broker
-  credentials — dev broker only, aliases dev-ified (the universe guardrail enforces
-  `d1` ⇔ dev broker). This keeps the staging layout tier inside its dev-brokers-only
-  boundary. Prod-affecting steps on the pi (stopping services, placing env files) are
+  credentials — dev broker only, real spruce identity (not dev-ified; the
+  isolation is credential-structural, per the `.env` note above). This keeps the
+  staging layout tier inside its dev-brokers-only boundary. Prod-affecting steps on the pi (stopping services, placing env files) are
   JM's to execute; the session preps commands + a watch-list.
 - **One ADS reader at a time.** The deployed `actual-spruce` scada is STOPPED during
   experiment windows — ADS1115 reads are multi-transaction with per-device state, so
@@ -87,7 +137,12 @@ see the 2026-07-23 update below). The arrangement that keeps this safe:
 - **The experiment's `I2cBus` touches ONLY the ADS devices.** No expander access (the
   OPS-452 clear-then-configure init-guard would stomp the hack's relay states — the
   init-guard is built but enabled only for devices the actor owns, ADS in this phase)
-  and no TCA9548A mux access (the documented shared-state hazard).
+  and no TCA9548A mux access (the documented shared-state hazard). Today this
+  boundary is convention — the reader is the only op producer and it only
+  addresses its ADS; the bus actor executes an op at any address. Before any
+  spruce window the bus actor gets an owned-address allowlist from the
+  layout's board record and refuses ops outside it (the natural home for the
+  OPS-452 init-guard when the relay phase lands).
 - **Cooling continuity is never in the experiment's hands** — the summer hack stays
   untouched as the TOU/failsafe authority throughout.
 - **Relay-path actuation experiments do NOT ride this arrangement.** They need
@@ -135,9 +190,10 @@ against the registry). The universe guardrail passes because `localhost ⇒ d1`
 tunnel to the laptop's `gw-dev-rabbit` for the first window; a rabbit container on
 the pi if windows become routine (open choice).
 
-**The layout machinery lives in tlayouts on `jm/dev-spruce`** (sema-native,
-cut off `jm/spruce`). As of 2026-07-29 the ladder there is built: the sema
-snapshot is rebuilt post-merge (`jm/single-bus-owner` landed on sema dev,
+**The layout machinery lives in tlayouts on `jm/spruce`** (sema-native;
+the dev-spruce working branch squashed into it 2026-08-03, pushed to
+origin). The ladder is built: the sema snapshot is rebuilt post-merge
+(`jm/single-bus-owner` landed on sema dev,
 `c1cab63`), the Nolan emitters are ported, and both gens exist —
 `honeysuckle_sema_gen.py` (the `d1.bench.honeysuckle` trio; its
 `output/honeysuckle/` artifacts are the ones on the bench pi) and
@@ -170,6 +226,47 @@ for hand-written gwsproto types) → **sim-boot the dev-spruce artifacts on loca
 - Fresh checkout + venv on the pi (`tools/mkenv.sh`), its own `.env`, dev
   credentials only.
 
+## Experiment result — noise floor vs poll rate + smoothing (2026-07-30)
+
+Run on spruce's four wired zone thermistors (canonical record +
+reproducer: `experiments/2026-08-05-ads-noise/`). The
+baseline reader configuration (single-shot 128 SPS, 1 Hz, raw) measures
+**0.011–0.012 °C stddev** — ~45× below the 0.5 °C async threshold, so the
+reader needs no change for zone temps. The sample-to-sample noise measured
+mostly white (the 5 Hz + EMA mode's ~2–3× reduction matches the √5
+prediction), so future averaging can be sized by arithmetic rather than
+re-measured; smoothing trades lag (~1 s as configured) and bus occupancy
+(~30 % at 5 Hz × 4 channels) for a reduction the zone temps don't need.
+Zone3-upstairs carries a low-frequency component smoothing can't remove —
+the one channel worth a closer look.
+
+Open from the same thread — single-sample trust: the reader publishes each
+in-band sample as truth, so one garbled-but-plausible read publishes a
+wrong value (a single garbled i2c read must not be believed — the
+confirm-re-read lesson). Candidate closures: require two consecutive
+in-band samples before an async publish, or the EMA above, which absorbs
+single-sample glitches by construction. The measured noise floor says
+this is about glitch robustness, not noise.
+
+**To finish the experiment record (pick-up notes):**
+
+- The 2026-07-30 run persisted SUMMARY STATISTICS ONLY — the raw
+  per-sample series (the convention's "raw bundle") was never captured.
+  The distilled numbers survive in the experiments-logbook entry; the
+  summary JSON copies (`/tmp/ads_noise_results.json` on spruce, a session
+  scratchpad copy) are ephemeral.
+- To close it: (1) amend the harness to dump the raw per-sample series
+  (timestamp + µV per channel, all three modes; ~150 KB JSON, ~30 KB
+  zipped); (2) re-run — needs a spruce window with the deployed scada
+  STOPPED (one ADS reader at a time; ~7 min for all three modes);
+  (3) store the zip out of git — team Drive, or the proposed public
+  experiments repo if that lands — and point at it from the logbook
+  entry; (4) DONE 2026-08-03: the harness + summary live in
+  `experiments/2026-08-05-ads-noise/` (the experiments repo).
+- The harness reads the thermistor ADS at 0x49 only, big-endian block ops
+  with the config-readback gate — safe alongside the summer hack, never
+  alongside a running scada.
+
 ## The control design (settled 2026-07-15)
 
 - **One gw108 expander relay is the heat pump's on/off line** — the spruce realization of
@@ -180,9 +277,16 @@ for hand-written gwsproto types) → **sim-boot the dev-spruce artifacts on loca
 - **A second relay adds the independent heat call** (winter). Candidate functional names:
   `hp-cool-call` / `hp-heat-call`. **Software interlock mandatory: never both closed**
   (manufacturer constraint — PRIMARY doc).
-- **Failsafe direction is correct:** control system dead → contacts open → no call → HP
-  off. The unit keeps its own protections (defrost, min cycle times, water limits) while
-  commanded on — the ctrl-box CT is the behavioral verification that it actually ran.
+- **Failsafe direction is HP-off, forced by the iso valve:** control system dead →
+  contacts open → no call → HP off. HP-off is the only sensible failsafe while the iso
+  valve fails CLOSED — on a board/power failure the valve relay de-energizes and the
+  valve closes (energized = open, field-verified 2026-07-16), so a heat pump left
+  running would push against a closed valve. A dead controller stranding the house
+  without cooling is the cost; changing it requires changing the iso valve's failsafe
+  position first (a normally-open valve), at which point call-closed-on-failure
+  (autonomous HP keeps serving the house) becomes the better direction. The unit keeps
+  its own protections (defrost, min cycle times, water limits) while commanded on —
+  the ctrl-box CT is the behavioral verification that it actually ran.
 - **Later, supersedes contact control:** Samsung's MIM-B19N Modbus module, if it reaches
   the US channel (`../../research/awhp-control-box-landscape.md`).
 

@@ -32,7 +32,7 @@ Concretely, on `dev` today the package contains:
 
 It is hand-edited; the in-repo `CodeGenerationTools/` and `code_gen/`
 directories were removed (commit `934dc77`, local on `dev`). New types
-land via `/make-sema-word` discipline (see `sema/CLAUDE.md`).
+land via Sema authoring discipline (`sema/spec/`).
 
 ## Why it exists — history
 
@@ -95,7 +95,7 @@ Per the GridWorks repo-categorization vocabulary (3 axes):
   `TypeName` + 3-digit `Version`, CamelCase JSON field names, named
   formats from `property_format` instead of inline primitive constraints,
   literal/versioned enums, append-only enum evolution. New types go
-  through `/make-sema-word` (see `sema/CLAUDE.md`).
+  through Sema authoring discipline (`sema/spec/`).
 - `gwproto` is hand-edited. There is no live code-generation pipeline in
   this repo; legacy `CodeGenerationTools/` and `code_gen/` were removed.
 - `gwproto` does not import from `gwsproto`. The dependency direction is

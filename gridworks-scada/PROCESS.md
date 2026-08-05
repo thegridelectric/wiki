@@ -190,6 +190,6 @@ apply here; not repeated.
 - Stay additive: append findings, bump coverage; don't silently rewrite history.
 - Sema is **boundary infrastructure** (JSON contracts at process edges), not a
   runtime framework — keep that distinction when describing what is "Sema" vs.
-  internal runtime. See `gridworks-scada/CLAUDE.md` and `sema/CLAUDE.md`.
+  internal runtime. See `CLAUDE.md` (this folder) and `sema/spec/primary.md`.
 - Existing in-repo docs are uneven (`CLAUDE.md` is current; some `docs/` are
   stale — see F-001). Treat them as evidence, not ground truth; verify.

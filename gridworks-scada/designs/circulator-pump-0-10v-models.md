@@ -66,7 +66,7 @@ This fits the device-type model **better**, two ways:
 
 ### 1. Represent pump models as device types in layouts
 - Mint a `gw1.device.type` value per distinct pump class (start from the four pump make/models
-  above + a **Grundfos** class, model TBD; confirm the field part) via `/make-sema-word`. One
+  above + a **Grundfos** class, model TBD; confirm the field part) via sema word-authoring. One
   value per *distinct 0–10 V behavior*, not per SKU.
 - Model each pump as its **own component** carrying its `DeviceType`, referenced by the node the
   DAC output drives. (This is the old option (a); option (b) — pump metadata on the DAC channel —
@@ -161,7 +161,7 @@ Design consequences:
 - **No code yet.** Per the wiki implementation gate, this design must reach `Accepted` (Pass ≥ 1)
   on every spoke before scada/sema edits matching its scope begin.
 - **Any Sema change** (new `gw1.device.type` pump values, the `circulator.pump.device.type.gt`
-  record, the `ZeroMeans` enum) goes through `/make-sema-word` — read `sema/CLAUDE.md` and follow
+  record, the `ZeroMeans` enum) goes through sema word-authoring — read `sema/spec/primary.md` and follow
   it verbatim; enums are additive, TypeName/Version immutable, runtime regenerated not hand-edited.
 - Touch points span the repos: `sema` (the pump device types + specialized record + response enum),
   `gridworks-scada` (`layout_gen/`, the pump component + `ZeroTenOutputer` consult, `gridworks-admin`).

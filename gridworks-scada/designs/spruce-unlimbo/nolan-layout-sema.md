@@ -21,7 +21,7 @@ published sibling to compare against is `layout.lite`.
 2. Regenerate: `scripts/build_indexes.sh` + `scripts/regenerate_runtime.py`.
 3. Validate the generated type against real layouts.
 
-Sema-canon work — read `sema/CLAUDE.md` and follow `/make-sema-word`.
+Sema-canon work — follow the sema authoring discipline (`sema/spec/`).
 
 ## Ordering
 

@@ -42,14 +42,14 @@ mkdir -p "$HOME/.claude" && : > "$marker"
 
 CTX="Your active-claims Scope includes sema. Before reasoning about or editing anything sema, you MUST read the sema canon — do not answer sema questions (casing, TypeName/Version, formats, enums, versioning) from memory or by grepping for an answer the spec already fixes:
 
-  1. Read \`sema/CLAUDE.md\` (Universal MUSTs) and \`sema/spec/primary.md\` (the contract), plus the relevant \`sema/spec/{registry,authoring}/\` spoke for the kind of work.
-  2. READ-RECEIPT — before any other sema work this session, post the user a 3-5 line summary of \`sema/CLAUDE.md\`'s key MUSTs (in your own words). This is mandatory: it both forces a real read (you cannot summarize what you did not open) and gives the user a visible confirmation the canon was loaded. Do not skip or defer it.
+  1. Read \`sema/spec/primary.md\` (the contract), plus the relevant \`sema/spec/{registry,authoring}/\` spoke for the kind of work.
+  2. READ-RECEIPT — before any other sema work this session, post the user a 3-5 line summary of \`sema/spec/primary.md\`'s core principles (in your own words). This is mandatory: it both forces a real read (you cannot summarize what you did not open) and gives the user a visible confirmation the canon was loaded. Do not skip or defer it.
 
 Settled rules to anchor on now:
   - Serialized JSON field names use CamelCase/PascalCase, recursively (spec Principle 2).
   - Vocabulary names are \`left.right.dot\`; a message's \`TypeName\` VALUE is that dotted name, versioned types carry \`Version\` (\"000\") (Principles 1, 3).
   - Preserve TypeName/Version semantics; formats are immutable; enums are additive-only; historical versions are immutable; bump versions per spec.
-  - Adding/modifying a vocabulary word → use \`/make-sema-word\` and follow \`sema/CLAUDE.md\` verbatim.
+  - Adding/modifying a vocabulary word → read the spec spokes for its kind, summarize that kind's rules to the user, and WAIT for confirmation before editing (GridWorks_CLAUDE.md \"Domain protocol files\").
 
 (This reminder fires once per session while a sema claim is active.)"
 

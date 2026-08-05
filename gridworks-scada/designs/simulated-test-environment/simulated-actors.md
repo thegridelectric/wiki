@@ -187,7 +187,7 @@ and independent of scada's `gwproto` copies. Consequences:
 - **Both snapshots carry `sim.plant.flux`:** gwta's (to emit) and the scada's
   gwsproto snapshot (so the SimSensorActor can decode it). It is a sim-boundary
   word; `synced.readings` is what stays internal to the ShNodes.
-- Prerequisite: `sim.plant.flux` must be **minted** (`/make-sema-word`, separate
+- Prerequisite: `sim.plant.flux` must be **minted** (sema word-authoring, separate
   `sema/` claim) and present in both snapshots before the publish step.
 
 ### Capability-protocol consistency (evaluated 2026-06-11)
@@ -270,7 +270,7 @@ component review and the dashboard-experiment design pass:
   synthesis params, and a `Sim*` `DeviceType`) is the case where the
   sim device needs configuration the real one lacks. Otherwise a `Sim*`
   `DeviceType` on the existing component type suffices. Adding `Sim*`
-  `gw1.device.type` values is a sema change (`/make-sema-word`).
+  `gw1.device.type` values is a sema change.
 - **Identity — the "make-imaginary" wand.** A simulated house must not wear a
   real house's identity. `make_imaginary_layout.py` (kept in
   `sim-time-experiment/`) turns a real layout imaginary: fresh instance

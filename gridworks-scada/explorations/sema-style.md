@@ -2,7 +2,7 @@
 
 Status: Draft · Pass 0 · Updated 2026-06-23
 
-Design intent from Jessica + foundational reads (`sema/CLAUDE.md`,
+Design intent from Jessica + foundational reads (`sema/spec/primary.md`,
 [[../../vision/where-meaning-lives-in-gridworks]]).
 
 ## What Sema is (and isn't)
@@ -13,7 +13,7 @@ boundary as JSON — **not** runtime architecture, database design, or internal
 object models. Internal communicator-to-communicator messages within one
 proactor are plain Python objects, not Sema.
 
-Core rules (from `sema/CLAUDE.md`):
+Core rules (from the sema spec):
 
 - Vocabulary words are stable `left.right.dot` names; every type has `TypeName`,
   every versioned type a 3-digit `Version`.
@@ -60,5 +60,5 @@ hierarchies. See [[../principles]].
 
 ## Links
 
-`sema/CLAUDE.md` · [[../../vision/where-meaning-lives-in-gridworks]] ·
+`sema/spec/primary.md` · [[../../vision/where-meaning-lives-in-gridworks]] ·
 `gridworks-scada/CLAUDE.md` (Boundary protocol vs. runtime) · [[../principles]]

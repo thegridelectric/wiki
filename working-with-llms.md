@@ -32,8 +32,8 @@ Status: Draft · Pass 0 · Updated 2026-06-13
   auto-loaded when Claude launches from the umbrella — `CLAUDE.md` loading is
   locked at session start, so a `cd` mid-session does not activate a
   sub-CLAUDE.md. Claude must **Read** it explicitly before working in that
-  domain, which is why operative entry points (e.g. `/make-sema-word`)
-  ritualize the load.
+  domain, which is why operative entry points (e.g. the sema-claim
+  `UserPromptSubmit` hook) ritualize the load.
 
 ## Failure modes we design against
 

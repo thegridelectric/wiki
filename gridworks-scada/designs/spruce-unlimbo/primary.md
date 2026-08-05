@@ -14,7 +14,9 @@ real broker.
 > House0 fleet. Grew out of Jessica's 2026-06-09 seed; the seed's
 > *Reported* items have now been verified or corrected (below). Spokes:
 > `spruce-relay-control.md` (chunk A execution: scada actuating spruce's
-> i2c relays); `both-cases-survey.md` (verified survey of layout gen,
+> i2c relays); `summer-local-control.md` (the scada takes over the summer
+> hack: TOU cooling + a Critical glitch when the HP does not actually
+> start); `both-cases-survey.md` (verified survey of layout gen,
 > testing, and local control for both house cases); `hello-world.md`
 > (first plan step: LTN ↔ SCADA over dev rabbit, consumed by a dev JK);
 > `admin-for-nolan.md` (admin UI sees and operates a Nolan house).
@@ -110,7 +112,7 @@ a branch regression at all. Two independent causes, both fixed in `b3cf2c4b`
 
 Both ride entirely on `td/orig-pred-set` — the merge and the sim-time bridge
 were innocent. The full debugging is an EDD worked example in
-`../../experiments/logbook.md`. Tests green on `jm/spruce-unlimbo`.
+`experiments/logbook.md`. Tests green on `jm/spruce-unlimbo`.
 
 ## Why the branch can't run House0 (verified disable points)
 

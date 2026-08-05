@@ -33,10 +33,9 @@ Status: Draft · Pass 0 · Updated 2026-05-26
 - ✅ Postico 2 installed + connected to the local mirror.
 - ✅ Branch shape: `jm/effortless` off `ej-dev`. Port move and "swap
   claudes" rename landed there.
-- ✅ Local `sema/CLAUDE.md` (gitignored) running the dev-lens
-  vocabulary-author frame; team-shared `effortless_CLAUDE.md` carrying
-  ej's ERB-pipeline frame. See
-  [`explorations/two-claudes.md`](../explorations/two-claudes.md).
+- ✅ Two-lens CLAUDE.md experiment ran here (dev-lens `CLAUDE.md` +
+  team-shared `effortless_CLAUDE.md`); both files since removed from the
+  repo.
 - 🟡 **Effortless MCP server** — not yet wired into Claude Code. The
   user-level `~/.claude.json` does not include `effortless-mcp`. Deferred
   because the practice doesn't strictly need it; useful later for
@@ -167,7 +166,6 @@ as it apparently is for ej.
   bijective MD↔ERB refactor proposal (sema-specific).
 - [`../research/erb-no-degradation-audit.md`](../research/erb-no-degradation-audit.md)
   — the audit; open threads tracked in Linear.
-- [`../explorations/two-claudes.md`](../explorations/two-claudes.md)
   — the dev-lens / effortless-lens CLAUDE.md tension that this
   practice will surface.
 - [`../explorations/rulebook-source-drift.md`](../explorations/rulebook-source-drift.md)

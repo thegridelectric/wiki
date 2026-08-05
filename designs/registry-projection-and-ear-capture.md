@@ -56,7 +56,10 @@ source of truth for what it binds and persists. So:
    converges; missing-endpoint edges skip until a forest carries them; an
    edge id is immutable for its (from,to) pair — lifecycle rides Status on
    the same id, so a new id claiming a held pair is skipped as an anomaly,
-   never absorbed. Open: the forest
+   never absorbed. Dev-rig verified end-to-end 2026-07-29 (real dev broker:
+   gnr snapshot broadcast → 28 nodes + edge projected, SendTimeMs →
+   created_at, replay idempotent) — the rig caught a binding gap the
+   in-code tests could not (channel-tailed rjb keys). Open: the forest
    references position points it does not carry — projected NULL until a
    position-point source exists.
 3. Bootstrap/resync: one `g.node.forest.request` per configured root against

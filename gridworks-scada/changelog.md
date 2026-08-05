@@ -12,7 +12,127 @@ Newest at the top.
 
 ---
 
-## 2026-07-29 — Boot assembles the sema-authored artifact pair <!-- pending commit -->
+## 2026-08-05 — minor (`e5d879ef`)
+
+**Why:** Repo files stand alone, and the docstring's pointer at "the
+sim-time spoke of the simulated-test-environment design
+(wiki/gridworks-scada)" broke two rules at once — repos don't cite the
+wiki, and nothing may name a design file (designs are deleted on
+completion). The docstring keeps the interim-module rationale in place.
+
+## 2026-08-03 — Begin i2c DAC writer (`1d21b49a`)
+
+**What:** new `actors/i2c_dac_writer.py` — drives one MCP4728 channel
+behind the TCA9548A mux (the gw108 0-10V outputs) from `AnalogDispatch`,
+with per-write containment: any i2c failure becomes a Critical `Glitch`
+(`i2c-dac-write-failed`) and the actor keeps its last commanded value,
+re-asserting on a periodic heartbeat — a failed write never crashes
+anything and heals itself. Direct smbus2 for now (documented interim): the
+mux select is a bare-byte write the published reg-op vocabulary cannot
+express, so routing DAC ops through `I2cBus` waits on that vocabulary
+conversation. Not yet layout-connected — instantiation needs an
+`actor.class` value, same conversation. Tests cover the write choreography
+(mux select + single-write bytes), failure containment, and heartbeat
+re-assert after failure.
+
+**Why:** the 2026-07-30 03:10 field incident — a DAC write through the mux
+raised `OSError`, escaped the summer hack's `enforce()`, and killed the
+whole process; the expander reset that landed in the restart window then
+went undetected for the full 5-minute enforce cadence. The actor shape
+this epic builds (per-op containment, immediate glitch reporting, retained
+state + re-assert) is precisely what that failure mode calls for; this
+lands the DAC leg of it ahead of full wiring (OPS-392).
+
+---
+
+## 2026-07-30 — MVP i2c thermistor reader sends to bus (`09e0f917`)
+
+**What:** `I2cThermistorReader` drives the ADS1115 single-shot sequence
+(config write → conversion wait → conversion read) through `I2cBus` reg ops
+instead of blinka/adafruit-direct; the blinka path is deleted. The ADS
+choreography lives in a shared helper (`drivers/ads1115.py` register/config
+constants + volts conversion) so later ADC consumers (CT reader) reuse it
+rather than repeating the sequence. The reader resolves its bus node from
+the layout by ActorClass (no hardcoded name) and correlates results by
+`TriggerId` with per-op timeouts feeding the existing warning paths. The
+nolan layout gen (tlayouts) authors the `i2c-bus` node; regenerated
+honeysuckle artifacts carry it. Actor-level reader↔bus pair tests replace
+the fake-blinka sanity harness (deleted in `e569dffd`, below).
+
+The component data classes now mirror the gt families in
+`type_helpers.component_base`: `DeviceComponent` (gt carries DeviceType,
+device_type is the joined record) and `BoardResidentComponent` (gt anchors
+to a board by BoardComponentId; `board_component` is linked by
+`load_components` after all components load, and a dangling id fails the
+load). The pairing is enforced: bounded TypeVars statically, isinstance guards at
+construction. Nothing on the board chain is Optional — `load_components`
+builds boards first and constructs each board-resident component WITH its
+resolved board, and `ScadaBoardComponent` requires its gw.scada.device.type
+record at construction. The guarantees come from the layout's
+BoardResolution axiom (gw.nolan.layout axiom 2: board exists, record
+exists, and the component's AdcName/GpioName is in the record), so
+`_resolve_adc_capability` carries no fallback error path — a bad layout
+fails at sema validation or dc load, never at actor runtime on a pi.
+
+The read sequence carries a config-readback gate (the OPS-452 readback
+ethic applied to the ADS): after the conversion wait the reader reads the
+config register back and requires it to equal the written word (OS bit set
+= conversion done, MUX/PGA/DR unchanged) before trusting the conversion
+register — one confirm retry after a second wait, then the read fails into
+the warning path. Without it, a garbled config write or a mid-sequence chip
+reset silently attributes the PREVIOUS channel's conversion to the wrong
+channel. `ScadaBoardComponent` types its record as `ScadaDeviceTypeGt` — the
+only board device types today are gw.scada.device.type records. On this
+chain `_resolve_adc_capability` resolves AdcName against THIS component's
+board record (`component.board_component.device_type.ThermistorAdcs`, typed
+attributes throughout) — replacing a `getattr("ThermistorAdcs")` scan
+across all device-type records, which would have conflated same-named ADCs
+on different boards. The DeviceType join in `load_components` also
+dispatches on `isinstance(DeviceComponentBase)` instead of a `getattr`
+string.
+
+**Why:** single-bus-owner (spruce-relay-control spoke): exactly one actor
+owns `/dev/i2c-1` inside the scada, the precondition for scada-driven i2c
+relays on the same bus. Reg ops over a new ADC wire-primitive because the
+published vocabulary already expresses the sequence — no new sema word
+(OPS-392).
+
+---
+
+## 2026-07-29 — Thermistor reader reads through the I2cBus (`e569dffd`)
+
+**What:** deletes `sanity_i2c_thermistor_reader.py`. (Title names the
+reader→bus move; the rest of that work landed as `09e0f917`, above.)
+
+**Why:** the script's fake-blinka harness covered exactly the
+blinka-direct read path the reader→bus move removes; its job passes to the
+actor-level reader↔bus pair tests.
+
+---
+
+## 2026-07-29 — I2cBus speaks the published reg-op vocabulary and replies to its caller (`bab6a4a0`)
+
+**What:** `actors/i2c_bus.py` rewritten against the published sema words it
+claims to speak: `I2cWriteBit`/`I2cReadBit` carry an `I2cBitAddress` block
+(the old code read flat fields that don't exist), `I2cResult` carries only
+its published fields with `Operation` as the `I2cOperation` enum (the old
+code passed `I2cAddress`/`Register`/`BitIndex` kwargs `i2c.result/000` does
+not have — it would crash on first use). Adds the `I2cWriteReg`/`I2cReadReg`
+handlers (NumBytes 1–2; 2-byte ops big-endian via `i2c_rdwr`, matching
+ADS-style register devices, not SMBus little-endian word order). Replies go
+to the requesting node (`Header.Src`), not hardcoded `primary_scada`.
+`I2cBus` registered in `actors/__init__.py`. First actor-level i2c tests.
+
+**Why:** single-bus-owner (spruce-relay-control spoke): before the scada
+drives i2c relays, its ADS reads must route through the one serialized bus
+owner. The reg-op path is the fork resolution — the published vocabulary
+already expresses the ADS sequence, so no new sema word is needed; the
+shared read choreography lives scada-side. Reply-to makes the bus usable by
+any actor, which the thermistor reader (next commit) requires (OPS-392).
+
+---
+
+## 2026-07-29 — Boot assembles the sema-authored artifact pair (`c755195b`)
 
 **What:** `scada_app._load_hardware_layout` detects a sema-authored static
 artifact by TypeName and assembles it with the home's operational-params

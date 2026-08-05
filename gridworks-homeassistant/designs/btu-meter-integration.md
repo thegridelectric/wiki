@@ -72,6 +72,6 @@ Absorbed from [OPS-47](https://linear.app/gridworks/issue/OPS-47)'s checklist, g
 
 - **No code yet.** Per the implementation gate, reach `Accepted` (Pass ≥ 1)
   before `gridworks-homeassistant` edits matching this scope begin.
-- **Any Sema change** goes through `/make-sema-word` (read `sema/CLAUDE.md`).
+- **Any Sema change** goes through sema word-authoring (read `sema/spec/primary.md`).
 - Touch points: `gridworks-homeassistant` (HACS integration), `gridworks-pico`
   (device firmware), `sema` (boundary types/enums).
