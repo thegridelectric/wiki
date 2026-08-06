@@ -18,8 +18,11 @@ verbatim; deviation is a defect, not a stylistic choice. RFC 2119 keywords
   over foreign WIP.
 - **Your starter row is auto-appended at session start** (friendly name +
   first-6 hash). The table has exactly four columns: Session · Focus · Scope
-  · Since. You MUST NOT add Status, Notes, or any other column. You MUST
-  remove your row when finished (an empty table means no active claims).
+  · Since. You MUST NOT add Status, Notes, or any other column. When
+  finished, you MUST clear all claims from your Scope cell (back to
+  `_(none)_`) but MUST NOT remove the row itself — the human prunes rows.
+  (A rowless session widens the Stop hook's dirty-repo check to the whole
+  umbrella, turning other sessions' leftovers into an end-of-turn loop.)
 - **On your first response, you MUST ASK the user for the session Focus** —
   a one-line intent (e.g., "Decouple Sema from Transport") — and fill the
   Focus column before doing any other work.

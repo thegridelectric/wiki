@@ -1,6 +1,6 @@
 # Registry projection + ear raw capture (audit taps, pass one)
 
-Status: Draft · Pass 0 · Updated 2026-07-21 · Linear: OPS-443
+Status: Accepted · Pass 1 · Updated 2026-08-05 · Linear: OPS-443
 
 **EDD: yes** the verification is a local multi-service dev-universe experiment —
 gnr + gjk + an ear capture consumer + broker + both Postgres instances on one
@@ -31,9 +31,11 @@ Consequences for `gw_data`:
 
 - `g_nodes` / `connectivity_edges` become **projections** — written only by the
   gjk fan-out below, never independently.
-- `position_points` inherits the registry's privacy staging: **empty** (opaque
-  `position_point_id`s only) until the TaValidator encryption mechanism lands —
-  see `wiki/grid-node-registry/explorations/positions-staging-and-encryption.md`.
+- `gw_data` holds **no position content**: OPS-488 drops the
+  `gw_data.position_points` table and FK (ciphertext never rides the bus, so
+  there is nothing for the projection to hold); the fan-out stores the opaque
+  `position_point_id` verbatim — see
+  `wiki/grid-node-registry/explorations/positions-staging-and-encryption.md`.
 
 ## Strand 1 — gjk projects `g.node.forest`
 
@@ -59,12 +61,16 @@ source of truth for what it binds and persists. So:
    never absorbed. Dev-rig verified end-to-end 2026-07-29 (real dev broker:
    gnr snapshot broadcast → 28 nodes + edge projected, SendTimeMs →
    created_at, replay idempotent) — the rig caught a binding gap the
-   in-code tests could not (channel-tailed rjb keys). Open: the forest
-   references position points it does not carry — projected NULL until a
-   position-point source exists.
-3. Bootstrap/resync: one `g.node.forest.request` per configured root against
-   gnr's read API (`POST /gnr/g-node-forest-request`); the periodic snapshot
-   broadcast is the ongoing anti-entropy.
+   in-code tests could not (channel-tailed rjb keys). The projection
+   currently NULLs `position_point_id` (FK target rows can never exist);
+   OPS-488 removes the table + FK so the id projects verbatim.
+3. ✅ (2026-08-05, `jm/forest-snapshot`) Bootstrap/resync: one
+   `g.node.forest.request` per requested root against gnr's read API
+   (`POST /gnr/g-node-forest-request`) — `src/gjk/forest_bootstrap.py`,
+   projecting through the same fan-out as live broadcasts
+   (`project_forest`), projection only, no `messages` row. Rig-verified
+   (28/28 nodes); the prod bootstrap runs after the branches land and
+   deploy. The periodic snapshot broadcast is the ongoing anti-entropy.
 
 ## Strand 2 — the seed ear (registry raw capture; settled 2026-07-21)
 
@@ -168,11 +174,17 @@ full answer for the *registry* specifically is the chain seam
    4. Known limit: boot-loading is additive — it never deletes live
       entities missing from the file; delete-direction drift wants an
       occasional diff.)
-3. ◐ **Operator credentials** — ✅ Backblaze B2 bucket + bucket-scoped app
+3. ✅ **Operator credentials** — Backblaze B2 bucket + bucket-scoped app
    key (1Password "Backblaze B2 — gw-seedstore writer"; endpoint
-   `s3.us-east-005.backblazeb2.com`). Still open: broker users for the two
-   ear logins. No AWS credential for the seed store — it is B2.
-4. **Both ears deploy to a new Hetzner ear box** (committed code only) —
+   `s3.us-east-005.backblazeb2.com`); broker users for both ear logins
+   live (`hw1.ear`, `hw1.gnr.ear` — recorded in
+   `gridworks-infra/persistent-store.md`). No AWS credential for the seed
+   store — it is B2.
+4. ✅ (shipped: `ear@ear` + `ear@gnr-ear` live on `ear.electricity.works`,
+   Hetzner cpx11, per-person keys; recorded in
+   `gridworks-infra/ear/instance-README.md`, `platform-inventory.md`, and
+   `persistent-store.md`; no EC2 ear remains in the platform inventory.)
+   **Both ears deploy to a new Hetzner ear box** (committed code only) —
    its own instance, deliberately NOT the gnr box: the registry box stays
    registry-only, so an instance freeze takes out one function, never the
    authority plus both witnesses together. (An earlier draft colocated
@@ -194,16 +206,18 @@ full answer for the *registry* specifically is the chain seam
    instance-README, `production-inventory.md`, and
    `persistent-storage/ear.md` updated (gridworks-infra is with another
    session — coordinate the docs handoff).
-5. **Proof**: a `gnr create` appears in B2's `gw-seedstore` seconds later —
+5. ✅ **Proof**: a `gnr create` appears in B2's `gw-seedstore` seconds later —
    one command, three custodians (gwdev, B2, the box's `command_log`), zero
-   hunting.
-6. **After the proof**: set the B2 bucket's default retention (Object Lock
+   hunting. (Confirmed 2026-08-05.)
+6. ✅ (2026-08-05) **After the proof**: set the B2 bucket's default retention (Object Lock
    was enabled at creation, deliberately without retention during bring-up;
    governance mode, ~1 year — then even a compromised app key can't
    rewrite the audit trail). And **credential rotation is scheduled, not
    aspirational**: the B2 app key hard-expires (B2 caps duration < 1000
    days); a yearly Linear recurring issue (OPS-460) rotates it, with the
-   seed-ear broker user on the same beat.  **While setting up loops**: daily test that the rabbit definition on the main branch matches the hw1__1 rmqbot.
+   seed-ear broker user on the same beat. The daily
+   rabbit-definitions-vs-broker check shipped inside step 9's
+   `check-drift.sh`.
 7. **Post-launch (clock stopped before here) — gridworks-base cleanup**:
    the treatment the ear repo got — conform to the service-deployment
    template where applicable, clean up the README, and remove the old
@@ -244,6 +258,10 @@ ear exists to prevent. The marginal cost of another instance is one login,
 one unit, one `.env`.
 
 ## The experiment (what Verified means here)
+
+✅ Run 2026-08-05, all four legs PASS — reproducer + full findings in
+`experiments/2026-08-05-registry-projection-rig/`. Not wire-exercised:
+edge projection (no seeded edge; unit-covered).
 
 A **local multi-service dev harness** — the first fleet-level dev-universe
 experiment, and a template for more:

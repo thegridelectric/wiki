@@ -42,8 +42,7 @@ Status: Draft · Pass 0 · Updated 2026-05-26
   queryable rulebook tooling from inside other agents.
 - 🟡 **One full ej+Claude loop turn** — not yet executed. Was scoped to
   Words→Types in the web app but the rename specifically is now scoped
-  separately (see
-  [`web-app-words-to-types.md`](web-app-words-to-types.md)). Practice
+  separately as its own design. Practice
   goal is a *different* loop turn (see Exit criterion).
 
 ## What practice means here
@@ -110,8 +109,7 @@ iterate. Note which kinds feel easy and which feel forced.
     §Core thesis.
   - The parked R1/R2/R3 wiki↔ERB register-discipline thread
     (see memory `queued-wiki-erb-register-discipline`).
-- The Words→Types refactor — separate design, separately scoped
-  ([`web-app-words-to-types.md`](web-app-words-to-types.md)).
+- The Words→Types refactor — separate design, separately scoped.
 - Any structural rulebook changes that aren't reversible — practice is
   on changes we'd be happy to revert.
 

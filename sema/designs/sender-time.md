@@ -1,6 +1,6 @@
 # Sender-time: one name for the sender's clock
 
-Status: Draft · Pass 0 · Updated 2026-07-29
+Status: Draft · Pass 0 · Updated 2026-08-05
 
 > What this is: the standard for carrying time-as-the-sender-understands-it
 > in sema words — one field name, one format, applied as words naturally
@@ -58,6 +58,9 @@ cascade. The standard applies:
    at forest assembly. The registry is never simulated: gnr is a notary,
    and notarization time is wall-clock even when the fleet described runs
    simulated time — recorded as an invariant in the word's description.
+   The flip to **required** rides the `g.node.gt/006` sweep (OPS-488):
+   the forest bumps to 002 there anyway, and gnr, the sole emitter,
+   already stamps at every assembly site.
 2. **As words naturally version:** any word carrying a sender-clock field
    under another name converges on the standard at its next version —
    `CreatedMs` for creation time (the persisted-event words:

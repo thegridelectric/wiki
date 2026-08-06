@@ -92,8 +92,10 @@ is what corrects them.
   `gwsproto/names/` per-domain names, in one pass.
 - **The reference sweep** — move the ~76 scada call-sites off the derived `self.layout` accessors onto
   `self.hydronic.*`, at dc-swap time.
-- **The ConfigList revamp** — a single `channel.config` shape with `TelemetryName → gw1.unit` +
-  `gw1.quantity` (the boot/round-trip is the harness that lets it land).
+- **The ConfigList revamp** — promoted to its own design,
+  [OPS-489](https://linear.app/gridworks/issue/OPS-489/harmonize-units)
+  (harmonize-units), riding the TelemetryName → `gw1.unit` +
+  `gw1.quantity` cascade.
 - **spruce → Nolan rewrite** — `gen_spruce.py` is a stale House0-based gen marked OLD/BROKEN; it should
   be `gw.nolan.layout`.
 - **`channel_stubs()` / `ChannelStub`** in `house_0_names.py` — fully unused, still carrying the retired

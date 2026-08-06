@@ -12,6 +12,33 @@ Newest at the top.
 
 ---
 
+## 2026-08-05 — remove floor2 from the jm/spruce sems gen (`5f3a61e`, jm/spruce)
+
+**What:** the floor2 removal mirrored onto `jm/spruce`: the
+`ExtraTankSpec("floor2", "pico_43a532")` dropped from
+`spruce_sema_gen.py`, and the same `add_tank3` block (plus the stale
+`# pico_43a532 = floor2` comment) dropped from that branch's
+`gen_spruce.py`.
+
+**Why:** same reason as `20e747e` below — floor2 is long gone; keeping
+it in the sema-gen line would carry the dead pico into the next sema
+snapshot and re-diverge the branches.
+
+## 2026-08-05 — remove the long-gone floor2 pico from spruce (`20e747e`, actual-spruce)
+
+**What:** the floor2 `add_tank3` block (`pico_43a532`) dropped from
+`gen_spruce.py`; `spruce.json` regenerated (−184 lines).
+
+**Why:** floor2 is a permanent zombie — it never reports and never
+revives, which kept the PicoCycler's half-hourly zombie-shake VDC
+power-cycles running forever, and each shake sent the slow-rejoining
+secondary pico through its ~13–14 min wifi rejoin, logging a dropout
+per shake (~19/day). Removing the dead pico from the layout is the
+discriminator for that feedback-loop diagnosis
+(`experiments/2026-08-03-pico-gap-analysis/`): with no zombie in the
+roster the shakes should stop and spruce's dropouts collapse.
+Deployed to spruce and scada restarted 19:18 ET.
+
 ## 2026-08-03 — Updated sema snapshot (`c0e2b69`, jm/spruce)
 
 The whole dev-spruce line, squashed to one commit (author-dated 2026-07-23

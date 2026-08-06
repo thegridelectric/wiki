@@ -12,7 +12,36 @@ Newest at the top.
 
 ---
 
-## 2026-08-05 — Guardrails: metaschema gate, fail-loud generator, enum order and field-case enforcement (`2ea5da2`)
+## 2026-08-06 — position-point lifecycle: g.node.gt/006 + referrer sweep <!-- pending commit -->
+
+**What:** on `jm/position-point-lifecycle`. Four new staging versions:
+`g.node.gt/006` — axiom 2 (*PhysicalGNodeLocations*) becomes
+activation-conditioned ("If Status is Active and BaseClass != Logical,
+PositionPointId SHALL NOT be null"), PositionPointId description reworded
+to the lifecycle (null until a location is registered), new
+Pending-physical example. `g.node.forest/002` — Nodes rebind to :006,
+`SendTimeMs` joins `required`, prose trimmed to the field's own meaning.
+`g.node.create.cmd/001` — rebind + new axiom 1 *LocationlessAtCreation*
+(`NewNode.PositionPointId SHALL be null`); composed with g.node.gt/006
+axiom 2, physical GNodes enter Pending. `g.node.reparent.cmd/002` —
+rebind only. Staging referrers rebound in place (`gw.house0.layout/000`,
+`gw.house0.operational.params/000`, `gw.nolan.layout/000` + embedded
+example versions), their `created` stamps forward-bumped to the 006
+sitting (dependency-timestamp ordering). Indexes + runtime regenerated;
+new-version upgrade/axiom implementations ported (forest 001→002 upgrade
+refuses without SendTimeMs; create.cmd 000→001 refuses when a
+PositionPointId is carried — an upgrade never fabricates or drops); new
+v006 fixtures (Pending-locationless default; Active-locationless axiom-2
+counterexample). g.node.gt/006's extended description records the
+composition with create.cmd/001: activation requires holding a position
+point, and a Pending node may hold one — registration and activation are
+separate acts on separate planes.
+
+**Why:** the position-point-lifecycle design (OPS-488): position-point
+presence becomes an activation invariant instead of a creation invariant,
+clearing the way for gnr's encrypted location store with a real FK, and
+the forest bump doubles as the sender-time required-flip (OPS-472's first
+adopter finishing the adoption).
 
 **Why:** The api-types review exposed two enforcement gaps. First, the
 runtime generator silently degraded a metaschema-illegal construct
