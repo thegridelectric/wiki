@@ -1,6 +1,6 @@
 # Positions — identity now, encrypted data later
 
-Status: Draft · Pass 0 · Updated 2026-07-04
+Status: Draft · Pass 0 · Updated 2026-08-05
 
 > What this is: the plan for launching + populating the MVP registry (on EC2) with
 > an **open** API while keeping home locations **private + encrypted**. The move is
@@ -63,17 +63,53 @@ When positions are populated, protect `position_points`:
 3. **Never expose coordinates on the open API.** A coordinate read, if ever needed,
    is a separate authenticated surface served by the private-key holder — not gnr's
    open API. Geo-queries (if any) run in that privileged reader.
+4. **The ciphertext never rides the bus.** gnr writes normally travel rabbit, and
+   the ears archive everything said to the registry in immutable stores — a
+   position-registration *command* would immortalize every ciphertext version in
+   archives that cannot be rewritten, defeating key rotation and re-encryption.
+   The security property depends on it: a leaked private key with no ciphertext
+   to apply it to yields nothing. So position registration is the one deliberate
+   exception to writes-ride-rabbit: the TaValidator submits ciphertext over a
+   narrow authenticated HTTPS surface (the mTLS validator plane), and gnr
+   publishes a registration event carrying only the `position_point_id` and a
+   hash of the ciphertext, so the bus witnesses the fact while the ciphertext
+   stays in a single mutable store. Consequence: gnr's DB backup story
+   (encrypted dumps, tested restore) is the location data's durability — the
+   only registry data not reconstructible from the bus archives.
 
-## Open decisions (settle at the TaValidator/deploy step)
+## Settled direction (2026-08-05) + what remains open
 
-- **`position_points` shape** changes then: `latitude_micro_deg`/`longitude_micro_deg`
-  → an **encrypted-coordinate** column (ciphertext + `key_id`/`alg` metadata).
-- **Where the coordinates live:** an encrypted column **in gnr's DB**, *or* a
-  separate **TaValidator-owned vault** keyed by `position_point_id` (gnr never holds
-  coordinates even encrypted — strongest privacy). MVP could start with the former;
-  the FK drop keeps both open.
-- **Crypto substrate:** `pgcrypto` `pgp_pub_encrypt` vs AWS KMS envelope encryption
-  (`kms:Decrypt` gated to the one reader's IAM role).
+- **Where the coordinates live: an encrypted column in gnr's DB.**
+  `position_points` becomes ciphertext + `key_id`/`alg` metadata (replacing
+  `latitude_micro_deg`/`longitude_micro_deg`), the row created when the
+  TaValidator registers the location — a row exists iff a registered
+  (encrypted) location exists. The separate-vault option is dropped: it adds
+  a service and weakens the activation gate to a cross-service attestation,
+  while the asymmetric scheme already means a compromised gnr yields nothing.
+- **Lifecycle: pending-first.** A GNode is created Pending with NO
+  `position_point_id` (constraint on `g.node.create.cmd`, since creation is a
+  command); the id + row appear at registration over the HTTPS surface; a
+  Pending node MAY hold a registered id (registration and activation are
+  separate acts on separate planes); activation of a location-bearing GNode
+  requires it. This replaces g.node.gt axiom 2 (`BaseClass != Logical ⇒
+  PositionPointId not null`) with an activation-conditioned form —
+  a `g.node.gt/006` bump plus referrer cascade (`g.node.forest`,
+  `g.node.create.cmd`, consumer snapshot regens). The registrar-minted UUID at
+  creation (today's mechanism for satisfying axiom 2) goes away with it.
+- **FK restored in the same change:** once a non-null `position_point_id`
+  implies its row exists, `g_nodes.position_point_id` becomes a nullable FK
+  into `position_points`.
+- **Open — the location-bearing predicate:** axiom 2's current test is
+  `BaseClass != Logical`, which includes e.g. Scadas. Which classes must hold
+  a position to go Active (only the copper — ConnectivityNodes +
+  TerminalAssets?) needs settling before the /006 bump.
+- **Open — crypto substrate:** `pgcrypto` `pgp_pub_encrypt` vs AWS KMS envelope
+  encryption (`kms:Decrypt` gated to the one reader's IAM role).
+- **gw_data side (pending discussion with the gw_data maintainer):** drop
+  `gw_data.position_points` and its FK; the projection stores the opaque id
+  verbatim (the current fan-out nulls it because the FK target row can never
+  exist). Ciphertext never reaches gw_data — it consumes the bus interface,
+  and the bus never carries ciphertext.
 
 ## Stale PositionPointIds in old tlayout outputs — do not use
 

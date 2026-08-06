@@ -12,18 +12,34 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-08-05 — minor; remove wiki references (`3bfc97b`)
+## 2026-08-06 — g.node.forest into gw_data: snapshot, fan-out, transport grammars, API bootstrap (`9e8a2f7`)
 
-**Why:** Repo files stand alone — `scripts/point_at_dev_hack.py` and
-`scripts/point_at_prod_observe.py` cited `wiki/gridworks-journalkeeper`
-paths a repo reader cannot follow. The docstrings keep their operative
-content (what the hack is, when to remove it); only the private-wiki
-pointers go.
+One commit, squashed from five working commits on `jm/forest-snapshot`
+(2026-07-28 → 2026-08-05). The sub-entries keep the working narrative at
+its natural breaks; their hashes died in the squash. Dev-rig verified
+end-to-end: `experiments/2026-08-05-registry-projection-rig/` (all four
+legs PASS).
 
-## 2026-07-30 — hack script: re-id January-seeded g_nodes to registry GNodeIds
+### forest bootstrap: pull the registry forest via the read API (2026-08-05)
 
-**What:** on `jm/forest-snapshot`. `scripts/hack_reid_g_nodes.py` —
+**What:** New `src/gjk/forest_bootstrap.py` — one
+`g.node.forest.request` per requested root against gnr's read API
+(`POST <api-base>/gnr/g-node-forest-request`); each response decodes
+through `SemaCodec` (a 000 forest auto-upgrades) and projects through the
+same fan-out live broadcasts use — `GNodeForestPersistor.project_forest`,
+the fan-out's now-public seam. Projection only, no `messages` row: message
+rows witness bus traffic, and an API pull is not bus traffic. `--api-base`
+is required (no default aims a projection at the wrong universe's
+registry).
+
+**Why:** strand-1 step 3 of the registry-projection design (OPS-443) —
+bootstrap/resync populates the `gw_data` projection before the first
+broadcast arrives; the periodic snapshot broadcast remains the ongoing
+anti-entropy.
+
+### hack script: re-id January-seeded g_nodes to registry GNodeIds (2026-07-30)
+
+**What:** `scripts/hack_reid_g_nodes.py` —
 temporary (delete after it runs in prod). The six old→new id pairs are
 hardcoded in the script — the mapping IS the reviewable plan (pairs
 verified against the live registry read API 2026-07-30). One transaction
@@ -40,7 +56,7 @@ first live broadcast would collide on the alias unique constraint.
 **Verified:** dry run against the live journaldb shows the six intended
 re-ids and no unknowns.
 
-## 2026-07-30 — bind all three transport grammars; pin forest projection to the registry (`d5a287f`)
+### bind all three transport grammars; pin forest projection to the registry (2026-07-30)
 
 Also: the forest persistor takes a required `registry_alias`
 (derived at registration from the service alias — `<universe>.gnr`, one
@@ -72,9 +88,9 @@ needed before any box deploy.
 **Verified:** dev rig end-to-end — snapshot broadcast → gjk projects
 nodes + edge into gw_data with SendTimeMs as created_at; suite green.
 
-## 2026-07-29 — g.node.forest fan-out into gw_data: live-only projection, persist_v001 send time (`da4bdb3`)
+### g.node.forest fan-out into gw_data: live-only projection, persist_v001 send time (2026-07-29)
 
-**What:** on `jm/forest-snapshot`. New `g_node_forest_persistor.py`
+**What:** New `g_node_forest_persistor.py`
 registered in `custom_persistor_lookup` (`g.node.forest` leaves
 `BASIC_MSG_TYPES` — the custom path owns it now): upserts forest nodes
 into `gridworks.g_nodes` and edges into `gridworks.connectivity_edges`
@@ -107,9 +123,9 @@ the same store as everything else.
 **Verified:** suite 26 passed (incl. ephemeral-TimescaleDB integration);
 ruff check clean.
 
-## 2026-07-28 — updated sema snapshot: adding g.node.forest + g.node.forest.request (`3fb6d87`)
+### updated sema snapshot: adding g.node.forest + g.node.forest.request (2026-07-28)
 
-**What:** on `jm/forest-snapshot`. Seed
+**What:** Seed
 gains `g.node.forest` and `g.node.forest.request` (include_all_versions —
 closure pulls `g.node.gt/005`, `connectivity.edge.gt`, the
 `base.g.node.class`/`g.node.status` enums, and samples); `layout.lite`
@@ -134,6 +150,14 @@ the June snapshot had silently vendored what are now staging words
 prod scada emits 011, spruce's running commit 012; 013 exists only on an
 unlanded WIP branch. Widen the pin when 013+ promote.
 **Verified:** suite 23 passed; ruff check + format --check clean.
+
+## 2026-08-05 — minor; remove wiki references (`3bfc97b`)
+
+**Why:** Repo files stand alone — `scripts/point_at_dev_hack.py` and
+`scripts/point_at_prod_observe.py` cited `wiki/gridworks-journalkeeper`
+paths a repo reader cannot follow. The docstrings keep their operative
+content (what the hack is, when to remove it); only the private-wiki
+pointers go.
 
 ## 2026-07-09 — ruff format sweep (`4511242`)
 

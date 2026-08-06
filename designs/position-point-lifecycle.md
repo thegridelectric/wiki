@@ -95,8 +95,14 @@ naming convergence across other words (OPS-472); Kafka/scale concerns.
 
 ## Plan (execution order)
 
-1. Sema word-gate reading (spec + type-kind spokes, summary, wait), then
-   author the bumps + staging rebinds; regen; suite green; promote.
+1. ✅ (2026-08-06, `jm/position-point-lifecycle`) Sema word-gate reading,
+   then author the bumps + staging rebinds; regen; suite green (418
+   passed). New versions are **staging tier** — `sema promote` to
+   published is a separate later step, after the consumers prove them on
+   dev. Also landed: g.node.gt/006 extended description records the
+   create.cmd/001 composition (activation requires holding a position
+   point; a Pending node may hold one — registration and activation are
+   separate acts on separate planes).
 2. gnr: migration (shape + FK + bootstrap rows), snapshot regen,
    forest/002 emission; `ci.sh`.
 3. gjk: snapshot regen, drop table + FK, simplify the fan-out; suite.

@@ -12,6 +12,13 @@ Newest at the top.
 
 ---
 
+## 2026-08-05 — minor (`d8375e3`, jm/de-wiki-2)
+
+**Why:** Repo files stand alone — the umbrella wiki is not visible to a
+repo reader, so an error message citing `wiki/grid-node-registry` is a
+dangling reference outside Jessica's checkout. The message already
+carries its reason in place (the production stub list).
+
 ## 2026-07-29 — g.node.forest includes a send time (`c021791`)
 
 **What:** on `jm/forest-send-time`. Vendored sema snapshot regenerated for
