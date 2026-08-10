@@ -108,14 +108,24 @@ naming convergence across other words (OPS-472); Kafka/scale concerns.
    gnr: migration (shape + FK + identity backfill; ran on the dev DB),
    snapshot regen, forest/002 emission, cli create sends no position id,
    dev seeder mints identity rows / willow born locationless; new `ci.sh`
-   (ruff gate + one-time format sweep). Suite 58 passed.
+   (ruff gate + one-time format sweep). Suite 58 passed. **Deployed to
+   prod 2026-08-06** (main `a79193f`; migration verified on the box: 16
+   identity rows backfilled, 0 orphans, FK present; public API serving
+   forest/002 with SendTimeMs, nodes at 006).
 3. ✅ (2026-08-06, gjk `jm/forest-snapshot` + gridworks-data
    `jm/position-point-lifecycle`) gjk: snapshot regen, `persist_v002`,
    fan-out stores the opaque id verbatim, pin `gw_data>=0.4.0` (local
    editable until 0.4.0 publishes — `uv run --no-sync`). gridworks-data
    0.4.0: `position_points` table + FK dropped (migration keeps the
    column), `PositionPointSql` and vendored `position.point.gt` removed,
-   snapshot regen to 006. Suites green (gjk 31).
+   snapshot regen to 006. Suites green (gjk 31). Also folded into the
+   pair (2026-08-06 evening): **`sent_at`** on `g_nodes` +
+   `connectivity_edges` (same single 0.4.0 migration) and the
+   projection's **do-not-regress guard** — a write whose send time is
+   older than the row's stored one is skipped, equal passes (replay
+   idempotency); integration-tested (stale forest cannot revert a newer
+   alias). Satisfies OPS-386 item 5 precondition #2 (the sender-time
+   consumer guard).
 4. ✅ (2026-08-06) Dev-rig re-run on current code, all four legs PASS:
    bootstrap 28/28 via the forest/002 API (willow locationless);
    MarketMaker re-parent → broadcast 002/006, projection re-aliased with
@@ -139,3 +149,68 @@ Sequencing: land the in-flight OPS-443 branches (`jm/forest-send-time`,
 `jm/forest-snapshot`) first — the gjk fan-out this touches lives there.
 Implementation gate: no code-repo edits until this design is Accepted at
 Pass ≥ 1.
+
+## PR-notes drafts (Jessica's to edit; delete after posting)
+
+Both branches: `jm/remove-position-point-pii`. Review together.
+
+**gridworks-data — opening (ownership stance):**
+
+> The registry tables in gw_data (g_nodes, connectivity_edges) are
+> projections of registry state: the grid node registry is the authority
+> on topology and location, the audit trail lives in the persistent
+> store, and these tables carry current state for analytics. 
+> Home coordinates are resident-physical-security data. They will
+> only ever exist encrypted, in the registry's own store, and the
+> ciphertext stays off the bus deliberately: the ears archive the bus
+> immutably, so an archived ciphertext could never be retired by a key
+> rotation. So no position content, plaintext or encrypted, can ever
+> legitimately reach these tables. A position_points table here is a
+> slot nothing is ever allowed to fill. This PR removes the table and
+> its foreign key, and keeps only the opaque position_point_id on
+> g_nodes, a random identifier that joins fine and reveals nothing.
+
+**gridworks-data — why not a database-native copy (preempts "sync it
+from the seed"):**
+
+> The obvious alternative is a database-native copy — logical
+> replication from the registry's Postgres. It would be less code. We're
+> not doing it because the registry is a trust boundary: nothing but gnr
+> touches its database, the privacy property has to live in the
+> interface (the forest word carries no coordinates, structurally)
+> rather than in replication config, and DB-level sync couples our
+> migrations to theirs — this very PR pair is deploying days apart
+> precisely because the seam allows it. The registry's Postgres is also
+> itself a projection of the command log, so a replica would copy the
+> wrong layer of authority.
+
+**gridworks-data — mechanics + blast radius:** PositionPointSql + FK
+dropped; nullable `sent_at` (timestamptz) added to `g_nodes` +
+`connectivity_edges` (the registry's SendTimeMs when the row's state was
+asserted — per-row memory for gjk's do-not-regress guard); one migration
+`c3e8f1a9d2b7` carries all of it (constraint + table out, id column
+kept, sent_at in); snapshot regen (g.node.gt/006; position.point.gt no
+longer vendored); version 0.4.0. web-backend pre-checked: imports
+GNodeSql/InstallationSql/MessageSql/UserSql/UserInstallationRoleSql,
+never PositionPointSql — 0.3.2 runs through the table drop untouched;
+its eventual 0.4.0 bump is a no-op.
+
+**gjk — opening (the mechanism, stated from the side that owns it):**
+
+> gjk is the thing that projects what the registry says over rabbit into
+> gw_data's registry tables. This PR moves that projection to the
+> registry's current interface (g.node.gt/006, g.node.forest/002,
+> already live in prod) and stores the opaque position_point_id
+> verbatim, per the paired gridworks-data PR.
+
+**gjk — evidence + deploy notes:** suite 31 green (incl. the
+do-not-regress leg: an older forest cannot revert a newer row — the
+bootstrap-vs-live race is dead; equal send times pass, so replays stay
+idempotent); dev-rig end-to-end on current code (bootstrap 28/28 via the
+read API, re-parent → re-aliased projection with verbatim ids,
+created_at == SendTimeMs exact, ear slice capture, snapshot heal). Deploy order: `hack_reid_g_nodes.py --execute`
+before the first live projection (alias-collision precondition,
+dry-run-verified); then the journaldb migration; then restart + one-time
+bootstrap. Lock note: "uv.lock still resolves gw-data 0.3.1 — 0.4.0
+isn't on PyPI until the paired PR merges; a lock-refresh commit lands
+here after publish, before merge."

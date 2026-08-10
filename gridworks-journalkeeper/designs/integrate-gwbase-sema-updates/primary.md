@@ -70,6 +70,22 @@ via sema word-authoring.
 
 What landed (durable facts distilled into `executor/primary.md` + `changelog.md`):
 
+- **latest gwbase + service-template mechanisms** (`6635434`, main via PR
+  #175; deployed to the gjk box 2026-08-10) — `gridworks-base>=0.5.8`;
+  JournalKeeper stops overriding the ActorBase-built XDG file logger (the
+  actor log now lands at
+  `~/.local/state/gridworks/journalkeeper/log/<alias>.log`, verified live);
+  `service/bash_aliases` (jkstart/jkstop/jkrestart/jkstatus/jklog) replaces
+  the per-verb scripts + install/uninstall; the 15-min restart timer pair
+  retired (never installed on the box anyway — a deliberate `jkstop` now
+  stays stopped).
+- **Item #5 preconditions, state 2026-08-10:** all three are BUILT and ride
+  the review-gated `jm/remove-position-point-pii` pair — #1 the re-id hack
+  script (dry-run-verified against live journaldb), #2 the `sent_at`
+  columns + do-not-regress guard (gw_data 0.4.0 + gjk persistor,
+  integration-tested), #3 the FK drop (gw_data 0.4.0 migration). They
+  deploy with that pair after review.
+
 - **#1 — sema snapshot regen** — clean restricted-snapshot from sema `dev` via
   `scripts/regen_sema_snapshot.sh`; round-trip gate + `samples/` ship, vendored
   `tests/` dropped; market enums arrive structurally via `bid`/`atn.bid`;

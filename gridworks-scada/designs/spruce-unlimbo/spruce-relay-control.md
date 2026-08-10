@@ -229,7 +229,7 @@ for hand-written gwsproto types) → **sim-boot the dev-spruce artifacts on loca
 ## Experiment result — noise floor vs poll rate + smoothing (2026-07-30)
 
 Run on spruce's four wired zone thermistors (canonical record +
-reproducer: `experiments/2026-08-05-ads-noise/`). The
+reproducer: `experiments/2026-08-06-ads-noise/`). The
 baseline reader configuration (single-shot 128 SPS, 1 Hz, raw) measures
 **0.011–0.012 °C stddev** — ~45× below the 0.5 °C async threshold, so the
 reader needs no change for zone temps. The sample-to-sample noise measured

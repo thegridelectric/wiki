@@ -1,6 +1,6 @@
 # gw108 board documentation (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-08-06 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-08-10 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke holding the gw108 board facts the relay
 > port needs — schematic-verified signal chains, the expander map, and the
@@ -68,6 +68,43 @@ power-on-reset signature — the OPS-452 detection).
 A gw108 relay's native address is **(chip, port, bit)** — there is no board
 relay index. House0 channel names embed the krida relay index
 (`...-failsafe-relay14`); the gw108 naming should not invent one.
+
+## DAC map (authored source: `starter-scripts/gw108_test_code.py`)
+
+Three MCP4728 4-channel DACs sit behind the TCA9548A i2c mux: dac1 = mux
+channel 1, dac2 = mux channel 2, dac3 = mux channel 3, all at the chip's
+0x60. Operating configuration is vref INTERNAL, gain 1; the board stage
+brings that to the 0-10V field terminals (observed: 10V at raw ≈4000,
+linear).
+
+- **Zone analog outputs:** zones 1–3 = dac1 channels a/b/c; zones 4–6 =
+  dac2 channels a/b/c (Z6 = dac2 channel_c).
+- **Plant:** dac3 — channel_a = primary, channel_b = store, channel_c =
+  secondary 0-10V terminals.
+- **Spruce deviation (2026-08-10 rewire):** the secondary pump's speed
+  wire lands on the Z6 output — dac2 channel_c — because dac3's i2c
+  interface died 2026-07-30 (analog stage kept driving; only the i2c face
+  is dead). `spruce_summer_hack.py` and the EEPROM provisioning
+  (`starter-scripts/program_dac_eeprom.py`) both carry this.
+
+**EEPROM power-on defaults are component-record state.** Each MCP4728
+channel loads its EEPROM value (output code + vref/gain) on power-up
+(`wiki/hardware/gw108-provisioning.md`), so the programmed defaults are
+persistent per-chip configuration the gw108 component record must declare
+at the semafy — per DAC, per channel: value, vref, gain. And because the
+EEPROM is readable (the 24-byte sequential read carries it), the declared
+defaults are verifiable: the scada reads at startup, notes any mismatch,
+reprograms, and re-verifies (requirement in the provisioning doc).
+
+**The ADS1115s carry no persistent counterpart** — their data rate is a
+per-conversion config word, so it rides the thermistor-reader component
+config, not chip provisioning. The semafy carries it on three levels: the
+chip's supported data-rate menu (8–860 SPS) as an ADS1115 device-type
+fact; the operational choice (16 SPS, 2 Hz poll — decision 2026-08-10,
+provisioning doc) as component-record fields; and the SPS ↔ poll-rate
+coupling as an axiom on the component word (per-chip sweep time —
+channels × conversion + overhead — bounded by a slack fraction of the
+poll period).
 
 ## Relay naming + the zone state machine (open decisions for the port)
 

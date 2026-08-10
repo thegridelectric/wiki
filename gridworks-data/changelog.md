@@ -10,9 +10,28 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-08-06 — drop position_points: gw_data holds no position content <!-- pending commit -->
+## 2026-08-06 — registry projection tables: drop position_points, add sent_at (`9eea2cc`)
 
-**What:** on `jm/position-point-lifecycle`. The `position_points` table
+One commit on `jm/remove-position-point-pii` (amended to fold both
+changes into the single 0.4.0 migration `c3e8f1a9d2b7`); the sub-entries
+keep the working narrative.
+
+### sent_at on the registry projection tables
+
+**What:** nullable `sent_at` (timestamptz) on `g_nodes` and
+`connectivity_edges` — the registry's clock (the forest's `SendTimeMs`)
+when the row's state was asserted.
+
+**Why:** the per-row memory for the projection's do-not-regress guard
+(gjk skips a write whose send time is older than what the row already
+holds — the bootstrap-vs-live race and any out-of-order delivery). One
+reviewed schema release instead of two back-to-back. (Precondition #2 of
+the forest-projection deployment, OPS-386 item 5; the sender-time
+design's consumer guard.)
+
+### drop position_points: gw_data holds no position content
+
+**What:** The `position_points` table
 and the `g_nodes` FK go — the migration drops the constraint and the
 table, keeping the opaque `position_point_id` column verbatim.
 `PositionPointSql` and the vendored `position.point.gt` leave the

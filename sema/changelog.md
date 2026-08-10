@@ -12,6 +12,94 @@ Newest at the top.
 
 ---
 
+## 2026-08-10 — codec expect= narrowing (SemaCodec.from_dict/from_file) (`03e068b`)
+
+**What:** on `jm/channel-noise-stats`. The codec template's `from_dict`
+gains an `expect: type[T]` keyword (typed via overloads: passing it
+returns `T`, narrowing at the call site; omitting it keeps the
+`SemaType | DegradedSemaType` union) and raises with both type names on
+mismatch; a `from_file(path, expect=...)` convenience joins it. The
+existing decode logic is untouched, renamed `_decode` behind the
+wrapper.
+
+**Why:** make the safe idiom the shortest idiom. Consumers currently
+write decode + `assert isinstance(x, Word)` in two steps or skip the
+narrowing (the exact failure the experiments repo's pyright gate keeps
+catching); `codec.from_file(path, expect=GwReadings)` is one line that
+cannot skip it. Companion to the GridWorks_CLAUDE sema-aligned coding
+maxim.
+
+## 2026-08-07 — add gw.readings (`12ff3ee`)
+
+**What:** on `jm/channel-noise-stats`. New staging type `gw.readings/000`:
+a self-contained archive pull — the terminal asset, the window, the
+channel words themselves (oneOf data.channel.gt/derived.channel.gt), and
+their channel.readings — so pulled data travels WITH its semantics and
+no consumer ever reads meaning off database columns. Axioms: window
+order; every readings entry's channel appears in Channels.
+
+**Why:** the database is storage, not truth. pull_readings reconstitutes
+rows into sema objects at ingress and emits one gw.readings instance;
+units and display conversion derive only from the carried words.
+
+## 2026-08-07 — gw.channel.noise.stats/000 (staging) (`7f27e04`)
+
+**What:** on `jm/semafy-experiments`. One new staging type:
+`gw.channel.noise.stats/000` — noise statistics (sample count, mean,
+sd, peak-to-peak) for one fleet channel over one measurement window,
+paired with the channel's own sema object via
+ChannelTypeName/ChannelVersion and speaking its serialized units, with
+an optional ConditionLabel tying the stats to a kind-specific condition
+(e.g. an ads read mode) whose meaning lives in the experiment README.
+The bench-stats sibling of gw.channel.jump.stats, same pairing pattern.
+
+**Why:** retires the last dict-shaped result data in the experiments
+repo — the ads-noise bench summaries become validated instances (µV
+stats paired with the -gw-microvolts channel, temperature stats with
+the -gw-temp channel, so both speak an existing channel's units and no
+unit vocabulary is invented). Deliberately NOT emitted for the
+postmortem window: reported-value variation there is real thermal
+signal, and labeling it noise would misdescribe it.
+
+## 2026-08-07 — reinstate field-emitted 000s: i2c.thermistor.reader.component.gt/000 + i2c.thermistor.channel.config/000 (`318e743`)
+
+**What:** on `jm/semafy-experiments`. Two historical staging versions added
+BELOW their lineages, `created` backdated to just before the 001s: the
+fleet's deployed layouts (spruce, since the July deploy) emit
+`Version: "000"` records for both words, disproving the 001 summaries'
+"never-emitted sema 000 was dropped" belief — the archive is the truth
+the word must describe. Both 000s are field-for-field identical to their
+001s (pure version restamps), so the 000→001 upgrades are Version-only;
+the 001 summaries' stale clause is corrected. Examples derived from the
+archived spruce layout record.
+
+**Why:** the experiments snapshot (gwexp) can now decode today's deployed
+layouts typed — the ads-noise harness's legacy dict-walk fallback dies,
+and every consumer of pre-registry layout records gets schema+format
+validation instead of raw dict access.
+
+## 2026-08-06 — experiments vocabulary: gw.experiment.run + gw.channel.jump.stats (staging) (`56f9883`)
+
+**What:** on `jm/semafy-experiments`. Two new staging type words for the
+semafy-experiments design (OPS-490): `gw.experiment.run/000`
+(experiment result metadata: kind slug as spaceheat.name, host GNode
+alias, wall-clock window, optional code ref) and
+`gw.channel.jump.stats/000` (jump/spike statistics for one fleet channel
+over one archive window — the canary element). The stats word declares
+no units of its own: it pairs with the channel's own sema object via
+ChannelTypeName/ChannelVersion (data.channel.gt's TelemetryName implies
+the wire unit; derived.channel.gt's OutputUnit declares it) and speaks
+that channel's serialized units.
+
+**Why:** experiment results become validated sema instances instead of
+ad-hoc JSON (pilot: ads-noise at spruce; the archive canary flagged the
+board three days before its late-July chip failures). Vocabulary policy
+settled in the design: only words serving multiple experiment kinds,
+gw-prefaced, staging until a second experiment kind exercises them;
+units are never restated where a channel word already declares them. A
+gw.display.unit enum was drafted and withdrawn pre-commit (no consumer
+under the pairing design; parked on OPS-489 as display()'s codomain).
+
 ## 2026-08-06 — position-point lifecycle: g.node.gt/006 + referrer sweep (`9e3c684`)
 
 **What:** on `jm/position-point-lifecycle` (authoring + promotion squashed

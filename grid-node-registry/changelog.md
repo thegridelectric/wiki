@@ -12,9 +12,26 @@ Newest at the top.
 
 ---
 
-## 2026-08-06 — add ci.sh + ruff gate <!-- pending commit -->
+## 2026-08-06 — position-point lifecycle: pending-first creation, encrypted location store + FK, forest/002; add ci.sh (`cc5c164`, main via PR #9 `a79193f`)
 
-**What:** on `jm/forest-send-time`. `ci.sh` in the gwbase pattern —
+One commit, squashed from four working commits on local dev; the
+sub-entries keep the working narrative, their hashes died in the squash.
+Dev-rig verified end-to-end on current code — all four legs PASS
+(bootstrap 28/28, re-parent → 002/006 projection with verbatim position
+ids and `created_at == SendTimeMs`, ear slice capture, snapshot heal).
+
+### CI lint job: ruff joins the workflow (2026-08-06)
+
+**What:** a `lint` job in `.github/workflows/tests.yml` (the gwbase
+shape: `ruff check --no-fix` + `ruff format --check` on 3.12);
+`ci.sh`'s header now names the workflow it mirrors.
+
+**Why:** the ci.sh cluster added the local gate only — GitHub CI still
+ran pytest alone, so a PR failing lint locally would go green on origin.
+
+### add ci.sh + ruff gate (2026-08-06)
+
+**What:** `ci.sh` in the gwbase pattern —
 `uv sync --locked`, `ruff check`, `ruff format --check`, `pytest`
 (testcontainers need a running docker; the script says so when absent).
 `ruff` joins the dev group; the vendored `src/gnr/sema` tree is excluded
@@ -26,9 +43,9 @@ availability-probe `except Exception` sites carry `noqa: BLE001`.
 **Why:** gnr had no CI entrypoint — green pytest with unlinted code could
 still go red elsewhere; every sibling repo runs the full gate.
 
-## 2026-08-06 — position-point lifecycle: encrypted-shape store, FK, forest/002 emission (`1c45d27`)
+### position-point lifecycle: encrypted-shape store, FK, forest/002 emission (2026-08-06)
 
-**What:** on `jm/forest-send-time`. Vendored snapshot regen picks up
+**What:** Vendored snapshot regen picks up
 `g.node.gt/006`, `g.node.forest/002`, `g.node.create.cmd/001`,
 `g.node.reparent.cmd/002`. `position_points` drops plaintext
 `latitude/longitude_micro_deg` for nullable `ciphertext` + `key_id` +
@@ -45,7 +62,7 @@ position-point presence is an activation invariant, the location store is
 ready for encrypted coordinates with real referential integrity, and the
 sole forest emitter honors the now-required SendTimeMs.
 
-## 2026-08-05 — minor (`d8375e3`, jm/de-wiki-2)
+### minor — de-wiki the prod-stub error message (2026-08-05)
 
 **Why:** Repo files stand alone — the umbrella wiki is not visible to a
 repo reader, so an error message citing `wiki/grid-node-registry` is a

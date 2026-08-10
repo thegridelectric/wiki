@@ -12,9 +12,59 @@ Newest at the top.
 
 ---
 
-## 2026-08-06 — position-point lifecycle: consume g.node.gt/006 + forest/002 <!-- pending commit -->
+## 2026-08-07 — latest gwbase + service-template mechanisms (aliases, logging) (`6635434`, main via PR #175 `eafe946`)
 
-**What:** on `jm/forest-snapshot`. Vendored snapshot regen picks up
+**What:** on `jm/gwbase-template-update` (off dev — deliberately not the
+review-gated pii branch). `gridworks-base>=0.5.8` (0.5.7/0.5.8 are
+broker-definitions-only — gnr_ear_tx, debug queue — no API delta).
+JournalKeeper stops overwriting the ActorBase-built XDG file logger with
+a bare module logger — the actor now logs to
+`~/.local/state/gridworks/journalkeeper/log/<alias>.log` in the
+bijective gwbase format (an injected logger remains an override seam for
+harness scripts). `service/` conforms to the ear/gnr template: one
+`bash_aliases` (jkstart/jkstop/jkrestart/jkstatus/jklog — pure spelling,
+no logic) replaces the six per-verb scripts + install/uninstall; the
+unit keeps its box facts and gains the repo-root-CWD env convention. The
+15-minute `journalkeeper-restart` timer pair is retired: it re-started
+deliberately stopped services, which fights operator intent — the
+ear/gnr posture (Restart=always covers crashes; a manual stop stays
+stopped).
+
+**Why:** the gwbase/template increment of the integrate-gwbase-sema
+thread (OPS-386): gjk was the last gwbase service on the pre-template
+service mechanics, and its actor log went to a logger nobody wired to a
+sink.
+
+## 2026-08-06 — registry projection into gw_data: fan-out + bootstrap on 006/002, do-not-regress guard; opaque position ids only (`7edf504`)
+
+One commit on `jm/remove-position-point-pii`, squashed/amended from
+seven working commits (2026-07-28 → 2026-08-06); the sub-entries keep
+the working narrative, their hashes died in the squashes. Dev-rig
+verified end to end on current code (all four legs PASS, `created_at ==
+SendTimeMs` exact, ear slice capture; reproducer
+`experiments/2026-08-05-registry-projection-rig/`). Paired with
+gridworks-data 0.4.0's position_points drop + sent_at — the same-named
+branch there; reviewed together. Awaiting that review before merge.
+
+### do-not-regress guard on the forest projection (2026-08-06)
+
+**What:** `project_forest` derives
+the forest's send time and passes it through the row upserts: a node or
+edge write whose send time is older than the row's stored `sent_at` is
+skipped (equal passes — replays stay idempotent); rows written with a
+send time record it. Forests without one (000-era) write as before and
+leave `sent_at` untouched. Requires gw_data's `sent_at` columns (same
+branch there).
+
+**Why:** an out-of-order write can no longer regress the projection —
+the concrete race being the one-time bootstrap response landing after a
+newer live broadcast. Until now only snapshot anti-entropy healed this;
+the guard prevents it. (OPS-386 item 5 precondition #2; sender-time's
+"order-aware projection" consumer.)
+
+### position-point lifecycle: consume g.node.gt/006 + forest/002 (2026-08-06)
+
+**What:** Vendored snapshot regen picks up
 `g.node.gt/006`, `g.node.forest/002`, `g.node.create.cmd/001`,
 `g.node.reparent.cmd/002`; the forest persistor gains `persist_v002`
 (SendTimeMs is required in 002, so `created_at` is always the sender's
@@ -36,14 +86,6 @@ emits, and holds no position content: plaintext never (no PII in the
 analytics database), ciphertext deliberately not either; authority is
 evident in the gnr → gjk broadcast and code, and the audit trail lives in
 the persistent store.
-
-## 2026-08-06 — g.node.forest into gw_data: snapshot, fan-out, transport grammars, API bootstrap (`9e8a2f7`)
-
-One commit, squashed from five working commits on `jm/forest-snapshot`
-(2026-07-28 → 2026-08-05). The sub-entries keep the working narrative at
-its natural breaks; their hashes died in the squash. Dev-rig verified
-end-to-end: `experiments/2026-08-05-registry-projection-rig/` (all four
-legs PASS).
 
 ### forest bootstrap: pull the registry forest via the read API (2026-08-05)
 
