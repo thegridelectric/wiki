@@ -12,6 +12,31 @@ Newest at the top.
 
 ---
 
+## 2026-08-06 — position-point lifecycle: consume g.node.gt/006 + forest/002 <!-- pending commit -->
+
+**What:** on `jm/forest-snapshot`. Vendored snapshot regen picks up
+`g.node.gt/006`, `g.node.forest/002`, `g.node.create.cmd/001`,
+`g.node.reparent.cmd/002`; the forest persistor gains `persist_v002`
+(SendTimeMs is required in 002, so `created_at` is always the sender's
+clock — no None branch). 001 moves to `old_versions`; archives still
+decode, and a 001 without a SendTimeMs deliberately cannot auto-upgrade
+(`UpgradeRequiresContext` — a send time is never fabricated), landing on
+the degraded path rather than acquiring an invented timestamp.
+
+Paired with gridworks-data 0.4.0 (position_points table + FK dropped
+there): the fan-out stores the registry's opaque `position_point_id`
+**verbatim** — the resolve-against-local-table check and its NULL-out go,
+`PositionPointSql` leaves the imports, and the pin bumps to
+`gw_data>=0.4.0` (local runs use an editable install until 0.4.0
+publishes; `uv run --no-sync`).
+
+**Why:** the gjk consumer strand of the position-point-lifecycle design
+(OPS-488) — gw_data's projection reads the same forest the registry now
+emits, and holds no position content: plaintext never (no PII in the
+analytics database), ciphertext deliberately not either; authority is
+evident in the gnr → gjk broadcast and code, and the audit trail lives in
+the persistent store.
+
 ## 2026-08-06 — g.node.forest into gw_data: snapshot, fan-out, transport grammars, API bootstrap (`9e8a2f7`)
 
 One commit, squashed from five working commits on `jm/forest-snapshot`

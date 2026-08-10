@@ -16,12 +16,18 @@ Status: Draft · Pass 0 · Updated 2026-07-19
 | 2026-07-19 | OPS-419 step 7 — populate + deploy registry | 13 | 8 | 24 | 7.5 | no (under) |
 | 2026-07-22 | OPS-392 — dev-spruce layout readiness | 10 | 6 | 18 | 8.5 | yes |
 | 2026-07-22 | OPS-458 — ear poetry to uv | 2 | 0.5 | 3 | 0.5 | yes (at bound) |
+| 2026-08-06 | OPS-490 — ads-noise semafy pilot | 4 | 2 | 9 | | |
 
 ## Active hours — scratch
 
 Running per-day hours for work that is active (not yet wrapped). Times in ET.
 At wrap: sum into the Actual column above, log on the Linear issue, delete
 the rows here.
+
+| Work | Day | Started |
+| --- | --- | --- |
+| OPS-490 ads-noise pilot | 2026-08-06 | 10:45–11:45 (1.0h) |
+| OPS-490 ads-noise pilot | 2026-08-06 | 14:45 |
 
 
 

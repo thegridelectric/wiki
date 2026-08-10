@@ -44,6 +44,37 @@ The ads-noise re-run with raw per-sample capture
 (`experiments/2026-08-05-ads-noise/`) emits the first sema-typed
 results. Its vocabulary sketch is the design's first concrete work.
 
+## Vocabulary sketch — ads-noise pilot
+
+Drafted at the 2026-08-06 re-run; names provisional, authoring gated
+on the sema ritual below.
+
+- `experiment.run` (shared word) — the metadata every experiment
+  result carries: experiment slug, host, start/end unix ms, pointer
+  to the code that ran. (Open below: which existing words already
+  cover parts of this.)
+- `ads.noise.channel.stats` — one channel under one mode: channel
+  name, sample count, mean/sd/p2p voltage, mean/sd temperature.
+- `ads.noise.mode.result` — the mode knobs (in-chip data rate SPS,
+  poll period ms, EMA alpha if any, cycles), elapsed time, errors,
+  and its list of channel stats.
+- `ads.noise.result` — the run: the read-path board constants (beta,
+  series resistance, reference voltage), the `experiment.run`
+  metadata, the mode results.
+- `channel.jump.stats` — one fleet channel over one archive window:
+  window bounds, reading count, the jump threshold and max-gap
+  parameters, spike count, max and median consecutive-reading jump.
+  The archive-derived sibling of the bench stats — the canary view
+  (daily spike counts flagged spruce's ADS corner three days before
+  the 07-29 incident) is a list of these.
+
+Scaled-int units fine enough for the statistics (nanovolts for
+voltage sd, micro-°C for temperature sd) would keep this vocabulary
+integer-typed and sidestep the `number` question for the pilot;
+whether that generalizes to other experiment kinds stays open. The
+raw per-sample JSONL stays a plain evidence file next to the
+instances, referenced from the README — not sema-typed in this pass.
+
 ## Gates
 
 Sema word authoring follows the standing ritual: read

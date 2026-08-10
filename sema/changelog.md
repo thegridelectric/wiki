@@ -12,9 +12,15 @@ Newest at the top.
 
 ---
 
-## 2026-08-06 — position-point lifecycle: g.node.gt/006 + referrer sweep <!-- pending commit -->
+## 2026-08-06 — position-point lifecycle: g.node.gt/006 + referrer sweep (`9e3c684`)
 
-**What:** on `jm/position-point-lifecycle`. Four new staging versions:
+**What:** on `jm/position-point-lifecycle` (authoring + promotion squashed
+to one commit). Four new versions, authored staging then `sema promote`d
+dependency-first to **published** (sha256 pins in
+`definitions/published_hashes.yaml`; the three staging layout referrers
+stay staging). Promoted ahead of the gw_data-side review by explicit
+decision: publishing unblocks the consumer-refresh cascade, and review
+disagreement, if any, arrives as new versions. The versions:
 `g.node.gt/006` — axiom 2 (*PhysicalGNodeLocations*) becomes
 activation-conditioned ("If Status is Active and BaseClass != Logical,
 PositionPointId SHALL NOT be null"), PositionPointId description reworded

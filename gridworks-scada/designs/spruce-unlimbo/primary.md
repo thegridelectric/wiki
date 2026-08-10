@@ -19,7 +19,9 @@ real broker.
 > start); `both-cases-survey.md` (verified survey of layout gen,
 > testing, and local control for both house cases); `hello-world.md`
 > (first plan step: LTN ↔ SCADA over dev rabbit, consumed by a dev JK);
-> `admin-for-nolan.md` (admin UI sees and operates a Nolan house).
+> `admin-for-nolan.md` (admin UI sees and operates a Nolan house);
+> `gw108-board.md` (schematic-verified board facts: zone signal chain,
+> expander map, relay naming/state-machine decisions for the port).
 > The simulated-actors spoke moved to the simulated-test-environment
 > design (2026-06-11, harness elevated to the top); the merge gate's
 > "testing green for BOTH" now rides that harness.

@@ -10,6 +10,36 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-08-06 — drop position_points: gw_data holds no position content <!-- pending commit -->
+
+**What:** on `jm/position-point-lifecycle`. The `position_points` table
+and the `g_nodes` FK go — the migration drops the constraint and the
+table, keeping the opaque `position_point_id` column verbatim.
+`PositionPointSql` and the vendored `position.point.gt` leave the
+package; the snapshot regen also picks up `g.node.gt/006`. Version 0.4.0.
+
+**Why:** gw_data is an analytics projection of the registry's bus
+interface, and the bus never carries position content — plaintext never,
+and ciphertext deliberately not either: the ears' immutable archives
+would immortalize every ciphertext version, defeating key rotation, and
+a leaked private key with no ciphertext to apply it to yields nothing.
+No PII in the analytics database; authority is evident in the
+gnr → gjk broadcast and code; the audit trail lives in the persistent
+store. The projection keeps only the opaque id.
+(Position-point-lifecycle design, OPS-488.)
+
+## 2026-07-16 — Added UserInstallationRole to the index, and removed the lazy loading (#6) (`76cbccf`)
+
+**What:** exports `UserInstallationRoleSql` from the models index; drops
+the lazy-loading config on the relationship; 0.3.2. (Landed by PR
+without an entry; backfilled from the diff.)
+
+## 2026-07-01 — Support for importing and for hourly data calculation at the DB level (#5) (`0b7ba26`)
+
+**What:** DB-level import support + hourly-data calculation (cached
+hourly refresh scripts, visualizer-facing). (Landed by PR without an
+entry; backfilled from the diff's shape — see the commit for detail.)
+
 ---
 
 ## 2026-06-07 — Add Release workflow to publish gw_data to PyPI (`0a41d0c`, merged `29194a1` / PR #4)

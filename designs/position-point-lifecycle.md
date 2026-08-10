@@ -97,16 +97,43 @@ naming convergence across other words (OPS-472); Kafka/scale concerns.
 
 1. ✅ (2026-08-06, `jm/position-point-lifecycle`) Sema word-gate reading,
    then author the bumps + staging rebinds; regen; suite green (418
-   passed). New versions are **staging tier** — `sema promote` to
-   published is a separate later step, after the consumers prove them on
-   dev. Also landed: g.node.gt/006 extended description records the
+   passed). ✅ Promoted to **published** (hash pins) 2026-08-06 — by
+   explicit decision ahead of the gw_data-side review: publishing
+   unblocks the consumer-refresh cascade, and review disagreement, if
+   any, arrives as new versions (the normal cost, accepted). Also landed: g.node.gt/006 extended description records the
    create.cmd/001 composition (activation requires holding a position
    point; a Pending node may hold one — registration and activation are
    separate acts on separate planes).
-2. gnr: migration (shape + FK + bootstrap rows), snapshot regen,
-   forest/002 emission; `ci.sh`.
-3. gjk: snapshot regen, drop table + FK, simplify the fan-out; suite.
-4. Re-run the dev-rig forest round-trip as the wire check.
+2. ✅ (2026-08-06, `jm/forest-send-time` @ `1c45d27` + the ci.sh cluster)
+   gnr: migration (shape + FK + identity backfill; ran on the dev DB),
+   snapshot regen, forest/002 emission, cli create sends no position id,
+   dev seeder mints identity rows / willow born locationless; new `ci.sh`
+   (ruff gate + one-time format sweep). Suite 58 passed.
+3. ✅ (2026-08-06, gjk `jm/forest-snapshot` + gridworks-data
+   `jm/position-point-lifecycle`) gjk: snapshot regen, `persist_v002`,
+   fan-out stores the opaque id verbatim, pin `gw_data>=0.4.0` (local
+   editable until 0.4.0 publishes — `uv run --no-sync`). gridworks-data
+   0.4.0: `position_points` table + FK dropped (migration keeps the
+   column), `PositionPointSql` and vendored `position.point.gt` removed,
+   snapshot regen to 006. Suites green (gjk 31).
+4. ✅ (2026-08-06) Dev-rig re-run on current code, all four legs PASS:
+   bootstrap 28/28 via the forest/002 API (willow locationless);
+   MarketMaker re-parent → broadcast 002/006, projection re-aliased with
+   verbatim position ids, `created_at == SendTimeMs` exactly, ear slice
+   captured cmd + ack + forest; snapshot healed a corrupted row.
+   (Reproducer in `experiments/2026-08-05-registry-projection-rig/`
+   needs its one-line `DEV_POSITION_ID` rename + an 08-06 note —
+   deferred, the folder is under another session's claim.)
+5. **After `sema promote`: refresh the other g.node.gt consumers.** Every
+   repo carrying the word re-vendors or re-validates at its own pace —
+   known carriers beyond gnr/gjk: **gridworks-scada** (gwsproto's
+   hand-written `GNodeGt` — update by hand, prove with `sema validate`
+   per the scada protocol) and **gridworks-terminalasset** (vendored
+   snapshot + `g.node.gt.json` identity files), plus any service reading
+   a `g.node.gt.json` (gwbase-actor identity files decode 005 fine — old
+   versions stay decodable; refresh when each repo next regens). Sweep
+   the umbrella for vendored `g.node.gt` copies at promote time rather
+   than trusting this list.
 
 Sequencing: land the in-flight OPS-443 branches (`jm/forest-send-time`,
 `jm/forest-snapshot`) first — the gjk fan-out this touches lives there.

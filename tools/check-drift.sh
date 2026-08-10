@@ -1,17 +1,24 @@
 #!/bin/bash
 # check-drift.sh — daily platform-drift check, run from SessionStart.
-# Does what's RUNNING match what's PUSHED? Self-throttles to once per
-# calendar day (first session of the day pays ~5s; the rest skip free).
-# Prints ONLY problems; silence = no drift. Fails silent on unreachable
-# boxes (they get flagged as unreachable, not crashed on).
+# Does what's RUNNING match what's PUSHED? The day's marker file caches
+# the RESULT (empty = clean): the first session of the day pays ~5s and
+# writes it; a later session prints the cached clean line for free, but
+# re-runs the full check whenever the cache holds drift — so drift
+# re-reports in every session until fixed, and clears itself once the
+# boxes are pulled. Every session prints a status line; there is no
+# silent outcome. Fails silent on unreachable boxes (they get flagged
+# as unreachable, not crashed on).
 #
 # Checks per platform box: checkout == origin/main and clean; every
 # service process started AFTER the checkout's last commit landed (the
 # 2026-07-24 stale-write-loop lesson); ear retry caches empty.
 
 MARKER="$HOME/.cache/gw-drift-check-$(date +%Y%m%d)"
-[ -f "$MARKER" ] && exit 0
-mkdir -p "$HOME/.cache" && touch "$MARKER"
+if [ -f "$MARKER" ] && [ ! -s "$MARKER" ]; then
+  echo "Platform drift: none (daily check ran clean at $(date -r "$MARKER" +%H:%M))"
+  exit 0
+fi
+mkdir -p "$HOME/.cache"
 
 SSH="ssh -o BatchMode=yes -o ConnectTimeout=6"
 OUT=""
@@ -62,8 +69,13 @@ for h in ear gnr-ear; do
 done
 
 if [ -n "$OUT" ]; then
-  echo "PLATFORM DRIFT (daily check — fix per the box's instance-README;"
-  echo "pull + restart is almost always the whole fix):"
+  printf '%s\n' "$OUT" > "$MARKER"
+  echo "PLATFORM DRIFT (re-checked every session until fixed). Report only —"
+  echo "never act on this without discussing with the user first; the fix,"
+  echo "when agreed, is per the box's instance-README (usually pull + restart):"
   echo "$OUT"
+else
+  : > "$MARKER"
+  echo "Platform drift: none (checked $(date +%H:%M))"
 fi
 exit 0

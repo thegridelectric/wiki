@@ -12,6 +12,39 @@ Newest at the top.
 
 ---
 
+## 2026-08-06 — add ci.sh + ruff gate <!-- pending commit -->
+
+**What:** on `jm/forest-send-time`. `ci.sh` in the gwbase pattern —
+`uv sync --locked`, `ruff check`, `ruff format --check`, `pytest`
+(testcontainers need a running docker; the script says so when absent).
+`ruff` joins the dev group; the vendored `src/gnr/sema` tree is excluded
+(generated — its hygiene is the sema generator's, and a regen would
+revert fixes); the pre-existing findings are fixed and the one-time
+`ruff format` sweep lands in the same change (21 files). Three deliberate
+availability-probe `except Exception` sites carry `noqa: BLE001`.
+
+**Why:** gnr had no CI entrypoint — green pytest with unlinted code could
+still go red elsewhere; every sibling repo runs the full gate.
+
+## 2026-08-06 — position-point lifecycle: encrypted-shape store, FK, forest/002 emission (`1c45d27`)
+
+**What:** on `jm/forest-send-time`. Vendored snapshot regen picks up
+`g.node.gt/006`, `g.node.forest/002`, `g.node.create.cmd/001`,
+`g.node.reparent.cmd/002`. `position_points` drops plaintext
+`latitude/longitude_micro_deg` for nullable `ciphertext` + `key_id` +
+`alg` (substrate-neutral; pgcrypto-vs-KMS stays open);
+`g_nodes.position_point_id` becomes a nullable FK into `position_points`;
+the alembic migration mints identity rows (null ciphertext) for every
+already-carried id, so existing Active nodes stay FK- and axiom-valid.
+The create path stops minting position ids (pending-first — cli wizard
+and dev universe follow; willow's staged-id posture becomes plain null);
+forest assembly and the read API emit 002.
+
+**Why:** the gnr strand of the position-point-lifecycle design (OPS-488):
+position-point presence is an activation invariant, the location store is
+ready for encrypted coordinates with real referential integrity, and the
+sole forest emitter honors the now-required SendTimeMs.
+
 ## 2026-08-05 — minor (`d8375e3`, jm/de-wiki-2)
 
 **Why:** Repo files stand alone — the umbrella wiki is not visible to a
