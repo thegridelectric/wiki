@@ -12,6 +12,20 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-08-11 — document the per-service settings + logging pattern
+
+The README's Settings section and the `ServiceSettings` docstring read
+as "your service uses the `GWBASE_` prefix", but the settled convention
+is the opposite: each service subclasses `ServiceSettings`/
+`GNodeSettings` with its own env prefix (`GJK_`, `GWWF_`, …), a
+dev-default `service_alias`, and its own `service_name` — one `.env`,
+one prefix per service — and logs through the actor's `self.logger`
+rather than configuring logging itself. The gwwf standup tripped on
+exactly this gap (inherited the generic `gridworks` XDG segment,
+added a `basicConfig`), so the pattern is now stated where a service
+author will actually look. Doc-only: README + docstring.
+
 ## 2026-07-23 — Strip wiki and downstream-service references (`af6e83b`)
 
 **What:** every wiki citation in the repo is gone — nine source/test files

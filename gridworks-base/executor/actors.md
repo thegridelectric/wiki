@@ -205,8 +205,10 @@ Every actor is constructed from settings and writes to per-service XDG
 locations — no root or `/etc` needed.
 
 **Settings.** `ServiceSettings` is the minimum (any actor); `GNodeSettings`
-extends it with `g_node_path`. All fields read from the `GWBASE_` env prefix
-(e.g. `GWBASE_SERVICE_ALIAS`, `GWBASE_RABBIT__URL`):
+extends it with `g_node_path`. On the base classes the fields read from the
+`GWBASE_` env prefix; a deployed service subclasses with its OWN prefix
+(`GJK_`, `GWWF_`, …) plus a dev-default `service_alias` and its own
+`service_name` — one `.env`, one prefix per service, never `GWBASE_*` vars:
 
 - `service_alias` (`LeftRightDot`, required) — becomes the actor's `alias`.
 - `instance_id` (UUID; auto-generated per boot if unset).
@@ -214,6 +216,10 @@ extends it with `g_node_path`. All fields read from the `GWBASE_` env prefix
   distinct from the alias.
 - `log_level`, `log_rotate_bytes`, `log_rotate_count`.
 - `g_node_path` (`GNodeSettings` only) — the `g.node.gt.json` location.
+
+Logging is provided, not configured: every actor gets `self.logger` at
+construction (the per-actor rotating XDG file logger below); a service
+does not call `logging.basicConfig` or add handlers of its own.
 
 **File locations (XDG Base Directory)**, keyed on `service_name`:
 
