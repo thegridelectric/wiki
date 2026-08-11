@@ -10,6 +10,81 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-08-11 — Spruce window variant artifact + async-delta knobs (`94369b3`)
+
+**What:** on `jm/spruce`. `NolanSemaGenConfig` gains
+`thermistor_temp_async_delta` (default 50) and
+`thermistor_microvolts_async_delta` (default 5000) — the buried
+zone-thermistor async-capture deltas lifted to visible, overridable
+config values; the spruce gen grows an `emit(config, out_dir,
+reference)` split (the honeysuckle shape) and emits a second artifact
+pair to `output/spruce-async1/` with both deltas at 1, same identity
+and id reference as the primary.
+
+**Why:** the ads-declared-rate spruce window needs every 1 Hz zone
+sample published to the broker for noise-floor evidence; at the
+operating deltas (50 c°C / 5000 µV) the measured noise floor
+(sd ≈ 214–450 µV) never trips async capture, so almost no per-sample
+data would leave the box. The window variant makes the capture path
+publish each sample; the primary artifact keeps operating tuning.
+
+## 2026-08-10 — Honeysuckle 16 SPS / 2 Hz variant artifact + poll-period knob (`312f558`)
+
+**What:** on `jm/spruce`. `NolanSemaGenConfig` gains
+`thermistor_poll_period_ms` (default 1000 — the buried constant lifted
+to a visible, overridable config value); the honeysuckle gen emits a
+second artifact pair to `output/honeysuckle-16sps-2hz/`
+(`thermistor_data_rate_sps=16`, 500 ms zone-thermistor polling) from
+the same minted identity and id reference as the primary, so only the
+pairing differs.
+
+**Why:** the bench experiment runs both pairings — the settled
+8 SPS @ 1 Hz and the 16 SPS @ 2 Hz fallback — to anchor the stashed
+sweep-fits-poll axiom's constants at both operating points; each
+pairing needs its own bootable artifact.
+
+## 2026-08-10 — Hardware-words snapshot + declared data rate + spruce pico removal (`65cbd4d`)
+
+**What:** on `jm/spruce`. (1) Sema snapshot rebuilt from sema
+`jm/hardware-words` (`1d02655`) — the board record now carries Muxes /
+DAC mux placement / `SupportedDataRatesSps`, and
+`i2c.dac.writer.component.gt` is added to the seed's explicit targets
+(no layout references it yet, same reasoning as the relay words).
+(2) `NolanSemaGenConfig` gains `thermistor_data_rate_sps` (no default;
+the gen refuses to write a layout unless it is declared and a member of
+the board ADC's menu); spruce + honeysuckle declare 8. (3) Minted
+GNodes move to published `g.node.gt/006` (axiom 2 relaxation only —
+the 005 instances are valid unchanged). (4) Mirroring actual-spruce
+`a71617e`: the fancoil, floor1, and pipes1 pico tank modules commented
+out of `spruce_sema_gen.py` (physically disconnected 2026-08-10,
+pico-gaps experiment — restore when reinstalled) along with the seven
+identity deriveds on their device channels. Both outputs regenerated
+and validated through the snapshot (spruce: 66 nodes / 16 components /
+48 channels; honeysuckle: 41 / 11).
+
+**Why:** the layout artifacts the ADS-at-declared-rate experiment
+boots must say what the box really is: which chips exist (three DACs
+behind the mux, not one), what the reader runs at (8 SPS declared, not
+an adafruit default), and which picos are physically present — a
+layout declaring disconnected picos reads as dropouts, tangling the
+very gap statistics the pico experiment measures.
+
+---
+
+## 2026-08-10 — Temporarily remove 3 wifi picos from spruce (`a71617e`, actual-spruce)
+
+**What:** on `actual-spruce`, `gen_spruce.py`'s fancoil, pipes1, and
+floor1 `add_tank3` blocks (pipes1/floor1 in both registrations — the
+pair is duplicated in the file) and the five pipes1/floor1-sourced rows
+in `add_spruce_identity_derived_channels` commented out; `spruce.json`
+regenerated without them.
+
+**Why:** all three picos physically disconnected at the 2026-08-10 field
+visit (scada pico-cycler confirmed flatlined → zombie); the layout should
+stop declaring hardware that is not there — the cycler chases the ghosts
+by power-cycling the shared 5V pico rail every ~65s, rebooting the
+healthy picos too. Temporary — restore when the picos are reinstalled.
+
 ---
 
 ## 2026-08-05 — remove floor2 from the jm/spruce sems gen (`5f3a61e`, jm/spruce)

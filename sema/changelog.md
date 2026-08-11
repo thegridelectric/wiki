@@ -12,6 +12,85 @@ Newest at the top.
 
 ---
 
+## 2026-08-11 — Promote experiment words; add i2c hardware and gw.weather words (`1fccb23`)
+
+One commit, three workstreams squashed at land time (the
+hardware-merge repair plumbing folded in, invisible in the linear
+history).
+
+**Promotion —** `gw.experiment.run`, `gw.channel.gap.stats`,
+`gw.channel.jump.stats`, `gw.channel.noise.stats`, and `gw.readings`
+promoted staging → published (`sema promote <word> 000` ×5): status
+flipped, schema sha256 pinned in `definitions/published_hashes.yaml`,
+public registry regenerated — the schemas are now immutable; any
+future change is a new version. The semafy-experiments design's
+promotion gate is met: the folder set is done and multiple experiment
+kinds exercise the words (ads-noise, the postmortem, the gap-analysis
+re-run). The i2c family and `layout.lite/013` stay staging with the
+scada thread, so consumer snapshots keep `--allow-staged`.
+
+**Weather words —** `gw1.quantity` 002 (adds WindSpeed); new enum
+`gw.weather.forecast.fidelity` (Unknown default as coercion target;
+Live | Stored | SeasonalTemplate); new staging types
+`gw.weather.channel.gt`, `gw.weather.forecast.channel.gt`,
+`gw.weather.location.gt`, `gw.weather.observation` (+
+`gw.weather.reading`), `gw.weather.forecast` (+
+`gw.weather.forecast.entry`). Runtime and indexes regenerated; the
+thirteen axiom validators implemented with counterexample fixtures.
+This is the stand-up-weather-forecast design's vocabulary
+(`wiki/gridworks-weather-forecast/designs/stand-up-weather-forecast/vocabulary.md`,
+Accepted Pass 1) — the fresh `gw.weather.*` namespace replacing the
+retired legacy `weather` / `weather.forecast` words.
+
+**Hardware words —** six new staging words: `i2c.mux` (a
+bus multiplexer as a first-class board-record entry) + `i2c.mux.type`
+enum; `i2c.dac.writer.component.gt` + `i2c.dac.channel.config` (a DAC
+writer component carrying per-channel EEPROM power-on defaults:
+value/vref/gain) + `i2c.dac.channel` and `i2c.dac.vref` enums.
+In-place staging additions: `i2c.dac.capability` gains
+`MuxName`/`MuxChannel` (+ MuxPairing axiom);
+`i2c.thermistor.interface.capability` gains required
+`SupportedDataRatesSps` (the chip's conversion-rate menu);
+`i2c.thermistor.reader.component.gt/003` gains required `DataRateSps`;
+`gw1.scada.device.type.gt` gains `Muxes` + the MuxConsistency axiom
+(membership, channel bounds, bus equality) and folds muxes into
+BusMembership + BoardIdentifierUniqueness. Two coupling axioms
+(ThermistorReaderMenuMembership, ThermistorSweepFitsPoll — the
+SPS↔poll arithmetic with measured overhead and slack bound) join the
+`gw.nolan.layout` axiom stash. Runtime/indexes regenerated; axiom
+validators implemented with counterexample fixtures; created-stamp
+cascade forward-bumped through both layouts.
+
+The spruce-unlimbo takeover needs the layout to say
+everything the summer hack knows. The gw108's three MCP4728s share
+address 0x60 behind a TCA9548A, so without the mux the board record
+cannot distinguish them — "the secondary pump is on dac2" was
+unsayable. DAC EEPROM defaults are persistent, readable chip state
+the scada verifies at startup, so they belong on a component record;
+the ADS data rate is the opposite (a per-conversion config word), so
+it rides the reader component with the capability menu and axioms
+keeping choice, menu, and poll rate mechanically consistent
+(decision + arithmetic: `wiki/hardware/gw108-provisioning.md`).
+
+## 2026-08-10 — add gw.channel.gap.stats (`208cf81`)
+
+**What:** on `jm/gap-stats-word`. New staging word
+`gw.channel.gap.stats/000` — reporting-gap statistics for one fleet
+channel over one archive window (silence counts/durations against a
+cadence-aware threshold max(AbsGapS, MedianMult × MedianCadenceS),
+whole-house-silence exclusion counted separately) — the
+`gw.channel.jump.stats` sibling for the dropout canary. Schema +
+registry entry + regenerated runtime/indexes + the three axiom
+validators (WindowOrder, NonNegativeDurations, GapAccounting a/b).
+
+**Why:** the pico-gap-analysis re-run's per-channel gap rows were
+kind-specific JSON with no contract; gap statistics are channel
+statistics the same way jump statistics are, with multiple consumers
+ahead (gap-analysis folder, dropout canary view, rejoin/link-census
+verifications), so they earn vocabulary.
+
+---
+
 ## 2026-08-10 — codec expect= narrowing (SemaCodec.from_dict/from_file) (`03e068b`)
 
 **What:** on `jm/channel-noise-stats`. The codec template's `from_dict`

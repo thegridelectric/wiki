@@ -37,7 +37,16 @@ Sema-aligned coding (GridWorks_CLAUDE.md maxim) — this repo speaks sema:
 - narrow every codec decode (assert isinstance(x, Word)) before use
 - facts a sema record carries are read from the record, not DB columns,
   filenames, or hand-kept copies (hand-code only WITH a note naming the
-  missing word)
+  missing word — after CHECKING sema/definitions/ that it is missing;
+  an existing word gets vendored into the seed, never noted around)
+- sema gravity below the word layer: records with no word yet (results,
+  intermediates, provenance) are typed structures (NamedTuple +
+  docstring), never ad-hoc dicts; dict form once, at the serialization
+  boundary; homogeneous mappings of typed values are fine
+- property formats attach to fields, mapping KEYS, and constants alike;
+  a validator returns the format type (validate-then-str strips it);
+  timestamps take the coarsest sufficient format (UTCSeconds when
+  seconds are enough), never bare epoch floats
 Run the repo's ci.sh before suggesting a commit — pyright gates this.
 EOF
 exit 0

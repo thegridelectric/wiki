@@ -13,6 +13,21 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-08-11 — vendor gw.weather snapshot; gwbase 0.5.8
+
+Step 0 of the stand-up-weather-forecast build: the sema snapshot
+carrying the staged `gw.weather.*` words lands BEFORE the first
+consumer line (sema-boundary maxim), and the repo moves from gwbase
+0.4.0 to 0.5.8 so the service is built once against the current
+framework. The seed keeps legacy `weather` alongside the new words —
+the actor still publishes it until the emission scheduler lands; it
+leaves the seed when the last legacy import goes. Staging words ⇒
+`--allow-staged` dev-only snapshot; promotion to published gates the
+prod deploy, not the build. Done-when: suite green importing the
+vendored words; a `gw.weather.observation` instance round-trips
+through the vendored codec in a test.
+
 ## 2026-07-18 — add sample weather json from legacy weather
 
 Adds

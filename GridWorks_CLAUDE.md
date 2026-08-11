@@ -159,6 +159,13 @@ distributed-trust principle it served — that principle is core vision.
   actors over AMQP (`localhost:5672`), scada over MQTT (`localhost:1885`, TLS
   off, Rabbit MQTT plugin — topic dots become slashes; payloads intact). Mgmt
   UI `15672`. Creds live in each repo's `.env`; never hardcode them.
+- **Journal DB first; eventstore by hand.** Consumers read fleet
+  emissions from the journal DB (readings tables + `gridworks.messages`
+  payloads, decoded through the codec). The S3 eventstore is the deep
+  archive and carries MORE than the journal — message types
+  JournalKeeper does not journal, and windows beyond its retention.
+  Consult it by hand for those; keep no S3 fallback code in pull paths
+  until a consumer concretely needs an S3-only type.
 - **No cross-service declarations in a repo.** A repo SHALL NOT state what
   another service does with it ("JournalKeeper overrides this hook as a
   permanent legacy_hack") — such claims go stale silently when the other
@@ -181,8 +188,27 @@ distributed-trust principle it served — that principle is core vision.
   narrow every codec decode (`expect=` or `assert isinstance`); pyright
   in the repo's ci.sh (the sema-aligned hook reminds at write time).
   Where no word covers a fact yet, hand-code it WITH a note naming the
-  missing word that retires it. The tell that vocabulary is missing or
-  unused: code that scrapes or hand-maps instead of looking up.
+  missing word that retires it — and "no word" is a checked fact, not
+  an assumption: search the registry (`sema/definitions/`) first, since
+  a word that exists gets vendored into the snapshot seed, never noted
+  around. The tell that vocabulary is missing or unused: code that
+  scrapes or hand-maps instead of looking up.
+- **Sema gravity applies below the word layer.** Interior structures
+  with no word yet — kind-specific result files, analysis
+  intermediates, provenance records — follow the same discipline one
+  level down. Every record is a typed structure (`NamedTuple` or
+  equivalent) with a docstring saying what its fields hold; ad-hoc
+  dict records are the antipattern, and dict form appears once, at
+  the serialization boundary (`to_jsonable`/`to_dict`). Homogeneous
+  mappings of typed values are fine. Property formats attach wherever
+  a value is vocabulary-shaped — record fields, mapping keys, and
+  module constants alike (`dict[LeftRightDot, WindowReport]`;
+  constants validated through a `TypeAdapter` at load). Timestamps
+  take the coarsest sufficient time format (`UTCSeconds` when seconds
+  are enough), never bare epoch floats. A boundary validator SHALL
+  return the format type: validating and then returning `str` strips
+  the type at every call site. Each such record carries the note
+  naming the missing word that retires it.
 - **No dead code, no assumed defaults** — when a refactor orphans a symbol,
   delete it in the same change. Do not introduce a default that hides a value
   the caller must declare — make it required, sourced from a `names` constant.
