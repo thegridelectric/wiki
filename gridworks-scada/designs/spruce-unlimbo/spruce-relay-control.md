@@ -1,6 +1,6 @@
 # Spruce relay control — chunk A execution (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-07-29 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-08-11 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke — get the scada actuating spruce's i2c relays, with
 > the heat pump under a single reliable on/off relay. Design-side record only. Everything
@@ -10,11 +10,20 @@ Status: Draft · Pass 0 · Updated 2026-07-29 · Linear: OPS-392
 > field log live on **[GRI-11](https://linear.app/gridworks/issue/GRI-11/spruce)** (the
 > per-home issue; field events = comments).
 
-## ▶ Next move (active spoke)
+## State (2026-08-10)
 
-**NOW: the reader→bus build, shaken down on the bench.** The honeysuckle
-boot harness works (run log below) — the next move is moving the thermistor
-reader's ADS reads onto `I2cBus` ops (the single-bus-owner build, sharpened
+**The reader→bus build is verified on the bench and on the box**
+(bench run logs below; the spruce window 2026-08-11,
+`experiments/2026-08-10-ads-declared-rate/`). The continuation — the
+relay + DAC actuation path and the hack takeover — is sequenced in
+[`summer-local-control.md`](summer-local-control.md) and modeled in
+[`zone-relays-and-thermostat-model.md`](zone-relays-and-thermostat-model.md).
+This spoke keeps the code-survey pins, the bench/boot reproducers, the
+relay roster, and the spruce-window safety arrangement that work rides
+on.
+
+The honeysuckle boot harness works (run log below) — the reader's ADS
+reads run over `I2cBus` ops (the single-bus-owner build, sharpened
 in the scada lane below), re-running the same bounded bench boot after each
 step as the verification. Two routes to real temperature values: wire bench
 thermistors (or divider jumpers) on honeysuckle, or a spruce box window —
@@ -35,10 +44,8 @@ artifacts on the pi at `~/.config/gridworks/scada/hardware-layout.json`
 `d1.bench.honeysuckle.scada` — verbatim the tlayouts `output/honeysuckle/`
 files, md5-checked 2026-07-29):
 
-1. Push `jm/spruce-unlimbo` — three local-only commits as of 2026-07-29
-   (`75746bfe`, `58c3d08d`, `822dbab7`); then on honeysuckle: fetch +
-   checkout that branch in `~/gridworks-scada` (sits on dev `8a0e1689`
-   today).
+1. `jm/spruce-unlimbo` is pushed (tip `7b734d85`, 2026-08-10); on
+   honeysuckle: fetch + checkout that branch in `~/gridworks-scada`.
 2. Venv: the pi's existing venv imports gwproactor/gwproto cleanly
    (checked 2026-07-29); rebuild only if the branch's requirements
    diverge — `tools/mkenv.sh gw_spaceheat/requirements/dev.txt
@@ -97,12 +104,12 @@ every TOU boundary a free witnessed test. Then: the ctrl-box CT lands (channel
 `hp-ctrl-box-pwr`) and the spruce layout regen picks it up (gen_spruce.py in tlayouts).
 Queued field items (2026-08-04): the eGauge register-map fix is its own design
 ([OPS-483](https://linear.app/gridworks/issue/OPS-483)). Same visit: restore FSV
-2091=1, re-land the secondary-pump 0-10V on a healthy DAC channel (or replace
-dac3), swap the secondary-BTU pico.
+2091=1, swap the secondary-BTU pico. (The secondary-pump 0-10V re-landed on
+the Z6 DAC output — dac2 channel_c — 2026-08-10, EEPROM defaults written.)
 
 **Scada (the I2cBus build, on `jm/spruce-unlimbo`):** the single-bus-owner data model is
 landed (sema `e9b050f`, scada `75746bfe` — the board record owns the physical facts; the
-reader resolves via `AdcName`; `75746bfe` is local-only — push before any box pull).
+reader resolves via `AdcName`).
 What remains is the bus-op path itself, sharpened by the 2026-07-22 code survey:
 
 - `I2cBus` already consumes `I2cWriteBit`/`I2cReadBit` and echoes `TriggerId` on
@@ -130,21 +137,25 @@ see the 2026-07-23 update below). The arrangement that keeps this safe:
   isolation is credential-structural, per the `.env` note above). This keeps the
   staging layout tier inside its dev-brokers-only boundary. Prod-affecting steps on the pi (stopping services, placing env files) are
   JM's to execute; the session preps commands + a watch-list.
-- **One ADS reader at a time.** The deployed `actual-spruce` scada is STOPPED during
-  experiment windows — ADS1115 reads are multi-transaction with per-device state, so
-  two readers on the same ADC corrupt each other. The summer hack never touches the
-  ADS chips, so hack + experiment are disjoint on the bus.
-- **The experiment's `I2cBus` touches ONLY the ADS devices.** No expander access (the
-  OPS-452 clear-then-configure init-guard would stomp the hack's relay states — the
-  init-guard is built but enabled only for devices the actor owns, ADS in this phase)
-  and no TCA9548A mux access (the documented shared-state hazard). Today this
-  boundary is convention — the reader is the only op producer and it only
-  addresses its ADS; the bus actor executes an op at any address. Before any
-  spruce window the bus actor gets an owned-address allowlist from the
-  layout's board record and refuses ops outside it (the natural home for the
-  OPS-452 init-guard when the relay phase lands).
-- **Cooling continuity is never in the experiment's hands** — the summer hack stays
-  untouched as the TOU/failsafe authority throughout.
+- **Window protocol (simplified 2026-08-10): stop EVERYTHING that touches
+  the bus.** The deployed `actual-spruce` scada (+ its restart watchdog)
+  AND the summer hack are stopped for the window — nothing shares the
+  bus, so no coexistence machinery is needed. The hack's exit failsafe is
+  the safe posture (contacts open, HP off, zone holds latched); cooling
+  pauses for the window, and the transient failsafe timer restores both
+  services even on a dropped connection. (The earlier hack-coexistence
+  arrangement with an owned-address allowlist was retired as overcareful;
+  the allowlist idea survives re-scoped as layout-address validation on
+  `I2cBus` — a next-version addition in `summer-local-control.md`.)
+- **The experiment env MUST set its own paths name, not just its own
+  layout path** (2026-08-11 window catch). Overriding only
+  `SCADA_PATHS__HARDWARE_LAYOUT` leaves the event persister shared with
+  the deployed scada (`~/.local/share/gridworks/scada/event/`): with no
+  LTN on the dev broker the window's events queue there, and the
+  deployed scada uploads them to the PROD broker as its own on restart —
+  a hole in the credential-structural isolation. The window's events
+  were archived to the experiment folder and removed from the box before
+  restart; future window envs separate the paths root.
 - **Relay-path actuation experiments do NOT ride this arrangement.** They need
   deliberate, scheduled hack-off windows (failsafe direction is safe: contacts open,
   HP off, cooling pauses) or a working bench board; the OPS-452 half-2 induced-reset
@@ -352,6 +363,36 @@ hack and the scada's ADS reads from corrupting each other today; the one genuine
 shared-state device is the **TCA9548A DAC mux** (channel select is global bus state), so
 while the hack runs, manual DAC use from a second process (the interactive
 `gw108_test_code` session) is the collision to avoid.
+
+## The spruce relay roster (hack parity, 2026-08-11)
+
+The relay nodes the layout gen must emit for the scada to take over
+`spruce_summer_hack.py`, named without any invented board index (the
+component record carries chip/port/bit — `gw108-board.md`):
+
+- **Zone pairs (0x20), wired zones 1–5:** `zone<n>-<name>-failsafe-relay`
+  (port 0 bit n−1) + `zone<n>-<name>-ops-relay` (port 1 bit n−1),
+  function enum `ZoneCallSource` (`WallThermostat | Scada`, the
+  season-neutral rename). Zone 6 unwired ⇒ no nodes; the board record
+  still carries the position. Hack parity commands holds on 1/2/4
+  only.
+- **`hp-scada-ops-relay`** (0x21 port 0 bit 0) — fleet role name kept
+  verbatim; the season-neutral call contact.
+- **`iso-valve-relay`** (0x21 port 1 bit 2, energized = OPEN, fails
+  closed) — needs a valve-flavored function enum (open/closed, not
+  generic relay-closed); name open. OPEN: is `iso-valve-failsafe`
+  (port 1 bit 1) field-wired at spruce? Wired ⇒ node; unwired ⇒
+  board-record-only.
+- **`secondary-pump-relay`** (0x21 port 1 bit 5) — the pump on/off
+  authority; speed is the DAC writer (dac2 channel_c), never zeroed.
+- **OPEN — wired inventory for the rest of 0x21** (buffer/store
+  elements, boiler-buffer-valve, boiler-intercept, primary-pump,
+  store-pump, discharge-valve, fcm-misc, misc-relay1/2): each needs a
+  wired-or-not fact (JM/George) before the gen emits it; only-wired
+  positions get nodes.
+
+Per-relay config rides the existing staging words
+(`i2c.relay.component.gt` + the `relay.actor.config` family).
 
 ## Field facts (GridWorks side)
 

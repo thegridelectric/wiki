@@ -1,6 +1,6 @@
 # gw108 board documentation (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-08-10 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-08-11 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke holding the gw108 board facts the relay
 > port needs — schematic-verified signal chains, the expander map, and the
@@ -41,6 +41,16 @@ Two consequences:
 **All six zone optos exist on the board** (`NZONE1–6_W_3V3`, BCM GPIO
 17/27/22/10/9/11). The unlimbo layout gen (`gw108_nolan_zones.py`) maps only
 zones 1–4 — zones 5/6 fold in at the port.
+
+**Silkscreen labels (2026-08-11):** the zone terminals are labeled
+"Zone Controls" with R and W per Z1–Z6, and "Zone 0-10V Analog
+Outputs" with + and − per Z1–Z6. R/W is heating-thermostat
+convention — serviceable for a cooling call, but not great. The
+upcoming board rev (the one addressing the i2c bus power issues) can
+relabel; with zone = thermal space and zone-call-circuit = the
+board-position chain (the design's naming split), the Z1–Z6 positions
+are circuit numbers, not zone numbers, and the silkscreen could say
+so.
 
 ## Expander map
 
@@ -100,13 +110,13 @@ reprograms, and re-verifies (requirement in the provisioning doc).
 per-conversion config word, so it rides the thermistor-reader component
 config, not chip provisioning. The semafy carries it on three levels: the
 chip's supported data-rate menu (8–860 SPS) as an ADS1115 device-type
-fact; the operational choice (16 SPS, 2 Hz poll — decision 2026-08-10,
-provisioning doc) as component-record fields; and the SPS ↔ poll-rate
+fact; the operational choice (8 SPS, 1 Hz poll — provisioning doc) as
+component-record fields; and the SPS ↔ poll-rate
 coupling as an axiom on the component word (per-chip sweep time —
 channels × conversion + overhead — bounded by a slack fraction of the
 poll period).
 
-## Relay naming + the zone state machine (open decisions for the port)
+## Relay naming + the zone state machine (settled 2026-08-11)
 
 House0 precedent (`layout_gen/relay.py`): per zone a
 `zone<n>-<name>-failsafe-relay` (DoubleThrow; de-energized =
@@ -114,17 +124,26 @@ House0 precedent (`layout_gen/relay.py`): per zone a
 (`RelayClosedOrOpen`), plus `hp-scada-ops-relay` for the HP contact — the
 gw108 realizes all of these.
 
-- **Open: rename `HeatcallSource` in the port's vocabulary.** The enum names
-  a season-neutral mechanism — the same relay pair carries spruce's cooling
-  calls (zone5 fancoil) — so "heat call" over-specifies. Candidate:
-  `ZoneCallSource` (`WallThermostat | Scada`). The rename lands in the new
-  vocabulary at the port; House0's legacy enum stands until that layout
-  regenerates.
-- The natural derived per-zone state, combining ownership with the
-  upstream white-wire sense: `WallThermostat-Idle` ·
-  `WallThermostat-Calling` (zone active) · `ScadaHeld` (calls ignored) ·
-  `ScadaCalling`. Field prototype of both naming and states:
-  `starter-scripts/spruce_status.py` (read-only gw108 state check).
+Both decisions settled in
+[`zone-relays-and-thermostat-model.md`](zone-relays-and-thermostat-model.md):
+the enum renames to `ZoneCallSource` (`WallThermostat | Scada`) —
+season-neutral, since the same relay pair carries spruce's cooling
+calls (House0's legacy `HeatcallSource` stands until that layout
+regenerates) — and the four-value view (`WallThermostat-Idle` ·
+`WallThermostat-Calling` · `ScadaHeld` · `ScadaCalling`) is a DERIVED
+channel (circuit FSM state × white-wire sense), not an FSM state.
+Field prototype of both: `starter-scripts/spruce_status.py` (read-only
+gw108 state check).
+
+## Open
+
+- **Declare the eGauge poll period on the spruce eGauge component.** The
+  pico-blackout postmortem's timing argument
+  (`experiments/2026-08-10-hp-snafu-and-pico-blackout-postmortem/`) had to
+  infer ~1 s read cadence from observed sample spacing; the poll period
+  is an operational choice that belongs on the component record, the
+  same pattern as the ADS 8 SPS / 1 Hz choice above. Once declared,
+  reading staleness is a citable bound instead of an inference.
 
 ## Where this content lands
 

@@ -12,23 +12,20 @@ gates on
 
 ## ▶ DO THIS NOW
 
-**Step 0 — snapshot + gwbase update.** On a `jm/` branch in
-`gridworks-weather-forecast`: bring the repo from gwbase 0.4.0 to
-latest (0.5.8), and vendor the sema snapshot carrying the
-`gw.weather.*` words (staging ⇒ `--allow-staged`) — the snapshot lands
-BEFORE the first consumer line, per the sema-boundary maxim.
-Done-when: the gwwf suite is green importing the vendored words, and a
-`gw.weather.observation` instance round-trips through the vendored
-codec in a test.
+**Step 1 — EDD witness: dev-broker observation round trip.** gwwf
+publishes one `gw.weather.observation` over RabbitJsonBroadcast on
+`gw-dev-rabbit` (channel slug in the routing key — pin how the LRD
+channel name renders into the slug against the gwbase spec here); a
+harness consumer binds the slug and decodes through the snapshot.
+Done-when: witnessed decode, harness kept as reproducer.
 
 ## Ordered steps
 
-0. **Snapshot + gwbase update** (above).
-1. **EDD witness: dev-broker observation round trip.** gwwf publishes
-   one `gw.weather.observation` over RabbitJsonBroadcast on
-   `gw-dev-rabbit` (channel slug in the routing key); a harness
-   consumer binds the slug and decodes through the snapshot.
-   Done-when: witnessed decode, harness kept as reproducer.
+0. ✅ DONE **Snapshot + gwbase update** (branch `jm/gwwf-standup`):
+   gwbase 0.5.8, snapshot with the `gw.weather.*` words vendored,
+   suite + ruff green, both message words round-trip through the
+   vendored codec in tests.
+1. **EDD witness: dev-broker observation round trip** (above).
 2. **NWS adapters.** Observation fetch (KMLT, newest-first — the
    legacy oldest-in-window defect is the anti-pattern) and gridpoint
    hourly forecast fetch. Start the `updateTime` logging probe (a day

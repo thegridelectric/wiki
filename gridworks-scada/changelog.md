@@ -12,6 +12,45 @@ Newest at the top.
 
 ---
 
+## 2026-08-10 — GNodeGt mirror to g.node.gt/006 (`7b734d85`)
+
+**What:** on `jm/spruce-unlimbo`: the `GNodeGt` named type moves to
+published `g.node.gt/006` — Version literal + axiom 2 now
+activation-conditioned (an Active physical GNode must carry
+`PositionPointId`; a Pending one may be locationless). Every test
+fixture's embedded 005 GNodes flipped to 006 (all fleet layout + ops
+fixtures).
+
+**Why:** the regenerated tlayouts artifacts carry 006 GNodes (sema
+published 006 on 2026-08-06); the 005-pinned mirror refused them at
+boot — found by the honeysuckle bench boot of the
+ads-declared-rate experiment, exactly the kind of catch the
+pre-promote ladder exists for.
+
+## 2026-08-10 — gwsproto mirrors: i2c mux, DAC EEPROM defaults, ADS data rates (`87c1768f`)
+
+**What:** on `jm/spruce-unlimbo`, mirroring sema `1d02655`. New named
+types `I2cMux`, `I2cDacChannelConfig`, `I2cDacWriterComponentGt` +
+enums `I2cMuxType`, `I2cDacChannel`, `I2cDacVref`. `I2cDacCapability`
+gains optional `MuxName`/`MuxChannel` + the MuxPairing axiom;
+`I2cThermistorInterfaceCapability` gains required
+`SupportedDataRatesSps`; `I2cThermistorReaderComponentGt` gains
+required `DataRateSps`; `ScadaDeviceTypeGt` gains `Muxes`, folds
+muxes into BusMembership + BoardIdentifierUniqueness, and adds the
+three-clause MuxConsistency axiom. The gw108 board record
+(`scada_gw108.py`) and the nolan test layout gain the new required
+facts (`DataRateSps: 8` — the 8 SPS @ 1 Hz decision,
+`wiki/hardware/gw108-provisioning.md`).
+
+**Why:** step 2 of running the summer hack through the scada on the
+sema-fied layout: the wire contracts must say what the hack knows —
+which DAC the secondary pump rides (dac2 behind mux channel 2), the
+EEPROM power-on defaults the scada will verify at startup, and the
+ADS data rate as declared configuration instead of the adafruit
+default.
+
+---
+
 ## 2026-08-05 — minor (`e5d879ef`)
 
 **Why:** Repo files stand alone, and the docstring's pointer at "the

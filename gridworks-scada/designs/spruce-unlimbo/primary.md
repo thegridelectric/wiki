@@ -1,30 +1,39 @@
 # Spruce un-limbo (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-07-15 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-08-11 · Linear: OPS-392
 
 **EDD: yes** bench (honeysuckle) and box harness runs are the verification;
 spokes reach Verified only when an experiment runs against the real bus or a
 real broker.
 
-**▶ Active spoke: [`spruce-relay-control.md`](spruce-relay-control.md)**
+**▶ Active spoke: [`zone-relays-and-thermostat-model.md`](zone-relays-and-thermostat-model.md)**
 
 > What this is: the hub for un-limboing the spruce scada integration —
 > getting the branch that runs Matt Polstein's house (the Nolan layout)
 > out of limbo and onto a path that merges to main without breaking the
 > House0 fleet. Grew out of Jessica's 2026-06-09 seed; the seed's
-> *Reported* items have now been verified or corrected (below). Spokes:
-> `spruce-relay-control.md` (chunk A execution: scada actuating spruce's
-> i2c relays); `summer-local-control.md` (the scada takes over the summer
-> hack: TOU cooling + a Critical glitch when the HP does not actually
-> start); `both-cases-survey.md` (verified survey of layout gen,
-> testing, and local control for both house cases); `hello-world.md`
-> (first plan step: LTN ↔ SCADA over dev rabbit, consumed by a dev JK);
-> `admin-for-nolan.md` (admin UI sees and operates a Nolan house);
-> `gw108-board.md` (schematic-verified board facts: zone signal chain,
-> expander map, relay naming/state-machine decisions for the port).
-> The simulated-actors spoke moved to the simulated-test-environment
-> design (2026-06-11, harness elevated to the top); the merge gate's
-> "testing green for BOTH" now rides that harness.
+> *Reported* items have now been verified or corrected (below).
+
+## Spokes
+
+- `gw108-board.md` — schematic-verified board facts: zone signal
+  chain, expander map, DAC/EEPROM (living reference)
+- `spruce-relay-control.md` — chunk A execution: scada actuating
+  spruce's i2c relays (reader→bus verified; relay path + roster
+  remain)
+- `summer-local-control.md` — the scada takes over the summer hack:
+  TOU cooling + behavioral glitches (ADS experiment gate met)
+- **`zone-relays-and-thermostat-model.md` — the zone / circuit /
+  thermostat model (active)**
+- `admin-for-nolan.md` — admin UI sees and operates a Nolan house
+- `hello-world.md` — LTN ↔ SCADA over dev rabbit, consumed by a dev JK
+- `gleanings.md` — residual live content from closed spokes
+  (both-cases survey · layout-augments carry/skip · gw.nolan.layout
+  closing)
+
+The simulated-actors spoke moved to the simulated-test-environment
+design (2026-06-11, harness elevated to the top); the merge gate's
+"testing green for BOTH" rides that harness.
 
 ## The commitment (the deadline driver)
 
@@ -71,11 +80,10 @@ July 15" doesn't become "never."
   (House0 relay actuation disabled — next section).
 - **`jm/spruce-unlimbo`** — created 2026-06-10 off `td/orig-pred-set`:
   the working branch for this design.
-- **Glean from `jm/spruce-new`:** exactly 2 commits, cherry-picked onto
-  `jm/spruce-unlimbo`: `62bc7218` (scada.py docstring), `2b603cc0`
+- **Gleaned from `jm/spruce-new`:** exactly 2 commits, cherry-picked
+  onto `jm/spruce-unlimbo`: `62bc7218` (scada.py docstring), `2b603cc0`
   (ChannelConfigBase + RelayActorConfig / I2cThermistorChannelConfig
-  version bumps + named-type tests). After that, `jm/spruce` and
-  `jm/spruce-new` can be deleted.
+  version bumps + named-type tests).
 - **`jm/layout-augments`** — chunk B's glean source (pushed to origin
   2026-06-10): the `gwsproto/names/` progression (core / house0 /
   hydronic_spaceheat / nolan node+channel names), preliminary nolan
@@ -86,9 +94,10 @@ July 15" doesn't become "never."
   later), `jm/pred-set`, `jm/maple-hack`, `jm/spruce`, `jm/spruce-new`
   (fully gleaned), `jm/scada-control` (capability-type sketch mined into
   the capability-protocol-and-verify design first).
-- **tlayouts** sits on a local-only lock-step `jm/spruce` branch (dirty);
-  its `main` pairs with House0-era scada, its `jm/spruce` pairs with the
-  spruce line. See the survey spoke for the coupling details.
+- **tlayouts** rides a lock-step `jm/spruce` branch (sema-native,
+  pushed to origin since 2026-08-03); its `main` pairs with House0-era
+  scada, its `jm/spruce` pairs with the spruce line. Coupling details
+  in `gleanings.md`.
 - Sema `jm/nolan` holds the draft `gw.nolan.layout` type (2 commits ahead
   of sema dev).
 
@@ -143,7 +152,9 @@ Three things are currently conflated and must be separated cleanly
    scheme: Nolan has capabilities House0 lacks (resistive backup
    elements, fan coils, heat-exchanger pump) and lacks ones House0 has
    (store charge/discharge across three tanks, Honeywell setpoint
-   write). The capability-protocol-and-verify design ([OPS-394](https://linear.app/gridworks/issue/OPS-394)) defines
+   reading via Hubitat — reading only; no setpoint write path has ever
+   existed, verified 2026-08-11). The capability-protocol-and-verify
+   design ([OPS-394](https://linear.app/gridworks/issue/OPS-394)) defines
    the vocabulary; this design adds: the vocabulary is **per-layout
    subsetted**, not universal.
 2. **Capability → mechanism binding** — *what an intent means on this
@@ -162,24 +173,23 @@ three axes explicitly; control states speak only axis 1.
 
 ## Chunks (revised from the seed)
 
-- **A — i2c relays:** largely *done on the branch* (i2c bus, relay
-  board, Gw108 in `td/orig-pred-set`); what remains is restoring the
-  House0 path and making the path choice layout-driven (axis 3).
+- **A — i2c relays:** the reader→bus path is window-verified
+  (2026-08-11); what remains is the relay path riding the bus
+  (`spruce-relay-control.md`: five gaps + roster), restoring the
+  House0 path, and making the path choice layout-driven (axis 3).
 - **B — layout pipeline:** `gw.nolan.layout` + `house0.layout` as Sema
   types; retire tlayouts' lock-step branching; fold in the
-  `jm/layout-augments` rework. [OPS-334](https://linear.app/gridworks/issue/OPS-334) ("80% done") lives here.
-  **Spoked (2026-06-11):** `layout-augments-fold.md` (curated carry/skip for
-  the fold — the one to carry is `DerivedChannelGt` v002) and
-  `nolan-layout-sema.md` (closing `gw.nolan.layout`, back-burner).
-- **C — branch reconciliation:** collapsed to: glean `jm/spruce-new`
-  (in flight) + `jm/layout-augments` onto `jm/spruce-unlimbo`, kill the
-  rest, merge dev forward regularly.
+  `jm/layout-augments` rework (carry/skip judgment + the
+  `gw.nolan.layout` closing plan: `gleanings.md`). [OPS-334](https://linear.app/gridworks/issue/OPS-334) ("80% done") lives here.
+- **C — branch reconciliation:** `jm/spruce-new` gleaned; remaining:
+  fold `jm/layout-augments`, merge dev forward regularly.
 - **D — Nolan local control:** today observation-only (SetpointPhase
-  learning, heat-call sensing — see survey spoke). The control loop that
-  *uses* predicted setpoints is unwritten; written against the [OPS-394](https://linear.app/gridworks/issue/OPS-394)
-  capability surface from day one. [OPS-219](https://linear.app/gridworks/issue/OPS-219) lives here.
-- **E — minimal AC path by July 15:** smallest subset of A+D that honors
-  the commitment, running on the branch (not gated on the merge gate).
+  learning, heat-call sensing). The control loop that *uses* predicted
+  setpoints is unwritten; written against the [OPS-394](https://linear.app/gridworks/issue/OPS-394)
+  capability surface from day one — the zone slice of that surface is
+  settled in `zone-relays-and-thermostat-model.md`. [OPS-219](https://linear.app/gridworks/issue/OPS-219) lives here.
+- **E — minimal AC path (was: by July 15):** resolved as the summer
+  hack on the box; its scada takeover is `summer-local-control.md`.
 
 ## The meta-goal (why this is vision-grade, not a chore)
 
@@ -197,13 +207,11 @@ first proof.
 
 ## Open
 
-- Run the glean cherry-picks; delete `jm/spruce*` branches after.
-- Glean review of `jm/layout-augments` (the layout-gen rework).
-- Task list with the July-15 critical path explicit; fold [OPS-219](https://linear.app/gridworks/issue/OPS-219) +
-  [OPS-334](https://linear.app/gridworks/issue/OPS-334) in; propose the Linear issue set (design tag on this hub when
-  Accepted).
+- Fold `jm/layout-augments` (carry/skip judgment in `gleanings.md`).
 - The capability-set / binding / hardware model above needs a worked
-  draft against both layouts (joint with [OPS-394](https://linear.app/gridworks/issue/OPS-394)'s capability list).
+  draft against both layouts (joint with [OPS-394](https://linear.app/gridworks/issue/OPS-394)'s capability list) —
+  the zone slice is drafted (`zone-relays-and-thermostat-model.md`);
+  plant and store capabilities remain.
 - Executor write-up: the durable architecture facts found here
   (layout-strategy routing, relay actuation paths, test-layout
   selection) belong in `wiki/gridworks-scada/executor/` as they verify.

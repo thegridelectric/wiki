@@ -14,6 +14,17 @@ Newest at the top.
 ---
 
 <!-- pending commit -->
+## 2026-08-11 — align aliases + logging with the service pattern
+
+Conform to the settings/logging pattern journalkeeper landed on gwbase
+0.5.x: `service_alias` gets a dev default (`d1.weather.dev`, matching
+the dev identity file) with env override, `service_name` becomes
+`weather-forecast` so logs/state land under the service's own XDG
+segment instead of the generic `gridworks` one, and the actor logs
+through the per-actor rotating logger `ActorBase` builds (bijective
+human format, XDG state-home) — `logging.basicConfig` and the
+module-level logger leave `__main__`/the actor.
+
 ## 2026-08-11 — vendor gw.weather snapshot; gwbase 0.5.8
 
 Step 0 of the stand-up-weather-forecast build: the sema snapshot
@@ -24,9 +35,12 @@ framework. The seed keeps legacy `weather` alongside the new words —
 the actor still publishes it until the emission scheduler lands; it
 leaves the seed when the last legacy import goes. Staging words ⇒
 `--allow-staged` dev-only snapshot; promotion to published gates the
-prod deploy, not the build. Done-when: suite green importing the
-vendored words; a `gw.weather.observation` instance round-trips
-through the vendored codec in a test.
+prod deploy, not the build. The 0.5.8 port surface: `transport_class`
+moves from settings to the actor constructor (intrinsic to the role,
+not deployment config), `service_alias` is env-declared and boot-bound
+to the g.node.gt identity file (gitignored, now sema-validated at
+construction). Done-when met: suite + ruff green; both message words
+round-trip through the vendored codec in tests.
 
 ## 2026-07-18 — add sample weather json from legacy weather
 

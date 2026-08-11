@@ -1,6 +1,6 @@
 # Admin works well for Nolan
 
-Status: Accepted · Pass 1 · Updated 2026-06-10 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-08-11 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke — make the gridworks-admin UI a
 > first-class way to see and hand-operate a Nolan-layout house, as it is
@@ -112,6 +112,14 @@ gap.
 
 ## Open
 
+- **The governance-dial altitude (2026-08-11):** a second admin mode
+  where the circuit machines stay awake and admin issues
+  `SetGovernance` per circuit (`StatRules | Off |
+  Thermostatic(+setpoint)`) — safety by construction (raw relay admin
+  can express the cold-water mistake; governance admin cannot), and
+  the journal records intent, not pin flips. Raw relay mode remains
+  for bring-up. Model:
+  `zone-relays-and-thermostat-model.md` "Admin: two altitudes".
 - Does admin currently crash, render empty, or partially work against
   `nolan-layout.json`? Nobody has pointed admin at a Nolan scada yet —
   unsurprising while the pico cycler is the only scada-controlled relay.

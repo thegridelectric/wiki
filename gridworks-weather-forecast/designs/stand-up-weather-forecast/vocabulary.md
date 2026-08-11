@@ -220,8 +220,8 @@ the channel-name segment derives from it: `…millinocket.windspeed`).
 
 ## Authoring state
 
-The word set is authored (staging, `sema` branch
-`jm/gw-weather-words`): `gw1.quantity` 002 (adds WindSpeed);
+The word set is authored (staging, on sema `dev` at `origin/dev`):
+`gw1.quantity` 002 (adds WindSpeed);
 `gw.weather.forecast.fidelity` (Unknown default as the enum-coercion
 target; Live | Stored | SeasonalTemplate); the record words
 `gw.weather.channel.gt`, `gw.weather.forecast.channel.gt`,
@@ -233,5 +233,5 @@ validators implemented with counterexample fixtures; suite green.
 Missing-word note carried in the location record: an IANA-timezone
 format would retire the hand-validated Timezone field.
 
-Next for this spoke's scope: vendor the snapshot into
-gridworks-weather-forecast — step 0 of [`build.md`](build.md).
+The snapshot is vendored into gridworks-weather-forecast
+([`build.md`](build.md) step 0).

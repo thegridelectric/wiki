@@ -6,38 +6,38 @@ Status: Draft · Pass 0 · Updated 2026-08-10
 > board needs before deployment, and the settings decisions behind the
 > defaults — the things a fresh board or a board rework must get right.
 
-## ADS1115 thermistor path: 16 SPS, 2 Hz poll, no software averaging
+## ADS1115 thermistor path: 8 SPS, 1 Hz poll, no software averaging
 
-The chosen configuration for the zone-thermistor read path is 2 Hz
-polling with single-shot conversions at 16 SPS (SPS = samples per
-second, set in the config word of every conversion; 128 SPS is the
-chip default). At 16 SPS each conversion integrates ~62 ms inside
-the chip: hardware averaging with no software state, no EMA. The
-data rate is not persistent chip state, so nothing on the chip needs
-provisioning — this section records the decision (2026-08-10). Basis
-(the ads-noise experiment, spruce wired thermistors): slower data
-rates cut electrical noise by in-chip integration while faithfully
-rendering real slow signal — a thermistor mounted near a fan coil
-shows *higher* sd at slow rates because known real temperature
-variation is being caught, which is exactly what a zone temperature
-reader is for. 16 SPS carries 8× the integration of the 128 default;
-its noise floor sits about √2 above the experiment's measured 8 SPS
-floor (white-noise scaling, verified by the experiment's EMA
-arithmetic), well below the 0.5 °C async threshold.
+The chosen configuration for the zone-thermistor read path is 1 Hz
+polling with single-shot conversions at 8 SPS — the chip's slowest
+data rate (SPS = samples per second, set in the config word of every
+conversion; 128 SPS is the chip default). At 8 SPS each conversion
+integrates ~125 ms inside the chip: hardware averaging with no
+software state, no EMA. The data rate is not persistent chip state,
+so nothing on the chip needs provisioning — this section records the
+decision. Basis (the ads-noise experiment, spruce wired thermistors):
+vs 128 SPS raw, 8 SPS cuts electrical noise ~40 % on quiet channels
+while faithfully rendering real slow signal — a thermistor mounted
+near a fan coil shows *higher* sd at 8 SPS because known real
+temperature variation is being caught, which is exactly what a zone
+temperature reader is for.
 
 **The SPS ↔ poll-rate coupling.** A chip's channels share its input
 mux, so a sweep serializes: sweep time ≈ channels × (1000/SPS +
 gated-read overhead) ms — measured 135 ms/read at 8 SPS, 16 ms at
 128 (overhead ~10 ms). The operational pair must leave slack: at
-16 SPS a 4-channel sweep is ~290 ms of the 500 ms poll period
-(~58 % occupancy); 8 SPS at 2 Hz would exceed the period outright.
-At the semafy this coupling becomes an axiom on the thermistor-reader
-component word — sweep time bounded by a slack fraction of the poll
-period, with the arithmetic explicit; the slack constant and the
-overhead figure settle at word authoring. The chip's supported
-data-rate menu (8/16/32/64/128/250/475/860 SPS) is an ADS1115
-device-type fact; the operational choice (16 SPS, 2 Hz) lives on the
-component record and must satisfy both the menu and the axiom.
+8 SPS a 4-channel sweep is ~540 ms of the 1000 ms poll period
+(~54 % occupancy); a 2 Hz poll would exceed the period outright and
+needs 16 SPS (~290 ms of 500 ms), the fallback if a faster poll is
+ever wanted. In sema the coupling is a layout axiom (sweep time ≤
+0.6 × the minimum poll period, ~10 ms overhead —
+ThermistorSweepFitsPoll, stashed with `gw.nolan.layout`'s deferred
+axioms). The chip's supported data-rate menu (8/16/32/64/128/250/
+475/860 SPS) is carried as `SupportedDataRatesSps` on the board
+record's thermistor interface capability; the operational choice
+(8 SPS, 1 Hz) is `DataRateSps` on the reader component plus
+`PollPeriodMs` on the zone channels, and must satisfy both the menu
+and the axiom (ThermistorReaderMenuMembership).
 
 **One ADS master at a time.** Any bench or diagnostic tool that reads
 an ADS SHALL run with the scada (and anything else that reads that
@@ -73,5 +73,8 @@ what makes the mismatch check possible.
 prints each chip's register + EEPROM state before and after
 programming.)
 
-Fleet state: spruce's DACs have not had EEPROM defaults written yet —
-that step is on the field-visit checklist (OPS-487).
+Fleet state (2026-08-10): spruce dac2 — the Z6 zone DAC, carrying the
+secondary pump since the rewire — has EEPROM defaults written
+(`starter-scripts/program_dac_eeprom.py`, the hand-run form). dac1 is
+unwritten; dac3's i2c interface is dead and cannot be programmed.
+Remaining boards ride the field-visit checklist (OPS-487).
