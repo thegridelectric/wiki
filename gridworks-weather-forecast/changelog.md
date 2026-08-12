@@ -13,34 +13,132 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-08-11 — align aliases + logging with the service pattern
+## 2026-08-12 — records enter by create command over the bus <!-- pending commit -->
 
-Conform to the settings/logging pattern journalkeeper landed on gwbase
-0.5.x: `service_alias` gets a dev default (`d1.weather.dev`, matching
-the dev identity file) with env override, `service_name` becomes
-`weather-forecast` so logs/state land under the service's own XDG
-segment instead of the generic `gridworks` one, and the actor logs
-through the per-actor rotating logger `ActorBase` builds (bijective
-human format, XDG state-home) — `logging.basicConfig` and the
-module-level logger leave `__main__`/the actor.
+Record creation becomes a human act whose request crosses the wire
+as a sema word, on the gnr write pattern (`g.node.create.cmd` +
+ack/nack twins): `gwwf create <record.json>` sends the create
+command; the actor validates through the snapshot, inserts
+(insert-only — records are durable identities, never upserted; the
+seed's upsert retires), broadcasts the record once (radio tail = its
+own name; the bundle tail-less — the TypeName segment
+discriminates), and replies ack/nack correlated by the command's
+content hash. The ear witnesses command, verdict, and record into
+the immutable store — full provenance, and archived forecast
+messages can resolve the bundle active at their time (the forecast
+message carries no slice grid by design). `gwwf seed` + `records.py`
+are removed: no in-code record source; tests carry their own
+instances. Authority = the authenticated connection, with a `Proof`
+placeholder field reserved (gnr's posture). A broadcast-stamp column
+was considered and rejected: the DB rebuilds from code and the
+store, and a stamp is state rebuildable from nowhere. Broadcast
+mechanics witnessed on the dev broker
+(`experiments/2026-08-12-gwwf-record-broadcast/`).
 
-## 2026-08-11 — vendor gw.weather snapshot; gwbase 0.5.8
+## 2026-08-12 — stand up the weather service (`0b928b4`, merged to main via `4bdca5e`)
 
-Step 0 of the stand-up-weather-forecast build: the sema snapshot
-carrying the staged `gw.weather.*` words lands BEFORE the first
-consumer line (sema-boundary maxim), and the repo moves from gwbase
-0.4.0 to 0.5.8 so the service is built once against the current
-framework. The seed keeps legacy `weather` alongside the new words —
-the actor still publishes it until the emission scheduler lands; it
-leaves the seed when the last legacy import goes. Staging words ⇒
-`--allow-staged` dev-only snapshot; promotion to published gates the
-prod deploy, not the build. The 0.5.8 port surface: `transport_class`
-moves from settings to the actor constructor (intrinsic to the role,
-not deployment config), `service_alias` is env-declared and boot-bound
-to the g.node.gt identity file (gitignored, now sema-validated at
-construction). Done-when met: suite + ruff green; both message words
-round-trip through the vendored codec in tests.
+The whole OPS-436 standup, squashed to one commit before first push
+(2026-08-12) — the granular build history never ran anywhere, so the
+service arrives as a single unit on top of the pre-standup scaffold.
+The build's why, in build order:
+
+**Foundation.** The sema snapshot carrying the staged `gw.weather.*`
+words landed BEFORE the first consumer line (sema-boundary maxim);
+gwbase moved 0.4.0 → 0.5.8 so the service is built once against the
+current framework (`transport_class` to the actor constructor,
+`service_alias` env-declared and boot-bound to the gitignored
+`g.node.gt` identity file). Settings/logging conform to the pattern
+journalkeeper landed on gwbase 0.5.x: `service_name`
+`weather-forecast` (own XDG segment), per-actor rotating logger. Dev
+alias is `d1.weather` — the universe prefix already declares dev.
+Staging words mean an `--allow-staged` dev-only snapshot; `sema
+promote` gates the prod deploy, not the build.
+
+**NWS adapters.** The two pulls (KMLT observations, CAR/60,114
+gridpoint hourly) return validated snapshot instances — no dicts
+escape the fetch layer. Observation fetch walks newest-first: the
+legacy service took `features[-1]`, the OLDEST in its 2-hour window,
+and published ~2-hour-stale observations for its whole life (pinned
+by the archived fixture). `SourceUpdatedTime` binds the product's
+`updateTime` (the underlying-data stamp) — never `generatedAt`,
+which refreshes per render. Live-API tests are env-gated
+(`GWWF_LIVE_NWS=1`).
+
+**Emission scheduler.** Framework-free (`scheduler.py` + pure slice
+arithmetic in `grid.py`) with injected clock, fetchers, and publish
+hook; cadence comes entirely from the seed records, so a fast-record
+witness runs the same code at second-scale periods — nothing
+hardcodes an hour. Slice arithmetic walks `SliceDurationSList`
+natively (per-slice lengths may differ; NWS hourly uniformity stops
+at the adapter boundary). Observations: latest-only, silence when
+stale, ≤3 h linear interpolated replay on recovery
+(`Interpolated: true`). Forecasts: fidelity ladder live → stored;
+the seasonal-template rung is declared but unbuilt — reaching it
+glitches and skips (Open deviation from always-emit until a template
+source is chosen). Glitches broadcast the published `glitch` word:
+stale observation at publish, each fidelity downgrade. The legacy
+NWS poller and `weather` v000 publish are gone; the `weather` word
+stays vendored solely as the JK import's reference contract.
+
+**Vocabulary r2** (sema `f9c32d3`, `91b43f6` — see
+wiki/sema/changelog.md). Both message words hard-code temperature +
+wind speed; one observation message per location per slot
+(LocationAlias the radio channel, wind optional when the station
+reports none); one forecast message per BUNDLE per slot (BundleName
+the radio channel and the sign-up object; SourceUpdatedTime /
+MessageCreatedMs two-clock split). The bundle is the emission unit,
+so EmitPeriodS/EmitOffsetS live on it — forecast channels slim to
+series identity + slice structure. Forecast-channel slugs carry a
+shape tail (`…temperature.forecast.nws.hourly`): concurrent
+time-slice shapes are distinct channels; a future 5-minute product
+coexists rather than succeeds. Emission phase settled at :01 from
+the updatetime-probe verdict
+(`experiments/2026-08-11-nws-updatetime-probe/`): NWS freshness is
+issuance-driven (2–4 revisions/day) and phase-independent, so :30
+bought nothing and cost half the FLO randomness window; the hour is
+:00 observation → :01 forecast → FLO window.
+
+**Own database** (gnr pattern). SQLAlchemy 2.x rows mirror the sema
+GT records and load back AS validated records (bundle axioms fire on
+load — the service-side half of the bundle's consistency); alembic
+with a single collapsed pre-launch initial migration; compose dev
+postgres (gwwf-postgres, host 5436); testcontainers tests. gwwf is
+the DB's sole accessor — every other consumer goes through
+broadcasts or the API. Seeding is an explicit operator step; an
+unseeded DB refuses to boot; `records.py` is seed-source only.
+`ForecastSql` keeps every send-distinct message (uuid surrogate key,
+natural uniqueness on bundle + SourceUpdatedTime + FirstSliceStart);
+last-observation state survives a restart, so latest-only and
+recovery interpolation resume across deploys — witnessed by the
+layer-2 test that boots the real actor as `d1.weather` on a vanilla
+testcontainers rabbit + migrated postgres, then restarts it and
+watches interpolated replay bridge the outage.
+
+**Read API** (house pattern, canon [`api-pattern.md`](../api-pattern.md)).
+Public, read-only, thin over a `WeatherReads` seam: record listings
++ latest observation per location + latest forecast per bundle.
+Routes return the sema types themselves — byte-identical to
+`to_dict()` wire form (pinned by the DB-free `test_api_wire.py`);
+pulls serve stored wire payloads so they match broadcasts exactly.
+Party segment is the hyphenated GNodeAlias (`/d1-weather/…`); point
+lookups are GETs with format-typed LRD path params; no request words
+minted (broker sync-request prior art retired by design).
+
+**Deployment prep.** One `gwwf` console script (`rabbit` / `api` /
+`seed`); two systemd units in `service/` on the single-service-login
+convention; standalone human-facing README; API binds loopback by
+default (TLS is the fronting proxy's job). Home is Hetzner (decided
+2026-08-11); the box is provisioned in step 6.
+
+**Published snapshot** (re-squashed in before the push, after the
+`gw.weather.*` closure + `gw1.quantity/002` were promoted to
+published in sema `c7be5ab`). The vendored snapshot regenerates
+without the staging index or dev-only README banner — the artifact
+that clears the service for the prod broker (staging snapshots are
+dev-only by spec). Also fixes a stale seed-file comment that still
+described the pre-r2 closure (`gw.weather.reading` /
+`gw.weather.forecast.entry` list-item words that no longer exist —
+r2 hard-coded the quantities into the message words).
 
 ## 2026-07-18 — add sample weather json from legacy weather
 

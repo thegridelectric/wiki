@@ -12,6 +12,159 @@ Newest at the top.
 
 ---
 
+## 2026-08-12 — Add GridworksSimGw108 to gw1.device.type; Mark I2cRelayBoard defunct in gw1.actor.class (`3524b73`)
+
+Two small vocabulary touches from the spruce-unlimbo lane, landed as
+one commit.
+
+**GridworksSimGw108 on `gw1.device.type/001`** — in-place staging
+addition (001 is staging — mutable, dev brokers only; settled over
+cutting an 002). The simulated GW108 board gets its own device-type
+value so sim boots declare it honestly instead of impersonating the
+real board: the register-level sim backend rides the same board
+record shape, and address resolution runs unchanged. Registry
+`added_values` for 001 grows in place; the public-registry/versions
+indexes and the canonical runtime enum regenerate mechanically
+(`build_indexes.sh`, `regenerate_runtime.sh`).
+
+**I2cRelayBoard defunct note on `gw1.actor.class/012`** — a
+`value_descriptions` note on the published schema: the value was
+never realized by an actor (the relay path landed as relay actors +
+the I2cBus single owner instead), and additive-only evolution means
+it can never leave the enum — a steering note is the only
+instrument. Prose-only clarification on a published version per the
+house allowance; the sha256 pin is re-recorded via
+`python -m sema.tools.published_hashes --rewrite` in the same commit
+(the reviewable-diff path for human-sanctioned corrections). The
+block deliberately carries only this one entry — descriptions for
+the other 25 values are a separate authoring task if ever wanted.
+
+## 2026-08-12 — promote the gw.weather vocabulary to published (`c7be5ab`)
+
+The eight-word closure behind the gwwf prod deploy flips staging →
+published, dependency-leaves first: `gw1.quantity/002` (001 +
+WindSpeed), `gw.weather.forecast.fidelity/000`, and the six
+`gw.weather.*` type words at 000. Publication is the spec's prod
+gate — staging vocabulary runs on dev brokers only, and gwwf's next
+stop is the hw1 broker from its new box. Immutability begins here:
+any further change to these words is a new version. sha256 pins land
+in `published_hashes.yaml` and the public registry index regenerates
+(`sema promote`; `created` untouched).
+
+## 2026-08-12 — emission schedule moves to the bundle (`91b43f6`)
+
+`EmitPeriodS`/`EmitOffsetS` leave `gw.weather.forecast.channel.gt`
+and land once on `gw.weather.forecast.bundle.gt` (both staging,
+edited in place): the bundle is the emission unit, so the schedule is
+its fact — the SharedEmissionSchedule axiom dissolves into structure
+and EmitOffsetBound moves to the bundle. The forecast-channel word
+slims to series identity (name/target/forecaster/method/locator) +
+slice structure, which is what skill-scoring needs from it;
+observation channels keep their own schedule (observations remain
+location-stream emissions).
+
+## 2026-08-12 — weather messages hard-code quantities; bundle word (`f9c32d3`)
+
+The gw.weather forecast vocabulary reshaped for its actual consumer
+(all staging — edited in place / added / retired without version
+ceremony). `gw.weather.forecast` becomes the FLO-curated contract:
+hard-coded `TempChannelName`/`TempValues` +
+`WindSpeedChannelName`/`WindSpeedValues` (a new quantity is a version
+bump — the right ceremony for "the FLO's inputs changed"), one
+message-level `FirstSliceStart`, `BundleName` in the payload (the
+routing key's radio channel does not survive archival — the eventstore
+key grammar drops it, so the stream identity must ride the payload),
+and the two-clock split replacing the ambiguous `ForecastCreated`:
+`SourceUpdatedTime` (the external service's underlying-data revision;
+NWS's updateTime today) vs `MessageCreatedMs` (gwwf's emission stamp,
+the report/glitch convention). The word speaks in the GridWorks
+service's voice — gwwf IS the fleet's forecaster; upstream providers
+are ingested sources named on channel records for skill-scoring.
+`gw.weather.forecast.entry` retires (staging, removed outright).
+`gw.weather.observation` gets the same treatment for symmetry of
+ceremony: hard-coded `TempChannelName`/`TempValue` +
+`WindSpeedChannelName`/`WindSpeedValue` (wind value optional — KMLT
+sometimes reports none; absence is absence), `LocationAlias` in the
+payload (same archival-honesty argument as BundleName), a
+LocationNaming axiom (channel names begin with the location — the
+swap-protection analog), and `gw.weather.reading` retires with it.
+NEW `gw.weather.forecast.bundle.gt`: the sign-up record — embeds all
+four channels as full subtypes (Temp/WindSpeed × Forecast/Observation)
+plus a top-level LocationAlias, making every cross-fact an in-type
+axiom (shared grid, shared schedule, target binding, quantity
+targeting, location consistency, and Name = LocationAlias +
+".forecast." + slug — the explicit observation↔forecast stream link:
+the bundle slug extends the location alias that names the observation
+broadcasts). `Name` is verbatim the broadcast radio channel; gwwf
+still checks embedded copies against its canonical records at
+seed/boot. One message per bundle per emission is the wire unit.
+
+## 2026-08-11 — valve words (`9632077`)
+
+The state/event vocabulary pair for two-position valves:
+`valve.open.or.closed` (ValveOpen | ValveClosed) +
+`change.valve.state` (OpenValve | CloseValve), literal, staging.
+`change.valve.state` matches the legacy gwproto word of the same name
+exactly (values and default), so the proactor port meets no collision.
+States and events speak valve position, never actuator energization —
+which position de-energized yields is deployment wiring data in the
+relay's `relay.control.config` (`DeEnergizedState`, `WiringConfig`),
+so an NC→NO valve rewire is a layout data edit, not a vocabulary or
+actor change. First consumer: a hydronic isolation valve driven by a
+board-resident i2c relay in the layout gen.
+
+## 2026-08-11 — Snapshot-safe axiom templates: string comparisons over runtime imports (`47290f5`)
+
+The gw.hydronic axiom-4 and gw1.zone.call.circuit axiom-2 validators
+imported `sema.runtime.enums` method-locally for enums outside their
+field set. Inside a restricted snapshot the package is the consumer's
+(`tlayouts.sema`), the absolute import does not rewrite, and decoding
+any instance raises ModuleNotFoundError — found by the first tlayouts
+snapshot carrying the words. String comparisons replace the imports
+(the enums are str-valued); axiom behavior unchanged.
+
+## 2026-08-11 — Zone-call circuits in gw.hydronic; layout admits i2c relays and DAC writer (`b957c0d`)
+
+The layout side of the zone/circuit model. `gw.hydronic/000` gains
+optional `ZoneCallCircuits` (list of `gw1.zone.call.circuit`) plus two
+axioms: CircuitResolution (every circuit's ServesZone names a zone in
+Zones; positions distinct) and LearnedNeedsTempChannel — the
+cross-record "Learned ⇒ the served zone has a temperature channel"
+lands here because both lists live in this type, making the axiom
+self-contained. Optional rather than required so House0 layouts stay
+valid until their 1:1 circuits are generated (required at the epic-end
+promote, under the both-cases bar). `gw.nolan.layout/000`'s Components
+union admits `i2c.relay.component.gt` and `i2c.dac.writer.component.gt`
+(the board-resident relay/DAC model the seed request pre-vendored). New
+literal enum `change.zone.call.source` (SwitchToWallThermostat |
+SwitchToScada) — the failsafe relay's event enum; published
+`change.heatcall.source` is immutable, so the season-neutral pair
+completes with a new word.
+
+## 2026-08-11 — zone words (`1744a71`)
+
+The zone/circuit/thermostat model from the spruce-unlimbo
+zone-relays-and-thermostat-model spoke lands as vocabulary, all
+staging (the promote holds to the epic's end). New enums: the circuit
+FSM pair (`zone.call.circuit.event/.state`), the governance pair
+(`zone.circuit.governance.event/.state`), `zone.call.source`
+(season-neutral successor to published `heatcall.source`, which is
+immutable and cannot be renamed), `setpoint.phase` (elevated from the
+`derived_generator.py` embryo), and the circuit-record support enums
+(`zone.actuator.kind`, `zone.circuit.role`, `zone.setpoint.source`,
+`thermostat.kind`). New types: `gw1.zone.call.circuit` (the
+stat→whitewire→relay-pair→actuator chain record),
+`gw1.zone.thermostat` (promoted to a named type rather than inline
+because the FromThermostat axiom must reference its Kind — axioms
+cannot reach into inline objects), `zone.circuit.governance.cmd`
+(SetGovernance, fsm.event-shaped + SetpointF), and `setpoint.belief`
+(Phase ⇔ value presence). In-place staging edits: `gw1.hvac.zone/000`
+gains optional `TempChannelName`; `gw1.scada.device.type.gt/000`
+gains required `SupportsPinReadback`. Runtime regenerated with the
+axiom validators implemented in the Jinja templates; the
+gw1.scada.device.type.gt axiom fixtures gain the new required field;
+indexes rebuilt.
+
 ## 2026-08-11 — Promote experiment words; add i2c hardware and gw.weather words (`1fccb23`)
 
 One commit, three workstreams squashed at land time (the
