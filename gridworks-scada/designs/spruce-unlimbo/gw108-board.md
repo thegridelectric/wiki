@@ -52,7 +52,38 @@ board-position chain (the design's naming split), the Z1–Z6 positions
 are circuit numbers, not zone numbers, and the silkscreen could say
 so.
 
-## Expander map
+**Board revs (2026-08-11):** the deployed boards (spruce, the
+honeysuckle bench) are **rev B**; the KiCad source cited above is the
+in-progress **rev C**, whose silkscreen is likely to change
+significantly. Board facts here and in the device-type record are
+rev B facts unless marked otherwise. When rev C lands it gets its own
+device-type record (positions and labels may move — a new record, not
+an in-place edit of the rev B one), and per-rev documentation.
+
+## Parked until after the first functional pass — board reference doc + terminal modeling
+
+Parked 2026-08-11; pick back up once local control runs on spruce at
+hack parity (still dev-broker-only).
+
+- **A hyperlinked GW108 reference document** with annotated images:
+  photos that circle a physical connector and relate it to its
+  machinery (e.g. the Z2 "Zone Controls" R/W pair → the Z2
+  FailSafe/OnOff relay coils at 0x20, their expander bits, the LED).
+  Candidate home: a Drive doc on the Samsung PRIMARY pattern (public
+  folder, no site/homeowner mentions), per-rev (rev B now; rev C gets
+  its own when it lands), hyperlinked from this spoke and later from
+  wherever the electrical narrative distills to. The wiki keeps the
+  machine-readable facts; the doc carries the visual wiring narrative.
+- **The R/W terminal pair per zone position.** Each Z1–Z6 "Zone
+  Controls" position exposes R (24 VAC supply to the stat) and W (the
+  call line, driven by `Z<n>_W_OUT` off the FailSafe selector — chain
+  above). Proposed stance: terminals stay documentation, not
+  vocabulary — the zone-call-circuit record already carries the
+  semantic bindings (whitewire channel, failsafe/ops relay nodes,
+  CircuitPosition), and no code consumes terminal identity. If a
+  machine consumer appears (e.g. a wiring-checklist generator), a
+  terminal-block section on the board device-type record is the shape;
+  don't mint it before then.
 
 Authored source: `starter-scripts/gw108_test_code.py`; the board's
 `gw1.scada.device.type.gt` record matches it. TCA9555 registers: 0/1 input

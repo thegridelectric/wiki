@@ -12,6 +12,97 @@ Newest at the top.
 
 ---
 
+## 2026-08-13 — production login is `gjk`, not `ubuntu` (`4764f4a`)
+
+The Hetzner migration (gjk moving off AWS onto its own cpx11) is the
+moment to retire the AWS-stock-image `ubuntu` login the unit file
+carried forward from journalmaker/journalkeeper's original bring-up.
+`service/journalkeeper.service` and the README now say `User=gjk` /
+`/home/gjk/gridworks-journalkeeper`, matching the box's own name and
+the `gjk aliases` decision below (aliases already read `gjk`, not
+`jk`) — one short name for the box, the login, and what people type.
+
+## 2026-08-13 — gjk aliases (`3d3e636`)
+
+The box aliases follow the service's real name: `jkstart`/`jkstop`/
+`jkrestart`/`jkstatus`/`jklog` become `gjk*` — the box is gjk, the
+fingers type gjk. Spelling only; the box picks them up on its next
+pull (the login's `~/.bashrc` sources the repo file).
+
+## 2026-08-13 — tracks weather (`3e5f4b9`)
+
+The weather service's vocabulary is in the journal from its FIRST
+broadcast (stand-up-weather-forecast, the JK MVP that gates
+populate): the nine `gw.weather.*` words — the two stream words
+(observation, forecast), the four record words, and the
+create-command round (create.cmd + ack/nack twins) — vendor into the
+snapshot and join `all_known_message_types()`, all default-path:
+messages-table only, no readings projection yet (that rides the
+pseudo-channel word-gate and the table-shape conversation). The
+forecast's created_at maps from MessageCreatedMs; the four records
+use their own uuid as the message id (a record replayed through the
+bus dedupes); the observation and the command round ride the basic
+path (the observation carries a claim time, not a message-created
+time, by design; CommandHash is sha256, not a uuid). The command
+round is journaled deliberately — the journal DB carries every
+minting act, not only the eventstore. The S3 importer's type list
+gains the same nine for backfill parity.
+
+**Observed-series pseudo-channels on bundle creation.** A
+`gw.weather.forecast.bundle.gt` record broadcast is the sign its
+embedded observation channels are about to flow (gwwf emits per
+bundle), so THAT is when gjk ensures each observed series has its
+reading channel: a custom persistor (the bundle leaves
+`MSG_ID_FIELDS` — its uuid still becomes the message id) whose
+post-insert hook creates one `reading_channels` row per embedded
+OBSERVATION channel if absent — name = the dash-rendering of the
+channel's LRD Name, display name and unit from the record,
+`channel_type = gjk.pseudo`. Forecast channels get no reading
+channel: readings stay current-weather-only. The series is
+fleet-scoped — it belongs to no terminal asset — so on today's
+NOT-NULL table shape `terminal_asset_alias` carries the broadcasting
+weather GNode's alias (`hw1.weather`), the owning source, matching
+the messages rows' from_alias (the rename that name now begs is
+OPS-494; reader migration off the per-TA legacy forecast-oat/-ws
+rows stays with the JK table-shape conversation). Idempotent for S3
+re-import: create-if-absent; a mismatch on an existing row is
+logged, never silently mutated.
+
+Two things surfaced by the work, fixed in the same cluster:
+
+- **Narrowing moves from broker bindings to dispatch.** The per-type
+  binding (`#.<type>`) assumed the type token is terminal — wrong
+  for radio-channeled broadcasts (radio tail follows the type) and
+  direct keys (to-class.to-alias follows it): none of the nine would
+  ever have reached gjk's queue. The root cause was routing-key
+  grammar re-derived locally as binding strings, so gjk stops doing
+  broker-side type narrowing entirely: the queue binds `#` (gjk is a
+  tap on the full bus — ~37k msgs/day at present, measured 2026-08-11)
+  and the capture set applies at dispatch, read off the PARSED
+  envelope gwbase hands it — from_alias, type_name, category, radio
+  channel all come from the one object that owns the grammar. A
+  post-decode gate covers the legacy `broadcast.*` salvage path
+  (decodable ≠ captured: the snapshot deliberately holds vocabulary
+  gjk does not persist). The `#` bind also delivers the legacy keys
+  the salvage recovers — previously they arrived only by accident of
+  the type-terminal match. A second live-AMQP test witnesses both
+  real shapes — a radio-tailed observation broadcast and a
+  direct-key create command — landing as messages rows with their
+  senders' aliases intact. Accepted trade: JK downtime now backlogs
+  the whole torrent (bounded later by a queue cap policy if needed —
+  safe, because the S3 backfill is the designed recovery path).
+- **The snapshot regenerates publication-grade.** The previous
+  vendored snapshot contained staging versions; the regen gate now
+  refuses them, and gjk is a prod service, so the seed pins
+  `layout.lite` to its published set (007–012; 013–015 are staging)
+  and `new.command.tree` to 000–001. The journal DB confirms prod
+  traffic carries only layout.lite 011/012 — nothing live is
+  dropped. `persist_v013` retires with its class; regen rebinding
+  makes 012 the current `LayoutLite`.
+
+Also deletes `run_weather.py`, a dead remnant of the spun-out legacy
+weather service (it imported a module that no longer exists).
+
 ## 2026-08-07 — latest gwbase + service-template mechanisms (aliases, logging) (`6635434`, main via PR #175 `eafe946`)
 
 **What:** on `jm/gwbase-template-update` (off dev — deliberately not the

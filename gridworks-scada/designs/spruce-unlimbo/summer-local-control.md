@@ -8,6 +8,88 @@ Status: Draft · Pass 0 · Updated 2026-08-11 · Linear: OPS-392
 > family promoted to published. Samsung-generic device facts live in the
 > PRIMARY doc (Samsung AE055 Drive folder); field events on GRI-11.
 
+## ▶ Next
+
+**Build step 6 — the bench rung.** The relay actor path AND the
+OPS-452 bus-actor guard are built (2026-08-12): `I2cRelayComponent`
+accepted with board-record resolution; per-op pin-readback confirm
+with the false-positive re-read; boot pin-adoption; assert-then-verify
+enforcement converging on the held command; `I2cBus` adopt-or-init at
+boot (warm takeover preserves latched holds; POR gets
+clear-then-configure — outputs are ALL-1s at POR, so configure-first
+would drive every relay ON), heartbeat config-register reset guard,
+and immediate relay re-assert after repair (`ExpanderReinitialized`
+poke). The sim register backend (`drivers/sim_i2c.py`, the
+register-level fidelity dial in the simulated-test-environment
+design) carries the GRI-11 failure choreography in the suite.
+`NolanLocalControl` (`690d584e`) boots into Normal running the
+scripted witness — fancoil takeover + call (Caleffi-latency hold),
+secondary pump on/off — then segues to Monitor; record-driven off
+`Hydronic.ZoneCallCircuits` + board RelayNames.
+
+**The relay path's EDD gate is MET** (2026-08-12, spruce on-peak
+windows, honeysuckle bypassed —
+`experiments/2026-08-12-spruce-witness-window/`): warm takeover ×2,
+six pin-confirmed actuations across three vocabularies, zero
+glitches, and the first behavioral numbers — dist response through
+the Caleffi box ≤29 s (off ~5 s); secondary-flow 7.46 GPM within
+seconds at the 65% EEPROM default (off ~4 s).
+
+**The DAC leg is BUILT and its bench EDD gate MET** (2026-08-12,
+`experiments/2026-08-12-dac-bus-bench/`): `I2cDacWriter` rides
+`I2cBus` (mux select + Multi-Write + bare EEPROM read as the new
+i2c op words), resolves wholly from the layout, asserts the
+layout's PowerOn targets (no dispatch surface until the
+`i2c.dac.channel.config` binding word), and boot-verifies EEPROM
+with the write-cycle settle (the bench finding). Layouts emit the
+`gw108-dac2-writer` node natively since the partition correction
+(sema `91385fe`) put actor.class/013 on staging node.gt/303. The
+spruce-side DAC witness rides the next on-peak window. Skeleton
+`I2cRelayBoard` deleted; the defunct note is on
+`gw1.actor.class/012+013`.
+
+**Step 7's first increment is BUILT** (2026-08-12): Normal runs
+TOU cooling — schedule, state-command sequencing (each actuator's
+own event vocabulary via the new `send_state_command` single
+construction site), zone holds on circuits 1/2/4; suite-verified
+against the spruce artifact. **Crash prevention moved into the
+layout contract**: `gw.nolan.layout` axiom 3 (LocalControlPlant)
+forces the plant NODES by spaceheat name (never board RelayNames);
+actors declare `REQUIRED_NODES` and crash-with-Glitch on a bypass —
+no Monitor segue, never partially blind. The pinned suite fixture
+is the regenerated honeysuckle artifact (circuits + plant + DAC +
+sim-uid primary BTU), retiring the legacy-format one; `sema_to_dc`
+gained the uniform `load_layout` entry point (the LTN's
+legacy-only load was a live gap). Carryovers as Open items:
+schedule/holds as operational params (OFI, joint with the derived
+generator's required-energy cleanup) and the `gw1.system.mode`
+Cooling gate. **Next: sim-boot on gw-dev-rabbit, then the spruce
+window → witnessed handover at a real TOU boundary** (the hack
+stays authority until it passes).
+(Order settled 2026-08-12: DAC → local control → the H0N/H0CN name
+sweep.) The original step-7 framing: the hack-parity TOU
+schedule + zone holds as `SwitchToOff` governance, replacing the
+scripted witness. Ride-along items: relay channel readings (0/1
+energization at confirm + verify pass — settled shape in the zone
+spoke), the `snap_watch.py` state-list patch (starter-scripts), and
+the runbook rule that restore gates on the literal `window done`
+line, never wall-clock arithmetic. Then the H0N/H0CN sweep
+(both-cases conftest first, then parity test → port → delete
+`house_0_names`; pyright enumerates the sites; the sweep also
+renames the `House0Layout` dc class — today the runtime layout
+class for BOTH families, surfaced by the `load_layout` question). Later rungs: the
+behavioral glitches (hp-not-starting/stopping). Sema pendings:
+the epic-end promote before any spruce deploy (`GridworksSimGw108`
+landed in-place on staging 001, sema `3524b73`); NEW
+`new.command.tree` + `scada.control.capabilities` versions are
+expected before the promote — both are functional-scada surfaces
+(the command tree carrying the full actor set incl. the DAC
+writer; capabilities is the OPS-394 vocabulary) — they re-entered
+staging in the 2026-08-12 partition correction and evolve freely
+until the epic-end freeze. Code pins and the
+window arrangement:
+[`spruce-relay-control.md`](spruce-relay-control.md).
+
 ## Experiment gate met (2026-08-11)
 
 The ADS-at-declared-rate EDD gate is met: the bench rung (2026-08-10,
@@ -44,16 +126,16 @@ a boot requirement, not a nicety.
    `sema validate` green on all new/changed types; the reader component
    validates except for the known pre-existing nested divergence (next
    item).
-3. ◐ **Layout regen** (tlayouts `jm/spruce`): DONE — snapshot rebuilt
-   from the hardware words (DAC writer seeded in), board record with
-   mux + DAC topology + SPS menu, reader `DataRateSps: 8` declared with
-   a gen-time menu check, GNodes at published `g.node.gt/006`, the
+3. ✅ **Layout regen** (tlayouts `jm/spruce`): snapshot rebuilt from
+   the hardware words (DAC writer seeded in), board record with mux +
+   DAC topology + SPS menu, reader `DataRateSps: 8` declared with a
+   gen-time menu check, GNodes at published `g.node.gt/006`, the
    fancoil/floor1/pipes1 pico removal carried from actual-spruce
-   (`a71617e`), both outputs regenerated + snapshot-validated.
-   REMAINING for later steps: emit the DAC writer component (with the
-   spruce EEPROM defaults) and the i2c relay nodes (iso valve,
-   secondary pump, hp call, zone failsafe/scada pairs) on
-   `i2c.relay.component.gt`.
+   (`a71617e`). The full hack-parity roster is emitted (2026-08-11):
+   DAC writer component (spruce EEPROM defaults), hp call, secondary
+   pump, five zone failsafe/ops pairs, and `iso-valve-relay` on the
+   valve words (wiring fact as config data; `iso-valve-failsafe`
+   removed from the board record).
 4. ✅ **ADS-at-declared-rate experiment** — the pre-promote EDD gate,
    met: bench rung 2026-08-10 (both pairings) + spruce window
    2026-08-11 (real thermistors, zero errors, noise in band) —
@@ -119,6 +201,33 @@ one-ADS-reader rule, allowlist precondition).
 
 ## Behavioral verification — the post-parity increment (2026-07-30 incident)
 
+The hack's **semantic flow check** (secondary-flow agrees with the
+commanded pump state) does NOT port into the relay actor — it is
+system-level truth (command ↔ water ↔ HP power), and it joins the two
+glitches below as part of a standing **system-working EDD harness**
+(settled with Jessica 2026-08-12): a re-runnable experiment asserting
+commanded posture against measured flow and power on the real system,
+riding the verification ladder rather than pin-level code.
+
+**The harness's first two experiments (Jessica, 2026-08-12),
+runnable in an on-peak window:**
+
+- **Secondary pump start/stop** — command the pump relay (DAC holding
+  the 65% speed), verify at `secondary-flow`: ON ⇒ ~7.4 GPM across
+  the HX, OFF ⇒ ~0. The hack's semantic check as a witnessed
+  experiment. (Known diagnostic muddiness: the secondary-BTU pico
+  drops out — treat a stale reading as no-evidence, never as
+  failure.)
+- **Fancoil path takeover** — take the zone-5 fancoil circuit
+  (failsafe → Scada), command the call, verify at the distribution
+  response. **Plant fact: a Caleffi zone-control box likely sits
+  between our zone relays and the distribution pump**, adding seconds
+  to ~half a minute of latency — grace windows size to it, and the
+  box is a real axis-2 binding (call → Caleffi → dist pump) for the
+  capability model. During on-peak there is no chilled water, so the
+  takeover moves air and water plumbing only — reversible, ends back
+  at StatRules.
+
 The heat pump did not run overnight although the cool call was physically
 asserted ~10.9 of the 11 ON hours (pin-level readbacks green): the unit
 was OFF at the panel, and the external contact commands thermo-on/off
@@ -180,7 +289,17 @@ so commanded-vs-actual is observable. First increment after hack parity:
   witnessed handover passes; the hack's systemd unit is then disabled,
   not deleted (winter twin precedent).
 - Grace-window values for both glitches (tune against real eGauge traces).
-- Where the schedule lives (ops artifact values vs LocalControl code).
+- **OFI — TOU schedule + held-circuit set as operational params**
+  (settled 2026-08-12: in-code constants for the hack-parity build; the
+  ops-params surface grows deliberately, once). Same cleanup family: the
+  derived generator's "required energy" hack — its heating-season
+  assumptions want the same operational-params pass rather than another
+  in-code special case.
+- **`gw1.system.mode` needs a Cooling value** (000 is published →
+  additive 001) and the TOU loop its mode gate before any
+  heating-season deploy of NolanLocalControl — today's loop is
+  mode-blind exactly like the hack (the spruce ops artifact still says
+  Heating). Joins the zone spoke's mode-is-system-level thread.
 - Axiom constants (sweep overhead ms, slack fraction) — settle at word
   authoring with the measured anchors (135 ms/read at 8 SPS, 16 ms at
   128).

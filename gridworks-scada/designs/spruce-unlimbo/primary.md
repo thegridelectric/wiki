@@ -6,7 +6,7 @@ Status: Accepted · Pass 1 · Updated 2026-08-11 · Linear: OPS-392
 spokes reach Verified only when an experiment runs against the real bus or a
 real broker.
 
-**▶ Active spoke: [`zone-relays-and-thermostat-model.md`](zone-relays-and-thermostat-model.md)**
+**▶ Active spoke: [`summer-local-control.md`](summer-local-control.md)**
 
 > What this is: the hub for un-limboing the spruce scada integration —
 > getting the branch that runs Matt Polstein's house (the Nolan layout)
@@ -18,13 +18,15 @@ real broker.
 
 - `gw108-board.md` — schematic-verified board facts: zone signal
   chain, expander map, DAC/EEPROM (living reference)
-- `spruce-relay-control.md` — chunk A execution: scada actuating
-  spruce's i2c relays (reader→bus verified; relay path + roster
-  remain)
-- `summer-local-control.md` — the scada takes over the summer hack:
-  TOU cooling + behavioral glitches (ADS experiment gate met)
-- **`zone-relays-and-thermostat-model.md` — the zone / circuit /
-  thermostat model (active)**
+- `spruce-relay-control.md` — chunk A record: reader→bus verified;
+  code-survey pins, relay roster (layout side complete 2026-08-11),
+  bench/boot reproducers, window safety arrangement
+- **`summer-local-control.md` — the scada takes over the summer
+  hack: TOU cooling + behavioral glitches (the actor build) (active)**
+- `zone-relays-and-thermostat-model.md` — the zone / circuit /
+  thermostat model (settled; vocabulary + layout landed 2026-08-11)
+- `operational-params-cleanup.md` — `gw.nolan.operational.params` +
+  slimming the house0 word (GNodes, Lat/Long out)
 - `admin-for-nolan.md` — admin UI sees and operates a Nolan house
 - `hello-world.md` — LTN ↔ SCADA over dev rabbit, consumed by a dev JK
 - `gleanings.md` — residual live content from closed spokes
@@ -97,7 +99,13 @@ July 15" doesn't become "never."
 - **tlayouts** rides a lock-step `jm/spruce` branch (sema-native,
   pushed to origin since 2026-08-03); its `main` pairs with House0-era
   scada, its `jm/spruce` pairs with the spruce line. Coupling details
-  in `gleanings.md`.
+  in `gleanings.md`. The gens are dev-laptop tooling and run in the
+  **sibling scada checkout's venv** (that venv's python with
+  `PYTHONPATH="src:<scada>/gw_spaceheat"`; tlayouts' own uv env has no
+  gwsproto, deliberately) because `names` and the board device-type
+  records still import from gwsproto. Temporary: chunk B moves both
+  into sema, after which the gens run self-contained and the
+  venv/branch pairing dissolves into ordinary snapshot versioning.
 - Sema `jm/nolan` holds the draft `gw.nolan.layout` type (2 commits ahead
   of sema dev).
 

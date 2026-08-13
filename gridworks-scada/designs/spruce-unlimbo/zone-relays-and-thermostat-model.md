@@ -14,15 +14,42 @@ Status: Draft · Pass 0 · Updated 2026-08-11 · Linear: OPS-392
 
 ## ▶ Next move
 
-**The word-gate discussion for the vocabulary this model needs** —
-read `sema/spec/primary.md` + the registry/authoring spokes for the
-kinds touched (types: `gw1.hvac.zone` restructure, the new circuit
-record, the `SetGovernance` command, the setpoint-belief word; enums:
-`zone.call.circuit.event`/`.state`,
-`zone.circuit.governance.event`/`.state`, `ZoneCallSource`,
-`SetpointPhase`; board-record field: `SupportsPinReadback`), then
-bring the per-kind summary for confirmation before editing. All
-touches are in-place staging edits under the sequencing rule below.
+**The scada relay path (summer-local-control build step 6)** — the
+actors that make the emitted relay nodes real: `I2cBus`/`I2cRelayBoard`
+registration, the relay actor resolving `RelayName` against the board
+record, the OPS-452 init-guard, layout-address validation. Code gaps
+and roster: [`spruce-relay-control.md`](spruce-relay-control.md). The
+layout side is in: spruce is 4 zones + 5 circuits with relay pairs,
+plant relays (hp call, secondary pump), and the Dac2 writer (tlayouts
+`jm/spruce`, 2026-08-11); the Learned⇒temp-channel axiom lives on
+`gw.hydronic` and validates at decode. Still without vocabulary:
+`ChangeZoneCallSource` gwsproto mirror and the roster-named
+`NolanZoneNodeNames` relay constants (move with their actor call
+sites); iso-valve waits on its valve-function enum + the 0x21 wired
+inventory.
+
+## Vocabulary — landed as staging (sema `jm/zone-words`, 2026-08-11)
+
+All words staged; the promote holds per Sequencing. Enums:
+`zone.call.circuit.event/.state`, `zone.circuit.governance.event/
+.state`, `zone.call.source`, `setpoint.phase`, plus the circuit
+record's support enums `zone.actuator.kind`, `zone.circuit.role`,
+`zone.setpoint.source`, `thermostat.kind` (all versioned except
+literal `zone.call.source`). Types: `gw1.zone.call.circuit`,
+`gw1.zone.thermostat`, `zone.circuit.governance.cmd` (SetGovernance),
+`setpoint.belief`. In place: `gw1.hvac.zone/000` + `TempChannelName`;
+`gw1.scada.device.type.gt/000` + required `SupportsPinReadback`.
+Deviations from this spoke's sketch, forced by the sema spec:
+
+- The thermostat record is a **named type**, not inline — axioms
+  cannot reference inline-object fields, and ReadSetpointNeedsCommsStat
+  constrains its `Kind`.
+- `HeatcallSource → ZoneCallSource` is a **new word**
+  (`zone.call.source`), not a rename — `heatcall.source` is published
+  and immutable.
+- `zone.circuit.governance.cmd` follows `fsm.event`'s wire shape
+  (FromHandle/ToHandle/TriggerId/SendTimeUnixMs) around the spoke's
+  (circuit handle, event, SetpointF?) triple.
 
 ## The model: three concepts
 
@@ -49,11 +76,11 @@ re-derives board positions from list order. Setpoint is per-circuit
 against the zone's one temp channel. House0 degenerates to 1:1
 circuit:zone.
 
-**Thermostat — a small inline record on the circuit**:
-`ThermostatType` enum (mechanical dial | Honeywell via Hubitat |
-future kinds) + optional component ref for comms-capable stats.
-Promotable to a device-type word when a third kind appears. A comms
-stat can BE the zone's temperature source.
+**Thermostat — a small named record on the circuit**
+(`gw1.zone.thermostat`): `thermostat.kind` enum (MechanicalDial |
+HoneywellViaHubitat | future kinds) + optional component ref for
+comms-capable stats. Promotable to a device-type word when a third
+kind appears. A comms stat can BE the zone's temperature source.
 
 Axioms: `Learned` ⇒ `ServesZone` has a temperature channel;
 `FromThermostat` ⇒ the thermostat type is comms-capable. `FromThermostat`
@@ -175,6 +202,67 @@ the belief.
   commanded belief; commanded-vs-pin mismatch ⇒ glitch. Add
   `Unknown`; kill the assumed de-energized initial
   (`relay.py:498-505`).
+- **`Unknown` is internal machine state only — never on the wire**
+  (settled 2026-08-11): the state vocabularies carry no Unknown value,
+  and an out-of-vocab wire value silently coerces to the enum default
+  at decode (`Unknown` → `WallThermostat` would be a lie). The relay
+  reports nothing until its first confirmation (readback boards: boot
+  pin-adoption, sub-second; no-readback boards: boot assert); a failed
+  boot readback is a Glitch and honest silence on the channel. Open
+  (word-gate, vocabulary conversation): if `Unknown` ever joins the
+  words, it arguably should become the enum DEFAULT so garbled wire
+  values decode honestly instead of as the failsafe posture.
+- **One state channel per relay, not two** (settled 2026-08-11): the
+  gw108 offers two reads (output register = commanded, input register
+  = actual pin), but they diverge only during a fault, and the
+  divergence IS the fault evidence — it rides the Glitch's register
+  snapshot (config/output/input), not a second journal channel. The
+  channel's MEANING upgrades from commanded belief to pin-confirmed
+  state; name and UUID unchanged. The whitewire opto channels remain
+  the independent downstream read; the four-value display state stays
+  a derived view.
+- **Enforcement is assert-then-verify, converging on intent** (settled
+  2026-08-12, revising the 08-11 verify-only sketch): the relay's
+  5-minute loop re-asserts its target UNCONDITIONALLY (the hack's
+  enforce / the krida `maintain_relay_states` behavior — enforcement
+  must not depend on the readback being trustworthy), then confirms at
+  the pin; the output register is read first purely as drift evidence
+  (the 07-16 tell). The target is the pending command when one is
+  unconfirmed — a commanded transition that fails confirmation is held
+  as the enforcement target (`I2cCommand`, scada-internal record) and
+  retried every pass until it confirms, then commits + sends the late
+  FsmFullReport — so a transient EIO heals within ≤5 min without the
+  boss re-commanding (the hack's dac3-recovery behavior). The boss MAY
+  still re-command (a newer command supersedes the held target) but is
+  not the only healer. Glitches throttle to once per failure streak
+  (the hack's `_dac_write_failing` pattern). The traffic cost is
+  trivial and serialized; the 08-05 postmortem cleared bus ops of
+  aggravating the board. After a reset REPAIR the bus actor pokes the
+  affected relays (`ExpanderReinitialized`, a process-internal payload
+  carrying the expander address — never crosses the broker, not a sema
+  word): each relay on that chip re-asserts immediately instead of
+  waiting for its next verify pass (Jessica 2026-08-12 — 0x21 carries
+  the critical cooling actuators; the hack repaired in the same pass,
+  and now so do we).
+- **Krida: actuation leg live, report round-trip dead** (corrected
+  2026-08-12 — the admin suite caught the earlier "whole path is dead"
+  reading): the multiplexer DOES actuate on the pin event and reports
+  state on its own channels; only the relay-side confirmation
+  round-trip (`_process_atomic_report`, dispatch commented out) never
+  existed in practice — that machinery is deleted. The actuation leg
+  stays (`_krida_actuate`: commanded belief, no FsmFullReport to the
+  boss), with the multiplexer lookup scoped to the krida component
+  type (the former unconditional lookup was the Nolan-layout crash
+  point). Dissolution path unchanged: House0 migration to
+  `i2c.relay.component.gt` on the krida board record with
+  `SupportsPinReadback: false` — the commanded-belief branch of the
+  new actor serves it with zero new machinery, and the multiplexer
+  actor + legacy component type dissolve then. At that migration
+  `test_relay_i2c.py` parameterizes its rig on the board record
+  (readback true/false), becoming the both-boards relay suite:
+  pin-confirmed semantics on gw108, assert-only commanded belief on
+  krida. Until then it is a gw108-family test and SHOULD pin the
+  nolan artifact explicitly once the both-cases conftest lands.
 - No transitional states at the relay level — a single-bit actuation
   is one serialized bus round-trip; command and readback ride the
   same op. In-betweens belong to the circuit FSM.
@@ -192,6 +280,29 @@ the belief.
   flipping the declaration upgrades the House0 fleet with zero
   actor-code change.
 
+## Relay state in snapshots and the journal (window #2 finding, 2026-08-12)
+
+Snapshots carry two parallel lists: `LatestReadingList` (channel
+values) and `LatestStateList` (`SingleMachineState` entries —
+MachineHandle / StateEnum / State). The i2c relay actors report state
+as machine states, so all 13 relay states (`zone.call.source`,
+`valve.open.or.closed`, `relay.closed.or.open`) plus the LC top state
+ride EVERY snapshot's state list — but the relay **DataChannels**
+(`zone5-…-failsafe-relay` etc., Quantity Unitless) never receive
+channel VALUES on the Nolan path. House0 publishes both cadences
+(verified 2026-08-12): on-change — the krida multiplexer sends a
+`SingleReading` on the relay's channel at actuation — and
+synchronous — `maintain_relay_states` sends all relay channels as
+`SyncedReadings` every 60 s; values are `RelayEnergizationState`
+ints (DeEnergized=0, Energized=1). Direction for the next relay
+cluster: the Nolan relay actors publish the same 0/1 energization
+reading at CONFIRM (on-change, pin-confirmed — stronger than
+House0's commanded belief) and at each verify pass (periodic,
+5 min) — two send sites (`_commit_command`, `_verify_and_report`).
+The enum-valued state stays on `SingleMachineState`; the channel
+carries energization. (Viewer note: `snap_watch.py` prints only the
+readings list; a state-list patch is queued in starter-scripts.)
+
 ## Enfolding the Honeywell mechanism (survey 2026-08-11)
 
 Code pins verified on `jm/spruce-unlimbo`:
@@ -199,9 +310,7 @@ Code pins verified on `jm/spruce-unlimbo`:
 - **No setpoint write path exists anywhere** — `heatingSetpoint` is
   read-only polled telemetry (double-GET refresh, 300 s;
   `actors/hubitat_poller.py:60-70`); the relay pair has always been
-  the sole zone authority. (The hub's House0 capability example says
-  "Honeywell setpoint write" — divergence flagged, hub not yet
-  corrected.)
+  the sole zone authority.
 - The inline thermostat record lands on `HvacZone`
   (`named_types/hvac_zone.py:8-18` — today zero thermostat
   awareness; `-stat` nodes exist only as a naming side-effect).

@@ -1,6 +1,6 @@
 # Simulated actors: relays + i2c thermistor reader
 
-Status: Accepted · Pass 1 · Updated 2026-06-13 · Linear: OPS-40
+Status: Accepted · Pass 1 · Updated 2026-08-12 · Linear: OPS-40
 
 > What this is: simulated-test-environment spoke — simulated relays and a
 > simulated i2c thermistor reader so the Nolan scada runs fully locally
@@ -276,6 +276,31 @@ component review and the dashboard-experiment design pass:
   `sim-time-experiment/`) turns a real layout imaginary: fresh instance
   UUIDs (it stops claiming to be the real house) while device-type UUIDs go
   canonical (device types are real and shared). Proven on House0.
+
+## Register-level fidelity — the board dial setting (ratified 2026-08-12)
+
+A deeper setting of the fidelity dial, below the actor-role sim
+(SimSensorActor + report-only relays) that serves control-logic tests:
+a **sim register backend inside the `I2cBus` actor** — a fake chip
+presenting the smbus surface (per-address register store, TCA9555
+semantics at the expander addresses: POR defaults, input ports
+mirroring output flip-flops only when configured as outputs, floats
+otherwise) — so the REAL relay/bus/reader actors run their genuine
+choreography against it. Its purpose is the i2c hardening surface the
+actor-role sim deliberately abstracts away: per-op pin confirm, the
+false-positive re-read, held-command retry, expander reset
+detect/repair — the spruce field-failure catalog (GRI-11). **Fault
+injection is its chaos lever** (transient/permanent EIO per address,
+garbled reads), sibling to the broker-off sensor-outage lever.
+
+Placement honors the settled seam: one flat branch at the bus actor's
+existing I/O point (the smbus handle), no driver hierarchy, and the
+actors above it lose their `is_simulated` branches (the relay's i2c
+short-circuits die with it — the "clean out the old `is_simulated`"
+task below, i2c slice). Selector: the board's DeviceType in the layout
+(a `Sim*` `gw1.device.type` value — sema word-gate pending); until the
+word lands, an interim `is_simulated` branch in the bus actor ONLY,
+per the graduation note in "Open".
 
 ## `is_simulated` is a smell — simulated until proven real (decided 2026-06-11)
 

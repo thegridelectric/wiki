@@ -18,7 +18,7 @@ Status: Draft · Pass 0 · Updated 2026-07-19
 | 2026-07-22 | OPS-458 — ear poetry to uv | 2 | 0.5 | 3 | 0.5 | yes (at bound) |
 | 2026-08-06 | OPS-490 — ads-noise semafy pilot | 4 | 2 | 9 | 9.5 | no (over) |
 | 2026-08-10 | OPS-392 — summer hack through scada | 24 | 14 | 42 | | |
-| 2026-08-10 | OPS-436 — gwwf stand-up | 25 | 16 | 40 | | |
+| 2026-08-10 | OPS-436 — gwwf stand-up | 25 | 16 | 40 | 20.6 | yes |
 
 ## Active hours — scratch
 
@@ -29,10 +29,13 @@ the rows here.
 | Work | Day | Started |
 | --- | --- | --- |
 | OPS-392 relay path + witness windows (compacted) | 2026-08-10–12 | 12.25h |
-| OPS-436 design + build steps 0–5 + r2 cutover (compacted) | 2026-08-10–12 | 13.65h |
-| OPS-436 hetzner bring-up | 2026-08-12 | 10:55–12:10 (1.25h) |
-| OPS-436 record broadcasts + create-cmd pivot | 2026-08-12 | 12:10–12:47 (0.6h) |
-| OPS-392 step 7 local control | 2026-08-12 | 12:03– |
+| OPS-392 step 7 local control | 2026-08-12 | 12:03–14:15 (2.2h) |
+| OPS-392 coherence review + ops-params spoke | 2026-08-12 | 16:20–17:30 |
+| OPS-392 plant axiom + fixture round | 2026-08-12 | 14:15–16:20 (2.1h) |
+| OPS-392 system-mode review | 2026-08-13 | 7:45–9:30 (1.75h) |
+| OPS-392 layout.lite squash + nolan ops params | 2026-08-13 | 11:40–12:30 (0.83h) |
+| OPS-392 gwsproto conformance sweep + squashes | 2026-08-13 | 14:36– |
+
 
 
 

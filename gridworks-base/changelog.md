@@ -12,8 +12,53 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-08-11 — document the per-service settings + logging pattern
+## 2026-08-13 — g.node.gt vendored to 006, 004 rejected; 0.5.10 <!-- pending commit -->
+
+GridworksActor strict-Sema-validates every identity file at boot
+against gwbase's own vendored `GNodeGt` — but that vendored copy was
+hand-frozen at v004 since first vendoring and never touched again
+(no regen tooling, no old_versions/ entry, discovered while
+registering the weather service's GNode: the registry's canonical
+record is v006). Hand-patched the vendored copy to 006 — the actual
+schema change, not just a version string: axiom 2
+(PhysicalGNodeLocations) is now Active-conditioned (a Pending
+physical GNode may be locationless), and axioms 3–6 (alias-transition
+consistency, GNodeClass namespacing, `.ta`/`.scada` alias-suffix
+rules, minimum alias depth) are new. 004 is no longer decodable —
+by construction, not a special case; any identity file still
+declaring `"Version": "004"` now fails validation at boot instead of
+silently drifting further behind the registry.
+
+Deliberately NOT a full regen (`GwBaseSemaCodec`/`GwBaseSemaType`
+stay as found, the other six vendored types — `g.node.instance.gt`,
+`gridworks.header`, `gw`, `heartbeat.a`, `sim.ready`, `sim.timestep`
+— untouched): the standard tooling has no way to touch one vendored
+type without regenerating the whole tree, which would have also
+surfaced this directory's other drift (never ruff-excluded, a
+hand-renamed codec class the regen would silently overwrite) — real
+technical debt, but a bigger and separately-scoped fix. Test fixtures
+in `conftest.py`/`test_tiers.py` bump `Version` 004→006 (no shape
+change needed — the required-field set is identical). Bumps to
+0.5.10.
+
+## 2026-08-12 — weather self-edge for the create round; 0.5.9 (`49a403f`)
+
+The weather service's create-command round (records enter by
+`gw.weather.create.cmd` over the bus, OPS-436 step 7) needs a fabric
+path for the operator↔service exchange, and `ROUTING_EDGES` had no
+path into or out of WeatherForecastService — the command died in the
+sender's mic exchange. One new SELF-edge, (weather, weather): the
+minter is a weather-class operator identity (`<universe>.weatherminter`),
+so the command and the verdict both ride the single edge and the
+semantics stay inside the weather domain. Deliberately NOT the gnr
+operator shape (operator rides MarketMaker, piggybacking on the real
+mm↔gnr edges) — weather has no real MarketMaker relationship, and
+inventing one to carry operator traffic would pollute the fabric.
+Regenerates the baked broker definitions; bumps to 0.5.9. Deploying
+consumers means the prod broker fabric gains the one binding
+(generated definitions are the source; apply is idempotent).
+
+## 2026-08-11 — document the per-service settings + logging pattern (`69919d4`)
 
 The README's Settings section and the `ServiceSettings` docstring read
 as "your service uses the `GWBASE_` prefix", but the settled convention

@@ -12,6 +12,365 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-08-12 — TOU cooling in NolanLocalControl.Normal; layout contract replaces runtime guards; modern pinned fixture
+
+Step 7's first increment, shaped by four design decisions made in
+review. (1) **Normal runs TOU cooling** — weekend-ON / weekday
+off-peak schedule (on-peak 07–12, 16–20), transition sequencing
+(ON: iso valve open → secondary pump on → cool call closed; OFF:
+call open → pump off; the DAC writer holds speed autonomously),
+zone holds on circuit positions 1/2/4 — replacing the scripted
+witness (gate met same day). The loop commands posture CHANGES;
+the relay layer's assert-then-verify enforces in between.
+(2) **All commands are state-machine events** in each actuator's
+own vocabulary (`change.valve.state` OpenValve,
+`change.relay.state` CloseRelay/OpenRelay,
+`change.zone.call.source` SwitchToScada): `ShNodeActor` gains
+`send_state_command` as the single FsmEvent construction site, with
+`energize`/`de_energize` demoted to pin-level wrappers for lower
+layers. (3) **Crash prevention lives in the layout contract, not
+runtime cleverness**: `gw.nolan.layout` axiom 3 (LocalControlPlant,
+sema-side commit) forces the plant NODES — iso-valve-relay,
+secondary-pump-relay, hp-scada-ops-relay, by their spaceheat NAMES,
+never board-record RelayNames — plus non-empty circuits with
+resolvable relay nodes; the gwsproto `NolanLayout` mirror enforces
+it at decode, and actors declare a `REQUIRED_NODES` list up top,
+double-checked at construction via `check_required_nodes` /
+`required_node` (Glitch, then crash — never a Monitor segue, never
+partially blind). The layout word in the crash message derives from
+the layout itself (`layout_type_name`, stamped by the loader).
+(4) **The pinned Nolan fixture is replaced**: the legacy-format
+`nolan-layout.json` (pre-sema single artifact) gives way to the
+regenerated honeysuckle artifact — circuits, plant relays, DAC
+writer, a sim-uid primary BTU (layout.lite axiom 1 rejects
+NoActor-captured channels — a bench-only bug the fixture
+surfaced; spruce was already clean via primary-btu) — so the suite
+default can run the TOU loop. Fallout ripples: `sema_to_dc` gains
+the uniform `load_layout` entry point (sniffs TypeName;
+sema assembly vs legacy) now used by scada/scada2/ltn apps,
+show_layout, and tests — the LTN's legacy-only load was a real gap;
+`LtnSettings` gains `operational_params_path`. H0N-clearing began:
+`CoreNodeNames.local_control_normal`, plant names in
+`gwsproto/names/nolan`. The relay-i2c test fixture now speaks the
+words instead of hand-built dicts: the artifact pair decodes through
+`NolanLayout` (on the boot assembly path) + `GwHouse0OperationalParams`,
+and the fixture asserts the layout rides a gw108 board (a nolan layout
+does not imply one). The synthetic Misc1 relay append is gone
+entirely — axiom 3 forces the zone-circuit relays to exist, so the
+rig adopts the first circuit's failsafe relay and takes the physical
+address (expander, registers, bit) from the actor's own board-record
+resolution instead of hardcoding it (an OFI in the test notes the
+simulated-Krida-board variant for the both-cases gate).
+
+Same cluster, the ops-params round: `ScadaSettings`/`LtnSettings`
+gain `ScadaPaths(Paths)` — the loose `operational_params_path: str`
+field and its `operational_params_path()` free-function resolver are
+gone, replaced by `paths.operational_params`, a proper `Paths`
+subclass field with its own default-derivation validator (mirroring
+`hardware_layout`'s own pattern), plus `duplicate`/`with_paths`
+overrides so `update_paths_name` and the live-test harness don't
+silently downgrade it back to base `Paths`. Settings regain
+`latitude`/`longitude` (dev's pattern, verbatim) now that they've
+left the sema ops word. `SystemMode` is fully gone from scada and
+gwsproto — every consumer (`scada.py`, `ltn.py`, `nolan.py`,
+`standby.py`, `buffer_only.py`, `all_tanks.py`,
+`local_control_loader.py`) now reads `ActuationAuthority`/
+`ServiceMode`; the dead `SystemMode` enum mirror is deleted.
+`layout.lite`'s gwsproto mirror follows the sema squash to `013`
+(its component imports were already current — only `SystemMode` and
+a stale `enums/`-vs-`types/` docstring URL needed fixing).
+`GwHouse0OperationalParams`/`GwNolanOperationalParams` now share a
+`OperationalParamsCoreBase` Python base class (ScadaAlias,
+CaptureTuningList, ActuationAuthority, ServiceMode, CopCurve,
+HeatingCurve) — code reuse only, matching the `ComponentBase`
+precedent; each word's sema schema stays flat. Verified: `sema
+validate` on a gwsproto-constructed `gw.nolan.operational.params`
+instance (`OK`); full suite green (202 passed, 3 skipped).
+
+Queued, not done this round (`operational-params-cleanup.md`
+"Cleanup queue"): `.ops` still types as
+`GwHouse0OperationalParams` alone across `scada.py`/
+`sh_node_actor.py`/`ScadaData` though `GwNolanOperationalParams` now
+exists — `ScadaData.__init__` would crash on a Nolan-shaped `ops`
+today (eager `HeatingCurve`/`CopCurve`-derived `ha1_params` build);
+and retiring `layout.lite`'s field-projection in favor of sending the
+raw layout + ops sema types directly (no new envelope type needed —
+`Message` already carries identity, and `TotalStoreTanks`/`ZoneList`/
+`CriticalZoneList` are already on/derivable from the layout's own
+`Hydronic`). Spruce's actual boot keeps decoding through
+`GwHouse0OperationalParams` until the union-typing work lands; the
+Nolan ops fixture exists and is sema-validated but is not yet
+load-bearing for a real boot. Suite 202 green (was 197).
+
+## 2026-08-12 — Spruce fixtures carry the native DAC writer node; test drops its append (`72285a29`)
+
+(The tlayouts side landed as tlayouts `355045e` — the
+`dac_channel_power_on_raw` gen axis + snapshot rebuild on
+actor.class 013; tlayouts has no wiki domain, so this entry carries
+the pointer.)
+
+The frozen spruce artifacts refresh from tlayouts (post the sema
+partition correction `91385fe`, tlayouts snapshot on actor.class
+013): the gen now emits the `gw108-dac2-writer` node natively, so
+the DAC-writer test fixture stops hand-appending one and boots the
+artifact as-is — the same shape the bench rung ran
+(`experiments/2026-08-12-dac-bus-bench/`, EDD gate met).
+
+## 2026-08-12 — EEPROM write-cycle settle in the DAC verify; sim models the busy window (`12d6a1bc`)
+
+The bench rung's finding (`experiments/2026-08-12-dac-bus-bench/`):
+the MCP4728 is busy ~25–50 ms per EEPROM write and reads meanwhile
+return the old data, so the boot verify's immediate re-read saw
+stale values and convergence took three heartbeat passes instead of
+one (containment held; no misbehavior, just slow). The verify now
+sleeps `EEPROM_WRITE_TIME_S` (new chip fact in `drivers/mcp4728.py`)
+after each Single Write. `SimMcp4728` gains the busy window
+(mid-cycle reads return old EEPROM data), which makes the existing
+verify test the regression net for exactly the failure the sim
+could not previously express — the fidelity dial turned one notch
+by real-hardware evidence.
+
+## 2026-08-12 — DAC writer rides I2cBus: layout-resolved, Multi-Write assertion, EEPROM verify; delete I2cRelayBoard skeleton (`e551c2e1`)
+
+The DAC leg of the summer-hack takeover (order settled 2026-08-12:
+DAC before local control, so step 7 lands at full hack parity with
+DAC drift enforcement included). gwsproto mirrors the sema DAC-ops
+vocabulary (sema `1883372`): `I2cWriteByte` + `I2cReadBytes` named
+types, `I2cResult` → 001 (optional Bytes), `I2cOperation` → 001,
+`ActorClass` → 013 (+I2cDacWriter); all `sema validate`d. `I2cBus`
+gains the two handlers — the bare receive is `i2c_rdwr` on real
+smbus2 (`read_i2c_block_data` speaks the wrong wire protocol) and a
+native read on the sim. `I2cDacWriter` is rewritten: standard
+`(name, services)` construction, everything resolved from the
+layout (DacName → board-record DAC capability → device address +
+mux binding; ConfigList → per-channel targets), every op through
+the bus owner. Routine assertion switches to MCP4728 Multi-Write —
+the old actor's Single Write (0x58) programmed EEPROM on EVERY
+write including the 60 s heartbeat: finite endurance spent
+(~525k cycles/yr) and the provisioned power-on default silently
+replaced by the last commanded value. EEPROM is now touched only by
+the boot verify: read → compare to the layout's PowerOn values →
+reprogram → re-verify. The actor asserts the layout targets; a
+runtime dispatch surface waits on a channel-binding field for
+`i2c.dac.channel.config` (noted in the actor docstring). New
+`drivers/mcp4728.py` holds the chip constants/codec, shared by the
+actor and the SimI2c register model, which grows a chip-faithful
+MCP4728 + TCA9548A-mux stage for the suite. The unused
+`I2cRelayBoard` skeleton actor is deleted — superseded by relay
+actors + the bus owner; `gw1.actor.class/012` carries the defunct
+note (sema `3524b73`). Suite 197 green (was 189); the bench rung
+(real MCP4728s, zero cooling stakes) rides the next honeysuckle
+boot. Still ahead for the leg: tlayouts emits the writer node
+(snapshot reseed on actor.class 013).
+
+## 2026-08-12 — Window #1 fixes: scada_data walker, spruce sim-boot test, paths-root verify (`1ccb4c1a`)
+
+The three fixes out of the first spruce window (see the experiment
+record; the window died without actuating anything). (1)
+`scada_data.py:195` was the THIRD ConfigList walker assuming every
+entry is channel-shaped — it hit the DAC writer's
+`i2c.dac.channel.config` on the first snapshot tick and its catching
+loop spun at sub-ms cadence (420k log lines in ~4 min), starving the
+event loop: no snapshots, the scripted witness never ran. Same
+`isinstance(config, ChannelConfigBase)` filter as the other two. (2)
+The suite now boots the ASSEMBLED spruce artifact in sim (tests keep a
+frozen copy under tests/config/) — the test that would have caught
+this on the laptop, since the pinned Nolan fixture has no DAC writer;
+it asserts a snapshot actually builds. (3) `window_boot.py`'s
+paths-root isolation is now explicit and ASSERTED at boot (the
+`SCADA_PATHS__NAME` env override silently did not apply — the app
+forces the paths name after settings parse — which is how the window's
+dying shutdown event landed in the shared event dir and rode the
+deployed scada's reupload to prod); the boot refuses to run if the
+event dir or log dir resolve outside the experiment root — the fix is
+a `WindowScadaApp` subclass overriding `paths_name()`, the only
+override that survives app construction. Canary tests
+(`test_paths_isolation.py`) pin both halves: the discard behavior that
+bit us, and the subclass mechanism the harness depends on — if
+gwproactor's behavior changes, the suite says so before a window does.
+
+---
+
+## 2026-08-12 — NolanLocalControl: layout-family selection, Normal scripted witness (`690d584e`)
+
+The LocalControl loader gains the missing selection axis: layout
+family FIRST (`Hydronic.Strategy == "Nolan"` →
+`local_control/nolan.py`), then the ops-artifact mode within the
+family (House0 selection untouched). Until now a Nolan layout got
+`AllTanksTouLocalControl` — the mismatched pairing behind the
+2026-08-11 spruce-window crash (ScadaBlind entry touching store-pump
+nodes the layout doesn't have). `NolanLocalControl` is observe-only:
+top machine on the existing `LocalControlTopState` vocabulary
+(Monitor ↔ Dormant — the Monitor value already existed), command tree
+set, actuators inherited at their adopted states and never commanded
+(deployed on spruce it must NOT disturb the hack's latched holds),
+watchdog + top-state reporting. The hack-parity TOU/zone logic (build
+step 7) lands inside it incrementally. Suite-wide effect: the pinned
+Nolan fixture now selects NolanLocalControl.
+
+Second pass the same day (Jessica): **Normal joins the top machine and
+carries the scripted witness** — NolanLocalControl boots into Normal,
+runs the first spruce-window experiment sequence (fancoil circuit
+takeover → call ON, held across the Caleffi zone-control box's
+seconds-to-half-minute latency → call OFF → release; secondary pump
+ON → OFF), then segues to Monitor via the existing MonitorOnly event
+(MonitorAndControl arms it again; both values already existed in
+local.control.top.event). The sequence is record-driven: the fancoil
+circuit resolves from `Hydronic.ZoneCallCircuits` by ActuatorKind and
+the pump from its board-record RelayName — no node-name scanning —
+which required catching the `GwHydronic` mirror up to sema's
+gw.hydronic (optional ZoneCallCircuits, added to the word with the
+zone-words work). The vocabulary-generic energize/de_energize helpers
+already speak each relay's own config events. On a layout without the
+target records (the pinned fixture) the script skips cleanly to
+Monitor — asserted in the actor tests along with the
+Normal→Monitor→Normal→Dormant round trip.
+
+---
+
+## 2026-08-12 — Immediate relay re-assert after expander reset repair (`98ce53f1`)
+
+Closes the repair-to-re-assert window (was: relays re-converged on
+their 5-minute verify loops — unacceptable with 0x21 carrying the
+critical cooling actuators): after `_clear_then_configure` repairs a
+reset expander, `I2cBus` sends `ExpanderReinitialized` (a typed
+process-internal payload carrying the expander address — intra-app
+signal, never crosses the broker, so no sema word) to every
+i2c-relay node it resolved at init; a relay on that address runs its
+verify pass immediately, re-asserting its held command or confirmed
+state within the same second. Choreography test extended: reset →
+repair → poke → pin restored with no manual verify call.
+
+---
+
+## 2026-08-12 — Sim i2c backend, bus init-guard, GRI-11 failure tests (`4828a8d6`)
+
+The register-level fidelity dial ratified into the
+simulated-test-environment design: `drivers/sim_i2c.py` is a fake-chip
+smbus backend (per-address register store; TCA9555 semantics at the
+expander addresses — POR defaults, input ports mirror output
+flip-flops only when configured; EIO + garbled-read fault injection).
+`I2cBus` selects its backend once at init (interim `is_simulated`
+branch in the bus actor ONLY, graduating to a `Sim*` board DeviceType
+when the sema word lands) and drops the per-handler sim faking — a
+real-mode boot without smbus now errors ops loudly instead of faking
+success. The OPS-452 init-guard lands in the bus actor: adopt-or-init
+at start (config regs already outputs ⇒ warm takeover so relay
+pin-adoption inherits latched holds; POR/odd state ⇒ the hack's
+clear-then-configure to safe-off — POR outputs are all-1s, so
+configure-first would drive every relay ON), ops error "initializing"
+until the guard completes, and a config-register guard each heartbeat
+(confirm re-read, Critical with the both-expander register snapshot,
+re-init; relays re-converge via their verify loops). The relay actor's
+three i2c `is_simulated` short-circuits are deleted (the
+simulated-actors spoke's clean-out task, i2c slice) — sim now runs the
+full confirm/verify choreography. Actor-level tests cover the GRI-11
+catalog: POR boot-adopt, warm-takeover latched holds, confirmed
+actuation, transient-EIO heal via held-command retry, permanent-EIO
+glitch-per-streak, mid-run reset detect + repair + re-assert, and the
+garbled-read false-positive guard.
+
+---
+
+## 2026-08-12 — Relay actor i2c path: board-record resolution, confirmed state (`3372d6c6`)
+
+The relay path of spruce-unlimbo build step 6: `Relay` accepts
+`I2cRelayComponent`, resolves its physical facts once at init
+(RelayName → board record `I2cRelays` → expander address/register/bit;
+bus node by ActorClass), and actuates via `I2cWriteBit` through the
+`i2c-bus` actor with per-op pin-readback confirm on the TCA9555 input
+register (`drivers/tca9555.py` carries the chip's register map). State
+semantics per the zone spoke's "relay actor, adjusted": reported state
+is pin-CONFIRMED, committed only after readback matches; boot adopts
+state from the pins (`SupportsPinReadback` boards) instead of assuming
+de-energized; internal `Unknown` is never published (enum coercion
+would decode it as the failsafe posture); the 5-minute loop is
+assert-then-verify — unconditional re-assert of the target (the
+hack's enforce behavior; enforcement must not depend on readback
+truthfulness), output-register pre-read for drift evidence, pin
+confirm after, and any disagreeing-with-expectation pin read is
+confirmed by a second read 0.5 s later before anyone acts on it (the
+hack's OPS-452 false-positive guard). A commanded transition that
+fails confirmation is held as the enforcement target (`I2cCommand`,
+scada-internal, wire-mirroring field formats) and retried every pass
+until confirmed — transient EIOs heal without the boss re-commanding,
+the hack's dac3-recovery behavior; glitches throttle per failure
+streak. Event/state FSM
+vocabulary now resolves from the config's EventType/StateType
+(layout-driven — `ChangeZoneCallSource`/`ChangeValveState`/
+`ChangeRelayState` map), not node-name matching. Krida correction
+found by `test_admin_relay_set`: only the report ROUND-TRIP was dead
+(the commented-out `_process_atomic_report` dispatch — deleted); the
+actuation leg was live and the House0 admin path exercises it, so it
+stays as `_krida_actuate` (commanded belief, no FsmFullReport to the
+boss, multiplexer reports state on its own channels), with the
+`relay_multiplexer` lookup now scoped to that component type instead
+of unconditional (the Nolan-layout crash point). Also:
+`ValveOpenOrClosed` enum `__init__` export, missed in `4ad067d2`'s
+registrations. Suite exercises the GPIO and krida paths unchanged; the
+i2c path's behavioral witness is the honeysuckle bench boot (EDD
+ladder).
+
+---
+
+## 2026-08-11 — Layout-decode surface for the hack-parity relay roster (`4ad067d2`)
+
+The emitted spruce layout (tlayouts `jm/spruce`, 2026-08-11) carries 13
+`i2c.relay.component.gt` components and the Dac2
+`i2c.dac.writer.component.gt`, but gwsproto could not decode it: the
+`NolanComponent` union and the component-decoder registry lacked both
+types, and three control-vocabulary enums had no mirror. This commit is
+the decode surface only (the relay actor path is the next cluster):
+`I2cRelayComponentGt` named type (ExactlyOneConfig axiom) + hand-written
+enum mirrors `ChangeZoneCallSource`, `ChangeValveState`,
+`ValveOpenOrClosed`; the `I2cRelayComponent` and `I2cDacWriterComponent`
+board-resident data classes (the `ComponentOnly` fallback cannot take
+`board_component`, so a board-resident gt without its own dc fails to
+load); registrations in `named_types/components.py`, the `__init__`
+re-exports, and the `NolanComponent` union. Two ConfigList walkers
+assumed every entry is channel-shaped and broke on the DAC writer's
+`i2c.dac.channel.config` entries (power-on defaults, no ChannelName):
+the ops splice in `sema_to_dc.py` now skips entries without ChannelName,
+and `hardware_layout.py`'s channel-consistency check filters
+`isinstance(config, ChannelConfigBase)`. Round-trip + ExactlyOneConfig
+negative tests added. Witness: the spruce artifact loads end-to-end (13
+relays + DAC writer, board-anchored); the static relay-component
+instance is `sema validate` green (the assembled runtime shape carries
+the known ChannelConfigBase capture-field divergence, as
+`i2c.thermistor.channel.config` does — proactor port sweeps it).
+
+---
+
+## 2026-08-11 — gwsproto mirrors of the zone vocabulary (`78751cf8`)
+
+Hand-written gwsproto mirrors of the zone/circuit words (sema
+`1744a71`): the 10 enums (circuit + governance FSM pairs,
+`ZoneCallSource`, `SetpointPhase`, `ZoneActuatorKind`,
+`ZoneCircuitRole`, `ZoneSetpointSource`, `ThermostatKind`) and 4 named
+types (`ZoneThermostat`, `ZoneCallCircuit`, `ZoneCircuitGovernanceCmd`,
+`SetpointBelief`) with `check_axiom_<n>` validators mirroring the sema
+axioms; `HvacZone` gains optional `TempChannelName`;
+`ScadaDeviceTypeGt` gains required `SupportsPinReadback` (gw108 true,
+krida false — required-field fallout in the board constants and the
+oak/nolan layout fixtures). PascalCase-native fields per the sibling
+mirrors. All new/changed types `sema validate` green; round-trip +
+per-axiom-clause negative tests added. Not yet mirrored:
+`change.zone.call.source` (authored later the same day) — joins with
+the relay-actor work, as do the roster-named zone relay constants
+(`NolanZoneNodeNames` still carries the pre-roster
+`zone<idx>-failsafe/-scada` names; constants and their actor call
+sites move together).
+
+Also in this commit: the README Testing section's Homebrew note now
+says WHY `brew services` is the wrong autostart path, not just "stop
+it first" — it always launches the formula's own single-listener
+config and cannot be pointed at `tests/config/local_mosquitto.conf`
+(the tests need the 18831 listener too), so the natural-looking
+`brew services start mosquitto` quietly provides the wrong broker; a
+user LaunchAgent / systemd user unit running the repo config directly
+is the across-reboots path.
+
 ## 2026-08-10 — GNodeGt mirror to g.node.gt/006 (`7b734d85`)
 
 **What:** on `jm/spruce-unlimbo`: the `GNodeGt` named type moves to
@@ -173,7 +532,7 @@ any actor, which the thermistor reader (next commit) requires (OPS-392).
 
 ## 2026-07-29 — Boot assembles the sema-authored artifact pair (`c755195b`)
 
-**What:** `scada_app._load_hardware_layout` detects a sema-authored static
+**What:** `scada_app._load_layout` detects a sema-authored static
 artifact by TypeName and assembles it with the home's operational-params
 artifact (`sema_to_dc.ops_and_sema_to_dc`) instead of requiring a
 runtime-shaped layout file. `sema_to_dc` dispatches the sema model by

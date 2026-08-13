@@ -13,27 +13,83 @@ Newest at the top.
 
 ---
 
-## 2026-08-12 — records enter by create command over the bus <!-- pending commit -->
+## 2026-08-13 — gwbase 0.5.10 pin; g.node.gt fixtures to v006 (`3c00e0b`)
+
+gwbase 0.5.10 rejects `g.node.gt/004` (the same staleness fix
+applied there — see its changelog); `test_layer2_weather.py`'s
+`g_node_file` fixture still hardcoded `"Version": "004"`, so bumping
+the pin alone would have broken the layer-2 suite. Bumped the
+fixture to 006 alongside the pin. No functional gwwf change — the
+prod identity swap (new alias, registry-sourced `g.node.gt.json`)
+is box-side config, not code.
+
+## 2026-08-13 — service/bash_aliases (`933fdda`)
+
+gwwf never got the ear/gnr/gjk service-template's convenience
+aliases (`service/bash_aliases`, sourced from the box login's
+`~/.bashrc`) — every start/stop/status/log during the step-7 deploy
+was hand-typed `systemctl`, and the gaps showed: a bare (non-sudo)
+`systemctl enable --now` triggered an interactive polkit password
+prompt, and `enable --now` doesn't match the sudoers drop-in's
+per-verb exact-argv grants anyway. Adds `weatherstart` / `weatherstop`
+/ `weatherrestart` / `weatherstatus` (one unit's worth of sudo calls
+each, chained — sudoers matches exact argv, so a single call naming
+both units would silently fall through to a password prompt) plus
+`rabbitlog` / `apilog`, split because the two units log differently:
+`weather-rabbit` is a gwbase actor with the bijective file logger,
+`weather-api` is a plain FastAPI process with journald-only output.
+
+## 2026-08-12 — words published (`1dc08ba`)
+
+The three command-round words are published (sema promote), so the
+dev-only staging snapshot (`--allow-staged`, staging banner +
+`indexes/staging.yaml`) retires: the vendored snapshot regenerates
+published-only from the promote commit, clearing the prod deploy.
+No runtime behavior changes — the wire bytes were already final.
+
+## 2026-08-12 — records enter by create command over the bus (`4cb9add`)
 
 Record creation becomes a human act whose request crosses the wire
 as a sema word, on the gnr write pattern (`g.node.create.cmd` +
-ack/nack twins): `gwwf create <record.json>` sends the create
-command; the actor validates through the snapshot, inserts
-(insert-only — records are durable identities, never upserted; the
-seed's upsert retires), broadcasts the record once (radio tail = its
-own name; the bundle tail-less — the TypeName segment
-discriminates), and replies ack/nack correlated by the command's
-content hash. The ear witnesses command, verdict, and record into
-the immutable store — full provenance, and archived forecast
-messages can resolve the bundle active at their time (the forecast
-message carries no slice grid by design). `gwwf seed` + `records.py`
-are removed: no in-code record source; tests carry their own
-instances. Authority = the authenticated connection, with a `Proof`
+ack/nack twins): `gwwf create <record.json>` sends
+`gw.weather.create.cmd/000` (ONE command word — the Record slot is a
+closed oneOf over the four record words; a fifth kind is a version
+bump, not a fifth word); the actor validates through the snapshot,
+inserts (insert-only — records are durable identities, never
+upserted; a bundle's embedded channel copies must equal the
+canonical rows), broadcasts the record once (radio tail = its own
+name; the bundle tail-less — the TypeName segment discriminates),
+replies ack/nack correlated by the command's content hash, and
+rebuilds the scheduler from the DB so minted records start emitting
+without a restart. The sender is a weather-class operator identity
+(`<universe>.weatherminter`), never the service alias — the verdict
+is addressed to the command envelope's from_alias; command and
+verdict ride the fabric's new (weather, weather) self-edge (gwbase
+0.5.9; pin bump + lock follow its release). The ear witnesses
+command, verdict, and record into the immutable store — full
+provenance, and archived forecast messages can resolve the bundle
+active at their time (the forecast message carries no slice grid by
+design). `gwwf seed` + `records.py` + `names.py` are removed: no
+in-code record source; tests carry their own instances
+(`tests/records.py`). An EMPTY record set is a legal boot state —
+the actor is the create command's consumer, so it runs before any
+records exist; no records means an idle scheduler, never a boot
+failure. Authority = the authenticated connection, with a `Proof`
 placeholder field reserved (gnr's posture). A broadcast-stamp column
 was considered and rejected: the DB rebuilds from code and the
-store, and a stamp is state rebuildable from nowhere. Broadcast
-mechanics witnessed on the dev broker
-(`experiments/2026-08-12-gwwf-record-broadcast/`).
+store, and a stamp is state rebuildable from nowhere.
+
+Snapshot local names drop the gw ceremony (`local_names:
+strip_prefixes: [gw1, gw]` in the seed request — WeatherObservation,
+Unit, Quantity; wire TypeNames untouched), and the SQL enum types
+renamed to match (quantity, unit, weather_forecast_fidelity) in the
+collapsed initial migration — deploy drops + re-migrates the box DB.
+
+Witnessed: broadcast mechanics on the dev broker
+(`experiments/2026-08-12-gwwf-record-broadcast/`), and the full
+round in the layer-2 suite (empty boot → out-of-order nack → six
+acks → duplicate nack → record broadcasts on the wire → emissions
+begin, no restart).
 
 ## 2026-08-12 — stand up the weather service (`0b928b4`, merged to main via `4bdca5e`)
 

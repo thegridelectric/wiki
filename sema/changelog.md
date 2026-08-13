@@ -12,6 +12,217 @@ Newest at the top.
 
 ---
 
+## 2026-08-13 — squash staging types (`a4f1ef7`)
+
+A mid-process defect had spread across the vocabulary: a field change
+against an already-`staging` (unpublished, still-mutable) version
+kept minting a *new* version instead of editing the existing one in
+place, so several types carried two or more staging versions where
+one would do — `i2c.multichannel.dt.relay.component.gt` had 004 and
+005 both staging, `spaceheat.node.gt` had 302 and 303, and so on.
+Since staging is exempt from immutability, none of that duplication
+was protecting real wire data; it was just drift. The fix is the same
+recipe everywhere: take the later version's additional change, fold
+it into the earliest staging version, delete the later version's
+registry entry / schema file / axiom+upgrade templates, and repoint
+every dependent (registry `direct_dependencies` *and* the schema's
+actual `$ref` — the two drift independently, and only the `$ref`
+breaks codegen) down to the surviving version number.
+
+Squashed this way: `gw1.device.type` (enum, 000+001→000),
+`ads.channel.config` (000+001→000), `dfr.config` (000+001→000),
+`electric.meter.channel.config` (000+001→000),
+`electric.meter.component.gt` (001+002→001),
+`gw108.gpio.sensor.component.gt` (001+002→001),
+`gw108.vdc.relay.component.gt` (001+002→001, folding forward the
+already-squashed `relay.actor.config:003` dependency below),
+`i2c.multichannel.dt.relay.component.gt` (004+005→004, leaving
+published 002/003 untouched), `linear.one.dimensional.calibration`
+(000+001→000), `pico.btu.meter.component.gt` (000+001→000),
+`spaceheat.node.gt` (302+303→302), `web.server.component.gt`
+(001+002→001). Same move already landed in this commit for
+`relay.actor.config` (004→003) and `scada.control.capabilities`
+(002→001) — both drop Unit/Exponent/capture-tuning fields, same as
+the `*.channel.config` family above.
+
+`i2c.thermistor.channel.config` (000/001/002→000) and
+`i2c.thermistor.reader.component.gt` (000/001/002/003→000) got the
+same squash despite `000` having been reinstated 2026-08-06 on a
+"deployed layouts emit Version 000" wire-evidence claim: since only
+`layout.lite` currently reaches rabbit, and `layout.lite` never
+referenced either thermistor type, that evidence couldn't have come
+from a live broker capture and the premise doesn't hold up — treated
+as an ordinary duplicate instead, per Jessica's call.
+
+`layout.lite` had accumulated three staging versions (013, 014, 015)
+that never crossed a real wire — verified against `actual-spruce`
+(still on the published `/012`, confirmed by a fresh fetch this
+session) and the repo's own 2026-08-12 status-partition entry, which
+found the same for the sibling unlimbo-line types. They collapse into
+a single staging `013` carrying `/015`'s content verbatim (cac-free
+`DeviceType` component versions — pico.tank.module 012,
+sim.pico.tank.module 001, pico.flow.module 001,
+i2c.multichannel.dt.relay 004 (post-squash) — plus spaceheat.node.gt
+302 (post-squash), data.channel.gt 003; the 012→013 upgrade template
+merged to context-dependent, combining the cac migration reason with
+the field split below). `gw.nolan.layout` and the ops words already
+ride this dependency set on `jm/layout-axioms` — `layout.lite` was the
+one type still behind, exactly the drift the 2026-07-04 conformance
+sweep flagged and nobody closed.
+
+Same move: `SystemMode` drops from `layout.lite` (its sole reverse
+dependency across every version 008–015 — confirmed via
+`indexes/reverse_dependencies.yaml`) in favor of the `ActuationAuthority`
+× `ServiceMode` pair minted earlier this session, closing the
+conflation `gw1.system.mode` never resolved (Heating doubling as "full
+authority"). `gw1.system.mode` stays published at `000`, untouched,
+`replaced_by` already pointing at the two successors.
+
+Same cluster: `gw.nolan.operational.params/000` gains `CopCurve` +
+`HeatingCurve` (Jessica's call — Nolan's heat pump needs them same as
+House0's; store knobs stay off since Nolan has no thermal store to
+season). The two ops words now share six fields (`ScadaAlias`,
+`CaptureTuningList`, `ActuationAuthority`, `ServiceMode`, `CopCurve`,
+`HeatingCurve`) — no sema-side change for that (sema words don't
+inherit), but gwsproto factors them into a shared
+`OperationalParamsCoreBase` Python base class purely for code reuse,
+matching the existing `ComponentBase` precedent; each word's own
+schema stays flat.
+
+Two pre-existing defects surfaced and got fixed along the way, not
+just re-squashed: `electric.meter.component.gt/001`'s embedded
+`ConfigList` example still carried `electric.meter.channel.config`'s
+old (pre-squash) fields, caught by the round-trip validation test; and
+`pico.btu.meter.component.gt/001` had a stray top-level
+`extended_description` key outside `x-gridworks`, which the spec only
+permits nested — folded into the correctly-placed one instead of
+carried forward.
+
+## 2026-08-12 — promote the gw.weather command round (`8d6ea57`)
+
+`gw.weather.create.cmd/000`, `gw.weather.cmd.ack/000`, and
+`gw.weather.cmd.nack/000` flip staging → published (hash-pinned in
+`published_hashes.yaml`), clearing the weather service's step-7 prod
+deploy: the create round was witnessed on the dev broker against the
+released fabric (gwbase 0.5.9 self-edge) — empty boot, referential
+refusals, six acks, record broadcasts in the delivery shape, and
+emissions resuming on the minted records' schedule.
+
+Squashed in: `snapshot prepare` now refuses before touching
+`output/`. A prepare refused by the staging gate had already cleared
+`output/`, leaving an empty snapshot dir where the previous build
+stood — and a consumer's mirror step (`rsync --delete`) then guts
+its vendored snapshot with no error of its own. The seed now expands
+to a temp location and the staging closure validates there;
+`output/` is cleared only after every refusal path has passed. (The
+clean-checkout gate already ran first with a nonzero exit — the
+hazard was the staging gate specifically.) A guardrail test pins
+refusal-leaves-output-intact.
+
+## 2026-08-13 — nolan ops word round: gw.nolan.operational.params + hh.mm / day.of.week / gw.tou.window + ScadaAlias; gw1.system.mode splits into actuation.authority x service.mode; gw.house0.operational.params slims in place (`c9fa26f`)
+
+The operational-params cleanup round (spruce-unlimbo
+`operational-params-cleanup.md`): the Nolan family gets its own ops
+word instead of tuning itself through a house0-named artifact.
+New vocabulary — `hh.mm` format (24-hour wall-clock minute,
+published: formats never stage), `day.of.week` literal enum
+(staging), `gw.tou.window/000` (staging: Start/End hh.mm + explicit
+Days, so "weekends have no on-peak" is mechanical absence, not
+prose), `gw.nolan.operational.params/000` (staging:
+CaptureTuningList, OnPeakWindows, HeldCircuitPositions — so the TOU
+constants can leave nolan.py in the scada follow-through; no store
+knobs, curves join when Nolan heating control needs them). `gw1.system.mode` splits along its two
+conflated axes instead of gaining Cooling as a fourth sibling (its
+Heating value doubled as "full authority"; the spruce artifact said
+Heating all summer while the hack cooled): new staging enums
+`gw1.actuation.authority/000` (Active/Standby/MonitorOnly — default
+MonitorOnly, so an unrecognized value degrades to non-actuation,
+not full authority) and `gw1.service.mode/000` (Heating/Cooling,
+inert outside Active — authority dominates). Both ops words carry
+the pair as ActuationAuthority + ServiceMode; system.mode 000 stays
+published with `replaced_by` pointing at the two. `gw.house0.operational.params/000` slims in
+place (staging): GNodes out (identity is the layout's; nothing read
+it), Latitude/Longitude out (site facts, back to scada settings
+until TaValidator). Both ops words then gain required `ScadaAlias`
+(left.right.dot) — a stored or emitted instance self-identifies
+without its filename or envelope; one identity pointer, not the
+dead three-GNode mirror, and the consumer can check it names the
+paired layout's Scada ("right family, wrong house"). Ops↔layout family pairing is enforced by the
+consumer decoding ops through the layout family's word — a
+two-artifact invariant, so it lives in the scada load path, not an
+axiom.
+
+## 2026-08-12 — gw.nolan.layout axiom 3 LocalControlPlant: the plant surface is forced at decode (in `c15cb2d` "WIP")
+
+Crash prevention moves from runtime cleverness into the layout
+contract: a Nolan layout that cannot run Nolan local control is now
+INVALID at decode. Axiom 3 (in place on staging 000) requires ShNodes
+named iso-valve-relay / secondary-pump-relay / hp-scada-ops-relay and
+non-empty Hydronic.ZoneCallCircuits with every circuit's
+failsafe/ops relay node present. The NODE NAMES are the contract —
+deliberately not the board-record RelayNames (hardware realization,
+the axis-3 leak); gwsproto/names mirrors these constants, with the
+sema word as the authority. First move of the names-into-sema thread
+(chunk B): the vocabulary now owns required names; the full
+names/venv-decoupling design is queued.
+
+## 2026-08-12 — update spaceheat.node.gt to use the updated actor class (`91385fe`)
+
+Correcting the 2026-07-07 initial status partition (`059f6ad`) where
+its blanket "everything non-layout → published" default diverged from
+its own first principle (published is owed to the broker archive —
+wire-reached words): `spaceheat.node.gt/302+303`,
+`new.command.tree/002`, and `scada.control.capabilities/002` were all
+created on the unlimbo line (dev brokers only, bounded windows) and
+have never crossed a real wire — the deployed lines emit
+node.gt 300/301, command.tree 001, capabilities 000 (verified against
+`main`/`dev`/`actual-spruce` mirrors). All four flip published →
+staging (a human-sanctioned one-off against the one-way status
+ratchet, sanctioned by Jessica 2026-08-12; nothing published
+references any of them, so the published-closure rule holds) and
+their sha256 pins drop. With 303 staging-mutable, its ActorClass
+`$ref` moves to `gw1.actor.class/013` in place — layouts can now
+declare `I2cDacWriter` nodes with no new node.gt version. Expected
+ahead (not in this commit): NEW `new.command.tree` and
+`scada.control.capabilities` versions as functional-scada surfaces
+(the OPS-394 capability work) before the epic-end promote freezes
+the closure.
+
+## 2026-08-12 — gw.weather create command round: create.cmd + cmd.ack/nack (`b64e3dd`)
+
+The weather service's write pattern (OPS-436 step 7): every record is
+created by a human act whose request crosses the wire as a sema word,
+on the gnr write pattern (`g.node.create.cmd` + twins). One common
+command word — `gw.weather.create.cmd/000`, whose `Record` slot is a
+closed oneOf over the four published record words (one create act
+over four kinds; a fifth kind is a version bump, not a fifth word) —
+plus `gw.weather.cmd.ack/000` / `gw.weather.cmd.nack/000`,
+discriminated by TypeName and correlated by the command's content
+hash. gnr's twins are not reused: their contracts bind the hash to
+the registry's append-only command log. `Proof` stays the optional
+authority-substrate placeholder. All three staging (dev-broker use;
+`sema promote` gates prod, sequenced with the JK MVP in the design).
+No axioms at 000.
+
+## 2026-08-12 — i2c DAC ops vocabulary: write.byte + read.bytes, result/001, actor.class/013 (`1883372`)
+
+The vocabulary the DAC-writer leg of spruce-unlimbo needs to ride the
+I2cBus single owner. The published reg-op quartet cannot express the
+TCA9548A mux select (a register-less byte write) or the MCP4728
+EEPROM verify (a bare multi-byte receive, no register pointer) — the
+3-byte DAC value write itself already fits `i2c.write.reg/000`. New
+words `i2c.write.byte/000` and `i2c.read.bytes/000`;
+`i2c.operation/001` appends WriteByte + ReadBytes;
+`i2c.result/001` moves its Operation $ref to 001 and adds the
+optional `Bytes` list for multi-byte reads (the $ref change forces
+the version by rule; one result channel stays one word — settled
+over a forked result vocabulary). `gw1.actor.class/013` appends
+I2cDacWriter — the actor is registered in scada code but no layout
+node could declare it. All new versions staging (in-process actor
+payloads; promote rides the epic end). Runtime + indexes
+regenerated; i2c.result/000 gains its upgrade path per the
+superseded-version discipline.
+
 ## 2026-08-12 — Add GridworksSimGw108 to gw1.device.type; Mark I2cRelayBoard defunct in gw1.actor.class (`3524b73`)
 
 Two small vocabulary touches from the spruce-unlimbo lane, landed as

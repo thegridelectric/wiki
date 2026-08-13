@@ -165,7 +165,18 @@ distributed-trust principle it served — that principle is core vision.
   archive and carries MORE than the journal — message types
   JournalKeeper does not journal, and windows beyond its retention.
   Consult it by hand for those; keep no S3 fallback code in pull paths
-  until a consumer concretely needs an S3-only type.
+  until a consumer concretely needs an S3-only type. Session access to the
+  journal DB: `GJK_DB_URL` in `experiments/.env`.
+- **HTTP surfaces follow the house API pattern** — writes ride rabbit, reads
+  ride a public read-only façade; the party segment is the hyphenated
+  GNodeAlias for GNode services (the service name for non-GNodes); bodies
+  and responses are sema words: [`api-pattern.md`](api-pattern.md).
+- **GNode aliases carry their universe as segment 0** — the first dotted
+  segment names the universe (`d1`, `hw1`, `w`), the broker vhost encodes it
+  (`<universe>__<run>`), and a GNode talks only on its own universe's broker.
+  A cloud GNode service that is not grid topology hangs directly under the
+  universe root (`d1.weather` → `hw1.weather`); market/copper nodes carry
+  their place in the tree. Authority: gnr executor "Universes".
 - **No cross-service declarations in a repo.** A repo SHALL NOT state what
   another service does with it ("JournalKeeper overrides this hook as a
   permanent legacy_hack") — such claims go stale silently when the other

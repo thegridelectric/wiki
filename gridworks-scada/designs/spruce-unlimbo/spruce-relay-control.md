@@ -178,7 +178,8 @@ is the **CT ADC** (`CtAdc`, plain `I2cAdcCapability`, ct1–ct4 per
 `starter-scripts/gw108_test_code.py` — a current-sensing circuit, not a divider).
 The `gw108_nolan_zones.py` single-thermistor-ADC guard stays valid; CT sensing is
 a separate capability, which is where the actual-spruce CT1/CT2 notes land in the
-port. Bench readiness is the Next-move checklist at the top of this spoke.
+port. Bench readiness is the bench-boot reproducer checklist at the top of
+this spoke.
 
 ### Readiness — the spruce + honeysuckle layouts and the boot ladder
 
@@ -368,7 +369,10 @@ while the hack runs, manual DAC use from a second process (the interactive
 
 The relay nodes the layout gen must emit for the scada to take over
 `spruce_summer_hack.py`, named without any invented board index (the
-component record carries chip/port/bit — `gw108-board.md`):
+component record carries chip/port/bit — `gw108-board.md`). ALL
+emitted in tlayouts `jm/spruce` (2026-08-11), plus the Dac2 writer
+component with the spruce EEPROM defaults — the layout side of hack
+parity is complete; what remains is the actor build:
 
 - **Zone pairs (0x20), wired zones 1–5:** `zone<n>-<name>-failsafe-relay`
   (port 0 bit n−1) + `zone<n>-<name>-ops-relay` (port 1 bit n−1),
@@ -378,11 +382,19 @@ component record carries chip/port/bit — `gw108-board.md`):
   only.
 - **`hp-scada-ops-relay`** (0x21 port 0 bit 0) — fleet role name kept
   verbatim; the season-neutral call contact.
-- **`iso-valve-relay`** (0x21 port 1 bit 2, energized = OPEN, fails
-  closed) — needs a valve-flavored function enum (open/closed, not
-  generic relay-closed); name open. OPEN: is `iso-valve-failsafe`
-  (port 1 bit 1) field-wired at spruce? Wired ⇒ node; unwired ⇒
-  board-record-only.
+- **`iso-valve-relay`** (0x21 port 1 bit 2) — on the staging valve
+  words `valve.open.or.closed` + `change.valve.state` (sema
+  `9632077`), with the wiring fact as config DATA: the valve is
+  normally closed today (energized = OPEN, fails closed —
+  field-verified 2026-07-16; the NC wiring dates from the
+  buffer-element era), so `DeEnergizedState: ValveClosed` /
+  `EnergizedState: ValveOpen`. A rewire to a normally-open valve —
+  likely, and it flips the failsafe direction per the control design
+  below — edits those two config values and nothing else; valve
+  position is never baked into names, enum values, or actor code.
+  The board's `IsoValveFailsafe` position (port 1 bit 1) is unwired
+  at spruce ⇒ board-record-only, no node (the rev B board carries
+  the position; wired-or-not is the layout's fact).
 - **`secondary-pump-relay`** (0x21 port 1 bit 5) — the pump on/off
   authority; speed is the DAC writer (dac2 channel_c), never zeroed.
 - **OPEN — wired inventory for the rest of 0x21** (buffer/store

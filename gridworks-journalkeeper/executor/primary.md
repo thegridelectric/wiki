@@ -33,9 +33,10 @@ should hold production-broker credentials.
 `ActorBase` (transport) + `SemaCodec` (decode) + `SemaMessagePersistor`
 (persist) — three things, no in-tree type registry.
 `SemaMessagePersistor.all_known_message_types()` is the **single source of
-truth** for what gjk binds on the broker AND what it persists. Adding a Sema
-type to that set (plus the snapshot) extends coverage with no per-type handler
-code.
+truth** for what gjk captures: the queue binds `#` (gjk is a tap on the full
+bus) and the capture set applies at dispatch, by type, read off the parsed
+envelope. Adding a Sema type to that set (plus the snapshot) extends coverage
+with no per-type handler code.
 
 ## The capture contract — four gates
 
@@ -43,10 +44,14 @@ A message reaches `gw_data.messages` iff it passes all four gates. This is the
 model to reason from when deciding coverage, and it must **expand as the
 ecosystem adds actors and types**.
 
-1. **Bind** — gjk binds one routing key per type in
-   `all_known_message_types()` (`#.<type-with-dashes>`) on the consume
-   exchange. Only those types are delivered. (Per-type, by design — not a
-   catch-all.)
+1. **Bind + capture-gate** — gjk binds `#` on the consume exchange (the
+   queue takes the whole bus) and narrows at dispatch: only a message
+   whose parsed envelope's `type_name` is in `all_known_message_types()`
+   proceeds. Narrowing deliberately does NOT ride broker bindings —
+   where the type token sits in a routing key is transport grammar,
+   gwbase's to know, and a binding pattern re-deriving it is how types
+   get silently dropped (the type-terminal `#.<type>` assumption lost
+   every radio-channeled broadcast and direct key).
 2. **Deliver without routing-metadata gatekeeping** — a message that reaches
    the consumer MUST be handed to dispatch regardless of whether its routing
    key parses into structured class/alias metadata. Delivery and persistence
@@ -80,8 +85,11 @@ ecosystem adds actors and types**.
    malformed JSON, degraded types, and persist failures — the actor stays up.
    (The S3 backfill importer is the loud-fail counterpart: it halts on first
    failure, a deliberately different contract.)
-4. **Binding is per-type, from the persistor** — narrowing happens at the
-   broker by type, sourced from `all_known_message_types()`.
+4. **Narrowing is by type at dispatch, from the parsed envelope** —
+   sourced from `all_known_message_types()`; the broker binding is `#`
+   (routing-key grammar stays in gwbase). The same gate re-applies
+   post-decode, covering paths with no parsed envelope (the legacy
+   salvage): decodable ≠ captured.
 5. **Idempotent re-import.** Every message id is deterministic: a natural id
    field when present, else `uuid5` over `{from_alias}|{type_name}|{persisted_ms}`
    (the S3 filename triple). With the `(timestamp, id)` PK +
@@ -134,10 +142,11 @@ ecosystem adds actors and types**.
 ## Live path
 
 ```
-broker (consume exchange; per-type binds: #.report, #.glitch, …)
+broker (consume exchange; one `#` bind — the whole bus)
   └─ ActorBase consume → on_message: parse routing key  ── parse fails ─▶ recover* / log+drop
-       └─ JournalKeeper.dispatch_message
+       └─ JournalKeeper.dispatch_message  ── type ∉ capture set ─▶ drop (pre-decode)
             └─ SemaCodec.from_dict(json.loads(body))   ── degraded ─▶ skip
+                 (capture gate re-applies post-decode — covers recover*)
                  └─ SemaMessagePersistor.persist_message
                       ├─ custom persistor → MessageSql + fanned readings
                       └─ default → MessageSql(payload=jsonb)

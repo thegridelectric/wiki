@@ -1,6 +1,6 @@
 # Design: Layered test harness for gridworks-journalkeeper
 
-> Status: Draft · Pass 0 · Updated 2026-06-12
+> Status: Draft · Pass 0 · Updated 2026-06-12 · Linear: OPS-493
 
 **Layer 2 landed first (2026-06-12).** `tests/test_live_amqp.py` +
 `tests/conftest.py` implement the real-broker path ahead of Layers 0/1: an
