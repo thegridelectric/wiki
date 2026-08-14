@@ -13,6 +13,43 @@ Newest at the top.
 
 ---
 
+## 2026-08-14 — correct the SCADA client-cert recipe in tls-certs.md (`5599992`)
+
+`authority/tls/tls-certs.md`'s "Automatic key generation and copy" section
+was stale and incomplete — a password-based rclone example (with a literal
+`TODO: INSTRUCTIONS FOR GETTING CLI TO CORRECTLY ADD THE PASSWORD`) and no
+mention that `getkeys.py` can't set the certificate CN or that it always
+names the cert `gridworks_mqtt` regardless of house. Discovered and fixed
+during the full six-house OPS-420 notch-2 rollout (design
+`wiki/designs/mtls-fis-auth.md`): replaced with the proven recipe — mint
+by hand on certbot with `--common-name` (mirroring `getkeys.py`'s own
+generated command), key-based rclone auth (`key_file` + `key_use_agent`,
+since every house pi now has password login closed), and a
+`gridworks.messages` query as the live-connection confirmation, more
+direct than the derived `readings` table.
+
+## 2026-08-14 — the GridWorks SASL mechanism plugin (`9d4ed27`)
+
+Branch `jm/sasl-mechanism-plugin` (OPS-496; design OPS-420 "The mechanism
+plugin"). `rmqbot/auth-mechanism/` is the plugin's durable home: the
+two-change fork of stock `rabbit_auth_mechanism_ssl` (keep the cert-derived
+username, pass the SASL response bytes through verbatim as a `claims`
+AuthProp instead of discarding them), a `build.sh` that compiles it into a
+mountable `.ez` **inside the pinned broker image** so the OTP release matches
+the broker's exactly, and a README covering build, mount, and when to
+rebuild. The module never parses the payload — claim evolution is a sema word
+version, not a plugin rebuild.
+
+Deliberately NOT wired into the prod broker: `compose.yaml` and
+`rabbitmq.conf` are untouched, because enabling the mechanism is the notch-4
+cutover and needs FIS answering `/auth/user` first. What lands here is the
+buildable artifact plus its recipe; the staging box exercises the wiring.
+
+The source moved out of the spike harness
+(`experiments/2026-08-14-sasl-mechanism-spike/`), which now mounts the
+shipped `.ez` — so the harness verifies the real artifact rather than a
+parallel copy of it, and stays the re-runnable witness for the claims path.
+
 ## 2026-07-18 — Rabbit at 4.1
 
 Branch `jm/green-broker-4x` — the flip-day paper trail (the flip itself:

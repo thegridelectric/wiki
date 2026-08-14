@@ -15,38 +15,18 @@ review.
 > **gwbase** (the claims handshake), **provisioning** (client certs), and the
 > **scada/proactor** MQTT side.
 
-## Protocol ground truth (verified 2026-08-14, rabbitmq-server source)
+## Protocol ground truth
 
-The wire facts the rest of this design stands on, read from the plugin and
-broker source rather than assumed:
+**Distilled to [`../rmqbot/executor/auth-path.md`](../rmqbot/executor/auth-path.md)
+"What the broker forwards to an auth backend"** — the source-verified facts
+about what an auth backend can and cannot see, and why the SASL response is
+the only client-controlled channel on AMQP.
 
-- `rabbitmq-auth-backend-http` forwards, on `user_path`: `username` plus
-  **everything in `AuthProps`** (it filters only internals, sockets, and
-  connection context — `extract_other_credentials/1`). The other paths send
-  fixed fields; `topic_path` additionally carries the **`routing_key`** of
-  every topic publish. Password "may be missing if e.g.
-  rabbitmq-auth-mechanism-ssl is used" (plugin README).
-- The AMQP 0-9-1 reader **never puts `client_properties` into `AuthProps`**.
-  They are stored on the `#connection` record and emitted in the
-  `connection_created` event (visible to the management API), but are
-  structurally isolated from authentication.
-- The MQTT adapter builds
-  `AuthProps = [{vhost, VHost}, {client_id, ClientId}, {password, Password}]`
-  — so an MQTT client's **`client_id` reaches the auth backend at connect**.
-  MQTT 3.1.1 has no client_properties at all.
-- The stock `rabbit_auth_mechanism_ssl` (EXTERNAL) **ignores the SASL
-  response bytes entirely** and calls `check_user_login(Username, [])`; the
-  username comes from the peer cert via `rabbit_ssl:peer_cert_auth_name/1`.
-
-Consequence: the earlier plan — FIS reading `ServiceAlias` /
-`ServiceInstanceId` / `GNodeClass` claims out of AMQP `client_properties` at
-`/auth/user` — is unimplementable on stock parts, and was never available on
-MQTT. The FIS executor's `/validate` input description and
-`gridworks-fleet-index-service/research/lifecycle.md` step 4 describe that
-plan; both are reconciled when this design is accepted. gwbase's
-`_client_properties()` handshake stays (the management API and
-`connection_created` event read it — audit and reconciliation value), but it
-is no longer the auth channel.
+Still open here as a migration item: the FIS executor's `/validate` input
+description and `gridworks-fleet-index-service/research/lifecycle.md` step 4
+still describe the superseded plan (FIS reading claims out of AMQP
+`client_properties`), which is unimplementable on stock parts and was never
+available on MQTT. Both need reconciling in the FIS domain.
 
 ## The target
 
@@ -200,39 +180,24 @@ today and redundant-but-harmless afterwards.
 
 ## The mechanism plugin (the one custom Erlang artifact)
 
-Scope, sized against the stock module it forks: `rabbit_auth_mechanism_ssl`
-is ~100 lines, near-frozen, and does two things this design keeps — refuse
-when no usable peer cert, derive the username from it. The fork changes two
-things: parse the SASL response bytes as the claims payload instead of
-ignoring them, and pass the parsed claims as `AuthProps` instead of `[]`.
-Everything downstream (http backend → FIS) is stock. It ships as a plugin
-archive mounted into the stock `rabbitmq:4.1-management` image — a plugin,
-not a broker fork — rebuilt when the broker line bumps. The rmqbot domain
-owns it. Client side: a pika credentials class in gwbase advertising the
-mechanism and supplying the payload; MQTT needs nothing (client_id covers
-it). Alternatives considered: a custom auth *backend* sees the same
-`AuthProps` and unlocks nothing; an upstream patch (reader appends
-client_properties to `AuthProps`) is worth filing but not worth waiting on.
+**BUILT (OPS-496, closed).** Source, build, and mount recipe:
+`gridworks-infra/rmqbot/auth-mechanism/`. Spec distilled to
+[`../rmqbot/executor/auth-path.md`](../rmqbot/executor/auth-path.md)
+"The GridWorks mechanism plugin"; the client half (gwbase credentials class
+and connect claims) to
+[`../gridworks-base/executor/actors.md`](../gridworks-base/executor/actors.md)
+"Connect-time identity". Not yet enabled on any broker — that is notch 4
+below.
 
 ## FIS runs on the broker box
 
-FIS is **colocated on the rmqbot broker box**, with its own small Postgres
-(principal + lease + registry mirror). **One FIS per broker box, scoped to
-that box's fabric(s), reading only its own universe's registry** — the
-staging box runs its own FIS holding `hw1__2` lease state, and prod FIS
-never learns staging exists; a different universe (`w`) gets its own
-registry, broker, and FIS entirely. The decisive argument: the broker
-box dying already takes the fabric with it, so colocation adds **no new
-single point of failure**, while a separate box would create one — a live
-broker that can admit nobody because a different box or the path to it is
-down. Colocation makes the auth path localhost, and broker + FIS restart
-and recover as one unit: **FIS starts before (or with) the broker in the
-box's boot order**, and the rebuild runbook treats them as one. gnr being
-down never stops auth — FIS serves from its mirror. The compound event
-(broker restart while FIS is down ⇒ fleet denied until FIS returns, houses
-in HomeAlone) is **designed behavior**, the architecture keeping its own
-promise, not an outage bug. FIS sizing is one indexed lookup per connect on
-a deliberately non-burstable box whose headroom exists for exactly the
+**Distilled to [`../rmqbot/executor/auth-path.md`](../rmqbot/executor/auth-path.md)
+"The authority is colocated on this box"** — the colocation argument, the
+one-authority-per-broker-box scoping, and the designed compound-failure
+behavior.
+
+Sizing note retained for the staging build: one indexed lookup per connect,
+on a deliberately non-burstable box whose headroom exists for exactly the
 reconnect storm.
 
 ## Gateway boundary — a web login is not enough
@@ -296,17 +261,19 @@ cutover was the alternative, and it costs the management UI and the
 break-glass path for no security gain — FIS gates every fleet principal
 either way.
 
-**Notch-2 pilot (beech): COMPLETE, 2026-07-17.** Beech presents a client
-cert with CN = `19ee09df-80ba-437b-b6c1-1eebe9d34801` (the scada GNodeId;
-CA-2026; expires 2028-06-06 per the summer-stagger leaf policy); plaintext
-1883 closed for the house, accepted on 8883, telemetry continuous. Rollout
-findings: mint with `gwcert key add --common-name <GNodeId>` on certbot
-(stock `getkeys.py` cannot set the CN), transfer with getkeys `--copy-only`;
-the laptop rclone `certbot` remote needs `key_use_agent = true`; the
-proactor needed only `SCADA_GRIDWORKS_MQTT__TLS__USE_TLS=true`. Per-house
-recipe: mint (with consent) → copy → flip → restart → confirm the 8883
-accept. **Fleet rollout waits for this design's grill and
-Accepted · Pass ≥ 1.**
+**Notch-2, all six house scadas: COMPLETE, 2026-08-14** (pilot was beech,
+2026-07-17). Each presents a client cert with CN = its own scada GNodeId
+(CA-2026; expiries staggered across summer 2028 per the leaf policy);
+plaintext 1883 no longer dialed by any house, each confirmed live via a
+direct `gridworks.messages` query. Rollout findings: mint with
+`gwcert key add --certs-dir <certbot-key-name-dir> --common-name <GNodeId>
+gridworks_mqtt` on certbot (stock `getkeys.py` cannot set the CN, and always
+names the cert `gridworks_mqtt` inside a per-house dir, never after the
+house itself); transfer with getkeys `--copy-only`; the rclone remotes for
+each house need key-based auth (`key_file` + `key_use_agent`), not the
+fleet's old shared password (which several houses still silently accepted
+until closed alongside this rollout). Per-house recipe: mint (with consent)
+→ copy → flip → restart → confirm on the pi + a `gridworks.messages` check.
 
 ## Rollout order
 
@@ -334,6 +301,23 @@ Accepted · Pass ≥ 1.**
    plane) — then ear, gjk, gnr; then the MQTT fleet (proactor
    `client_id = GNodeInstanceId` + `ssl_cert_login`); then notch 3; then
    close plaintext (notch 4 complete).
+
+   **Open — LTN certs (blocks notch 4).** The six house LTNs are also
+   MQTT clients today (pre-dating the AMQP-native gwbase path this
+   design's "gwbase" domain split describes), each its own GNode with its
+   own GNodeId distinct from its scada's (`LTN_SCADA_MQTT__TLS__USE_TLS`,
+   mirroring the scada's flag) — not yet enumerated or minted. Separately:
+   the LTN has no clean restart today (no systemd unit; it's a manual
+   tmux + Python-REPL session per `gridworks-infra/ltn/README.md`), so its
+   per-house recipe's restart step needs its own answer, not a
+   `systemctl restart` copy-paste.
+
+   **Open — platform-service certs (blocks notch 4).** weather, gnr, ear,
+   gjk still need certs minted; not yet started. This design's own rule
+   for a service principal is `CN=<principal UUID>, minted with the
+   principal row` — no principal table exists yet (FIS v1 is still being
+   stood up), so minting real certs for these four likely waits on either
+   FIS v1 or a human decision to mint an interim UUID now.
 6. **Validation plane:** separate exploration → design; gates nothing here.
 7. **Broker off AWS, last.** Once the fleet is cert-native the move is
    nearly transparent — same hostname, same CA, same client certs, zero
@@ -389,6 +373,23 @@ realistic CRL/OCSP distribution to the fleet exists.
 
 ## Done-when
 
+The claims channel is built but witnessed only against a **stub** authority
+in local Docker (OPS-496, closed as build-out). Everything below still needs
+a real stack; the first four carry over from that issue.
+
+- **A real FIS decodes the claims.** The payload rides as an HTTP param from
+  `rabbitmq_auth_backend_http` and has only ever been logged as a string,
+  never decoded through a vendored snapshot codec at the far side. Mangling
+  or truncation here stays invisible until a real decode runs — witness it
+  first on staging.
+- **The plugin runs on a real broker box.** The mount/enable recipe has only
+  run under local `docker compose`; rebuild the `.ez` against the box's own
+  image pin.
+- **The auth-callback budget holds under real conditions.** Measured
+  locally: 2s per-call delay connects, 10s fails (default 10s
+  `handshake_timeout` bounds the whole sequence). Re-measure against a real
+  FIS doing a real sync-kill, and attribute the failing timer precisely
+  (handshake vs auth_http request).
 - A SCADA connects to the prod broker with its client cert; FIS returns
   allow; an unknown or `suspended` principal is denied.
 - A **revoked instance id** is denied at the gate — a superseded zombie
@@ -399,7 +400,9 @@ realistic CRL/OCSP distribution to the fleet exists.
   (nothing to kill) is admitted without delay.
 - **Leases are run-scoped**: one identity holds simultaneous `hw1__1` and
   `hw1__2` leases; a run-claim ≠ vhost mismatch is denied at
-  `/auth/vhost`.
+  `/auth/vhost`. That deny needs a hand-built client, since gwbase derives
+  `Run` from the vhost and an honest actor therefore matches by
+  construction (the spike's `client_test.py` is kept for exactly this).
 - A publish whose routing-key from-alias is not the connection identity's
   current alias is **denied at `/auth/topic`**; a registry rename kills the
   connection and the reconnect converges on the new alias.

@@ -12,6 +12,68 @@ Newest at the top.
 
 ---
 
+## 2026-08-14 — removed layout gen, WIP various node names (`488b9439`)
+
+`layout_gen` is gone — 18 modules, ~3,200 lines. It built runtime-shaped
+layout dicts, and layouts are now authored in tlayouts as sema layout
+words through tlayouts' own vendored snapshot. Keeping the generator
+would have meant maintaining a second way to produce the artifact whose
+only remaining consumers were homes not yet migrated. It also carried an
+undeclared cross-repo coupling: tlayouts' older per-home generators
+imported `layout_gen` from `gw_spaceheat` on `sys.path`, with no
+dependency declaring it. Those generators are commented out in tlayouts
+with the note that they are the translation source for the homes that
+still need a sema-authored generator; oak and spruce, which have both
+forms, are the worked pairs.
+
+What survived is inspection: `gws layout show` was a thin typer wrapper
+over `show_layout.main()` and independent of generation, so it moved to
+`layout_cli.py`. `layout mktest` did not survive — it wrote
+`tests/config/house0-layout.json` through `fixture_layouts`, and that
+path stopped existing when the fixtures consolidated to the four sema
+artifacts, so it had been writing to a deleted target. Its test case and
+`test_layout_gen.py` (both tests already skipped) went with it. Two
+runtime log messages that told an operator to "go to layout_gen" now
+name the component to edit instead — a repo should not send someone to a
+module it no longer has.
+
+The four node-name classes are now **disjoint**, which is the property
+that makes them usable: a name is declared in exactly one of
+`CoreNodeNames`, `HydronicSpaceheatNodeNames`, `House0NodeNames`,
+`NolanNodeNames`. Three collisions were resolved by moving each name to
+its shared home rather than picking a winner. `vdc_relay` was declared in
+both House0 and hydronic, contradicting House0's own docstring;
+`hp_scada_ops_relay` was declared identically in House0 and Nolan;
+`local_control_normal` sat in both hydronic and core, so core now owns
+the whole local-control family. `House0ZoneNodeNames` was deleted
+outright: both families name zone relays `zone{i}-{label}-failsafe-relay`
+/ `-ops-relay`, so that pair belongs to the shared zone class and the
+House0 one had nothing left. `NolanZoneNodeNames` had been declaring a
+different spelling again (`zone{i}-failsafe`) that matched no layout and
+nothing read.
+
+Nolan's VDC relay takes the shared name. It was `vdc-relay-gpio-23`,
+encoding the gw108 pin in the node name; the pin is the component's
+business (`GpioName: "Vdc"`) and the name states function, so it is now
+plain `vdc-relay` — the name hydronic already had. That deleted
+`House0Layout.vdc_relay_name` and its `Strategy` branch entirely, along
+with two relay properties nothing called.
+
+The Nolan fixture gains four relays — the store tank's two element
+relays, the store pump, and the discharge valve — each with its gw108
+board role, a `RelayState` channel and a capture-tuning entry. Nolan's
+discharge valve is an open/close valve (`change.valve.state`), not
+House0's two-way charge/discharge valve.
+
+**Incomplete as committed.** `actors/scada_data.py` still imports
+`gwsproto.type_helpers.channel_config_base`, deleted in `f15f7dd7`, so
+the committed tree does not import — as it has not since that commit.
+The fix is in the working tree along with the rest of the relay-concept
+work (`sh_node_actor.py`, `sema_to_dc.py`, `scada.py`,
+`local_control/nolan.py`, the two `procedural/` files) and the still
+untracked `actors/leaf_ally/nolan.py`, which the committed
+`leaf_ally_loader` imports.
+
 ## 2026-08-14 — Capture tuning moves to operational params; layout ⊕ ops pair enforced; fixtures consolidate to the two sema pairs (`f15f7dd7`)
 
 Capture tuning stops living on components. It was reaching them by a

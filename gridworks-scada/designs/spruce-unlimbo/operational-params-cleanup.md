@@ -125,6 +125,21 @@ join when Nolan heating-season control needs them, not before.
   supersedes it. Separately and on its own merits,
   `actors/orig_sieg_loop.py` is dead — nothing imports it — and is
   `hp_model`'s only reader today.
+  **Sequencing, settled 2026-08-14:** this is not an in-place edit of
+  the Nolan layout file. Layouts are authored in tlayouts as sema
+  layout words, and `layout_gen` is deleted, so every layout change now
+  arrives by regenerating the home from its sema-authored generator.
+  Four homes have one (honeysuckle, house0-stub, oak, spruce); seven do
+  not (almond and beachrose and orange were deleted as not real; beech,
+  elm, fir, maple remain, with oak and spruce keeping their old
+  generators commented as the worked translation pairs). The same
+  regeneration carries House0's functional relay names — `relay1` →
+  `vdc-relay` and the rest, which changes channel names by dropping the
+  krida index suffix (`vdc-relay1` → `vdc-relay`) and so splits fleet
+  relay-state history at the cutover. Do the heat-pump components, the
+  relay renames, and any other layout change in ONE regeneration per
+  home: each one costs a coordinated redeploy, and paying that twice
+  for changes that could have shipped together is the thing to avoid.
 
 - **MonitorOnly means absolutely nothing changes — including board
   initialization** (settled 2026-08-13). Under MonitorOnly the scada
@@ -189,30 +204,48 @@ join when Nolan heating-season control needs them, not before.
   slimmed shape); `gw.nolan.operational.params` fixtures exist and
   are sema-validated but are not yet load-bearing for a real boot.
 
-- **House0 structural validation moves from the data class to
-  `gw.house0.layout` axioms** (queued 2026-08-14). Structural
-  constraints on a layout belong in the layout word, where they are
-  enforced at decode for every consumer, not in a Python class only
-  the scada loads. Three live validators still sit in the data class
-  and are the migration: `check_house0_sieg_manifold` (the Sieg
-  manifold's channel set), `check_actors_when_using_sieg_loop` /
-  `check_actors_when_not_using_sieg_loop` (which actor nodes the
-  `FlowManifoldVariant` implies), and
-  `validate_house0_system_models`. Each becomes an axiom or is shown
-  to be a genuine runtime check and stays.
-  Alongside them go two dead design brainstorms —
-  `required_topology_nodes` and `required_system_actor_nodes` — whose
-  own docstrings say they are enforced nowhere and are to become
-  per-layout axioms. They are worth carrying into the axiom work as
-  the first-draft content (`required_topology_nodes` is already known
-  too strict: it lists `hp-idu`, but maple runs `hp-odu`-only and is
-  still House0), then deleting. They hold 45 of the 99 `H0N`
-  references in `house_0_layout.py`, so deleting them roughly halves
-  that file's H0N surface before any repointing starts.
-  Note `validate_house0`'s own essential-node list has already been
-  commented down to the five system-actor nodes that are exactly
-  `gw.house0.layout` axiom 2 `EssentialNodesExistence` — the
-  migration is underway and the class is holding the fossils.
+- **The House0 structural axioms have landed; the Python validators
+  they replace have not been deleted** (axioms landed sema-side
+  2026-08-14, `5aba5be`). `gw.house0.layout/000` now carries axiom 6
+  `SiegManifoldChannels`, axiom 7 `SiegActorConsistency` and axiom 8
+  `SystemModelEnergyChannels` — the three live validators, promoted so
+  every consumer gets them at decode rather than only the application
+  that runs the loader. The two dead brainstorms
+  (`required_topology_nodes`, `required_system_actor_nodes`) and
+  `optional_channels` are deleted.
+  What remains is the other half: `check_house0_sieg_manifold`,
+  `check_actors_when_using_sieg_loop` /
+  `check_actors_when_not_using_sieg_loop` and
+  `validate_house0_system_models` still sit in `hydronic_layout.py`,
+  now duplicating the axioms. Deleting them is not unconditional — a
+  layout reaching `HydronicLayout.load_dict` directly never passes
+  through its sema word, so the Python check is the only guard on that
+  path. The order is: make the sema word the only way in (every load
+  goes through `sema_to_dc`, which does `model_validate` before
+  `load_dict`), then delete. Deleting first silently drops the
+  constraint for direct-`load_dict` callers.
+  Note axiom 8 needed vocabulary that did not exist:
+  `gw0.usable.energy.layered` and `gw0.required.energy.layered` are now
+  registered and published (parameterless markers), because an axiom
+  may not lean on undeclared vocabulary.
+
+- **Layout variants that prove the axioms actually fire** (queued
+  2026-08-14). An axiom that has never rejected anything is a claim,
+  not a check. Sema's authoring spec already names the shape: one
+  counterexample fixture per axiom, `axiom_<n>.json`, and
+  `axiom_<n>_<label>.json` per clause where an axiom carries several
+  independently testable obligations. Neither `gw.house0.layout` nor
+  `gw.nolan.layout` has any today — both carry live axioms with no
+  `examples:` block at all, so nothing exercises them and a wrong
+  axiom would pass silently. The work: a positive example per layout
+  word (the bijection harness can generate a real one) plus a
+  negative per axiom clause — for the House0 Sieg axioms that means
+  variants with `UseSiegLoop` true and no SiegLoop node, with a
+  SiegLoop node of the wrong ActorClass, with `UseSiegLoop` false and
+  a SiegLoop node present, and with `SiegLoopPlumbed` true missing
+  each of the two hp-loop relay channels. Worth doing as the House0
+  fleet is regenerated, since each home's artifact is being rebuilt
+  anyway and the variants fall out of that work.
 
 ## Open
 
@@ -229,3 +262,55 @@ join when Nolan heating-season control needs them, not before.
 - The full House0 refactor owns: `OilBoilerBackup`,
   `ShortCycleBuffer`, and a fresh look at `LoadOverestimationPercent`
   / `HpTurnOnMinutes` / `HorizonHours` as curve-vs-knob vocabulary.
+
+## Layout collapse — LANDED in the working tree 2026-08-14, uncommitted
+
+The layout data class is now one class, `HydronicLayout`, and the relays
+live on it rather than on the actor. Suite green at 193 passed, 1
+skipped; nothing staged.
+
+**The hierarchy collapsed.** `HardwareLayout` and `House0Layout` merged
+into `hydronic_layout.py` (git-tracked as a rename off `hardware_layout.py`,
+so history follows); `house_0_layout.py` is gone. The family never
+belonged in the class: a Nolan layout already loaded as `House0Layout`,
+so the name was the only House0 thing about it. What the class earns its
+place for is unchanged and has nothing to do with families — id-to-object
+resolution, derived indexes, and the mutable command tree that
+`set_command_tree` rewrites. The base `load` / `load_dict` went with the
+merge: `House0Layout` overrode both without calling `super()`, so after
+the merge they were shadowed.
+
+**Three dead members went first** — `required_topology_nodes`,
+`required_system_actor_nodes`, `optional_channels`, all uncalled and
+self-documented as enforced nowhere. 90 lines, and 45 of the 99 `H0N`
+references in that file. Their content is not lost: the Sieg half became
+`gw.house0.layout` axioms 6-8, and the rest is in this queue.
+
+**All 17 relay concepts moved onto the layout**, ~110 call sites
+repointed to `self.layout.X` across 8 files. Resolution now happens in
+exactly one place. The actor keeps `required_node` as its Glitch-emitting
+wrapper for `REQUIRED_NODES` checks; the layout raises `DcError`, because
+a Glitch needs `_send_to` and that is actor machinery. `ProceduralHost`
+stopped declaring two relay properties — it declares `layout`, which is
+enough.
+
+Two smells fixed at their root rather than worked around. The layout
+type-names are now asked of the sema words (`type_name_literal`) instead
+of being a second copy of the strings, and they live in the protocol
+package so `sh_node_actor` no longer imports them from an app module.
+
+Verified behaviourally, not just by the suite: a Nolan layout resolves
+`iso_valve` to `iso-valve-relay` and `store_charge_discharge_relay` to
+`discharge-valve-relay` (House0 gives the same node for both), and asking
+a Nolan plant for `hp_loop_on_off` raises "a gw.nolan.layout plant has no
+hp loop on/off relay".
+
+Still to do here: the non-relay duplication is untouched —
+`derived_generator`, `dist_010v`, `ltn`, `pico_cycler`, `primary_010v`,
+`primary_scada`, `store_010v` and `hp_boss` are still defined on both the
+actor and the layout, and the actor's `atomic_ally` / `home_alone` are
+aliases for `layout.leaf_ally` / `layout.local_control` under the retired
+ATN and HomeAlone names. Then the `H0N` sweep: 54 references left in the
+merged file, ~590 repo-wide, and `H0N` is an instantiated class carrying
+`self.tank` / `self.zone`, so those parts need a home before the constants
+can follow.

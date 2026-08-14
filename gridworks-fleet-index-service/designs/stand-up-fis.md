@@ -19,15 +19,24 @@ the first with the predecessor closed before the successor is admitted.
 
 ## Build order (each step maps to a section of `executor/primary.md`)
 
-1. **Scaffold the service.** FastAPI + Postgres + `uv` (mirror the
+Steps 1–2 are built. With the mechanism plugin and the gwbase credentials
+class both delivered, every non-FIS piece the dev battery needs now exists,
+so **FIS steps 3–6 are the only thing standing between here and step 8** —
+the critical path is this repo, not the broker side.
+
+1. ✅ **Scaffold the service.** FastAPI + Postgres + `uv` (mirror the
    grid-node-registry stack). Settings via `pydantic-settings` (own
    `FIS_` prefix). Vendor the sema snapshot before the first consumer
-   line (the claims word + `g.node.gt` + the auth event).
-2. **FIS db.** The `g_node` mirror (strict bijection with `g.node.gt`,
+   line: the claims word, `g.node.gt`, the lease row, and the two forest
+   words the mirror seam consumes. **Not** the auth event — it and its
+   two enums are `draft`, which is excluded from runtime generation, so
+   they cannot be vendored until promoted (see step 6).
+2. ✅ **FIS db.** The `g_node` mirror (strict bijection with `g.node.gt`,
    consuming gnr's on-change messages; serves auth when gnr is down), the
    `principal` table (keyed on cert subject: GNodeId for GNodes, principal
    UUID for services), and the `lease` table keyed **(principal, run)** —
-   revoked rows permanent.
+   revoked rows permanent, with single-writer enforced as a partial unique
+   index rather than by the gate's care alone.
 3. **`/auth/user` — the gate** (*executor "`/auth/user` — the gate"*).
    Claims arrive as the `claims` sema word (AMQP) or `client_id` + `vhost`
    (MQTT); decode through the snapshot codec, strict. Implement the five
@@ -44,16 +53,34 @@ the first with the predecessor closed before the successor is admitted.
 5. **Reconvergence kills.** On a registry rename (mirror update), kill the
    identity's connections — the per-connection topic-verdict cache flushes
    with them.
-6. **Auth event.** Publish `runtime.instance.authorization` asynchronously
-   after each decision.
+6. **Auth event.** Publish **`fis.instance.authorization.event`**
+   asynchronously after each decision. It and its two enums
+   (`fis.authorization.decision`, `fis.authorization.reason`) are `draft`
+   and therefore unusable: promote all three to `staging` and revise them
+   to match the gate's contract, then re-run the snapshot build, before
+   the first line that emits one.
 7. **Rabbit-side config** (*executor "Rabbit config"*): chained backends
    (`internal` for mgmt UI + break-glass, `http` → FIS on localhost),
    `topic_path`, topic authorization, `validated-user-id`,
-   `mqtt.ssl_cert_login`, the GridWorks SASL mechanism plugin. Applied by
-   rmqbot; first on the staging box.
-8. **Deploy colocated with the broker** (*executor "Deployment"*): same
+   `mqtt.ssl_cert_login`, and mounting the GridWorks SASL mechanism
+   plugin. Applied by rmqbot; first on the staging box. The plugin itself
+   is **built** — it ships as a mountable `.ez` against the pinned 4.1
+   image, with the gwbase pika credentials class that supplies the claims
+   payload, so this step configures and mounts rather than builds.
+8. **Run the whole battery locally first, on the dev universe.** The full
+   stack — FIS, broker conf, mechanism plugin, a claims-bearing client —
+   against `gw-dev-rabbit` on `d1__1` before any remote box. A dev
+   universe is defined by all comms going through localhost brokers, which
+   is also the only place `staging` vocabulary may run: `fis.connect.claims`
+   and `g.node.instance.gt/001` stay mutable through this stage and harden
+   against real handshakes rather than against review.
+9. **Deploy colocated with the broker** (*executor "Deployment"*): same
    box, localhost auth path, FIS before the broker in boot order; staging
    box (`hw1__2`) first, prod after the done-when battery passes.
+   `fis.connect.claims` publishes before the box serves `hw1__2` — it
+   crosses the wire, and staging vocabulary is dev-brokers-only. The lease
+   row may stay `staging` longer: it is a row in FIS's own Postgres and
+   never crosses a broker.
 
 ## v1 scope
 
@@ -62,6 +89,10 @@ rule; vhost cross-check; resource and topic-read allow-all; the auth
 event. Service principals are additive rows, no code fork.
 
 ## Done-when (the test plan in `executor/primary.md`)
+
+The battery runs twice: first on `d1__1` against the local dev broker,
+then for real on the staging box. Dev catches the mechanical failures
+cheaply; only the staging run counts as verification.
 
 - The lifecycle handshake works end-to-end on the staging broker (allow
   for valid active).

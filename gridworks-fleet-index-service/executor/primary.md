@@ -105,12 +105,15 @@ Instance liveness ("is one running *now*?") is deliberately out of the
 gate — see
 [`../explorations/g-node-instance-and-liveness.md`](../explorations/g-node-instance-and-liveness.md).
 
-After responding, publish the auth event asynchronously. The vocabulary
-already exists in the sema registry as drafts (mutable, revised at build
-time to match this contract): the event is
+After responding, publish the auth event asynchronously. The event is
 **`fis.instance.authorization.event`** with the
-`fis.authorization.decision` / `fis.authorization.reason` enums; the
-durable lease row is **`g.node.instance.gt/000`** (published).
+`fis.authorization.decision` / `fis.authorization.reason` enums — all
+three still `draft`, so all three need promoting to `staging` (and
+revising to match this contract) before the first consumer line. The
+durable lease row is **`g.node.instance.gt/001`** (`staging`), which
+carries `Run`: the lease is keyed (principal, run), so the run belongs in
+the row. `000` keys on GNodeId alone and does not upgrade — a run cannot
+be recovered from a standalone instance.
 
 ## Registry changes force reconvergence
 
@@ -153,15 +156,26 @@ current alias (FIS-validated per new key). Message bodies include
 ## FIS db structure
 
 FIS maintains its own `g_node` mirror table in **strict bijection with
-`g.node.gt`** (no position_point table or foreign key), seeded and
-refreshed via gnr's HTTP read façade (`g.node.forest.request`). gnr's
-change broadcasts ride the **live run's** fabric only, and are
-cache-invalidation, not load-bearing: a FIS whose run carries them
-subscribes; any other (e.g. a staging FIS) falls back to periodic HTTP
-refresh. The registry itself is run-agnostic — runs are a fabric/FIS
-concern. gnr being down never stops auth — FIS serves from the mirror. The `principal` table keys
+`g.node.gt`** (no position_point table or foreign key). The mirror
+consumes the **registry's interface, never gnr's Postgres** — the same
+seam every registry-state holder uses (e.g. gjk's `gw_data` projection):
+seeded via the HTTP read façade (`g.node.forest.request`), upserted from
+`g.node.forest` broadcast deltas, with the **periodic snapshot broadcasts
+healing** a missed or corrupted mirror. Broadcasts ride the **live run's**
+fabric only and are cache-invalidation, not load-bearing: a FIS whose run
+carries them subscribes; any other (e.g. a staging FIS) falls back to
+periodic façade refresh. The registry itself is run-agnostic — runs are a
+fabric/FIS concern. gnr being down never stops auth — FIS serves from the
+mirror. The `principal` table keys
 on the cert subject (GNodeId for GNodes — no second id; principal UUID for
 services); the lease table keys on (principal, run).
+
+**Invariant 1 is enforced in the schema**, not only in the gate: a partial
+unique index on (principal_id, run) where status is Active. Supersession is
+what keeps that index satisfiable; the index is what makes a bug in the
+supersession path fail loudly instead of admitting two writers. No sema word
+covers the principal model yet, so that table alone is hand-built — a
+`fis.principal.gt` word retires the hand-building.
 
 ## Test plan
 

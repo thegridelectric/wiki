@@ -1,6 +1,6 @@
 # gridworks-base — Codec layer / Sema
 
-Status: Draft · Pass 0 · Updated 2026-05-21
+Status: Draft · Pass 0 · Updated 2026-08-14
 
 Sub-spec of the gridworks-base rebuild spec — **start at
 [`primary.md`](primary.md)**. Section numbers are global; this file holds
@@ -56,7 +56,10 @@ from the wire form.
 
 ## SemaCodec
 
-A `SemaCodec` is a registry plus a bidirectional transformer. Each
+A `SemaCodec` is a registry plus a bidirectional transformer. (That is the
+concept name, and the class name inside an application's own snapshot;
+gwbase's concrete class is `GwBaseSemaCodec` — see "The vendored snapshot
+is generated" for why the library's copy is rebranded.) Each
 codec instance holds:
 
 - `registry: { type_name -> latest SemaType class }`
@@ -150,6 +153,8 @@ The bundled type catalog (in `gwbase.sema.types`):
 - `gw` — the application envelope itself: `Header` (`GridworksHeader`)
   plus `Payload` (an opaque PascalCase dict whose `TypeName` matches
   `Header.MessageType`).
+- `fis.connect.claims` — the connect-time claims an actor presents at the
+  broker gate (`actors.md` "Connect-time identity").
 
 Each type's authoritative shape is described in YAML under
 `sema/definitions/types/<type-name>/<version>.yaml`; the runtime classes
@@ -157,6 +162,42 @@ are intended to be code-generated from those YAML files. A
 reimplementation should either generate code from the same YAML or
 hand-port the types and treat YAML as the source of truth for the wire
 shape.
+
+## The vendored snapshot is generated
+
+`src/gwbase/sema/` is not source. It is a snapshot generated from the sema
+registry by `scripts/regen_sema_snapshot.sh`, whose input is
+`src/gwbase/sema_seed_request.yaml` — the seed naming which words gwbase
+speaks and at which versions. To change what gwbase can say, edit the seed
+and re-run; the whole tree is then rewritten.
+
+Four consequences, each learned the expensive way:
+
+- **Never hand-edit inside the tree.** Anything written there is silently
+  destroyed by the next regen. The tree is excluded from ruff for the same
+  reason — linting it would mean editing it. Code that belongs to gwbase
+  rather than to the generator lives outside (this is why the `gw` envelope
+  helpers are `gwbase.wrapped`, not `gwbase.sema.wrapped`).
+- **The boundary classes are rebranded `GwBase*` by the regen script, not
+  by hand.** The generator emits generic names (`SemaCodec`, `SemaType`,
+  `SemaError`) into every consumer snapshot — right for an application,
+  wrong for a library: an application built on gwbase vendors its own
+  snapshot with those same generic names, and if gwbase exported them too,
+  the app would hold two codecs both called `SemaCodec` and the layer an
+  import belongs to would vanish from the code. So the transport layer's
+  copies are `GwBaseSemaCodec` / `GwBaseSemaType` / `GwBaseSemaError`,
+  renamed by a post-build step in `regen_sema_snapshot.sh` that then
+  asserts no generic name survives anywhere in the tree. Before this step
+  existed the rename was applied by hand — which is exactly why the
+  snapshot could never be regenerated.
+- **Versions in the seed are pinned, not floating.** An unpinned regen would
+  quietly upgrade the wire versions every actor on the bus speaks. Moving a
+  pin is a deliberate change that lands with the code reading the new
+  fields.
+- **A `staging` word makes the snapshot dev-only.** The generator refuses
+  staging words unless the build passes `--allow-staged`, since a staging
+  word may still change shape in place. When such a word is published, drop
+  the flag so the guard keeps the next one out by accident.
 
 ## The `gw` application envelope
 
@@ -190,7 +231,7 @@ Wire form:
 - The `WrappedRoutingEnvelope.type_name` equals both (the routing key
   carries the inner type, not `"gw"`).
 
-**Helpers** (in `gwbase.sema.wrapped`) — pure functions that depend on
+**Helpers** (in `gwbase.wrapped`) — pure functions that depend on
 the `Gw` and `GridworksHeader` SemaTypes but on **no codec registry**.
 Applications import them directly:
 

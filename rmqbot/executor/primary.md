@@ -1,6 +1,6 @@
 # rmqbot — deployment spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-07-18
+Status: Draft · Pass 0 · Updated 2026-08-14
 
 > What this is: the faithful spec of GridWorks' **running production
 > RabbitMQ/MQTT broker** — what it is, where it runs, how it's secured today.
@@ -19,6 +19,12 @@ the ops runbook. It is distinct from:
   — the **auth authority** the broker calls over HTTP (the FIS direction).
 
 Migrated from `gridworks-infra/{rmqbot,authority/tls,authority/certbot}`.
+
+Sub-specs:
+
+| file | holds |
+| --- | --- |
+| [`auth-path.md`](auth-path.md) | what the broker can carry into an auth decision, the GridWorks SASL mechanism plugin, and the broker-side gate configuration |
 
 ## Current deployment
 
@@ -122,8 +128,10 @@ independently flippable notches; notches 2–4 belong to the mTLS design
    encrypted on 8883, presenting its GNodeId cert, verified at handshake.
 3. **Require certs** — `fail_if_no_peer_cert = true`.
 4. **Cert + FIS are the identity and the gate** — the GridWorks SASL
-   mechanism plugin (AMQP; a small fork of `rabbit_auth_mechanism_ssl`
-   carrying a claims payload) and `mqtt.ssl_cert_login = true`: CN becomes
+   mechanism plugin (AMQP; built from
+   `gridworks-infra/rmqbot/auth-mechanism/` into a mountable `.ez` and not
+   yet enabled on this broker — [`auth-path.md`](auth-path.md)) and
+   `mqtt.ssl_cert_login = true`: CN becomes
    the username, with **chained backends** (`auth_backends.1 = internal`
    for the management UI + one break-glass account; `.2 = http` → FIS,
    colocated on this box). Fleet password users are deleted as they
@@ -170,6 +178,14 @@ on 5671, garbage-cert rejection, plaintext auth, and the analytics
 permission contract in both directions. Run it after any conf change; 6/6
 is the bar. The topology drift check (see Topology above) is the second
 harness.
+
+The SASL mechanism plugin has its own witness, since nothing on the running
+broker exercises it yet: `experiments/2026-08-14-sasl-mechanism-spike/` mounts
+the built `.ez` into a pinned broker image and drives a real client cert plus
+a claims payload into a stub authority. It passes when the authority's
+`/auth/user` call carries the cert's CN as `username` and the claims
+byte-for-byte. Because it mounts the shipped artifact rather than a copy of
+the source, a plugin change that fails to build or load fails the harness.
 
 Fleet-ops note for broker moves: a proactor client publishes
 `gridworks-event-*` only while its upstream link is peer-ACTIVE

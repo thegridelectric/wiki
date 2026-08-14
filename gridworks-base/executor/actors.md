@@ -1,6 +1,6 @@
 # gridworks-base — Application layer & diagnostics
 
-Status: Draft · Pass 0 · Updated 2026-06-10
+Status: Draft · Pass 0 · Updated 2026-08-14
 
 Sub-spec of the gridworks-base rebuild spec — **start at
 [`primary.md`](primary.md)**. Section numbers are global; this file holds
@@ -154,10 +154,61 @@ At construction it:
   schema fails at boot with a clear `ValueError`, not a mid-run crash.
 - Enforces the binding `GNodeGt.alias == settings.service_alias`
   (provisioning-drift guard).
-- Sets `g_node_id`, `g_node_class`, and decorates the FIS handshake
-  `client_properties` with `GNodeClass` (the GNode-vs-service discriminator,
-  `primary.md` "Identity"). `g_node_alias` / `g_node_instance_id` survive as back-compat property
-  aliases for `alias` / `instance_id`.
+- Sets `g_node_id`, `g_node_class`, and adds `GNodeClass` — the
+  GNode-vs-service discriminator (`primary.md` "Identity") — to both
+  connect-time channels: `client_properties` and the connect claims
+  ("Connect-time identity" below). `g_node_alias` / `g_node_instance_id`
+  survive as back-compat property aliases for `alias` / `instance_id`.
+
+## Connect-time identity
+
+An actor tells the broker two different things when it connects, and the
+distinction matters because only one of them can carry weight.
+
+**`client_properties`** (`ActorBase._client_properties`) advertises
+`ServiceAlias` + `ServiceInstanceId`, plus `GNodeClass` for a GNode. The
+broker records these on the connection, where the management API and the
+`connection_created` event can read them. They are for audit and
+reconciliation only: the AMQP reader never passes `client_properties` to an
+auth backend, so nothing an authorization decision depends on may live here.
+
+**Connect claims** (`ActorBase._connect_claims`) build a
+`fis.connect.claims` word — alias, instance id, the run being joined, and
+`GNodeClass` iff the principal is a GNode — which
+`GridworksClaimsCredentials` (`gwbase/credentials.py`) sends as the SASL
+response under the `GRIDWORKS` mechanism. This is the channel an
+authorization gate can act on. Identity itself is never claimed: it is
+proven by the connection's TLS client certificate, so completing a
+claims-bearing connect requires that certificate's private key.
+
+The credentials class holds no secret and therefore does not erase itself
+after connecting. A broker that does not offer the `GRIDWORKS` mechanism
+gets `(None, None)`, which pika reads as an ordinary negotiation miss — so a
+broker still on password auth fails cleanly rather than crashing the actor.
+
+**Switching an actor to cert-plus-claims is config, not code.** A
+`rabbit.tls` block on the settings (`ca_cert_path`, `cert_path`,
+`private_key_path` — all three required, names matching the proactor's)
+makes `connect_consumer()` build mTLS from the declared material and
+authenticate with the claims; the URL scheme must then be `amqps`. Without
+the block, password connect is untouched. The `Run` claim is never declared:
+it derives from the broker URL's vhost, which IS the `universe.run` being
+joined — one source, no drift.
+
+**Every broker URL is checked against the universe ladder at boot** (gnr
+executor "Universes" is the authority), claims path or not:
+
+- the vhost must parse as a `universe.run` whose universe kind is `d` (dev),
+  `h` (hybrid), or exactly `w` — the single production universe;
+- the URL host is `localhost`/`127.0.0.1` **iff** the universe is d-kind.
+  This is the dev rung's isolation guarantee ("all comms go through
+  localhost brokers") enforced rather than trusted: a remote dev universe
+  and a localhost `hw1` both refuse to boot.
+
+The grammar lives in `transport_format.py` (`Universe`, `UniverseRun`) —
+the settings layer stays sema-import-free per the transport/codec
+separation, and the kind rule carries a note naming the missing sema word
+(a `universe` format) that would retire it.
 
 ## Example: hello_rabbit
 

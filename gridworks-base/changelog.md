@@ -12,7 +12,143 @@ Newest at the top.
 
 ---
 
-## 2026-08-13 — g.node.gt vendored to 006, 004 rejected; 0.5.10 <!-- pending commit -->
+## 2026-08-14 — demo smoke test + pyright gate (`409e36b`)
+
+Branch `jm/pyright-gate` — the two guards the hello_rabbit break showed were
+missing. `tests/test_demo_script.py` imports the demo, so a root-level file
+referencing a moved or deleted symbol fails the suite instead of surviving
+until GitHub's linter. And `ci.sh` + the lint workflow gain a pyright step,
+per the house sema-alignment discipline: an unresolved import is what a type
+checker catches with no test at all. The generated snapshot tree is excluded,
+same reasoning as the ruff exclusion.
+
+The gate opened at 29 findings, all resolved. The demo was worse off than
+the import error suggested — it had drifted since May and could not have
+run: `transport_class` had moved from settings to a constructor argument,
+`service_alias` had become required, and it still wrote `g.node.gt/004`
+identity files, unreadable since the 006 bump. It is now a
+LeafTransactiveNode + Supervisor pair writing valid 006 identities (physical
+class ⇒ matching BaseClass + PositionPointId, mirroring the test fixture),
+and it was run end to end against the dev broker: ping, pong, broadcast, and
+`gw` wrap/unwrap all witnessed.
+
+Two real latent bugs in library code: both `subscribe_*` helpers called
+`queue_bind` on `_single_channel` without checking it exists, so calling one
+before the channel opened would have raised `AttributeError: 'NoneType'`
+instead of saying what was wrong — now routed through a `_live_channel()`
+accessor that names the contract. And the log-file header wrote to
+`handler.stream` on the same assumption (safe here — a non-delayed
+`RotatingFileHandler` always has its stream — now asserted rather than
+assumed).
+
+The rest were typing gaps, not defects: `_RecorderMixin` gets a
+`TYPE_CHECKING`-only actor base so borrowed attributes resolve while the
+runtime MRO stays free, `declare_topology` is typed `BlockingChannel` (what
+callers pass), and one parse result is narrowed by `isinstance` per the
+house rule. Five `pyright: ignore`s remain, each commented: four are
+pika-stubs gaps around the credentials extension mechanism (it omits
+`compat.as_bytes` and types `VALID_TYPES` as a union where the runtime is a
+mutable list — pika's documented way to register a mechanism), and one marks
+a deliberate static violation a test asserts at runtime.
+
+## 2026-08-14 — hello_rabbit off the deleted module; uncached ruff in ci.sh (`6109ecc`)
+
+Branch `jm/hello-rabbit-lint`. GitHub failed `ruff check --no-fix` on
+`hello_rabbit.py` while a green `ci.sh` said otherwise — and the lint error
+was the shallow symptom of a real break. The demo still imported
+`gwbase.sema.wrapped`, deleted when the envelope helpers moved to
+`gwbase.wrapped` (the import-fix sweep covered `src/` and `tests/` and
+missed the root-level script; nothing imports the demo, so the suite never
+noticed). The import now points at the module's home and the demo
+import-resolves again.
+
+Why ci.sh lied: a stale `.ruff_cache` verdict kept replaying "clean" for
+bytes GitHub's cache-less run rejected. Both ruff steps in `ci.sh` now run
+`--no-cache` — the script exists to predict CI, and a verdict that can
+drift from GitHub's on identical content is worse than the second it
+saves.
+
+## 2026-08-14 — claims connect wiring; 0.5.12 (`58da31f`)
+
+Branch `jm/claims-connect-wiring` (OPS-496). The last gwbase piece of the
+cert-plus-claims gate: an actor whose settings carry a `rabbit.tls` block
+(three required paths — `ca_cert_path`, `cert_path`, `private_key_path`,
+mirroring the proactor's field names) connects over amqps with
+`GridworksClaimsCredentials` supplying `_connect_claims()`; without the
+block, password connect is untouched. The per-actor mTLS migration is now
+pure config — three env lines per service, no gwbase code change
+mid-rollout.
+
+The `Run` claim derives from the broker URL's vhost rather than being a
+second declared setting that could drift: the vhost IS the universe run.
+With that comes the universe made first-class in code (`Universe` in
+`transport_format.py`, parsed off the vhost) and two boot-time checks on
+every broker URL, claims path or not, from the gnr executor's "Universes"
+ladder: the universe token must be d-kind, h-kind, or exactly `w` (the
+single production universe — deliberately narrower than the ladder's
+first-letter rule, which would admit a `w1`); and the URL host is
+localhost/127.0.0.1 **iff** the universe is d-kind — the dev ladder rung's
+"all comms go through localhost brokers" isolation guarantee, enforced
+instead of trusted. A vhost that is not a `universe.run` (e.g. Rabbit's
+bare `/`) now fails at boot on every gwbase actor. The kind rule is
+hand-coded with a note naming the missing sema word (a `universe` format)
+that retires it.
+
+The spike harness gains the end-state witness: a real `ActorBase` actor,
+configured only through settings, connecting through the mounted plugin to
+the stub FIS with claims built from its live state. The harness moves to
+`d1__1` to conform to the localhost rule it now exercises.
+## 2026-08-14 — the GridWorks SASL mechanism plugin (`f44dd45`)
+
+(The commit title names the OPS-496 deliverable this cluster serves; the
+gwbase diff is the client half — connect claims, the credentials class, and
+the snapshot regen — described below. Bumps to 0.5.11.)
+
+Branch `jm/sasl-claims-credentials` (OPS-496). gwbase gets the client half
+of the broker's certificate-plus-claims gate: `credentials.py` holds a pika
+credentials class advertising the `GRIDWORKS` mechanism and answering with a
+`fis.connect.claims` word, and `ActorBase._connect_claims()` builds that word
+from the actor's live alias and instance id (`GridworksActor` adds
+`GNodeClass`, whose presence is the gate's GNode discriminator). It carries
+no secret — the private key proving identity lives in the TLS layer — so
+`erase_on_connect` is False and the claims stay readable across reconnects.
+A broker not yet switched over answers as an ordinary negotiation miss
+rather than a crash.
+
+This forced the full snapshot regen the entry below deliberately deferred,
+because the claims word has to be vendored before the first line that builds
+it. The debt that made regen impossible is now paid structurally: the repo
+gains `scripts/regen_sema_snapshot.sh` + `src/gwbase/sema_seed_request.yaml`
+(previously there was no seed request — the snapshot could only be
+regenerated by guessing its inputs), and the vendored tree is ruff-excluded
+(linting generated code means hand-editing it, and those edits vanish at
+the next regen).
+
+The `GwBaseSemaCodec` / `GwBaseSemaType` / `GwBaseSemaError` names are
+deliberate, not drift, and they survive the regen: gwbase is a library, and
+the applications built on it each vendor their own snapshot whose generated
+runtime uses the same generic names — exporting a second `SemaCodec` from
+gwbase would erase the transport-vs-application layer from every import
+line. What was wrong was HOW the names were applied (by hand, inside the
+generated tree — which is why regenerating would have destroyed them and so
+never happened). The regen script now applies the rebrand itself after the
+stock build and asserts no generic name survives, so the decoupling is
+enforced by the pipeline instead of defended by not running it. One
+generated local name is accepted as-is: `sim.ready`'s class was hand-named
+`Ready`, and the generator's `SimReady` is better (6 call sites).
+
+The seed pins every existing type to the version gwbase already speaks
+rather than letting them float to latest, so a regen is never a silent
+protocol change for actors on the bus; only `fis.connect.claims` is new. It
+is a `staging` word, so the build takes `--allow-staged` and the snapshot is
+dev-only until that word is published — the flag comes out then.
+
+`sema/wrapped.py` moves to `gwbase/wrapped.py`. It was never generated:
+it was hand-written into the generated tree the day after that tree was
+built, so every regen would have silently deleted it. Its new home is
+outside the tree the generator owns.
+
+## 2026-08-13 — g.node.gt vendored to 006, 004 rejected; 0.5.10 (`cbba178`)
 
 GridworksActor strict-Sema-validates every identity file at boot
 against gwbase's own vendored `GNodeGt` — but that vendored copy was

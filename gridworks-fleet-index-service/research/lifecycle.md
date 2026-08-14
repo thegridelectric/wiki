@@ -56,8 +56,8 @@ POST /auth/user
    reconnect → allow; revoked → deny; new → supersede synchronously
    (revoke prior lease, close its connections via the management API,
    confirm none remain — an empty kill is success), then allow.
-6. Connection accepted. FIS publishes the `runtime.instance.authorization`
-   event asynchronously.
+6. Connection accepted. FIS publishes the
+   `fis.instance.authorization.event` asynchronously.
 7. First publish on each routing key triggers `/auth/topic` (write):
    segment 2 must equal the registry's current alias for this GNodeId —
    a stale-alias node connects but cannot publish, which is the rename

@@ -12,6 +12,84 @@ Newest at the top.
 
 ---
 
+## 2026-08-14 — Example type check reports the rule it broke (`66d6463`)
+
+Writing a type example as a YAML mapping instead of a JSON string used to
+fail as `TypeError: the JSON object must be str, bytes or bytearray, not
+dict` — `json.loads` refusing a dict, several steps removed from the rule
+actually broken. The check now runs before the decode and names the rule,
+quoting it verbatim from `spec/authoring/types.md` "Examples" so it can be
+searched for, and shows the block-scalar shape to write instead. Genuine
+decode failures still surface their exception unchanged; only the
+wrong-container mistake is intercepted.
+
+## 2026-08-14 — House0 layout axioms: Sieg manifold, Sieg actors, system-model energy channels (`5aba5be`)
+
+Three invariants the scada's layout loader had been enforcing in Python
+become axioms on `gw.house0.layout/000`, where every consumer gets them
+at decode instead of only the one application that happens to run that
+loader. `000` is `staging`, so they went in place — the spec exempts
+draft and staging from immutability, and adding an axiom would otherwise
+require a new version.
+
+- **6 `SiegManifoldChannels`** — `SiegLoopPlumbed` true obliges the two
+  hp-loop relay-state channels. A scada that drives the Siegenthaler
+  valve without being able to observe it is flying blind.
+- **7 `SiegActorConsistency`** — `UseSiegLoop` true obliges a `sieg-loop`
+  node of ActorClass SiegLoop and an `hp-boss` of ActorClass HpBoss;
+  false forbids the `sieg-loop` node. Two clauses, labelled `a.`/`b.`
+  because each carries its own counterexample obligation.
+- **8 `SystemModelEnergyChannels`** — the two system-model derived
+  channels exist, are made by `derived-generator`, and name one energy
+  model each.
+
+Axiom 8 needed vocabulary that did not exist. It turns on
+`Parameters.EnergyModel.TypeName` being one of two words that lived only
+as hand-written scada types, and a type version may not lean on
+undeclared vocabulary to be mechanically implementable. So
+**`gw0.usable.energy.layered/000` and `gw0.required.energy.layered/000`
+are registered, published.** Both are parameterless markers — TypeName
+and Version, nothing else — because what they carry is identity, not
+data: a consumer states which computation produced a figure instead of
+agreeing on one out of band. A marker with no fields is also the safest
+possible immutable publish, there being nothing to get wrong.
+
+They are declared as **axiom** dependencies of the layout, not
+structural. `derived.channel.gt.Parameters` is a freeform object, so
+neither word is reachable through the layout's `$ref` closure — which is
+exactly the case the `axiom` block exists for. The contrast worth
+keeping: `gw1.actor.class`, which axiom 7 leans on for ActorClass
+values, is *not* declared, because it arrives transitively through
+`spaceheat.node.gt:302` and declaring a transitive is forbidden.
+
+`gw.house0.layout:000`'s `created` moved forward to match its new
+dependencies — the ordering rule requires a type to be no older than
+what it depends on. Nothing depends on the layout word, so the cascade
+stopped there.
+
+## 2026-08-14 — Add g.node.instance.gt/001 with Run (`79b03c9`)
+
+The FIS lease row gains `Run` (the new `universe.run` format). Single-writer
+authority is scoped to (GNodeId, run), not to GNodeId alone: one GNode
+identity legitimately holds simultaneous leases in `hw1__1` and `hw1__2`,
+so the run belongs in the row that records the lease. `000` could not
+express that — it keys on GNodeId only, and its `extended_description`
+asserted the uniqueness scope was GNodeId — so `001` adds the field and
+corrects the prose.
+
+Staging, not published: the row shape is being designed ahead of FIS v1
+and wants to stay mutable while the build proves it. The dev-broker
+restriction on staging vocabulary does not reach this word — `.gt` means
+bijective with a row in FIS's own Postgres, so it never crosses a broker.
+Promote when the staging-box battery passes.
+
+The `000 -> 001` upgrade refuses. A run cannot be recovered from a
+standalone `000` instance: the run is a property of the fabric a
+connection was on, and no message body carries it. There are also no live
+`000` instances to upgrade, so the refusal costs nothing — and fabricating
+a default run is exactly the failure `UpgradeRequiresContext` exists to
+prevent.
+
 ## 2026-08-14 — Add fis.connect.claims (`014879a`)
 
 Two new draft words for the mTLS+FIS connect gate (OPS-420, design
