@@ -12,7 +12,7 @@ Newest at the top.
 
 ---
 
-## 2026-08-13 — squash staging types (`a4f1ef7`)
+## 2026-08-13 — squash staging types (`c80eba8`)
 
 A mid-process defect had spread across the vocabulary: a field change
 against an already-`staging` (unpublished, still-mutable) version
@@ -97,6 +97,18 @@ old (pre-squash) fields, caught by the round-trip validation test; and
 `extended_description` key outside `x-gridworks`, which the spec only
 permits nested — folded into the correctly-placed one instead of
 carried forward.
+
+A separate, older wrinkle flagged before the squash pass started: unlike
+the duplicates above, `scada.control.capabilities/001`'s
+`I2cRelayComponent` field was pinned to
+`i2c.multichannel.dt.relay.component.gt/002` — a `published`, cac-UUID-based
+version carrying per-channel capture fields (`AsyncCapture`,
+`CapturePeriodS`, `Exponent`, `PollPeriodMs`, `Unit`) directly on
+`relay.actor.config`. It was never a squash target because `002` was never
+a duplicate `staging` version; it just predated the type's move to
+`DeviceType`/`I2cBus` at `004` and was left stale. Repointed the `$ref`
+(and the embedded example) to `004`, editing `scada.control.capabilities/001`
+in place since it is itself `staging`.
 
 ## 2026-08-12 — promote the gw.weather command round (`8d6ea57`)
 

@@ -34,7 +34,8 @@ the rows here.
 | OPS-392 plant axiom + fixture round | 2026-08-12 | 14:15–16:20 (2.1h) |
 | OPS-392 system-mode review | 2026-08-13 | 7:45–9:30 (1.75h) |
 | OPS-392 layout.lite squash + nolan ops params | 2026-08-13 | 11:40–12:30 (0.83h) |
-| OPS-392 gwsproto conformance sweep + squashes | 2026-08-13 | 14:36– |
+| OPS-392 gwsproto conformance sweep + squashes | 2026-08-13 | 14:36–16:00 |
+| OPS-392 gwsproto conformance sweep + squashes | 2026-08-14 | 7:30- |
 
 
 
