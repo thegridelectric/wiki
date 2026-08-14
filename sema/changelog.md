@@ -12,6 +12,28 @@ Newest at the top.
 
 ---
 
+## 2026-08-14 — Add fis.connect.claims (`014879a`)
+
+Two new draft words for the mTLS+FIS connect gate (OPS-420, design
+Accepted today). `fis.connect.claims` is the payload a principal presents
+in the broker handshake — carried in the SASL response on AMQP (the
+GridWorks mechanism plugin forwards it verbatim to FIS) — with `Alias`,
+`InstanceId`, `Run`, and `GNodeClass` iff the principal is a GNode.
+`universe.run` is the new format for the `<universe>__<run>` broker-vhost
+form the `Run` field claims: FIS scopes its single-writer lease to
+(identity, run), so the run had to become vocabulary. `InstanceId` is
+deliberately the general name (services are not GNodes); FIS maps it onto
+`g.node.instance.gt`'s `GNodeInstanceId` for GNode leases. The type is
+born `staging` so FIS v1 (OPS-422) can vendor it into its snapshot via
+the staging opt-in, mutable in place while it hardens. `universe.run` is
+born `published` — formats never stage, and its pattern mirrors the
+settled vhost canon (`<universe>__<run>`), so freezing it is safe;
+hash-pinned in `published_hashes.yaml`. Full runtime regen (new
+`fis_connect_claims.py` module, `UniverseRun` format template +
+`property_format.py`, format-map test) and indexes rebuilt.
+
+---
+
 ## 2026-08-14 — harmonize scada operational params (`d2b163f`)
 
 `gw.house0.operational.params` and `gw.nolan.operational.params` now

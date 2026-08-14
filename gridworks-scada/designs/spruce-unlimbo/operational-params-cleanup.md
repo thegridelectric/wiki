@@ -189,6 +189,31 @@ join when Nolan heating-season control needs them, not before.
   slimmed shape); `gw.nolan.operational.params` fixtures exist and
   are sema-validated but are not yet load-bearing for a real boot.
 
+- **House0 structural validation moves from the data class to
+  `gw.house0.layout` axioms** (queued 2026-08-14). Structural
+  constraints on a layout belong in the layout word, where they are
+  enforced at decode for every consumer, not in a Python class only
+  the scada loads. Three live validators still sit in the data class
+  and are the migration: `check_house0_sieg_manifold` (the Sieg
+  manifold's channel set), `check_actors_when_using_sieg_loop` /
+  `check_actors_when_not_using_sieg_loop` (which actor nodes the
+  `FlowManifoldVariant` implies), and
+  `validate_house0_system_models`. Each becomes an axiom or is shown
+  to be a genuine runtime check and stays.
+  Alongside them go two dead design brainstorms —
+  `required_topology_nodes` and `required_system_actor_nodes` — whose
+  own docstrings say they are enforced nowhere and are to become
+  per-layout axioms. They are worth carrying into the axiom work as
+  the first-draft content (`required_topology_nodes` is already known
+  too strict: it lists `hp-idu`, but maple runs `hp-odu`-only and is
+  still House0), then deleting. They hold 45 of the 99 `H0N`
+  references in `house_0_layout.py`, so deleting them roughly halves
+  that file's H0N surface before any repointing starts.
+  Note `validate_house0`'s own essential-node list has already been
+  commented down to the five system-actor nodes that are exactly
+  `gw.house0.layout` axiom 2 `EssentialNodesExistence` — the
+  migration is underway and the class is holding the fossils.
+
 ## Open
 
 - `Latitude`/`Longitude` return to scada settings (.env), restoring
