@@ -1,106 +1,43 @@
 # Concern: FIS auth for GNodes and non-GNode services
 
-Status: Draft · Pass 0 · Updated 2026-05-29
+Status: Draft · Pass 0 · Updated 2026-08-14
 
-> Open architectural question. Today FIS authorizes GNode runtime
-> instances against the GNode registry. With gwbase about to ship
-> support for non-GNode rabbit+sema actors (journalkeeper, ear's
-> actor-side, future analytics consumers), we want **mTLS for ALL
-> prod-broker connections** and **one FIS authorization path** that
-> serves both kinds — without forking the code per actor class.
+> One FIS authorization path serving both GNode actors and non-GNode
+> services (journalkeeper, ear, gnr, future analytics consumers), without
+> forking the code per actor class. The identity/claims/wire questions this
+> exploration originally held are **resolved by the mTLS+FIS design
+> (OPS-420)** and specced in [`../executor/primary.md`](../executor/primary.md);
+> what remains here is the service-specific tail.
 
-## Wire handshake — what every connection sends
+## Resolved (by OPS-420 — the executor spec is the contract)
 
-```
-ServiceAlias       (always; LeftRightDot)
-ServiceInstanceId  (always; ephemeral UUID, new every boot)
-GNodeClass         (optional; present iff this connection is a GNode)
-```
+- **Identity: cert CN = the principal's immutable id.** GNodes:
+  `CN=<GNodeId>` — the GNodeId *is* the principal key, no second id.
+  Services: `CN=<principal UUID>`, minted with the principal row. The
+  mutable `service_alias` is a runtime claim, GNode-style.
+- **Claims travel in the handshake, not client_properties** (which never
+  reach auth backends): a sema `claims` word via the GridWorks SASL
+  mechanism on AMQP; `client_id = instance id` on MQTT. `GNodeClass`
+  present in the claims iff the principal is a GNode — still the
+  discriminator, now on a channel that actually reaches FIS.
+- **`validated-user-id`** — adopted; part of the broker-enforcement
+  invariant.
+- **Permissions posture** — topic write pinned to the current alias;
+  topic read / vhost (after the run cross-check) / resource allow in v1.
+  Per-principal permission regexes are NOT part of v1.
 
-The presence of `GNodeClass` is the discriminator: if it's there,
-the principal is a GNode and FIS enforces GNode semantics
-(single-writer per `GNodeId`, cross-check against the GNode
-registry). If absent, the principal is a service and FIS authorizes
-against a static permission grant.
+## Still open
 
-`ServiceAlias` and `ServiceInstanceId` are meaningful for both —
-they identify the runtime party for auth, audit, and observability.
-
-## FIS-side data model
-
-A single `principal` table keyed by mTLS cert subject:
-
-```
-principal
-  ├─ cert_subject       (the subject string the broker sees)
-  ├─ service_alias      (LeftRightDot — matches the handshake field)
-  ├─ status             (active | suspended | revoked)
-  ├─ permissions        (per-vhost: configure / write / read regex)
-  ├─ single_writer      (TRUE for gnodes; FALSE by default)
-  └─ gnode_id           (nullable; populated iff this principal is a GNode)
-```
-
-- **`/auth/user`** — look up `cert_subject`; check `status=active`; return allow.
-- **`/auth/vhost`** / **`/auth/resource`** — consult `permissions`.
-- **For GNode principals only** — additionally enforce single-writer per
-  `gnode_id` against the live `ServiceInstanceId`, against the GNode
-  registry, per existing FIS Invariant #1.
-
-The four FIS invariants from [`../executor/primary.md`](../executor/primary.md) all
-hold unchanged. Non-GNode auth is additive — services get a
-principal row with `gnode_id=NULL` and static permissions; nothing
-about GNode handling changes.
-
-## Cert subjects
-
-A predictable subject grammar lets the broker / FIS look up the
-principal without ambiguity. Simplest workable form:
-
-```
-CN=<service_alias>
-```
-
-GNode vs service is determined by whether the principal row has
-`gnode_id` populated (not by the cert subject itself). Cert
-issuance is handled by provisioning
-([`../../../gridworks-provisioning/executor/primary.md`](../../gridworks-provisioning/executor/primary.md)),
-which mints a cert + principal row together for both kinds.
-
-## What this means for in-flight work
-
-- **gwbase Wave-1**: `ActorBase` populates `client_properties` with
-  `ServiceAlias` + `ServiceInstanceId` always. `GridworksActor`
-  additionally adds `GNodeClass`. The handshake is meaningful
-  (not informational-only) — FIS reads it.
-- **Provisioning**: extends to mint cert + principal row for both
-  GNode and service kinds (today mints GNode identity only).
-- **rmqbot**: `prod-tls-fix` + `mtls-fis-auth` Phase 0 are
-  prerequisites for any non-GNode service migrating onto the prod
-  broker — we're committing to mTLS-for-all.
-
-## Open
-
-- **`validated-user-id` broker plugin** — to give consumers a
-  trustworthy publisher identity on every message, the prod broker
-  should run RabbitMQ's `validated-user-id` plugin (or equivalent),
-  which enforces that `properties.user_id` on every publish matches
-  the AMQP connection's authenticated identity (cert subject for
-  mTLS connections). With it enabled, a SCADA consuming an admin
-  routing key can trust `properties.user_id` for audit attribution
-  on the fat-client path. **Triggered by:** the admin design's
-  audit-attribution requirement
-  ([`../../../gridworks-admin/executor/primary.md`](../../gridworks-admin/executor/primary.md)
-  "Operator identity for audit"). FIS team + rmqbot team decision.
-- **Service `single_writer` defaults** — FALSE by default, but some
-  services (e.g., a single canonical ear-actor process) may opt in.
-  Per-principal config decision.
-- **Cert lifecycle** for service certs — who issues, rotation
-  cadence, revocation propagation. Probably mirrors the GNode path
-  (FIS-issued or FIS-via-certbot).
-- **Permission grammar** — per-vhost regex matches what RabbitMQ
-  expects directly; do we want a higher-level "role" abstraction
-  (e.g., "ear-reader") that expands to permissions? Probably yes
-  for operability; defer.
-- **Operator** (cloud admin) auth — a separate principal kind will
-  land here when the `gridworks-admin` design begins. Out of scope
-  for this concern; tracked in the admin domain.
+- **Single-writer for services.** The lease gate is uniform per
+  (principal, run). No service runs replicas of one principal today (ear's
+  two taps are two principals), so uniform single-writer costs nothing —
+  but a future scaled consumer (N parallel readers on one principal) will
+  need an explicit N-writer grant or per-replica principals. Decide when
+  the first such consumer appears; lean per-replica principals (keeps the
+  gate uniform).
+- **Permission grammar** — whether a higher-level "role" abstraction
+  (e.g., "ear-reader") expanding to rabbit permissions is worth it when
+  `/auth/resource` tightens past allow-all. Defer until then.
+- **Operator** (cloud admin) auth — a separate principal kind lands with
+  the `gridworks-admin` design (OPS-429), including the WebAuthn step-up
+  posture. Out of scope here.

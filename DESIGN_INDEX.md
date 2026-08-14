@@ -96,3 +96,4 @@ _(every file under an `explorations/` folder, anywhere in the wiki)_
 - **rmqbot** — [`explorations/granular-permissions-and-web-admin.md`](rmqbot/explorations/granular-permissions-and-web-admin.md)
 - **sema** — [`explorations/dashboard-vocabulary-modeling.md`](sema/explorations/dashboard-vocabulary-modeling.md)
 - **sema** — [`explorations/rulebook-source-drift.md`](sema/explorations/rulebook-source-drift.md)
+- **terminalasset-registry** — [`explorations/deeds-and-trading-rights.md`](terminalasset-registry/explorations/deeds-and-trading-rights.md) (TaDeed + TaTradingRights as validator-signed sema records — two-plane split from the connection cert, homeowner clawback, FIS/MarketMaker enforcement, deeds-attest-reality invariant; extends the gridworks-scada origin capture)

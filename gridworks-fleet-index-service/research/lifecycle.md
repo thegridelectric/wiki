@@ -1,11 +1,18 @@
 # Day in the Life of a SCADA Runtime Instance
 
-Status: Draft · Pass 0 · Updated 2026-05-21
+Status: Draft · Pass 0 · Updated 2026-08-14
 
+> Research (pre-spec). The normative contract is
+> [`../executor/primary.md`](../executor/primary.md); this walks one
+> concrete boot. The SCADA speaks MQTT; the AMQP variant differs only in
+> how the claims travel (the `claims` sema word via the GridWorks SASL
+> mechanism, instead of `client_id`).
 
-## Pre-condition: 
-SCADA device has
-- Correct GNode data, e.g.
+## Pre-condition
+
+SCADA device has:
+
+- Correct GNode data on disk, e.g.
 
 ```
 {
@@ -18,62 +25,40 @@ SCADA device has
   "Version": "004"
 }
 ```
-- A valid mTLS client certificate for rabbit broker where Cert CN = GNodeId
+
+- A valid mTLS client certificate for the broker, **Cert CN = GNodeId**
+- Access to the broker endpoint (MQTTS 8883)
 - Local clock sufficiently accurate for timestamps (NTP or equivalent)
 
-The SCADA device has:
-- Access to broker endpoint(s)
-- A valid mTLS client certificate
-  - assume Cert CN = GNodeId
+## Steps
 
-### Steps
+1. SCADA boots and generates a new `GNodeInstanceId` UUID.
+2. SCADA connects with MQTT over TLS, presenting its client cert, with
+   **`client_id = GNodeInstanceId`**. (No client_properties — MQTT has
+   none, and they never reach auth backends anyway.)
+3. RabbitMQ completes the TLS handshake (cert validated against the
+   GridWorks CA) and derives **`username = GNodeId`** from the cert CN
+   (`mqtt.ssl_cert_login`). No password is sent; an explicit
+   username/password would *override* the cert name and is denied (no
+   fleet password users exist).
+4. Rabbit calls FIS:
 
-1. SCADA boots and generates a new `GNodeInstanceId` UUID. 
-
-
-2. SCADA runtime connects to RabbitMQ, and includes  GNodeInstanceId and GNodeAlias, GNodeClass in  AMQP `client_properties`.
-```
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(
-        host=...,
-        port=...,
-        ssl_options=...,
-        credentials=...,
-        client_properties={
-            "g_node_alias": "<str>"
-            "g_node_instance_id": "<uuid>",
-            "g_node_class": "<str>"
-        }
-    )
-)
-```
-3. RabbitMQ does the TLS handshake (certificate validation)
-  - derives `username` (which is `GNodeId`) from cert CN
-
-
-4. Rabbit calls FIS `/auth/user`
 ```
 POST /auth/user
 {
-  "username": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "client_properties": {
-      "g_node_instance_id": "9cff2689-eadc-4577-94ea-6d86d0d23e9e",
-      "g_node_alias": "hw1.isone.me.keene.beech.scada",
-      "g_node_class": "Scada",
-  },
-  "vhost": "/",
-  "ip": "100.72.14.3"
+  "username": "9cff2689-eadc-4577-94ea-6d86d0d23e9e",
+  "client_id": "b6d86d0d-23e9-4c3d-8123-89c71f6a21bc",
+  "vhost": "hw1__1"
 }
-
 ```
 
-5. FIS:
-  - verifies GNode exists + Active
-  - verifies claims (e.g. has matching class and alias)
-  - creates instance record if new
-  - revokes old instance if needed
-
-6. FIS returns AUTHORIZED
-7. Connection accepted
-
-
+5. FIS: principal active? instance id vs the (identity, run) lease —
+   reconnect → allow; revoked → deny; new → supersede synchronously
+   (revoke prior lease, close its connections via the management API,
+   confirm none remain — an empty kill is success), then allow.
+6. Connection accepted. FIS publishes the `runtime.instance.authorization`
+   event asynchronously.
+7. First publish on each routing key triggers `/auth/topic` (write):
+   segment 2 must equal the registry's current alias for this GNodeId —
+   a stale-alias node connects but cannot publish, which is the rename
+   backstop. Subscribes (`/auth/topic` read) are allowed.

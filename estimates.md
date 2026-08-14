@@ -19,6 +19,9 @@ Status: Draft · Pass 0 · Updated 2026-07-19
 | 2026-08-06 | OPS-490 — ads-noise semafy pilot | 4 | 2 | 9 | 9.5 | no (over) |
 | 2026-08-10 | OPS-392 — summer hack through scada | 24 | 14 | 42 | | |
 | 2026-08-10 | OPS-436 — gwwf stand-up | 25 | 16 | 40 | 20.6 | yes |
+| 2026-08-14 | OPS-420 mtls-fis-auth — Accepted + reconciliation | 6 | 4 | 9 | | |
+| 2026-08-14 | OPS-422 stand-up-fis — v1 through staging battery | 18 | 10 | 28 | | |
+| 2026-08-14 | OPS-496 sasl-mechanism-plugin — spike | 6 | 3 | 12 | | |
 
 ## Active hours — scratch
 
@@ -36,6 +39,8 @@ the rows here.
 | OPS-392 layout.lite squash + nolan ops params | 2026-08-13 | 11:40–12:30 (0.83h) |
 | OPS-392 gwsproto conformance sweep + squashes | 2026-08-13 | 14:36–16:00 |
 | OPS-392 gwsproto conformance sweep + squashes | 2026-08-14 | 7:30- |
+| OPS-420 review + grill + design/exploration writing | 2026-08-14 | ~11:30–15:15 (~3.75h) |
+| OPS-496 sasl-mechanism spike | 2026-08-14 | 15:16–15:25 (0.15h, core witnesses) |
 
 
 

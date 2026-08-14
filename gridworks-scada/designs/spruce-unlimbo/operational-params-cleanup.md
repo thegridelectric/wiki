@@ -80,6 +80,52 @@ join when Nolan heating-season control needs them, not before.
 
 ## Cleanup queue
 
+- **`whitewire_threshold_watts` belongs in operational params; which
+  circuits are power-metered belongs in the layout** (settled
+  2026-08-14; still `ScadaSettings.whitewire_threshold_watts`
+  meanwhile). A heat call is sensed either by opto-coupler or by power
+  meter: Nolan wires opto (`zone1-bench1-opto-input`, `BinaryState`,
+  interpretation `DigitalZeroIsActive`), House0 meters the call wire
+  (`zone1-main-whitewire-pwr`, `PowerW`, needing
+  `GreaterThanThreshold`). Which of the two a circuit uses is a wiring
+  fact and stays with the layout — `gw1.zone.call.circuit` already
+  binds circuit to channel via `WhitewireChannelName`, and the
+  heat-call `derived.channel.gt` already carries
+  `Parameters["Interpretation"]`. The *threshold* is a tunable and
+  belongs in ops. Note it is already modelled as
+  `derived.channel.gt.Parameters["Threshold"]`, so the settings field
+  is a duplicate of a fact the vocabulary holds — the move is out of
+  `Parameters`, not out of nowhere.
+  Proposed shape: a `gw1.heat.call.tuning` word (`ChannelName` +
+  `ThresholdWatts`) carried on both ops words as `HeatCallTuningList`,
+  keyed by **ChannelName, not CircuitPosition** — matching the
+  `CaptureTuningList` precedent, so ops stays a tuning table and never
+  restates circuit identity the layout owns. Only power-metered
+  circuits get an entry; Nolan's list is empty. Add the matching
+  assembly-coverage check (mirroring capture tuning's) so a
+  `GreaterThanThreshold` channel without a tuning entry fails the boot
+  instead of taking `derived_generator.py`'s silent `return 0`.
+  Cost to weigh first: removing `Threshold` changes
+  `derived.channel.gt`'s Strategy-conditional `Parameters` axiom, so
+  that word needs a version bump unless still `staging`.
+
+- **The heat pump belongs in the layout as components + device-type
+  records** (settled 2026-08-14; `ScadaSettings.hp_model` stays
+  meanwhile). The layout is the fleet's record of what is installed at
+  each house, so heat-pump type is tracked there whether or not
+  control code branches on it — a bare `hp_model` enum in deployment
+  config cannot serve that. The Nolan layout is wrong twice today: it
+  has no heat-pump component at all (its `DeviceTypes` are only
+  `gw1.scada.device.type.gt` and `electric.meter.device.type.gt`), and
+  it carries an `hp-idu` node that should be `hp-ctrl-box`. Target:
+  `hp-odu` gains a component pointing at an `hp.device.type.gt`
+  record, and `hp-ctrl-box` a component pointing at
+  `hp.control.box.device.type.gt` (both words already exist in sema).
+  `hp_model` then leaves settings because the device-type record
+  supersedes it. Separately and on its own merits,
+  `actors/orig_sieg_loop.py` is dead — nothing imports it — and is
+  `hp_model`'s only reader today.
+
 - **MonitorOnly means absolutely nothing changes — including board
   initialization** (settled 2026-08-13). Under MonitorOnly the scada
   performs no physical write of any kind: the bus actor does not

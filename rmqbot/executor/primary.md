@@ -121,10 +121,18 @@ independently flippable notches; notches 2–4 belong to the mTLS design
    client at a time; no flag day. Beech runs this today as the pilot:
    encrypted on 8883, presenting its GNodeId cert, verified at handshake.
 3. **Require certs** — `fail_if_no_peer_cert = true`.
-4. **Cert is the identity** — `rabbitmq_auth_mechanism_ssl`
-   (`auth_mechanisms = EXTERNAL`, `mqtt.ssl_cert_login = true`): CN becomes
-   the username, accounts lose passwords, PLAIN drops, plaintext listeners
-   close. The management UI keeps password login over HTTPS in every era.
+4. **Cert + FIS are the identity and the gate** — the GridWorks SASL
+   mechanism plugin (AMQP; a small fork of `rabbit_auth_mechanism_ssl`
+   carrying a claims payload) and `mqtt.ssl_cert_login = true`: CN becomes
+   the username, with **chained backends** (`auth_backends.1 = internal`
+   for the management UI + one break-glass account; `.2 = http` → FIS,
+   colocated on this box). Fleet password users are deleted as they
+   migrate — on MQTT an explicit username+password outranks the cert name,
+   so a live password user is a CN bypass — and the plaintext listeners
+   close when the last one has. The management UI keeps password login
+   over HTTPS in every era. Notch 3 flips only when the broker log shows
+   every fleet client presenting a cert. Details: the mTLS design
+   (OPS-420); the FIS contract: the FIS executor spec.
 
 Notches 3–4 may combine into one restart once every client presents a cert
 and every CN has its passwordless user; written separately, handshake

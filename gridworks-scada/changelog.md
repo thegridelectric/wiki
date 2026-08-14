@@ -12,6 +12,75 @@ Newest at the top.
 
 ---
 
+## 2026-08-14 — Capture tuning moves to operational params; layout ⊕ ops pair enforced; fixtures consolidate to the two sema pairs (`f15f7dd7`)
+
+Capture tuning stops living on components. It was reaching them by a
+splice: `assemble_runtime_layout` copied each channel's capture params
+onto the component's `ConfigList` at load, rebuilding the list from
+scratch for components that had none. That made every component look
+like it owned tuning it does not own, and it hid a family mismatch —
+a layout paired with another home's ops file still assembled, because
+the splice only ever wrote what it found. Tuning now stays on the ops
+artifact's `CaptureTuningList` and is read through one lookup,
+`HardwareLayout.capture_tuning_by_channel`. The seven actors that read
+`.CapturePeriodS` / `.AsyncCapture` / `.PollPeriodMs` off a component
+config read it there instead.
+
+That let `ChannelConfigBase` go. Sema had already dropped the capture
+fields from the five board-config words (`ads.channel.config`,
+`dfr.config`, `electric.meter.channel.config`,
+`i2c.thermistor.channel.config`, `relay.control.config`), but gwsproto
+still inherited them from the shared base, so the Python types
+described a shape sema no longer had. Each word is flat now, listing
+its own board-specific fields. `ConfigList` itself is gone from the
+nine components whose sema word has none; the ten that do keep theirs,
+because those carry per-channel identity and binding (relay wiring, DAC
+channel assignment) rather than tuning. Where the base was doing real
+work — telling a config that names a channel from one that does not,
+such as `i2c.dac.channel.config` — a structural `ChannelNamed`
+protocol replaces it.
+
+The pairing is now checked. `load_layout` takes both artifacts as
+arguments, taken from `settings.paths`, and neither filename is
+constructed outside `actors/config.py`. `APPROVED_PAIRS` names the only
+two combinations a scada may boot and refuses anything else outright,
+so a crossed pair fails at load with both TypeNames named rather than
+starving a control path later. Ops decode is family-dispatched to
+match. The legacy runtime-shaped load path is deleted: a layout SHALL
+be sema-authored, and the error says where to generate the pair.
+
+`SystemMode` is retired for the `ActuationAuthority` × `ServiceMode`
+split (authority dominates; service mode is inert outside Active), and
+`day.of.week` / `gw.tou.window` arrive for the cooling schedule. Local
+class names drop the `Gw` prefix — `House0OperationalParams`,
+`NolanOperationalParams`, `Hydronic` — while the sema `TypeName` values
+are untouched.
+
+`tests/config` was eight per-home folders each holding one ops file
+named after a layout beside it; it is now four sema-named fixtures, one
+per sema word. Several carried versions that no longer exist after
+sema's staging squash (`pico.btu.meter.component.gt` 001,
+`web.server.component.gt` 002, `i2c.thermistor.reader.component.gt`
+003, and the four channel-config words), and several still embedded the
+capture fields sema had removed; both are corrected. All tests run
+against the Nolan pair for now, and conftest copies the ops fixture in
+beside the layout under the fixed name rather than pinning it by env
+var — so the same-folder default resolution is exercised instead of
+bypassed, which is how the old subdirectory bug survived unseen.
+
+`test_admin_relay_set` and `test_admin_dac_set` are commented out, with
+the reasoning in the file: `scada.control.capabilities` requires an
+`i2c.multichannel.dt.relay.component.gt`, which only a House0/Krida
+layout has, and it fuses the dispatch node with the channel's about
+node — a fusion its own axioms make normative, and which admin already
+works around by hardcoding the `hp-scada-ops-relay` → `hp-boss` case.
+
+The sema counterpart is `d2b163f` in the sema repo.
+
+**Incomplete as committed:** `gw_spaceheat/actors/leaf_ally/nolan.py`
+is referenced by `leaf_ally_loader` but was not included, so a Nolan
+boot raises `ModuleNotFoundError` until the follow-up lands.
+
 <!-- pending commit -->
 ## 2026-08-12 — TOU cooling in NolanLocalControl.Normal; layout contract replaces runtime guards; modern pinned fixture
 

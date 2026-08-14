@@ -544,20 +544,22 @@ a `g.node.forest.request` scoped to its authority roots → a `g.node.forest`), 
 — it does not do rabbit request-reply.
 
 **Convergence-by-authorization.** Because the cert/principal binds the **immutable
-`GNodeId`** (not the alias), a node carrying a stale alias after a rename **cannot
-be authorized**: FIS resolves cert→`GNodeId`, finds the current alias here, and
-denies on mismatch. Recovery is by **provisioning redeploy** — provisioning (internal,
-reads the registry) redeploys a renamed node with fresh config, triggered by the
-broadcast; the FIS deny is the **backstop signal** (a missed node fails auth, which is
-observable → triggers redeploy). The node never self-queries; it just gets redeployed
-(~yearly, so a restart is fine). So broadcast delivery is best-effort, not
+`GNodeId`** (not the alias), a node carrying a stale alias after a rename cannot
+act under it: FIS checks the claimed alias against the current alias here at
+connect (AMQP claims), and enforces the routing-key from-alias against it on
+every publish (topic authorization, all protocols) — a stale node connects at
+most, and publishes nothing. Convergence is immediate, not eventual: on a
+rename FIS **kills the identity's connections** (flushing the broker's
+per-connection topic-verdict cache), and the reconnect re-runs every check
+against the new alias. Recovery of the node's config is by **provisioning
+redeploy** — provisioning (internal, reads the registry) redeploys a renamed
+node, triggered by the broadcast; the FIS deny is the **backstop signal** for
+any node provisioning missed. So broadcast delivery is best-effort, not
 load-bearing, and the FIS deny needs no rich payload — **and mechanically cannot
 carry one**: the `rabbitmq-auth-backend-http` protocol returns only
-`allow`/`deny`, so there is no channel to hand the denied client a hint (the
-legacy FIS writeup, `gridworks-infra/authority/fleet-index-service/`, maps
-`NOT_AUTHORIZED`/`REJECTED` → bare `{"result": "deny"}`). The FIS-side contract
-(cert-subject = `GNodeId`, alias-staleness check) lives in the mTLS+FIS auth work
-(OPS-420 / OPS-422).
+`allow`/`deny`, so there is no channel to hand the denied client a hint. The
+FIS-side contract (cert-subject = `GNodeId`, the claims channels, the
+publish-time alias rule) lives in the mTLS+FIS auth work (OPS-420 / OPS-422).
 
 ## Stack
 

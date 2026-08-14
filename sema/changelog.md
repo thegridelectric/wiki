@@ -12,6 +12,43 @@ Newest at the top.
 
 ---
 
+## 2026-08-14 — harmonize scada operational params (`d2b163f`)
+
+`gw.house0.operational.params` and `gw.nolan.operational.params` now
+carry identical field sets. Both are `staging`, so this landed in
+place: no version bump, no new `created`.
+
+The two words had diverged along family lines — House0 held the
+store/optimization knobs (`SeasonalStorageMode`, `HpTurnOnMinutes`,
+`ShortCycleBuffer`, `LoadOverestimationPercent`, `OilBoilerBackup`,
+`HorizonHours`) and Nolan held the cooling-season schedule
+(`OnPeakWindows`, `HeldCircuitPositions`). That looked right, and it
+made a Nolan home unbootable: surfaces that still run for *every*
+family read the House0 knobs — the LeafAlly strategy selection, and
+`layout.lite`, which requires `SeasonalStorageMode`, `Ha1Params` and
+`BufferShortCycling` outright. A Nolan scada could not emit a
+`layout.lite` at all.
+
+So the store knobs join the Nolan word as deliberate, temporary
+scaffolding. Nolan has no thermal store to season; they are there
+because the functional code has not yet been moved off them, and they
+come back out as it is. The Nolan word's `extended_description` says
+so, so the next reader does not mistake convergence for intent.
+
+`OnPeakWindows` moves the other way, onto the House0 word (with the
+matching `PerDayWindowNonOverlap` axiom), and `HeldCircuitPositions`
+is dropped — a hardcoded `HELD_CIRCUIT_POSITIONS` in Nolan local
+control is the live authority, so the field was vocabulary that
+nothing read.
+
+`HpMaxKwEl` is new on both, as `positive.float`. It was a scada
+deployment-config setting (`ScadaSettings.hp_max_kw_el`, defaulted to
+9.66 and carrying a `# TODO: move to layout`), which put a
+per-home hardware fact in the one artifact that is neither authored
+nor per-home. `ha1.params` types it as bare `number`; the named
+format is used here instead, per the authoring rule that primitive
+constraints ride formats rather than inline keywords.
+
 ## 2026-08-13 — squash staging types (`c80eba8`)
 
 A mid-process defect had spread across the vocabulary: a field change
