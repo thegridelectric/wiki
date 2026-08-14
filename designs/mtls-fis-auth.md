@@ -359,8 +359,10 @@ realistic CRL/OCSP distribution to the fleet exists.
   `Alias` (`left.right.dot`), `InstanceId` (`uuid4.str`; the general name —
   services aren't GNodes; FIS maps it onto the GNode lease row's
   `GNodeInstanceId`), `Run` (new `universe.run` format), optional
-  `GNodeClass`. Remaining work is authoring it in the sema registry (born
-  `draft`, owner jessica-millar) alongside the `universe.run` format.
+  `GNodeClass`. Authored 2026-08-14: `fis.connect.claims` is `staging`
+  (snapshot-vendorable for FIS v1, mutable in place while it hardens);
+  `universe.run` is `published` (formats never stage; the pattern mirrors
+  settled vhost canon).
 - **Auth-callback timeout budget** — first-measured 2026-08-14 (spike
   reproducer, `experiments/2026-08-14-sasl-mechanism-spike/`): a 2s
   per-call FIS delay connects; 10s fails — consistent with the broker's
