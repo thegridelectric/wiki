@@ -11,7 +11,7 @@
 # Absolute guard: no override. Switch to a topic branch first.
 set -e
 
-UMBRELLA=/Users/jessica/GridWorks
+UMBRELLA="$(cd "$(dirname "$0")/../.." && pwd)"
 PROTECTED="dev main master"
 
 input=$(cat)

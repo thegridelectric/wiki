@@ -24,9 +24,9 @@
 
 set -e
 
-UMBRELLA=/Users/jessica/GridWorks
+UMBRELLA="$(cd "$(dirname "$0")/../.." && pwd)"
 WIKI="$UMBRELLA/wiki"
-SCRATCH_DIR="$HOME/.claude/projects/-Users-jessica-GridWorks/scratch"
+SCRATCH_DIR="$HOME/.claude/projects/$(printf '%s' "$UMBRELLA" | tr '/' '-')/scratch"
 
 input=$(cat)
 

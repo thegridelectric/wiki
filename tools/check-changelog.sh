@@ -13,7 +13,7 @@
 
 set -e
 
-UMBRELLA=/Users/jessica/GridWorks
+UMBRELLA="$(cd "$(dirname "$0")/../.." && pwd)"
 WIKI="$UMBRELLA/wiki"
 
 INPUT=$(cat 2>/dev/null || true)

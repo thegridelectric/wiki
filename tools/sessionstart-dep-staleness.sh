@@ -7,12 +7,13 @@
 #
 # Register under SessionStart in .claude/settings.json.
 
-UMBRELLA="/Users/jessica/GridWorks"
+UMBRELLA="$(cd "$(dirname "$0")/../.." && pwd)"
+export GW_UMBRELLA="$UMBRELLA"
 
 python3 - <<'PYEOF' 2>/dev/null
-import json, pathlib, re, urllib.request
+import json, os, pathlib, re, urllib.request
 
-umbrella = pathlib.Path("/Users/jessica/GridWorks")
+umbrella = pathlib.Path(os.environ["GW_UMBRELLA"])
 latest_cache: dict[str, str | None] = {}
 
 
