@@ -1,6 +1,6 @@
 # rehome-alerting
 
-Status: Draft · Pass 0 · Updated 2026-08-27 · Linear: OPS-506
+Status: Accepted · Pass 1 · Updated 2026-08-27 · Linear: OPS-506
 
 **EDD: no** build-out; verified when a synthetic alert raised on the new box
 reaches Telegram, and `journalctl` on the box shows both units restarting
