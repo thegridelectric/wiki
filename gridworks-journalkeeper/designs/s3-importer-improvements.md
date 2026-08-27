@@ -1,6 +1,6 @@
 # Design: S3 importer — target functionality + deferred improvements
 
-> Status: Draft · Pass 0 · Updated 2026-05-29
+> Status: Draft · Pass 0 · Updated 2026-08-26
 
 What this is: where gjk's S3 → `gw_data` import is headed, beyond the robustness
 fixes already shipped (empty-date guard, log-and-continue) and the idempotent
@@ -34,6 +34,28 @@ behavior, but the requirement here is the functionality, not that shape.
 > Reconcile: earlier docs / the `jm/s3_hack` reference use a **5-day** lag. The
 > intended value is now **14 days** — `gw-data-analytics-deployment.md` and the
 > reference implementation should be updated to match.
+
+## Periodic sweep — catch what the live keeper missed
+
+The live keeper misses messages when it is down, when the broker drops it,
+or when a type arrives at a version its snapshot cannot decode. All three
+are bounded and recoverable from S3, so the importer also runs as a
+**sweep**: on a daily timer on gjk, import the rolling window
+`[today − lag − 3 days, today − lag]` (the window overlaps itself, so a
+sweep that fails one night is covered by the next). Idempotency is the
+persistor's property, not the sweep's: with the message-identity table in
+place (OPS-502) a sweep over data that is mostly present is a no-op
+except for the gaps. Until then the sweep is safe only for types whose
+payload carries a created time.
+
+Which types the sweep (and a from-scratch rebuild) load, and from what
+floor date, is **a versioned file, not a CLI argument**: one YAML next to
+`sema_seed_request.yaml` with a line per type — journaled or not, the
+floor date, optionally a version floor — loaded through a `TypeAdapter`.
+The `--types` / `~types` flag stays for one-off dev-machine runs. The same
+file is what the rebuild recipe in `gridworks-infra/databases/journaldb.md`
+points at, so the recipe and the sweep cannot drift; the population start
+for a rebuild is 2024-10-13 (OPS-498).
 
 ## Deferred code improvements
 

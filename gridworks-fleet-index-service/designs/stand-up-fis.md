@@ -19,10 +19,11 @@ the first with the predecessor closed before the successor is admitted.
 
 ## Build order (each step maps to a section of `executor/primary.md`)
 
-Steps 1–2 are built. With the mechanism plugin and the gwbase credentials
+Steps 1–5 are built. With the mechanism plugin and the gwbase credentials
 class both delivered, every non-FIS piece the dev battery needs now exists,
-so **FIS steps 3–6 are the only thing standing between here and step 8** —
-the critical path is this repo, not the broker side.
+so **FIS step 6 is the last decision path before step 8**, alongside the
+mirror seam (steps 5b–5c) — the critical path is this repo, not the broker
+side.
 
 1. ✅ **Scaffold the service.** FastAPI + Postgres + `uv` (mirror the
    grid-node-registry stack). Settings via `pydantic-settings` (own
@@ -37,7 +38,7 @@ the critical path is this repo, not the broker side.
    UUID for services), and the `lease` table keyed **(principal, run)** —
    revoked rows permanent, with single-writer enforced as a partial unique
    index rather than by the gate's care alone.
-3. **`/auth/user` — the gate** (*executor "`/auth/user` — the gate"*).
+3. ✅ **`/auth/user` — the gate** (*executor "`/auth/user` — the gate"*).
    Claims arrive as the `claims` sema word (AMQP) or `client_id` + `vhost`
    (MQTT); decode through the snapshot codec, strict. Implement the five
    verdicts exactly: malformed → deny; principal missing/inactive → deny;
@@ -47,12 +48,35 @@ the critical path is this repo, not the broker side.
    connections remain** (empty kill = success), create lease, allow;
    kill unconfirmable → deny (fail closed). For AMQP GNodes, claimed
    alias/class must match the registry mirror.
-4. **`/auth/{vhost,resource,topic}`.** vhost: claimed-run ≟ actual-vhost
+4. ✅ **`/auth/{vhost,resource,topic}`.** vhost: claimed-run ≟ actual-vhost
    cross-check, else allow. resource: v1 allow-all. topic write:
    routing-key segment 2 ≟ wire-form current alias. topic read: allow.
-5. **Reconvergence kills.** On a registry rename (mirror update), kill the
+5. ✅ **Reconvergence kills.** On a registry rename (mirror update), kill the
    identity's connections — the per-connection topic-verdict cache flushes
-   with them.
+   with them. The apply step (`mirror.apply_gnode`: upsert a `g.node.gt`,
+   detect rename, flush the identity) is built and tested against a fake
+   killer.
+5b. **Mirror seam — pull from gnr over HTTP (Phase A).** The path that feeds
+   `mirror.apply_gnode`, keeping FIS off rabbit. A `gnr_client` (httpx to
+   gnr's read façade: `g.node.forest.request`, `g-node-by-id`) plus a
+   reconcile loop (a FastAPI-lifespan background task): boot-seed a forest
+   snapshot for the served roots, then re-pull on an interval. `apply_forest`
+   loops `apply_gnode` over `forest.nodes` and marks a node gone from the
+   active forest inactive (exact rule confirmed against `g.node.gt` status at
+   build). `decide_user` reads-through on a mirror miss — an unknown GNodeId
+   is fetched by id and cached rather than denied outright. gnr down → serve
+   the last-known mirror. Reuses `apply_gnode` / `kill_identity` and the
+   vendored `GNodeForest` / `GNodeForestRequest`; **no gwbase, no rabbit**.
+5c. **Mirror seam — gnr push accelerator (Phase B, coordinated with gnr).** A
+   FIS mirror-update endpoint receives gnr's pushed change →
+   `apply_forest` / `apply_gnode`; a rename delta fires `kill_identity` at
+   once. It is a non-localhost ingress, so **mTLS-authenticated to gnr's
+   principal** (OPS-420 plane). The gnr side (OPS-419 follow-up) tracks FIS
+   endpoints and POSTs best-effort on change; the 5b reconcile is the heal
+   for a missed push. The **node self-heal** (a renamed node re-fetching its
+   alias from gnr by GNodeId on reconnect) is the client half — OPS-420 /
+   gwbase-proactor, not this issue. The ~1s pre-rename courtesy note is
+   deferred to a v2 gnr refinement.
 6. **Auth event.** Publish **`fis.instance.authorization.event`**
    asynchronously after each decision. It and its two enums
    (`fis.authorization.decision`, `fis.authorization.reason`) are `draft`

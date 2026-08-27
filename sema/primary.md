@@ -1,6 +1,6 @@
 # sema — domain (pointer)
 
-Status: Draft · Pass 0 · Updated 2026-06-08
+Status: Draft · Pass 0 · Updated 2026-08-22
 
 > **Intentionally minimal.** `sema/` is self-describing and **designed as a
 > source of truth**, so this wiki domain does not duplicate it — it points back.
@@ -19,6 +19,8 @@ Not a runtime framework.
 |---|---|
 | `sema/spec/primary.md` | **THE spec hub** — core principles, glossary, TOC. The rebuild spec; spokes live under `sema/spec/{registry,authoring}/` and `sema/spec/governance.md`. |
 | `sema/README.md` | repo landing page, including the "Why this matters" motivation that used to live in `sema/docs/motivation.md`. |
+| `sema/scripts/regenerate_runtime.py` | regenerates sema's **own** runtime (`src/sema/runtime/` — what `sema validate` and the codec load) after definition edits. |
+| `sema/template_regen_snapshot.sh` | template for a **consumer** repo's `scripts/regen_sema_snapshot.sh`, which rebuilds that repo's vendored `src/<pkg>/sema` snapshot via `sema snapshot prepare\|build`. The two regens are parallel mechanisms; neither invokes the other. |
 | `wiki/sema/research/` | GridWorks-specific context that used to live in `sema/docs/`: `sema-and-domain-protocols.md`. |
 | [`../vision/where-meaning-lives-in-gridworks.md`](../vision/where-meaning-lives-in-gridworks.md) | the GridWorks architecture position: Sema = authority over meaning, a canonical seed database = authority over asserted facts; the `.gt` bijection convention. |
 

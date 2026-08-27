@@ -302,15 +302,26 @@ until closed alongside this rollout). Per-house recipe: mint (with consent)
    `client_id = GNodeInstanceId` + `ssl_cert_login`); then notch 3; then
    close plaintext (notch 4 complete).
 
-   **Open — LTN certs (blocks notch 4).** The six house LTNs are also
-   MQTT clients today (pre-dating the AMQP-native gwbase path this
+   **Notch-2, all six house LTNs: COMPLETE, 2026-08-16.** The six house
+   LTNs are MQTT clients (pre-dating the AMQP-native gwbase path this
    design's "gwbase" domain split describes), each its own GNode with its
    own GNodeId distinct from its scada's (`LTN_SCADA_MQTT__TLS__USE_TLS`,
-   mirroring the scada's flag) — not yet enumerated or minted. Separately:
-   the LTN has no clean restart today (no systemd unit; it's a manual
-   tmux + Python-REPL session per `gridworks-infra/ltn/README.md`), so its
-   per-house recipe's restart step needs its own answer, not a
-   `systemctl restart` copy-paste.
+   mirroring the scada's flag). Each now presents a client cert with CN =
+   its own LTN GNodeId (CA-2026; expiries staggered across summer 2028).
+   Differences from the scada recipe, all resolved: the LTN's `mqtt_name`
+   is `scada_mqtt` (not `gridworks_mqtt`), so certs land as `scada_mqtt.*`;
+   the LTNs run not on per-house pis but in per-house tmux sessions on two
+   shared EC2 boxes (`ltn`, `ltn2`), so cert transfer uses one rclone
+   remote per *box* (dest path carries the house). The **restart answer**
+   (the open item): no systemd, so restart is in-place — attach the live
+   tmux session, stop the REPL (Ctrl-C), and re-boot it by hand with the
+   snippet in `gridworks-infra/ltn/README.md`; the per-house `<house>.sh`
+   launchers are from-scratch session *creators*, not restarters. **Live
+   confirmation is not the scada's `gridworks.messages` query** — an LTN
+   alias journals only an hourly `glitch`, so the journal can't date a
+   just-restarted node; the per-minute signal is the LTN's `gridworks.ping`
+   to `ear`, read from the S3 eventstore (its `ls` LastModified is EDT, so
+   sort by the epoch-ms in the object key).
 
    **Open — platform-service certs (blocks notch 4).** weather, gnr, ear,
    gjk still need certs minted; not yet started. This design's own rule

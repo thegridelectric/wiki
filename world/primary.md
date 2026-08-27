@@ -113,8 +113,7 @@ debt that has to be undone:
   candidates + criteria (process isolation, broker fan-out limits, experiment
   reproducibility) when it's live.
 
-The gjk-lens retention/scale seed notes live in
-[`../gridworks-journalkeeper/explorations/scale-strategy-starter.md`](../gridworks-journalkeeper/explorations/scale-strategy-starter.md).
+Journal-DB retention and scale are gridworks-data work (OPS-503).
 
 ## Cross-refs
 

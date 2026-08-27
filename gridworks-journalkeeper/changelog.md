@@ -10,7 +10,239 @@ repo's git history.
 
 Newest at the top.
 
----
+## 2026-08-25 — bulk load driver and flo.params replay as repo scripts
+
+`1342d23`, on `main` at `9f5664f`. `scripts/s3_bulk_load.sh` drives the eventstore back-fill from a box in the
+bucket's region: layouts first over the whole span (so every channel era
+exists before a report is read), then every other type forward, each type's
+range ending the day before its earliest row already in the DB (queried, not
+hand-kept — id-less types are not idempotent across the rabbit and S3
+paths). `gridworks.event.problem` is never back-filled (its pre-2026 volume is
+a device-fault flap) and `gw.weather.*` is skipped (nothing older than the
+weather service). `scripts/replay_flo_params.py` re-derives the
+`flo.params.house0` v004–006 pseudo-readings for rows the default path
+stored before those persistors existed. Both live in the repo because a
+deployed box runs committed code only.
+
+## 2026-08-25 — batched commits for the bulk import
+
+`8a26e9e`, branch `jm/ops-498-load`. A 300-message probe from the laptop put the DB at ~9.5 ms per message with
+one commit each — as much as the S3 GET — and a `report.event` persist is
+three or four round trips, so against Timescale Cloud the database would be
+the whole cost of the prod load. `SemaMessagePersistor.persist_messages`
+persists a batch in one transaction (`--batch-size`, default 500, in the
+importer); a batch that raises is rolled back and replayed one message at a
+time so a single bad payload costs only itself. Channel rows are cached on
+the session (`db.info`) for the batch and forgotten after a layout sync,
+so a run of reports for one house reads `reading_channels` once. The live
+path is unchanged: `persist_message` is one message, one transaction.
+
+## 2026-08-26 — go in parallel
+
+`96c832e` on `main` (bulk load: PASS2_END so several drivers can share the
+span). Pass 2a runs at ~14 msg/s on the box with the CPU idle: the cost is the
+database's insert work per message, not the network (the journal DB is in
+the same region). Weeks are independent, so the lever is running several
+drivers at once, each on a disjoint span. `PASS2_END` caps pass 2a (and
+skips 2b unless the cap reaches the common floor) so a driver can own,
+say, one quarter.
+
+## 2026-08-26 — Merge branch 'jm/ops-498-importer-test-fakes'
+
+`38bd6e5` on `main` (importer test fakes learn the receipt-time-keyed set). `be04325` landed with four importer tests red: the fake persistors in
+`test_s3_message_importer.py` predate `dedupable_message_types` /
+`RECEIPT_TIME_KEYED_TYPES`, and one test still expected the default type
+set to be every known type. Fakes and expectation brought in line; no
+code change.
+
+## 2026-08-26 — better de-dupe
+
+`be04325` (message ids from the payload's created time; S3 import refuses
+receipt-time-keyed types). The `messages` key is `(timestamp, id)`. A message loaded by the S3 import
+dedupes against the row the live path wrote only when both halves come
+from the payload. `default_message_id` now derives the uuid5 from the
+payload's created time (not the receipt time), so every type with a
+created time — `snapshot.spaceheat`, `ticklist.*`, `flo.params.house0`,
+`weather.forecast`, `glitch`, `heating.forecast`, `energy.instruction`,
+`new.command.tree`, `gw.weather.forecast` — is now path-independent like
+`layout.lite` and `report.event`. Types with no created time
+(`RECEIPT_TIME_KEYED_TYPES`, pinned by a static test) cannot be made
+dedupable by the persistor, so the S3 importer refuses them; the live
+path still journals them. Also `--alias-prefix` (driver default `hw1.`)
+keeps dev-universe traffic out of the back-fill. Rule for the vocabulary:
+a word that wants a dedupable journal row or a safe ack MUST carry a
+created time.
+
+## 2026-08-26 — Another walkback MISM
+
+`77c5ef6`, on `main` at `77c5ef6` (vendor sema pico.tank union; PASS2_START for the
+driver). Snapshot regenerated from sema with the `pico.tank.module.component.gt`
+010/011 union on `layout.lite` 005 and 006 (third load-time mismatch: 14
+Dec 11–12 2025 layouts from beech, elm, maple). The driver takes
+`PASS2_START` so pass 1 can resume from a later day while pass 2 still
+starts at the population start; each mismatch stop no longer costs an
+hour of re-listing layouts.
+
+## 2026-08-25 — woops
+
+`fb68393`, on `main` at `1c57bd4` (bulk load: floors from a recorded file, not the
+live DB). The driver derived each type's floor (the day before its earliest row) from
+the DB at every start. After the first pass had loaded 2024–2025 layouts,
+the earliest `layout.lite` row was Dec 2024, so a restart computed a floor
+of 2024-11-30 and skipped pass 1 entirely, starting pass 2a with half the
+layout eras missing. The floors are a property of the live era, captured
+once before any back-fill; `FLOORS=<file>` feeds that capture to every
+later run, and the DB query is only used (with a warning) when no file is
+given.
+
+## 2026-08-25 — vendor sema 371514d: load-time layout.lite mismatches
+
+`5e10955`, on `main` at `9bc5f19`. Snapshot regenerated from sema `371514d` so the bulk load decodes the two
+within-version wire shapes it found on its first pass (`ha1.params:000`
+with `MaxEwtF`; `relay.actor.config:002` without `StateType`). The two
+real payloads are kept as fixtures with a decode test, since the
+one-sample-per-version scan is what let them through. The load driver
+takes `START` so a pass can resume from a later day after a fix.
+
+## 2026-08-25 — prepping for data backfill
+
+`7ce2a55`, branch `jm/ops-498-load`. Makes the persistors and the S3
+importer safe to run over 2024–2025 windows against a prod DB that already
+holds the current era.
+
+**Why the sync guard and era rows.** `ReadingChannelSyncProcess` was
+last-writer: every active channel absent from the layout being processed got
+deactivated, so a 2024 layout loaded into prod would have retired a house's
+live channels and dropped its live readings until the next live layout
+re-created them. Now a layout older than the newest `layout.lite` in
+`messages` for its TA syncs add-only: nothing active is touched, and every
+definition it carries that is not the active one becomes an era row —
+`deactivated_date` = the earliest newer layout's time. Channel definitions
+do change under one name (`buffer-depth1`, `tank*-depth*`: data channel
+`WaterTempCTimes1000` through 2025, derived `FahrenheitX100` from 2026), and
+the front end scales by `reading_channels.unit`, so readings must land on the
+row with their era's unit. `reading_channel_eras.channel_ids_at` does that
+lookup (earliest `deactivated_date` after the report time, else the active
+row) and `ReportEventPersistor` uses it.
+
+**Why the tallies.** The importer's summary showed decode outcomes only; a
+reading whose channel had no row was a silent `continue`. `RunSummary` now
+carries dropped readings per `(TA, channel)`, enum values that hit the sha256
+fallback, era rows added, and per-day `(from_alias, type, version)` outcome
+counts; `--summary-json` writes it for post-load reconciliation. The S3
+client takes `settings.aws.region_name` (an instance-role box has no default
+region) and `--workers` prefetches GETs on a thread pool.
+
+Tests: `test_channel_eras_backfill.py` replays real beech samples (2026
+layout, 2025 layout, reports from 2024/2025/2026) against a TimescaleDB
+container and asserts the active set is untouched, the era row exists, and
+each report's readings sit on the row with its unit; hermetic tests cover
+`channel_ids_at`, the dropped-readings tally and `RunSummary`.
+
+## 2026-08-25 — Type walk-balk to Oct 13 2024
+
+One squashed commit (on `f6e98ed`) for the whole gjk side of the OPS-498
+walk-back: the vendored sema snapshot at sema `134a1b1`, the `version_scan`
+dispositions, and persistors for every back-filled version.
+
+**Snapshot.** The seed now lists `layout.lite` 001–012 and `report.event`
+000/002/003 explicitly, with `scada.params`, `snapshot.spaceheat`, `report`,
+`atn.bid`, `flo.params.house0` via `include_all_versions`, so every accepted
+`(type, version)` the S3 eventstore carries from 2024-10-13 — the start of
+database population, the first full day of the `report.event` era — to the
+2026-01-09 floor decodes.
+
+**version_scan.** `IGNORED_TYPE_NAMES` (the proactor event/ping/ack family,
+listed explicitly so authored siblings stay visible) keeps the deferred track
+out of the `need` list. `REJECTED_TYPE_VERSIONS` is pair-scoped: the
+pre-versioning `gridworks.event.problem <no-version>` shape (`TimeNS`, 21 msgs,
+one `ng` house) and `snapshot.spaceheat 000` (11 msgs in one week of Sept–Oct
+2024, the pre-channel nested `telemetry.snapshot.spaceheat` with hex enum
+symbols and dashed aliases; below the population start, where readings ride
+`gt.sh.status`, which JK does not accept). Both surface as `rej`, never
+authored.
+
+**Persistors.** `persist_vNNN` for every back-filled version, so readings are
+extracted rather than falling to the message-only default path:
+`report.event 000` (its `report:001` carries `FsmActionList`, no `StateList`,
+so machine-state readings are skipped), `layout.lite 001–006` (all synth-era;
+`SynthEraLayout` / `DerivedEraLayout` aliases let the sync methods
+type-narrow; v001 has no `SynthChannels`, v002's is optional; only the
+reported synth channels `required-energy` / `usable-energy` get rows), and
+`flo.params.house0 000–006` (v000 has no `BufferAvailableKwh`, v001 has it
+optional — that reading is skipped when absent). The v004–v006 flo messages
+already in the DB from Jan–Mar 2026 were stored without pseudo-readings; a
+replay script in the loading session fixes that.
+
+## 2026-08-23 — README: sema paragraph in canonical language (`f6e98ed`)
+
+The README's Sema note is rewritten in the sema README's own words —
+vocabulary registry, boundary contracts, mechanically verifiable — and adds
+the scoping sentence (Sema applies only at system boundaries; it does not
+prescribe internals). Converging on sema's self-description instead of a
+per-repo paraphrase; same text lands in every snapshot-consuming repo. The vendored snapshot is refreshed so its generated README carries the
+same scoping sentence (README-only snapshot diff).
+
+## 2026-08-22 — persist layout.lite v006 (`05d1be6`)
+
+(Also carries the version_scan failure-classification below — squashed in.)
+
+The S3 backfill's first incompatible version, layout.lite v006 (Dec 2025 –
+mid-Jan 2026 wire), now exists in sema — this teaches JK to load it. Snapshot
+regenerated against sema dev (picks up `LayoutLite006` and the new snapshot
+README). v006 stays v006: its forward upgrade is context-dependent (007
+redesigned the derived layer), so rather than upgrade, `persist_v006`
+handles it natively. The channel sync dispatches on a synth-era version set
+(`SYNTH_ERA_LAYOUTS`) rather than pinning v006 — earlier versions (v005,
+v004, …) also carry SynthChannels and append there as the backfill walks
+earlier. Of a layout's synth channels, only the two that ever appear in
+report.event readings — `required-energy` and `usable-energy`
+(`REPORTED_SYNTH_CHANNELS`) — get `reading_channels` rows, as
+`synth.channel.gt`; the other 12 are unreported intermediates whose rows
+would never carry data. The two are present from the beginning of the
+archive, so their synth-era readings link from the first load; when a
+forward load reaches a 007+ layout the standard mismatch step retires the
+synth row and creates the derived one, recording the era transition. Also:
+the top-level README gains the standard pointer to the vendored snapshot
+and the sema repo.
+
+version_scan grows failure classification + `--save-samples`. A version
+that fails to decode means one of two different things: the codec does not
+know the version (author a new sema word version) or it does and the real
+payload still fails (the sema definition mistranslates the wire — a bug to
+raise, not a version to add). The summary conflated them as one NO; it now
+reports `need` vs `MISM` (with the decode error) so it states directly which
+new versions the backfill needs and raises any known version that stops
+translating. `--save-samples <dir>` writes each (type, version)'s first
+payload as `<type.name>-<version>.json`, the wire evidence the authoring
+step works from.
+
+## 2026-08-22 — add s3 version_scan discovery tool (`1b8cbcf`)
+
+Backfilling the S3 event store back to Sept 2024 needs a map of *which
+message versions appear when* before any loading — a version outside the
+current sema registry decodes degraded and cannot be stored, so it has to be
+authored first. Downloading every object to find out is untenable: the
+loader's GETs are sequential and cross-region, ~hours per day. `version_scan`
+answers the question cheaply instead. The version lives in the JSON envelope
+(`Payload.Version`), so it is read with a plain parse, no codec. Because a
+type's version is piecewise-constant in time, per `(type, from_alias)` the
+scan **downloads all** objects only when a bucket has fewer than 100 in the
+span, and otherwise **bisects** to find the version-change boundaries in
+`O(log n)` GETs. It reports a `(type_name, version)` timeline — first/last
+seen, count, houses — and decodes one sample of each through the codec to
+flag the versions that still need a new sema word version authored.
+
+## 2026-08-19 — add summary log to S3 loader (`efb24a9`)
+
+The S3 backfill's real deliverable when reaching back through history is
+*which message versions appear* — the codec decodes today's versions and
+returns a degraded object for any it doesn't know, so an old version is
+invisible except as one warning line per message. Buried in a multi-GB day
+that is unusable. The importer now tallies every message by
+`(type_name, version)` — decoded-ok / degraded / parse-failed — and prints a
+sorted summary at the end, with the degraded versions called out explicitly
+as the ones needing new sema word versions authored before they can load.
 
 ## 2026-08-13 — production login is `gjk`, not `ubuntu` (`4764f4a`)
 

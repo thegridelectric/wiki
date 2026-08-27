@@ -8,6 +8,45 @@ Newest at the top.
 
 ---
 
+## 2026-08-23 — re-run spruce store charge valve experiment (`fb604d8`)
+
+`2026-08-16-spruce-store-charge-valve/` re-dated to
+`2026-08-23-spruce-store-charge-valve/` (the 08-16 runs were void — relay
+not wired to the valve; artifacts in git history). New
+`charge_valve_polarity.py`: legs D/E (iso closed + pump on, charge
+de-energized / energized), witnesses independent of meter placement
+(secondary temps + store-hot-pipe + tank1), dead-head guard ends a leg at
+60 s of fresh zero flow, POR check with re-assert after every write;
+results + log + `gw.experiment.run` + `gw.readings` pull.
+The commit also carries the soak protocol (George's actuator timing:
+slow to open, may not open against dead-head pressure) and the soak run:
+charge energized 12 min with iso open and the pump circulating, then iso
+closed — flow to 0 in ~90 s, store branch untouched.
+**Why:** the day's charge_store runs showed the believed charge posture
+fully stagnant; these runs killed the polarity AND timing/pressure
+hypotheses — no condition moves water through the store, so the break is
+physical (wiring/actuator/return path), on-site next.
+
+## 2026-08-23 — spruce gw108 i2c relay stress tests (`1d5b816`)
+
+New `2026-08-23-spruce-relay-stress/`: `relay_stress.py` (named runs
+`--run <label>`, per-run log + typed results in `/home/pi/relay-stress-runs/`,
+posture knobs for the non-toggled coils, i2c retries through a brownout),
+`emit_instances.py` (`gw.experiment.run` per run), runs A–F with logs +
+results, a `gw.readings` pull over the morning window, README with
+the result table and a one-command-per-box reproduction. Logbook entry;
+08-16 charge-valve folder + logbook marked superseded by the 08-20 on-site
+result; `ci.sh` excludes the three pi-only spruce harnesses.
+**Why:** the 08-20 observation that rapid iso toggling brings the OPS-452
+reset. Found: energizing the iso relay with < 2 other 0x21 coils on resets
+the chip (66 % per energize with none; 2/15 with one; 0 with two+); the
+pump relay never trips it; spacing is irrelevant; the hack's start order
+(clear all, iso first) is why it resets at start. Hardware evidence for
+Joe plus a software ordering rule. The morning's exploratory sweep was
+not kept (its charge-valve reading was a confound). The commit also
+carries the 08-16 charge-valve folder's driver + `gw.readings` pull from
+the earlier unsquashed commit.
+
 ## 2026-08-11 — README: name .env as the journal-DB access point <!-- pending commit -->
 
 **What:** Layout section gains a `.env` bullet (`GJK_DB_URL`, gitignored).

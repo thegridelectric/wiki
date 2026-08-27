@@ -12,6 +12,31 @@ Newest at the top.
 
 ---
 
+## 2026-08-22 — take ownership of snapshot seed and regen (`86ee3f2`)
+
+(Squashed in: the README's Sema note rewritten in the sema README's own
+canonical words — vocabulary registry, boundary contracts, mechanically
+verifiable, plus the boundary-scoping sentence — and the snapshot refresh
+that puts the same language in the generated snapshot README.)
+
+gwta's snapshot regen lived as untracked one-off files in the sema *checkout*
+(`build_gwta_snapshot.sh` + `gwta_seed_request.yaml` — never committed
+anywhere), so the recipe existed on one machine only and a session hunting
+for "how does a consumer regen its snapshot" could not find it from this
+repo. The seed moves in as `src/gwta/sema_seed_request.yaml` and the script
+becomes the standard `scripts/regen_sema_snapshot.sh` (instance of sema's
+`template_regen_snapshot.sh`, keeping the `--allow-staged` flag the staging
+layout closure needs); the sema-checkout one-offs are deleted. Two stale
+seed entries surfaced on the first run — `i2c.adc.config` and
+`i2c.dac.config` no longer exist in the registry (that vocabulary evolved
+into `i2c.dac.channel.config` etc.), are absent from the snapshot, and are
+referenced by no gwta code — dropped from the seed. The regen then ran
+clean against sema dev, catching the vendored snapshot up across months of
+sema movement (channel-config overhaul, new enums, the generated snapshot
+README); suite + import green after. The top-level README gains the
+standard Sema pointer (canonical repo, schema-id namespace, snapshot
+location + regen path).
+
 ## 2026-07-15 — snapshot rebuild: capability words + catch-up to current sema (`0a18bd7`)
 
 **What:** on `jm/delete-cac-id`. The gwta sema snapshot (`src/gwta/sema/`) rebuilt from current

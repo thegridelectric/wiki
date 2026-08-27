@@ -1,6 +1,6 @@
 # Design: Layered test harness for gridworks-journalkeeper
 
-> Status: Draft · Pass 0 · Updated 2026-06-12 · Linear: OPS-493
+> Status: Draft · Pass 0 · Updated 2026-08-27 · Linear: OPS-493
 
 **Layer 2 landed first (2026-06-12).** `tests/test_live_amqp.py` +
 `tests/conftest.py` implement the real-broker path ahead of Layers 0/1: an
@@ -68,6 +68,20 @@ transport adapters, not the codec.
   example get a sample, which is fine — Layer 0 covers what exists.
 - A small gwbase test-publisher helper for Layer 2 (the fiddly bit: correct
   exchange/routing/envelope).
+
+## Dev-DB test isolation
+
+Rows left behind by earlier test sessions on the dev DB carry no marker that
+says they are test data, so any retention or cleanup rule amplifies the noise
+instead of reducing it. Every layer that writes to the dev DB follows three
+rules:
+
+- **Alias namespacing.** Test runs emit under `d1.test.<test-id>`; production
+  aliases never overlap that prefix.
+- **Targeted teardown.** A test deletes its own rows by `from_alias` in its
+  teardown, never `TRUNCATE`, which would clobber another session's run.
+- **A scheduled dev-DB cleaner** drops rows older than a few days for any
+  `from_alias` matching `d1.test.%`, catching forgotten teardowns.
 
 ## Rollout
 1. **Layer 0 now** — tiny, no infra, catches the `atn.bid` class.

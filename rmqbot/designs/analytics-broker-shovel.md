@@ -130,9 +130,7 @@ Three landable chunks:
 - **Retention on the analytics-side `ear_tx`.** Today the prod broker
   doesn't retain `ear_tx` messages — they fly past. The analytics
   side can choose to queue-with-retention to give consumers a replay
-  window. Coupled with the
-  [scale-strategy](../../gridworks-journalkeeper/explorations/scale-strategy-starter.md)
-  question about test-isolation discipline.
+  window. Coupled with the dev-DB test-isolation discipline (OPS-493).
 
 ## Cross-refs
 

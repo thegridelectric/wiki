@@ -12,6 +12,150 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-08-19 — gwsproto names: disjoint Core / HydronicSpaceheat / family tiers; retire house_0_names
+
+Topic declaration for the in-flight cluster (names/*, hydronic_layout.py,
+house_0_names.py, the actors that consume them). Node names live in
+disjoint tiers — `CoreNodeNames` (any asset), `HydronicSpaceheatNodeNames`
+(every hydronic plant), one class per layout family (House0, Nolan, …) —
+and the legacy `H0N`/`house_0_names.py` duplicate is removed. Entry to be
+reconciled against the diff at commit time.
+
+## 2026-08-16 — derive is_simulated (remove the flag); simulated until proven real
+
+Deletes the `SCADA_IS_SIMULATED` env var and the `ScadaSettings.is_simulated`
+field; simulation is now DERIVED, never stored (simulated-actors design,
+"remove is_simulated — derive it"). `ScadaAppInterface.is_simulated` is a
+concrete property: **simulated unless a TaDeed is present AND the layout has no
+simulated device** — real must be proven, so a missing proof or any sim device
+means simulated. The two derivation inputs:
+
+- `HydronicLayout.has_simulated_component()` — True if any component TypeName is
+  `sim.*` or any DeviceType value is `GridworksSim*` (component or device type).
+- `ScadaPaths.tadeed` — the scada's proof-of-real, a currently-fake placeholder
+  file beside the hardware layout; absent ⇒ simulated.
+
+Every scada-side reader moves from `self.settings.is_simulated` to
+`self.services.is_simulated` (the derived property): `scada`, `sh_node_actor`,
+`i2c_bus`, `i2c_dac_writer`, `i2c_relay_multiplexer`, `i2c_thermistor_reader`,
+`i2c_zero_ten_multiplexer`, `relay`, `gpio_sensor`, `derived_generator`,
+`local_control/tou_base`. `sim_boot` no longer sets any flag — its swapped-in
+`sim.sensor.component.gt` components (and absent TaDeed) derive True on their
+own. Tests drop their `settings.is_simulated = True` write-sites (an absent
+TaDeed makes them simulated); actor-instance overrides (`actor.is_simulated =
+False`) are kept. The **LTN keeps its own `LtnSettings.is_simulated`** — a
+separate app, out of scope here. Verified: suite green (201 passed) and
+`sim_boot` boots on gw-dev-rabbit with no flag.
+
+## 2026-08-16 — various renames (`7415be73`)
+
+The app/actor consumption side of the HydronicLayout collapse — terminology and
+call-site alignment, no behavior change. The `HydronicLayout as House0Dc` /
+`House0Layout as House0Sema` aliases are dropped for the real names; the ~110
+relay/system-actor call sites across the actors read `self.layout.X` (resolution
+in one place); `scada2_gnode_name` → `scada2_g_node_name`; the apps
+(`scada_app`, `scada2_app`, `ltn_app`, `command_line_utils`, `show_layout`,
+`scada_app_interface`) load through `load_layout`. The dead `house0_bijection.py`
+round-trip tool is deleted (114 lines). Excludes the deeper actor changes held
+for a careful one-file-at-a-time pass (`sh_node_actor`, `scada`, `scada_data`,
+`local_control/nolan`, `leaf_ally/nolan`).
+
+## 2026-08-16 — HydronicLayout.from_word: word-native construction; sema_to_dc loads via the word (`c418c10e`)
+
+The runtime layout is built from its authored sema word, not a re-bucketed dict.
+`HydronicLayout.from_word(word, capture_tuning=...)` becomes the sole
+constructor: it holds `self.word`, indexes GNodes by `GNodeClass` for the
+g-node accessors, sets `layout_type_name` from `word.TypeName`, and consumes the
+word's already-typed sub-objects directly (no `sema_to_layout_dict` shred, no
+`load`/`load_dict`). `sema_to_dc` collapses to `load_layout` →
+`ops_and_sema_to_dc` → `from_word`; `APPROVED_PAIRS` is typed
+`dict[LeftRightDotStr, LeftRightDotStr]` validated through a `TypeAdapter`; the
+dead review tools (`diff_against_fixture`, `sema_to_dc()`) are gone. Same change
+carries the semafy sweep of the data class (`Exception`→`DcError`, format-typed
+g-node accessors, `GNodeClass` enum-keyed lookup, dead-local removal). Net
++173/-411 lines across the two files.
+
+## 2026-08-16 — gwsproto in conformance with sema; improved layout alignment (`f39a57ba`)
+
+Brings the gwsproto named-types, enums, and property-formats into conformance
+with the sema contract, verified by a new standing test.
+
+- **Version drift removed.** Four types were pinned off sema's latest after the
+  2026-08-13 staging squash: `spaceheat.node.gt` 303→302,
+  `i2c.multichannel.dt.relay.component.gt` 005→004,
+  `electric.meter.component.gt` 002→001, `linear.one.dimensional.calibration`
+  001→000 — Version literals and the fixture-embedded versions both corrected.
+- **Enums aligned to sema.** Seven local-control state enums bump 000→001
+  (same values); `gw1.device.type`→000 gains `GridworksSimGw108`,
+  `gw1.quantity`→002 gains `WindSpeed`, `gw1.unit`→002 gains `DollarsX1000`,
+  `KilowattHoursX1000`, `MilesPerHourX1000` — values gwsproto was missing.
+  New `GNodeClass` enum mirrors published `gw.g.node.class`.
+- **Format bugs fixed.** `is_hex_char` now requires exactly one char (the empty
+  string slipped through Python's substring `in`); `is_market_slot_name`
+  validates sema's maker-agnostic regex instead of enforcing `MarketTypeName`
+  membership + slot divisibility (the market maker's concern, per the sema
+  format). Dead `MarketMinutes` removed.
+- **Layout unions + sim DAC.** `House0Component`/`NolanComponent` admit the
+  sim.* components (mirrors the sema union change in `2f8922f`), including the
+  new `SimDacWriterComponentGt`. Fixtures reconciled (house0 ops pair completed,
+  transactive-power channel added — see the operational-params-cleanup spoke).
+- **The conformance sweep is now a test** (`tests/named_types/
+  test_gwsproto_sema_conformance.py`): fails on any type/enum version drift,
+  example-reject, dump-drift, enum value-drift, or format accept/reject
+  mismatch; allowlists the legitimately gwsproto-only vocabulary (37 types, 27
+  enums, 6 unmirrored formats). Skips if the sibling sema checkout is absent.
+
+
+## 2026-08-15 — refactor sema types so they can call type_name_value() (`cb7190ff`)
+
+The titular change is a shared identity base for gwsproto sema words, but
+the commit also carries the gwsproto half of the HydronicLayout collapse
+and the removal of a dead mirror — three things under a title that names
+one (the app half of the collapse follows in the next commit; the commit
+message undersells the diff).
+
+**The lay-over.** gwsproto words gain `GwsprotoSemaType`, giving every one
+`type_name_value()` / `version_value()`. Sema's own runtime has such a base
+(`SemaType`) and gwbase vendored it; gwsproto was the outlier, offering
+only a free function, so code holding a word instance could not ask its
+type name without passing the class to a helper — and could not ask *is
+this a sema word* except by `hasattr`, the dispatch antipattern. The base
+is fieldless and config-less, and both halves are required, not tidiness:
+gwproto's payload discovery admits a class only if it declares a field
+literally named `TypeName` annotated `Literal`, so a base with no
+`TypeName` stays invisible to the discriminated union while its subclasses
+are found normally; and pydantic MERGES a base's `model_config` into every
+subclass, so a `frozen`/`extra=forbid` base would have silently
+reconfigured all 145 words. Carrying no fields is also why the FLAT note
+does not bite — this is an accessor, not a schema hierarchy. Words reach it
+three ways: 136 declarations rewrite from `BaseModel`; the 19 component
+words are untouched, inheriting through one edit to `ComponentBase`; the
+two on gwproto's `EventBase` take it as a second base (MRO `ReportEvent` →
+`EventBase` → `GwsprotoSemaType` → `BaseModel`). The free function
+`type_name_literal` is deleted; its call sites inside gwsproto now ask the
+word. Verified by experiment
+(`experiments/2026-08-15-gwsproto-sema-layover/`, re-runnable): against a
+patched copy of the whole package the message union is identical by
+TypeName set, no word's `model_config` changed, wire form is byte-identical,
+and the suite is green — the first run caught the two `EventBase` words the
+sweep had missed.
+
+**Collapse, gwsproto side.** `HardwareLayout` and `House0Layout` merge into
+`hydronic_layout.py` (`HydronicLayout`, git-tracked as a rename off
+`hardware_layout.py`; `house_0_layout.py` deleted). Three dead members
+(`required_topology_nodes`, `required_system_actor_nodes`,
+`optional_channels`) go. `codec_factories.py` rides along as the one app
+file, its factory typing following the rename. The app-side repointing of
+~110 relay call sites to `self.layout.X` is the next commit.
+
+**Dead mirror removed.** `synth.channel.gt`'s gwsproto mirror
+(`SynthChannelGt`) is deleted: nothing in the repo constructed, imported or
+decoded it, no fixture carried the wire form, and the concept was
+superseded by `derived.channel.gt` (which the layouts carry). The sema word
+stays published and untouched; only the unused decode surface goes, taking
+the message union 145 → 144.
+
 ## 2026-08-14 — removed layout gen, WIP various node names (`488b9439`)
 
 `layout_gen` is gone — 18 modules, ~3,200 lines. It built runtime-shaped
@@ -143,8 +287,9 @@ The sema counterpart is `d2b163f` in the sema repo.
 is referenced by `leaf_ally_loader` but was not included, so a Nolan
 boot raises `ModuleNotFoundError` until the follow-up lands.
 
-<!-- pending commit -->
-## 2026-08-12 — TOU cooling in NolanLocalControl.Normal; layout contract replaces runtime guards; modern pinned fixture
+
+**Folded into this commit — the 2026-08-12 local-control round** (TOU cooling in NolanLocalControl.Normal; layout contract replaces runtime guards; modern pinned fixture). Originally drafted as its own entry; it landed here uncommitted-separately:
+
 
 Step 7's first increment, shaped by four design decisions made in
 review. (1) **Normal runs TOU cooling** — weekend-ON / weekday
@@ -211,8 +356,8 @@ gwsproto — every consumer (`scada.py`, `ltn.py`, `nolan.py`,
 `layout.lite`'s gwsproto mirror follows the sema squash to `013`
 (its component imports were already current — only `SystemMode` and
 a stale `enums/`-vs-`types/` docstring URL needed fixing).
-`GwHouse0OperationalParams`/`GwNolanOperationalParams` now share a
-`OperationalParamsCoreBase` Python base class (ScadaAlias,
+`House0OperationalParams`/`NolanOperationalParams` were briefly given a shared
+`OperationalParamsCoreBase` Python base (since removed; each mirror is flat) (ScadaAlias,
 CaptureTuningList, ActuationAuthority, ServiceMode, CopCurve,
 HeatingCurve) — code reuse only, matching the `ComponentBase`
 precedent; each word's sema schema stays flat. Verified: `sema

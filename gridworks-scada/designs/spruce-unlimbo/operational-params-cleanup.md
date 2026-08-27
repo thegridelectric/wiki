@@ -1,12 +1,126 @@
 # Operational params cleanup (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-08-12 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-08-15 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke cleaning up the operational-params
 > surface: the Nolan family gets its own word
 > (`gw.nolan.operational.params`), and `gw.house0.operational.params`
 > slims to fields that are actually tunable. Decisions settled with
 > Jessica 2026-08-12; sema edits gated below.
+
+## ▶ Next — coherence cleanup, handover 2026-08-15
+
+Session deft-finch (Fable) reviewed the last 4 commits + the working tree
+and audited the three scada designs, then ran out of budget; a fresh
+session picks up here. Decisions taken with Jessica 2026-08-15:
+**code cleanup first**, then one docs sweep against the committed tree;
+**delete** `sim_boot.py`, `house0_bijection.py`, `layout_roundtrip.py`
+and `sema_to_dc.diff_against_fixture` (unimported, read deleted fixture
+shapes); **`scada.control.capabilities/001` is staging ⇒ edit it in
+place, never a new version** (rule now in GridWorks_CLAUDE.md maxims).
+Stance: address issues now, don't push off; ask before assuming; the
+session is HIGHLY interactive.
+
+Suite on the working tree: 193 passed, 1 skipped. HEAD alone is red;
+`actors/leaf_ally/nolan.py` is UNTRACKED and required — `git add` it.
+
+**Critical, in order (each = ask, fix, run suite):**
+
+1. `layout_type_name` fell out of the collapse — no attribute on
+   `HydronicLayout`; only `sema_to_dc.py:157` stamps it. `is_nolan`
+   (`hydronic_layout.py:1721`), `required_node` (`:1729`),
+   `_family_only` (`:1740`), `sh_node_actor.py:347` read it. Decide:
+   loader-only construction (then `load`/`load_dict` take it as a
+   required arg) vs class attr. Also unify the THREE family
+   discriminators: `is_nolan`, `leaf_ally_loader.py:16` (hardcoded
+   `"gw.nolan.layout"`), `local_control_loader.py:25` (`Hydronic.Strategy`
+   string, `HouseStrategy` enum unused).
+2. `nolan_operational_params.py:17-23` `⏳ TEMPORARY` prose in the
+   sema docstring — violates "docstrings are `Sema: <url>` only"; move
+   the note here. The two ops words are field-identical (intended start).
+3. `scada.control.capabilities`: builder `scada.py:1680-1706` reads
+   `H0N.relay_multiplexer` unconditionally (Nolan crash); word requires
+   `I2cRelayComponent`, axiom 4a assumes one Krida board; gwsproto embeds
+   `spaceheat.node.gt` 303 / i2c relay 005 that no longer exist (word pins
+   302/004). Redesign family-neutral IN PLACE on 001 (sema word-gate:
+   read `sema/spec/primary.md` + registry/authoring spokes, post summary,
+   wait).
+4. Nolan-wrong direct name reads: `sh_node_actor.py:1837`
+   (`House0NodeNames.store_charge_discharge_relay` → `layout.…`), `:1156`
+   (`zero_ten_out_multiplexer`), `scada.py:465-481,1273`,
+   `relay.py:966-1021`, `tou_base.py:223`, `ltn.py:789`; layout
+   system-actor props `hydronic_layout.py:1610-1706` still via `H0N`.
+5. Actor↔layout duplicates: `sh_node_actor.py:222-274` (`ltn`,
+   `primary_scada`, `derived_generator`, `hp_boss`, `sieg_loop`,
+   `pico_cycler`, `dist_010v`, `store_010v`, `primary_010v`; `atomic_ally`
+   / `home_alone` zero callers); `scada.py:1632-1672` redefines ten via
+   `H0N`; `H0N` (`house_0_names.py:117-206`) duplicates Core+HSNN+House0
+   names; `ZoneNodes` ≡ `HydronicSpaceheatZoneNodeNames`.
+6. Collapse leftovers in `hydronic_layout.py`: `:680` double
+   `load_derived_channels`; `:1508,1531` "overwrites base class";
+   `:1435-1459,1587` unreachable legacy flat-key fallback (Hydronic
+   required in both words; also dead `None` checks `house0_layout.py:122,158`,
+   `sema_to_dc.py:196`); `_family_only` returns None always; unused
+   `:1344 components`, `:1877 valid_keys`; House0-named validators/args
+   (`:126,1230,1336,1441,1876`) run for every family; commented relay
+   lists `:1355-1375,1463-1466`. `sema_to_dc.py:7,34` `House0Dc`/
+   `House0Sema` aliases + "default oak"; `sh_node_actor.py:345`
+   `"house0.layout"`; `config.py:135-141` false claim about `hp_model`'s
+   only reader (`hp_boss.py:35`, `sh_node_actor.py:1338` read it).
+7. Dead modules: `orig_sieg_loop.py`, `show_settings.py`, `run_scada.py`,
+   `getkeys.py`, `scratch{,2,3,4}.py`, four `drivers/multipurpose_sensor/*`,
+   two `drivers/power_meter/egauge/*`; def-only `LayoutBucket`,
+   `HouseStrategy`, `validate_api_tank_module_wiring`,
+   `tank_device_temp_channels`, `deserialize_house0_load_args`,
+   `is_buffer_full_alt`, `hp_relay_state`, `ZoneNodes.required_relays`,
+   `House0RelayIdx`; unused imports `tou_base.py`, `store_pump_monitor.py`,
+   `scada.py:17`, `scada_data.py:15`. Ask before each delete batch.
+8. Half-done: `local_control/nolan.py:82-83` hardcodes `ONPEAK_WINDOWS`
+   though ops carries `OnPeakWindows`; `sh_node_actor.py:119-127` a second
+   schedule; NolanLocalControl has no `ServiceMode` gate. Fixture pair
+   smell: house0 ops `ScadaAlias d1.bench.honeysuckle.scada` vs house0
+   layout `…orange1.scada` — nothing checks ScadaAlias ↔ layout.
+   `.ops` House0-only reads (break when the store knobs leave the Nolan
+   word): `scada_data.py:93-112`, `scada.py:1727-1730,1326`,
+   `sh_node_actor.py:1369,1388,1549,1563`, `derived_generator.py:746-943`,
+   `leaf_ally_loader.py:19-29`, `local_control_loader.py:29`.
+   Bench pi artifacts pair a nolan layout with the house0 ops word —
+   `APPROVED_PAIRS` now refuses that; regenerate before the next box boot.
+
+9. `sema_to_dc` ↔ `actors.scada_data` are circularly importable:
+   `sema_to_dc.py:30` `from actors.config import DEFAULT_OPS_PARAMS_FILE`
+   triggers `actors/__init__.py` (~20 actors), which chains to
+   `actors/scada_data.py:29` `from sema_to_dc import OperationalParams,
+   decode_operational_params` — a partially-initialized module. It only
+   works today because `actors` is imported first in every live path;
+   importing `sema_to_dc` first raises `ImportError`. The constant is used
+   in exactly one place (`:273`, inside `diff_against_fixture`), so
+   deleting that function per item 7 removes the import and dissolves the
+   cycle. Confirm it stays dissolved rather than re-importing the constant.
+
+**Docs sweep after the commit** (audit 2026-08-15, all verified):
+stale sema pins post-squash everywhere (`gw1.device.type/001`, reader
+`/003`, `node.gt/303`, `scc/002`, `layout.lite/015`, `channel.config/002`,
+`actor.class/012`, i2c relay `/005`); `HardwareLayout`/`House0Layout`/
+`SimpleSimLayout`-subclass narrative in `hardware-layout-pass-one/`
+(`code-for-three-layouts`, `gen-pipeline`, `layout-boundary`, hub) →
+one `HydronicLayout`; `gw1.simple.sim.layout` unloadable by scada
+(`sema_to_dc.py:44`) vs `build-plant`/`axioms`/gleanings; 7 refs to
+deleted `layout_gen/`; hardware hub `▶` still `operational-params.md`,
+the most stale file (splice model, SystemMode/GNodes/Lat-Long,
+`hp_max_kw_el` to layout, per-home fixture dirs) — its live thread is
+this spoke; `layout-boundary.md:138` names nonexistent
+`gw.house0.sieg.layout`; `axioms.md` C/D/F open → landed as house0
+axioms 6/7/8; `universe-guardrail.md` lacks `Linear:`. Spruce hub:
+`house0.layout` (→`gw.house0.layout`), 06-10 branch snapshot, chunks
+A/B/D understated; `summer-local-control.md:64-66,298` system.mode
+Cooling thread superseded; `spruce-relay-control.md:113-128` "what
+remains" all done; zone spoke ▶ at done work (circuit FSM actor not
+built); `admin-for-nolan.md:63-78,87-89` false post-squash/inverted;
+this spoke's "Nolan word's contents" (§ below) contradicts the identical
+words — rewrite. Sim hub `:162` "No code yet" false, TODO item 2 done,
+▶ build-plant Phase A never started; `new-sema-words-to-review.md`
+entirely stale.
 
 ## The word today
 
@@ -78,7 +192,59 @@ join when Nolan heating-season control needs them, not before.
   type) and the fixtures move in the same cluster as the sema edits;
   `sema validate` on both fixture payloads proves the pair.
 
+## ⚠️ TODO — the 4 fixtures are hand-touched; regenerate them from tlayouts
+
+The four `tests/config/` artifacts — `gw.house0.layout.json`,
+`gw.house0.operational.params.json`, `gw.nolan.layout.json`,
+`gw.nolan.operational.params.json` — are the frozen authored pairs the
+suite loads. The BLESSED path is that every one of them is **regenerated
+from its tlayouts sema generator** (`house0_sema_gen` / `nolan` etc.), not
+hand-edited here. Right now they are being hand-touched to keep the suite
+loadable, which is a stopgap:
+
+- `gw.house0.operational.params.json` had a mis-copied **Nolan**
+  `CaptureTuningList` and a bench `ScadaAlias`; its capture tunings were
+  re-authored (34 from the pre-consolidation `house0-layout/` ops at git
+  `f15f7dd7^`, `primary-flow` + `zone1-main-whitewire-pwr` from the real
+  `beech` fixture) and `ScadaAlias` set to the layout's Scada gnode.
+- `gw.house0.layout.json` was missing the `transactive-power`
+  `derived.channel.gt` its own axiom requires; one was hand-added
+  (`CreatedByNodeName=power-meter`, `InputChannelNames=[hp-odu-pwr]`) — a
+  real House0 (beech) sums `hp-odu-pwr`+`hp-idu-pwr`, but this fixture has
+  no `hp-idu-pwr` channel, so the hand-add is a minimal placeholder.
+
+**Retire all of this by regenerating the four from tlayouts.** Until the
+house0 sema generator produces a complete, axiom-valid pair (transactive
+channel, full capture tuning, correct GNode aliases), the fixtures drift
+from what a real home would author. Do NOT keep hand-patching past the
+point the generator can emit them — the hand-edits are the debt this note
+exists to pay down.
+
+## Bring House0 up to snuff
+
+House0 must reach parity with Nolan so the merge gate ("both cases work") is
+real. Landed/known items live elsewhere (the hand-touched fixture pair — see
+the fixtures TODO above; "Test House0" — wire conftest to run both families —
+in the Cleanup queue). This section is the home for the rest.
+
+**Thermostat concepts expand to state machines — for BOTH layouts.** The zone /
+circuit / thermostat model (`zone-relays-and-thermostat-model.md`) grows to carry
+the zone and circuit finite state machines. Consequence for sim coverage: once
+House0 is fully on that model, **GPIO opto sensors and the thermostat/hubitat
+integration are no longer needed on House0** — a heat call is sensed through the
+(already derived-sim) power meter / whitewire path, and the thermostat behavior
+lives in the state machine, not a Hubitat poll. So do NOT invest in a simulated
+GPIO opto sensor or a simulated Hubitat/Honeywell for House0: both are slated to
+retire as House0 comes up to snuff. (Left 2026-08-16, per Jessica.)
+
 ## Cleanup queue
+
+- **Test House0** — `conftest.py` still pins the Nolan pair only, so the
+  now-loadable `gw.house0` pair (layout ⊕ ops, completed 2026-08-15) is
+  never exercised by a test. An axiom that has never rejected anything is a
+  claim, not a check. Wire the suite to run BOTH families (the merge gate's
+  "both cases green"), accepting it will surface House0-specific failures to
+  work through. This is the payoff of the dual-layout gate.
 
 - **`whitewire_threshold_watts` belongs in operational params; which
   circuits are power-metered belongs in the layout** (settled

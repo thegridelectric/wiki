@@ -198,6 +198,14 @@ receives — it's a bus survey.
 The current persist set omits `atn.bid` (commented "until bid works in SEMA")
 while keeping `latest.price`, `power.watts`, and the telemetry/forecast types.
 
+**Database population starts 2024-10-13.** That is the first full day of the
+`report.event` era (wire-born 2024-10-12 18:10 UTC); every accepted
+`(type, version)` the S3 eventstore carries from then to the present decodes
+with the vendored codec. The archive itself reaches back to 2022-08-20, but
+below 2024-10-13 the readings ride `gt.sh.status` v110 — readings keyed by
+node alias + telemetry name, proactor-wrapped — which JournalKeeper does not
+accept; loading that era would be a separate design.
+
 ## db_v2 transition (legacy, time-boxed)
 
 Two journalkeepers run in parallel, persisting to **separate databases**:
@@ -227,8 +235,8 @@ deployment while this window is open.
 - [`persistor.md`](persistor.md) — the persistor stack in depth: the channel
   model (rigorous data/derived vs. pseudo) and the lossy `readings` projection.
 - [`captured-types.md`](captured-types.md) — the per-type capture matrix.
-- **`retention.md`** (Open) — largely a `gridworks-data` schema decision; see
-  `explorations/scale-strategy-starter.md`.
+- **`retention.md`** (Open) — largely a `gridworks-data` schema decision
+  (OPS-503).
 - [`operational.md`](operational.md) — start/stop, supervisor wiring
   (systemd), restart semantics.
 

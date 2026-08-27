@@ -14,7 +14,7 @@ Status: Accepted · Pass 1 · Updated 2026-07-15 · Linear: OPS-40
 > `gleanings.md`; new sema words awaiting Jessica's sign-off are in
 > `new-sema-words-to-review.md`.
 
-## Do this now — the simple terminal asset first, then Phase A on it
+## Do this now — a simulated Nolan first (spruce), then the simple sim layout, then House0
 
 The blocking dependency has landed: the hardware-layout pass
 (**[OPS-407](https://linear.app/gridworks/issue/OPS-407)**) delivered the device-type model
@@ -22,13 +22,22 @@ The blocking dependency has landed: the hardware-layout pass
 layout pipeline (durable home `executor/hardware-layout.md`), and the scada-side sim seams
 (`SimSensorActor`, `sim_layout.py`, the sim-boot harness — `executor/testing.md`).
 
-**Ordering (decided 2026-07-15): make the SIMPLE terminal asset FIRST.** Build and prove
-the gwta plant against the simplest-possible layout (`gw1.simple.sim.layout`) before any
-House0 replication. The destination stays what it was: **fully simulated house0 layouts
-driven against a simulated house0 in gridworks-terminalasset** — the codebase is changing
-enough that House0 needs simulated end-to-end coverage — but that lands *after* the simple
-loop works. So: Phase A (comms loop on the simple plant) → Phase B (first-pass physics) →
-House0 replication.
+**Ordering (revised 2026-08-16, supersedes the 2026-07-15 "simple layout first"):
+a simulated NOLAN first.** The near-term driver is getting **spruce** — a Nolan home —
+running, so the first fully-simulated target is a **simulated `gw.nolan.layout`**: the
+`sim_boot` harness already boots one (pico sensors → `SimSensorActor`, aliases dev-ified),
+and it grows a real plant + working sim actuators (relay, DAC) against the actual spruce
+plumbing. Only after the simulated Nolan loop runs do we build `gw1.simple.sim.layout` —
+the radically-simpler third layout whose value is *decoupling* (see "Why a third layout"),
+best exercised once the Nolan loop is the working reference. House0 end-to-end simulation
+lands last. So the order is: **simulated Nolan (spruce) → `gw1.simple.sim.layout` →
+House0**, each carrying Phase A (comms loop) → Phase B (first-pass physics) on its layout.
+
+Why the flip: spruce is the concrete home we owe first, and it is Nolan; standing up its
+simulated twin is the shortest path to a working end-to-end rig, and a real (not
+deliberately-minimal) layout surfaces the actuation/DAC code paths the simple layout would
+let us defer. The simple layout keeps its decoupling job — it just moves to second, where
+it breaks any Nolan-coupling that survived rather than House0-coupling.
 
 ## Why one layout file — plant and scada read the same `hardware-layout.json`
 

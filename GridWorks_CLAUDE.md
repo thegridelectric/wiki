@@ -141,15 +141,17 @@ distributed-trust principle it served — that principle is core vision.
   rewrites the generated runtime of unchanged referrers (versionless class ref
   rebinds; old version gets an explicit `XxxNNN` class). Expected, not a stray
   diff.
-- **Published (non-draft) sema schema is IMMUTABLE.** No functional change —
-  fields, `$ref`/dependency versions, axioms, constraints, `required`, enum
-  values — to a non-draft version; that requires a NEW version. Only `draft`
-  versions may be edited in place; clarifying prose is fine. Asked to edit a
-  published version in place? **Refuse and propose a new version.** (One
-  bootstrap-era allowance, human-sanctioned per case and deliberately NOT in
-  `sema/spec`: a version published before June 2026 MAY be corrected in place
-  when already-shipped wire data proves the schema misdescribed reality.
-  Never for later publishes.)
+- **Sema `status` decides edit-in-place vs new version — check it first.**
+  `published` is IMMUTABLE: no functional change — fields, `$ref`/dependency
+  versions, axioms, constraints, `required`, enum values — ever; that takes a
+  NEW version (clarifying prose is fine). `staging` and `draft` are edited IN
+  PLACE; NEVER add a new version of a word whose latest is staging or draft —
+  a versioned staging word forks a mutable line that every mirror, fixture
+  and pin then has to be squashed back. Asked to change a published version
+  in place? Refuse and propose a new version. Asked for a new version of a
+  staging word? Refuse and edit in place. (Bootstrap allowance, sanctioned
+  per case and NOT in `sema/spec`: a version published before June 2026 MAY
+  be corrected in place when shipped wire data proves the schema wrong.)
 - **Timestamps are real wall-clock, rounded to 5 minutes** — sema registry
   `created` / `metadata.last_updated` use actual current UTC (`date -u`)
   rounded to the nearest 5 min, never a placeholder. Same-sitting versions MAY
@@ -261,6 +263,14 @@ only the verification bar differs.
 Human does all `git commit`s; I suggest at logical units (path-scoped
 `git add` + a one-line message) and never `git add -A` while other sessions
 may be live (mirror my active-claims Scope).
+
+## ⏳ scada renovation — logical-unit commits SUSPENDED there (REMOVE when the epic merges)
+
+During the `jm/spruce-unlimbo` renovation, `gridworks-scada` changes land as
+large multi-concern commits: the work is too interdependent to carve (one
+file carries several concerns) and the branch is off `main`. The suite stays
+green at each landing and the changelog still records what/why. Scada only;
+every other repo keeps the logical-unit rule.
 
 **Run the repo's CI entrypoint before suggesting a code-repo commit** — the
 full gate (`ci.sh` or documented equivalent: lint, format, drift/codegen

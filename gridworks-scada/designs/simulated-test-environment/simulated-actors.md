@@ -337,6 +337,29 @@ unregistered identity, so it is *structurally unable to prove realness* —
 simulated by construction. Cross-ref the TaDeed / sim-real boundary rider in
 `executor/scada-ltn-link-state.md`.
 
+**Update (2026-08-15): remove `is_simulated` entirely — derive it.** The flag
+goes away completely; simulated-ness is *derived*, never stored. Two derivation
+sources, in order of arrival:
+
+1. **Any `sim.*` component in the layout ⇒ simulated.** A layout carrying a
+   `sim.sensor.component.gt` / `sim.relay.component.gt` (or any `sim.*`
+   component) is simulated by construction — the sim marker is in the plant
+   description itself, not a runtime boolean. This is now *structurally
+   expressible*: `sim.sensor.component.gt` and `sim.relay.component.gt` were
+   added to both layout words' Component unions in sema on 2026-08-15
+   (`gw.house0.layout` / `gw.nolan.layout`, staging, in-place), with the
+   gwsproto `House0Component` / `NolanComponent` mirrors updated in lockstep.
+   So "any simulated component means simulated" is a check over the typed
+   layout, not a flag.
+2. **No valid TaDeed ⇒ simulated** (the harder proof, above): once TaDeeds
+   exist, realness is the scada holding its registered signed deed. Absence of
+   a deed ⇒ simulated, regardless of components.
+
+Both are the same polarity — simulated by default, realness must be *proven* —
+and the derivation method is the single call site the migration hardens
+(component-presence now → TaDeed later). `ScadaSettings.is_simulated` and every
+in-actor branch are deleted, not re-plumbed.
+
 ## SimSensorActor — the settled shape (2026-06-11)
 
 Refines the device-emitter sketch above: the sensor source in a simulated

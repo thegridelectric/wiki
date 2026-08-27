@@ -1,12 +1,12 @@
 # Spruce un-limbo (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-08-11 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-08-15 · Linear: OPS-392
 
 **EDD: yes** bench (honeysuckle) and box harness runs are the verification;
 spokes reach Verified only when an experiment runs against the real bus or a
 real broker.
 
-**▶ Active spoke: [`summer-local-control.md`](summer-local-control.md)**
+**▶ Active spoke: [`operational-params-cleanup.md`](operational-params-cleanup.md)**
 
 > What this is: the hub for un-limboing the spruce scada integration —
 > getting the branch that runs Matt Polstein's house (the Nolan layout)
@@ -21,12 +21,12 @@ real broker.
 - `spruce-relay-control.md` — chunk A record: reader→bus verified;
   code-survey pins, relay roster (layout side complete 2026-08-11),
   bench/boot reproducers, window safety arrangement
-- **`summer-local-control.md` — the scada takes over the summer
-  hack: TOU cooling + behavioral glitches (the actor build) (active)**
+- `summer-local-control.md` — the scada takes over the summer
+  hack: TOU cooling + behavioral glitches (the actor build)
 - `zone-relays-and-thermostat-model.md` — the zone / circuit /
   thermostat model (settled; vocabulary + layout landed 2026-08-11)
-- `operational-params-cleanup.md` — `gw.nolan.operational.params` +
-  slimming the house0 word (GNodes, Lat/Long out)
+- **`operational-params-cleanup.md` — ops words + the coherence
+  cleanup after the HydronicLayout collapse (active)**
 - `admin-for-nolan.md` — admin UI sees and operates a Nolan house
 - `hello-world.md` — LTN ↔ SCADA over dev rabbit, consumed by a dev JK
 - `gleanings.md` — residual live content from closed spokes

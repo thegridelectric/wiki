@@ -93,9 +93,11 @@ management API and `connection_created` events, for audit only.
   nothing to close); create the new lease ACTIVE; return allow. If the kill
   cannot be confirmed (management API unreachable) → deny, fail closed.
 
-Map: allow → `{"result": "allow"}`; every deny → bare
-`{"result": "deny"}` — the protocol carries no hint channel, and none is
-needed.
+Map: allow → the plain-text body `allow`; every deny → the plain-text body
+`deny`. The stock `rabbitmq_auth_backend_http` backend expects an `allow` /
+`deny` text body (the user path also accepts `allow <tags>`, unused here — no
+fleet principal carries broker tags), not JSON; the protocol carries no hint
+channel besides, and none is needed.
 
 **A lease ends only by supersession.** There is no shutdown notification:
 clean stop and crash are identical, and a decommissioned node's eternal
@@ -118,12 +120,17 @@ be recovered from a standalone instance.
 ## Registry changes force reconvergence
 
 Because `/auth/topic` verdicts cache per (connection, exchange, routing
-key), a mid-connection registry change is invisible to cached keys. So on a
-**rename** (and any future withdrawal of FIS-checked authority): FIS kills
-that identity's connections; the kill flushes the cache; the reconnect
-re-runs every check against the new state. Rename convergence is immediate,
-by forced reconnect; provisioning redeploy remains the recovery path for
-the killed node's config.
+key), a mid-connection registry change is invisible to a live connection's
+cached keys. So on a **rename** (and any future withdrawal of FIS-checked
+authority): FIS — on learning of the change, from gnr's push or the periodic
+reconcile as the fallback — kills that identity's connections; the kill
+flushes the cache. The killed node then reconnects and **self-heals its
+alias**: its durable identity is its cert CN (the GNodeId), so it looks its
+own current alias up in gnr by GNodeId and reconnects with it — no
+provisioning redeploy. (The self-heal is a client contract, owned by the
+mTLS+FIS auth design and gwbase/proactor; FIS's part is only the kill.)
+Convergence is immediate under the push, bounded by the reconcile interval
+without it.
 
 ## Rabbit config (the broker side; conf owned by rmqbot)
 
@@ -156,19 +163,27 @@ current alias (FIS-validated per new key). Message bodies include
 ## FIS db structure
 
 FIS maintains its own `g_node` mirror table in **strict bijection with
-`g.node.gt`** (no position_point table or foreign key). The mirror
-consumes the **registry's interface, never gnr's Postgres** — the same
-seam every registry-state holder uses (e.g. gjk's `gw_data` projection):
-seeded via the HTTP read façade (`g.node.forest.request`), upserted from
-`g.node.forest` broadcast deltas, with the **periodic snapshot broadcasts
-healing** a missed or corrupted mirror. Broadcasts ride the **live run's**
-fabric only and are cache-invalidation, not load-bearing: a FIS whose run
-carries them subscribes; any other (e.g. a staging FIS) falls back to
-periodic façade refresh. The registry itself is run-agnostic — runs are a
-fabric/FIS concern. gnr being down never stops auth — FIS serves from the
-mirror. The `principal` table keys
-on the cert subject (GNodeId for GNodes — no second id; principal UUID for
-services); the lease table keys on (principal, run).
+`g.node.gt`** (no position_point table or foreign key). The mirror consumes
+the registry over **HTTP, never gnr's Postgres and never rabbit** — FIS is a
+pure HTTP service and joins no broker. Three inputs keep it current, all over
+gnr's read façade:
+
+- **Boot seed + periodic pull-reconcile.** FIS pulls a forest snapshot
+  (`g.node.forest.request`) for its served roots at startup, and re-pulls on
+  an interval. The reconcile is the correctness backstop: it heals a mirror
+  that missed an update.
+- **gnr push, for immediacy.** gnr additionally pushes each change to a FIS
+  mirror-update endpoint so a rename converges without waiting for the next
+  reconcile. The push is **best-effort** — it never blocks gnr, the authority
+  — which is why the reconcile above must exist.
+- **Read-through on miss.** An auth for a GNodeId absent from the mirror (a
+  freshly provisioned node connecting before its push/reconcile) is read
+  through by id (`g-node-by-id`) on the spot and cached.
+
+gnr being down never stops auth: FIS serves from the last-known mirror. The
+registry is run-agnostic — runs are a fabric/FIS concern. The `principal`
+table keys on the cert subject (GNodeId for GNodes — no second id; principal
+UUID for services); the lease table keys on (principal, run).
 
 **Invariant 1 is enforced in the schema**, not only in the gate: a partial
 unique index on (principal_id, run) where status is Active. Supersession is

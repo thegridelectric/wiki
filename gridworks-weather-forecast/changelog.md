@@ -13,6 +13,24 @@ Newest at the top.
 
 ---
 
+## 2026-08-22 — cleaning up sema snapshot info (`4c71c20`)
+
+(Squashed in: the README's Sema note rewritten in the sema README's own
+canonical words — vocabulary registry, boundary contracts, mechanically
+verifiable, plus the boundary-scoping sentence — and the snapshot refresh
+that puts the same language in the generated snapshot README.)
+
+gwwf vendored its Sema snapshot with the seed checked in
+(`src/gwwf/sema_seed_request.yaml`) but no regen script — refreshing meant
+hand-running the sema CLI from the seed's comment. Adds the standard
+`scripts/regen_sema_snapshot.sh` (instance of sema's
+`template_regen_snapshot.sh`) so the snapshot regens the same way as in the
+other consumer repos. Verified live against sema dev: the run's only
+snapshot churn was registry `last_updated` catch-up plus the (new)
+generated snapshot README; suite green after. The top-level README gains
+the standard Sema pointer (canonical repo, schema-id namespace, vendored
+snapshot location + regen path).
+
 ## 2026-08-13 — gwbase 0.5.10 pin; g.node.gt fixtures to v006 (`3c00e0b`)
 
 gwbase 0.5.10 rejects `g.node.gt/004` (the same staleness fix

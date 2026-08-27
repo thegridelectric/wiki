@@ -12,6 +12,194 @@ Newest at the top.
 
 ---
 
+## 2026-08-26 — Another MISM
+
+`61fe3ef`, branch `jm/ops-498-load-mism-2`: pico.tank 010/011 union on
+layout.lite 005 and 006. Third load-time mismatch, same shape as the first two: after
+`pico.tank.module.component.gt:011` arrived (2025-12-05), beech, elm and
+maple kept emitting v010 tank components under `layout.lite` 005 and 006
+through 2025-12-12 (14 messages). Both versions now take
+`TankModuleComponents.items` as `oneOf[010, 011]` — the deploy-lag union
+already used on 004 — with `:010` added to their dependencies. In place,
+back-fill era, sanctioned per case.
+
+## 2026-08-25 — some more patches
+
+`371514d`, branch `jm/ops-498-load-mism`. Two wire mismatches found by the
+OPS-498 bulk load. The prod back-fill decodes every archived `layout.lite`, not one sample
+per `(type, version)` as the walk-back scan did, and surfaced two shapes
+the samples missed. Both are in-place corrections of back-fill-era
+published versions, sanctioned per case (the schema misdescribed shipped
+wire data):
+
+- **`ha1.params:000` — `MaxEwtF` optional.** From 2024-12-03 the SCADA
+  emitted `MaxEwtF` under the `000` label (9 `layout.lite:001` messages,
+  beech/fir/oak) before bumping to `001`, where it is required.
+- **`relay.actor.config:002` — `StateType` optional.** On 2024-12-31 and
+  2025-01-01 the wire labelled itself `002` and carried `DeEnergizedState`
+  / `EnergizedState` without `StateType` (10 `layout.lite:003` messages).
+  The state axioms already condition on the field's value and pass when it
+  is absent. Upgrade docstring and registry summary mirrored.
+
+Not changed: 142 `layout.lite:004` messages (2025-01-25 → 02-04) fail
+axiom 4 on `relay.actor.config` — a NormallyOpen relay declared with
+NormallyClosed event/state semantics. The payload is self-contradictory;
+the axiom is right and stays. Those layouts are skipped by the load.
+
+## 2026-08-25 — Back-fill all types emitted by Millinocket heaters to Oct 13 2024
+
+One squashed commit (on `fda1d2b`) for the whole OPS-498 walk-back below
+`layout.lite v005`: every accepted `(type, version)` the S3 eventstore carries
+from 2024-10-13 (the start of JournalKeeper's database population) to the
+2026-01-09 floor now decodes. All authored from real wire evidence, each
+verified by re-scanning its window; code diffs (gwproto `git log -S
+'Literal["NNN"]'`) were the starting point but the wire was authority
+throughout — deploy lag made them diverge repeatedly.
+
+- **layout.lite 001–004** with their historical sub-types: `ha1.params`
+  000–003, `pico.tank.module.component.gt` 000/010, `relay.actor.config` 001,
+  `i2c.multichannel.dt.relay.component.gt` 001. Notable wire facts: v002 early
+  wire (Dec 3–9 2024) lacks `SynthChannels` (made optional in place);
+  `relay.actor.config:001` has no `StateType` on the wire (a code diff missed
+  it); v001's `Ha1Params` is the nine-field `ha1.params:000` (before `MaxEwtF`).
+- **scada.params 000–002**: v000 a free-form param-setter envelope, v001 adds
+  `NewParams`/`OldParams` (`ha1.params:000`), v002 carries `ha1.params:001`.
+- **flo.params.house0 000–002** (v000 = the Dec-2024 birth shape; v002 the
+  Feb–Mar 2025 shape).
+- **snapshot.spaceheat 001–002**: 002 = 003 with `machine.states` entries; 001
+  = 002 minus `LatestStateList`. 001 also carried a pre-channel nested
+  `Snapshot` shape from 2024-01 to 2024-03 under the same label; that predates
+  the population start and is not authored.
+- **report 001** (`FsmActionList[fsm.atomic.report:000]` in place of
+  `StateList`) and **report.event 000** (`Report → report:001`, same three
+  propagation axioms). `report.event` is wire-born 2024-10-12 18:10 UTC, which
+  fixes the population start.
+- **pico.flow.module.component.gt:000** repointed to `spaceheat.make.model:007`
+  (the `SAIER__SENHZG1WA` value on the wire since Feb 2025 was silently
+  coercing to Unknown).
+- Every `->` upgrade across a boundary that adds a required field is
+  `requires_context` (nothing fabricated; JK retains old versions at their
+  own version). `created` timestamps back-dated inside dependency order under
+  the bootstrap allowance. Superseded 002 summaries rewritten as their
+  a→b delta so the upgrade-docstring mirror test holds.
+
+## 2026-08-23 — Add layout.lite v005 and atn.bid v001
+
+**Why:** JournalKeeper's archive walk-back (OPS-498) needs the sema registry to
+decode the pre-floor S3 versions it will back-fill. Three published versions,
+each authored from real archived wire evidence and verified by decoding actual
+payloads (decode + axioms + own-version round-trip):
+
+- `layout.lite:005` — v006 minus `CriticalZoneList`, plus `FromGNodeInstanceId`
+  (dropped at v006); axioms 1–2 (not 3); upgrade→006 is `UpgradeRequiresContext`
+  (CriticalZoneList not carried by a 005 message). v006's summary corrected to
+  the 005→006 delta (permitted descriptive clarification on a published entry).
+- `atn.bid:001` — legacy pre-ltn bid. Top-level shape stable across its year of
+  life, but its `PqPairs` sub-type migrated mid-life, so `PqPairs` is a
+  `oneOf[price.quantity.unitless:000, :001]` union; upgrade→002 normalizes any
+  000 pairs to 001 (nested-upgrade). v002 summary corrected to the delta.
+  Back-filled below `frozen_at` (created Dec-era ≤ freeze, permitted).
+- `price.quantity.unitless:000` — the pre-rename pair
+  (`PriceTimes1000`/`QuantityTimes1000`) hidden inside atn.bid:001 payloads and
+  missing from the registry; renamed to `PriceX1000`/`QuantityX1000` at :001
+  (~Oct 2025). :001 summary corrected to the 000→001 rename delta.
+
+`created` stamps back-dated per the ordering rule (recorded in the design's
+timestamp ledger). Runtime regenerated, published hashes re-pinned, indexes
+rebuilt; suite green.
+
+## 2026-08-22 — regen discoverability + validate at-own-version + snapshot README (`c8eba1d`)
+
+Three related moves making sema legible to sessions and consumers that meet
+it cold:
+
+**template_regen_snapshot.sh names the two regens.** A session hunting for
+"how do I regenerate sema's runtime" found this template first (the only
+regen-named file at the repo root) and anchored on the consumer-snapshot
+flow, never finding `scripts/regenerate_runtime.py`. The header now states
+its scope — consumer vendored snapshots via `sema snapshot prepare|build` —
+and points at `scripts/regenerate_runtime.py` for sema's own runtime, noting
+the two are parallel mechanisms that never invoke each other.
+
+**`sema validate` reports OK-at-own-version on `UpgradeRequiresContext`.**
+It decoded with auto-upgrade, so a payload of a version whose forward
+upgrade is context-dependent (layout.lite:006) reported INVALID even though
+the payload conforms to its own version's contract. Per the spec, a
+context-refusal is an expected outcome: validate now retries at own version
+and reports OK with a note saying the upgrade needs context.
+
+**Every snapshot build writes a README.** Was only a staging warning
+(absent from publication-grade snapshots), so a vendored tree carried no
+statement that it is generated, no regen pointer, and no account of what
+Sema is. The always-written README states generated-never-hand-edit, the
+seed and regen-script locations, what Sema is (with the repo and
+`schemas.electricity.works` namespace pointers), and the working rules that
+fight default LLM/Python idiom — deliberately repeated into every consumer
+repo from this single template so the discipline is present at the point of
+use. The staging warning becomes a conditional section at the top. The
+"What Sema is" section speaks the sema README's own canonical words —
+vocabulary registry, boundary contracts, mechanically verifiable — plus the
+scoping sentence: Sema applies only at system boundaries, not to runtime
+architecture, database design, or internal object models (squashed in;
+the same language lands in the consumer repos' top READMEs).
+
+## 2026-08-22 — back-fill layout.lite v006 (historical) (`73659f2`)
+
+The JournalKeeper S3 backfill needs to decode archived `layout.lite v006`
+(Dec 2025 – mid-Jan 2026 wire), a pre-sema version below the seeded floor
+(007). Adds `types/layout.lite/006.yaml` — 007 with `SynthChannels`
+(`synth.channel.gt:000`) restored and `DerivedChannels`/`TMap` dropped, three
+axioms kept — plus its `published` registry entry. Because a version's
+`created` must precede the floor's yet follow its dependencies, three stamps
+are corrected downward to consistent pre-007 values (`spaceheat.node.gt:200`,
+`synth.channel.gt:000`, `spaceheat.telemetry.name:007`); provenance and the
+grounded-vs-consistent distinction are tracked in the scada
+layout-lite-version-reconstruction design's timestamp ledger.
+
+Runtime: `LayoutLite006` regenerated with the three axiom validators ported
+verbatim from 007 (same axioms), and a context-dependent 006→007 upgrade
+raising `UpgradeRequiresContext` — the transition redesigned the derived
+layer (12 of beech's 14 DerivedChannels are new Ids), so DerivedChannels are
+not derivable from a 006 message. Verified against a real archived beech
+payload: decodes, passes axioms, round-trips at own version. Two
+consequences the suite forced: 006 gets a published-hash pin, and 007's
+summary ("no prior version tracked", now false) is corrected to describe
+the 006→007 change — a permitted descriptive clarification, mirrored in the
+upgrade-template docstring.
+
+## 2026-08-16 — harmonize layout components; add simulated dac writer (`2f8922f`)
+
+Both layout words (`gw.house0.layout`, `gw.nolan.layout`, staging → edited
+in place, no version bump) widen their `Components` `oneOf`:
+
+- Both admit `sim.sensor.component.gt/000`, `sim.relay.component.gt/000`, and
+  the NEW `sim.dac.writer.component.gt/000` (a layer-1 standalone simulated DAC,
+  the sim.* counterpart of `i2c.dac.writer.component.gt` minus board residency;
+  ConfigList of `i2c.dac.channel.config`, axiom DacChannelUniqueness). So a
+  simulated layout is *simulated by construction* — the sim marker rides the
+  plant description, not a runtime flag (enables the scada "remove is_simulated,
+  derive it" direction; simulated sensors/relays/DACs run standalone, later over
+  MQTT — the esp32-era mechanism).
+- `gw.house0.layout` additionally admits Nolan's six gw108 board components
+  (`gpio.relay`, `gpio.sensor`, `i2c.dac.writer`, `i2c.relay`,
+  `i2c.thermistor.reader`, `scada.board`), because House0 controls are being
+  replaced with Gw108 boards. DeviceTypes are unchanged (identical across
+  families already).
+
+`sim.dac.writer.component.gt/000` is a new staging word; both layout words'
+`created` were forward-bumped to 2026-08-16 (they now depend on a word created
+that day) and `metadata.last_updated` follows.
+`direct_dependencies.structural` updated for both words (sorted); the four
+generated indexes (`public_registry`, `dependency_closure`,
+`reverse_dependencies`, `lookup`, `versions`) regenerated; the two generated
+runtime layout files hand-patched (imports + union) preserving their
+hand-ported axiom logic. Full suite green (463 passed).
+
+The scada-side gwsproto mirrors (`House0Component` / `NolanComponent`) move in
+lockstep in the gridworks-scada repo. Real-broker verified: a sim-sensor-swapped
+layout decodes through the widened union and self-generates
+(`experiments/2026-08-15-sim-boot-from-word/`).
+
 ## 2026-08-14 — Example type check reports the rule it broke (`66d6463`)
 
 Writing a type example as a YAML mapping instead of a JSON string used to
