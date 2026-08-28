@@ -1,6 +1,6 @@
 # gridworks-journalkeeper — rebuild spec
 
-Status: Draft · Pass 0 · Updated 2026-07-09
+Status: Draft · Pass 0 · Updated 2026-08-28
 
 > Faithful-rebuild hub: enough to build journalkeeper from scratch.
 > **Part I — Functional specification** is the durable contract (what gjk
@@ -198,13 +198,11 @@ receives — it's a bus survey.
 The current persist set omits `atn.bid` (commented "until bid works in SEMA")
 while keeping `latest.price`, `power.watts`, and the telemetry/forecast types.
 
-**Database population starts 2024-10-13.** That is the first full day of the
-`report.event` era (wire-born 2024-10-12 18:10 UTC); every accepted
-`(type, version)` the S3 eventstore carries from then to the present decodes
-with the vendored codec. The archive itself reaches back to 2022-08-20, but
-below 2024-10-13 the readings ride `gt.sh.status` v110 — readings keyed by
-node alias + telemetry name, proactor-wrapped — which JournalKeeper does not
-accept; loading that era would be a separate design.
+**Database population starts 2024-10-13**, the first full day of the
+`report.event` era; 2024-10-13 → 2026-01-08 was loaded from the S3
+eventstore, 2026-01-09 onward is the live record. What was loaded, what was
+deliberately left out, and the rules a load must follow:
+[`s3-backfill.md`](s3-backfill.md).
 
 ## db_v2 transition (legacy, time-boxed)
 
@@ -235,6 +233,8 @@ deployment while this window is open.
 - [`persistor.md`](persistor.md) — the persistor stack in depth: the channel
   model (rigorous data/derived vs. pseudo) and the lossy `readings` projection.
 - [`captured-types.md`](captured-types.md) — the per-type capture matrix.
+- [`s3-backfill.md`](s3-backfill.md) — loading the eventstore archive: what
+  the journal holds, idempotency floors, the channel-era model, the run.
 - **`retention.md`** (Open) — largely a `gridworks-data` schema decision
   (OPS-503).
 - [`operational.md`](operational.md) — start/stop, supervisor wiring

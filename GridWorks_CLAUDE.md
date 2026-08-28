@@ -1,6 +1,6 @@
 # GridWorks — working conventions for Claude
 
-Status: Accepted · Pass 2 · Updated 2026-08-10
+Status: Accepted · Pass 2 · Updated 2026-08-27
 
 > Canonical at `wiki/GridWorks_CLAUDE.md`; symlink setup in
 > [`README.md`](README.md#setup). Paths are relative to the umbrella dir
@@ -231,6 +231,10 @@ distributed-trust principle it served — that principle is core vision.
   pull on the box. Hand-deploys dirty the prod tree, block the next pull,
   and break the box-runs-a-pushed-SHA guarantee (gwbase executor
   `service-deployment.md`).
+  A deployed box holds a **full clone** (never `--depth 1`/single-branch, so
+  a hotfix branch can be checked out on the box), normally on **`main`**; a
+  box off `main` is a deviation the platform-drift check surfaces, not one we
+  force.
   Non-repo box state (a sudoers drop-in, a `.bashrc` line) is fine to place
   directly but MUST be recorded in the box's instance-README.
 
@@ -271,6 +275,22 @@ large multi-concern commits: the work is too interdependent to carve (one
 file carries several concerns) and the branch is off `main`. The suite stays
 green at each landing and the changelog still records what/why. Scada only;
 every other repo keeps the logical-unit rule.
+
+**Scada is a statue: chip, don't sculpt.** In `gridworks-scada` every
+change is made with the utmost care unless the human has given a specific
+green light. Two things combine here to make my default gravity produce
+errors: an existing and rather unique codebase, and a set of ideas about
+how the human wants to change it that I do not fully understand. On top of
+those sit mistakes already in the code, including recent ones made when
+this care was not taken. So: remove only what demonstrably does not
+belong; for each change, state the problem it solves and how we really
+want to solve it before touching code; no drive-by refactors, renames, or
+"improvements" alongside the change at hand.
+The code on `dev` has run well for two years with a loose but solid test
+framework and tests for little of the functionality. We took a deep dive
+and are now finding our way back to the surface: every feature we create or
+touch gets a test, and a break in `pytest` is the rope — follow it up, fix
+what it reaches, and keep climbing rather than routing around it.
 
 **Run the repo's CI entrypoint before suggesting a code-repo commit** — the
 full gate (`ci.sh` or documented equivalent: lint, format, drift/codegen

@@ -1,6 +1,6 @@
 # gjk captured types — coverage matrix
 
-Status: Draft · Pass 0 · Updated 2026-06-09
+Status: Draft · Pass 0 · Updated 2026-08-28
 
 > Part-II (contingent) companion to [`primary.md`](primary.md): the concrete
 > set of message types gjk binds + persists today, how each is handled, and
@@ -11,7 +11,7 @@ Status: Draft · Pass 0 · Updated 2026-06-09
 > - **decodable vocabulary** = `gjk.sema.codec.get_current_types()` (the
 >   restricted snapshot under `src/gjk/sema/`);
 > - **per-version handling** = the custom persistors' `persist_vNNN` methods.
-> This table is a dated snapshot (2026-06-09) for orientation.
+> This table is a dated snapshot (2026-08-28) for orientation.
 
 ## The version insight
 
@@ -28,18 +28,23 @@ the default path (store payload as jsonb), which branches on nothing. So
 
 ## Bound + persisted (the capture set)
 
-`all_known_message_types()`, 2026-06-09 — what gjk binds (`#.<type>`) and
-writes:
+`all_known_message_types()`, 2026-08-28 — what gjk binds and writes.
+Dispatch is `persist_v<NNN>`; a version with no method falls back to the
+default path (message row only). The historical versions exist for the S3
+back-fill (see [`s3-backfill.md`](s3-backfill.md)):
 
 | `message_type_name` | persistor | versions (custom) | id source | created_at source |
 |---|---|---|---|---|
-| `report.event` | custom | v002, v003 | `message_id` | `time_created_ms` |
-| `layout.lite` | custom | v007–v013 | `message_id` | `message_created_ms` |
-| `flo.params.house0` | custom | v007 | `default_message_id` | `params_generated_s` |
+| `report.event` | custom | v000, v002, v003 | `message_id` | `time_created_ms` |
+| `layout.lite` | custom | v001–v012 (published set; 013+ staging) | `message_id` | `message_created_ms` |
+| `flo.params.house0` | custom | v000–v007 | `default_message_id` | `params_generated_s` |
 | `weather.forecast` | custom | v000 | `default_message_id` | `forecast_created_s` |
 | `report` | default | (version-agnostic) | `id` | `message_created_ms` |
 | `glitch` | default | — | `default_message_id` | `created_ms` |
 | `gridworks.event.problem` | default | — | `message_id` | `time_created_ms` |
+| `new.command.tree` | default | — | `default_message_id` | `send_time_ms` |
+| `atn.bid` | default | — | `default_message_id` | persisted_at |
+| `gw.weather.*` (observation, forecast, channel/location/bundle records, create.cmd, cmd.ack/nack) | custom (bundle) / default | v000 | `message_id` where the word has one, else `default_message_id` | word's created field, else persisted_at |
 | `energy.instruction` | default | — | `default_message_id` | `send_time_ms` |
 | `scada.params` | default | — | `message_id` | `unix_time_ms` |
 | `heating.forecast` | default | — | `default_message_id` | `forecast_created_s` |
@@ -61,11 +66,8 @@ Notes:
 In the snapshot vocabulary (Gate 3 would decode them) but **not** in the
 capture set (not bound) — so they never persist:
 
-- **`atn.bid`** (historical, frozen) and **`bid`** (current) — both decodable
-  once seeded; `atn.bid` is currently omitted from the persist set ("until bid
-  works in SEMA"). There is no `ltn.bid`. The snapshot regen
-  (`integrate-gwbase-sema-updates`) seeds both.
-- Plus the broader snapshot vocabulary (≈39 types as of 2026-06-09:
+- **`bid`** (current) — decodable, not bound. There is no `ltn.bid`.
+- Plus the broader snapshot vocabulary (seeded by `src/gjk/sema_seed_request.yaml`:
   `channel.readings`, `data.channel.gt`, `machine.states`,
   `snapshot.spaceheat`, … — see `get_current_types()`) that exists to support
   decoding/upgrades but isn't on the bind list.

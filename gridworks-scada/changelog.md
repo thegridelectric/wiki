@@ -19,8 +19,69 @@ Topic declaration for the in-flight cluster (names/*, hydronic_layout.py,
 house_0_names.py, the actors that consume them). Node names live in
 disjoint tiers — `CoreNodeNames` (any asset), `HydronicSpaceheatNodeNames`
 (every hydronic plant), one class per layout family (House0, Nolan, …) —
-and the legacy `H0N`/`house_0_names.py` duplicate is removed. Entry to be
-reconciled against the diff at commit time.
+and the legacy `H0N`/`house_0_names.py` duplicate is removed. Also in the
+cluster: the rest of the `thermistor-common-relay` removal (name classes,
+`House0RelayIdx`, `H0CN`, the House0 fixture pair), the
+`HydronicLayout.from_word` → `from_sema` rename with `sim_boot` following,
+the relay properties that called the deleted `_family_only` gating on
+`is_house0` / `is_nolan` instead, and `NolanLocalControl` announcing its
+state on start. Entry to be reconciled against the diff at commit time.
+
+<!-- pending commit -->
+## 2026-08-27 — gwsproto: every sema axiom is a validator and a test
+
+gwsproto cannot vendor the sema snapshot, so nothing regenerates its
+validators; `new.command.tree` axiom 1 (PrefixClosedHandles) had been a
+stub that constructed any tree and let it go on the wire, where a consumer
+that does implement the axiom (JournalKeeper) drops it silently. Ported as
+`check_axiom_1` (a `model_validator`, mirroring JK's), so an orphan-prefix
+handle assignment now fails at the scada's emit sites instead of downstream.
+`report.event` axiom 3 (Src == Report.FromGNodeAlias) ported the same way;
+`Scada.send_report` now sets `Src` at construction (the proactor only
+filled it at publish, so the event was axiom-false until then, and a
+`ValidationError` inside `send_report` re-fires every loop tick with no
+backoff — the suite's comm tests spun at 100 % CPU until the fix).
+
+New `tests/named_types/test_axiom_coverage.py` makes the obligation
+structural: for every exported gwsproto type with a sema word, the class
+carries `check_axiom_<n>` for exactly sema's axiom numbers (no stubs, no
+validators sema never declared) and `tests/named_types/` holds a
+`test_<type>_axiom_<n>` rejecting test. Known debt is allowlisted and
+exact-matched so it can only shrink: 6 unported (house0 layout 5–8,
+hydronic 3–4), 4 gwsproto-only validators sema does not declare
+(`fsm.event` 2, `heating.forecast` 2, `pico.btu.meter.component.gt` 2,
+`gw1.tank.temp.calibration.map` 1 — candidate sema axioms, word-gate), and
+the ~100 axioms without a rejecting test yet.
+
+Also: `tests/actors/test_command_tree_prefix_closed.py` drives the scada's
+real `set_command_tree` for admin / local-control / leaf-ally bosses on both
+authored pairs; `ElectricMeterComponentGt` loses three no-op validators for
+constraints sema never declared and gains its `Sema:` docstring;
+`energy.instruction` and `pico.flow.module.component.gt` validators renamed
+to `check_axiom_1`; `SpaceheatNodeGt` docstring pinned to 302 (303 does not
+exist in sema).
+
+## 2026-08-27 — actors declare their own strategy
+
+The scada no longer seeds the LeafAlly / LocalControl rows of
+`latest_machine_state` at construction, and so no longer branches on
+`SeasonalStorageMode` to do it; `initialize_hierarchical_state_data` seeds
+only the scada's own TopState. Each machine announces its state in
+`start()` with the same `SingleMachineState` it sends on transitions (the
+three LeafAlly impls, `tou_base` and `standby` local control; Nolan local
+control follows with its rewrite). The seed existed so a snapshot before
+the first transition still carried an ally row (2025-03-03); it had grown a
+strategy branch in the 2026-01 rename and misreported Standby (which
+speaks `LocalControlStandbyTopState`) and `Monitor` starts. Ops chooses the
+machine; the machine owns its state. `scada.py`'s `LayoutLite` builder
+follows the `gw1.system.mode` split (`ActuationAuthority` + `ServiceMode`).
+New `tests/actors/test_machine_state_announce.py` runs both authored pairs.
+
+Also: the dead `close_/open_thermistor_common_relay` methods and the layout's
+`thermistor_common_relay` property are deleted (the House0 board's second
+thermostat-common relay was never wired; only `tstat-common-relay` is);
+`sema_to_dc` calls `HydronicLayout.from_sema`; `show_layout` and
+`test_admin` read `layout.sema_layout`.
 
 ## 2026-08-16 — derive is_simulated (remove the flag); simulated until proven real
 

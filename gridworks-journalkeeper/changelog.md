@@ -10,6 +10,29 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-08-28 — history cleanup: OPS-498 range squashed to `d1587dc`
+
+The ~20 OPS-498 back-fill commits (from `1b8cbcf` up) were collapsed into a
+single commit `d1587dc` on `dev` and `main` via `reset --soft` + force-push,
+to tidy the messy merge/duplicate history. The per-change **why** for
+everything in `d1587dc` lives in the dated entries below (2026-08-25 →
+2026-08-27) — their individual commit SHAs are now rewritten away, but the
+narrative stands; read them as the detail behind `d1587dc`.
+
+## 2026-08-27 — log rejections
+
+`974bc21` (log the S3 keys of undecodable messages instead of storing payloads). The S3 importer counted decode failures and moved on, leaving only a log line.
+`--rejects-log` now appends each failure as one JSON line
+{key, from_alias, type, persisted_at, error} — the S3 key, not the payload:
+the eventstore is the durable copy, so a rejected message is re-fetched by key
+on demand rather than duplicated here.
+Motivated by the load-time `flo.params.house0` finding: the type declares
+`InitialTopTempF` / `InitialBottomTempF` as integers (matching gwsproto's
+StrictInt across 002–007), but the FLO occasionally emits fractional floats —
+a standing int-vs-float design question, not a schema bug, so those messages
+are captured for later rather than force-fixed. Clean messages insert
+unchanged.
+
 ## 2026-08-25 — bulk load driver and flo.params replay as repo scripts
 
 `1342d23`, on `main` at `9f5664f`. `scripts/s3_bulk_load.sh` drives the eventstore back-fill from a box in the

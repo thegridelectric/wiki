@@ -335,50 +335,72 @@ The registry requires **no database backups**. Its Postgres is a materialized
 view of the logged command stream, and that stream is held in two places
 joined by the content hash (`gnr.ids.command_hash`): the in-band
 **`command_log`** (every command *applied*, transactional with state) and the
-**ear's durable capture** of the bus (every command *published* — including
-refused ones, the audit of the registry saying no — plus the `g.node.forest`
-broadcasts, the announced results). Deterministic apply (#1 above) is what
-makes replay valid: a rebuild replays the captured commands in capture order
-through the handler core — refusals re-refuse, applies re-apply
+**seed ear's capture** of the registry's bus slice (every command
+*published* — including refused ones, the audit of the registry saying no —
+plus the `g.node.cmd.ack`/`nack` verdicts and the `g.node.forest`
+broadcasts). The capture is the crown-jewel copy, held by three custodians
+in three ownership domains: Backblaze B2 `gw-seedstore` (the compact
+primary, written directly by the seed ear), AWS `gwdev` (the universal
+ear's full torrent, key-filterable to the slice), and the box's own
+`command_log` on its LUKS volume. Deterministic apply (#1 above) is what
+makes replay valid: a rebuild replays the captured commands in capture
+order through the handler core — refusals re-refuse, applies re-apply
 byte-identically — and cross-checks the resulting forests against the
 captured broadcasts. Two independent witnesses that must reconcile. Three
 conditions carry the posture:
 
-1. **The capture witnesses genesis.** The ear capture consumer runs before
-   the registry is populated and lands in durable storage — the capture
-   store, not the database, is the crown-jewel copy (capture mechanics,
-   including the second non-hyperscaler sink: OPS-443).
-2. **The rebuild script is repo code, proven by experiment** — the
-   dev-harness EDD run (capture → wipe → replay → `validate_registry`-clean,
-   forests matching). An untested restore path is not a restore path.
+1. **The capture witnesses genesis.** The seed ear runs before the registry
+   is populated; the capture store, not the database, is the record.
+2. **The rebuild is repo code, proven by experiment.** An untested restore
+   path is not a restore path.
 3. **Replay preserves capture order** (topology commands are rare and
    parents-first, so ordering is unambiguous at fleet scale; a
    command-carried logical time is the deferred backstop, #1 above).
 
-Forest serialization is **deterministic** — `get_forest` orders nodes by
-alias and edges by id — which is what makes the byte-identical
-broadcast/replay compare possible at all (`gnr.rebuild` is the replay
-implementation and `gnr rebuild <capture> [--wipe]` the operator surface —
-held on the `jm/gnr-rebuild` branch until OPS-457 lands the true-store
-source).
+**The operator surface is `gnr rebuild`** (`gnr.rebuild`). It reads the
+capture as eventstore objects — the ear's name grammar
+`<from-alias>-<type-name>-<persisted-ms>-<source>.json` parsed off each key,
+the three replay types selected by name (nothing else is fetched), capture
+order by `persisted-ms` — from either the seed store (`--seedstore --from
+YYYYMMDD [--to]`, boto3 through the named profile in `GNR_SEEDSTORE__*`,
+whose `endpoint_url` aims it at B2) or a directory of objects
+(`--capture-dir`, an ear's local retry cache or a mirrored tree); `--wipe`
+empties an occupied registry first, `command_log` included (idempotent
+replay would otherwise short-circuit on the logged hashes). Every captured
+`g.node.forest` is a **checkpoint**: the replay's own broadcasts pair FIFO
+with the captured ones, a snapshot compares against current state, and the
+compare ignores `SendTimeMs` (when the registry spoke, not what it held).
+Forest serialization is deterministic — `get_forest` orders nodes by alias
+and edges by id — which is what makes that compare possible. The end state
+must be `validate_registry`-clean; a mismatch or violation is reported and
+the command exits non-zero.
+
+**Epoch.** The stream has two epochs. The first (2026-07-21 to
+2026-08-27) was published under `create.cmd/000`, `reparent.cmd/000–001`,
+`forest/000–001`; it is kept in the stores as history and is not replayed —
+the vendored snapshot is latest-only. The second began at
+2026-08-27T20:32:24Z with the Helsinki regenesis: every node recreated under
+current versions with its original GNodeId (the identity that matters to
+the houses), so a rebuild reads from that day forward. A `--from` on the
+epoch's first day also meets that day's two pre-epoch daily snapshots,
+which mismatch by construction (they carry the first epoch's position ids);
+everything after the first regenesis create must match.
+
+**Proven** (2026-08-27): a real seed ear witnessed a regenesis onto a
+scratch registry; wiped and rebuilt from that capture alone — 25 applied,
+27/27 checkpoints, validate-clean, equal to the previous box's dump
+(`experiments/2026-08-27-ops-457-replay/`). Then, after the production regenesis, a
+scratch registry rebuilt from B2 alone (`--seedstore --from 20260827`)
+equals the Helsinki registry node-for-node, 25/25 new-epoch checkpoints.
+
+**Positions.** `position_points` holds nothing until the TaValidator plane
+exists, and the encrypted coordinate payload never rides the bus (it
+arrives only over the authenticated registration surface), so it never
+restores from the stream: location *identities* restore as far as the
+command stream carries them; the ciphertext is separate custody — Postgres
+on the LUKS volume, restored by `pg_dump` or by re-registration.
 Database snapshots MAY be taken as restore accelerators; they are never the
 durability story.
-
-**Proven against the true store** (2026-07-25): the full production
-registry rebuilt locally from the B2 `gw-seedstore` capture alone — 149
-unique publishes (dual-witnessed objects verified byte-identical), replayed
-with the production proof hash so the one refused command re-refused, 102/102
-forest checkpoints matching, and the end state node-for-node identical to
-the live registry (24-node `hw1.isone` forest + `hw1.time`),
-`validate_registry`-clean. The feed was the provisional JSONL form (stream
-assembled by hand from the store); the in-repo `--s3` source is OPS-457.
-
-Open: `position_points` ride outside the command stream, so a rebuild
-restores them only as far as the stream implies — complete for the
-Pending-era registry (proven above), but the activation mechanism must make
-positions rebuildable (carried in its command, or restored from the
-TaValidator store) before Active-with-positions is the normal state.
-Resolves in OPS-457's scope.
 
 ## Lifecycle — `GNodeStatus`
 

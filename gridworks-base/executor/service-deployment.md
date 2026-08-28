@@ -1,6 +1,6 @@
 # Deploying a gwbase service — the recommended box pattern
 
-Status: Draft · Pass 0 · Updated 2026-07-23
+Status: Draft · Pass 0 · Updated 2026-08-27
 
 > What this is: the recommended way to run a gwbase service on a production
 > box. Heritage: the gwproactor/scada service setup (a systemd unit running
@@ -27,6 +27,11 @@ Status: Draft · Pass 0 · Updated 2026-07-23
    The box runs only a **clean checkout of a pushed SHA** (never edit on
    the box); `uv sync --frozen` against the committed lockfile is the
    reproducibility story, and `git log -1` in the repo records what runs.
+   That checkout is a **full clone** (all branches fetched, never
+   `--depth 1` or single-branch), so a real-time patch branch can be checked
+   out on the box. Its normal branch is **`main`**, the released line; a box
+   off `main` is flagged by the platform-drift check rather than forbidden,
+   with the expectation of landing the fix on `main` and switching back.
 3. **A README in the homedir** — the obvious stuff for whoever lands on the
    box: what runs here, the unit names, where the logs are, the three
    commands that matter (`systemctl status/restart/stop <unit>`,

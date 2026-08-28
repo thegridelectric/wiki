@@ -12,6 +12,29 @@ Newest at the top.
 
 ---
 
+## 2026-08-28 — proactor event vocabulary from the wire
+
+`caf596d`, branch `jm/proactor-event-vocab`: seven words for the gwproactor
+comm-lifecycle events the S3 eventstore carries and JournalKeeper's
+walk-back had deferred — `gridworks.event.startup` (versionless: no
+`Version` on the wire), `gridworks.event.shutdown:001`, and
+`gridworks.event.comm.mqtt.connect` / `.mqtt.disconnect` /
+`.mqtt.fully.subscribed` / `.peer.active` / `.response.timeout` at `001`.
+Each is flat (the framework's `EventBase` fields `MessageId`,
+`TimeCreatedMs`, `Src` spelled out, no base `$ref`), `published` because
+the archive already holds them, `Src` typed `left.right.dot` because every
+value on the wire is a GNode alias (`PeerName` is not — `local_mqtt`,
+`gridworks_mqtt`, `admin` — so it stays `string`). Only what the wire shows
+is authored: `comm.mqtt.connect.failed`, `proactor.dbg`, `relay.report*`
+and `admin.command.set.relay` exist in code or test dummies but never in
+the archive, and are left out. `gridworks.ping` / `gridworks.ack` already
+existed and match the wire. `created` ledger: `shutdown:001` grounded at
+the `Version="001"` code intro (gwproto `97e0f25`, 2025-04-15); the six
+2022/2023-born words sit at their dependency floor `2024-09-02T15:00:00Z`
+(`utc.milliseconds` / `uuid4.str`), which is later than their code births
+(`647fc51` 2022-10-14, `7bef8ca` 2022-10-27, `f500117` 2023-03-26). EDD:
+real wrapped objects for every word from the 2026-08 eventstore decode.
+
 ## 2026-08-26 — Another MISM
 
 `61fe3ef`, branch `jm/ops-498-load-mism-2`: pico.tank 010/011 union on

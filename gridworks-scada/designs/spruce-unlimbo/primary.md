@@ -27,6 +27,8 @@ real broker.
   thermostat model (settled; vocabulary + layout landed 2026-08-11)
 - **`operational-params-cleanup.md` — ops words + the coherence
   cleanup after the HydronicLayout collapse (active)**
+- `control-strategy-selection.md` — ops chooses the machine, the
+  machine owns its state; what replaces `SeasonalStorageMode`
 - `admin-for-nolan.md` — admin UI sees and operates a Nolan house
 - `hello-world.md` — LTN ↔ SCADA over dev rabbit, consumed by a dev JK
 - `gleanings.md` — residual live content from closed spokes

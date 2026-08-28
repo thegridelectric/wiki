@@ -107,8 +107,8 @@ fi
 # value) — surfaced so every session sees running work at start. The log is
 # PER PERSON (see the active-claims protocol); set GW_ESTIMATES to point at
 # yours if you are not Jessica.
-ESTIMATES="${GW_ESTIMATES:-$GW/wiki/jess-estimates.md}"
-ESTIMATES_NAME="wiki/$(basename "$ESTIMATES")"
+ESTIMATES="${GW_ESTIMATES:-$GW/admin/jess-estimates.md}"
+ESTIMATES_NAME="${ESTIMATES#$GW/}"
 OPENROWS=""
 if [ -f "$ESTIMATES" ]; then
   OPENROWS=$(awk -F'|' '

@@ -13,6 +13,16 @@ Newest at the top.
 
 ---
 
+## 2026-08-27 — tweak log alias (`03f6be0`, merged to main via PR)
+
+The operator log alias was named for the unit role (`rabbitlog`, after the
+`weather-rabbit` actor) rather than the service, which read as a second,
+distinct log next to a nonexistent "weather log" — there's only the one
+actor file log (`hw1…weather.log`) plus the API's journald stream
+(`apilog`). Renamed to `weatherlog` so the alias family is uniform
+`<svc>start/stop/restart/status/log`, matching ear (`earlog`) and gnr
+(`gnrlog`). Behavior unchanged: `cd` into the log dir, `tail -F *.log`.
+
 ## 2026-08-22 — cleaning up sema snapshot info (`4c71c20`)
 
 (Squashed in: the README's Sema note rewritten in the sema README's own

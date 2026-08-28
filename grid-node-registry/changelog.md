@@ -12,6 +12,66 @@ Newest at the top.
 
 ---
 
+## 2026-08-27 — README: new instance bring-up + populate from the seed store (`274b974`)
+
+**What:** the repo README gains a "New instance" section — bring-up order
+(Postgres on the volume → `alembic upgrade head` → units → TLS front) and
+the two populate paths: `gnr rebuild --seedstore --from <epoch day> --wipe`
+(the restore) and the regenesis (restart the stream under current versions,
+same GNodeIds) — plus `GNR_SEEDSTORE__*` in `template.env`.
+
+**Why:** the Helsinki move showed the recipe lived only in a session; a
+repo README stands alone for the next operator.
+
+## 2026-08-27 — Seed-store source: `gnr rebuild --seedstore` / `--capture-dir` (`f81f202`, on `jm/ops-457-replay`)
+
+**What:** `gnr.rebuild` reads the ear's capture as eventstore objects — the
+name grammar `<from>-<type>-<persisted-ms>-<source>.json` parsed off each
+key, replay types selected by name (nothing else fetched), capture order by
+`persisted-ms` — through an `ObjectStore` with two backends: `S3Eventstore`
+(boto3 client from a named profile, so `endpoint_url` aims it at Backblaze
+B2 `gw-seedstore`; lists day by day under `<world_instance>/eventstore/`)
+and `LocalCaptureDir` (an ear's retry cache or any mirrored tree).
+`replay` takes raw payload bytes; the provisional JSONL feed and
+`rebuild_from_file` are gone. CLI: `gnr rebuild (--seedstore --from
+YYYYMMDD [--to] | --capture-dir DIR) [--wipe]`; `SeedstoreSettings`
+(`GNR_SEEDSTORE__PROFILE/BUCKET/WORLD_INSTANCE`, all required); `boto3`
+joins the dependencies. Layer-2's tap now stores objects under the ear
+grammar and rebuilds from the directory; a source-layer unit suite covers
+parsing, filtering, ordering, and both backends against fakes.
+
+**Why:** the store is B2, not a hand-assembled JSONL; `--from` is required
+because the replay reads from the regenesis epoch forward (OPS-507's
+Helsinki populate restarts the stream under current versions, so the
+snapshot stays latest-only). Proven locally: a real `gnr-ear` witnessed a
+regenesis onto a scratch registry; wiped and rebuilt from that capture
+alone — 25 applied, 27/27 checkpoints, validate-clean, equal to the old
+box's dump (`experiments/2026-08-27-ops-457-replay/`).
+
+## 2026-08-27 — Rebuild replay lands on dev: pending-first fixtures, send-time-blind checkpoints (`c6621ee`, on `jm/ops-457-replay`; merge `70e4b19`)
+
+**What:** `jm/gnr-rebuild` (replay core + `gnr rebuild <capture> [--wipe]`,
+held off dev since July) merged onto current dev. Two adjustments for
+`forest/002` and `create.cmd/001`: the layer-1/layer-2 fixtures create
+Pending nodes without a position id (axiom 1 now rejects one at
+construction), the refused-command fixture becomes a duplicate-alias create
+(what production's one refusal was); and `checkpoint_state` compares a
+captured broadcast to the replay's without `SendTimeMs` — the stamp says
+when the registry spoke, not what it held, and a replay speaks later.
+Ruff sweep on the merged files.
+
+**Why:** OPS-457 — the durable claim is "rebuildable from the persistent
+store alone"; the replay core is the mechanism and it belonged on dev once
+the store had its second custodian (B2, since 2026-07-23).
+
+## 2026-08-27 — patch log alias (`b21c3fc`)
+
+`gnrlog` tailed the actor logs by absolute glob but left the shell in its
+current directory. The other services' log aliases (`weatherlog`, `earlog`)
+`cd` into the log dir first, so you land there to inspect sibling files.
+Now `cd …/gnr/log && tail -F *.log`, matching the `<svc>log` = cd-then-tail
+convention.
+
 ## 2026-08-06 — position-point lifecycle: pending-first creation, encrypted location store + FK, forest/002; add ci.sh (`cc5c164`, main via PR #9 `a79193f`)
 
 One commit, squashed from four working commits on local dev; the

@@ -64,12 +64,11 @@ verbatim; deviation is a defect, not a stylistic choice. RFC 2119 keywords
 - **Before extending into a new path or area, you MUST re-check this file**
   and update your row. If the new area overlaps another active session's
   scope, you MUST stop and raise it; you MUST NOT edit across the boundary.
-- **Shared coordination files.** An estimates log is **per person**, named
-  for its owner: `wiki/jess-estimates.md` is Jessica's, who keeps it
-  committed so the calibration series survives across machines. Anyone else
-  who wants the practice starts their own `wiki/<name>-estimates.md`, and is
-  free to `.gitignore` it — the numbers are personal, and sharing them is a
-  choice, not a convention.
+- **Estimates logs are per person and live outside the wiki.** The numbers
+  are hours worked, so they belong in a private place: Jessica's is
+  `admin/jess-estimates.md` (the private admin repo), and the session hook
+  finds the owner's log through `GW_ESTIMATES`. Anyone else who wants the
+  practice keeps their own `<name>-estimates.md` wherever suits them.
   Your session appends to **its owner's** file and no one else's. Like this
   file, it is edited without a claim: add your own scoreboard and scratch
   rows and close your own timers; you MUST NOT edit another session's rows,

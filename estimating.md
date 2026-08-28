@@ -2,9 +2,8 @@
 
 Status: Draft · Pass 0 · Updated 2026-08-14
 
-> What this is: the lessons drawn from
-> [`jess-estimates.md`](jess-estimates.md), which
-> holds the raw estimate-vs-actual rows. The scoreboard records what
+> What this is: the lessons drawn from the owner's estimates log (per
+> person, kept outside the wiki; the raw estimate-vs-actual rows). The scoreboard records what
 > happened; this records what to do differently next time.
 
 ## The dominant signal: new code vs. old code
