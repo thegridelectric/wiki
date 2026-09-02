@@ -1,6 +1,6 @@
 # starter-scripts — executor spec
 
-Status: Draft · Pass 0 · Updated 2026-08-23
+Status: Draft · Pass 0 · Updated 2026-09-02
 
 > What this is: the fast primer on the `starter-scripts` repo as it is
 > used today — the hand-run and systemd-run scripts that operate the
@@ -83,12 +83,22 @@ hand-copies).
 
 ## Field state (what is known, 2026-08-23)
 
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-23@5fda749 (`experiments/2026-08-23-spruce-relay-stress/`, `experiments/2026-08-23-spruce-store-charge-valve/`) — the iso-relay rule and the charge-valve no-flow result; the rest is field record
+
 - **Charge valve** (silk "DISCHARGE VALVE", 0x21 port 1 bit 3; to be
-  named charge valve in scada): **energized = flow path through the
-  store tank** — confirmed on site 2026-08-20. Earlier software runs
-  (2026-08-16) were void: the relay was not wired to the valve. With
-  the charge valve energized the secondary pump always has a path, so
-  it cannot dead-head against a closed iso valve.
+  named charge valve in scada): **drive polarity unresolved, and the
+  store branch passes no water in either drive state.** With iso closed
+  and the secondary pump running, both legs (de-energized, energized)
+  showed zero `secondary-flow`, flat store pipes, and an unmoved tank;
+  a twelve-minute soak with the valve energized and iso open, then iso
+  closed by hand, went stagnant within ~90 s, so actuator travel time
+  and dead-head pressure are excluded too. The break is physical:
+  the field wiring landed 08-20, an actuator that does not stroke, or
+  no return path through the store pump's check valve — resolve on
+  site. Until then a closed iso with the pump running dead-heads the
+  pump, so every store script keeps its dead-head guard. The 08-20
+  on-site "energized = store path" reading and the 08-16 software runs
+  are void.
 - **Iso valve**: energized = OPEN, fails closed (field-verified
   2026-07-16).
 - **0x21 resets** (OPS-452 lineage): the 2026-08-23 relay-stress

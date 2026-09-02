@@ -1,6 +1,6 @@
 # grid-node-registry — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-07-25
+Status: Draft · Pass 0 · Updated 2026-09-02
 
 > What this is: the faithful spec of the **Grid Node Registry** (`gnr`) — the
 > authoritative record of GridWorks GNodes, their geographic positions, and the
@@ -330,6 +330,8 @@ Not building the chain, a real signature scheme, or pure event-sourced state now
 these are **shape**, not machinery; #4 is a discipline on the interface.
 
 ## Durability — the message log is the system of record
+
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-27@e8779cc (`experiments/2026-08-27-ops-457-regenesis/`, `experiments/2026-08-27-ops-457-replay/`)
 
 The registry requires **no database backups**. Its Postgres is a materialized
 view of the logged command stream, and that stream is held in two places

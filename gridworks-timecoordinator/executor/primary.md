@@ -1,6 +1,6 @@
 # gridworks-timecoordinator — executor hub
 
-Status: Draft · Pass 0 · Updated 2026-06-11
+Status: Draft · Pass 0 · Updated 2026-09-02
 
 What this is: the rebuild spec for `gridworks-timecoordinator`, the
 simulated-time authority. Mostly Open; this hub records what the
@@ -18,6 +18,8 @@ Ready barrier (advance only when all expected participants have
 reported) is Open — the hello coordinator free-runs.
 
 ## Settled facts (verified by the witnessed live run, 2026-06-11)
+
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-06-11@6b2cc35 (`experiments/2026-06-11-sim-time-bridge/`) — the harness is archived, not re-runnable; the claims are narrow
 
 - **Not a GNode.** An `Orchestrator` subclass on plain
   `ServiceSettings` — no `g.node.gt.json`, no registry identity. Its
@@ -45,6 +47,12 @@ reported) is Open — the hello coordinator free-runs.
   with advancing `TimeUnixS` — witnessed, not just sent.
 - **Tests.** Offline smoke by default; broker tests marked `live`.
 
+- **`sim.timestep` crosses to scada-world.** Published on AMQP with
+  routing key `rjb/d1-tc/time/sim-timestep`, it reaches a scada-side
+  listener through the Rabbit MQTT plugin unchanged (11 broadcasts
+  sent, 9 received by the real `SimTimeListener` in the witnessed run;
+  the misses were subscription timing, not translation).
+
 ## Open
 
 - The Ready barrier: who is "expected", straggler policy, advance
@@ -52,6 +60,3 @@ reported) is Open — the hello coordinator free-runs.
   explicit, silence is not capture).
 - The tree of time coordinators (who advances whom).
 - Pacing modes beyond free-run: as-fast-as-ready, scaled real-time.
-- How `sim.timestep` crosses the MQTT bridge to scada-world consumers
-  (specified in the scada simulated-test-environment design,
-  `sim-time` spoke).

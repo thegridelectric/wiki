@@ -1,6 +1,6 @@
 # rmqbot — the broker's authentication path
 
-Status: Draft · Pass 0 · Updated 2026-08-14
+Status: Draft · Pass 0 · Updated 2026-09-02
 
 Sub-spec of the rmqbot deployment spec — **start at
 [`primary.md`](primary.md)**. This file holds what the broker can and cannot
@@ -39,12 +39,19 @@ it away. That is the entire reason the mechanism plugin below exists.
 
 ## The GridWorks mechanism plugin
 
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-14@1e16d79 (`experiments/2026-08-14-sasl-mechanism-spike/`) — AMQP leg through the stock 4.1 broker; MQTT not exercised
+
 A two-change fork of `rabbit_auth_mechanism_ssl`, and the only custom Erlang
 in the system. It keeps the stock behavior — refuse when there is no usable
 peer cert, derive the username from it (honoring `ssl_cert_login_from`) —
 and instead of discarding the SASL response, passes it through **verbatim**
 as a single `claims` `AuthProps` param. Everything downstream is stock: the
 http backend forwards it unmodified.
+
+The whole authentication sequence — TLS, the SASL exchange, and the http
+backend's answer — must finish inside the broker's default 10 s
+`handshake_timeout`; a backend that takes 10 s fails the login. That is
+the auth callback's time budget.
 
 The plugin **never parses the payload**. Claim evolution is therefore a
 schema version on the wire, not a plugin rebuild — the property that keeps a

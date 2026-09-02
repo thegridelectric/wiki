@@ -1,12 +1,14 @@
 # gw108 provisioning
 
-Status: Draft · Pass 0 · Updated 2026-08-10
+Status: Draft · Pass 0 · Updated 2026-09-02
 
 > What this is: the persistent and semi-persistent configuration a gw108
 > board needs before deployment, and the settings decisions behind the
 > defaults — the things a fresh board or a board rework must get right.
 
 ## ADS1115 thermistor path: 8 SPS, 1 Hz poll, no software averaging
+
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-10@27aa70d (`experiments/2026-08-06-ads-noise/`, `experiments/2026-08-10-ads-declared-rate/`)
 
 The chosen configuration for the zone-thermistor read path is 1 Hz
 polling with single-shot conversions at 8 SPS — the chip's slowest
@@ -24,10 +26,10 @@ temperature reader is for.
 
 **The SPS ↔ poll-rate coupling.** A chip's channels share its input
 mux, so a sweep serializes: sweep time ≈ channels × (1000/SPS +
-gated-read overhead) ms — measured 135 ms/read at 8 SPS, 16 ms at
-128 (overhead ~10 ms). The operational pair must leave slack: at
-8 SPS a 4-channel sweep is ~540 ms of the 1000 ms poll period
-(~54 % occupancy); a 2 Hz poll would exceed the period outright and
+gated-read overhead) ms — measured 137 ms/read at 8 SPS through the
+bus actor (125 ms conversion + ~12–13 ms bus-path overhead). The operational pair must leave slack: at
+8 SPS a 4-channel sweep is ~550 ms of the 1000 ms poll period
+(~55 % occupancy); a 2 Hz poll would exceed the period outright and
 needs 16 SPS (~290 ms of 500 ms), the fallback if a faster poll is
 ever wanted. In sema the coupling is a layout axiom (sweep time ≤
 0.6 × the minimum poll period, ~10 ms overhead —
@@ -48,6 +50,8 @@ cross-channel reads: large paired spikes and config-readback
 mismatches that look exactly like hardware failure.
 
 ## MCP4728 DACs: write EEPROM power-on defaults
+
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-12@e551c2e1 (`experiments/2026-08-12-dac-bus-bench/`) — the verify choreography through the bus; fleet state below is a field record, not a verified claim
 
 Each MCP4728 channel loads its EEPROM value into the output on power-up.
 Factory EEPROM is not a safe default: a board power cycle drops every
@@ -72,6 +76,13 @@ what makes the mismatch check possible.
 (`starter-scripts/program_dac_eeprom.py` is the hand-run form: it
 prints each chip's register + EEPROM state before and after
 programming.)
+
+**The chip is busy after an EEPROM write.** A Single Write to EEPROM
+keeps the MCP4728 busy for ~25–50 ms, and reads during that window
+return the OLD EEPROM contents. A verify that reads back immediately
+sees a spurious mismatch, so the verify SHALL wait the EEPROM write
+time after each Single Write before reading. Multi-Write (the live
+output path) never touches EEPROM and needs no wait.
 
 Fleet state (2026-08-10): spruce dac2 — the Z6 zone DAC, carrying the
 secondary pump since the rewire — has EEPROM defaults written

@@ -1,6 +1,6 @@
 # S3 back-fill — loading the eventstore into the journal DB
 
-Status: Draft · Pass 0 · Updated 2026-08-28
+Status: Draft · Pass 0 · Updated 2026-09-02
 
 > What this is: how JournalKeeper loads archived eventstore messages into
 > `gw_data`, and the rules that keep a load from corrupting the live era.
@@ -9,6 +9,8 @@ Status: Draft · Pass 0 · Updated 2026-08-28
 > `experiments/2026-08-25-ops498-load/` (umbrella dir).
 
 ## What the journal holds
+
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-25@38bd6e5 (`experiments/2026-08-25-ops498-load/`)
 
 The database is populated from **2024-10-13**, the first full day of the
 `report.event` era, through the present. The 2024-10-13 → 2026-01-08 span
@@ -132,6 +134,8 @@ that batch size prod took 1.2–3 s a batch with the keeper live. The log of
 that run is `experiments/2026-08-25-ops498-load/snapshot-cleanup.log`.
 
 ## Verification
+
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-25@38bd6e5 (`experiments/2026-08-25-ops498-load/`)
 
 `experiments/2026-08-25-ops498-load/edd_dev_run.sh` seeds the dev DB with
 prod's `reading_channels` and newest layout per house — the shape a prod load

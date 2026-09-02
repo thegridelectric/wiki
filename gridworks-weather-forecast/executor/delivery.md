@@ -1,12 +1,14 @@
 # delivery — cadence, phase structure, fleet distribution
 
-Status: Draft · Pass 0 · Updated 2026-08-13
+Status: Draft · Pass 0 · Updated 2026-09-02
 
 What this is: how weather reaches consumers from [gwwf](primary.md)
 — broadcast cadence, the hour phase structure, the pull path, and the
 fleet delivery shape.
 
 ## Cadence
+
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-11@711a8cc (`experiments/2026-08-11-nws-updatetime-probe/`) — the top-of-hour choice; no emission minute beats another
 
 - **Observations broadcast at the top of each hour**, keeping the JK
   series a clean hourly grid. Cadence is schema (EmitPeriodS /
@@ -42,6 +44,8 @@ fleet delivery shape.
   through the API.
 
 ## Broadcast binding shape
+
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-12@f4f3d01 (`experiments/2026-08-11-gwwf-obs-roundtrip/`, `experiments/2026-08-12-gwwf-record-broadcast/`)
 
 The radio-channel tail of the `rjb` routing key names the stream
 (gwbase transport spec pins the tail as one or more extra **dotted**
