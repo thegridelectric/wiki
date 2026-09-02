@@ -12,6 +12,20 @@ Newest at the top.
 
 ---
 
+## 2026-09-02 — sim-spruce pair on the reshaped Nolan word; sim device types <!-- pending commit -->
+
+The Nolan generator emits the per-tank element relays
+(`tank1-top-elt-relay` / `tank1-bottom-elt-relay`, board silkscreen
+unchanged) and the spruce power channels rename to element-first
+(`buffer-top-elt-pwr`, `tank1-top-elt-pwr`, …) with their about-nodes.
+Simulated devices come from `gw1.sim.device.type`: the board twin is
+`SimGw108`, sim sensors `SimSensor`, the sim meter `SimPowerMeter`, and
+the sim-spruce heat-pump parts are `SimHpOdu` (nothing talks to it) and
+`SimSamsungAE055FEYMCG` (the control box hp-boss will practise modbus
+against), with no device-type records. Snapshot rebuilt to carry the
+new words (`i2c.dac.output.component.gt` listed explicitly beside the
+writer it replaces; the sim enum listed because nothing $ref-s it).
+
 ## 2026-09-02 — component's local unique name now comes from ShNode name (`eaecf42`)
 
 Three layouts exist in the field, and gw.house0.layout now means

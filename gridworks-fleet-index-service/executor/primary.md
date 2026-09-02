@@ -1,6 +1,6 @@
 # Fleet Index Service (FIS) — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-08-14
+Status: Draft · Pass 0 · Updated 2026-09-02
 
 > What this is: the faithful spec of the **Fleet Index Service (FIS)** — the
 > authority-plane service the broker calls (`rabbitmq-auth-backend-http`) to
@@ -60,6 +60,8 @@ survive): fail closed, by design.
    topic authorization).
 
 ## How the claims arrive
+
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-14@1e16d79 (`experiments/2026-08-14-sasl-mechanism-spike/`) — AMQP leg only
 
 The broker forwards, per protocol (protocol facts verified at source,
 OPS-420 "Protocol ground truth"):

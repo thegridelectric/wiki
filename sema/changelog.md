@@ -12,6 +12,66 @@ Newest at the top.
 
 ---
 
+## 2026-09-02 — next pass nolan.layout updates (`e625ff6`)
+
+The Nolan word's axioms 3-5 reshape into the tiers the scada names
+classes already follow, so the two layout words read the same way:
+3 `CoreShNodesExistenceAndActorClass` (identical wording to House0's,
+exact-match on the core names), 4 `CommandNodesExistenceAndActorClass`
+(n, pico-cycler, hp-boss; pico-cycler leaves the actor list for the
+command skeleton), 5 `RequiredActuators` (RequiredRelays generalized;
+the same plant relays plus the circuit relay binding), 6
+`RequiredHeatpumpEquipment` (hp-odu and hp-ctrl-box leave the command
+nodes for the inventory they are: each with a component, NoActor; the
+gw108 board is deliberately NOT required, since a layout does not
+determine its board), 7 `ComponentBinding` (every component referenced
+by exactly one node: the node's Name is the part's identity in the
+house, the ComponentId the replaceable instance), then RequiredSensing
+and SingleStoreTank renumbered 8 and 9. The `secondary-010v` output
+joins RequiredActuators with the DAC actuator commit, not here, because
+the fixture cannot carry the new component until the actor takes it.
+
+Store-tank element names go per-tank in the same edit: the relays are
+`tank1-top-elt-relay` / `tank1-bottom-elt-relay` and the power channels
+`tank1-top-elt-pwr` / `tank1-bottom-elt-pwr`, with the buffer power
+channels `buffer-top-elt-pwr` / `buffer-bottom-elt-pwr` (element first,
+then the measurement, matching the relay names). Runtime template ported
+to the new numbering; `gw1.actor.class:013` declared as the axiom
+dependency the ActorClass literals make it.
+
+## 2026-09-02 — DAC output words + disjoint sim device types; heat-pump nameplates for maple and beech (`912660c`)
+
+The 0-10V output becomes an actuator on the relay pattern, so the
+chip-level DAC writer gives way to a per-output component:
+`i2c.dac.output.component.gt` (board-resident, `DacName` against the
+board record, exactly one config) and `dac.output.config` (the relay
+control-config analog: `ChannelName`, `ActorName`, `DacChannel`, the
+EEPROM power-on trio with the range axiom carried over). The writer
+trio (`i2c.dac.writer.component.gt`, `i2c.dac.channel.config`,
+`sim.dac.writer.component.gt`) is orphaned in place with `replaced_by`;
+the layout words' Components unions gain the output word and keep the
+writer until the Nolan regen drops it. No `sim.dac.output` word: the
+simulated Nolan DAC rides the simulated board through the board-resident
+word, and nothing consumes a standalone sim DAC.
+
+Simulated devices get their own enum, `gw1.sim.device.type`, disjoint
+from `gw1.device.type`: membership is a type, so scada tells simulated
+from real by `isinstance` over the union instead of a `GridworksSim`
+prefix match. The four `GridworksSim*` values move across as `SimGw108`,
+`SimSensor`, `SimRelayBank`, `SimPowerMeter`; `SimSamsungAE055FEYMCG`
+(the control box the sim Nolan pair practises modbus against) and
+`SimHpOdu` (nothing talks to the outdoor unit) join them. A sim value
+exists only when a sim actor speaks the real device's protocol, which
+is what keeps the enum small.
+
+`gw1.device.type` gains the maple Ecodan pair (`MitsubishiWUZSA48NMZ`
+outdoor, `MitsubishiERSFNM6E` hydrobox) and the beech/oak LG pair
+(`LGARUM048GSS5` Multi V outdoor, `LGARNH423K3A4` Hydro Kit High Temp).
+Both indoor units do the refrigerant-to-water exchange, unlike the
+Samsung control box; the node name `hp-idu` is reserved for that kind
+in the layout words. Runtime regenerated; rejecting tests per axiom
+clause.
+
 ## 2026-09-02 — gw108 now has revB (`99ffd4f`)
 
 The next board rev has significant changes, so the current board earns

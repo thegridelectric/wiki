@@ -12,6 +12,33 @@ Newest at the top.
 
 ---
 
+## 2026-09-02 — gw.nolan.layout axioms 3-9 mirrored; tank1 element names; sim device types are a vocabulary <!-- pending commit -->
+
+Mirrors sema's Nolan reshape: `NolanLayout` carries the nine axioms in
+the names-tier order (Core / CommandNodes / RequiredActuators /
+RequiredHeatpumpEquipment / ComponentBinding / RequiredSensing /
+SingleStoreTank), with two small helpers for the exact-match and
+effective-handle checks the core and command axioms share.
+`tests/named_types/test_gw_nolan_layout.py` gets a rejecting case per
+clause; the former standalone component-binding test is axiom 7 now.
+
+Store-tank element names go per tank: `TankNodeNames` gains `top_elt`,
+`bottom_elt` and their relays, `TankChannelNames` the element power and
+relay-state channels; the flat store-elt constants leave
+`HydronicSpaceheatNodeNames` / `HydronicSpaceheatChannelNames` and the
+Nolan copies leave `NolanNodeNames`, with the layout's two store-relay
+properties repointed through `TankNodeNames(1)`. The buffer element
+power channels are named on the hydronic tier.
+
+Simulated devices are their own vocabulary (`gw1.sim.device.type`):
+`SimDeviceType` joins the enums, the four `GridworksSim*` values leave
+`DeviceType`, and `has_simulated_component` tests membership in the
+sim vocabulary instead of matching a name prefix. The sim power-meter
+driver keys on `SimDeviceType.SimPowerMeter`. `DeviceType` gains the
+maple Ecodan and beech/oak LG nameplates. The Nolan fixture pair
+regenerates from tlayouts; the hand-maintained House0 fixture takes the
+two sim value renames by hand.
+
 ## 2026-08-31 — gw.nolan.layout axioms 3-8 mirrored; fixture pair on the required Nolan surface (`bca080f7`)
 
 The fixture pair regenerates under gw.nolan.layout axioms 3-8 (sema

@@ -3,8 +3,7 @@
 One entry per `starter-scripts` commit (git = the what, this = the why).
 Entries before 2026-08-23 live in git history only.
 
-<!-- pending commit -->
-## 2026-08-25 — remove `provoke_gw108.py`
+## 2026-08-25 — remove `provoke_gw108.py` (`69d1f69`)
 
 Stale on two counts: it targets `dac3`, dead since 2026-07-30 (secondary
 pump speed moved to `dac2`), and the hypothesis it bisected — whether
