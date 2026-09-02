@@ -12,6 +12,106 @@ Newest at the top.
 
 ---
 
+## 2026-09-02 — gw108 now has revB (`99ffd4f`)
+
+The next board rev has significant changes, so the current board earns
+its rev in the name; we know it well enough to drop the Gridworks
+prefix: `GridworksScadaGw108` → `Gw108RevB`, and `GridworksGw101` →
+`Gw101` in the same spirit. Staging in-place renames in
+`gw1.device.type/000` (values, descriptions, and the type-file
+examples/prose that named them — scada.board / gw108.vdc.relay /
+gw108.gpio.sensor / gw1.scada.device.type / pico.btu.meter); runtime
+regenerated. `GridworksSimGw108` deliberately keeps its name for now —
+the `GridworksSim` prefix is load-bearing for the derived
+`is_simulated`. Deployed spruce's artifact renames at the coordinated
+dev-wave regen.
+
+## 2026-09-01 — layout-word axiom reshape + HpTwin: core/command tiers, sieg unconditional, board actors out (`2649929`)
+
+In-place staging edits to both layout words (branch
+`jm/layout-word-axioms`). gw.house0.layout now MEANS has-a-siegenthaler
+loop (beech, maple); the sieg-less homes (oak, fir, elm) get the coming
+gw.house0.no.sieg. Axioms renumbered 1-9: EssentialNodesExistence splits
+into CoreShNodesExistenceAndActorClass (Name/ActorClass pairs +
+admin/auto handles, exact-match) and CommandNodesExistenceAndActorClass
+(the command skeleton — n/backup/scada-blind, pico-cycler, and hp-boss +
+sieg-loop UNCONDITIONAL: having the loop is topology, using it is
+operational, dormant when unused); RequiredSensing added (dist-flow,
+store-flow — grows with the fixture surface); SiegManifoldChannels
+unconditional and grown to the beech-observed surface (sieg-cold,
+sieg-flow, sieg-flow-hz + the two valve-observation relay channels);
+SiegActorConsistency dropped (its clause b was the HAS/USING
+conflation). gw.nolan.layout drops RequiredBoardActors — layouts do not
+determine sensing/actuation hardware; the component-conditional
+bus-actor axiom lands with the board actor wiring — and RequiredSensing
+gains the four resistive-element power channels (renaming with the
+tank1-elt wave); RequiredActors loses pico-cycler and
+RequiredCommandNodes becomes a Name/ActorClass pair mapping gaining
+pico-cycler and hp-boss — **hp-boss is a required command node in EVERY
+layout** (the interior-subtree reporting rule requires it). Statement
+name lists are one-per-line mapping style throughout (the stash's `→`
+form). gw1.actor.class/013 (staging) gains `HpTwin` in place — the
+digital twin of a commandable heat pump's comms-receiving device (sema
+commands in, device wire protocol out; at most one per layout, the node
+HpCommandNodeName declares, reporting to hp-boss; wire selected by the
+component's DeviceType). Axiom runtime templates follow; runtime
+regenerated (enums + both layout types); indexes rebuilt.
+
+## 2026-08-31 — gw.nolan.layout: required Nolan surface (axioms 3-8); device.component.gt (`44937ad`)
+
+Every ShNode that must exist must be in every Nolan layout, batched in one
+pass. Axiom 3 renamed `RequiredRelays` (it was never about local control)
+and grows to nine forced relays — iso-valve, charge-valve (the store-branch
+valve, field-verified 2026-08-20; node name states the function, the board
+silkscreen "DischargeValve" stays on the component RelayName), store-pump,
+secondary-pump, hp-scada-ops, and the four element relays (the `-elt-`
+form settled) — keeping clause b (per-circuit failsafe/ops binding: those
+are required relays too, parameterized by the circuit list). New: axiom 4
+`RequiredActors` (s, s2, lc, la, pico-cycler, derived-generator,
+power-meter with their classes), 5 `RequiredCommandNodes` (admin, auto, n,
+ltn as NoActor with their effective handles; backup and scada-blind
+deliberately absent until the Nolan state-machine rework), 6
+`RequiredBoardActors` (exactly one I2cBus / I2cThermistorReader /
+I2cDacWriter — a Nolan home IS a gw108 home), 7 `RequiredSensing` (the
+plant thermometry, flows, and buffer/tank1 depth channels; oat not
+required), 8 `SingleStoreTank` (TotalStoreTanks == 1). Staging word —
+in-place edits, no version bump. Canonical validator template implements
+all six; registry summary amended; indexes rebuilt; sema suite green.
+The heat pump joins the required surface in the same wave: a Nolan home is
+a monobloc, so axiom 5 also forces `hp-odu` and `hp-ctrl-box` (NoActor),
+and axiom 7 (RequiredSensing) is rewritten kind-agnostic — each required
+name SHALL exist in DataChannels OR DerivedChannels, so a name can migrate
+raw→same-name-derived (as tank temps did, as vortex meters may do to
+flows) without touching sema; the list gains `hp-odu-pwr` and
+`hp-ctrl-box-pwr`. New word `device.component.gt/000` (staging): the
+generic tracked-device component — identity (DeviceType, HwUid serial,
+Description), no channel config — for plant equipment the scada tracks
+but does not drive (the monobloc and control box); a device graduates to
+its own vocabulary when a driving actor appears. The MIM-B19N modbus
+module deliberately gets NO enum value and no component: it rides the
+ctrl-box component's Description, and the coming hp-boss modbus driver
+selects on the ctrl-box DeviceType (SamsungAE055FEYMCG ⇒ assume a
+MIM-B19N) — acceptable because Samsung is likely a one-off; Chiltrix and
+Arctic units speak modbus directly. `gw1.device.type/000` unchanged
+(the AE055 values already present); `gw.nolan.layout` Components union
+gains the new word and
+DeviceTypes gains `hp.device.type.gt` + `hp.control.box.device.type.gt`.
+Canonical runtime regenerated; created-timestamp cascade applied
+(gw.nolan.layout:000 → 2026-08-31). Nameplate wattages stay per-home
+config, never sema.
+
+Consumers (tlayouts gens, the scada fixture pair) regenerate against this
+in the same wave.
+
+## 2026-08-30 — drop un-used dependency on old gridworks package
+
+`12e2eaf`: the session-start dependency
+staleness check flagged `gridworks>=1.4.2` (latest 1.5.7). Investigation
+showed sema never imports the package — every "gridworks" occurrence in
+the repo is the `x-gridworks` schema extension key or a repo name, and
+`GwStrEnum` is defined locally in `src/sema/runtime/enums/gw_str_enum.py`.
+Leftover scaffolding, so the dependency is removed rather than upgraded.
+
 ## 2026-08-28 — proactor event vocabulary from the wire
 
 `caf596d`, branch `jm/proactor-event-vocab`: seven words for the gwproactor

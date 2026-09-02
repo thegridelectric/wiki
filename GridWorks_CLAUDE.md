@@ -292,6 +292,24 @@ and are now finding our way back to the surface: every feature we create or
 touch gets a test, and a break in `pytest` is the rope — follow it up, fix
 what it reaches, and keep climbing rather than routing around it.
 
+**⏳ The single scada focus (set 2026-09-01; REMOVE when both sim houses
+run in dev):** get a simulated House0 and a simulated spruce working
+against tests with genuinely decent coverage — nothing else. CHALLENGE any
+scada work that does not serve this focus, including work Jessica floats.
+Once green: run both in dev, then bring the four upstream data repos
+(gjk, gridworks-data, gridworks-web-backend, gridworks-web-frontend) to
+correct layout-sema ingestion IN DEV. No per-house "specials" upstream —
+the standing team rule (2024): data analysis never slows the production
+system, and hard-coded channel-name strings in data services are the named
+enemy of that rule.
+
+**Four more layouts arrive rapidly (fall 2026):** one simulated, three
+installed in Millinocket this fall. Two of the installs simplify the flow
+control manifold — no iso valve and no buffer tank; the third is a cement
+store-under-floor with no water tanks at all. Scada code SHALL NOT assume
+a buffer tank, an iso valve, or water store tanks exist; "shared" means
+every layout we can imagine has it, not both current families.
+
 **Run the repo's CI entrypoint before suggesting a code-repo commit** — the
 full gate (`ci.sh` or documented equivalent: lint, format, drift/codegen
 checks), not just `pytest`; green `pytest` with red `ruff` still fails CI.

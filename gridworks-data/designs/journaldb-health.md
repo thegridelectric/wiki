@@ -26,6 +26,15 @@ are about *availability and freshness*, not about losing the record.
 
 ## 1. Server-side guards (migrations in gridworks-data)
 
+✅ Applied on prod by hand 2026-08-30 and carried in
+`src/gw_data/db/scripts/1_db_user_setup.psql` (role + database settings
+sit naturally with role creation; the alembic form below stays the
+target if a migration is ever needed to re-apply them independently).
+Still open from this section: `SET LOCAL` in JK's importer / back-fill /
+channel-era paths; `application_name` on connections; the prod ACL shows
+`gw_visualizer=r` on `users`, which contradicts the last-login note below
+— confirm with Joe.
+
 A client-side timeout only ends the client; Timescale keeps the backend
 running. The guards live in the database, as alembic migrations so a
 rebuild re-applies them:
@@ -36,8 +45,9 @@ rebuild re-applies them:
   call, a request-scoped ORM session after its first SELECT); this
   timeout is what ends those.
 - `ALTER ROLE ... SET statement_timeout`, short by default: `'10s'` on
-  `gw_visualizer` and `gw_journalkeeper`, `'2min'` on a new read-only
-  `gw_analyst`. Code that legitimately runs longer (the channel-data
+  `gw_visualizer` and `gw_journalkeeper`, `'2min'` on the read-only roles
+  `gw_alerts` (gwalert) and `gw_analyst` (people) — one role per consumer,
+  so `pg_stat_activity` tells them apart. Code that legitimately runs longer (the channel-data
   download, a bulk-load batch) raises its own cap inside the transaction
   with `SET LOCAL statement_timeout = '5min'`; the role default stays
   tight so a stray scan dies in seconds whichever credential ran it.

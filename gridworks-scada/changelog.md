@@ -12,23 +12,119 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-08-19 — gwsproto names: disjoint Core / HydronicSpaceheat / family tiers; retire house_0_names
+## 2026-08-31 — gw.nolan.layout axioms 3-8 mirrored; fixture pair on the required Nolan surface (`bca080f7`)
 
-Topic declaration for the in-flight cluster (names/*, hydronic_layout.py,
-house_0_names.py, the actors that consume them). Node names live in
-disjoint tiers — `CoreNodeNames` (any asset), `HydronicSpaceheatNodeNames`
-(every hydronic plant), one class per layout family (House0, Nolan, …) —
-and the legacy `H0N`/`house_0_names.py` duplicate is removed. Also in the
-cluster: the rest of the `thermistor-common-relay` removal (name classes,
-`House0RelayIdx`, `H0CN`, the House0 fixture pair), the
-`HydronicLayout.from_word` → `from_sema` rename with `sim_boot` following,
-the relay properties that called the deleted `_family_only` gating on
-`is_house0` / `is_nolan` instead, and `NolanLocalControl` announcing its
-state on start. Entry to be reconciled against the diff at commit time.
+The fixture pair regenerates under gw.nolan.layout axioms 3-8 (sema
+`44937ad`, tlayouts `4be7fdc`): nine plant relays incl. the charge valve;
+hp-odu/hp-ctrl-box forced with their power channels; hp-boss / backup /
+scada-blind leave the Nolan skeleton; the HP parts ride
+`device.component.gt` with the hp device-type records. gwsproto mirrors:
+new `DeviceComponentGt`, hp record classes join `NolanDeviceType`, axiom 3
+renamed RequiredRelays, axioms 4-8 ported.
+`tests/named_types/test_gw_nolan_layout.py` carries a rejecting test per
+axiom (chosen so the intended axiom fires, not an earlier one). The i2c
+bus/thermistor fixtures stop appending their own bus node — the layout now
+declares it, and appending tripped axiom 6's exactly-one (the axiom's
+first catch: a test harness lying). The hand-touched `gw.house0` fixture
+edits (thermistor-common removal) ride along. (`4d5e552a` "squash": a
+one-line relay test fixup.)
 
-<!-- pending commit -->
-## 2026-08-27 — gwsproto: every sema axiom is a validator and a test
+## 2026-08-31 — nolan sim pair authored in tlayouts; sim_boot/sim_layout retire (`617b5370`)
+
+The suite's Nolan pair is the tlayouts-emitted sim-spruce artifact
+(sim tanks/BTUs, `GridworksSimGw108` board twin,
+`d1.isone.me.versant.keene.spruce.*`), so `sim_boot.py` and
+`sim_layout.py` are deleted: layout transformation was authoring-time work
+(now the generator's), the boot is the ordinary `ScadaApp` path (a
+simulated scada differs only by its artifacts — sim components + no
+`tadeed.json` — per the derived `is_simulated`), and the bounded-run check
+is queued as an `experiments/` harness over the normal entrypoint.
+`test_spruce_sim_boot.py` → `test_artifact_instantiation.py` (it never
+used sim_boot; it instantiates the ordinary app on the pair). Tests that
+encoded the old bench-flavored fixture move to the sim-spruce truth: zone
+names, the seven-channel transactive boundary (22430 W aggregate),
+nameplates, the sim board DeviceType.
+
+## 2026-09-02 — Gw108 is now rev B, various minor (`963ccddc`)
+
+Three layouts exist in the field: gw.house0.layout (has a siegenthaler
+loop — beech, maple), gw.nolan.layout, and the sieg-less house0 topology
+(oak, fir, elm — the coming gw.house0.no.sieg). The test fixture had been
+quietly modeling the third (UseSiegLoop false), so it moves to the family
+the word now means: sieg surface hand-authored in (sieg-loop node with
+SiegLoop actor, sieg-cold / sieg-flow / sieg-flow-hz, plus the missing
+dist-flow / store-flow), UseSiegLoop/SiegLoopPlumbed true, five new
+capture tunings in the ops fixture. gwsproto mirrors the sema in-place
+staging reshape (same sitting, sema `jm/layout-word-axioms`): House0
+axioms renumbered 1-9 — Core/Command Name+ActorClass contracts (hp-boss
+and sieg-loop unconditional command nodes, dormant when unused; HAS-sieg
+is topology, USING it is operational), RequiredSensing, unconditional
+SiegManifoldChannels; SiegActorConsistency dropped. Nolan drops
+RequiredBoardActors (layouts do not determine sensing/actuation
+hardware) and RequiredSensing gains the four resistive-element power
+channels, moves pico-cycler RequiredActors→RequiredCommandNodes, and
+adds hp-boss there — a required command node in EVERY layout; the Nolan
+fixture pair regenerates from tlayouts with the hp-boss node (HpBoss,
+auto.lc.n.hp-boss), which the app instantiates cleanly. New rejecting
+tests for House0 axioms 2/3/7/8, the Nolan elt-pwr clause, and Nolan's
+hp-boss requirement; axiom-coverage allowlists updated to the moved
+debt. gwsproto now mirrors EVERY sema axiom — the KNOWN_UNPORTED
+allowlist is empty: House0 6 (TransactivePowerChannel) and 9
+(SystemModelEnergyChannels) ported, gw.hydronic 3 (CircuitResolution)
+and 4 (LearnedNeedsTempChannel) ported, each with a rejecting test.
+`ActorClass` mirror gains HpTwin; `Gw1DeviceType` mirror renames
+GridworksScadaGw108 → Gw108RevB, and `scada_gw108.py` is DELETED — the
+gw108 board record's authoring source is tlayouts' vendored sema
+instance, scada only decodes it out of layout artifacts (the round-trip
+test keeps its krida half). The Nolan pair resynced to the
+regen through the rebuilt tlayouts snapshot (now 85 nodes: the gw108
+board's and web server's equipment nodes arrived — every Nolan
+component is HAD by exactly one ShNode, the ComponentBinding shape).
+`CoreNodeNames` gains `web_server`; ComponentBinding tests guard both
+fixture pairs (House0's skipped until the krida retirement unwinds the
+14-node multichannel component). Suite 242 passed /
+1 skipped. Known: the House0 fixture still carries one pre-existing
+sema-validate failure (WebServerComponentGt.I2cAddressList extra
+field) — queued.
+
+## 2026-09-01 — sh_node_actor partition + disjoint names tiers (`bd13a371`)
+
+One commit, two interleaved concerns (a clean split stopped being
+possible mid-stream; suite green at 231/1 throughout).
+
+**The partition:** the five-strata god base splits per the partition
+spoke: `sh_node_actor.py` keeps actor infrastructure (A); command-tree
+mechanics (B) move to `actors/command_node.py`, inherited by interior
+tree nodes only, with the three `new.command.tree` construction sites
+funneled through one `publish_command_tree()`; actuation choreography +
+plant judgment (C+D) move to the hydronic tier, inherited by control
+impls only (the relay actor and readers stop carrying `turn_on_HP` /
+`is_buffer_full`): family-neutral `actors/hydronic/shared.py` (blessed;
+shared = "every layout we can imagine has this"), `hydronic/house0.py`,
+seed `hydronic/nolan.py`. PicoCycler rebases onto the shared tier. Role
+dirs gain family subdirs (`local_control/house0/`, `leaf_ally/house0/`).
+Generic relay-commanding mechanics (`send_state_command`, `energize`,
+`de_energize`, `actuator_config`) sit on CommandNode. Signed-off
+deletions executed: `direct_reports` ×2, `is_buffer_full_alt`,
+`HouseStrategy`, `House0RelayIdx`, `run_scada.py`.
+
+**The names tiers** (grilled 2026-09-01, decisions in the partition
+spoke): node/channel names live in disjoint vocabulary tiers —
+`CoreNodeNames`, `HydronicSpaceheatNodeNames`, one class per family — a
+names class is vocabulary ("if a layout has the thing, this is its
+name"), requiredness stays in the layout words' axioms. H0N/H0CN retire
+incrementally in tandem with each settled name (not wholesale).
+Settled and landed here: `store-pump-relay` is the universal name
+(House0's `store-pump-failsafe-relay` was it, poorly named — constants
+deleted, call sites repointed, House0 fixture pair renamed);
+`thermistor-common-relay` fully gone; `backup`/`scada-blind` move
+core→House0 (House0-only LC states); BTUs move House0→hydronic (both
+families meter them); no `Literal` annotations in names classes;
+`charge-discharge-relay` stays firmly House0. The tank1-elt renames are
+decided but land as their own follow-on commit (sema word edit +
+sim-pair regen). (38 files, +1938/−1789; verified against `git show`.)
+
+## 2026-08-28 — gwsproto: every sema axiom is a validator and a test; report.event v004
 
 gwsproto cannot vendor the sema snapshot, so nothing regenerates its
 validators; `new.command.tree` axiom 1 (PrefixClosedHandles) had been a
@@ -36,26 +132,38 @@ stub that constructed any tree and let it go on the wire, where a consumer
 that does implement the axiom (JournalKeeper) drops it silently. Ported as
 `check_axiom_1` (a `model_validator`, mirroring JK's), so an orphan-prefix
 handle assignment now fails at the scada's emit sites instead of downstream.
-`report.event` axiom 3 (Src == Report.FromGNodeAlias) ported the same way;
-`Scada.send_report` now sets `Src` at construction (the proactor only
-filled it at publish, so the event was axiom-false until then, and a
-`ValidationError` inside `send_report` re-fires every loop tick with no
-backoff — the suite's comm tests spun at 100 % CPU until the fix).
+`tests/actors/test_command_tree_prefix_closed.py` drives the scada's real
+`set_command_tree` for admin / local-control / leaf-ally bosses on both
+authored pairs.
 
 New `tests/named_types/test_axiom_coverage.py` makes the obligation
 structural: for every exported gwsproto type with a sema word, the class
 carries `check_axiom_<n>` for exactly sema's axiom numbers (no stubs, no
 validators sema never declared) and `tests/named_types/` holds a
 `test_<type>_axiom_<n>` rejecting test. Known debt is allowlisted and
-exact-matched so it can only shrink: 6 unported (house0 layout 5–8,
-hydronic 3–4), 4 gwsproto-only validators sema does not declare
-(`fsm.event` 2, `heating.forecast` 2, `pico.btu.meter.component.gt` 2,
-`gw1.tank.temp.calibration.map` 1 — candidate sema axioms, word-gate), and
-the ~100 axioms without a rejecting test yet.
+exact-matched so it can only shrink (burn-down: OPS-513): 6 unported
+(house0 layout 5–8, hydronic 3–4), 4 gwsproto-only validators sema does
+not declare (`fsm.event` 2, `heating.forecast` 2,
+`pico.btu.meter.component.gt` 2, `gw1.tank.temp.calibration.map` 1 —
+candidate sema axioms, word-gate), and ~100 axioms without a rejecting test.
 
-Also: `tests/actors/test_command_tree_prefix_closed.py` drives the scada's
-real `set_command_tree` for admin / local-control / leaf-ally bosses on both
-authored pairs; `ElectricMeterComponentGt` loses three no-op validators for
+`ReportEvent` moves to `report.event/004` (OPS-329), restoring the
+identity/time axioms v003 had dropped: 1 `MessageId == Report.Id`, 2
+`TimeCreatedMs == Report.MessageCreatedMs`, 3 `Src == Report.FromGNodeAlias`,
+each a raising `check_axiom_<n>` (the type does not default the fields from
+the report — a validator that repairs would hide an emitter that lies).
+`Scada.send_report` passes `MessageId`, `TimeCreatedMs` and `Src` from the
+report instead of letting `EventBase` mint a fresh uuid and clock read,
+which is why every report.event ever emitted failed axioms 1–2 (the ~1 ms
+skew caught in the spruce eventstore). The proactor re-stamps none of the
+three; it fills `Src` only when empty. A `ValidationError` inside
+`send_report` re-fires every loop tick with no backoff (the comm tests spun
+at 100 % CPU before the emitter fix). Sema's `004.yaml` is an unpromoted
+draft (registry latest still 003), so the conformance test carries an
+exact-matched `KNOWN_TYPE_VERSION_DRIFT = {"report.event"}`; promoting 004
+in sema retires it.
+
+Also: `ElectricMeterComponentGt` loses three no-op validators for
 constraints sema never declared and gains its `Sema:` docstring;
 `energy.instruction` and `pico.flow.module.component.gt` validators renamed
 to `check_axiom_1`; `SpaceheatNodeGt` docstring pinned to 302 (303 does not

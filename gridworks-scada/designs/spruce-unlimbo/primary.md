@@ -6,7 +6,7 @@ Status: Accepted · Pass 1 · Updated 2026-08-15 · Linear: OPS-392
 spokes reach Verified only when an experiment runs against the real bus or a
 real broker.
 
-**▶ Active spoke: [`operational-params-cleanup.md`](operational-params-cleanup.md)**
+**▶ Active spoke: [`sh-node-actor-partition.md`](sh-node-actor-partition.md)**
 
 > What this is: the hub for un-limboing the spruce scada integration —
 > getting the branch that runs Matt Polstein's house (the Nolan layout)
@@ -25,12 +25,30 @@ real broker.
   hack: TOU cooling + behavioral glitches (the actor build)
 - `zone-relays-and-thermostat-model.md` — the zone / circuit /
   thermostat model (settled; vocabulary + layout landed 2026-08-11)
-- **`operational-params-cleanup.md` — ops words + the coherence
-  cleanup after the HydronicLayout collapse (active)**
+- `operational-params-cleanup.md` — ops words + the coherence
+  cleanup after the HydronicLayout collapse
+- **`sh-node-actor-partition.md` — the five-strata split of the god
+  base class; tiers, role-first dirs, `hydronic/` family files (active)**
 - `control-strategy-selection.md` — ops chooses the machine, the
   machine owns its state; what replaces `SeasonalStorageMode`
+- `fall-layouts.md` — the four layouts arriving fall 2026 (one sim,
+  three Millinocket installs); what each removes/adds
+- `pico-cycler-command.md` — interior-subtree rule + admin asks the
+  cycler (never seizes vdc)
+- `dac-output.md` — the 0-10V output on the relay pattern (node +
+  board-resident component + tree leaf); bench then spruce before the
+  command-tree matrix
+- `krida-retirement.md` — board-generic relay components; one
+  actuation path in relay.py (scada half of the shipped sema
+  decommission)
+- `hp-boss-cleanup.md` — hp-boss in every layout, dormancy from ops,
+  commandable HPs under it, first-ever tests
+- `layout-word-axioms.md` — the staging axiom reshape of both layout
+  words + fixture/generator moves
 - `admin-for-nolan.md` — admin UI sees and operates a Nolan house
 - `hello-world.md` — LTN ↔ SCADA over dev rabbit, consumed by a dev JK
+- `unsorted.md` — drop-box for surfaced-but-not-yet-thought-through
+  items (CT measurement chain, …)
 - `gleanings.md` — residual live content from closed spokes
   (both-cases survey · layout-augments carry/skip · gw.nolan.layout
   closing)
@@ -222,6 +240,8 @@ first proof.
   draft against both layouts (joint with [OPS-394](https://linear.app/gridworks/issue/OPS-394)'s capability list) —
   the zone slice is drafted (`zone-relays-and-thermostat-model.md`);
   plant and store capabilities remain.
+- gwsproto axiom burn-down ([OPS-513](https://linear.app/gridworks/issue/OPS-513)):
+  after the simulated Nolan scada runs in dev, before the merge.
 - Executor write-up: the durable architecture facts found here
   (layout-strategy routing, relay actuation paths, test-layout
   selection) belong in `wiki/gridworks-scada/executor/` as they verify.

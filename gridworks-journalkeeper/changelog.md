@@ -10,6 +10,24 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-08-30 — use gw_journalkeeper for dev and prod (`39c8474`)
+
+`Settings.db_url` still defaulted to the legacy `journaldb_dev` database,
+which no longer matches what JK writes. It now defaults to the
+gridworks-data local container as `gw_journalkeeper` under the
+password-equals-role-name dev convention. README's PostgreSQL section
+named roles (`gw_writer`/`gw_reader`) and a database (`gridworks`) that
+do not exist; corrected to `gw_journalkeeper`/`gw_visualizer` and `tsdb`.
+`gbo_db_url`, `ops_genie_api_key`, `email_sender`, `email_password`,
+`visualizer_api_password` were read by nothing and are removed. The
+README's four PyPI badges queried a package never published (JK is a
+service, not a library) and rendered "not found"; a static
+python-version badge replaces them.
+Note: `gw_journalkeeper` now carries a 10-second role-level
+`statement_timeout` on prod; the S3 importer / back-fill loaders and the
+channel-era migration must `SET LOCAL statement_timeout` per transaction
+before they next run.
+
 ## 2026-08-28 — history cleanup: OPS-498 range squashed to `d1587dc`
 
 The ~20 OPS-498 back-fill commits (from `1b8cbcf` up) were collapsed into a

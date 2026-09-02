@@ -50,6 +50,9 @@ check_box gnr grid-node-registry gnr-rabbit gnr-api
 check_box ear gridworks-ear ear@ear
 check_box gnr-ear gridworks-ear ear@gnr-ear
 check_box gjk gridworks-journalkeeper journalkeeper
+check_box forecast gridworks-weather-forecast weather-rabbit weather-api
+check_box alerts gridworks-alerts gridworks-alerts
+check_box alerts gridworks-alert-manager alert-manager
 
 # Broker definitions: the mounted boot file must match gwbase main's
 # committed artifact (definitions-are-law; drift here means the next
@@ -70,9 +73,14 @@ done
 
 if [ -n "$OUT" ]; then
   printf '%s\n' "$OUT" > "$MARKER"
-  echo "PLATFORM DRIFT (re-checked every session until fixed). Report only —"
-  echo "never act on this without discussing with the user first; the fix,"
-  echo "when agreed, is per the box's instance-README (usually pull + restart):"
+  # The reading Claude is told below to relay this to the user in its
+  # first response — that is the operator-visible channel.
+  echo "PLATFORM DRIFT (re-checked every session until fixed)."
+  echo "Claude: you MUST relay this drift list to the user verbatim in your"
+  echo "FIRST response of the session — the hook's output is invisible to"
+  echo "them. Report only — never act on it without discussing with the"
+  echo "user first; the fix, when agreed, is per the box's instance-README"
+  echo "(usually pull + restart):"
   echo "$OUT"
 else
   : > "$MARKER"

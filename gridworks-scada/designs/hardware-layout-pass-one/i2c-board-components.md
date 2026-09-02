@@ -60,20 +60,13 @@ the **actor wiring** to make the board the resolved source of truth at runtime.
    sema example still trips the known `ChannelConfigBase` conformance class (gwsproto base
    requires capture cadence that sema-flat data doesn't carry) — resolves with the
    ops-params completion.
-3. **Relay decommission → `i2c.relay.component.gt`.** *Sema half* ✅ (sema `fae8d27`, 2026-07-03):
-   `relay.control.config/000` (= `relay.actor.config/004` minus the positional `RelayIdx`, axioms
-   ported) + the board-generic thin per-relay components `i2c.relay.component.gt/000` and
-   `gpio.relay.component.gt/000` (`RelayName`/`GpioName` resolved against the board's
-   `I2cRelays`/`NativeGpioOutputs` map; the board stays the single source of the physical address);
-   `relay.actor.config` carries the advisory `replaced_by` marker. *Scada half remains:* retire
-   `I2cMultichannelDtRelayComponent`, remove `i2c_relay_multiplexer` + `i2c_relay_board`, rework
-   `relay.py` to resolve `RelayName` against the board and write via `I2cBus`. Layout + fixture
-   migration (every relay node re-pointed) — its own chunk. The **functional relay ShNode names**
-   half was pulled forward into pass-one (scada `4182d88c`, 2026-07-09; board position in
-   `RelayIdx`) — what remains here is the component/actor migration.
-4. **Wire the `I2cBus` actor.** Have it receive the composed bus-ops and reply `I2cResult` to the
-   **requester** (today it goes to `primary_scada`; needs the `Header.Src` reply-to so the result
-   returns with its `TriggerId`). Route the ADC reads through `I2cBus` per the executor decision.
+3. **Relay decommission → `i2c.relay.component.gt`.** *Sema half* ✅ (sema `fae8d27`, 2026-07-03).
+   *Scada half* — the krida retirement (fixture migration, `relay.py` single actuation path,
+   gwsproto class retirement) — **moved to [OPS-392](https://linear.app/gridworks/issue/OPS-392)**
+   (spruce-unlimbo), 2026-09-01, together with the `I2cBus` reply-to it depends on.
+4. **Wire the `I2cBus` actor.** The reply-to half moved with step 3 to
+   [OPS-392](https://linear.app/gridworks/issue/OPS-392). Remains here: route the ADC reads
+   through `I2cBus` per the executor decision.
 5. **Layout bijection axiom.** Add to each layout type (`gw.house0.layout`, `gw.nolan.layout`,
    `gw1.simple.sim.layout`) that the DataChannel set is in bijection with the `ChannelName` set across
    all component `ConfigList`s.
@@ -89,9 +82,11 @@ the **actor wiring** to make the board the resolved source of truth at runtime.
   `Unit.Celcius`) stripped from the nolan gen path; the same strays remain in the house0 path
   (`multi.py`, `tank3.py`, `btu.py`).
 
-- **`I2cResult` routing** — the reply-to (step 4) so a relay can confirm its own actuation by
-  `TriggerId`.
-- **Bus actor ↔ hardware bus bijection** (a hardware-layout axiom, deferred with the actor wiring):
+- **Bus actor ↔ hardware bus bijection** (a hardware-layout axiom, deferred with the actor wiring).
+  **Required as a conditional axiom in ALL non-sim layout words** (2026-09-01): layouts do not
+  determine sensing/actuation hardware, so no word may mandate board actors by family (Nolan's
+  `RequiredBoardActors` drops for exactly this); instead every non-sim word SHALL carry the
+  component-conditional form — each board component present ⇒ its bus/reader/writer actors exist:
   each `I2cBus` actor ShNode (`spaceheat.name`, e.g. `default-bus`) ↔ a board `BusList` entry
   (`i2c.bus`, `pascal.case` `Name`, e.g. `DefaultBus`), via the `pascal.case ↔ spaceheat.name` casing
   map.

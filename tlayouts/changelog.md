@@ -12,6 +12,108 @@ Newest at the top.
 
 ---
 
+## 2026-09-02 — component's local unique name now comes from ShNode name (`eaecf42`)
+
+Three layouts exist in the field, and gw.house0.layout now means
+has-a-siegenthaler-loop, so the three sieg-less homes cannot be authored
+under it. New `house0_no_sieg_sema_gen.py` stub raises
+NotImplementedError naming the missing word; the commented gen_elm /
+gen_fir / gen_oak translation specs call it live at the top, and
+gen_oak_sema.py — which was actively authoring oak as gw.house0.layout —
+is guarded the same way. gen_house0_stub_sema.py carries a
+fold-in-before-regen note: the scada test fixture it emits was
+hand-extended with the sieg surface, and a regen without folding that in
+would revert it. The Nolan generator gains the hp-boss command node
+(HpBoss, auto.lc.n.hp-boss — required in every layout now) and the
+sim-spruce pair regenerates with it; house0_sema_gen catches up to the
+scada names commit (House0NodeNames is a flat vocabulary class — the
+config's `n` property stops instantiating it, tank node helpers come
+from Tanks). The vendored snapshot rebuilt from sema `2649929` (new
+layout axioms, HpTwin); the sim pair regenerates clean through the new
+validators. Found en route: the four sim.sensor BTU components re-mint
+ComponentIds on every regen — the id-map key misses them; FIXED (the
+sim branch's DisplayName prefix now matches the id-map lookup;
+double-regen verified byte-identical). Both generators are sema-fied:
+pydantic dataclasses with snapshot property formats (SpaceheatName /
+PascalCase / HhMm / MacAddress / LeftRightDot) on every
+vocabulary-shaped spec and config field, Literal for local axes,
+`ct_channel` an Optional SpaceheatName (absence is absence, not "").
+The board record renames with the enum:
+`gw108.revb-gw1.scada.device.type.gt-000.json` with DeviceType
+Gw108RevB (rev B named now because the next rev diverges
+significantly); the snapshot rebuilt clean from sema `99ffd4f`
+(Gw108RevB + Gw101 through the vendored words and samples).
+
+Component identity now keys on ATTACHMENT, never caption — built
+test-first (tlayouts' first test, `tests/test_component_id_stability.py`:
+mangle every DisplayName in the reference, ids must survive; red under
+the old keying). `LayoutIDMap` registers each component id under every
+derivable key — `node:<referencing-node>`, board bindings
+(`relay:`/`gpio:`/`dac:`/`adc:`), and a `type:<TypeName>#<ordinal>`
+fallback — and all 22 `component_id` call sites pass attachment keys.
+Migration proof: regen against the shipped pair is byte-identical.
+
+The gw108 board joins the node world: the generator emits a `gw108`
+equipment node (NoActor, ComponentId → the board record — the hp-odu
+pattern), and the board is a DEFAULT hardware choice, not hardwired:
+`board_node_name` + `board_record_file` config axes with gw108-revb
+defaults (the hardware-decoupling direction; `gen_alt_nolan.py` — the
+Nolan plant on House0-style hardware — is the coming N=2 proof, gated
+on the krida retirement). The board component's id survived the
+nodeless→node-referenced transition via the adoption keys.
+
+The identity key then simplified to ITS ENDPOINT: the referencing
+ShNode's bare Name (ComponentBinding — every component HAD by exactly
+one node; ComponentId stays as the replaceable instance uuid under the
+name). The web server got its node (`web-server`, a new CoreNodeNames
+constant), making the Nolan artifact fully 1:1 (85 nodes); legacy
+type-keys remain only for adoption and House0's krida trio (marked in
+the gen; they dissolve with the retirement). Tests:
+`test_emitted_components_are_node_bound` here, ComponentBinding
+fixture tests scada-side (House0's skipped until the retirement).
+
+## 2026-08-31 — sim-spruce: the simulated Nolan pair is authored; gens catch up to ops word + names tiers (`316d3ae`)
+
+New sim variant of the spruce home config: same sensed nodes, simulated
+drivers — tanks on `sim.pico.tank.module.component.gt`, BTU meters on
+`sim.sensor.component.gt` + `SimSensorActor`, the board component on
+`GridworksSimGw108` with the register-twin `gw1.scada.device.type.gt`
+record copied from the real gw108 record (so address resolution cannot
+drift), aliases `d1.isone.me.versant.keene.spruce.*`. The gen also emits
+the pair's ops artifact as `gw.nolan.operational.params` (the family gen
+had still emitted the house0-named word). The emitted pair replaces the
+scada suite's hand-tended `tests/config/gw.nolan.{layout,operational.params}.json`.
+
+Getting there took two catch-ups the gens owed: the snapshot re-vendored
+with `gw.nolan.operational.params` (+ `gw.tou.window` closure) and the ops
+assembly rebuilt to the post-08-13 word shape (`OpsSpec` gains
+actuation_authority / service_mode / hp_max_kw_el / on_peak_windows;
+system_mode and lat/long leave; all four home configs updated — the
+house0-family stub/oak configs compile but their gens still point at a
+deleted id-reference file); and the committed names tiers
+(`local_control_normal` → Core, `vdc_relay` → HydronicSpaceheat). Gens run
+against gwsproto at scada HEAD. Also per no-assumed-defaults:
+`thermistor_zone_idxs`, `setpoint_source`, `thermostat_kind` are now
+required per home/circuit. Entry to be reconciled against the diff at
+commit time.
+
+## 2026-08-31 — required Nolan surface: full plant relay set, HP parts, core sensing (`4be7fdc`)
+
+Snapshot re-vendored on sema `44937ad`. `emit_plant_relays` emits the nine
+relays axiom 3 forces (charge valve on the "DischargeValve" silkscreen;
+store pump; four element relays); the Nolan system-actor skeleton drops
+hp-boss / backup / scada-blind (return with the Nolan state-machine and
+hp-boss-modbus waves); `emit_heat_pump_parts` + the `HpPartSpec` config
+axis put the monobloc and control box into the layout as
+`device.component.gt` components (nameplate serial on spruce's ODU) with
+their hp device-type records (authored in `device_types/` from the
+nameplate photos); the MIM-B19N rides the ctrl-box Description. The bench
+carries the full sensing surface: four placeholder-uid BTUs and the new
+`power_meter_kind="sim-egauge"` (spruce's channel list, imported from the
+spruce config so it cannot drift, on the sim meter driver). All three
+homes regenerate and validate; axioms proven to fire on isolated
+counterexamples.
+
 ## 2026-08-22 — comment out old gen files (`687bfd4`)
 
 The pre-sema per-house generators (`gen_almond.py`, `gen_beachrose.py`,
@@ -42,8 +144,12 @@ become vendored `gw1.scada.device.type.gt` instances under
 what remains of the scada-venv dependency is the `gwsproto.names`
 constants only (tracked against the scada renovation's names outcome).
 
-<!-- pending commit -->
-## 2026-08-12 — honeysuckle carries the full plant surface: circuits, plant relays, sim-uid primary BTU
+## 2026-08-14 — minor (`635cf57`): honeysuckle carries the full plant surface
+
+Landed under the title "minor" (verified against the diff: 24 lines in
+`honeysuckle_sema_gen.py` — zone-call circuits + plant relays + the
+sim-uid `primary-btu` — plus deleting the superseded `-16sps-2hz`
+variant artifacts). Original entry:
 
 The bench layout satisfies `gw.nolan.layout` axiom 3
 (LocalControlPlant) and runs the TOU cooling loop against the real

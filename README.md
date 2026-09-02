@@ -79,6 +79,7 @@ design area.
 | [`gridworks-base/`](gridworks-base/) | The rabbit-transport actor framework + sema codec boundary |
 | [`gridworks-data/`](gridworks-data/) | The shared postgres+TimescaleDB schema, alembic migrations, and SQLAlchemy mapping (`gw_data`) consumed by app services |
 | [`gridworks-ltn/`](gridworks-ltn/) | LeafTransactiveNode — per-house transactive agent (parent of scada). Code currently at `gridworks-scada/gw_spaceheat/actors/ltn/`; runs via tmux; uses private `gridworks-innovations/gridworks-flo/`. Acceptable-minimum spec, lots Open. |
+| [`flo/`](flo/) | FLO — the per-house bid optimizer (`gridflo`, private `gridworks-innovations/gridworks-flo/`); runs in-process in each LTN today, becoming its own service (OPS-514). Executor hub stub only. |
 | [`gridworks-weather-forecast/`](gridworks-weather-forecast/) | Weather service. Today: like-for-like port of `gjk/weather_service.py` (publishes `weather` v000). Eventually: forecasts (`weather.forecast`) for LTN forward-looking optimizers + observations under a renamed `gw.weather`-ish type. |
 | [`gridworks-proactor/`](gridworks-proactor/) | The MQTT-native "live actor" + monitored-communication infra under the scada (first-pass spec) |
 | [`ear/`](ear/) | The universal audit tap / fundamental persistence mechanism |
@@ -179,11 +180,18 @@ To set up a machine:
          }
        ],
        "Stop": [{
-         "hooks": [{
-           "type": "command",
-           "command": "<your-umbrella>/wiki/tools/stop-cluster-coherence.sh",
-           "statusMessage": "End-of-turn cluster-coherence check"
-         }]
+         "hooks": [
+           {
+             "type": "command",
+             "command": "<your-umbrella>/wiki/tools/stop-cluster-coherence.sh",
+             "statusMessage": "End-of-turn cluster-coherence check"
+           },
+           {
+             "type": "command",
+             "command": "<your-umbrella>/wiki/tools/stop-context-size.sh",
+             "statusMessage": "End-of-turn context-size check"
+           }
+         ]
        }]
      }
    }

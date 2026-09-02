@@ -10,6 +10,42 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-01 — set refresh window to the 2024-10-13 ..2026-01-09 (`f0e3f28`)
+
+Post-import step 2 for the eventstore back-fill: point
+`refresh_all_cached_hourly_data.py` at the imported window so
+`cached_hourly_data` covers it (step 1, the `readings_1hr`
+continuous-aggregate refresh, was already run). The hand-edited-dates
+pattern is kept deliberately; date-range parameterization is deferred
+until the retention plans (OPS-503) settle.
+
+## 2026-08-31 — patch release issue (`f2a0d6c`)
+
+The release workflow's `setup-uv` post-job step errored ("Cache path …
+does not exist") because the job installs nothing worth caching;
+`enable-cache: false` removes the step. The scripts keep `gw_visualizer`
+at 10 s (the target); prod runs a hand-set interim 2 min until the web
+backend's `SET LOCAL` patches deploy — recorded in
+`gridworks-infra/databases/journaldb.md`.
+
+## 2026-08-30 — gw_alerts & gw_analyst roles; role timeouts; dev user setup with password = role name (`2574756`)
+
+Every GridWorks consumer of the journal DB ships a working dev default
+URL, and a default can only work if the dev container's passwords are
+knowable. The interactive `1_db_user_setup.psql` left them to the
+developer, so no repo could ship one. Also adds two read-only roles,
+named by consumer like the existing ones: `gw_alerts` (gwalert) and
+`gw_analyst` (people, ad-hoc analysis), each with a 2-minute statement
+timeout; `gw_visualizer`/`gw_journalkeeper` get 10 seconds (long jobs
+use `SET LOCAL statement_timeout` per transaction), and the database
+gets `idle_in_transaction_session_timeout = 5min` for every role. Known gap: prod
+`gw_visualizer` also holds UPDATE on `gridworks.users` (last login),
+granted by hand; it belongs in an alembic migration here. `1_db_user_setup_dev.psql` creates
+the five roles non-interactively with password = role name
+(`gw_admin`/`gw_admin`, …) for the LOCAL container only; the interactive
+script stays the production path. README states the convention and that
+consumers' defaults (gjk, gwalert) assume it.
+
 ## 2026-08-06 — registry projection tables: drop position_points, add sent_at (`9eea2cc`)
 
 One commit on `jm/remove-position-point-pii` (amended to fold both

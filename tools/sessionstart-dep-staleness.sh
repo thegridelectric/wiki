@@ -3,7 +3,8 @@
 # trail the latest published release. Never blocks, never edits — staying
 # behind must be a decision, not unnoticed drift. Silence a deliberate pin
 # by putting the phrase "pinned deliberately" in a comment on the dep's
-# line in pyproject.toml.
+# line in pyproject.toml; silence a whole upstream-owned repo via
+# skip_repos below.
 #
 # Register under SessionStart in .claude/settings.json.
 
@@ -14,6 +15,11 @@ import json, pathlib, re, urllib.request
 
 umbrella = pathlib.Path("/Users/jessica/GridWorks")
 latest_cache: dict[str, str | None] = {}
+
+# Repos whose pins we deliberately leave alone. gridworks-proactor is
+# upstream-owned (Andrew's); we are migrating off it, and marking its
+# pyproject lines would put a local diff in a file upstream merges touch.
+skip_repos = {"gridworks-proactor"}
 
 
 def latest(pkg: str) -> str | None:
@@ -34,6 +40,8 @@ def vtuple(v: str):
 
 notes = []
 for py in sorted(umbrella.glob("*/pyproject.toml")):
+    if py.parent.name in skip_repos:
+        continue
     text = py.read_text()
     for line in text.splitlines():
         m = re.search(r'"(gridworks[a-z-]*)\s*>=\s*([0-9.]+)', line)

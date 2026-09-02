@@ -1,62 +1,83 @@
 # gridworks-alerts — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-06-26
+Status: Draft · Pass 0 · Updated 2026-09-02
 
-> **First pass — acceptable minimum.** Captures what the `gridworks-alerts`
-> service IS today (a first-pass extraction by Thomas, downloaded 2026-06-26), so
-> the domain has a spec. **Important framing:** this is the *existing* Opsgenie
-> alerting cleanly extracted into its own `uv` repo — it does **not** yet begin
-> the Opsgenie migration ([OPS-438](https://linear.app/gridworks/issue/OPS-438)).
-> Most depth is Open; the code is the authority for details.
+> What this is: the house alerting service pair — the **gwalert** detector
+> (`thegridelectric/gridworks-alerts`, package `gwalert`) and the
+> **alert-manager** Telegram dispatcher (`thegridelectric/gridworks-alert-manager`)
+> — as they run on the `alerts` box. Most detector depth is Open; the code is
+> the authority for detail.
 
 ## What it is
 
-A standalone service that monitors the residential heating fleet and raises
-alerts for faults. One repo (`gridworks-alerts`, package `gwalert`), deployed on
-an Ubuntu EC2 under **systemd**, dependencies via **uv**.
+Two systemd units on the Hetzner box `alerts` (`alerts.electricity.works`;
+box facts, access profile and operating aliases live in
+`gridworks-infra/alerts/instance-README.md`):
 
-## Architecture (what IS)
+- **gwalert** polls the journal database every five minutes, re-derives the
+  alert conditions per house, and raises each alert to the manager over
+  loopback with a bearer token.
+- **alert-manager** listens on loopback `:8000`, dispatches alerts to Telegram
+  by the on-call routing in its Google Sheet, and keeps the alert history.
+  A Caddy front at `https://alerts.electricity.works` exposes the GET routes
+  only (`/health`, `/alerts-history`); the write route never leaves the box.
+  The web frontend's Alerts page reads the history through that façade via
+  the web-api2 backend, which holds the token.
 
-- **A single `AlertGenerator`** (`src/gwalert/alert_generator.py`, ~1180 lines) on
-  a `while True: … time.sleep(main_loop_seconds)` loop.
-- **DB-polling, not event-driven.** It reads directly from two Postgres DBs over
-  SQLAlchemy: `GWALERT_DB_URL` (**journaldb** — the messages) and
-  `GWALERT_GBO_DB_URL` (**backofficedb** — the house registry). It re-derives alert
-  conditions per house from raw `MessageSql` rows each loop.
-- **Notification = Opsgenie.** `send_opsgenie_alert(...)` (Opsgenie REST,
-  `GenieKey` auth) is the workhorse, called from ~20 condition sites. Dedup is
-  delegated to Opsgenie via the `alias` (`YYYY-MM-DD-<house>-<alert>`).
-- **Config** via `.env` (`GWALERT_*`, pydantic-settings `SecretStr`):
-  `GWALERT_DB_URL`, `GWALERT_GBO_DB_URL`, `GWALERT_OPS_GENIE_API_KEY`,
-  `GWALERT_EMAIL_SENDER`, `GWALERT_EMAIL_PASSWORD`.
+## Invariants
 
-## Known gaps / Open (the honest list)
+- **The box runs committed code at a pushed SHA.** Both units are
+  boot-enabled with `MemoryMax=512M`, `Restart=always`. Verification of a
+  deploy: a synthetic alert (`GWALERT_SYNTHETIC_ALERT=true` sends one
+  start-up alert to the manager only, never to Opsgenie) reaches Telegram,
+  and a reboot brings both units back unaided.
+- **One journal, read as `gw_alerts`.** gwalert reads JournalKeeper's
+  `gridworks.*` tables (`readings` joined through `reading_channels`;
+  `messages` for glitches and `layout.lite`) as the read-only `gw_alerts`
+  role, 2-minute statement timeout. Roles are named by consumer and created
+  by gridworks-data in dev and prod alike; the password-equals-role-name
+  convention holds in dev. Passwords live in 1Password, never in a repo.
+- **Alerting is not on gjk.** A journaling problem and an alerting problem
+  must not be one outage, so the alerter lives on its own box. Helsinki is
+  fine: it reads a US database every five minutes and posts to Telegram;
+  neither notices the latency.
+- **Layout is fetched fresh every cycle.** `layout.lite` arrives only on
+  scada boot, so gwalert takes the latest per house with no time window;
+  a lookback window would leave Standby and critical zones unknown after
+  any gwalert restart.
+- **Reads ride a public read-only façade, writes stay private** — the house
+  API pattern (`wiki/api-pattern.md`).
 
-- **Still 100% Opsgenie — the migration ([OPS-438](https://linear.app/gridworks/issue/OPS-438))
-  has not started.** The hard part lives *in* Opsgenie: **dedup, escalation,
-  acknowledge, on-call routing**. None of that is in this repo, so replacing
-  Opsgenie means *building* that layer, not just swapping a notifier.
-- **Email is dead code.** `send_email_alert` (gmail SMTP, sender==receiver) exists
-  but its call sites are commented out; Opsgenie is the only live channel.
-- **Missing-data faults are silent.** Several conditions
-  `print("… Missing data!") # TODO: create an alert?` — the very silent-failure
-  case the alerter exists to catch is logged to stdout, not alerted.
-- **Near-zero test coverage** on the ~1180-line alert logic (only `test_version`,
-  `test_message_types`). For the thing we trust at 3 a.m., this is the priority.
-- **Hardcoded fleet specifics** — `opsgenie_team_id`, `ignored_house_aliases =
-  ['moss','orange','spruce']`, magic numbers (`max_time_no_data = 10*60 # TODO
-  nyquist`); won't scale to the +14 homes (ties to the generalize-for-configs
-  theme). `print()` throughout instead of logging.
-- **DB-schema coupling** to journaldb (the coupling [OPS-333](https://linear.app/gridworks/issue/OPS-333)
-  set out to remove); a future path is consuming the durable liveness signals
-  (`ally.inactive` etc., [OPS-317](https://linear.app/gridworks/issue/OPS-317))
-  off the `ear` tap rather than re-deriving from raw messages.
+## Channels
+
+Telegram, through the manager, is the primary channel. Opsgenie remains a
+parallel channel from gwalert; whether it goes once Telegram has run a
+while is Open (check the bill). Email code exists but has no live call site.
+
+## Known gaps / Open
+
+- **Near-zero test coverage** on the detector logic. For the thing we trust
+  at 3 a.m., this is the priority.
+- **Hardcoded fleet specifics** in the detector: a `houses_with_monobloc`
+  list stands in for an `HpModel` carried in `layout.lite`; zone
+  temperature falls back to the `gw-temp` channel where a house has no smart
+  thermostat; magic thresholds throughout. Hard-coded channel-name strings
+  in data services are the named enemy of the "data analysis never slows the
+  production system" rule.
+- **Missing-data conditions** log rather than alert in several detectors
+  (as read 2026-06-26; re-verify against the tsdb port). The freshness
+  detector should ignore forecast channels, whose timestamps are in the
+  future.
+- **Everyone on call needs a Telegram chat ID** in the routing sheet.
+- **Ack and close lifecycle** of an alert, and web-side ack, are not
+  specified here; the manager's owner defines them with the people who
+  answer the pages.
 
 ## Relationships
 
-- [OPS-438](https://linear.app/gridworks/issue/OPS-438) — migrate off Opsgenie
-  (the forward work; this repo is its starting point, not its completion).
-- [OPS-333](https://linear.app/gridworks/issue/OPS-333) — decouple alerts from
-  JournalKeeper.
+- [OPS-449](https://linear.app/gridworks/issue/OPS-449) — alerts as
+  sema-typed broker events; the next step on this box.
+- [OPS-438](https://linear.app/gridworks/issue/OPS-438) — leave Opsgenie.
 - [OPS-317](https://linear.app/gridworks/issue/OPS-317) — the scada-health
-  liveness signals a future alerter would consume.
+  liveness signals a future alerter would consume instead of re-deriving
+  from raw messages.

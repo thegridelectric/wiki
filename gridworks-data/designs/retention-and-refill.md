@@ -1,6 +1,6 @@
 # retention-and-refill
 
-Status: Draft · Pass 0 · Updated 2026-08-26 · Linear: OPS-503
+Status: Draft · Pass 0 · Updated 2026-09-01 · Linear: OPS-503
 
 **EDD: yes** verified on the dev DB first, then prod: after the snapshot
 table lands, the dashboard's snapshot view still shows current state, the
@@ -14,7 +14,7 @@ a dropped window from S3 restores its `messages` rows exactly once.
 
 ## Why
 
-Measured on prod, 2026-08-26 (13 houses):
+Measured on prod, 2026-08-26 (6 houses):
 
 - ~20.4k messages/day, ~963k readings/day. `snapshot.spaceheat` is 17.3k
   of those messages (85%), one per house per minute.
@@ -72,10 +72,35 @@ behavior change; `payload` jsonb compresses well.
 `add_retention_policy` at ~180 days. A consumer that needs an older window
 runs the JK S3 importer over that window; with OPS-502 in place the refill
 is exactly-once whether or not part of the window is still present. Until
-then, refill only windows that are entirely dropped. `readings`, the
-continuous aggregate and `cached_hourly_data` keep their current policies.
+then, refill only windows that are entirely dropped. The continuous
+aggregate and `cached_hourly_data` keep their current policies (both
+tiny, kept indefinitely).
 
-## 4. The write ceiling, as a number
+## 4. Retention on `readings` at the analysis horizon (2 years)
+
+`add_retention_policy` at 2 years. The horizon is set by the rawest
+long-horizon consumer: analysis wants raw CSVs and hourly data reaching
+back 2 years. Compressed readings cost ~0.2 GB/house/year, so without a
+cap they grow linearly in both fleet size and time and eventually pass
+the capped `messages` as the storage line; with the cap, steady state is
+~44 GB compressed at 100 houses.
+
+What outlives the raw rows: `readings_1hr` and `cached_hourly_data`
+(kept forever), and the S3 eventstore. A window older than the cap comes
+back the same way as messages — JK S3 importer, then the post-import
+recompute (refresh the continuous aggregate over the window, repopulate
+`cached_hourly_data`). Two consequences to respect:
+
+- Derived layers for a window must be populated **before** its raw rows
+  age out; after that, the cached hourly numbers for the window are
+  frozen as computed — a later change to `calc_hourly_data` cannot be
+  applied there without a refill.
+- Refilling readings into chunks that were compressed leaves the
+  refilled rows uncompressed and invisible to the compression policy
+  (it skips chunks already flagged compressed); a refill ends with a
+  manual recompression pass over the touched chunks.
+
+## 5. The write ceiling, as a number
 
 The 2026-08-26 stress run locked the database at 24 writers and ran at
 ~100 msg/s with 8. One ramp experiment against the ops498 harness (4 → 8 →
@@ -86,8 +111,8 @@ ceiling to plan the fleet against. Expected outcome: the fleet at 100 houses
 
 ## Order
 
-1 → 2 → 3, each landing with a row-level check on the dev DB
-(`gw-data-pg`) and then prod; 4 whenever the loader box is free. Joe is in
+1 → 2 → 3 → 4, each landing with a row-level check on the dev DB
+(`gw-data-pg`) and then prod; 5 whenever the loader box is free. Joe is in
 the loop for the gw_data tables and the web-backend query.
 
 ## Open

@@ -192,15 +192,17 @@ join when Nolan heating-season control needs them, not before.
   type) and the fixtures move in the same cluster as the sema edits;
   `sema validate` on both fixture payloads proves the pair.
 
-## ⚠️ TODO — the 4 fixtures are hand-touched; regenerate them from tlayouts
+## ⚠️ TODO — the House0 fixture pair is hand-touched; regenerate it from tlayouts
 
-The four `tests/config/` artifacts — `gw.house0.layout.json`,
-`gw.house0.operational.params.json`, `gw.nolan.layout.json`,
-`gw.nolan.operational.params.json` — are the frozen authored pairs the
-suite loads. The BLESSED path is that every one of them is **regenerated
-from its tlayouts sema generator** (`house0_sema_gen` / `nolan` etc.), not
-hand-edited here. Right now they are being hand-touched to keep the suite
-loadable, which is a stopgap:
+The `tests/config/` artifacts are the frozen authored pairs the suite
+loads. The BLESSED path is that every one is **regenerated from its
+tlayouts sema generator**, not hand-edited here. The Nolan pair is there
+(2026-08-31): `tests/config/gw.nolan.{layout,operational.params}.json` IS
+the sim-spruce pair emitted by `tlayouts/spruce_sim_sema_gen.py` —
+identical sensed surface to real spruce, sim drivers (sim tanks, sim-sensor
+BTUs, `GridworksSimGw108` board twin, sim power meter on the eGauge channel
+surface), `d1.isone.me.versant.keene.spruce.*`. The House0 pair is still
+hand-touched:
 
 - `gw.house0.operational.params.json` had a mis-copied **Nolan**
   `CaptureTuningList` and a bench `ScadaAlias`; its capture tunings were
@@ -213,7 +215,9 @@ loadable, which is a stopgap:
   real House0 (beech) sums `hp-odu-pwr`+`hp-idu-pwr`, but this fixture has
   no `hp-idu-pwr` channel, so the hand-add is a minimal placeholder.
 
-**Retire all of this by regenerating the four from tlayouts.** Until the
+**Retire this by regenerating the House0 pair from tlayouts** (blocked
+today: `gen_house0_stub_sema.py`/`gen_oak_sema.py` still point their id
+reference at the deleted `tests/config/house0-layout.json`). Until the
 house0 sema generator produces a complete, axiom-valid pair (transactive
 channel, full capture tuning, correct GNode aliases), the fixtures drift
 from what a real home would author. Do NOT keep hand-patching past the
@@ -238,6 +242,43 @@ GPIO opto sensor or a simulated Hubitat/Honeywell for House0: both are slated to
 retire as House0 comes up to snuff. (Left 2026-08-16, per Jessica.)
 
 ## Cleanup queue
+
+- **hp-boss speaks modbus — prep decisions taken 2026-08-31**: hp-boss
+  returns as the modbus-comms owner (a different role than House0's sieg
+  hp-boss; family-selected like LC/LA). Driver selection keys on the
+  ctrl-box component's DeviceType — `SamsungAE055FEYMCG` ⇒ assume a
+  MIM-B19N on the wire (deliberate shortcut: Samsung is likely a one-off,
+  Chiltrix/Arctic speak modbus natively — `heat-pumps/` has the Arctic
+  modbus doc). The MIM has no enum value and no component; it rides the
+  ctrl-box Description until an actor drives it. The hp-boss node joins
+  the layout in the same regen as the actor.
+- **Circuit FSM actor nodes ride the thermostat wave** (queued
+  2026-08-31): no preemptive layout nodes for the zone-call-circuit FSMs —
+  adding them when the actors exist is one regen + the ActorClass enum
+  value. Same wave revisits `backup`/`scada-blind` for the Nolan state
+  machine (deliberately absent from gw.nolan.layout axiom 5 today) and the
+  elt load-node naming order (`elt-buffer-top` deployed vs `buffer-top-elt`
+  in HSNN — a channel rename, so it costs a history split and belongs in a
+  coordinated spruce regeneration).
+- **Bus backend selects on the board's DeviceType, not `is_simulated`**
+  (queued 2026-08-31). `i2c_bus.py` still calls its selector "interim";
+  with `GridworksSimGw108` in the layout the honest selector is the board
+  record itself — `SimI2c` when the DeviceType is the sim twin. Removes a
+  reliance on the global derived flag without adding any new one.
+- **Bounded sim-run harness over the ordinary boot** (queued 2026-08-31,
+  with `sim_boot.py` deleted): a small `experiments/` reproducer that runs
+  `cli.py run` on the sim-spruce pair against gw-dev-rabbit under a
+  timeout and checks channels populate. Belongs to the sim-in-dev slice.
+- **Behaving sim thermostats** (queued 2026-08-31): a stat that raises its
+  call when the zone temp crosses its dial, cooling vs heating dials,
+  comms-stat-as-temp-source — plant-side actors against the zone temp
+  channels (sim design, `build-plant`); the layout already carries the
+  static truth (`CanCool`, `Kind`, `TempChannelName`). Until then,
+  functional tests inject calls at the whitewire channels.
+- **`tank_kind` defaults to "sim"** in `House0SemaGenConfig` — an assumed
+  default answering a varying question; make it required like the
+  thermostat axes (`thermistor_zone_idxs`, `setpoint_source`,
+  `thermostat_kind` became required 2026-08-31).
 
 - **Test House0** — `conftest.py` still pins the Nolan pair only, so the
   now-loadable `gw.house0` pair (layout ⊕ ops, completed 2026-08-15) is
