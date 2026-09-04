@@ -12,7 +12,154 @@ Newest at the top.
 
 ---
 
-## 2026-09-02 — gw.nolan.layout axioms 3-9 mirrored; tank1 element names; sim device types are a vocabulary <!-- pending commit -->
+## 2026-09-04 — DAC output actuator: ZeroTenOutputer drives the gw108 DAC <!-- pending commit -->
+
+The 0-10V output on the gw108 becomes an actuator on the relay pattern:
+one node, one board-resident component, one leaf in the command tree.
+gwsproto mirrors `i2c.dac.output.component.gt` and `dac.output.config`
+(the reverse conformance allowlist empties) and drops the three writer
+mirrors sema orphaned in `912660c` with the writer data class and the
+`I2cDacWriter` actor, which held EEPROM defaults but took no command.
+`ZeroTenOutputer` now keys its mechanism on the component the way
+`Relay` does: an `I2cDacOutputComponent` resolves its DAC channel
+against the board record and drives it through `I2cBus` (boot EEPROM
+verify, Multi-Write of the last commanded level, 60 s re-assert), while
+a node with no component keeps the House0 path through the DFR
+multiplexer. `AnalogDispatch.Value` stays volts times ten (0-100), the
+unit the multiplexer and the House0 senders already use, and a
+successful write reports the channel. The Nolan fixture regenerates from
+tlayouts with `secondary-010v` in place of `gw108-dac2-writer`;
+`test_zero_ten_outputer.py` replaces the writer test on the sim chip.
+
+---
+
+## 2026-09-04 — conformance sweep checks the layout closure in reverse (`8166acc6`)
+
+The gwsproto ↔ sema sweep ran one direction only: every gwsproto pin
+against sema's latest. A word landing in sema with no gwsproto twin
+was invisible to it, which is how the DAC output words
+(`dac.output.config`, `i2c.dac.output.component.gt`, sema `912660c`)
+sat two sessions without mirrors. The package now vendors a copy of
+the tlayouts snapshot registry (`sema_closure/registry.yaml`, the
+layout words' dependency closure) and the tool reports every closure
+type or enum with no gwsproto twin or an off-version one; the standing
+test requires the copy to exist and carries exact-match allowlists for
+the two DAC words (burn down with the actuator move) and the two enums
+the closure still reaches at 001. The copy is kept in step with the
+snapshot by a Stop hook in the wiki tools. The class enumerator also
+learned to see snake-field types (`type_name`), so the Hubitat poller
+pair now takes the forward checks too.
+
+---
+
+## 2026-09-03 — add command tree axioms (`cc44c626`)
+
+The three axioms sema landed in `998b9c7` get their gwsproto validators
+and rejecting tests, and leave the coverage allowlists: `House0Layout`
+axiom 12 and `NolanLayout` axiom 10 (`CommandableHeatPump`, both
+clauses), the two `RequiredHeatpumpEquipment` checks skipping the
+declared node, and `NewCommandTree` axiom 2 (`ActuatorLeaves`).
+`HydronicLayout.actuators` returns the declared heat-pump node beside
+the relays and 0-10V outputs, so tree code that walks actuators sees
+the twin without knowing its name. Fixtures stay undeclared. The layout
+words also took the tree word's two shape axioms (House0 13 and 14,
+Nolan 11 and 12), so one implementation of PrefixClosedHandles and
+ActuatorLeaves now lives in `type_helpers/command_tree_axioms.py` and
+all three types call it with their own axiom label.
+
+---
+
+## 2026-09-03 — Adjust gw.hydronic type - doesn't have strategy, DOES have HpCommandNodeName (`cd6244dd`)
+
+`FlowManifoldVariant` was a three-value gwsproto enum with no sema word
+that had collapsed to a has-sieg bool with a family name (its Nolan
+value was never assigned). It is deleted with its conformance allowlist
+entry and nothing replaces it: a `gw.house0.layout` plant has the loop
+by definition (axiom 3), so the dc-side sieg-manifold channel check it
+gated (a name-for-name duplicate of the word's axiom 8) goes too, and
+`House0LoadArgs`, left with no fields, collapses into `LoadArgs`. Family
+facts live in the layout word, not in per-family load args. `Hydronic.Strategy`
+leaves the sema word (invariant per layout word), so the LocalControl
+loader picks the Nolan implementation by `isinstance` on the loaded
+layout word instead of a string compare; the mirror drops the field and
+gains sema's optional `HpCommandNodeName`. The three new sema axioms
+(CommandableHeatPump on both layout words, ActuatorLeaves on
+new.command.tree) are recorded as known unported debt in the coverage
+allowlist until their port lands. Fixtures drop the Hydronic Strategy.
+
+---
+
+## 2026-09-03 — LayoutLite carries HardwareLayoutTypeName instead of Strategy (`0d4ec979`)
+
+Mirrors sema `7c3e0bd`. The projection's `Strategy` was filled from the
+runtime layout's flow-manifold variant, an enum with no sema word whose
+Nolan value was never assigned, so a Nolan scada announced itself as
+House0. The scada now sends the TypeName of the layout word it loaded
+(`HydronicLayout.layout_type_name`), the family every consumer of the
+projection branches on. `FlowManifoldVariant` keeps one reader, the
+has-sieg gate in the layout's House0 validation.
+
+---
+
+## 2026-09-03 — sieg loop information comes from layout and operational params (`d4faae53`)
+
+Mirrors sema's hydronic sieg split. `Hydronic` loses `SiegLoopPlumbed`,
+`UseSiegLoop` and axiom 1 (the remaining axioms renumber);
+`House0OperationalParams` gains `UseSiegLoop`. The runtime layout's
+`flow_manifold_variant` now follows the presence of a SiegLoop-classed
+node, and every `layout.use_sieg_loop` read moves to the operational
+params through one accessor on `ScadaData` (false for Nolan, whose word
+has no flag). Hydronic axiom 1 lands as an assembly check in
+`sema_to_dc`: ops saying use the loop while the layout has no SiegLoop
+node refuses the boot. The dc-side sieg actor checks retire with it —
+"not using ⇒ no sieg-loop node" was the HAS/USING conflation the House0
+word already dropped (sieg-loop is an unconditional command node,
+dormant when unused). All three layout fixtures and both House0 ops
+fixtures move the flag.
+
+---
+
+## 2026-09-02 — sim-House0 pair boots beside beech; SimHpIdu (`31a97366`)
+
+The tlayouts sim-House0 pair lands as `tests/config/gw.house0.sim.*`:
+the beech family word in its all-sim shape (mechanical-dial zone with a
+sim temperature sensor, sim sensors behind every flow position and the
+sieg cold side, non-descript sim heat-pump parts, no Hubitat). The
+prefix-closed command-tree test and the House0 layout named-type tests
+run over both House0 pairs. `SimDeviceType` gains `SimHpIdu`.
+
+## 2026-09-02 — hubitat_interface: import time to ungate async polling (`98291cb6`)
+
+`HubitatWebEventHandler.__call__` stamps its SyncedReadings with
+`time.time()` but the module never imported `time`; the bare except
+around it swallowed the NameError, so every Hubitat web-listen event
+(the thermostat's push on a state change) was dropped silently, on
+`main` and in the field. Only the periodic MakerAPI poll has ever
+delivered thermostat readings. The import alone does not revive the
+path: the stat node runs under `s2` and the hub's web server under
+`s`, so handler registration still never meets. That, a sim
+thermostat, setpoint-discovery cleanup and coverage are queued in the
+spruce-unlimbo design.
+
+## 2026-09-02 — gw.house0.layout axioms 10-11 mirrored; House0 fixture declares its zone circuit and LG heat-pump parts (`050fdd54`)
+
+`House0Layout` mirrors the House0 word's new `RequiredActuators`
+(axiom 10) and `RequiredHeatpumpEquipment` (axiom 11), with a rejecting
+test per clause; the Components union admits `DeviceComponentGt` and the
+DeviceTypes union `HpDeviceTypeGt`. The hand-kept `gw.house0` fixture
+now represents beech in the real shape: `hp-odu` binds an LG
+`ARUM048GSS5` component, a new `hp-idu` node binds the LG Hydro Kit
+`ARNH423K3A4`, and the main zone declares its call circuit —
+`FromThermostat` through the Honeywell T6 poller (Thermostat.ComponentId
+the poller component), whitewire on the eGauge `zone1-main-whitewire-pwr`
+channel, zone TempChannelName `zone1-main-temp`. Under `sema validate`
+the fixture's error set is byte-identical before and after this change:
+three DataChannels still carry the retired InPowerMetering flag and the
+electric-meter, web-server, hubitat and poller components predate their
+words' current config shape. That is the pre-existing gap the House0
+generator fold-in closes; the scada suite validates through the mirror.
+
+## 2026-09-02 — gw.nolan.layout axioms 3-9 mirrored; tank1 element names; sim device types are a vocabulary (`0311749b`)
 
 Mirrors sema's Nolan reshape: `NolanLayout` carries the nine axioms in
 the names-tier order (Core / CommandNodes / RequiredActuators /

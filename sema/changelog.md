@@ -12,6 +12,99 @@ Newest at the top.
 
 ---
 
+## 2026-09-03 — add command tree axioms (`818fa11`)
+
+The layout's authored handles are the initial command tree, but only
+`new.command.tree` checked their shape; a layout could ship an orphan
+prefix or a relay with a child and fail only when the scada built its
+first tree. Both layout words now carry the tree word's two axioms with
+identical wording (House0 13 and 14, Nolan 11 and 12), the axiom name
+being the cross-word mirror key. The tree word keeps its own copies:
+every published tree must hold on its own after the scada rewrites
+handles. In place, both words staging; both sim fixtures validate.
+
+---
+
+## 2026-09-03 — Adjustments to GwHydronic (`1d36354`)
+
+The control family is the layout word's own TypeName, so a per-word
+strategy label is invariant across every instance and not a data field,
+the rule that retired SiegLoopPlumbed. In place (staging); the scada
+LocalControl loader now dispatches on the loaded word's class.
+
+---
+
+## 2026-09-03 — CommandableHeatPump: Hydronic.HpCommandNodeName, layout-word axiom, ActuatorLeaves on new.command.tree (`998b9c7`)
+
+A heat pump becomes commandable by declaration, not by vocabulary:
+`gw.hydronic` gains optional `HpCommandNodeName`, the ShNode (hp-odu,
+hp-idu or hp-ctrl-box) that takes commands under hp-boss; absent means
+nothing commands the heat pump and hp-boss stays dormant. Both layout
+words gain the biconditional `CommandableHeatPump` axiom (House0 12,
+Nolan 10: declared ⇒ that node exists with a ComponentId, ActorClass
+HpTwin and hp-boss as handle parent; every HpTwin node is the declared
+one), and `RequiredHeatpumpEquipment`'s NoActor clause defers to it.
+`new.command.tree/002` gains axiom 2 `ActuatorLeaves`: every actuator
+is a leaf and every leaf is an actuator or a command node, the
+wire-checkable half of the command-forest invariant; dormancy of leaf
+command nodes is code territory and goes in the extended description.
+All staging, in place; the fixtures hold as they are (undeclared).
+
+---
+
+## 2026-09-03 — layout.lite/013: Strategy becomes HardwareLayoutTypeName (`7c3e0bd`)
+
+`Strategy` was a free string filled from the scada's flow-manifold
+variant, a three-value enum with no sema word whose Nolan value was
+never assigned; nothing downstream read it. The projection now carries
+the TypeName of the layout word the scada loaded, typed as the
+`left.right.dot` format rather than an enum of layout words: the
+family discriminator is the word's own identity, and a format keeps
+`layout.lite` free to publish while the layout words stay staging and
+new families arrive. In place: 013 is staging.
+
+---
+
+## 2026-09-03 — gw.hydronic: drop SiegLoopPlumbed and UseSiegLoop; UseSiegLoop joins gw.house0.operational.params (`8451769`)
+
+The two Siegenthaler-loop flags leave the shared hydronic block, in
+place (both words staging). `SiegLoopPlumbed` is invariant for a layout
+word that means has-sieg, and a value fixed across every instance is
+not a data field; the scada derives has-sieg from a SiegLoop-classed
+node instead. `UseSiegLoop` is an operational fact (the scada runs the
+loop or leaves sieg-loop and hp-boss dormant), so it moves to the House0
+operational-params word as a required boolean. Axiom 1
+`SiegLoopControlImpliesPlumbed` retires with the fields and the rest
+renumber from 1; the "using implies present" obligation becomes a scada
+assembly check across the layout ⊕ ops pair. Nolan's ops word does not
+gain the flag: Nolan has no loop, and an always-false field is the same
+invariant.
+
+---
+
+## 2026-09-02 — gw1.sim.device.type: SimHpIdu (`0496374`)
+
+The simulated House0 pair needs an indoor-unit part beside `SimHpOdu`:
+`SimHpIdu` joins the sim vocabulary on the same non-descript rule
+(inventory only, nothing talks to it). Staging, so appended in place.
+
+## 2026-09-02 — gw.house0.layout: RequiredActuators + RequiredHeatpumpEquipment; hp parts on device.component.gt (`dfe93be`)
+
+The House0 word gains the two equipment axioms Nolan landed in
+`e625ff6`, appended as 10 `RequiredActuators` and 11
+`RequiredHeatpumpEquipment` (the cross-layout mirror key is the axiom
+name, so House0 keeps its existing numbering). Clause a names the
+unconditional beech/maple actuators: the eleven plant relays with
+ActorClass Relay and the three `*-010v` outputs with ActorClass
+ZeroTenOutputer, Name + ActorClass only — a ComponentId obligation on
+the outputs waits for the DAC output actuator. Clause b is Nolan's
+zone-circuit clause verbatim. RequiredHeatpumpEquipment names `hp-odu`
+and `hp-idu`: a House0 home is a split system whose indoor unit does
+the refrigerant-to-water exchange, and both carry a component. The
+Components union admits `device.component.gt` for those parts and the
+DeviceTypes union `hp.device.type.gt`; `gw1.actor.class:013` joins the
+axiom dependencies.
+
 ## 2026-09-02 — next pass nolan.layout updates (`e625ff6`)
 
 The Nolan word's axioms 3-5 reshape into the tiers the scada names

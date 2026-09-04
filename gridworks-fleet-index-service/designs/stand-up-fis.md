@@ -1,6 +1,6 @@
 # Stand up FIS
 
-Status: Accepted · Pass 1 · Updated 2026-08-14 · Linear: OPS-422
+Status: Accepted · Pass 1 · Updated 2026-09-02 · Linear: OPS-422
 
 **EDD: yes** verified by the day-in-the-life handshake
 ([`../research/lifecycle.md`](../research/lifecycle.md)) run for real on the
@@ -19,10 +19,10 @@ the first with the predecessor closed before the successor is admitted.
 
 ## Build order (each step maps to a section of `executor/primary.md`)
 
-Steps 1–5 are built. With the mechanism plugin and the gwbase credentials
+Steps 1–5b are built. With the mechanism plugin and the gwbase credentials
 class both delivered, every non-FIS piece the dev battery needs now exists,
 so **FIS step 6 is the last decision path before step 8**, alongside the
-mirror seam (steps 5b–5c) — the critical path is this repo, not the broker
+push accelerator (5c) — the critical path is this repo, not the broker
 side.
 
 1. ✅ **Scaffold the service.** FastAPI + Postgres + `uv` (mirror the
@@ -56,17 +56,20 @@ side.
    with them. The apply step (`mirror.apply_gnode`: upsert a `g.node.gt`,
    detect rename, flush the identity) is built and tested against a fake
    killer.
-5b. **Mirror seam — pull from gnr over HTTP (Phase A).** The path that feeds
-   `mirror.apply_gnode`, keeping FIS off rabbit. A `gnr_client` (httpx to
-   gnr's read façade: `g.node.forest.request`, `g-node-by-id`) plus a
-   reconcile loop (a FastAPI-lifespan background task): boot-seed a forest
-   snapshot for the served roots, then re-pull on an interval. `apply_forest`
-   loops `apply_gnode` over `forest.nodes` and marks a node gone from the
-   active forest inactive (exact rule confirmed against `g.node.gt` status at
-   build). `decide_user` reads-through on a mirror miss — an unknown GNodeId
-   is fetched by id and cached rather than denied outright. gnr down → serve
-   the last-known mirror. Reuses `apply_gnode` / `kill_identity` and the
-   vendored `GNodeForest` / `GNodeForestRequest`; **no gwbase, no rabbit**.
+5b. ✅ **Mirror seam — pull from gnr over HTTP (Phase A).** The path that
+   feeds `mirror.apply_gnode`, keeping FIS off rabbit. `gnr_client` (httpx to
+   gnr's read façade: `g.node.forest.request`, `g-node-by-id`, every reply
+   decoded strictly through the snapshot codec) plus a reconcile loop (a
+   FastAPI-lifespan background task): boot-seed, then re-pull on
+   `FIS_GNR_RECONCILE_S`. Two facts settled at build, both narrower than
+   first written: the served roots are the universe itself (`[universe]` is
+   a valid forest root and a FIS serves one universe, so no roots setting),
+   and nothing is marked inactive by absence (a registry node never
+   vanishes, so a mirrored id missing from a whole-universe pull is a
+   logged anomaly, not a status FIS invents). `decide_user` reads through on
+   a mirror miss before the alias/class check. gnr down → serve the
+   last-known mirror. Witnessed at the dev rung: a real `fis api` boot
+   against a local gnr refilled a cleared mirror with the 29 `d1` nodes.
 5c. **Mirror seam — gnr push accelerator (Phase B, coordinated with gnr).** A
    FIS mirror-update endpoint receives gnr's pushed change →
    `apply_forest` / `apply_gnode`; a rename delta fires `kill_identity` at
@@ -77,6 +80,17 @@ side.
    alias from gnr by GNodeId on reconnect) is the client half — OPS-420 /
    gwbase-proactor, not this issue. The ~1s pre-rename courtesy note is
    deferred to a v2 gnr refinement.
+5d. **Principal minting — `fis principal`.** The FIS-side primitive
+   provisioning calls when it cuts a cert: `create` mints the principal row
+   first and prints its id, which becomes the cert CN (`gwcert key add
+   --common-name <id>`). A service principal's id is a fresh uuid4 minted
+   here; a GNode principal's id is its GNodeId, given. `list`, `suspend`
+   and `activate` complete the emergency-eviction lever the gate already
+   honors. Row first, cert second, so a CN is never a hand-picked UUID the
+   row is back-filled to match; the four platform-service certs (weather,
+   gnr, ear, gjk) mint through this. Rows minted on one FIS database are
+   carried to the database that will gate the cert (staging, then prod)
+   as records, not re-typed.
 6. **Auth event.** Publish **`fis.instance.authorization.event`**
    asynchronously after each decision. It and its two enums
    (`fis.authorization.decision`, `fis.authorization.reason`) are `draft`

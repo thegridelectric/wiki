@@ -1,6 +1,6 @@
 # gridworks-base — Rebuild Specification (primary)
 
-Status: Draft · Pass 0 · Updated 2026-06-10
+Status: Draft · Pass 0 · Updated 2026-09-02
 
 This is the **faithful-rebuild specification** for `gridworks-base`: the
 authoritative, language-agnostic account of the system, intended to be
@@ -22,10 +22,10 @@ slug (see the wiki conventions "Headers are reference slugs").
 | File | Covers |
 | --- | --- |
 | **primary.md** (this file) | Overview, identity, glossary, the cross-cutting invariant checklist |
-| [`transport.md`](transport.md) | TransportClass/RoutingClass, routing-key grammar, RoutingEnvelopes, AMQP topology, scada/MQTT bridge, message properties, threading/lifecycle |
-| [`provisioning.md`](provisioning.md) | Topology generation, dev/prod delivery, GHCR, identities |
-| [`codec.md`](codec.md) | SemaType, SemaCodec, versioning, property formats, the `gw` envelope + wrap/unwrap |
-| [`actors.md`](actors.md) | ActorBase / Orchestrator / GridworksActor tiers; settings, XDG file locations & logging; the hello example; diagnostics |
+| [`transport.md`](transport.md) | TransportClass/RoutingClass, routing-key grammar, RoutingEnvelopes, AMQP topology (class exchanges, direct edges, ear taps, MQTT bridges, standing queues), scada/MQTT seam, message properties, threading/lifecycle |
+| [`provisioning.md`](provisioning.md) | Topology generation from `gwbase.topology`, the vhost grammar, definitions artifacts + drift guard, dev image on GHCR, identities |
+| [`codec.md`](codec.md) | SemaType, SemaCodec, versioning, property formats, the generated vendored snapshot (seed + regen), the `gw` envelope + wrap/unwrap |
+| [`actors.md`](actors.md) | ActorBase / Orchestrator / GridworksActor tiers; connect-time identity (client properties vs connect claims, the universe-ladder URL checks); per-service settings, XDG file locations & logging; the hello example; diagnostics |
 | [`service-deployment.md`](service-deployment.md) | Recommended box pattern: systemd unit → venv binary (template units for multi-instance), homedir README, XDG logs; vendored runtimes as containers; the ci.sh gate |
 
 ## The central commitment
@@ -46,13 +46,18 @@ at different layers.
 
 `gridworks-base` (module `gwbase`) is the **shared foundation for the
 GridWorks GNode service fleet**: the RabbitMQ-transport actor framework, the
-Sema codec boundary, and `gwbase.topology` — the single source of truth for
-the broker fabric (every service's exchanges/bindings derive from it, `provisioning.md`).
-Services import it as a package and subclass `GridworksActor`, one per
-`TransportClass`. Imported today by **gridworks-ear** and
-**gridworks-journalkeeper**; intended as the base for **gridworks-ltn**
-(`ltn`), **gridworks-marketmaker** (`mm`), and the **weather** (`weather`)
-and **price** (`price`) forecast services. The routing taxonomy for all of
+Sema codec boundary, `gwbase.topology` — the single source of truth for the
+broker fabric (every service's exchanges, bindings, standing queues and
+policies derive from it, `provisioning.md`) — and the client half of the
+broker's cert-plus-claims gate (`gwbase.credentials`, `actors.md`
+"Connect-time identity"). Services import it as a package and subclass the
+tier that matches their role (`actors.md` "The application layer").
+Imported today by **gridworks-ear** and **gridworks-journalkeeper** (bare
+`ActorBase` taps), **grid-node-registry** (an `Orchestrator`),
+**gridworks-weather-forecast** (a `GridworksActor`), and the
+**gridworks-timecoordinator** / **gridworks-terminalasset** hellos; intended
+as the base for **gridworks-ltn** (`ltn`), **gridworks-marketmaker** (`mm`)
+and the **price** (`price`) forecast service. The routing taxonomy for all of
 them already lives here in `gwbase` (`transport.md` "TransportClass").
 
 ---
@@ -114,6 +119,7 @@ Identity scope matches base-class scope across the three tiers
 | --------------------- | ----------- | --------------- | ------------------------------------------------- | --------------------------------------------- |
 | `alias`               | Durable     | ActorBase       | `ServiceSettings.service_alias` (`LeftRightDot`)  | Routable address (e.g. `d1.hello`)            |
 | `instance_id`         | Per-process | ActorBase       | `ServiceSettings.instance_id`, else fresh UUID    | Identifies one process lifetime (FIS uses it) |
+| `run`                 | Per-process | ActorBase       | Derived from the broker URL's vhost (`<universe>__<run>`) | The universe run being joined; claimed at the gate, never declared twice |
 | `transport_class`     | Per-process | Orchestrator    | `Orchestrator.__init__` param (intrinsic to role) | Routing taxonomy (closed enum — `transport.md` "TransportClass")         |
 | `g_node_id`           | Durable     | GridworksActor  | `g.node.gt.json` (`GNodeId`, UUID; Sema-validated)| Stable GNode identity across reboots          |
 | `g_node_class`        | Durable     | GridworksActor  | `g.node.gt.json` (`GNodeClass`; Sema-validated)   | Free-form Sema class (e.g. `Scada`)           |
@@ -126,12 +132,20 @@ asserting `GNodeGt.alias == service_alias` (provisioning-drift guard) — it is
 no longer read verbatim. `g_node_alias` / `g_node_instance_id` survive as
 back-compat property aliases for `alias` / `instance_id`.
 
-At broker connect, every actor advertises `ServiceAlias` + `ServiceInstanceId`
-as AMQP client properties; a `GridworksActor` additionally advertises
-`GNodeClass`. The presence of `GNodeClass` is the broker auth backend's (FIS)
-discriminator between a GNode and a plain service.
+At broker connect an actor says two things, and only one carries weight.
+AMQP `client_properties` (`ServiceAlias` + `ServiceInstanceId`, plus
+`GNodeClass` for a GNode) are recorded on the connection for audit and
+reconciliation; the broker never hands them to an auth backend. **Connect
+claims** — a `fis.connect.claims` word (alias, instance id, run, and
+`GNodeClass` iff the principal is a GNode) sent as the SASL response under
+the `GRIDWORKS` mechanism — are what the gate decides on; the presence of
+`GNodeClass` there is FIS's GNode-vs-service discriminator. Identity is
+never claimed: the TLS client certificate proves it. Claims ride only when
+the settings carry a `rabbit.tls` block; without it, password connect is
+untouched (`actors.md` "Connect-time identity").
 
-The `ServiceSettings` / `GNodeSettings` shapes (one `GWBASE_` env prefix), the
+The `ServiceSettings` / `GNodeSettings` shapes (each service subclasses with
+its OWN env prefix — `GJK_`, `GWWF_`, … — never `GWBASE_*` vars), the
 XDG file locations (config / data / state, keyed on `service_name`), and the
 per-actor logger are detailed in [`actors.md`](actors.md) `actors.md` "Settings, file locations, and logging". gwbase uses
 **plain XDG** for those locations — the `<PREFIX>_PATHS__BASE/NAME` path object
@@ -159,6 +173,16 @@ gwbase ⇒ uniformly plain-XDG; a gwbase service never pulls in gwproactor for
   "who may talk to whom" policy.
 - **ear / `ear_tx`** — the universal passive audit tap (`transport.md` "AMQP topology"; full spec in
   [`../../ear/executor/broker-tap.md`](../../ear/executor/broker-tap.md)).
+  **`gnr_ear_tx`** is the registry's scoped audit tap: the same shape, fed
+  only by the registry's consume + publish exchanges.
+- **Universe / run / vhost** — a universe is the durable GNode set (`d1`,
+  `hw1`, `w`); a run is one execution of time against it; the broker vhost
+  names the run as `<universe>__<run>` (`provisioning.md`). Authority for the
+  ladder: grid-node-registry executor "Universes".
+- **Connect claims** — the `fis.connect.claims` word an actor presents at
+  the broker gate under the `GRIDWORKS` SASL mechanism (`actors.md`
+  "Connect-time identity"). Distinct from `client_properties`, which are
+  audit-only.
 - **ActorBase / Orchestrator / GridworksActor** — the three actor tiers:
   the transport-only ear-tap base (non-GNode services ride it directly), the
   class-routing + control-plane orchestrator (Supervisor, TimeCoordinator),
@@ -180,15 +204,20 @@ invariants are load-bearing — preserve them.
    alongside them.
 2. Aliases on the wire are hyphenated; canonical form is dotted.
    Convert at the parse/build boundary only.
-3. Per AMQP-actor class: `<rc>_tx` (internal) for consume, `<rc>mic_tx`
-   (non-internal) for publish; wrapped messages publish to `amq.topic`
-   (any actor may send wrapped). The wrapped routing-key `type_name` slot
-   carries the **inner** application type, never `"gw"`.
+3. Per AMQP-actor class (the `AMQP_ACTOR_CLASSES` opt-in set): `<rc>_tx`
+   (internal) for consume, `<rc>mic_tx` (non-internal) for publish; wrapped
+   messages publish to `amq.topic` (any actor may send wrapped). The wrapped
+   routing-key `type_name` slot carries the **inner** application type,
+   never `"gw"`.
 4. Queue is `<alias>-F<3-hex>`, auto-delete, bound to
    `rj.*.*.*.*.<my-alias-lrh>` by default.
 5. Actors **passively** assert their consume exchange exists and never
    declare `mic_tx` or cross-class bindings — infra owns the fabric
-   (`transport.md` "AMQP topology"–`provisioning.md`).
+   (`transport.md` "AMQP topology"–`provisioning.md`). Every reach grant
+   is declared in `gwbase.topology`: the direct edges (`ROUTING_EDGES`),
+   the ear taps, the two broadcast bridges to `amq.topic` (`timemic_tx`,
+   `gnrmic_tx`, `rjb.#` only), the standing `debug` queue + its cap
+   policy.
 6. Default prefetch 1; subclass-tunable.
 7. Reconnect backoff: 0 on a known-good prior consume; otherwise +1 per
    failed attempt, capped at 30 seconds.
@@ -199,12 +228,18 @@ invariants are load-bearing — preserve them.
    `add_callback_threadsafe`); `MESSAGE_SENT` means *scheduled*, not confirmed.
    (Publishing from the caller's thread corrupts the shared connection under
    load — it breaks consuming too. See transport.md `transport.md` "Threading and lifecycle".)
-10. AMQP `client_properties` advertise `ServiceAlias` +
-    `ServiceInstanceId` at connect time (every actor); a GNode
-    (`GridworksActor`) additionally advertises `GNodeClass`. The presence of
-    `GNodeClass` is FIS's GNode-vs-service discriminator.
+10. AMQP `client_properties` (`ServiceAlias` + `ServiceInstanceId`, plus
+    `GNodeClass` for a GNode) are audit-only. What the gate decides on is
+    the `fis.connect.claims` word sent under the `GRIDWORKS` SASL mechanism,
+    built from the actor's live alias, instance id, the vhost's run, and
+    `GNodeClass` iff GNode — presented only when `rabbit.tls` is configured.
+    The credentials object holds no secret and is never erased.
 11. `scada` is MQTT-only (no AMQP exchanges); reached via `amq.topic`.
     Broadcasts are subscriber-bound, not forwarded by the direct fabric.
+12. Every broker URL is checked at boot, claims path or not: the vhost
+    parses as `<universe>__<run>` with a universe of kind `d`, `h`, or
+    exactly `w`; and the host is localhost **iff** the universe is d-kind.
+    The `run` claim derives from that vhost, never from a second setting.
 
 **Dev brokers vs prod broker.** The above invariants describe what
 **gwbase** declares. Actors **only** publish to `<rc>mic_tx` and
@@ -220,18 +255,22 @@ publisher's `<rc>mic_tx`.
 
 **Codec:**
 
-12. Wire JSON keys are PascalCase; null fields are omitted.
-13. Decoding rejects non-PascalCase keys recursively.
-14. Strict mode rejects unknown types or versions; degraded mode
+13. Wire JSON keys are PascalCase; null fields are omitted.
+14. Decoding rejects non-PascalCase keys recursively.
+15. Strict mode rejects unknown types or versions; degraded mode
     returns a `DegradedSemaType` wrapper that MUST NOT drive control
     logic.
-15. Old versions auto-upgrade by chained `upgrade()` calls; the walk
+16. Old versions auto-upgrade by chained `upgrade()` calls; the walk
     is bounded by `(latest - current)` steps.
-16. Versions are zero-padded integer strings; breaking changes require a
+17. Versions are zero-padded integer strings; breaking changes require a
     new `type_name`, not a version bump.
-17. YAML under `sema/definitions/types/` is the source of truth for the
-    wire shape.
-18. The `gw` application envelope is a separate concept from the
+18. YAML under `sema/definitions/types/` is the source of truth for the
+    wire shape. gwbase's copy, `src/gwbase/sema/`, is a generated snapshot
+    from a pinned seed (`codec.md` "The vendored snapshot is generated"):
+    never hand-edited, versions pinned not floating, the boundary classes
+    rebranded `GwBase*` by the regen script so an application's own
+    `SemaCodec` and the transport layer's never share a name.
+19. The `gw` application envelope is a separate concept from the
     transport `RoutingEnvelope`; `wrap_bytes` / `unwrap_bytes` live in
     `gwbase.sema.wrapped` and depend only on `GridworksHeader` and
     `Gw` — never on a SemaCodec registry. `Gw.Header.MessageType ==
@@ -239,24 +278,24 @@ publisher's `<rc>mic_tx`.
 
 **Application:**
 
-19. `ActorBase` knows nothing about codecs; the application owns its
+20. `ActorBase` knows nothing about codecs; the application owns its
     codec.
-20. The two framework methods are `dispatch_message` (abstract on
+21. The two framework methods are `dispatch_message` (abstract on
     `ActorBase`, implemented by `Orchestrator`) and `process_message`
     (abstract on `Orchestrator`, implemented by final application
     classes). Applications implement `process_message` and do not touch
     `dispatch_message`. A bare `ActorBase` tap implements
     `dispatch_message` directly (it has no control plane).
-21. `Orchestrator` privately handles `heartbeat.a` and `sim.timestep`
+22. `Orchestrator` privately handles `heartbeat.a` and `sim.timestep`
     for its configured supervisor and time coordinator; a subclass's
     codec does not need those types registered. (`GridworksActor`
     inherits this.)
-22. A `sim.timestep` whose value rewinds is dropped; one whose value
+23. A `sim.timestep` whose value rewinds is dropped; one whose value
     repeats is surfaced with `is_new = false`.
-23. A `heartbeat.a` from `my_super_alias` is handled internally (pong +
+24. A `heartbeat.a` from `my_super_alias` is handled internally (pong +
     `on_supervisor_heartbeat`); a `heartbeat.a` from any *other* alias
     falls through to `process_message` (so e.g. a supervisor observes its
     subordinates' heartbeats).
-24. The supervisor is identified by alias only; there is no separate
+25. The supervisor is identified by alias only; there is no separate
     secret or token at this layer (auth lives in the broker
     `client_properties` handshake).

@@ -30,7 +30,13 @@ survive): fail closed, by design.
 
 ## Scope
 
-- Tracks principals (GNode and service kinds) and instance leases.
+- Tracks principals and instance leases. A **principal** is a durable
+  identity belonging to a core piece of the GridWorks platform that is
+  allowed to connect to the broker: a **GNode** in the grid topology (a
+  house's scada, its leaf transactive node, a market maker), whose id is
+  its GNodeId; or a **Service** outside the topology (the
+  grid-node-registry, the ear, the journalkeeper, the weather forecast
+  service), whose id is a UUID FIS mints.
 - Determines the authoritative instance per (identity, run).
 - Exposes the RabbitMQ HTTP auth endpoints:
   - `/auth/user` — the gate (below).
@@ -170,22 +176,32 @@ the registry over **HTTP, never gnr's Postgres and never rabbit** — FIS is a
 pure HTTP service and joins no broker. Three inputs keep it current, all over
 gnr's read façade:
 
-- **Boot seed + periodic pull-reconcile.** FIS pulls a forest snapshot
-  (`g.node.forest.request`) for its served roots at startup, and re-pulls on
-  an interval. The reconcile is the correctness backstop: it heals a mirror
-  that missed an update.
+- **Boot seed + periodic pull-reconcile.** FIS pulls the forest under its
+  universe (`g.node.forest.request` with `Roots = [universe]` — the bare
+  universe token is a valid root, and one FIS serves one universe) at
+  startup, and re-pulls on an interval. The reconcile is the correctness
+  backstop: it heals a mirror that missed an update. A mirrored id the pull
+  does not carry is a registry anomaly to log, never a status to write: a
+  registry node never vanishes, the mirror is bijective with `g.node.gt`,
+  and absence grants no authority since the gate needs a live alias/class
+  match.
 - **gnr push, for immediacy.** gnr additionally pushes each change to a FIS
   mirror-update endpoint so a rename converges without waiting for the next
   reconcile. The push is **best-effort** — it never blocks gnr, the authority
   — which is why the reconcile above must exist.
 - **Read-through on miss.** An auth for a GNodeId absent from the mirror (a
   freshly provisioned node connecting before its push/reconcile) is read
-  through by id (`g-node-by-id`) on the spot and cached.
+  through by id (`g-node-by-id`) on the spot and applied to the mirror
+  before the alias/class check. A registry that does not know the id, or
+  cannot be reached, admits nothing new.
 
 gnr being down never stops auth: FIS serves from the last-known mirror. The
 registry is run-agnostic — runs are a fabric/FIS concern. The `principal`
 table keys on the cert subject (GNodeId for GNodes — no second id; principal
-UUID for services); the lease table keys on (principal, run).
+UUID for services); the lease table keys on (principal, run). Principal
+rows are minted by `fis principal create` before the cert is cut, so the
+CN is always a FIS-minted id; `suspend` / `activate` are the emergency
+eviction lever.
 
 **Invariant 1 is enforced in the schema**, not only in the gate: a partial
 unique index on (principal_id, run) where status is Active. Supersession is

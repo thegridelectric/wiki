@@ -29,13 +29,16 @@ than the link-state machinery.
 ## What a layout is
 
 A layout is the node→component→device-type→channel graph for one house,
-plus house-level facts. `HardwareLayout` (`data_classes/hardware_layout.py`)
-is the base; `House0Layout` (`data_classes/house_0_layout.py`) adds House0
-fields: `ZoneList`, `CriticalZoneList`, `TotalStoreTanks` (1–6),
-`ZoneKwhPerDegFList`, `FlowManifoldVariant`,
-`UseSiegLoop`, and the three GNodes (`MyScadaGNode`,
-`MyTerminalAssetGNode`, `MyLeafTransactiveNodeGNode`). On disk it's
-`<house>.generated.json` (e.g. `oak.generated.json`).
+plus house-level facts. On disk it is one authored sema artifact per home,
+a layout word (`gw.house0.layout` or `gw.nolan.layout`) whose `Hydronic`
+block (`gw.hydronic`) carries the plant facts: `Zones`, `ZoneCallCircuits`,
+`TotalStoreTanks` (1–6), `PrimaryFlowSource`, `Strategy`; the GNodes ride
+in `GNodes`. What changes without rewiring lives in the paired
+operational-params word (`gw.house0.operational.params` /
+`gw.nolan.operational.params`), `UseSiegLoop` among it. The runtime
+`HydronicLayout` (`data_classes/hydronic_layout.py`) is built from the two
+(`sema_to_dc.load_layout`); whether the plant has a Siegenthaler loop is
+read off the layout's SiegLoop-classed node, not a field.
 
 ## Layout encodes the plant; the scada protocols share + disambiguate
 

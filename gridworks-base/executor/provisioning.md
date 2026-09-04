@@ -1,11 +1,12 @@
 # gridworks-base — Provisioning & delivery
 
-Status: Draft · Pass 0 · Updated 2026-05-22
+Status: Draft · Pass 0 · Updated 2026-09-02
 
 Sub-spec of the gridworks-base rebuild spec — **start at
-[`primary.md`](primary.md)**. Section numbers are global; this file holds
-`provisioning.md` (the broker's dev/prod home). The topology it provisions is described
-in [`transport.md`](transport.md) `transport.md` "AMQP topology".
+[`primary.md`](primary.md)**. This file holds the broker's dev/hybrid home:
+how the fabric is generated, named, and delivered. The topology it
+provisions is described in [`transport.md`](transport.md) `transport.md`
+"AMQP topology".
 
 ---
 
@@ -20,17 +21,22 @@ on them.
 
 - `AMQP_ACTOR_CLASSES` — the opt-in set of `RoutingClass` values that run
   as rabbit AMQP actors and therefore get `<rc>_tx` + `<rc>mic_tx`:
-  `{ta, ltn, mm, price, weather, time, super}`. **`scada` is excluded**
+  `{ta, ltn, mm, price, weather, time, super, gnr}`. **`scada` is excluded**
   (MQTT-only, reached via `amq.topic`); **`cn` is excluded** (passive /
   non-runtime — opt it in if it ever becomes a GNodeActor). A newly-added
   `RoutingClass` gets **no** exchanges until explicitly opted in.
 - `ROUTING_EDGES` — the direct-only `(src, dst)` list (`transport.md` "AMQP topology"), with
   `direct_binding_key(src, dst)` deriving the 6-token pattern from the
   routing-key grammar (`transport.md` "Routing-key grammar").
+- `exchange_bindings()` also declares the ear taps, the registry's scoped
+  audit tap (`gnr_ear_tx`), and the two `rjb.#` bridges to `amq.topic`;
+  `queues()` / `policies()` declare the standing `debug` queue and its cap
+  policy. The definitions builder emits all of them, so a container
+  recreate reproduces the whole fabric from files.
 - **Identities** — users, vhost, and permissions live *here*, not in the
   conf's `default_*` lines (which would race the definitions import at boot).
 
-**Vhost = `<universe>__<run>` (canonized 2026-07-04).** A vhost names one
+**Vhost = `<universe>__<run>`.** A vhost names one
 **run** of a universe — the universe is the durable GNode set, a run is one
 execution of time against it, with its own message fabric / sim-clock / event
 history / FIS leases. The grammar is **uniform across all kinds, including
@@ -96,14 +102,13 @@ lands; see parity note below). The dev image is
 fast inner loop you may instead mount the freshly-generated JSON rather than
 rebuild.
 
-**Dev/prod parity & versions.** Dev and prod run the **same** CI-built image
-and differ **only by vhost**. **Dev is bumped to RabbitMQ 4.x now; the prod
-upgrade is deferred** until a first gwbase actor is validated in dev — so
-parity is *intentionally suspended* (dev 4.x, prod 3.9.13) until then. The
-generated definitions are kept **version-agnostic** (plain
-exchanges/bindings/queues/identities, no 4.x-only features) so the *same*
-topology loads on both. The eventual prod target is also **4.x** — 3.x is
-at/near community EOL, and 4.x is the right foundation for the deferred
-**mTLS + FIS** auth work, a separate track (see
-[`../../gridworks-fleet-index-service/`](../../gridworks-fleet-index-service/)
-and [`../../rmqbot/executor/primary.md`](../../rmqbot/executor/primary.md)).
+**Dev/hybrid parity & versions.** Dev and the hybrid broker run the same
+RabbitMQ 4.1 line (the hybrid box is patch-pinned by rmqbot,
+[`../../rmqbot/executor/primary.md`](../../rmqbot/executor/primary.md)) and
+load the same generated topology, differing only by vhost and by how
+identities arrive. The generated definitions stay **version-agnostic**
+(plain exchanges/bindings/queues/policies/identities) so one artifact shape
+serves every rung of the ladder. The broker-side auth gate (mTLS + the
+`GRIDWORKS` claims mechanism + FIS) is a separate track
+([`../../gridworks-fleet-index-service/`](../../gridworks-fleet-index-service/));
+gwbase's client half is `actors.md` "Connect-time identity".

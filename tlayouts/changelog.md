@@ -12,7 +12,84 @@ Newest at the top.
 
 ---
 
-## 2026-09-02 — sim-spruce pair on the reshaped Nolan word; sim device types <!-- pending commit -->
+## 2026-09-04 — Nolan gen emits DAC outputs, not the chip writer <!-- pending commit -->
+
+`emit_dac_output` replaces `emit_dac_writer`: the config axis is a list
+of wired outputs (node name, DAC, channel, power-on code), each emitting
+one `i2c.dac.output.component.gt` bound to its `ZeroTenOutputer` node
+under local control, a `VoltsTimesTen` channel captured by that node,
+and its capture tuning. Unwired channels no longer carry EEPROM defaults
+in the layout, matching the word (an unwired channel has no component
+and its EEPROM is never touched). Spruce and honeysuckle declare only
+channel C as `secondary-010v`; spruce, spruce-sim and honeysuckle
+regenerate.
+
+---
+
+## 2026-09-03 — snapshot on the layout tree axioms (`447207b`)
+
+Snapshot rebuilt at sema `818fa11` (the vendored layout words gain
+PrefixClosedHandles and ActuatorLeaves): `gw.hydronic` gains optional
+`HpCommandNodeName` and loses `Strategy` (the family is the layout
+word); the vendored layout words carry the CommandableHeatPump axioms;
+`new.command.tree` is not in the seed. The sim pairs regenerate
+byte-identical to the scada fixtures.
+
+## 2026-09-03 — generators drop Hydronic.Strategy (`541da84`)
+
+The House0 and Nolan gens and every script stop passing a strategy
+label; the family is the layout word.
+
+---
+
+## 2026-09-03 — House0 gen emits UseSiegLoop on the ops artifact; snapshot on the sieg split (`1741a26`)
+
+Snapshot rebuilt at sema `7c3e0bd`: `gw.hydronic` without `SiegLoopPlumbed`
+and `UseSiegLoop`, `gw.house0.operational.params` with `UseSiegLoop`
+(`layout.lite` is not in the tlayouts seed, so its rename does not
+appear here). The House0 gen keeps `use_sieg_loop` as
+a config axis but emits it on the ops artifact; `sieg_loop_plumbed`
+leaves the config (the plumbed sieg surface is what the House0 word
+means). The Nolan gen drops both from its hydronic block.
+
+---
+
+## 2026-09-02 — sim-House0 pair authored; House0 gen carries the sieg surface, hp parts and zone circuits (`85e7364`)
+
+`gen_house0_stub_sema.py` becomes `house0_sim_sema_gen.py`: the little
+orange house as the all-sim shape of the beech family word, emitting the
+scada suite's second House0 pair (`gw.house0.sim.*`). The House0 gen
+catches up to `gw.house0.layout` axioms 3, 7, 8, 10 and 11: the
+sieg-loop command node, sim sensors (`sim.sensor.component.gt` +
+SimSensorActor) behind dist / primary / store / sieg flow and the sieg
+cold side, `hp-odu` and `hp-idu` on `device.component.gt` through
+`HpPartSpec` (moved here from the Nolan gen, which now imports it), and
+per-zone `ZoneCircuitSpec` (actuator, role, setpoint source, thermostat
+kind, hub device id) driving both Hydronic.ZoneCallCircuits and the
+zone's temperature realization: HoneywellViaHubitat emits the hub
+poller, MechanicalDial on a simulated home emits a sim temperature
+sensor (`<zone>-temp-sensor`, no name constant yet). Every zone carries
+its TempChannelName. `zone_device_ids` retires into the circuit spec;
+`minted_gnodes` supplies identity for sema-shaped references; the
+thermistor-common relay leaves the table (the fixture dropped it
+2026-08-31); the store-pump relay resolves through the hydronic node
+tier. Two pre-existing name drifts fixed in passing (backup /
+scada-blind moved to the House0 tier). `gen_oak_sema.py` still passes
+`zone_device_ids` and stays guarded behind the missing no-sieg word.
+The snapshot rebuilt from sema `0496374` rides along so the vendored sim
+vocabulary carries `SimHpIdu`.
+
+## 2026-09-02 — snapshot carries gw.house0.layout axioms 10-11 (`cdf531c`)
+
+Snapshot rebuilt from sema `dfe93be`: the vendored `House0Layout` now
+enforces `RequiredActuators` and `RequiredHeatpumpEquipment`, so the
+House0 stub gen cannot emit a fixture the canonical word rejects. The
+gen itself is unchanged and still owes the sieg-surface fold-in (plus
+`hp-idu`, the zone circuit and the LG parts the scada fixture now
+carries by hand) before its next regen; it currently stops earlier on a
+stale `house0-layout.json` diff-and-adopt path.
+
+## 2026-09-02 — sim-spruce pair on the reshaped Nolan word; sim device types (`a36c5ce`)
 
 The Nolan generator emits the per-tank element relays
 (`tank1-top-elt-relay` / `tank1-bottom-elt-relay`, board silkscreen

@@ -154,48 +154,149 @@ before anything touches prod). The gridworks-data analysis
 (calc_hourly_data: House0-frozen channel strings, Nolan's NULL hp_kwh_el,
 relay-idx LIKE patterns) is the phase-3 seed material.
 
-## Handoff state (2026-09-02, session sneaky-tulip → next)
+## Handoff state (2026-09-02 evening, session calm-sapling → next)
 
-**Everything is committed; all trees clean; all suites green** (scada
-243 passed / 2 skipped; sema 525; tlayouts 2). Landed this session:
-scada `bd13a371` (partition + names tiers) and `963ccddc`; sema
-`2649929` and `99ffd4f`; tlayouts `eaecf42`. The domain changelogs
-carry the what/why of each.
+**Landed this session:** sema `912660c` (DAC output words, disjoint
+`gw1.sim.device.type`, maple/beech heat-pump nameplates) and `e625ff6`
+(Nolan axioms reshaped to the names tiers, tank1 element names).
+**Uncommitted, green, ready to land** (commands in the session's last
+message): tlayouts (sim-spruce pair on the reshaped word, snapshot
+rebuilt, sim heat-pump parts) and scada (mirror + names + sim
+vocabulary + regenerated fixture; suite 248 passed / 2 skipped,
+conformance sweep green, `sema validate` OK on the fixture). Pending
+changelog entries for both carry the what/why; reconcile the hashes.
 
-**The next moves, in order:**
+**Sema round 2, remaining moves, in order** (spec: `layout-word-axioms.md`;
+decisions settled there 2026-09-02). **Next move: 2** (three word moves,
+one commit per repo).
 
-1. **Sema round 2** — fully specified in `layout-word-axioms.md`
-   ("Axiom architecture" items 5-8): RequiredActuators (+
-   `secondary-010v` on the `dac-output.md` shape — the DAC output words
-   land in this round), RequiredEquipment (hp-odu, hp-ctrl-box, gw108),
-   ComponentBinding (Nolan word only), CommandableHeatPump +
-   `Hydronic.HpCommandNodeName`, and new.command.tree/002 axiom 2 (the
-   actuator-leaf invariant). Word-gate ritual per kind; each lands with
-   fixture regen + gwsproto mirror + rejecting tests, incremental
-   commits. Two Nolan fixtures come out of it: without and with the
-   modbus twin (hp-ctrl-box as HpTwin under hp-boss).
-1b. **DAC output actor + bench + spruce witness** (`dac-output.md`,
-   decided 2026-09-02): the actuator must exist in the tree before the
-   tree is tested; honeysuckle rung, then a spruce window.
-2. **tank1-elt renames** (decided, unexecuted — see the names grilling
-   decisions below): own commit, Nolan word literals + regen.
-3. **The command-tree matrix** (`command_node.py` review) — inventory
-   enumerated and confirmed; admin cells expect
-   `admin.pico-cycler.vdc-relay` marked xfail until the pico-cycler
-   command chunk; clause (c) dormancy assertion included. Estimate row
-   open on the scoreboard.
-4. Estimated chunks queued behind it: pico-cycler command
-   (`pico-cycler-command.md`, 4h) and the krida retirement
-   (`krida-retirement.md`, 6h — unblocks the skipped House0
-   ComponentBinding test, the House0 board node, the hardware-module
-   split, and `gen_alt_nolan.py`).
+1. ✅ **House0 word** (landed 2026-09-02: sema `dfe93be`, scada
+   `050fdd54`, tlayouts `cdf531c`): axioms 10 RequiredActuators + 11
+   RequiredHeatpumpEquipment, mirror + rejecting tests, fixture on the
+   beech real shape (LG parts, Honeywell circuit).
+1a. ✅ **Honeywell read + sim House0** (built 2026-09-02, commits
+   pending at handoff: sema `SimHpIdu`; tlayouts `house0_sim_sema_gen.py`
+   + gen fold-in; scada sim pair `tests/config/gw.house0.sim.*` booting
+   beside beech, 269 passed). Read findings + the queued thermostat
+   chunk: `unsorted.md`. Order to land: sema → rebuild the tlayouts
+   snapshot (`./build_tlayouts_snapshot.sh` refuses a dirty sema tree)
+   → tlayouts → scada.
+2. **One commit per repo, three word moves together** (all edit the
+   layout words / `gw.hydronic` with mirrors and one regen wave, no
+   fixture swap):
+   - ✅ **The `gw.hydronic` sieg split** (landed 2026-09-03: sema
+     `8451769`, tlayouts `1741a26`, scada `d4faae53`; plus `layout.lite/013`
+     `Strategy` → `HardwareLayoutTypeName`, sema `7c3e0bd` / scada
+     `0d4ec979`; `UseSiegLoop` reads go through
+     `ScadaData.use_sieg_loop`, the assembly check is
+     `sema_to_dc.check_sieg_loop_assembly`, has-sieg is
+     `HydronicLayout.flow_manifold_variant_of`) (spoke "Dropped / superseded"):
+     drop `SiegLoopPlumbed` — invariant for the word, nothing reads it;
+     scada derives has-sieg from the presence of a SiegLoop-classed node
+     (true for the coming no-sieg word without a type check). Move
+     `UseSiegLoop` to `gw.house0.operational.params` — USING is
+     operational; the ten `layout.use_sieg_loop` reads (`scada.py`,
+     `command_node.py`, `hp_boss.py`, `api_btu_meter.py`,
+     `api_flow_module.py`) repoint to ops. Hydronic axiom 1 retires into
+     a scada assembly check (ops says use it ⇒ the layout has it).
+     Shared staging word: Nolan fixture + mirror, both House0 fixtures,
+     the Hydronic mirror and the House0 gen ride along.
+   - ◐ **`Hydronic.HpCommandNodeName` + `CommandableHeatPump` + ActuatorLeaves,
+     SEMA SIDE LANDED** (sema `998b9c7`, 2026-09-03): optional `HpCommandNodeName`
+     (`spaceheat.name`) on `gw.hydronic`; House0 axiom 12 / Nolan axiom
+     10 `CommandableHeatPump` (biconditional; RequiredHeatpumpEquipment's
+     NoActor clause defers to it); `new.command.tree/002` axiom 2
+     `ActuatorLeaves` with `gw1.actor.class:013` as axiom dependency and
+     dormancy in the extended description. Both sim fixtures validate
+     unchanged. **gwsproto port BUILT 2026-09-03 (scada commit
+     pending, 289 passed):** `House0Layout.check_axiom_12`,
+     `NolanLayout.check_axiom_10`, equipment checks skip the declared
+     node, `NewCommandTree.check_axiom_2`, `layout.actuators` returns the
+     declared node, rejecting tests per clause, coverage allowlists back
+     to empty/without them. **Also 2026-09-03 (sema branch
+     `jm/layout-tree-axioms`, commit pending; scada mirrors in the same
+     pending scada cluster, 298 passed):** both layout words carry the
+     tree word's `PrefixClosedHandles` + `ActuatorLeaves` (House0 13/14,
+     Nolan 11/12, identical wording); one gwsproto implementation in
+     `type_helpers/command_tree_axioms.py` serves all three types. After
+     the sema commit: rebuild the tlayouts snapshot again (layout words
+     changed) before the tlayouts snapshot commit. Move 2 is then complete.
+     **Also built 2026-09-03, riding the same three commits:** `Hydronic.Strategy`
+     dropped from `gw.hydronic` (family = the layout word); scada
+     `FlowManifoldVariant` deleted with nothing in its place (the House0
+     word means has-sieg; its dc-side manifold check duplicated axiom 8
+     and `House0LoadArgs` collapsed into `LoadArgs`), LocalControl loader
+     dispatches with `isinstance` on `layout.sema_layout`; the three new axioms sit in the coverage
+     allowlists as known unported/untested debt until the mirror port;
+     tlayouts gens drop the strategy label. Commit order: sema
+     `gw.hydronic: drop Strategy` (5 files, pending) → tlayouts snapshot
+     rebuild + sim-pair regen (should match the hand-edited scada
+     fixtures byte for byte) → tlayouts commit → scada commit.
+   - **new.command.tree/002 axiom 2 `ActuatorLeaves`** (sema side built
+     with the bullet above; `NewCommandTree` mirror gains `check_axiom_2`
+     in the scada commit), wording agreed
+     (leaf / actuator / command-node definitions at the top; NoActor
+     waypoints are the LocalControl node's children; dormancy of leaf
+     command nodes in `extended_description`, not a clause);
+     `gw1.actor.class:013` as axiom dependency.
+3. **DAC actuator (1b)**: `secondary-010v` on `i2c.dac.output.component.gt`
+   joins Nolan RequiredActuators together with the actor rebuild — the
+   writer test resolves the fixture's writer node and ZeroTenOutputer
+   hard-wires the House0 multiplexer, so the fixture cannot swap
+   before the actor does. Writer refs then leave the layout unions; the
+   House0 `*-010v` nodes gain their components and axiom 10 its
+   ComponentId clause.
+4. **hp-twin fixture**: tlayouts config axis → `gw.nolan.layout.hp-twin.json`
+   (hp-ctrl-box as HpTwin under hp-boss, its component the MIM modbus
+   bridge) + a dormant HpTwin stub so both fixtures boot. hp-boss
+   driver selection keys on the control box's DeviceType value: a
+   real value selects the modbus driver, `SimSamsungAE055FEYMCG` the
+   sim twin; sim parts carry no device-type records.
+
+**Trees at handoff (2026-09-03 morning):** all clean. Sema on `dev`
+(`7c3e0bd`, ahead of origin, push due; cut `jm/<topic>` off dev before
+any sema edit). Scada `jm/spruce-unlimbo` at `0d4ec979`; tlayouts
+`jm/spruce` at `1741a26`; the tlayouts snapshot is at sema `7c3e0bd`.
+Changelogs reconciled. Two House0 fixtures boot: `gw.house0.layout.json`
+(hand-kept beech real shape: LG parts, Honeywell circuit) and
+`gw.house0.sim.*` (from `tlayouts/house0_sim_sema_gen.py`: mechanical
+dial, sim sensors behind every flow position and the sieg cold side, no
+Hubitat); the named-type and prefix-closed tests run over both. The
+beech fixture still fails `sema validate` on pre-existing shape (three
+channels carry InPowerMetering, four components predate their words'
+config shape) — closes with a translated beech gen, not by hand.
+
+Then the tree matrix (`command_node.py` review) and the queued chunks
+(pico-cycler command 4h, krida retirement 6h).
+
+**Honeywell layout-plumbing read (2026-09-02, no code changed):** the
+four thermostat actor files are byte-identical to `main`; the plumbing
+they consume (`hardware_layout.component(name)`, `get_component_as_type`,
+`node_from_component`, the poller's `resolve()` building its REST
+settings from the hub's MakerAPI URL, `web_listener_nodes`) survives the
+DeviceComponent/sema port unchanged in behaviour, and the beech-shaped
+fixture carries every input the poll path needs (hub + poller
+components, `zone1-main-temp/-set/-state` captured by the stat node,
+s2 forwarding SyncedReadings with Src preserved). Findings:
+(1) the web-listen path is dead in the field on `main` and here:
+`HubitatWebEventHandler.__call__` uses `time.time()` with no `time`
+import and swallows the NameError in a bare except; and the stat node
+runs under `s2` while the hub's web server runs under `s`, so neither
+side ever finds the other's communicator to register handlers.
+Polling is the only live path. (2) LocalControl reads setpoints by
+scraping channel names (`'zone' in x and 'set' in x`) rather than the
+circuit's Thermostat, and nothing consumes `Thermostat.ComponentId` or
+`ThermostatKind` yet. (3) No test constructs the Hubitat or
+HoneywellThermostat actors; a poller test on a canned MakerAPI refresh
+response is the first coverage to add.
 
 **Standing cautions:** repo-wide ruff has ~70 pre-existing findings
-(`--fix` parked until after a commit — now sanctioned to run);
-`hubitat_interface.py:156` one-line import bug awaits a green light;
-`run_async_actors_main` deletion + `git rm --cached scratch.py` await
-sign-off; the House0 fixture carries one pre-existing sema-validate
-failure (WebServerComponentGt.I2cAddressList).
+(`--fix` sanctioned after a commit); `run_async_actors_main` deletion +
+`git rm --cached scratch.py` await sign-off; the tlayouts snapshot builder
+refuses a dirty sema tree, so sema commits land before snapshot rebuilds;
+`gen_oak_sema.py` still passes the retired `zone_device_ids` and stays
+guarded behind the missing no-sieg word; the scada changelog's two 08-31
+entries sit above the 09-02 ones.
 
 ## Names grilling decisions (2026-09-01; landed in `bd13a371`)
 

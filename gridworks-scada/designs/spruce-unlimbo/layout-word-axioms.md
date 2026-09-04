@@ -40,17 +40,24 @@ Status: Draft · Pass 0 · Updated 2026-09-02 · Linear: OPS-392
    SHALL be the declared node (at most one per layout, zero when
    undeclared). Undeclared = NoActor + dormant hp-boss (spruce stays
    undeclared until the MIM is wired).
-6. **`RequiredActuators`** (next round) — Nolan's RequiredRelays
+6. **`RequiredActuators`** (Nolan landed `e625ff6`; House0 as axiom 10,
+   this round) — Nolan's RequiredRelays
    generalizes: the unconditionally-certain tree leaves, relays + 0-10V
    outputs (Nolan: `secondary-010v`, ActorClass ZeroTenOutputer, with a
    ComponentId — the `dac-output.md` shape; House0: the three `*-010v`
-   nodes). The maybe-actuator heat pump never appears here — only via
-   axiom 5.
-7. **`RequiredEquipment`** (next round) — physical inventory with
-   components, NoActor: hp-odu and hp-ctrl-box move here OUT of
-   RequiredCommandNodes (they are equipment, not tree structure); the
-   `gw108` board node joins it.
-7a. **`ComponentBinding`** (next round, Nolan word; House0's waits for
+   nodes, Name + ActorClass only until the DAC output actuator gives
+   them components). The maybe-actuator heat pump never appears here —
+   only via axiom 5.
+7. **`RequiredHeatpumpEquipment`** (Nolan landed `e625ff6`; House0 as
+   axiom 11, this round: `hp-odu` + `hp-idu`) — the heat-pump parts with components,
+   NoActor: hp-odu and hp-ctrl-box move here OUT of
+   RequiredCommandNodes (they are equipment, not tree structure). The
+   board is NOT required (a layout does not determine its board); the
+   rest of the plant inventory goes without saying. `hp-idu` names an
+   indoor unit that does the refrigerant-to-water exchange (Ecodan
+   hydrobox, LG hydro kit: no glycol, no plate exchanger); `hp-ctrl-box`
+   stays the monobloc's box.
+7a. **`ComponentBinding`** (Nolan landed `e625ff6`; Nolan word; House0's waits for
    the krida retirement) — every Component SHALL be referenced by
    exactly one ShNode. The node's Name is the component's human-meaning
    identity within the house; ComponentId stays as the replaceable
@@ -60,19 +67,38 @@ Status: Draft · Pass 0 · Updated 2026-09-02 · Linear: OPS-392
    pre-node reference artifacts and House0's krida trio), and
    ComponentBinding tests guard both fixtures (House0's skipped until
    the retirement).
-7b. **DAC output words** (next round, with the layout edits — see
+7b. **DAC output words** (words landed `912660c`; the fixture swap rides
+   the actor rebuild, 1b — see
    `dac-output.md`): new `i2c.dac.output.component.gt` +
    `dac.output.config` (+ `sim.dac.output.component.gt`); the writer
    trio (`i2c.dac.writer.component.gt`, `i2c.dac.channel.config`,
    `sim.dac.writer.component.gt`) orphaned in place with `replaced_by`.
    Replaces the earlier idea of adding `ChannelName` to
    `i2c.dac.channel.config`.
-8. **new.command.tree/002 axiom 2** (settled): every actuator SHALL be
-   a leaf with a boss; every dotted-handle leaf SHALL be an actuator or
-   a command node. (Clause (c) — non-actuator leaves are Dormant
+8. **new.command.tree/002 axiom 2 `ActuatorLeaves`** (wording settled
+   2026-09-02): a leaf is a dotted-handle node that is the parent prefix
+   of no other; an actuator is ActorClass Relay / ZeroTenOutputer /
+   HpTwin; a command node is ActorClass LocalControl / LeafAlly /
+   PicoCycler / HpBoss / SiegLoop, or a NoActor node whose handle parent
+   is the LocalControl node (the state-machine set: n, backup,
+   scada-blind, without naming House0 in a cross-layout word). a. every
+   actuator SHALL be a leaf; b. every leaf SHALL be an actuator or a
+   command node. (Clause (c) — non-actuator leaves are Dormant
    command nodes — is code+matrix territory, not wire-checkable.) Full
    rationale + the twin architecture and the single `HpTwin`
    ActorClass: `hp-boss-cleanup.md`.
+
+## Simulated devices are a vocabulary (settled 2026-09-02)
+
+`gw1.sim.device.type` is disjoint from `gw1.device.type`: a component's
+open DeviceType string belongs to exactly one, so scada tells simulated
+from real by membership (`SimDeviceType`), never by a name prefix. A sim
+value exists only when a sim actor speaks the real device's protocol
+(`SimSamsungAE055FEYMCG` for the control box hp-boss practises modbus
+against); a device nothing talks to is non-descript (`SimHpOdu`). Sim
+parts carry no device-type records. Axiom numbering stays integer +
+name; the cross-layout mirror key is the axiom NAME. One file per
+type, definitions and runtime.
 
 ## Dropped / superseded
 
@@ -87,14 +113,29 @@ Status: Draft · Pass 0 · Updated 2026-09-02 · Linear: OPS-392
   means has-sieg (spec const rule: invariants aren't data fields).
 - `Hydronic.UseSiegLoop` — migrates to `gw.house0.operational.params`
   (USING is operational; hp-boss/sieg-loop dormant when unused). Code
-  ripple: `set_command_tree` reads it from ops, not the layout.
+  ripple: `set_command_tree` reads it from ops, not the layout. Both
+  fields live on the shared `gw.hydronic/000` (staging, with axiom 1
+  SiegLoopControlImpliesPlumbed), so the move edits that word in place
+  and the Nolan fixture and mirror ride along.
 
 ## Fixture / generator moves
 
-- **`gw.house0` fixture represents beech/maple only** (the sieg
-  family): hand-author the sieg surface in (sieg-loop node, sieg-cold /
-  sieg-flow / sieg-flow-hz, dist-flow / store-flow) — sanctioned
-  interim while the House0 sema generator is blocked.
+- **`gw.house0` fixture represents beech** (the sieg family, real
+  shape): hand-author the sieg surface in (sieg-loop node, sieg-cold /
+  sieg-flow / sieg-flow-hz, dist-flow / store-flow), the LG nameplate
+  parts, and the Honeywell-via-Hubitat zone circuit — sanctioned interim
+  while the House0 sema generator is blocked. Under `sema validate` the
+  fixture predates its component words' config shape (electric meter,
+  web server, hubitat, poller; three channels still carry
+  InPowerMetering); the generator fold-in closes that.
+- **Sim House0 is its own fixture** (built 2026-09-02): `house0_sim_sema_gen.py`
+  emits `gw.house0.sim.*` — a Nolan-type zone circuit (MechanicalDial,
+  Learned, whitewire on the sim meter power channel, a sim temperature
+  sensor for the zone), sim sensors behind every flow position and the
+  sieg cold side, sim hp parts `SimHpOdu` + `SimHpIdu`, no Hubitat. Real
+  nameplates (LG for beech, Mitsubishi for maple) belong on the real-shaped
+  fixtures and their `hp.device.type.gt` records, authored from the Drive
+  nameplate photos.
 - **tlayouts `gen_elm` / `gen_fir` / `gen_oak` repoint to a
   `gw.house0.no.sieg` stub that does not exist yet** — making the third
   family's need concrete in code; the word itself is NOT authored now

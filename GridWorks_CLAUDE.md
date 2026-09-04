@@ -137,6 +137,16 @@ distributed-trust principle it served — that principle is core vision.
   Quote only text actually read this session (or in a cited extraction);
   otherwise mark "quote not captured; read before citing" — never paraphrase
   inside quote marks.
+- **The layout closure is mirrored in gwsproto, and the mirror is
+  checked from a vendored copy.** `gridworks-scada/packages/
+  gridworks-scada-protocol/sema_closure/registry.yaml` is a byte-for-byte
+  copy of the tlayouts snapshot registry; the scada conformance test
+  requires every word in it to have a gwsproto twin at that version.
+  Whenever the tlayouts snapshot regenerates, refresh the copy in the
+  same wave and write the mirrors the test names (Stop hook
+  `stop-snapshot-closure-sync.sh` blocks while the two differ). A word
+  that reaches sema and the snapshot without a gwsproto twin is the
+  defect this closes.
 - **Sema regen touches more than you changed** — bumping one type's version
   rewrites the generated runtime of unchanged referrers (versionless class ref
   rebinds; old version gets an explicit `XxxNNN` class). Expected, not a stray

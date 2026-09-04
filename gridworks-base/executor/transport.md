@@ -1,6 +1,6 @@
 # gridworks-base — Transport layer
 
-Status: Draft · Pass 0 · Updated 2026-07-29
+Status: Draft · Pass 0 · Updated 2026-09-02
 
 Sub-spec of the gridworks-base rebuild spec — **start at
 [`primary.md`](primary.md)**. Section numbers are global across the spec
@@ -193,7 +193,7 @@ application only specifies the destination.
 The topology is built on a **two-exchange-per-class** pattern. For every
 class that runs as an AMQP actor — the `AMQP_ACTOR_CLASSES` opt-in set in
 `gwbase/topology.py` (`provisioning.md`, [`provisioning.md`](provisioning.md)):
-`{ta, ltn, mm, price, weather, time, super}`; `scada` is MQTT-only and
+`{ta, ltn, mm, price, weather, time, super, gnr}`; `scada` is MQTT-only and
 `cn` is passive, so neither gets exchanges — the broker has:
 
 | Exchange      | Type  | Durable | Internal | Role                            |
@@ -209,9 +209,9 @@ enter through a `<src>mic_tx` and be forwarded by an explicitly declared
 binding into the destination `<dst>_tx`. **The broker's binding table is
 therefore the authoritative "who may talk to whom" policy**, enforced at
 the broker and declared out-of-band — actors cannot grant themselves
-reach. (This complements the connection-level FIS authorization done via
-`client_properties` at connect time, `transport.md` "Threading and lifecycle": FIS controls *who may
-connect*; the binding table controls *who may route to whom*.)
+reach. (This complements the connection-level FIS authorization done on
+the connect claims, `actors.md` "Connect-time identity": FIS controls *who
+may connect*; the binding table controls *who may route to whom*.)
 
 **What an actor declares at startup vs. what must pre-exist.** Infra owns
 the fabric; the actor owns only its ephemeral endpoint. At startup an
@@ -253,7 +253,7 @@ pattern (an `ActorBase.subscribe_broadcast` helper). So the cross-class
 fabric is **direct-only**.
 
 **The cross-class direct-edge fabric** — generated from `ROUTING_EDGES`
-(`provisioning.md`). Initial edges:
+(`provisioning.md`). The edges:
 
 | From          | To        | Routing key           |
 | ------------- | --------- | --------------------- |
@@ -266,6 +266,18 @@ fabric is **direct-only**.
 | `supermic_tx` | `mm_tx`   | `*.*.super.*.mm.*`    |
 | `supermic_tx` | `time_tx` | `*.*.super.*.time.*`  |
 | `timemic_tx`  | `super_tx`| `*.*.time.*.super.*`  |
+| `mmmic_tx`    | `gnr_tx`  | `*.*.mm.*.gnr.*`      |
+| `gnrmic_tx`   | `mm_tx`   | `*.*.gnr.*.mm.*`      |
+| `weathermic_tx` | `weather_tx` | `*.*.weather.*.weather.*` |
+
+The last two rows are deliberate shapes, not gaps. A MarketMaker sends the
+registry its re-parent command and receives the verdict, so the registry's
+only direct edges are with `mm`; an operator wanting to speak to the
+registry rides a MarketMaker identity rather than earning a fabric path of
+its own. The weather **self-edge** carries the weather service's create
+round: the minter is a weather-class operator identity, so command and
+verdict both stay inside the weather domain instead of borrowing the
+mm↔gnr shape for a relationship weather does not have.
 
 Plus the **ear tap**: `<rc>mic_tx → ear_tx (#)` for every AMQP class, and
 `amq.topic → ear_tx (#)`. `ear_tx` is durable/internal/topic and
@@ -274,15 +286,31 @@ default (bind one by hand to debug). The ear is the universal audit tap and
 shovel source; see
 [`../../ear/executor/broker-tap.md`](../../ear/executor/broker-tap.md).
 
-Plus the **MQTT bridge tap** (added 2026-06-11): `timemic_tx → amq.topic
-(rjb.#)` — the one declared exception to "broadcasts are
-subscriber-bound". MQTT-native actors (scada) cannot bind queues on the
-AMQP fabric, so the time coordinator's broadcasts (sim timesteps) cross
-to the MQTT plugin's exchange in the static fabric, where an MQTT
-subscriber sees e.g. `rjb/d1-tc/time/sim-timestep`. Broadcasts only
-(`rjb.#`); direct traffic stays on the AMQP fabric. Declared in
-`topology.py` like every other reach grant — the broker, not the actor,
-decides that MQTT-world may hear the clock.
+Plus the **registry's scoped audit tap**: `gnr_tx → gnr_ear_tx (#)` and
+`gnrmic_tx → gnr_ear_tx (#)`. Everything said to the registry and
+everything it says (forest broadcasts and write verdicts alike, since every
+actor publishes via its own mic, so refusals are witnessed too) lands on one
+tiny internal exchange the seed-store capture consumes with a plain `#`.
+The slice is defined in the fabric, in git, never in a tap's runtime
+binding.
+
+Plus the **MQTT bridge taps**: `timemic_tx → amq.topic (rjb.#)` and
+`gnrmic_tx → amq.topic (rjb.#)` — the two declared exceptions to
+"broadcasts are subscriber-bound". MQTT-native actors (scada) cannot bind
+queues on the AMQP fabric, so the time coordinator's sim timesteps and the
+registry's `g.node.forest` broadcasts (how every GNode passively hears an
+ancestor rename; forests carry aliases + immutable ids only, never
+coordinates, so crossing is safe) reach the MQTT plugin's exchange in the
+static fabric, where an MQTT subscriber sees e.g.
+`rjb/d1-tc/time/sim-timestep`. Broadcasts only (`rjb.#`); direct traffic
+stays on the AMQP fabric. Declared in `topology.py` like every other reach
+grant — the broker, not the actor, decides what MQTT-world may hear.
+
+Plus the **standing queues and policies** (`topology.queues()` /
+`policies()`): the durable, deliberately unbound `debug` queue — which slice
+it taps is investigation state, hand-bound per session — capped by the
+`debug-cap` policy (max-length 1000, drop-head). A container recreate
+reproduces the tap from files.
 
 (Binding keys are 6-token `JsonDirect` patterns filtering on the `<src>`
 and `<dst>` class slots; they don't match 4-token broadcast keys, which is
@@ -361,7 +389,7 @@ When publishing, the transport sets these AMQP `BasicProperties`:
 These properties are advisory; the routing key is authoritative.
 
 **Open — per-message provenance & signing (FIS era).** FIS authorizes at
-*connect* time (client_properties → broker → FIS), but an audit trail wants
+*connect* time (connect claims → broker → FIS), but an audit trail wants
 to know which runtime instance sent each *message*. The working lean keeps
 `rj`/`rjb` bodies as **bare sema types** (the JSON *is* the type — see the
 open envelope question in [`codec.md`](codec.md) `codec.md` "The gw application envelope") and carries

@@ -12,6 +12,61 @@ Newest at the top.
 
 ---
 
+## 2026-09-04 — Mirror seam: pull from gnr over HTTP. AND, mint principal rows before certs (`0e2d856`)
+
+One commit, two build steps (5b and 5d), each described below.
+
+**Mint principal rows before certs (step 5d).** Nothing minted `principals` rows: a real node's first connect
+denied with principal-not-found however warm the mirror, and the four
+platform-service certs were stalled on "an interim UUID now, back-fill the
+row later" — two sources of truth for an identity. `principals.py` holds
+the pure functions (create / list / suspend / activate over a session);
+`fis principal` is the thin CLI. `create --kind Service` mints a fresh
+uuid4 as the id and prints it, which is the CN handed to `gwcert`;
+`create --kind GNode --g-node-id <id>` uses the GNodeId (the cert CN for a
+GNode is its GNodeId, no second id). A duplicate id, a malformed GNodeId, or
+a Service given a GNodeId are refused. Suspend/activate flip the status the
+gate already reads. Postgres-backed tests for each path. The README,
+module and model docstrings, and the executor now say what a principal
+is: a durable identity belonging to a core piece of the platform that may
+connect to the broker — a GNode in the topology (scada, LTN, market
+maker) or a Service outside it (registry, ear, journalkeeper, weather).
+
+**Mirror seam: pull from gnr over HTTP (step 5b).** The path that feeds `mirror.apply_gnode`, keeping FIS a pure HTTP
+service: `gnr_client.GnrHttpClient` (httpx against gnr's read façade —
+`POST /gnr/g-node-forest-request`, `GET /gnr/g-node-by-id/{id}`), decoding
+every response strictly through the vendored snapshot codec, and a reconcile
+loop as a FastAPI-lifespan background task: boot-seed the forest, re-pull on
+`FIS_GNR_RECONCILE_S`. gnr unreachable is a logged warning and the last-known
+mirror serves — never a boot failure, never a deny by itself.
+
+Two facts settled at build, both narrower than the design's wording. **The
+served roots are the universe.** A FIS serves one universe and the bare
+universe token is a valid `LeftRightDot`, so the forest request names
+`[universe]` and gets every node under it — no roots setting to keep in
+step with the registry. **Nothing is marked inactive by absence.** A
+registry node never vanishes (GNodeId immutable, status terminal, no delete
+command), so a mirrored id missing from a whole-universe pull is a registry
+anomaly `apply_forest` logs, not a status FIS may invent in a mirror that is
+bijective with `g.node.gt`; absence grants no authority anyway (the gate
+needs a live alias/class match).
+
+`decide_user` reads through on a mirror miss: an AMQP GNode unknown to the
+mirror is fetched by id and applied before the alias/class check, so a
+freshly provisioned node connecting ahead of the next reconcile is admitted
+rather than denied; a 404 or an unreachable gnr stays `not-in-registry`.
+The gate takes the registry reader as an injected dependency like the
+killer, so every test runs against a fake; the http client takes an
+optional httpx transport so its tests replay the wire round-trip (request
+word out, forest back through the codec) with no registry. `create_app`
+grows the same injection plus a `reconcile` switch so the hermetic API
+tests never touch the network. Settings gain `FIS_GNR_URL` /
+`FIS_GNR_RECONCILE_S` (`GnrSettings`, own `fis_gnr_` prefix like the
+management-API block); README and `template.env` say so. 11 new tests, 62
+green. Dev-rung witness: a real `fis api` boot against a local `gnr api`
+refilled a cleared mirror with the 29 `d1` nodes; a second pull reported
+all 29 unchanged.
+
 ## 2026-08-23 — sema improvements - regen script and minimum-cover seed (`4929947`)
 
 fis vendored its Sema snapshot with no seed or regen script in-repo. Adds
@@ -25,7 +80,10 @@ exactly that version, so closure delivers it (same for
 prod posture, no silent latest-chasing. The README gains the standard Sema
 paragraph (canonical language + boundary-scoping sentence).
 
-## 2026-08-16 — Mirror apply + reconvergence kill <!-- pending commit -->
+## 2026-08-16 — FIS off rabbit (`e1c99ce`)
+
+(Commit title names the decision the cluster serves; the diff is the
+mirror apply + reconvergence kill described below.)
 
 Step 5. `mirror.apply_gnode` upserts one `g.node.gt` snapshot into the mirror
 and, when the write is a rename (an alias change on an already-mirrored
