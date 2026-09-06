@@ -9,6 +9,10 @@
 #   >= CTX_CLOSE  same mechanism, message says "close now".
 #   delta >= DELTA_NOTE  user-facing note that one turn grew context by
 #                 that much (big read / fan-out dump).
+#   every CTX_TIER (25K) crossed: a user-facing systemMessage naming the
+#                 boundary, no recommendation attached; a turn that crosses
+#                 several boundaries names them all. State:
+#                 ~/.claude/.context-band/<session-id>.tier = last tier.
 #
 # Never blocks while stop_hook_active is set, and never blocks twice in
 # the same band: Claude cannot shrink its context, so a repeated block
@@ -37,6 +41,21 @@ mkdir -p "$STATE_DIR"
 STATE="$STATE_DIR/$SESSION_ID"
 last_band=$(cat "$STATE" 2>/dev/null || echo 0)
 
+# The running tab: report each CTX_TIER boundary crossed since last turn.
+CTX_TIER=25000
+TIER_STATE="$STATE.tier"
+last_tier=$(cat "$TIER_STATE" 2>/dev/null || echo 0)
+tier=$(( ctx / CTX_TIER ))
+tier_note=""
+if [ "$tier" -gt "$last_tier" ]; then
+  echo "$tier" > "$TIER_STATE"
+  crossed=""
+  for t in $(seq $(( last_tier + 1 )) "$tier"); do
+    crossed="$crossed${crossed:+, }$(fmt $(( t * CTX_TIER )))"
+  done
+  tier_note="Context crossed $crossed (now $(fmt "$ctx"), turn $turns)."
+fi
+
 band=0
 [ "$ctx" -ge "$CTX_WARN" ] && band=$(( (ctx - CTX_WARN) / CTX_BAND + 1 ))
 
@@ -53,7 +72,7 @@ if [ "$band" -gt 0 ]; then
   fi
   if [ "$band" -gt "$last_band" ] && [ "$HOOK_ACTIVE" != "true" ]; then
     echo "$band" > "$STATE"
-    reason="Context-size check (Stop hook): $level
+    reason="Context-size check (Stop hook): ${tier_note:+$tier_note }$level
 ${delta_note:+
 $delta_note
 }
@@ -61,11 +80,11 @@ This note repeats once per $(fmt "$CTX_BAND") of growth. Acknowledge in one line
     jq -n --arg r "$reason" '{decision: "block", reason: $r}'
     exit 0
   fi
-  jq -n --arg m "$level${delta_note:+ $delta_note}" '{systemMessage: $m}'
+  jq -n --arg m "${tier_note:+$tier_note }$level${delta_note:+ $delta_note}" '{systemMessage: $m}'
   exit 0
 fi
 
-if [ -n "$delta_note" ]; then
-  jq -n --arg m "Context $(fmt "$ctx"). $delta_note" '{systemMessage: $m}'
+if [ -n "$tier_note" ] || [ -n "$delta_note" ]; then
+  jq -n --arg m "${tier_note:-Context $(fmt "$ctx").}${delta_note:+ $delta_note}" '{systemMessage: $m}'
 fi
 exit 0

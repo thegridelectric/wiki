@@ -8,6 +8,21 @@ real broker.
 
 **▶ Active spoke: [`sh-node-actor-partition.md`](sh-node-actor-partition.md)**
 
+> **When you get around to re-organizing this hub** (a fresh session,
+> after the "do this now" queue is clear), in this order. First, roll the
+> OPS-392 rows under "Active hours — scratch" in `admin/jess-estimates.md`
+> into the Actual of their `r:sim-green` rope chunks, so the calibration
+> question can be answered: do estimates made after a layer is open hold,
+> where estimates made from outside blew up? Second, sort the eighteen
+> spokes into three piles: done (distill into `executor/`, delete), live,
+> parked. Third, rewrite this hub in present tense; the June strata below
+> ("Branch state", "Test state by commit", "The merge gate") go to the
+> changelog. The work since June came in four layers, each visible only
+> once the one above was open (what runs; layouts and mirrors; the
+> hardware bus; the vocabulary); eight spokes were born on 2026-09-02
+> alone, and fifteen of eighteen are Draft Pass 0. The sort needs the
+> queue clear so it knows which spokes are actually finished.
+
 > What this is: the hub for un-limboing the spruce scada integration —
 > getting the branch that runs Matt Polstein's house (the Nolan layout)
 > out of limbo and onto a path that merges to main without breaking the

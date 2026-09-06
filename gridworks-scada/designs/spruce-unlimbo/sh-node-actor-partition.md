@@ -462,8 +462,10 @@ real coverage; see GridWorks_CLAUDE ⏳ note). Order:
    Jessica believes some of these are wrong today; the failures are the
    deliverable.
   Then, in this section with their own estimates (scopes on OPS-392):
+     - `dac-output.md`
      - `pico-cycler-command.md`
      -  `krida-retirement.md`
+     
      -  REMOVE all gw1's and gw's in the snapshot generation for tlayouts.
   
 2. `actors/hydronic/shared.py` (~250 L): zone-circuit relay helpers, vdc
