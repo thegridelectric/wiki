@@ -90,6 +90,14 @@ Status: Draft · Pass 0 · Updated 2026-09-05 · Linear: OPS-392
     heartbeat" to it.
   - `gridworks-ltn/designs/stand-up-ltn-on-gwbase.md`: the contract-tier
     heartbeat rides the gwbase LTN's `gw` envelope.
+  - **The issue that finishes the arc:** OPS-317, scada-health-diagnostics
+    (folds OPS-410). Today neither side declares the scada↔LTN link down;
+    the executor's "Improvement seed" is exactly that: a fire-and-forget
+    `ally.inactive` / `ally.active` published on the links that still
+    work the moment a peer goes away, plus the persisted liveness signal
+    set for a JournalKeeper referee. The admin link needs the same two
+    things one tier down, so this item is best folded into OPS-317's
+    scope or named there in prose rather than opened on its own.
   - Vision (`transactive-grid.md`): "price and weather move through the
     system as a shared heartbeat", a different sense of the word.
 - **`SendLayout` fails on a Nolan layout (found 2026-09-05, run 4 log

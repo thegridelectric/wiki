@@ -165,9 +165,10 @@ system-level state; the chip-reached check is the DAC read-back itself.
 **Do this next:** move the dispatch sender onto the box. Run 4's first
 dispatch was refused because the laptop's ssh tunnel had died silently;
 a spruce window (a validated real system) must not depend on a tunnel.
-`bench_dispatch.py` moves from the experiment folder into gridworks-scada
-(box scripts run from the repo at a pushed SHA), runs on the pi against
-`localhost:1883`, and the runbook drops its tunnel step. Then one short
+`bench_dispatch.py` stays in the experiment folder and runs on the pi
+from the box's `~/experiments` clone at a pushed SHA (experiments README
+"Conventions": the one thing a pi keeps), against `localhost:1883`; the
+runbook drops its tunnel step. Then one short
 bench boot that witnesses the admin release before the timeout. Then
 step 5, the spruce pump-speed window
 (`experiments/future/spruce-pump-speed-sweep/`).

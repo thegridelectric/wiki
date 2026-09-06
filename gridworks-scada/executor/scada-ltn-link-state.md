@@ -247,8 +247,11 @@ however it happened."
 stored-until-acked — published immediately on the links that still work
 (e.g. scada announces gridworks_mqtt-down on local/admin; LTN announces
 scada-link-down upstream), so live observers (JK, monitoring, admin)
-learn about an outage while it is happening. Not yet an issue; raise to
-a Linear issue/design when picked up.
+learn about an outage while it is happening. Tracked as the
+scada-health-diagnostics design
+([OPS-317](https://linear.app/gridworks/issue/OPS-317)), which folds the
+former ally-inactive issue OPS-410; the heartbeat itself rides the
+proactor-makeover ([OPS-428](https://linear.app/gridworks/issue/OPS-428)).
 
 ## Broker-access liveness — a second, worse gap (observed incident, reported 2026-06-11)
 
