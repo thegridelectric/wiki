@@ -65,10 +65,13 @@ Status: Draft · Pass 0 · Updated 2026-09-05 · Linear: OPS-392
    `test_zero_ten_outputer.py` on the sim chip (boot verify, dispatch →
    Multi-Write, heartbeat re-assert of the commanded value).
 4. **Bench rung on honeysuckle** (EDD): boot verify, one dispatched
-   level change read back from the chip, heartbeat holds it. Ran
-   2026-09-05, FAIL with two findings (dispatch never reaches the
-   outputer; verify reprograms every boot):
-   `experiments/2026-09-05-dac-output-bench/`. Re-run after the fixes.
+   level change read back from the chip, heartbeat holds it. Run 4,
+   2026-09-05 late on `ba2c9883`: **PASS on the real MCP4728** (verify
+   clean, code 2200 read back 88 s after the dispatch, EEPROM 3020
+   untouched). Runs 1-3 had exercised `SimI2c` under the old
+   `is_simulated` backend selection. `experiments/2026-09-05-dac-output-
+   bench/` "Found", run 4. Unwitnessed: the admin release (the run's
+   timeout ended first).
 5. **Spruce window**: the real pump, iso valve open and secondary pump
    on, the output swept linearly and in jumps for the speed-versus-
    output curve, with the summer hack and the deployed scada stopped
@@ -159,7 +162,15 @@ record is a real `Gw108RevB`. The derived bit keeps its system-level
 meaning (no deed, not a real terminal asset) and no longer touches the
 bus. The runbook's step 8 check for `SIMULATED` still reports that
 system-level state; the chip-reached check is the DAC read-back itself.
-**Do this next:** re-run the bench rung (step 4) on the fixed code.
+**Do this next:** move the dispatch sender onto the box. Run 4's first
+dispatch was refused because the laptop's ssh tunnel had died silently;
+a spruce window (a validated real system) must not depend on a tunnel.
+`bench_dispatch.py` moves from the experiment folder into gridworks-scada
+(box scripts run from the repo at a pushed SHA), runs on the pi against
+`localhost:1883`, and the runbook drops its tunnel step. Then one short
+bench boot that witnesses the admin release before the timeout. Then
+step 5, the spruce pump-speed window
+(`experiments/future/spruce-pump-speed-sweep/`).
 
 The eGauge component booted against the real meter with no errors,
 and the isolation held, so neither needs a test.
