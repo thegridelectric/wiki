@@ -297,6 +297,33 @@ one commit per repo).
    real value selects the modbus driver, `SimSamsungAE055FEYMCG` the
    sim twin; sim parts carry no device-type records.
 
+**Handoff state (2026-09-06, session upbeat-finch → next).** Read
+THIS paragraph, `dac-output.md` step 5 + "Blocker found and fixed",
+and the sweep README's "Before the window"; nothing else in these
+spokes is needed to start. Landed: tlayouts `0a051f9` (calibration
+word seeded into the snapshot, gen builds it through the class, sim
+tanks carry spruce's calibration), scada `a6833464` (closure copy +
+Nolan fixture with four affine channels + mirror docstring), the
+experiments folder `2026-09-06-spruce-pump-speed-sweep/` (on-box
+driver `sweep.py`, emitter, archived spruce pair, full runbook;
+rehearsed green against the sim Nolan scada: 34 levels echoed, four
+relays under admin). Trees: sema `dev` at `d6f59e7` clean; tlayouts
+`jm/spruce` at `0a051f9`; scada `jm/spruce-unlimbo` at `a6833464`,
+suite 310 passed / 3 skipped / 1 xfailed. Changelogs reconciled, no
+pending markers. **Next move, first:** the spruce window itself,
+which is Jessica's to open: (1) on spruce, add the five
+`SCADA_ADMIN__*` lines to `~/envs/dev.env` and record them in the box
+README, (2) settle the home-dir leftovers (the unlimbo checkout STAYS,
+the harness boots from it), (3) pull `~/experiments` and
+`~/gridworks-scada-unlimbo`, then the runbook top to bottom. **Then**
+the command-tree matrix (item 1 under "Do this next"), which now
+carries the LC dormant-sequence finding as a row. Open findings not
+yet acted on: `test_control_capabilities_on_nolan` still xfails on
+the House0 Krida requirement (admin-for-nolan.md); the admin panel's
+own MQTT client ignores CONNACK reason codes (dac-output.md failures
+item 4). Do NOT read the spokes whole: the sections above are the
+orientation (GridWorks_CLAUDE "Context is a budget").
+
 **Trees at handoff (2026-09-05, session snug-mistral):** sema `dev` at
 `d6f59e7` (cut `jm/<topic>` before any sema edit); tlayouts `jm/spruce`
 at `56dbcd1`, clean; scada `jm/spruce-unlimbo` at `5940d1b9`, clean and

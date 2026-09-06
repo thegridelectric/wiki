@@ -101,6 +101,10 @@ was loaded, not worked from memory. Ephemeral coordination (session names,
   human before editing.** Never fold a spec edit into another change; when a
   task appears to force one, stop and raise it. Prefer moving rapidly beyond
   an exceptional case over adding exception machinery to the spec.
+  A promotion-only turn (staging → published, no schema edit) reads only
+  `governance.md` "Promotion" and `registry/structure.md` "Status Field";
+  the read-receipt is the list of words promoted, bottom-up, and
+  `sema promote` is the gate.
 - **Scada:** before editing `gridworks-scada` (gwsproto above all), Read
   [`wiki/gridworks-scada/CLAUDE.md`](wiki/gridworks-scada/CLAUDE.md) and
   follow it.

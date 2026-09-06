@@ -17,6 +17,17 @@ tool_name=$(echo "$input" | jq -r '.tool_name // ""')
 
 command=$(echo "$input" | jq -r '.tool_input.command // ""')
 
+# Drop heredoc bodies (<<TAG ... TAG, quoted or not) before matching: a
+# deploy script being written to a file or piped over ssh carries
+# `git switch -c` as text without creating a local branch, and each
+# false firing costs the session the whole re-injected protocol.
+command=$(printf '%s\n' "$command" | awk '
+  skip { if ($0 == tag) skip = 0; next }
+  match($0, /<<-?[\x27"]?[A-Za-z_][A-Za-z0-9_]*[\x27"]?/) {
+    tag = substr($0, RSTART, RLENGTH); sub(/^<<-?[\x27"]?/, "", tag); sub(/[\x27"]$/, "", tag)
+    skip = 1; print; next }
+  { print }')
+
 # Match `git checkout -b <name>` or `git switch -c <name>`.
 # Deliberately narrow: we want the branch-creation moment, not every git call.
 if ! echo "$command" | grep -Eq '(^|[[:space:]&;|])git[[:space:]]+(checkout[[:space:]]+-b|switch[[:space:]]+-c)\b'; then
