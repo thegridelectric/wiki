@@ -1,6 +1,6 @@
 # TaDeed and TaTradingRights without Algorand
 
-Status: Draft · Pass 0 · Updated 2026-08-14
+Status: Draft · Pass 0 · Updated 2026-09-05
 
 > What this is: the successor to the legacy Algorand ownership plane —
 > TaDeed (proof a validated terminal asset is owned), TaTradingRights
@@ -142,15 +142,26 @@ gap.
 
 ## Deeds attest reality — in every universe
 
-Proposed invariant: **a TaDeed SHALL only be issued for a physically
-validated asset, in any universe.** The deed's meaning is that a third
-party staked a signature on physical facts; a deed for a simulated asset is
-a false attestation wearing the trust machinery. Hybrid universes don't
-*require* deeds (trust by configuration/mTLS — gnr executor "Universes"),
-but hybrid's real houses MAY receive real ones — so the full validator
-ceremony can be dry-run on real Millinocket houses before the `w` universe
-exists. If the hybrid game ever needs rights-transfer mechanics for
-simulated assets, that is a distinct, clearly-marked word, never a TaDeed.
+A TaDeed attests the **validation state** of a device, in any universe. A
+TaValidator stakes a signature on what the asset is, and the deed carries
+that finding as a `ValidationState` a reader must consult; the deed's
+existence alone says nothing. First pass of the enum: `UnValidated` (no
+deed, the scada's own default), `ValidatedRealAssetAndGps` (physical load
+drawing electricity where its alias and GPS say), `ValidatedRealAssetIncorrectGps`
+(physical load, real electricity, not at the declared location, for example
+run against Millinocket prices on `hw1` from a bench elsewhere), and
+`ValidatedSimulatedAsset` (no electricity drawn anywhere).
+
+So a simulated asset does get a TaDeed, marked as such. What the validator
+vouches for in that case is small (the identity declares itself simulated,
+the layout carries sim devices, the universe is dev or hybrid) and the deed
+admits to dev and hybrid universes, never `w`. Hybrid universes do not
+*require* deeds (trust by configuration/mTLS, gnr executor "Universes"), but
+hybrid's real houses MAY receive real ones, so the full validator ceremony
+can be dry-run on real Millinocket houses before the `w` universe exists.
+The transport-plane consequences (GNode `Pending` with a cert admits
+telemetry only; an `UnValidated` scada rejects every LTN contract offer with
+its own rejection word) are recorded under OPS-420.
 
 Non-copper services (weather, ear, gjk) get no deed — nothing physical to
 attest. Their complete trust story is the transport plane: identity cert,

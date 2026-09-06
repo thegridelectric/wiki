@@ -12,14 +12,6 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-09-05 — DerivedGenerator and TouBase stop reading is_simulated
-
-Both actors copied the derived bit into `self.is_simulated` and then only
-logged it. With the backend and control-input uses gone, these were the
-last reads that meant nothing; deleted so the remaining readers (Scada's
-sim-time bridge, the Krida and DFR multiplexers) are the whole list.
-
 ## 2026-09-05 — Board-resident actors pick real or fake silicon from the board record; the fake control-input branches go
 
 The honeysuckle bench (`experiments/2026-09-05-dac-output-bench/`) could
@@ -53,7 +45,10 @@ one. All four branches, `SIMULATED_TANK_TEMP_F` and the LTN flag are
 deleted. `tests/test_sim_terminal_asset_end_to_end.py` is an all-comment
 placeholder for the largest test the simulated-test-environment design
 builds toward, with the functional requirements it can carry and how the
-DAC bench rung would run under it.
+DAC bench rung would run under it. `DerivedGenerator` and `TouBase` also
+copied the bit into `self.is_simulated` only to log it; those reads are
+deleted too, so the remaining readers (Scada's sim-time bridge, the Krida
+and DFR multiplexers) are the whole list.
 
 ## 2026-09-05 — Admin seam on Nolan: capabilities and dispatch tests; outputer names its dispatch and its EEPROM read; proactor pin to v4.1.13+jm2
 

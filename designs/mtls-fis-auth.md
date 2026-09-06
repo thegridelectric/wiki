@@ -1,6 +1,6 @@
 # mTLS + FIS auth
 
-Status: Accepted · Pass 1 · Updated 2026-09-04 · Linear: OPS-420
+Status: Accepted · Pass 1 · Updated 2026-09-05 · Linear: OPS-420
 
 **EDD: yes** verified by real handshakes against a broker running the full
 stack: a client proves identity with its cert and claims, FIS allows a valid
@@ -216,17 +216,74 @@ session) alone is never authority to issue a control command:
 - authority **scales with impact** (read < low-impact preference < mode
   change < relay/actuator) — the strongest proof gates the strongest action.
 
-## Relationship to the validation plane (TaDeed / TaTradingRights)
+## TaDeed and the validation plane
 
-Ownership and metering attestation live in a separate authority plane —
-validator-signed records, not certificates; the exploration is
-`wiki/terminalasset-registry/explorations/deeds-and-trading-rights.md`. What
-binds here: the ordering is **cert before deed** (commissioning needs comms
-before a validator visits — a freshly certed, undeeded scada can connect and
-telemeter, but no LTN holds rights over it, so nothing can dispatch it); and
-FIS's `/auth/topic` gate is the enforcement point that keeps an unentitled
-LTN's dispatch publish from ever being routed. Nothing in this design's
-rollout gates on the validation plane.
+Ownership, metering and reality attestation live in a separate authority
+plane from transport: validator-signed sema records, not certificates. The
+exploration is `wiki/terminalasset-registry/explorations/deeds-and-trading-
+rights.md`; this section records what binds the two planes together, settled
+2026-09-05.
+
+**Two acts, in order.**
+
+1. **Make the GNode, generate the cert.** A scada's GNode is created in
+   status `Pending` (`g.node.status`) with its alias, and its transport cert
+   is minted against that alias in the same act. The cert is what admits the
+   scada to the broker, and alias pinning means it can only ever speak as
+   that alias. This is the state of the whole fleet today.
+2. **Validate: issue the TaDeed, the GNode goes `Active`.** A TaValidator
+   visits, signs the deed, and activation is the deed landing.
+
+**Pending is the fence.** A `Pending` GNode with a cert connects and
+telemeters. Nothing consequential is open to it: no LTN holds rights over it,
+FIS's `/auth/topic` gate keeps any dispatch publish toward it from being
+routed, and no contract binds. There is no separate holding broker for the
+undeeded; the status on the ordinary broker is the holding pen.
+
+**The deed states the validation state of the device.** A deed is not a
+yes/no on realness. It carries an attested state that every reader consults
+rather than inferring anything from the deed's existence. First pass of the
+`ValidationState` enum, one value per thing a validator can vouch for:
+
+- `UnValidated`: no deed. The scada's own default before a validator visits.
+- `ValidatedRealAssetAndGps`: physical load drawing electricity where its
+  alias and GPS say it is (the Millinocket houses).
+- `ValidatedRealAssetIncorrectGps`: physical load drawing real electricity,
+  but not at the declared location. Run against Millinocket prices on `hw1`
+  from somewhere else (a bench box is the small case).
+- `ValidatedSimulatedAsset`: no electricity drawn anywhere.
+
+A simulated asset's deed is a real deed with that state, signed by a
+validator, and admits to dev and hybrid universes, never `w`. The universe
+guardrail refuses a simulated layout on a `w` broker from the scada side; the
+deed refuses it from the validation side.
+
+**Sequencing: the words first, now.** The first-pass TaDeed sema type and the
+`ValidationState` enum are authored next, in a sema-claiming session through
+the word gate, precisely so the scada reads a real word and not a placeholder.
+The scada then gets its first-pass `ValidationState` (the deed's state, or
+`UnValidated` with no deed) and the contract gate below. The existing
+placeholder `tadeed.json` is replaced by an instance of the word.
+
+**What the scada reads.** Its former `is_simulated` bit (no deed or any sim
+component) is replaced by reads of specific facts: which silicon to drive
+comes from the layout's board record (scada executor `components.md`
+"Hardware backend selection is the layout's job"); whether to listen to a
+time coordinator comes from the layout being simulated, a fact about the
+plant; whether it may join an LTN contract comes from its `ValidationState`.
+**An `UnValidated` scada rejects every LTN contract offer**, on its own side
+and tested, whatever FIS routes. The rejection is its own sema word, a
+scada-to-LTN message carrying the offered ContractId and the scada's
+`ValidationState` as the cause, so the LTN learns why rather than timing out.
+It is not a `SlowContractHeartbeat` (a heartbeat presumes a contract the
+scada has started) and not a new `SlowDispatchContractStatus` value (that
+enum is published). Authored alongside the deed type and the enum. For the simulated fleet the make-imaginary
+wand issues Pending GNode, cert and simulated-asset deed in one motion, so
+sims are never `UnValidated` for long.
+
+Nothing in this design's rollout gates on the validation plane; the deed
+word, the reality-state enum and the registrar home are the exploration's
+open items.
 
 ## The on-ramp — notches 2–4 of the TLS ratchet
 
