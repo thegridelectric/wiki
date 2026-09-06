@@ -12,6 +12,58 @@ Newest at the top.
 
 ---
 
+## 2026-09-04 — layout words: secondary-010v required on Nolan, writer trio dropped (`d6f59e7`)
+
+Branch `jm/dac-word-gate`. Both layout words are `staging`, edited in
+place. `gw.nolan.layout` axiom 5 `RequiredActuators` gains clause c:
+a `secondary-010v` node with ActorClass `ZeroTenOutputer` whose
+ComponentId is an `i2c.dac.output.component.gt` in Components. The
+0-10V output is an actuator on the relay pattern now (scada `341c99de`),
+so the layout word pins it the way it pins the plant relays; the Nolan
+fixture already carries the shape. Both `gw.nolan.layout` and
+`gw.house0.layout` drop the orphaned writer trio
+(`i2c.dac.writer.component.gt`, `sim.dac.writer.component.gt`, and
+through them `i2c.dac.channel.config`) from their Components unions and
+structural dependencies: the writer actor and its gwsproto mirrors are
+gone, so the words reached the tlayouts snapshot closure with no
+consumer, which is what the scada reverse-conformance allowlist named.
+The orphaned words stay registered with `replaced_by`. The House0
+`*-010v` nodes keep Name and ActorClass only: their per-output word and
+ComponentId clause wait for the krida shift, where the DFR multiplexer
+code is rewritten. Runtime: axiom 5 template gains clause c and the runtime
+regenerates; the rejecting test for clause c is the gwsproto mirror's,
+in scada.
+
+---
+
+## 2026-09-04 — fis auth words from dev to staging (`3a51a28`)
+
+Branch `jm/fis-auth-event` (stand-up-fis step 6). The three words the FIS
+auth event needs were `draft` since March, drafted before the gate existed,
+and drafts are excluded from runtime generation, so FIS could not emit the
+event. Reshaped in place (draft is mutable) to match the built gate, then
+flipped to `staging` together, bottom-up: `fis.authorization.reason` now
+carries one value per `/auth/user` verdict path (`MalformedRequest`,
+`PrincipalNotFound`, `PrincipalSuspended`, `RunOutsideUniverse`,
+`NotInRegistry`, `AliasMismatch`, `ClassMismatch`, `InstanceRevoked`,
+`KillUnconfirmed`, `LeaseRace`, `IdempotentReconnect`, `Superseded`;
+default the deny `MalformedRequest`, since unknown values coerce to the
+default); `fis.authorization.decision` is unchanged in values;
+`fis.instance.authorization.event` keys on `PrincipalId` (the cert CN, a
+service or a GNode, not `GNodeId`) and `InstanceId`, adds required `Run`
+(`universe.run`), makes `Alias` and `GNodeClass` optional AMQP-only claims,
+drops the two broker-side fields the gate never sees, and declares a
+Reason → Decision projection with the axiom that references it, so a
+record cannot pair an authorized decision with a deny reason. `created`
+on all three reset to the reshape time: adding `universe.run` (created
+2026-08-14) as a dependency would otherwise break dependency ordering,
+and the versions were being rewritten anyway. Enum files' owner corrected
+to match the registry (`jessica-millar`). `$id`s move off `/draft/`.
+Indexes rebuilt; axiom template scaffolded and filled; runtime
+regenerated for the three words.
+
+---
+
 ## 2026-09-03 — add command tree axioms (`818fa11`)
 
 The layout's authored handles are the initial command tree, but only

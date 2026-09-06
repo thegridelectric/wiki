@@ -1,6 +1,6 @@
 # Admin works well for Nolan
 
-Status: Accepted · Pass 1 · Updated 2026-08-11 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-09-05 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke — make the gridworks-admin UI a
 > first-class way to see and hand-operate a Nolan-layout house, as it is
@@ -60,28 +60,80 @@ The deleted `jm/scada-control` branch was the scada-side
 4. **v001 usage inside admin is muddled** generally — the evaluation of
    how gwa consumes the message is in scope here, not just the type
    shape.
-5. **The node re-point LANDED as sema `scada.control.capabilities/002`
-   (2026-06-26, channel-config-overhaul / OPS-427).** The actor-class cascade plus
-   the channel-config cascade carried `spaceheat.node.gt` to **`/303`** (and
-   `data.channel.gt` to `/003`) — past the `/302` this item originally anticipated.
-   Because `/001` is non-draft/immutable, the re-point was **not** done in place; a
-   clean **`scada.control.capabilities/002`** was cut instead — `RelayNodes`/`DacNodes`
-   → `spaceheat.node.gt/303`, `ControlChannels` → `data.channel.gt/003`, axioms and
-   `I2cRelayComponent` ref otherwise unchanged from `/001`. So **sema is already at
-   `scc/002`**; what remains for THIS design is the **gwsproto/scada side**: the
-   hand-written `ScadaControlCapabilities` is still the bespoke lightweight
-   `ControlNode`/`ControlChannel` shape at gwsproto `Version "000"` — it must be
-   upgraded to adopt `scc/002` (the full `spaceheat.node.gt/303` + `data.channel.gt/003`
-   node/channel shape), which is the same work the rest of this section describes
-   (axioms-over-sema-attributes, the CapturedByNodeName/AboutNodeName decision, the
-   Nolan `gw108.vdc.relay` hardware, gwa consumption). The broader shape change beyond
-   the node version (items 1–4 above) rides on top of `scc/002`.
+5. **Registry state (2026-09-05):** `scada.control.capabilities` is at
+   `001`, status `staging`, refs `spaceheat.node.gt/302` and
+   `data.channel.gt/003`; there is no `002` (the earlier note claiming
+   one was squashed away 2026-08-13). Staging means the fix is an
+   in-place edit of `001`, never a new version.
 
 Sema changes go through sema word-authoring (v002 + upgrade template +
 registry deltas). **Sieg-loop visibility in admin** (can/should gwa see
 SiegLoop state?) is noted and **deferred to sieg-semantic-harmonization
 ([OPS-400](https://linear.app/gridworks/issue/OPS-400))** — that design already owns the valve-telemetry-not-emitted
 gap.
+
+## What the admin tool needs from a scada (read 2026-09-05)
+
+Read of `packages/gridworks-admin` (`cli.py`, `config.py`,
+`watch/clients/admin_client.py`, `dac_client.py`, `relay_client.py`,
+`watch/relay_app.py`, the widgets) against the admin executor's
+capabilities contract. Facts first, then the House0 assumptions.
+
+**Consumed.** On link-up the client requests `scada.control.capabilities`
+(`SendControlCapabilities`, re-requested every 60 s until it arrives),
+then `snapshot.spaceheat` (`SendSnap`). It never reads `layout.lite`.
+Per controllable node it keys everything off ONE name, the node's
+`Name`: the dispatch address is `admin.<Name>`; the state channel is the
+`ControlChannels` entry whose `AboutNodeName` equals it (the
+`CapturedByNodeName` question in the executor is settled by the code:
+admin never reads it); relay event and state vocabulary comes from the
+config entry whose `ActorName` equals it. State arrives from the
+snapshot's `LatestReadingList` and from the `single.reading` messages
+the scada forwards to the admin link for every relay and 0-10V channel
+(`Scada._forward_single_reading`), keyed channel name -> node.
+
+**Sent.** `AdminDispatch` wrapping an `FsmEvent` (`FromHandle admin`,
+`ToHandle admin.<Name>`, `EventType` and `EventName` from the relay
+config), `AdminAnalogDispatch` wrapping `AnalogDispatch` (`ToHandle
+admin.<Name>`, `Value` volts x10, 0-100), `AdminKeepAlive`,
+`AdminReleaseControl`; every message `Src admin`, `Dst <scada alias>`.
+`experiments/2026-09-05-dac-output-bench/bench_dispatch.py` is this
+client driving one DAC and is the seed for the Nolan client test.
+
+**Per node the tool needs exactly five things:** the dispatch address,
+the subject (about) node, the state channel name, the event and state
+vocabulary (relays only), and, display only, a board position (already
+optional). Nothing else in the word is read.
+
+**House0 assumptions to remove, in the package:**
+
+- `RelayWatchClient._get_relay_configs` reads relay configs from
+  `I2cRelayComponent.ConfigList` (the Krida board, a required field of
+  the word). Nolan relays each carry one `relay.control.config` on a
+  board-resident component; House0's `relay.actor.config` carries the
+  same nine fields plus `RelayIdx`.
+- `RelayWatchClient._send_set_command` rewrites `hp-scada-ops-relay` to
+  `admin.hp-boss` speaking `TurnHpOnOff`, and `Scada.process_admin_dispatch`
+  rewrites it straight back to a relay event on `hp-scada-ops-relay`.
+  The pair exists because under House0's sieg tree the relay's handle is
+  `admin.hp-boss.hp-scada-ops-relay`, so a direct `admin.<Name>` fails the
+  immediate-boss check. On Nolan the relay sits directly under the boss.
+- `DACWatchClient.set_dac` takes the table's DISPLAY name and appends
+  `-010v`; the row key is already the node name, so the app should pass
+  that.
+- `RelaysApp` and the House0 rows in `test_admin.py`'s commented tests.
+
+**The word edit this needs (staging `001`, in place; not started, needs
+Jessica):** replace `I2cRelayComponent` with a list of
+`relay.control.config/000`, one per `RelayNodes` entry, and rewrite
+axiom 4 over it (ActorName set equals RelayNodes names; each ChannelName
+equals the ControlChannels entry about that actor). The scada projects
+House0's `relay.actor.config` into it by dropping `RelayIdx` until the
+krida shift. The hp-boss rewrite pair then goes, with admin addressing
+the relay's actual handle from `RelayNodes` rather than composing
+`admin.<Name>`. `tests/actors/test_admin_on_nolan.py::
+test_control_capabilities_on_nolan` is the failing test that the edit
+turns green.
 
 ## Known gaps (verified 2026-06-10 unless noted)
 - **Admin tests are House0-only.** `tests/test_misc/test_admin.py`

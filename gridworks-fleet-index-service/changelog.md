@@ -12,198 +12,167 @@ Newest at the top.
 
 ---
 
-## 2026-09-04 — Mirror seam: pull from gnr over HTTP. AND, mint principal rows before certs (`0e2d856`)
+<!-- pending commit -->
+## 2026-09-05 — gate.py docstrings: drop two build-time notes
 
-One commit, two build steps (5b and 5d), each described below.
+Two docstrings in `gate.py` still described the build as it stood in
+August: one said the executor spec's JSON response mapping "needs
+correcting" (it was corrected then, and code does not cite wiki state),
+the other said `GateReason` would be retired when the auth event shipped
+(it shipped, and the enum stays because it also names the per-publish
+verdicts, which have no event). Both now state what is.
 
-**Mint principal rows before certs (step 5d).** Nothing minted `principals` rows: a real node's first connect
-denied with principal-not-found however warm the mirror, and the four
-platform-service certs were stalled on "an interim UUID now, back-fill the
-row later" — two sources of truth for an identity. `principals.py` holds
-the pure functions (create / list / suspend / activate over a session);
-`fis principal` is the thin CLI. `create --kind Service` mints a fresh
-uuid4 as the id and prints it, which is the CN handed to `gwcert`;
-`create --kind GNode --g-node-id <id>` uses the GNodeId (the cert CN for a
-GNode is its GNodeId, no second id). A duplicate id, a malformed GNodeId, or
-a Service given a GNodeId are refused. Suspend/activate flip the status the
-gate already reads. Postgres-backed tests for each path. The README,
-module and model docstrings, and the executor now say what a principal
-is: a durable identity belonging to a core piece of the platform that may
-connect to the broker — a GNode in the topology (scada, LTN, market
-maker) or a Service outside it (registry, ear, journalkeeper, weather).
+---
 
-**Mirror seam: pull from gnr over HTTP (step 5b).** The path that feeds `mirror.apply_gnode`, keeping FIS a pure HTTP
-service: `gnr_client.GnrHttpClient` (httpx against gnr's read façade —
-`POST /gnr/g-node-forest-request`, `GET /gnr/g-node-by-id/{id}`), decoding
-every response strictly through the vendored snapshot codec, and a reconcile
-loop as a FastAPI-lifespan background task: boot-seed the forest, re-pull on
-`FIS_GNR_RECONCILE_S`. gnr unreachable is a logged warning and the last-known
-mirror serves — never a boot failure, never a deny by itself.
+## 2026-09-05 — The claimed run reaches `/auth/vhost` as the connection's user tag (`41cac52`)
 
-Two facts settled at build, both narrower than the design's wording. **The
-served roots are the universe.** A FIS serves one universe and the bare
-universe token is a valid `LeftRightDot`, so the forest request names
-`[universe]` and gets every node under it — no roots setting to keep in
-step with the registry. **Nothing is marked inactive by absence.** A
-registry node never vanishes (GNodeId immutable, status terminal, no delete
-command), so a mirrored id missing from a whole-universe pull is a registry
-anomaly `apply_forest` logs, not a status FIS may invent in a mirror that is
-bijective with `g.node.gt`; absence grants no authority anyway (the gate
-needs a live alias/class match).
+Closes Finding B from the dev battery. The broker's HTTP backend never
+sends a connection's claims and its vhost in one request (AMQP picks the
+vhost at Connection.Open, after SASL), so `/auth/vhost` had been answered
+from the lease table: "does this principal hold an Active lease on the
+opened vhost". That inference is wrong exactly when the identity is
+legitimately live there, and a second connection that claimed another run
+opened the vhost anyway. The backend does carry one piece of
+per-connection state from the user verdict to every later call: the tags
+after `allow` become the connection's `#auth_user` tags and ride the
+vhost, resource, and topic requests as `tags`. So `/auth/user` now answers
+`allow <run>`, and `/auth/vhost` compares that tag to the vhost, no lease
+lookup. The tag is the run, not the instance id, because the broker
+interns each distinct tag as an atom and runs are a bounded set. The
+battery's `run_claim_vs_vhost_with_live_lease` line is promoted from
+KNOWN-GAP to a scored deny.
 
-`decide_user` reads through on a mirror miss: an AMQP GNode unknown to the
-mirror is fetched by id and applied before the alias/class check, so a
-freshly provisioned node connecting ahead of the next reconcile is admitted
-rather than denied; a 404 or an unreachable gnr stays `not-in-registry`.
-The gate takes the registry reader as an injected dependency like the
-killer, so every test runs against a fake; the http client takes an
-optional httpx transport so its tests replay the wire round-trip (request
-word out, forest back through the codec) with no registry. `create_app`
-grows the same injection plus a `reconcile` switch so the hermetic API
-tests never touch the network. Settings gain `FIS_GNR_URL` /
-`FIS_GNR_RECONCILE_S` (`GnrSettings`, own `fis_gnr_` prefix like the
-management-API block); README and `template.env` say so. 11 new tests, 62
-green. Dev-rung witness: a real `fis api` boot against a local `gnr api`
-refilled a cleared mirror with the 29 `d1` nodes; a second pull reported
-all 29 unchanged.
+## 2026-09-05 — Supersession kill closes by username and confirms through the broker's tracking table (`4d7e6d6`)
 
-## 2026-08-23 — sema improvements - regen script and minimum-cover seed (`4929947`)
+Closes Finding A from the dev battery (single-writer, invariant 1). The
+kill no longer enumerates the predecessor's connections through the
+management listing: it issues one `DELETE /api/connections/username/<id>`,
+which the broker applies to live state, so a connection younger than the
+last stats tick is closed too. The confirm no longer reads the listing
+either: it polls `GET /api/connections/username/<id>`, which the broker
+serves from its connection-tracking table (the same table the close acts
+on), until the identity holds no connection, and the gate fails closed on
+the confirm budget. Two confirms were tried and measured on the way:
+`rabbitmqctl list_connections` deadlocked with the gate (it asks every
+reader for its info, and the successor's own reader is blocked
+mid-handshake on FIS: 6.5 s against an 8 s auth hang), and `rabbitmqctl
+eval` on the tracking table answered in 0.4 s but boots an Erlang VM per
+call, so the 100-connection storm pushed every connect past 9 s of the
+10 s handshake; the by-username GET is the same table in milliseconds and
+needs no box wiring. The close is two-phase: the broker waits for the
+client's close-ok before dropping a closed reader, so a predecessor that
+never answers (the battery's idle client, or a wedged actor) stays tracked
+until the broker's 30 s close timeout; a second close on a reader already
+closing forces it down at once, so the kill gives a 1 s grace, closes
+again, then confirms. Even forced, a reader whose peer is not reading
+lingers 5 s in the TLS socket close (OTP's close_notify wait), so the
+confirm budget defaults to 8 s. The kill is broker-wide for the identity,
+exact while a broker hosts one run; the dev battery witnesses the
+over-reach on its `d1__2` leg and logs it as a known limit.
+`template.env` now documents the management credentials FIS always
+needed. The reconvergence flush uses the same close-by-username. Unit
+tests cover the killer against a mock management API. The test fixture
+disables testcontainers' ryuk sidecar and asks for the `psycopg` driver:
+on this machine ryuk could not mount the Docker socket and the default
+URL named `psycopg2`, so all 48 database tests had been skipping
+silently.
 
-fis vendored its Sema snapshot with no seed or regen script in-repo. Adds
-the standard `scripts/regen_sema_snapshot.sh` (`--allow-staged` while
-`fis.connect.claims` stages) and a minimum-cover seed derived from the
-snapshot's recorded worklist: `fis.connect.claims:000`, `g.node.forest:002`,
-`g.node.forest.request:000`, `g.node.instance.gt:001` — `g.node.gt:006`
-drops as a direct target because `g.node.forest:002` structurally declares
-exactly that version, so closure delivers it (same for
-`connectivity.edge.gt` and the enums). Versions stay explicitly pinned:
-prod posture, no silent latest-chasing. The README gains the standard Sema
-paragraph (canonical language + boundary-scoping sentence).
+## 2026-09-05 — First real-broker run: form parsing, AMQP service principals, supersession-confirm mitigation (`7280642`)
 
-## 2026-08-16 — FIS off rabbit (`e1c99ce`)
+The dev-universe gate battery
+(`experiments/2026-09-05-fis-gate-battery/`) is the first time FIS ran
+against a real broker + the rmqbot gate overlay rather than the
+in-process handlers. Three code changes it forced, all invisible to the
+handler tests (which drive the endpoints directly and use a fake killer):
 
-(Commit title names the decision the cluster serves; the diff is the
-mirror apply + reconvergence kill described below.)
+- Every connect answered 500: `rabbitmq_auth_backend_http` POSTs its
+  params form-encoded, and Starlette's `request.form()` needs
+  `python-multipart`, never a declared dependency. Added at runtime.
+- Every service principal was denied `NotInRegistry` over AMQP: the
+  registry alias/class check ran for every AMQP claim, but a service has
+  no registry row (its claims carry no `GNodeClass`, the GNode
+  discriminator). The check is now gated on the principal's kind; a new
+  test connects a service principal over AMQP.
+- The supersession confirm-empty step now polls the management listing
+  briefly instead of reading it once, so a just-deleted connection that
+  lingers in the listing does not immediately read as unconfirmed.
 
-Step 5. `mirror.apply_gnode` upserts one `g.node.gt` snapshot into the mirror
-and, when the write is a rename (an alias change on an already-mirrored
-identity), calls the killer to flush that identity's connections — the one
-mirror update the per-connection `/auth/topic` verdict cache cannot see, so
-the reconnect re-checks against the new alias. Insert, no-op, and non-alias
-field changes touch no connection.
+The battery also surfaced a defect this commit does **not** close: the
+kill both enumerates and confirms through the management HTTP listing,
+which is stats-DB-backed and not real-time, so supersession is neither
+safe (a just-connected predecessor is unlisted and survives) nor
+reliable (removal lag denies a clean restart). The fix is a design
+decision tracked in OPS-422; the confirm poll above is only a partial
+mitigation. See the experiment and the design's "Open findings".
 
-The killer grows a second method: `kill_identity` closes every connection for
-a principal across all vhosts. Unlike supersession's `kill`, it is best-effort
-— the reconnect re-authorizes, so a management-API failure is logged, not
-fatal — and it is not confirmed-empty.
+## 2026-09-04 — fis words now staging; fis records every connect-gate verdict (`682547d`)
 
-Kept apply as a pure function over (session, validated `GNodeGt`, injected
-killer), unit-tested with a fake, matching the gate's shape. **Not built
-here**: the transport that feeds `apply_gnode` from gnr's `g.node.forest`
-broadcasts (the mirror seam, plus forest-level retirement/heal) — it is
-unslotted in the design's build order and is its own unit. 5 tests.
+Step 6: FIS records a `fis.instance.authorization.event` after every
+`/auth/user` verdict, allow and deny alike, into its own `auth_events`
+table (bijective with the word), written from a background task so the
+gate carries no second synchronous write. The word and its two enums
+(`fis.authorization.reason`, `fis.authorization.decision`, with the
+reason→decision projection and axiom) were authored and flipped
+`draft → staging` so FIS v1 can vendor them; the record keys on the
+`PrincipalId` (not a GNodeId) and requires `Run`. The sink is FIS's own
+Postgres because FIS joins no broker; the fleet store draining it through
+a read façade stays Open.
 
-## 2026-08-16 — Add `/auth/{vhost,resource,topic}` (`943c4d9`)
+## 2026-09-04 — Mirror seam: pull from gnr over HTTP; mint principal rows before certs (`0e2d856`)
 
-Step 4, the three remaining auth paths. **vhost** cross-checks the claimed
-run against the vhost being opened: the run reached FIS in the claims at
-`/auth/user` (which fires first) and was recorded as the lease's run, so an
-Active lease for (principal, vhost) exists iff claimed-run == vhost. gwbase
-derives `Run` from the vhost, so an honest actor matches by construction; a
-hand-built client claiming a different run has no lease here and is denied.
-**resource** is v1 allow-all. **topic** read is allowed (authority, not
-visibility); topic write is the alias-pinning rule — the routing key's
-from-alias segment must equal the wire-form (hyphenated) current alias of the
-identity.
+Step 5b (mirror seam, phase A) and 5d (principal minting). `gnr_client`
+reads the registry's public read façade over httpx, every reply decoded
+strictly through the snapshot codec; a FastAPI-lifespan reconcile loop
+boot-seeds the mirror and re-pulls on `FIS_GNR_RECONCILE_S`, and
+`decide_user` reads through on a mirror miss so a freshly provisioned
+node is admitted on its first connect. gnr unreachable → serve the
+last-known mirror. `fis principal create|list|suspend|activate` mints the
+row first and prints its id (the cert CN), so a CN is never a hand-picked
+UUID a row is back-filled to match: a service mints a fresh uuid4, a
+GNode's id is its GNodeId.
 
-The from-alias sits at token 1 across all three grammars (rj/rjb/gw), read
-from gwbase `transport_encoding.py` — token 0 is the category, token 1 the
-LRH from-alias ("segment 2" of the grammar). MQTT slash-separated topics are
-normalized to dots first, so one rule covers both surfaces.
+## 2026-08-23 — sema improvements: regen script and minimum-cover seed (`4929947`)
 
-v1 service-principal call, flagged for review: a non-GNode service principal
-(CN = principal UUID, not in the registry mirror) has no registry alias to
-pin, so its topic writes are allowed (it is cert-authenticated infra); a
-username that is neither a GNode mirror row nor an active service principal is
-denied. GNode principals — weather included — are mirror-backed and stay
-alias-pinned. 12 tests cover the vhost cross-check,
-the alias rule across rj/gw grammars and MQTT slashes, malformed keys, and
-the service/unknown paths.
+Tooling around the vendored snapshot: `scripts/regen_sema_snapshot.sh`
+regenerates it from `src/fis/sema_seed_request.yaml`, and the seed is
+trimmed to a minimum cover — the words FIS actually consumes plus their
+dependency closure — so the snapshot carries no dead vocabulary.
 
-## 2026-08-16 — Build the `/auth/user` gate (`8fcd779`)
+## 2026-08-17 — FIS off rabbit (`e1c99ce`)
 
-Step 3, the heart of the service. `gate.py` holds the decision as a pure
-function over a DB session, a parsed request, and an injected
-`ConnectionKiller`; `api.py` wires `/auth/user`; `rabbit_admin.py` is the
-management-API kill. Splitting the decision from the broker call is what lets
-every verdict run in the dev battery without a broker — the injected killer is
-a fake there and the real `RabbitMgmtKiller` only on staging, the verification
-that counts.
+Step 5: the mirror-apply path and the reconvergence kill, both off the
+message bus. `mirror.apply_gnode` upserts a `g.node.gt`, detects a rename,
+and flushes the identity; the connection kill (`rabbit_admin`) closes an
+identity's connections so the per-connection topic-verdict cache flushes
+with them. Deliberately not an AMQP actor — FIS reaches the broker only
+through its management API, and otherwise talks to its own Postgres.
 
-The five verdicts land in order: malformed (bad claims / non-uuid MQTT
-client_id) → deny; principal missing or suspended → deny; matching active
-lease → allow (idempotent reconnect); revoked instance → deny forever;
-never-seen instance → synchronous supersession — revoke the prior lease, kill
-its connections, confirm none remain (empty kill = success), create the new
-lease, allow; unconfirmable kill → deny, fail closed, with the prior revoke
-rolled back so the predecessor keeps its lease. AMQP additionally checks the
-claimed alias/class against the registry mirror; MQTT defers the alias to
-first-publish. A run outside this FIS's universe is refused up front.
+## 2026-08-16 — Add /auth/{vhost,resource,topic} (`943c4d9`)
 
-**Response is plain text `allow`/`deny`, not JSON** — the stock
-`rabbitmq_auth_backend_http` contract, read from source. The executor spec's
-`{"result": "allow"}` mapping was corrected to match.
+Step 4: the remaining broker auth paths. vhost cross-checks the claimed
+run against the vhost opened (else deny); resource is v1 allow-all; topic
+write pins routing-key segment 2 to the connection identity's wire-form
+current alias, and topic read is allowed.
 
-`httpx` moves to a runtime dependency (the killer uses it). 21 gate tests
-against a real Postgres cover every verdict, ordered supersession, fail-closed,
-and request parsing.
+## 2026-08-16 — Build the /auth/user gate (`8fcd779`)
+
+Step 3: the five-verdict gate. malformed / unknown / suspended → deny;
+instance matches the active lease → allow; previously revoked → deny
+forever; never-seen → synchronous supersession before responding (revoke
+the prior lease, close its connections, confirm none remain, create the
+lease, allow; unconfirmable → deny, fail closed). Claims decode strictly
+through the snapshot codec; for an AMQP GNode the claimed alias and class
+must match the registry mirror.
 
 ## 2026-08-14 — Vendor the sema snapshot and build the schema (`5040613`)
 
-Step 2. The vendored snapshot carries five words: the lease row
-(`g.node.instance.gt/001`), the mirror's word (`g.node.gt`), the two
-forest words the mirror seam consumes, and the connect claims the gate
-will decode. Built with `--allow-staged`, so it is a **dev-only**
-snapshot — two words are still staging, which is correct while the build
-runs on `d1` and is the reason `fis.connect.claims` must publish before
-the staging box serves `hw1__2`.
-
-Three tables. `g_nodes` and `leases` are bijective with their words and
-carry `to_gt`/`from_gt`; `principals` is hand-built because **no sema
-word covers the principal model** — the registry was searched, not
-assumed, and a `fis.principal.gt` word retires the hand-building along
-with the two hand-coded enums beside it.
-
-The single-writer invariant is a **partial unique index** on
-(principal_id, run) where status is Active, not just care in the gate.
-The gate's sync-kill supersession is what keeps it satisfiable; the index
-is what makes a bug in that path fail loudly instead of quietly admitting
-two writers. Tests prove all three faces of run-scoping: a second Active
-lease on the same run is rejected, the same identity holds Active leases
-on `hw1__1` and `hw1__2` at once, and a revoked row never blocks its
-successor.
-
-Alembic reads `FIS_DB_URL` from the same Settings the service uses, so
-the connection string has one home. The compose Postgres is on 5437 —
-5435 is gnr's and 5436 is already taken by weather-forecast.
-
-## 2026-08-14 — Default to the dev universe (`0c1ebb8`)
-
-`FIS_UNIVERSE` and `FIS_DB_URL` now default to `d1` and the local
-Postgres, so a fresh clone runs in the dev universe with no `.env` at
-all. Dev is where the build is exercised first — the whole done-when
-battery runs on `d1__1` against the local broker before any remote box —
-and a required-field wall in front of the primary workflow is friction
-paid on every run to guard a case that only arises on a deployed box.
-
-The deployed case is covered where deployment already is: a prod or
-staging box has an `.env`, and provisioning writes it. Note this differs
-from grid-node-registry, which defaults `db_url` but requires
-`universe`; FIS is the service run locally far more often, so the
-ergonomic default is worth more here.
-
-The universe is still validated for shape and kind letter, so a
-malformed value fails at boot rather than mirroring nothing.
+Step 2: the vendored sema snapshot (codec plus the claims word,
+`g.node.gt`, the lease row, the forest words the mirror seam consumes,
+and their enums and formats) and the FIS Postgres schema behind an
+alembic baseline — the `g_node` mirror, the `principal` table (keyed on
+cert subject), and the `lease` table keyed (principal, run) with
+single-writer enforced as a partial unique index. Vendored before the
+first consumer line, per sema-at-every-boundary.
 
 ## 2026-08-14 — Scaffold the service (`5f7bb51`)
 

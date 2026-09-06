@@ -1,6 +1,6 @@
 # Fleet Index Service (FIS) — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-09-02
+Status: Draft · Pass 0 · Updated 2026-09-05
 
 > What this is: the faithful spec of the **Fleet Index Service (FIS)** — the
 > authority-plane service the broker calls (`rabbitmq-auth-backend-http`) to
@@ -9,20 +9,24 @@ Status: Draft · Pass 0 · Updated 2026-09-02
 > `stand-up-fis` design (OPS-422); the auth architecture it implements is
 > the mTLS+FIS design (OPS-420); the non-GNode-services extension is
 > [`../explorations/principal-model.md`](../explorations/principal-model.md).
+> Read this hub first, then the two spokes in the order listed at the end.
 
 ## Purpose
 
 Enforces single authorized `GNodeInstanceId` per **(GNodeId, run)**.
 Lease-based single-writer authority: a GNode has at most one live instance
 per run, and a new instance supersedes the old one — with the predecessor's
-connections confirmed closed before the successor is admitted.
+connections confirmed closed before the successor is admitted. Why a
+fleet needs this, told through one scada's day:
+[`day-in-the-life.md`](day-in-the-life.md).
 
 ## Deployment
 
 **One FIS per broker box, colocated with the broker**, with its own small
 Postgres (principal + lease + registry mirror). The auth path is localhost;
 FIS starts before (or with) the broker in the box's boot order; the rebuild
-runbook treats broker + FIS as one unit. FIS is scoped to its box's
+runbook treats broker + FIS as one unit. FIS's only path into the broker
+is the management API over localhost, for the supersession kill. FIS is scoped to its box's
 fabric(s) and reads only its own universe's registry — a staging box runs
 its own FIS, and different universes have disjoint registry + broker + FIS
 stacks. FIS being unreachable means no new connections (existing ones
@@ -38,15 +42,15 @@ survive): fail closed, by design.
   grid-node-registry, the ear, the journalkeeper, the weather forecast
   service), whose id is a UUID FIS mints.
 - Determines the authoritative instance per (identity, run).
-- Exposes the RabbitMQ HTTP auth endpoints:
-  - `/auth/user` — the gate (below).
-  - `/auth/vhost` — cross-checks the claimed run against the actual vhost;
-    deny on mismatch. Otherwise allow.
-  - `/auth/resource` — **v1: allow all.**
-  - `/auth/topic` — `permission: write`: allow iff routing-key segment 2
-    equals the wire-form (hyphenated) current alias of the connection's
-    identity. `permission: read` (fired by MQTT subscribes): **allow** —
-    authorization is about authority, not visibility (OPS-420).
+- Serves the four RabbitMQ HTTP auth endpoints. `/auth/user` is the gate;
+  `/auth/vhost` cross-checks the claimed run against the vhost;
+  `/auth/resource` is allow-all in v1; `/auth/topic` pins a write's
+  from-alias to the identity's current alias and allows every read. The
+  contract and each verdict:
+  [`auth-endpoints.md`](auth-endpoints.md).
+- Keeps a mirror of its universe's registry, its own lease and principal
+  tables, and the auth-event record:
+  [`mirror-db-cli.md`](mirror-db-cli.md).
 
 ## Invariants (normative)
 
@@ -84,46 +88,19 @@ OPS-420 "Protocol ground truth"):
 `client_properties` never reach the auth path — they remain visible in the
 management API and `connection_created` events, for audit only.
 
-## `/auth/user` — the gate
-
-- **Malformed or missing required claims** → deny.
-- **Principal not found or not `active`** → deny.
-- **Instance id matches the (identity, run) active lease** → allow
-  (idempotent reconnect).
-- **Instance id previously revoked** → deny. Forever — revoked lease rows
-  are permanent (a TTL cleanup would re-admit an old zombie).
-- **Instance id never seen** (AMQP also: claimed alias/class must match the
-  registry's current values — deny on mismatch) → supersession,
-  synchronously, before responding: mark the prior lease revoked; close its
-  connections via the management API (`DELETE /api/connections/<id>`);
-  confirm **no connections remain for this identity on this run** (an empty
-  kill is success — every restart is a supersession and a clean stop leaves
-  nothing to close); create the new lease ACTIVE; return allow. If the kill
-  cannot be confirmed (management API unreachable) → deny, fail closed.
-
-Map: allow → the plain-text body `allow`; every deny → the plain-text body
-`deny`. The stock `rabbitmq_auth_backend_http` backend expects an `allow` /
-`deny` text body (the user path also accepts `allow <tags>`, unused here — no
-fleet principal carries broker tags), not JSON; the protocol carries no hint
-channel besides, and none is needed.
-
-**A lease ends only by supersession.** There is no shutdown notification:
-clean stop and crash are identical, and a decommissioned node's eternal
-lease is inert (the gate denies on principal status regardless). Emergency
-eviction is principal suspension + connection kill, independent of leases.
-Instance liveness ("is one running *now*?") is deliberately out of the
-gate — see
-[`../explorations/g-node-instance-and-liveness.md`](../explorations/g-node-instance-and-liveness.md).
-
-After responding, publish the auth event asynchronously. The event is
-**`fis.instance.authorization.event`** with the
-`fis.authorization.decision` / `fis.authorization.reason` enums — all
-three still `draft`, so all three need promoting to `staging` (and
-revising to match this contract) before the first consumer line. The
-durable lease row is **`g.node.instance.gt/001`** (`staging`), which
-carries `Run`: the lease is keyed (principal, run), so the run belongs in
-the row. `000` keys on GNodeId alone and does not upgrade — a run cannot
-be recovered from a standalone instance.
+**The claimed run travels back to the broker as the connection's user
+tag.** The backend puts a connection's claims and its vhost in no single
+request: AMQP picks the vhost at Connection.Open, after SASL, and the
+vhost call carries only `username`, `vhost`, `ip`, and `tags`. The one
+piece of per-connection state the backend does carry forward is the tag
+list after `allow` in the user verdict, which becomes the connection's
+`#auth_user` tags and rides every later vhost, resource, and topic request
+as `tags`. So FIS answers `/auth/user` with `allow <run>` and `/auth/vhost`
+compares that tag to the vhost it is opening, with no lease lookup. The
+tag is the run, never the instance id: the broker interns each distinct
+tag as an atom, and runs are a bounded set. A run cannot collide with a
+tag the broker reserves (`administrator`, `monitoring`, ...) since it
+carries a `__`.
 
 ## Registry changes force reconvergence
 
@@ -142,23 +119,26 @@ without it.
 
 ## Rabbit config (the broker side; conf owned by rmqbot)
 
-```
-auth_backends.1 = internal          # mgmt UI + break-glass only
-auth_backends.2 = http
-auth_http.user_path     = http://localhost:8080/auth/user
-auth_http.vhost_path    = http://localhost:8080/auth/vhost
-auth_http.resource_path = http://localhost:8080/auth/resource
-auth_http.topic_path    = http://localhost:8080/auth/topic
-mqtt.ssl_cert_login = true
-```
+The broker-side half is one conf fragment plus a compose overlay in
+rmqbot (`gridworks-infra/rmqbot/rmq-docker/gate/`, mounted by
+`compose.gate.yaml`): chained backends (`internal` for the management UI
+and break-glass, `http` for every fleet principal), the four
+`auth_http.*_path`s to FIS on `localhost:8080`, the GridWorks SASL
+mechanism, `ssl_cert_login_from = common_name`, and
+`mqtt.ssl_cert_login`. The rmqbot auth-path spec holds the broker-side
+rationale; what FIS depends on:
 
-plus the GridWorks SASL mechanism plugin (AMQP claims), topic
-authorization, `validated-user-id`, and the notch-3/4 `ssl_options`
-(`verify_peer`, `fail_if_no_peer_cert = true`). No verdict caching
-(`rabbit_auth_backend_cache` rejected — a cached allow for a just-revoked
-instance breaches invariant 1). No fleet password users: on MQTT an
-explicit username+password outranks the cert-derived name, so a live
-password user is a CN bypass.
+- **No verdict caching** (`rabbit_auth_backend_cache` rejected): a cached
+  allow for a just-revoked instance breaches invariant 1. FIS being
+  reachable is a hard dependency of every connect.
+- **Topic authorization** asks `/auth/topic` per publish with the routing
+  key; `properties.user_id` is validated against the connection's identity
+  by the broker itself.
+- **No fleet password users**: on MQTT an explicit username+password
+  outranks the cert-derived name, so a live password user is a CN bypass.
+- **The `ssl_options` tightening** (`verify_peer`,
+  `fail_if_no_peer_cert = true`) is not part of the gate fragment; a box
+  carries it in its own `rabbitmq.conf` (prod at notch 3).
 
 ## Publishing operational messages
 
@@ -168,53 +148,67 @@ current alias (FIS-validated per new key). Message bodies include
 `FromGNodeAlias`, `MessageCreatedMs`; envelope-level `FromGNodeId` /
 `FromGNodeInstanceId` await a proactor change (not immediate).
 
-## FIS db structure
-
-FIS maintains its own `g_node` mirror table in **strict bijection with
-`g.node.gt`** (no position_point table or foreign key). The mirror consumes
-the registry over **HTTP, never gnr's Postgres and never rabbit** — FIS is a
-pure HTTP service and joins no broker. Three inputs keep it current, all over
-gnr's read façade:
-
-- **Boot seed + periodic pull-reconcile.** FIS pulls the forest under its
-  universe (`g.node.forest.request` with `Roots = [universe]` — the bare
-  universe token is a valid root, and one FIS serves one universe) at
-  startup, and re-pulls on an interval. The reconcile is the correctness
-  backstop: it heals a mirror that missed an update. A mirrored id the pull
-  does not carry is a registry anomaly to log, never a status to write: a
-  registry node never vanishes, the mirror is bijective with `g.node.gt`,
-  and absence grants no authority since the gate needs a live alias/class
-  match.
-- **gnr push, for immediacy.** gnr additionally pushes each change to a FIS
-  mirror-update endpoint so a rename converges without waiting for the next
-  reconcile. The push is **best-effort** — it never blocks gnr, the authority
-  — which is why the reconcile above must exist.
-- **Read-through on miss.** An auth for a GNodeId absent from the mirror (a
-  freshly provisioned node connecting before its push/reconcile) is read
-  through by id (`g-node-by-id`) on the spot and applied to the mirror
-  before the alias/class check. A registry that does not know the id, or
-  cannot be reached, admits nothing new.
-
-gnr being down never stops auth: FIS serves from the last-known mirror. The
-registry is run-agnostic — runs are a fabric/FIS concern. The `principal`
-table keys on the cert subject (GNodeId for GNodes — no second id; principal
-UUID for services); the lease table keys on (principal, run). Principal
-rows are minted by `fis principal create` before the cert is cut, so the
-CN is always a FIS-minted id; `suspend` / `activate` are the emergency
-eviction lever.
-
-**Invariant 1 is enforced in the schema**, not only in the gate: a partial
-unique index on (principal_id, run) where status is Active. Supersession is
-what keeps that index satisfiable; the index is what makes a bug in the
-supersession path fail loudly instead of admitting two writers. No sema word
-covers the principal model yet, so that table alone is hand-built — a
-`fis.principal.gt` word retires the hand-building.
-
 ## Test plan
 
-Before rolling to the fleet, auth must be fast and every deny witnessed:
-valid cert + claims → allow; unknown principal, suspended principal,
-revoked instance, wrong alias claim, run-claim ≠ vhost → deny; two
-instances racing → ordered supersession (predecessor closed before
-successor admitted); clean restart → admitted without delay; FIS latency
-under ~100 concurrent connects.
+Before rolling to the fleet, auth must be fast and every deny witnessed,
+each verdict twice: by the client's outcome and by the `auth_events` row
+FIS recorded for it. The battery is
+`experiments/2026-09-05-fis-gate-battery/`: FIS, the rmqbot gate overlay
+and the mechanism plugin on a stock 4.1.8 broker, driven by real
+claims-bearing clients (gwbase's credentials class and claims word on
+AMQP, a cert-bearing paho client on MQTT). It runs twice: on the dev
+universe (`d1__1`, localhost brokers, the only place `staging` vocabulary
+may run) to catch mechanical failures cheaply, then on the staging box,
+the run that verifies.
+
+- Valid cert + claims → allow. Unknown principal, suspended principal,
+  revoked instance, wrong alias claim, wrong class claim, a run outside
+  the universe → deny.
+- Run-claim ≠ vhost → deny at `/auth/vhost`, for a fresh principal and
+  for one already live on that vhost.
+- Two instances racing → ordered supersession: the predecessor's
+  connections are closed before the successor is admitted; management
+  API unreachable → the successor is denied.
+- Clean restart (nothing to kill) → admitted without delay.
+- A stale-alias node connects, and its first publish is denied at
+  `/auth/topic`; a forged `user_id` is refused by the broker itself.
+- Suspension alone does not close a live connection (eviction is suspend
+  plus kill).
+- 100 concurrent connects all admitted, every connect inside the
+  broker's 10 s handshake budget.
+
+## Glossary
+
+- **Principal** — a durable identity allowed on the broker; its id is the
+  cert CN. Two kinds: **GNode** (id = GNodeId, alias and class checked
+  against the registry) and **Service** (id = a UUID FIS mints; no
+  registry row).
+- **Instance** — one running process of a principal, named by a fresh
+  `GNodeInstanceId` (uuid4) per boot. Identity is durable; instances come
+  and go.
+- **Universe** — the first dotted segment of every alias (`d1`, `hw1`,
+  `w`); one FIS serves one universe and reads only its registry.
+- **Run** — one execution of a universe, `universe__n`. A run is its own
+  message fabric: the broker vhost, and the scope of single-writer
+  authority.
+- **Lease** — the record that an instance holds authority on (principal,
+  run). At most one is `Active` per pair; a revoked lease is permanent.
+- **Supersession** — how a lease ends: a never-seen instance of the same
+  identity on the same run revokes the prior lease and has the
+  predecessor's connections closed and confirmed gone before it is
+  admitted.
+- **Mirror** — FIS's copy of its universe's `g.node.gt` rows, pulled from
+  gnr's read façade; what alias and class claims are checked against.
+- **Gate** — `/auth/user`, the one verdict that admits or refuses a
+  connection.
+
+## Spokes
+
+0. [`day-in-the-life.md`](day-in-the-life.md) — what FIS is for, as a
+   narrative for a person; read first, not normative.
+1. [`auth-endpoints.md`](auth-endpoints.md) — the HTTP contract, the gate's
+   verdicts and the supersession mechanics, the vhost, resource and topic
+   rules, the auth event.
+2. [`mirror-db-cli.md`](mirror-db-cli.md) — vocabulary, the mirror and its
+   three inputs, the tables, the registry façade calls, the `fis` command,
+   configuration.

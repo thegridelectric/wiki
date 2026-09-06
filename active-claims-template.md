@@ -33,11 +33,15 @@ verbatim; deviation is a defect, not a stylistic choice. RFC 2119 keywords
 - **Update Scope** as work progresses; keep it tight.
 - **Claim granularity.** Scope entries SHALL be exactly **one directory
   deep** for code-repo claims (e.g., `sema/`, `gridworks-base/`,
-  `gridworks-scada/`) and SHALL be **at most two deep** for `wiki/` claims
-  (e.g., `wiki/sema/`, `wiki/gridworks-scada/`). Finer-grained claims
-  fragment coordination — if two sessions both touch the same top-level dir
-  (or the same `wiki/<domain>/`), one SHALL block and wait; they MUST NOT
-  coexist with a narrower path glob.
+  `gridworks-scada/`) and SHALL be **at most two deep** for `wiki/` and
+  `experiments/` claims (e.g., `wiki/sema/`, `wiki/gridworks-scada/`,
+  `experiments/2026-09-05-dac-output-bench/`). An experiment folder is one
+  rung with one owner, so sessions claim the folder, not `experiments/`
+  as a whole; `experiments/` alone is a valid claim only for work on the
+  folder's shared files (the logbook, `future/`). Finer-grained claims
+  fragment coordination — if two sessions both touch the same top-level
+  dir (or the same `wiki/<domain>/` or `experiments/<rung>/`), one SHALL
+  block and wait; they MUST NOT coexist with a narrower path glob.
 - **Top-level wiki files require explicit per-file claims.** Files that sit
   at the root of `wiki/` (e.g., `wiki/README.md`, `wiki/GridWorks_CLAUDE.md`,
   `wiki/glossary.md`, `wiki/working-with-llms.md`, `wiki/active-claims.md`

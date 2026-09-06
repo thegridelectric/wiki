@@ -1,6 +1,6 @@
 # DAC output actuator (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-02 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-05 · Linear: OPS-392
 
 > What this is: the 0-10V output on the gw108 becomes an actuator on the
 > relay pattern — one node, one board-resident component, one leaf in the
@@ -65,11 +65,104 @@ Status: Draft · Pass 0 · Updated 2026-09-02 · Linear: OPS-392
    `test_zero_ten_outputer.py` on the sim chip (boot verify, dispatch →
    Multi-Write, heartbeat re-assert of the commanded value).
 4. **Bench rung on honeysuckle** (EDD): boot verify, one dispatched
-   level change read back from the chip, heartbeat holds it. Reproducer
-   folder under `experiments/`, logbook line.
-5. **Spruce window**: same witness on the real pump, with the summer
-   hack and the deployed scada stopped and the isolation checklist below
-   satisfied. Then the command-tree matrix (`sh-node-actor-partition.md`).
+   level change read back from the chip, heartbeat holds it. Ran
+   2026-09-05, FAIL with two findings (dispatch never reaches the
+   outputer; verify reprograms every boot):
+   `experiments/2026-09-05-dac-output-bench/`. Re-run after the fixes.
+5. **Spruce window**: the real pump, iso valve open and secondary pump
+   on, the output swept linearly and in jumps for the speed-versus-
+   output curve, with the summer hack and the deployed scada stopped
+   and the isolation checklist below satisfied. Queued as
+   `experiments/future/spruce-pump-speed-sweep/`. Then the command-tree
+   matrix (`sh-node-actor-partition.md`).
+
+## Failures found on the bench (2026-09-05) — test first, then retry
+
+The honeysuckle rung (`experiments/2026-09-05-dac-output-bench/`)
+surfaced five items. Each got a local test on the Nolan sim fixture
+(`tests/config/gw.nolan.*`) before any fix. Status after the 2026-09-05
+test-first pass:
+
+1. **The admin link cannot read a Nolan layout.** OPEN, blocked on the
+   word. `Scada.control_capabilities` reads
+   `self.layout.node(H0N.relay_multiplexer).component.gt`, and
+   `scada.control.capabilities/001` REQUIRES that Krida component, so no
+   Nolan layout can emit a valid instance and the admin TUI never gets
+   its capabilities. Failing test: `tests/actors/test_admin_on_nolan.py::
+   test_control_capabilities_on_nolan`. The word edit (staging, in place)
+   and the package changes are written up in `admin-for-nolan.md` "What
+   the admin tool needs from a scada"; both wait on Jessica.
+2. **A forwarded AnalogDispatch never reaches `ZeroTenOutputer`.** NOT A
+   ROUTING FAILURE. `tests/actors/test_admin_on_nolan.py::
+   test_admin_analog_dispatch_reaches_outputer` runs the admin client's
+   wire shape against a live Nolan scada: admin wakes, the tree rewrites,
+   the outputer takes the level and reports it on the channel. On the
+   bench the dispatch went through too, to the SIM chip: boot 2's log
+   opens with `[scada] SIMULATED` (line 3 after the settings dump), so
+   `I2cBus` ran `SimI2c` and the real MCP4728 was never addressed. The
+   success path was silent; the outputer now logs an accepted dispatch.
+   The `_send_to` final `else` is the legitimate path for actors on the
+   LAN (scada2's), not a silent drop, so no `raise` is added there.
+3. **`verify_eeprom` reprograms every boot on bytes that match.** SAME
+   CAUSE. `test_zero_ten_outputer.py::test_verify_accepts_the_bench_chip_read`
+   feeds the verify the 24 bytes from `chip-2026-09-05.txt` and it
+   reports no mismatch; the sim chip's EEPROM starts at zero, so every
+   sim boot reprograms. The reprogram glitch now names the (code, vref,
+   gain) read against the layout's.
+4. **Admin link password key.** FIXED in gwproactor (branch
+   `jm/connack-reason-code`, commit pending; tag `v4.1.13+jm2` and the
+   scada pin bump follow). paho calls `on_connect` on every CONNACK,
+   refusals included; the wrapper queued a connect message without
+   reading the reason code, so the link moved to
+   `awaiting_setup_and_peer`, emitted a `mqtt.connect` event and
+   subscribed on a socket the broker was closing. Now a refusal rides
+   the existing `connecting -- mqtt_connect_failed --> connecting`
+   edge, logged with its reason, and the socket close after a refusal
+   is not a disconnect. **Verified against a real broker 2026-09-05:**
+   a private mosquitto with a password file on `127.0.0.1:18899`
+   (`allow_anonymous false`; the shared test broker on 1883 accepts any
+   password), the local scada on `tests/config/gw.nolan.layout.json`
+   with `SCADA_ADMIN__PORT/USERNAME/PASSWORD` overridden on the command
+   line, the scada venv importing the sibling proactor checkout
+   (editable). Wrong password: `admin:  connecting -- mqtt_connect_failed
+   --> connecting  CONNACK refused: Not authorized (rc 135)` at 1, 2, 4,
+   8, 16 s (paho's reconnect delay; 135 is paho's v5 mapping of CONNACK
+   5), mosquitto logging `disconnected, not authorised` each time, no
+   connect line. Right password: `mqtt_connected -->
+   awaiting_setup_and_peer` then `mqtt_suback --> awaiting_peer` on the
+   first attempt. Unit reproducer:
+   `gridworks-proactor/tests/test_proactor/test_comm/test_connect_refused.py`.
+   **The admin panel has the same flaw on its own side:**
+   `gwadmin/watch/clients/constrained_mqtt_client.py` `_on_connect`
+   ignores `_rc`; run against the same broker with a wrong password,
+   `gwa watch -vv` logged `MQTTClient: connecting -> subscribing` while
+   mosquitto refused it every cycle, and never named the cause. Fix
+   with the gridworks-admin package changes (item 5).
+5. **The admin tool itself assumes House0.** Research done, see
+   `admin-for-nolan.md`; package changes wait on item 1's word.
+
+**Why the bench was simulated, and what changed.** Until 2026-09-05 the
+backend choice rode `ScadaAppInterface.is_simulated`, which is true
+unless the box holds a TaDeed AND the layout has no sim component.
+Honeysuckle has no `tadeed.json`, and its layout from
+`honeysuckle_sema_gen.py` carries two `sim.pico.tank.module.component.gt`
+(Buffer, Tank1; the bench has no picos, and the layout's axioms require
+the channels they capture), so `I2cBus` ran `SimI2c` and the MCP4728 was
+never addressed. Run 3 (2026-09-05 evening, scada `0f1ff7be`) confirmed
+the dispatch leg on the box under that condition: the admin dispatch
+reached `ZeroTenOutputer` (`Dispatch from admin: volts x10 55 -> code
+2200`), so item 2 holds on real hardware routing, only the chip write
+went to the fake. The fix is the rule now in `executor/components.md`
+"Hardware backend selection is the layout's job": board-resident actors
+take real or fake from the board record's DeviceType, and honeysuckle's
+record is a real `Gw108RevB`. The derived bit keeps its system-level
+meaning (no deed, not a real terminal asset) and no longer touches the
+bus. The runbook's step 8 check for `SIMULATED` still reports that
+system-level state; the chip-reached check is the DAC read-back itself.
+**Do this next:** re-run the bench rung (step 4) on the fixed code.
+
+The eGauge component booted against the real meter with no errors,
+and the isolation held, so neither needs a test.
 
 ## Isolation checklist for the spruce window (staging words off prod)
 
@@ -116,10 +209,24 @@ Window protocol on top of the three layers:
 - Stopping services, placing env files and restarting are JM's to run;
   the session preps commands and the watch-list.
 
-## Open
+## Decided 2026-09-04
 
-- Whether the House0 010v nodes migrate to per-output components (DFR
-  analog of the new word) now or with the krida retirement. Not needed
-  for the matrix: House0's shape already puts them in the tree.
-- `AnalogDispatch` semantics for the output actor: percent vs raw code;
-  the sema word for it is unverified — check before step 3.
+- **The House0 010v nodes migrate to per-output components with the
+  krida shift, not now.** Two 0-10V mechanisms exist and only the gw108
+  one has code: the DFR modules are driven through the
+  `zero-ten-multiplexer` node holding one `dfr.component.gt` with all
+  three outputs in its ConfigList. Per-output components there need the
+  outputer to resolve its own module and the multiplexer actor retired,
+  the same shape as the relay side, so the per-output word (vendor-free
+  name, `zero.ten.output.component.gt` proposed, linking field
+  `ModuleComponentId`), the parent rename off the vendor name, the
+  fixture surgery, House0 axiom 10's ComponentId clause and House0's
+  ComponentBinding all land in the krida shift together. Not needed for
+  the matrix: House0's shape already puts the nodes in the tree.
+- **`i2c.dac.output.component.gt` keeps its ConfigList.** The rule is
+  canonized in `executor/components.md` "The config list — when a
+  component carries one": a list stays if and only if the device has
+  core configuration beyond its binding, and the DAC output has it
+  (channel, power-on code, reference, gain), as the relay does.
+- `AnalogDispatch.Value` is volts times ten, 0 to 100 (landed with the
+  actor, scada `341c99de`).

@@ -1,11 +1,31 @@
 # Unsorted (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-02 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-04 · Linear: OPS-392
 
 > What this is: a drop-box for things that show up mid-work that we
 > deliberately don't think through yet. Items graduate to a real spoke,
 > the cleanup queue, or the trash — they don't get designed here.
 
+- **Honeysuckle layout does not generate (found 2026-09-04).**
+  `tlayouts/honeysuckle_sema_gen.py` sets `power_meter_kind="sim-egauge"`,
+  which the config's `Literal["sim", "egauge"]` refuses while the
+  generator code paths handle the value. Honeysuckle is NOT a simulated
+  home: it is the pi attached to a real gw108 at the Stoneman
+  microgrid (tailscale `100.118.30.38`), and there is a real eGauge on
+  site, so its power meter is `egauge` with that eGauge's identity, not
+  a sim knob. Fix when the bench rung of the DAC output actuator needs
+  the layout regenerated (`dac-output.md` step 4); until then the
+  deployed bench layout is the last good output.
+- **Pumps need a type in the layout (2026-09-05).** Nothing in a layout
+  says what each pump IS: make and model, and with it the control kind
+  (0-10 V, PWM, on/off, fixed-speed) and the curve the control code
+  needs. Spruce's secondary pump is a Grundfos UPMS 20-78 F driven by
+  the DAC output; the dist and store pumps are not identified anywhere
+  either. A device-type record per pump model (the pattern the heat
+  pump parts use: a node with a component whose DeviceType names the
+  record) is the likely shape; the speed-versus-output curve from
+  `experiments/future/spruce-pump-speed-sweep/` is the first fact such
+  a record would carry.
 - **CT measurement chain for the gw108** (from a conversation with Joe,
   2026-09-02). Three levers set what a CT channel can measure:
   the CT's winding ratio, how many times the power wire loops through

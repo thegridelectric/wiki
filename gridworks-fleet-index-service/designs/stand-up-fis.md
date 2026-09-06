@@ -1,44 +1,47 @@
 # Stand up FIS
 
-Status: Accepted · Pass 1 · Updated 2026-09-02 · Linear: OPS-422
+Status: Accepted · Pass 1 · Updated 2026-09-05 · Linear: OPS-422
 
 **EDD: yes** verified by the day-in-the-life handshake
-([`../research/lifecycle.md`](../research/lifecycle.md)) run for real on the
+([`../executor/day-in-the-life.md`](../executor/day-in-the-life.md)) run for real on the
 staging broker: a client connects with its cert + claims, the broker calls
 FIS, and FIS returns allow for a valid active instance; deny for revoked /
 suspended / wrong claim / wrong run; a racing second instance supersedes
 the first with the predecessor closed before the successor is admitted.
 
 > What this is: build and deploy the Fleet Index Service. The **model is
-> specified** in [`../executor/primary.md`](../executor/primary.md) (the
-> gate, the invariants, deployment posture, rabbit config, db structure,
-> test plan); the auth architecture it implements is OPS-420. This design
+> specified** in [`../executor/primary.md`](../executor/primary.md) and
+> its two spokes (the gate, the invariants, deployment posture, rabbit
+> config, db structure, test plan); the auth architecture it implements is OPS-420. This design
 > does **not** restate that — it is the **ordered build plan**. The
 > `gridworks-fleet-index-service` repo is README-only today, so this is
 > from-scratch.
 
 ## Build order (each step maps to a section of `executor/primary.md`)
 
-Steps 1–5b are built. With the mechanism plugin and the gwbase credentials
-class both delivered, every non-FIS piece the dev battery needs now exists,
-so **FIS step 6 is the last decision path before step 8**, alongside the
-push accelerator (5c) — the critical path is this repo, not the broker
-side.
+Steps 1–8 are built; the dev battery is green (27/27 verdicts plus the
+reconnect storm) with Findings A and B both closed. **Next
+move: step 9 — deploy FIS colocated with the staging broker (`hw1__2`) and
+run the battery there, the run that counts as verification.** The push
+accelerator (5c) is not on that path. Also open: mint the four
+platform-service principals (weather, gnr, ear, gjk) with `fis principal
+create` and cut their certs — the per-service walkthrough (who runs what,
+in which order) lives in the mTLS design, OPS-420, "Minting a
+platform-service cert".
 
 1. ✅ **Scaffold the service.** FastAPI + Postgres + `uv` (mirror the
    grid-node-registry stack). Settings via `pydantic-settings` (own
    `FIS_` prefix). Vendor the sema snapshot before the first consumer
    line: the claims word, `g.node.gt`, the lease row, and the two forest
-   words the mirror seam consumes. **Not** the auth event — it and its
-   two enums are `draft`, which is excluded from runtime generation, so
-   they cannot be vendored until promoted (see step 6).
+   words the mirror seam consumes; the auth event joined the seed at
+   step 6, once its words reached `staging`.
 2. ✅ **FIS db.** The `g_node` mirror (strict bijection with `g.node.gt`,
    consuming gnr's on-change messages; serves auth when gnr is down), the
    `principal` table (keyed on cert subject: GNodeId for GNodes, principal
    UUID for services), and the `lease` table keyed **(principal, run)** —
    revoked rows permanent, with single-writer enforced as a partial unique
    index rather than by the gate's care alone.
-3. ✅ **`/auth/user` — the gate** (*executor "`/auth/user` — the gate"*).
+3. ✅ **`/auth/user` — the gate** (*executor `auth-endpoints.md` "`/auth/user` — the gate"*).
    Claims arrive as the `claims` sema word (AMQP) or `client_id` + `vhost`
    (MQTT); decode through the snapshot codec, strict. Implement the five
    verdicts exactly: malformed → deny; principal missing/inactive → deny;
@@ -91,27 +94,70 @@ side.
    gnr, ear, gjk) mint through this. Rows minted on one FIS database are
    carried to the database that will gate the cert (staging, then prod)
    as records, not re-typed.
-6. **Auth event.** Publish **`fis.instance.authorization.event`**
-   asynchronously after each decision. It and its two enums
-   (`fis.authorization.decision`, `fis.authorization.reason`) are `draft`
-   and therefore unusable: promote all three to `staging` and revise them
-   to match the gate's contract, then re-run the snapshot build, before
-   the first line that emits one.
-7. **Rabbit-side config** (*executor "Rabbit config"*): chained backends
-   (`internal` for mgmt UI + break-glass, `http` → FIS on localhost),
-   `topic_path`, topic authorization, `validated-user-id`,
-   `mqtt.ssl_cert_login`, and mounting the GridWorks SASL mechanism
-   plugin. Applied by rmqbot; first on the staging box. The plugin itself
-   is **built** — it ships as a mountable `.ez` against the pinned 4.1
-   image, with the gwbase pika credentials class that supplies the claims
-   payload, so this step configures and mounts rather than builds.
-8. **Run the whole battery locally first, on the dev universe.** The full
-   stack — FIS, broker conf, mechanism plugin, a claims-bearing client —
-   against `gw-dev-rabbit` on `d1__1` before any remote box. A dev
-   universe is defined by all comms going through localhost brokers, which
-   is also the only place `staging` vocabulary may run: `fis.connect.claims`
-   and `g.node.instance.gt/001` stay mutable through this stage and harden
-   against real handshakes rather than against review.
+6. ✅ **Auth event.** Record a **`fis.instance.authorization.event`** after
+   each `/auth/user` verdict. The word and its two enums were reshaped to
+   the gate's contract (reason per verdict path, `PrincipalId` not
+   `GNodeId`, required `Run`, a Reason → Decision projection with its
+   axiom) and flipped `draft → staging` in sema; the sink is FIS's own
+   `auth_events` table, bijective with the word, written from a
+   background task after the response; the migration was run up and down
+   on a fresh database.
+7. ✅ **Rabbit-side config** (*executor "Rabbit config"*). Landed as an
+   overlay in rmqbot (`rmq-docker/gate/` + `compose.gate.yaml`): the
+   conf fragment rides `conf.d` on top of any box's `rabbitmq.conf`, so
+   one file serves the dev harness, staging, and prod; the plugin list
+   adds the http backend and the mechanism; the `.ez` mounts from
+   `auth-mechanism/`. Witnessed on the stock 4.1.8 image: both plugins
+   `[E*]`, backends `[internal, http]`, mechanisms
+   `[GRIDWORKS, PLAIN, AMQPLAIN]`, bare-CN usernames, MQTT cert login on.
+   Not in the fragment by design: the `ssl_options` tightening (prod's
+   notch 3) and any verdict cache.
+8. ✅ **Run the whole battery locally first, on the dev universe.** The full
+   stack — FIS, the broker gate overlay, the mechanism plugin, real
+   claims-bearing clients — against a stock 4.1.8 broker on `d1__1`. Built and
+   run: `experiments/2026-09-05-fis-gate-battery/`. 27/27 verdicts pass,
+   including ordered supersession of an idle predecessor, a clean restart
+   admitted in under half a second, fail-closed with the management API
+   unreachable, and a 100-connection reconnect storm inside the
+   10 s handshake budget; the AMQP legs use gwbase's own credentials class
+   and claims word, the MQTT legs a cert-bearing paho client. A dev universe
+   is defined by all comms going through localhost brokers, which is also
+   the only place `staging` vocabulary may run: `fis.connect.claims` and
+   `g.node.instance.gt/001` stay mutable through this stage.
+
+## Findings (step 8, dev battery)
+
+**A — supersession is not authoritative (closed).** The kill found and
+confirmed the predecessor's connections through the management listing,
+which is stats-backed and lags, so a young predecessor survived beside its
+successor and a clean restart read as unconfirmed. The shipped shape is in
+the executor's "`/auth/user` — the gate": close-by-username on the
+management API, confirm through the management API's by-username view
+(served from the broker's connection-tracking table, not the stats
+database), a two-phase close for a predecessor that never answers the
+broker's Connection.Close, and an 8 s confirm budget that covers the
+broker's 5 s TLS close wait for a peer that is not reading. The decided
+`rabbitmqctl` confirm was built and measured first and dropped, with the
+box wiring it needed: `list_connections` deadlocks with the gate (it asks
+the successor's own blocked reader), and an `eval` on the tracking table
+costs an Erlang VM per call, which the reconnect storm turned into 9 s
+connects. close-by-username is broker-wide for the identity — exact for a
+one-run broker, witnessed on the dev broker's `d1__2` leg as a logged
+limit; a vhost-scoped kill, if a broker ever multiplexes runs, would read
+the tracking table's per-connection vhost and pid.
+
+**B — `/auth/vhost` could not see the claimed run (closed).** The vhost
+call carries no claims (AMQP picks the vhost at Connection.Open, after
+SASL), so FIS had answered it from the lease table, "does this principal
+hold an active lease on this vhost", which admits a connection that
+claimed another run whenever the identity is legitimately live there. The
+shipped shape is in the executor's "How the claims arrive": the user
+verdict is `allow <run>`, the broker makes the run the connection's user
+tag and forwards it as `tags` on the vhost call, and the vhost check
+compares tag to vhost with no lease lookup. The battery scores it as
+`run_claim_vs_vhost_deny_with_live_lease`; the broker-wide kill from A
+is unchanged.
+
 9. **Deploy colocated with the broker** (*executor "Deployment"*): same
    box, localhost auth path, FIS before the broker in boot order; staging
    box (`hw1__2`) first, prod after the done-when battery passes.

@@ -12,7 +12,68 @@ Newest at the top.
 
 ---
 
-## 2026-09-04 — DAC output actuator: ZeroTenOutputer drives the gw108 DAC <!-- pending commit -->
+<!-- pending commit -->
+## 2026-09-05 — Board-resident actors pick real or fake silicon from the board record, not from is_simulated
+
+The honeysuckle bench (`experiments/2026-09-05-dac-output-bench/`) could
+not reach the real MCP4728: `I2cBus` chose `SimI2c` because the derived
+`is_simulated` was true (no TaDeed, two sim tank modules), even though
+the layout's board record is a real `Gw108RevB`. That bit answers "is
+this scada a real terminal asset", and hardware backend selection is a
+different question the layout already answers per device. Now the board
+component exposes `simulated` (its record's DeviceType is in
+`gw1.sim.device.type`, i.e. `SimGw108`) and the four gw108 actors read
+it: `I2cBus` picks `SimI2c` or smbus2 from `layout.scada_board()`,
+`Relay` (GPIO relays) and `GpioSensor` import RPi.GPIO only on a real
+board, and `I2cThermistorReader` loses its dummy-volts branch and always
+reads through the bus; `SimI2c` gains a `SimAds1115` at the board's
+thermistor ADC addresses so a sim read still classifies. The Krida and
+DFR multiplexers keep the derived bit for now: the House0 component
+vocabulary has no sim twin for them, and both retire in the krida shift.
+Tests drop their `is_simulated = False` overrides; a new test pins the
+selection on the Nolan fixture (SimGw108) and the sim ADC read path.
+
+## 2026-09-05 — Admin seam on Nolan: capabilities and dispatch tests; outputer names its dispatch and its EEPROM read; proactor pin to v4.1.13+jm2
+
+The 2026-09-05 honeysuckle bench (`experiments/2026-09-05-dac-output-bench/`)
+reported the admin dispatch never reaching `ZeroTenOutputer` and the
+EEPROM verify reprogramming every boot. Both traced to one cause the log
+named in its first lines: the pi booted `SIMULATED`, so `I2cBus` ran the
+fake chip (the honeysuckle layout carries sim tank modules and the box
+has no TaDeed, and realness is derived from both). The comparison and the
+routing were right; the success paths were silent. `tests/actors/
+test_admin_on_nolan.py` pins the routing on a live Nolan scada (an
+`AdminAnalogDispatch` in the admin client's wire shape lands in the
+outputer under the admin tree and the level reports on the channel) and
+pins the capabilities projection on Nolan as a strict xfail: it fails on
+the House0 relay-multiplexer lookup until `scada.control.capabilities`
+stops requiring a Krida component. `test_zero_ten_outputer.py` feeds the verify
+the 24 bytes captured on the bench and asserts no mismatch. The outputer
+logs an accepted dispatch (handle, volts x10, code) and the reprogram
+glitch names the (code, vref, gain) read against the layout's, so the
+next bench log shows what the chip held.
+
+The bench also ran the admin link with the wrong password key, and the
+scada log said "connected" then dropped, every cycle, with no cause.
+The fix is in the proactor fork (`3e5087f`, tag `v4.1.13+jm2`): a
+refused CONNACK now rides the connect-failed edge and is logged with its
+reason code (the proactor changelog has the mechanism and the
+real-broker run). The pin moves in every `requirements/*.in` and the
+compiled `*.txt` that carry it, by editing the tag rather than
+recompiling, so nothing else in the pins moves.
+
+## 2026-09-04 — Nolan axiom 5 clause c mirrored; reverse allowlist empty (`5940d1b9`)
+
+`NolanLayout.check_axiom_5` gains clause c (`secondary-010v` with
+ActorClass `ZeroTenOutputer` and a ComponentId that is an
+`I2cDacOutputComponentGt` in Components) with a rejecting test per
+failure; the closure copy at `sema_closure/registry.yaml` refreshes to
+the tlayouts snapshot at sema `d6f59e7`, and the reverse-conformance
+allowlist empties: the writer trio the layout words admitted with no
+gwsproto twin is out of their unions. The Nolan sim pair in
+`tests/config` regenerates from tlayouts.
+
+## 2026-09-04 — DAC output actuator: ZeroTenOutputer drives the gw108 DAC (`341c99de`)
 
 The 0-10V output on the gw108 becomes an actuator on the relay pattern:
 one node, one board-resident component, one leaf in the command tree.
@@ -30,6 +91,10 @@ unit the multiplexer and the House0 senders already use, and a
 successful write reports the channel. The Nolan fixture regenerates from
 tlayouts with `secondary-010v` in place of `gw108-dac2-writer`;
 `test_zero_ten_outputer.py` replaces the writer test on the sim chip.
+The reverse conformance allowlist now names the orphaned writer trio
+instead: the layout words' Components unions in sema still admit them,
+so the closure reaches words the scada no longer decodes — a sema-side
+union edit clears it.
 
 ---
 

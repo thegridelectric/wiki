@@ -1,6 +1,6 @@
 # sh_node_actor partition (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-02 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-04 · Linear: OPS-392
 
 > What this is: the agreed rework of `sh_node_actor.py` (1852 lines, five
 > concerns, inherited by every node actor — the relay actor carries
@@ -154,20 +154,21 @@ before anything touches prod). The gridworks-data analysis
 (calc_hourly_data: House0-frozen channel strings, Nolan's NULL hp_kwh_el,
 relay-idx LIKE patterns) is the phase-3 seed material.
 
-## Handoff state (2026-09-02 evening, session calm-sapling → next)
+## Handoff state (2026-09-05, session snug-mistral → next)
 
-**Landed this session:** sema `912660c` (DAC output words, disjoint
-`gw1.sim.device.type`, maple/beech heat-pump nameplates) and `e625ff6`
-(Nolan axioms reshaped to the names tiers, tank1 element names).
-**Uncommitted, green, ready to land** (commands in the session's last
-message): tlayouts (sim-spruce pair on the reshaped word, snapshot
-rebuilt, sim heat-pump parts) and scada (mirror + names + sim
-vocabulary + regenerated fixture; suite 248 passed / 2 skipped,
-conformance sweep green, `sema validate` OK on the fixture). Pending
-changelog entries for both carry the what/why; reconcile the hashes.
+**Landed this session:** scada `8166acc6` (conformance sweep checks the
+layout closure in reverse: gwsproto vendors the tlayouts snapshot
+registry at `packages/gridworks-scada-protocol/sema_closure/`, the
+standing test requires every closure word to have a gwsproto twin, and
+the wiki Stop hook `stop-snapshot-closure-sync.sh` blocks while the copy
+and the snapshot differ — refresh the copy in every snapshot wave);
+tlayouts `d6a995e` (Nolan gen emits DAC outputs, honeysuckle TODO folded
+in); scada `341c99de` (move 3: DAC output actuator — see item 3).
+Move 3's fixture swap is done; its **word side is
+the next move: the word gate below.**
 
 **Sema round 2, remaining moves, in order** (spec: `layout-word-axioms.md`;
-decisions settled there 2026-09-02). **Next move: 2** (three word moves,
+decisions settled there 2026-09-02). **Next move: the bench failures under item 3** (moves 1-3 and the word gate landed;
 one commit per repo).
 
 1. ✅ **House0 word** (landed 2026-09-02: sema `dfe93be`, scada
@@ -239,13 +240,52 @@ one commit per repo).
      waypoints are the LocalControl node's children; dormancy of leaf
      command nodes in `extended_description`, not a clause);
      `gw1.actor.class:013` as axiom dependency.
-3. **DAC actuator (1b)**: `secondary-010v` on `i2c.dac.output.component.gt`
-   joins Nolan RequiredActuators together with the actor rebuild — the
-   writer test resolves the fixture's writer node and ZeroTenOutputer
-   hard-wires the House0 multiplexer, so the fixture cannot swap
-   before the actor does. Writer refs then leave the layout unions; the
-   House0 `*-010v` nodes gain their components and axiom 10 its
-   ComponentId clause.
+3. ✅ **DAC actuator (1b)** (landed 2026-09-04: tlayouts `d6a995e`, scada
+   `341c99de`): `ZeroTenOutputer` keys its mechanism on the component
+   (I2cDacOutputComponent → board DAC through `I2cBus`; no component →
+   House0's DFR multiplexer forward, noted as the missing per-output DFR
+   word); the writer actor, its three gwsproto mirrors and tests are
+   gone; the Nolan fixture carries `secondary-010v` (Dac2 C, power-on
+   code 3020 held exactly until the first dispatch; `AnalogDispatch.Value`
+   is volts × 10). **Word gate landed 2026-09-04** (sema `d6f59e7`,
+   tlayouts `335e946`, scada `5940d1b9`): Nolan axiom 5 gains
+   clause c (`secondary-010v`, ZeroTenOutputer, ComponentId an
+   `i2c.dac.output.component.gt`); both layout words and the tlayouts
+   seed drop the writer trio, so the closure no longer reaches it and
+   the scada reverse-conformance allowlist is empty; gwsproto mirror +
+   two rejecting tests. House0's `*-010v` ComponentId clause and the
+   per-output module word defer to the krida shift (`dac-output.md`
+   "Decided 2026-09-04"); the ConfigList rule is canonized in
+   `executor/components.md`. **Bench rung RAN 2026-09-05**
+   (`experiments/2026-09-05-dac-output-bench/`, FAIL, reproducer in
+   place): the admin dispatch reaches the scada and is forwarded, but
+   never reaches `ZeroTenOutputer` (no log, chip unchanged; suspect
+   `Scada._send_to`'s silent fall-through for an unrouted node or the
+   boss-handle rewrite under Admin), and `verify_eeprom` reprograms
+   every boot on EEPROM bytes that match the layout. **Test-first pass RAN 2026-09-05 (session
+   mighty-capon, scada commit pending):** the bench's two "failures"
+   were one cause, the pi booted SIMULATED (no TaDeed, sim parts in the
+   honeysuckle layout), so the fake chip took the dispatch and the
+   verify; routing and comparison pass on the Nolan fixture
+   (`tests/actors/test_admin_on_nolan.py`, `test_zero_ten_outputer.py`).
+   **The gwproactor connect-reason-code fix landed** (proactor
+   `3e5087f`, tag `v4.1.13+jm2`, scada pin `0f1ff7be`) and the
+   honeysuckle rung re-ran on it: the dispatch reaches the outputer on
+   the box, but the boot is still SIMULATED (`dac-output.md` "Why the
+   bench was simulated"). **Next move, first:** grill Jessica on the best
+   way to test the chip on honeysuckle. Dropping the two sim tank
+   modules is out: the layout requires the channels they capture, so
+   a sim-free honeysuckle layout would fail its own axioms. Candidates
+   to grill: a bench-only realness exemption, a sim device kind that
+   does not trip the derivation, or reading the chip through a path
+   that is not the scada's `I2cBus`. **Then:** the `scada.control.capabilities` in-place edit
+   (staging) that drops the required Krida component, then the
+   gridworks-admin package for Nolan, both written up in
+   `admin-for-nolan.md` "What the admin tool needs from a scada"; the
+   failing test is `test_control_capabilities_on_nolan`. The bench
+   re-run waits on the realness decision in `dac-output.md` "Why the
+   bench was simulated". Then `dac-output.md` step 5, queued as
+   `experiments/future/spruce-pump-speed-sweep/`.
 4. **hp-twin fixture**: tlayouts config axis → `gw.nolan.layout.hp-twin.json`
    (hp-ctrl-box as HpTwin under hp-boss, its component the MIM modbus
    bridge) + a dormant HpTwin stub so both fixtures boot. hp-boss
@@ -253,18 +293,22 @@ one commit per repo).
    real value selects the modbus driver, `SimSamsungAE055FEYMCG` the
    sim twin; sim parts carry no device-type records.
 
-**Trees at handoff (2026-09-03 morning):** all clean. Sema on `dev`
-(`7c3e0bd`, ahead of origin, push due; cut `jm/<topic>` off dev before
-any sema edit). Scada `jm/spruce-unlimbo` at `0d4ec979`; tlayouts
-`jm/spruce` at `1741a26`; the tlayouts snapshot is at sema `7c3e0bd`.
-Changelogs reconciled. Two House0 fixtures boot: `gw.house0.layout.json`
-(hand-kept beech real shape: LG parts, Honeywell circuit) and
-`gw.house0.sim.*` (from `tlayouts/house0_sim_sema_gen.py`: mechanical
-dial, sim sensors behind every flow position and the sieg cold side, no
-Hubitat); the named-type and prefix-closed tests run over both. The
-beech fixture still fails `sema validate` on pre-existing shape (three
-channels carry InPowerMetering, four components predate their words'
-config shape) — closes with a translated beech gen, not by hand.
+**Trees at handoff (2026-09-05, session snug-mistral):** sema `dev` at
+`d6f59e7` (cut `jm/<topic>` before any sema edit); tlayouts `jm/spruce`
+at `56dbcd1`, clean; scada `jm/spruce-unlimbo` at `5940d1b9`, clean and
+checked out on honeysuckle (admin link enabled in its `.env`, standing
+layout restored, 153 old events in `event-archive/`). The experiments
+folder holds uncommitted new files (`2026-09-05-dac-output-bench/`,
+`future/spruce-pump-speed-sweep/`, logbook lines). The tlayouts snapshot and the gwsproto closure copy
+are both at sema `d6f59e7`. Changelogs reconciled, no pending markers.
+Two House0 fixtures boot: `gw.house0.layout.json` (hand-kept beech real
+shape: LG parts, Honeywell circuit) and `gw.house0.sim.*` (from
+`tlayouts/house0_sim_sema_gen.py`); the named-type and prefix-closed
+tests run over both. The beech fixture still fails `sema validate` on
+pre-existing shape (three channels carry InPowerMetering, four
+components predate their words' config shape) — closes with a
+translated beech gen, not by hand. Estimate row: OPS-392 point 6h;
+scratch rows on the scoreboard for 09-02, 09-03 and 09-04 — sum at wrap.
 
 Then the tree matrix (`command_node.py` review) and the queued chunks
 (pico-cycler command 4h, krida retirement 6h).

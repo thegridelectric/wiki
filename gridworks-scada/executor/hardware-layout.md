@@ -561,7 +561,7 @@ gained register ops (`I2cReadReg`/`I2cWriteReg`) alongside the bit ops.
   is a channel config" takes seven drills of inference instead of one click at
   a sema type. The overhaul: a single sema-typed `channel.config` shape, with
   `TelemetryName → gw1.unit`, and identity separated from capture policy.
-  Detail in `components.md` ("The config list — current shape, and a critique").
+  Detail in `components.md` ("The config list — when a component carries one").
 - **Strategy-name semantics need a sema home** (also noted in the hacky-bits
   above) — a versioned `strategy` enum/type so a rename is a lookup, not an
   inference.

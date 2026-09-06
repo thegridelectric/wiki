@@ -13,6 +13,39 @@ Newest at the top.
 
 ---
 
+## 2026-09-05 — Gate recipe names FIS's management-API credentials (`4c1fc1e`)
+
+The gate section of the rmq-docker README says what FIS needs from the
+broker box: the management API over localhost with the default user's
+credentials in FIS's `.env`, and nothing else. Recorded because the
+supersession confirm was designed with a `rabbitmqctl` exec into the
+container (a sudoers drop-in and a shared command prefix) before the
+management API's by-username connection view proved to be served from
+the same tracking table; that wiring never landed.
+
+## 2026-09-05 — FIS gate as a mountable broker overlay (`62be1e2`)
+
+`rmq-docker/gate/` holds the broker-side half of connect-time
+authorization (the FIS executor's "Rabbit config"): `fis-gate.conf`
+(chained `internal` + `http` backends, the four `auth_http` paths to a
+colocated FIS, the GridWorks SASL mechanism, bare-CN usernames,
+`mqtt.ssl_cert_login`) and an `enabled_plugins` that adds the http
+backend and the mechanism. `compose.gate.yaml` mounts the three on top
+of the unchanged `compose.yaml`, so a box turns the gate on with a
+second `-f` and off by dropping it — prod's conf and compose are not
+edited. The fragment rides `conf.d`, which loads after `rabbitmq.conf`
+and wins on a duplicated key (checked on 4.1.8), so the box conf keeps
+its listeners and TLS material and the gate stays one file everywhere:
+the dev harness, the staging box, and later prod mount the same
+fragment. The `ssl_options` tightening is deliberately not in it: on
+prod that is notch 3, after the last fleet client carries a cert.
+
+Two facts the fragment's comments pin, because they are easy to lose:
+`internal` admits a username it knows under a cert-only mechanism
+without a password check (stock EXTERNAL-plus-internal behavior), so no
+internal user may ever carry a principal-id name; and no verdict cache
+is configured, because a cached allow would outlive a revocation.
+
 ## 2026-08-14 — correct the SCADA client-cert recipe in tls-certs.md (`5599992`)
 
 `authority/tls/tls-certs.md`'s "Automatic key generation and copy" section

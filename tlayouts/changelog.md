@@ -12,7 +12,36 @@ Newest at the top.
 
 ---
 
-## 2026-09-04 — Nolan gen emits DAC outputs, not the chip writer <!-- pending commit -->
+## 2026-09-04 — correct power meter for honeysuckle (`56dbcd1`)
+
+`honeysuckle_sema_gen.py` set `power_meter_kind="sim-egauge"`, a value
+the config's `Literal["sim", "egauge"]` refuses, so the layout had not
+generated since the config annotation landed. Honeysuckle is the pi on
+a real gw108 at the Stoneman microgrid, not a simulated home, and the
+site has a real eGauge (`eGauge14875.local`, hardware id `GC14050323`,
+read off input register 100 the way `starter-scripts/egauge.py` does),
+so the meter is `egauge` with that identity. The channel surface stays
+the spruce twin: the eGauge's own register configuration ("Boost Power",
+"Pump Power") is stale and its CTs are attached to nothing, so the nine
+spruce registers read zero until the meter is reconfigured; the gen
+docstring says so. The `sim-egauge` branches in `house0_sema_gen.py`
+had no other caller and are gone.
+
+---
+
+## 2026-09-04 — snapshot at sema d6f59e7: writer trio out of the closure (`335e946`)
+
+Snapshot rebuild after the sema layout-word edit (`d6f59e7`): the two
+layout words dropped `i2c.dac.writer.component.gt` and
+`sim.dac.writer.component.gt` from their Components unions, so those and
+`i2c.dac.channel.config` leave the closure; Nolan axiom 5 gains the
+`secondary-010v` clause. The seed request drops its explicit
+`i2c.dac.writer.component.gt` line, listed before any layout referenced
+the writer; with it gone nothing keeps the trio in the closure. The
+Nolan sim pair regenerates byte-identical to the scada fixture, which
+already carried the node.
+
+## 2026-09-04 — Nolan gen emits DAC outputs, not the chip writer (`d6a995e`)
 
 `emit_dac_output` replaces `emit_dac_writer`: the config axis is a list
 of wired outputs (node name, DAC, channel, power-on code), each emitting
@@ -22,7 +51,12 @@ and its capture tuning. Unwired channels no longer carry EEPROM defaults
 in the layout, matching the word (an unwired channel has no component
 and its EEPROM is never touched). Spruce and honeysuckle declare only
 channel C as `secondary-010v`; spruce, spruce-sim and honeysuckle
-regenerate.
+regenerate. Honeysuckle does not: its config value `power_meter_kind=
+"sim-egauge"` fails the generator's `Literal["sim", "egauge"]` (the code
+paths handle the value; only the annotation refuses it), a pre-existing
+break; a TODO on the config records it with the home's real identity
+(the pi on a gw108 at the Stoneman microgrid, eGauge on site — the fix
+is the egauge kind with that meter's identity, not a sim knob).
 
 ---
 

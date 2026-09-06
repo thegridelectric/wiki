@@ -48,11 +48,13 @@ Requires the `gw-dev-rabbit` container up (creds in `gridworks-scada/.env`).
   `sim_boot` mirrors that entry, bounded. The older `command_line_utils.get_scada`
   / `run_scada.py` path is stale — it no longer matches the PrimeActor signature;
   don't use it.
-- **What `is_simulated` covers vs what SimSensorActor adds:** the flag already
-  makes the actuation side skip hardware (I2cBus / Relay / the mux /
-  MultipurposeSensor / PowerMeter — `SimulatedPin`, no smbus2/GPIO). The gap it
-  never covered is **sensor input** — device actors get readings *pushed* (pico
-  HTTP POSTs, the thermostat REST poller); `SimSensorActor` fills exactly that.
+- **Where sim-ness comes from:** a fixture's board record (`SimGw108`) makes the
+  board-resident actors run against `SimI2c` and no GPIO
+  (`executor/components.md` "Hardware backend selection is the layout's job");
+  the House0 Krida and DFR multiplexers still key on the derived
+  `ScadaAppInterface.is_simulated`. Sensor input is a separate gap: device
+  actors get readings *pushed* (pico HTTP POSTs, the thermostat REST poller);
+  `SimSensorActor` fills exactly that.
 - **Current limits:** the relay-actuation paths are not exercised, and
   LocalControl runs a documented sim placeholder for the "turn on the heat pump"
   path — real relay-actuation control grows by iteration against the running rig.

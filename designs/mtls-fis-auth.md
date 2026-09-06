@@ -1,6 +1,6 @@
 # mTLS + FIS auth
 
-Status: Accepted · Pass 1 · Updated 2026-08-14 · Linear: OPS-420
+Status: Accepted · Pass 1 · Updated 2026-09-04 · Linear: OPS-420
 
 **EDD: yes** verified by real handshakes against a broker running the full
 stack: a client proves identity with its cert and claims, FIS allows a valid
@@ -22,11 +22,6 @@ review.
 about what an auth backend can and cannot see, and why the SASL response is
 the only client-controlled channel on AMQP.
 
-Still open here as a migration item: the FIS executor's `/validate` input
-description and `gridworks-fleet-index-service/research/lifecycle.md` step 4
-still describe the superseded plan (FIS reading claims out of AMQP
-`client_properties`), which is unimplementable on stock parts and was never
-available on MQTT. Both need reconciling in the FIS domain.
 
 ## The target
 
@@ -277,10 +272,11 @@ until closed alongside this rollout). Per-house recipe: mint (with consent)
 
 ## Rollout order
 
-1. **Now, FIS-independent:** settle the service-principal CN grammar (open
-   below); continue notch-2 cert minting — platform boxes (weather, gnr
-   already on amqps; ear, gjk) and houses. Minting is the long pole; it
-   never waits on software.
+1. **Now:** platform-service certs for weather, gnr, ear, gjk, by the
+   walkthrough below ("Minting a platform-service cert"); the CN grammar
+   is settled (a FIS-minted principal id) and FIS mints the row
+   (OPS-422). Houses are done (notch 2, below). Minting is the long pole;
+   it never waits on software.
 2. **FIS v1** (OPS-422; its build plan is revised to match this design:
    claims from `AuthProps`, run-scoped leases, `/auth/topic` alias pinning,
    sync-kill-before-allow, no client_properties parsing).
@@ -323,12 +319,9 @@ until closed alongside this rollout). Per-house recipe: mint (with consent)
    to `ear`, read from the S3 eventstore (its `ls` LastModified is EDT, so
    sort by the epoch-ms in the object key).
 
-   **Open — platform-service certs (blocks notch 4).** weather, gnr, ear,
-   gjk still need certs minted; not yet started. This design's own rule
-   for a service principal is `CN=<principal UUID>, minted with the
-   principal row` — no principal table exists yet (FIS v1 is still being
-   stood up), so minting real certs for these four likely waits on either
-   FIS v1 or a human decision to mint an interim UUID now.
+   **Platform-service certs (block notch 4):** weather, gnr, ear, gjk,
+   not yet minted; the recipe is "Minting a platform-service cert" below,
+   unblocked now that `fis principal create` mints the row.
 6. **Validation plane:** separate exploration → design; gates nothing here.
 7. **Broker off AWS, last.** Once the fleet is cert-native the move is
    nearly transparent — same hostname, same CA, same client certs, zero
@@ -336,6 +329,49 @@ until closed alongside this rollout). Per-house recipe: mint (with consent)
    storm, following the staging recipe. Deliberately NOT combined with the
    mTLS cutover: mixing a DNS/IP move into the per-actor migration would
    re-import the flag day the ratchet engineered out.
+
+## Minting a platform-service cert
+
+The per-service walkthrough for weather, gnr, ear, gjk, and any later
+platform service. It differs from the house recipe in two ways: the CN is
+a FIS-minted principal id, not a GNodeId, and the cert lands on a cloud
+box under the service's XDG config dir, not on a pi. Row first, cert
+second, so the CN is never a hand-picked value a row is later back-filled
+to match.
+
+Division of labor is fixed by the custody rules: certbot opens to
+per-person keys only, and anything placed on a deployed box outside its
+repo is the human's hand and gets recorded. So the human mints, copies,
+and restarts; Claude preps each command, the inventory entry, and the
+confirmation checks.
+
+1. **Mint the row** (Claude preps, human runs):
+   `uv run fis principal create --kind Service --display-name <svc>` on the
+   dev FIS on the dev machine; keep the printed id. Until a staging or
+   prod FIS exists, the dev database is the ledger, and the row is carried
+   to whichever FIS will gate the box as a record, never re-typed.
+2. **Cut the cert on certbot** (human, per-person ssh):
+   `gwcert key add --certs-dir <svc-dir> --common-name <id>`, expiry
+   steered to summer 2028 and staggered off the others (leaf policy,
+   rmqbot executor "PKI"). Record it in
+   `gridworks-infra/authority/cert-inventory.md` (Claude drafts the line).
+3. **Place the material on the service box** (human): cert, key, and
+   `ca.crt` under the service's XDG config dir
+   (`~/.config/gridworks/<service_name>/`); note the placement in the
+   box's instance-README as non-repo state.
+4. **Switch the service to cert-plus-claims** (Claude preps the three
+   lines, human applies): `<PREFIX>_RABBIT__TLS__CA_CERT_PATH`,
+   `…__CERT_PATH`, `…__PRIVATE_KEY_PATH` in the service's `.env`, and the
+   broker URL scheme to `amqps`; restart via systemd.
+5. **Confirm** (Claude preps the checks, human reads them on the box): the
+   actor reconnects and its journal or ear traffic resumes. Until the
+   broker offers the `GRIDWORKS` mechanism, the connect falls back to
+   password auth cleanly; the cert is in place for notch 4 and proves
+   nothing more yet. Once notch 4 is on, the FIS `auth_events` row for the
+   principal is the confirmation.
+
+Order across the four: weather first (already on amqps, a GNode, lowest
+blast radius), then gnr, ear, gjk.
 
 ## Cert lifecycle
 

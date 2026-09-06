@@ -81,12 +81,30 @@ rides `client_id` and there is no schema envelope. Two facts pin this:
 
 ## Broker-side configuration of the gate
 
+The gate is an **overlay** on a box's broker, never an edit to its
+`rabbitmq.conf`: `gridworks-infra/rmqbot/rmq-docker/gate/fis-gate.conf`
+(mounted into `conf.d`, which loads after `rabbitmq.conf` and wins on a
+duplicated key), a `gate/enabled_plugins` naming the http backend and the
+mechanism, and the mechanism `.ez`, all mounted by
+`rmq-docker/compose.gate.yaml` as a second compose `-f`. One fragment
+serves the dev harness, the staging box, and prod, because it carries no
+listener, no TLS material, and no `ssl_options` tightening; that last one
+is prod's notch-3 edit, made in `rabbitmq.conf` once the fleet is
+cert-native, and staging and dev carry it in their own conf from the start.
+
 - **Chained backends** — `auth_backends.1 = internal`, `.2 = http`. The
   management UI (15671, HTTPS) and one break-glass account stay on internal
   permanently; every fleet principal authorizes through the http backend.
   This is a decision, not a deferral: an "internal loses all accounts"
   cutover costs the management UI and the break-glass path for no security
-  gain.
+  gain. One consequence to hold: `internal` admits a username it knows under
+  a cert-only mechanism **without a password check** (stock
+  EXTERNAL-plus-internal behavior), so an internal user must never carry a
+  principal-id name. Internal names are human names; principal ids are
+  UUIDs.
+- **PLAIN and AMQPLAIN stay listed** after GRIDWORKS: the internal users
+  need them, and on prod the actors not yet carrying a cert authenticate
+  with a password through `internal` until their turn in the cutover.
 - **No verdict caching on connect.** `rabbit_auth_backend_cache` is
   rejected: a cached allow for a just-revoked instance id would breach the
   single-writer invariant for the length of the TTL. The authority being

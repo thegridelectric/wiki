@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-06-15
+Status: Draft · Pass 0 · Updated 2026-09-04
 
 # Components, device types, and the config list
 
@@ -84,6 +84,22 @@ the device boundary, legible in the artifact. This is the seam the simulated-act
 design builds on, minus the legacy driver-class indirection that sat beneath it
 (`drivers/power_meter/`, the "Russian dolls" anti-pattern).
 
+**Hardware backend selection is the layout's job.** Whether an actor drives real
+silicon or a fake is a per-device fact the layout states, never a runtime flag. A
+board-resident actor (`I2cBus`, `Relay` on a GPIO relay, `GpioSensor`,
+`I2cThermistorReader`, `ZeroTenOutputer` on a board DAC) reads
+`board_component.simulated`, true when the board record's DeviceType is a
+`gw1.sim.device.type` value (`SimGw108`); `I2cBus` is the single seam, choosing
+`SimI2c` or smbus2 from `layout.scada_board()`, and the actors above it run one
+body of code either way (`actors/i2c_bus.py`, `drivers/sim_i2c.py`). So a bench
+box with a real `Gw108RevB` record drives the real chips even while its tank
+modules are `SimSensor` and it holds no TaDeed. `ScadaAppInterface.is_simulated`
+(no TaDeed or any sim component) answers a different question, whether this
+scada is a real terminal asset, and gates only system-level behavior (the
+sim-time bridge). Residue: the House0 Krida and DFR multiplexers still read that
+bit, because the House0 component vocabulary has no sim twin for either device;
+both retire in the krida shift.
+
 ## Node → component, and the per-family buckets
 
 An `ShNode` references its component by `ComponentId`; the layout
@@ -152,40 +168,39 @@ decode each via a union decoder, then pair component↔cac via
    `pico.tank.module` only by the two `Simulates*` fields — a whole second
    type instead of a sim marker on the one type.
 
-## The config list — current shape, and a critique
+## The config list — when a component carries one
 
-Per-device configuration lives two ways: a `ConfigList` of channel/relay
-config objects, or an **embedded object** (`Hubitat`, `Poller`, `Rest`,
-`WebServer`). The ConfigList objects are themselves a zoo —
-`ChannelConfig`, `ElectricMeterChannelConfig`, `AdsChannelConfig`,
-`I2cThermistorChannelConfig`, `RelayActorConfig`, `DfrConfig` — each
-component type bringing its own.
+A component carries a `ConfigList` if and only if the device has core
+configuration to preserve beyond its binding: facts the actor needs to
+drive the device that the layout states nowhere else. Otherwise the
+component has no list at all. A list is never a home for capture or
+report tuning; that lives in operational params (`capture.tuning`), and a
+channel binds to its node through the DataChannel, not through a config
+entry.
 
-Critique (mine, 2026-06-11 — offered, not decided):
+Applied to the board-resident words:
 
-- **No base config abstraction.** N device types → N config types, several
-  of them thin variants of "a channel." A common `ChannelConfig` core with
-  device-specific extension would shrink the zoo and make capture policy
-  uniform.
-- **Channel identity and capture policy are conflated in one object.** A
-  config carries both *what this channel is* (ChannelName, the measured
-  quantity) and *how to capture/report it* (`AsyncCapture`,
-  `AsyncCaptureDelta`, `CapturePeriodS`, `PollPeriodMs`). These are
-  different concerns. The conflation is exactly why a telemetry/snapshot
-  cadence became unwittingly load-bearing for link liveness (see
-  `scada-ltn-link-state.md`, "snapshot cadence"). Splitting "what is this
-  channel" from "how often do we report it" would let each move for its
-  own reason.
+- **Relay** (`i2c.relay.component.gt`, `gpio.relay.component.gt`): the
+  component names its board and which relay on it (`BoardComponentId`,
+  `RelayName` or `GpioName`); the one `relay.control.config` carries what
+  the relay actor needs to drive it (wiring, the event and state
+  semantics of energizing and de-energizing). Real configuration, so the
+  list stays.
+- **0-10V output** (`i2c.dac.output.component.gt`): the component names
+  its board and which DAC; the one `dac.output.config` carries the DAC
+  channel and the EEPROM power-on code, reference, and gain. Real
+  configuration, so the list stays.
+- **Sensor** (`gpio.sensor.component.gt`): nothing to configure beyond
+  the binding, so no list.
 
-### Direction: revamp the config list; drop `TelemetryName` for `gw1.unit`
-
-Decided-as-direction (Jessica, 2026-06-11): **revamp the config list, and
-replace `TelemetryName` with `gw1.unit`.** `TelemetryName` overloads two
-things — the physical unit of a value and the channel's meaning. The unit
-is a clean enum (`gw1.unit`); the channel's meaning belongs to the channel
-/ node, not to a telemetry-name string that smuggles both. This pairs with
-the config-list revamp above: a channel says what unit it is in, and
-capture policy is separate.
+A single-device component's list has exactly one entry (axiom
+`ExactlyOneConfig`); the list form is kept so the config word stays a
+shared vocabulary word across component types rather than being
+re-spelled on each. The old family of config words that carried
+`Unit`, `Exponent`, and capture cadence on the component
+(`channel.config`, `relay.actor.config`, the pico module configs) is
+what this rule replaces; the retired `dfr.config` still carries that
+shape in the beech fixture until the krida shift.
 
 ## What belongs in the hardware layout — and what doesn't
 

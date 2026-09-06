@@ -40,14 +40,15 @@ Status: Draft · Pass 0 · Updated 2026-09-02 · Linear: OPS-392
    SHALL be the declared node (at most one per layout, zero when
    undeclared). Undeclared = NoActor + dormant hp-boss (spruce stays
    undeclared until the MIM is wired).
-6. **`RequiredActuators`** (Nolan landed `e625ff6`; House0 as axiom 10,
-   this round) — Nolan's RequiredRelays
-   generalizes: the unconditionally-certain tree leaves, relays + 0-10V
-   outputs (Nolan: `secondary-010v`, ActorClass ZeroTenOutputer, with a
-   ComponentId — the `dac-output.md` shape; House0: the three `*-010v`
-   nodes, Name + ActorClass only until the DAC output actuator gives
-   them components). The maybe-actuator heat pump never appears here —
-   only via axiom 5.
+6. **`RequiredActuators`** (Nolan landed `e625ff6`, clause c for
+   `secondary-010v` landed sema `d6f59e7`; House0 as axiom 10) — Nolan's
+   RequiredRelays generalizes: the unconditionally-certain tree leaves,
+   relays + 0-10V outputs (Nolan: `secondary-010v`, ActorClass
+   ZeroTenOutputer, ComponentId an `i2c.dac.output.component.gt`;
+   House0: the three `*-010v` nodes, Name + ActorClass only until the
+   krida shift gives them per-output components — `dac-output.md`
+   "Decided 2026-09-04"). The maybe-actuator heat pump never appears
+   here — only via axiom 5.
 7. **`RequiredHeatpumpEquipment`** (Nolan landed `e625ff6`; House0 as
    axiom 11, this round: `hp-odu` + `hp-idu`) — the heat-pump parts with components,
    NoActor: hp-odu and hp-ctrl-box move here OUT of
@@ -72,7 +73,9 @@ Status: Draft · Pass 0 · Updated 2026-09-02 · Linear: OPS-392
    `dac-output.md`): new `i2c.dac.output.component.gt` +
    `dac.output.config` (+ `sim.dac.output.component.gt`); the writer
    trio (`i2c.dac.writer.component.gt`, `i2c.dac.channel.config`,
-   `sim.dac.writer.component.gt`) orphaned in place with `replaced_by`.
+   `sim.dac.writer.component.gt`) orphaned in place with `replaced_by`
+   and out of both layout words' Components unions and the tlayouts seed
+   (sema `d6f59e7`).
    Replaces the earlier idea of adding `ChannelName` to
    `i2c.dac.channel.config`.
 8. **new.command.tree/002 axiom 2 `ActuatorLeaves`** (wording settled

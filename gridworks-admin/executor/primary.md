@@ -1,6 +1,6 @@
 # gridworks-admin — primary
 
-Status: Draft · Pass 1 · Updated 2026-06-10
+Status: Draft · Pass 1 · Updated 2026-09-05
 
 > **What this is.** The acceptable-minimum hub for the GridWorks
 > admin domain — the operator-facing surface for incident-mode
@@ -121,13 +121,19 @@ depend on across layout churn.
   `spaceheat.node.gt/300`, `ControlChannels` as `data.channel.gt/001`,
   plus four axioms (ActorClassConsistency, HandleTerminalMatchesName,
   AboutNodesAreControlNodes, I2cRelayComponent↔RelayNodes consistency).
-- **Known muddles, evaluation in flight** (in the spruce-unlimbo
-  design's admin-for-nolan spoke, gridworks-scada domain): the admin's
-  channel keying never decided between `CapturedByNodeName` and
-  `AboutNodeName` (likely a lucky coincidence so far); and
-  `I2cRelayComponent` (the House0 Krida multiplexer) is a *required*
-  field, so a Nolan-scheme house cannot emit a valid instance — a v002
-  is expected from that work.
+- **What the client keys off** (read 2026-09-05): one name per
+  controllable node, its `Name`. The dispatch address is `admin.<Name>`,
+  the state channel is the `ControlChannels` entry whose `AboutNodeName`
+  equals it (`CapturedByNodeName` is never read), and relay event/state
+  vocabulary is the config entry whose `ActorName` equals it. State
+  arrives from `snapshot.spaceheat` and from the `single.reading`
+  messages the scada forwards over the admin link for relay and 0-10V
+  channels. The client never reads `layout.lite`.
+- **Open:** `I2cRelayComponent` (the House0 Krida multiplexer) is a
+  required field, so a Nolan house cannot emit a valid instance and its
+  admin link answers every capabilities request with an error. The word
+  is `staging`, so the fix is an in-place edit; it is worked in the
+  spruce-unlimbo design (gridworks-scada domain, OPS-392).
 
 ## Client form factor
 
@@ -312,6 +318,10 @@ per-device cert install.
   admin volume grows beyond plausible.
 
 ## Cross-references
+
+- [`conversation.md`](conversation.md) — how the client and a scada
+  talk today: the admin link, the request/forward conversation, the
+  timeout, the tree under admin, the two indirect addresses.
 
 - [`../explorations/when-to-add-grpc.md`](../explorations/when-to-add-grpc.md)
   — when to add a gRPC pathway alongside the broker substrate
