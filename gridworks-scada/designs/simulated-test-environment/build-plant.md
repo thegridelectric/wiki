@@ -157,6 +157,13 @@ resolves what energizing each relay *does* from the (sim) layout and folds it in
 physics. So the sim layout's relay nodes carry `sim.relay.component.gt` components
 whose `DeviceType` is `GridworksSimRelayBank`.
 
+The target these tasks converge on is written down as an all-comment test,
+`gridworks-scada/tests/test_sim_terminal_asset_end_to_end.py`: the rungs
+(simple layout, sensors from physics via the ADS1115 inverse transform,
+actuator feedback, sim time, behavior over time) and the functional
+requirements each rung lets the suite carry. Add requirements there as
+they surface; the file becomes the test as the rungs land.
+
 ## Where it lives
 
 `gridworks-terminalasset/src/gwta`, built on **gwbase** (`GridworksActor`), on

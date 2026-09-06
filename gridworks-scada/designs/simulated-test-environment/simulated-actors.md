@@ -392,7 +392,13 @@ house is a new ActorClass, fed by the plant over its own broker.
   way to reproduce and test the field failure in
   `executor/scada-ltn-link-state.md` (the ~15-minute broker blackhole).
 
-**Task — clean out the old `is_simulated`.** The redo removes the global
+**Task — clean out the old `is_simulated`.** Status 2026-09-05: the
+board-resident actors (I2cBus, GPIO Relay, GpioSensor, I2cThermistorReader)
+now take real or fake from the board record (executor `components.md`
+"Hardware backend selection is the layout's job"); the four fake
+control-input branches and `LtnSettings.is_simulated` are deleted. Left:
+the Krida and DFR multiplexers (no House0 sim twin word; fall with the
+krida shift) and the derived system-level bit itself. The redo removes the global
 `ScadaSettings.is_simulated` and its in-actor branches (`relay.py:221`
 GPIO-skip, `i2c_thermistor_reader.py` I2C-skip, …). Two existing breakages go
 with it: the GPIO `is_simulated` early-return also drops the immediate state

@@ -13,7 +13,14 @@ Newest at the top.
 ---
 
 <!-- pending commit -->
-## 2026-09-05 — Board-resident actors pick real or fake silicon from the board record, not from is_simulated
+## 2026-09-05 — DerivedGenerator and TouBase stop reading is_simulated
+
+Both actors copied the derived bit into `self.is_simulated` and then only
+logged it. With the backend and control-input uses gone, these were the
+last reads that meant nothing; deleted so the remaining readers (Scada's
+sim-time bridge, the Krida and DFR multiplexers) are the whole list.
+
+## 2026-09-05 — Board-resident actors pick real or fake silicon from the board record; the fake control-input branches go
 
 The honeysuckle bench (`experiments/2026-09-05-dac-output-bench/`) could
 not reach the real MCP4728: `I2cBus` chose `SimI2c` because the derived
@@ -32,6 +39,21 @@ DFR multiplexers keep the derived bit for now: the House0 component
 vocabulary has no sim twin for them, and both retire in the krida shift.
 Tests drop their `is_simulated = False` overrides; a new test pins the
 selection on the Nolan fixture (SimGw108) and the sim ADC read path.
+
+The same bit also faked control inputs: House0 set every tank to 70 F,
+`HydronicNode` skipped zone setpoints and reported never cold, and the LTN
+pinned tank temps two different ways (60000 raw in the snapshot handler,
+140 F in its temperature pass) under its own `LtnSettings.is_simulated`.
+None of that was a simulation fact. The code beneath already handles
+absent data (partial dicts, `fill_missing_store_temps`, an empty setpoint
+scan meaning not cold), and the sim fixtures now deliver readings from
+sim sensors, so the constants only hid the plant from the control logic
+and gave a sim house with a dead sensor the opposite behavior of a real
+one. All four branches, `SIMULATED_TANK_TEMP_F` and the LTN flag are
+deleted. `tests/test_sim_terminal_asset_end_to_end.py` is an all-comment
+placeholder for the largest test the simulated-test-environment design
+builds toward, with the functional requirements it can carry and how the
+DAC bench rung would run under it.
 
 ## 2026-09-05 — Admin seam on Nolan: capabilities and dispatch tests; outputer names its dispatch and its EEPROM read; proactor pin to v4.1.13+jm2
 
