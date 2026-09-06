@@ -1,6 +1,6 @@
 # estimating — what the scoreboard has taught us
 
-Status: Draft · Pass 0 · Updated 2026-08-14
+Status: Draft · Pass 0 · Updated 2026-09-05
 
 > What this is: the lessons drawn from the owner's estimates log (per
 > person, kept outside the wiki; the raw estimate-vs-actual rows). The scoreboard records what
@@ -57,3 +57,17 @@ brown-field overrun named something real — a hand-edit inside generated
 output, an untested script, a cache that could disagree with CI. Those are
 findings worth fixing at the source, and fixing them is what shrinks the
 next estimate in that area.
+
+## The third half: bringing the spec to rebuild grade
+
+When the code works and the design is about to be distilled, the
+`executor/` still has to reach the bar a fresh session could rebuild the
+domain from: the wire contract pinned, every setting named, the tables
+listed, a glossary and a reading order, and a plain narrative of what the
+service is for. That is authoring, not discovery, so it sizes well and
+holds no surprises. It also comes due at a predictable moment, the
+milestone consistency pass, and is easy to leave out of an estimate
+because it is not on the design's Plan lines. Name it as its own line
+item when scoping, on the order of a tenth of the point. For a service
+the size of FIS it was about an hour for a hub and three spokes. When it
+shows up in the Actual, it is this beat, not the discovery tail.

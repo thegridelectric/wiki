@@ -12,19 +12,7 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-09-05 — gate.py docstrings: drop two build-time notes
-
-Two docstrings in `gate.py` still described the build as it stood in
-August: one said the executor spec's JSON response mapping "needs
-correcting" (it was corrected then, and code does not cite wiki state),
-the other said `GateReason` would be retired when the auth event shipped
-(it shipped, and the enum stays because it also names the per-publish
-verdicts, which have no event). Both now state what is.
-
----
-
-## 2026-09-05 — The claimed run reaches `/auth/vhost` as the connection's user tag (`41cac52`)
+## 2026-09-05 — The claimed run reaches `/auth/vhost` as the connection's user tag (`8d3f96c`)
 
 Closes Finding B from the dev battery. The broker's HTTP backend never
 sends a connection's claims and its vhost in one request (AMQP picks the
@@ -41,6 +29,11 @@ lookup. The tag is the run, not the instance id, because the broker
 interns each distinct tag as an atom and runs are a bounded set. The
 battery's `run_claim_vs_vhost_with_live_lease` line is promoted from
 KNOWN-GAP to a scored deny.
+Squashed in: two `gate.py` docstrings that still described the build as
+it stood in August, one saying the executor's JSON response mapping "needs
+correcting" (it was, and code does not cite wiki state), the other saying
+`GateReason` would be retired when the auth event shipped (it stays,
+since it also names the per-publish verdicts, which have no event).
 
 ## 2026-09-05 — Supersession kill closes by username and confirms through the broker's tracking table (`4d7e6d6`)
 
