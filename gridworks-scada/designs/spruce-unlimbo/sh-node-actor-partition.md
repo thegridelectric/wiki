@@ -1,6 +1,6 @@
 # sh_node_actor partition (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-04 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-05 · Linear: OPS-392
 
 > What this is: the agreed rework of `sh_node_actor.py` (1852 lines, five
 > concerns, inherited by every node actor — the relay actor carries
@@ -475,3 +475,27 @@ real coverage; see GridWorks_CLAUDE ⏳ note). Order:
    just a test.
 Jessica reviews each file carefully before it is added; expect to
 evaluate functionality and add tests as part of each review.
+
+**Next step: finish the `is_simulated` decompression.** The 2026-09-05
+pass (scada `59284cc5`) took hardware backend selection and the fake
+control inputs off the bit; what is left is the part that needs
+vocabulary. Provoked by this partition, so it lives here; if this spoke
+keeps growing it becomes a folder.
+
+1. **Sema:** the first-pass `TaDeed` type, the `ValidationState` enum
+   (`UnValidated`, `ValidatedRealAssetAndGps`,
+   `ValidatedRealAssetIncorrectGps`, `ValidatedSimulatedAsset`), and the
+   scada-to-LTN contract-rejection word (offered ContractId + the scada's
+   `ValidationState` as cause). Word-gate ritual per word, in a
+   sema-claiming session; gwsproto mirrors with rejecting tests. Meanings
+   and the transport-plane consequences are recorded under OPS-420
+   ("TaDeed and the validation plane") and in the deeds exploration.
+2. **Scada:** read the deed into a `ValidationState` (`UnValidated` with
+   no deed); the placeholder `tadeed.json` becomes an instance of the
+   word. **Refuse every LTN contract offer while `UnValidated`**, sending
+   the rejection word, tested on the in-process LTN↔SCADA rig
+   (`test_auto_state.py`'s shape: `Created` offered, handler stays
+   empty, auto state stays LocalControl, LTN receives the rejection).
+   The Krida and DFR multiplexers move to a layout fact until their sim
+   twin words exist. `is_simulated` itself stays for its sim-time job
+   (simulated-test-environment `sim-time.md`).

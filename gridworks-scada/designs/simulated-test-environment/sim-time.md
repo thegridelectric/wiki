@@ -1,6 +1,6 @@
 # Sim time — running the scada on coordinator timesteps
 
-Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-40
+Status: Accepted · Pass 1 · Updated 2026-09-05 · Linear: OPS-40
 
 > What this is: simulated-test-environment spoke — what it takes for the
 > scada to run its time from a time coordinator's `sim.timestep`
@@ -158,3 +158,10 @@ stay open below.
 - Ready-barrier pacing (actors confirm processing before time
   advances) — gwbase bundles `Ready`; semantics to mine from the
   timecoordinator `legacy` branch.
+- **Give `is_simulated` its one job: the clock.** After the 2026-09-05
+  decompression the property has a single reader (the bridge listener).
+  Its future is to decide whether the scada reads `time.time()` or the
+  coordinator's simulated timestep, everywhere the census above found a
+  raw clock read. Validation and silicon are no longer its business
+  (`ValidationState` and the board record answer those); the docstring in
+  `scada_app_interface.py` says so.

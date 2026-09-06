@@ -12,6 +12,14 @@ Newest at the top.
 
 ---
 
+## 2026-09-05 — is_simulated docstring names its future job: the clock
+
+Docstring only. After the decompression the property has one reader, the
+sim-time bridge. The note says validation (`ValidationState`, from the
+TaDeed) and silicon (the board record) are no longer its business, and
+that its future is choosing between `time.time()` and the coordinator's
+simulated timestep, so nobody deletes it as dead.
+
 ## 2026-09-05 — Board-resident actors pick real or fake silicon from the board record; the fake control-input branches go
 
 The honeysuckle bench (`experiments/2026-09-05-dac-output-bench/`) could
