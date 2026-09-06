@@ -75,9 +75,11 @@ Status: Draft · Pass 0 · Updated 2026-09-05 · Linear: OPS-392
 5. **Spruce window**: the real pump, iso valve open and secondary pump
    on, the output swept linearly and in jumps for the speed-versus-
    output curve, with the summer hack and the deployed scada stopped
-   and the isolation checklist below satisfied. Queued as
-   `experiments/future/spruce-pump-speed-sweep/`. Then the command-tree
-   matrix (`sh-node-actor-partition.md`).
+   and the isolation checklist below satisfied. Folder + on-box driver
+   built 2026-09-06 (`experiments/2026-09-06-spruce-pump-speed-sweep/`),
+   rehearsed on the sim Nolan scada; the artifact boot-blocker found
+   that day is fixed (below). Then the
+   command-tree matrix (`sh-node-actor-partition.md`).
 
 ## Failures found on the bench (2026-09-05) — test first, then retry
 
@@ -162,6 +164,28 @@ record is a real `Gw108RevB`. The derived bit keeps its system-level
 meaning (no deed, not a real terminal asset) and no longer touches the
 bus. The runbook's step 8 check for `SIMULATED` still reports that
 system-level state; the chip-reached check is the DAC read-back itself.
+**Blocker found and fixed 2026-09-06, rehearsing the window harness on
+the laptop:** the regenerated spruce pair did not boot on the branch.
+`DerivedGenerator` refuses the four affine depth channels because their
+`linear.one.dimensional.calibration` carries Version `001` while
+gwsproto pins `000`. tlayouts hand-builds that calibration as a dict
+literal (`src/tlayouts/house0_sema_gen.py:1578`, shared by the Nolan
+gen) with the version sema squashed into 000 on 2026-08-13. Nothing
+catches it: `derived.channel.gt/002` types `Parameters` as a bare
+object and declares no dependency on the calibration word, so the
+word is outside the layout closure and the reverse conformance test
+never sees it, the tlayouts snapshot validates the artifact with the
+same blind spot, and the Nolan test fixture has no affine channels so
+the suite's artifact-boot test is blind too. The gwsproto mirror's
+docstring still names `/001` above its `000` Literal. Agreed
+2026-09-06: no sema change (the published word keeps its bare-object
+`Parameters`); tlayouts seeds the calibration word into its snapshot
+and builds the calibration through the snapshot class, so the word
+rides the closure copy and the standing scada conformance check covers
+it; the sim pair carries its real twin's calibration so the Nolan
+fixture boots four affine channels in the suite. Built the same day
+(scada + tlayouts commits pending).
+
 **Do this next:** move the dispatch sender onto the box. Run 4's first
 dispatch was refused because the laptop's ssh tunnel had died silently;
 a spruce window (a validated real system) must not depend on a tunnel.
@@ -171,7 +195,7 @@ from the box's `~/experiments` clone at a pushed SHA (experiments README
 runbook drops its tunnel step. Then one short
 bench boot that witnesses the admin release before the timeout. Then
 step 5, the spruce pump-speed window
-(`experiments/future/spruce-pump-speed-sweep/`).
+(`experiments/2026-09-06-spruce-pump-speed-sweep/`).
 
 The eGauge component booted against the real meter with no errors,
 and the isolation held, so neither needs a test.

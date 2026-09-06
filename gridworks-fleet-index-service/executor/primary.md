@@ -23,7 +23,9 @@ fleet needs this, told through one scada's day:
 ## Deployment
 
 **One FIS per broker box, colocated with the broker**, with its own small
-Postgres (principal + lease + registry mirror). The auth path is localhost;
+Postgres (principal + lease + registry mirror). The auth path is localhost:
+FIS binds the box's loopback only, and the broker container therefore
+runs on the host network (a bridged container's `localhost` is itself);
 FIS starts before (or with) the broker in the box's boot order; the rebuild
 runbook treats broker + FIS as one unit. FIS's only path into the broker
 is the management API over localhost, for the supersession kill. FIS is scoped to its box's

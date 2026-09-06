@@ -12,6 +12,20 @@ Newest at the top.
 
 ---
 
+## 2026-09-06 — promote the FIS words <!-- pending commit -->
+
+Branch `jm/publish-fis-words`. Five promotions, bottom-up, nothing else:
+`fis.authorization.decision/000`, `fis.authorization.reason/000`,
+`fis.connect.claims/000`, `fis.instance.authorization.event/000`,
+`g.node.instance.gt/001`. The FIS staging box (`hw1__2`) is a hybrid
+broker and staging vocabulary is dev-brokers-only, and the claims word
+crosses the wire on every connect, so the whole FIS snapshot closure goes
+published before the box serves anything. The auth event and the lease
+row only live in FIS's own Postgres, but publishing them with the claims
+word gives the FIS snapshot one status and lets its regen drop
+`--allow-staged`. The dev battery (27/27) is the evidence the shapes are
+right; hash pins recorded, public registry regenerated.
+
 ## 2026-09-04 — layout words: secondary-010v required on Nolan, writer trio dropped (`d6f59e7`)
 
 Branch `jm/dac-word-gate`. Both layout words are `staging`, edited in

@@ -122,7 +122,7 @@ Status: Draft · Pass 0 · Updated 2026-09-05 · Linear: OPS-392
   either. A device-type record per pump model (the pattern the heat
   pump parts use: a node with a component whose DeviceType names the
   record) is the likely shape; the speed-versus-output curve from
-  `experiments/future/spruce-pump-speed-sweep/` is the first fact such
+  `experiments/2026-09-06-spruce-pump-speed-sweep/` is the first fact such
   a record would carry.
 - **CT measurement chain for the gw108** (from a conversation with Joe,
   2026-09-02). Three levers set what a CT channel can measure:

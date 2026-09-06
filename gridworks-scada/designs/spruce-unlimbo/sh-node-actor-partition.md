@@ -285,7 +285,11 @@ one commit per repo).
    failing test is `test_control_capabilities_on_nolan`. The bench
    re-run waits on the realness decision in `dac-output.md` "Why the
    bench was simulated". Then `dac-output.md` step 5, queued as
-   `experiments/future/spruce-pump-speed-sweep/`.
+   `experiments/2026-09-06-spruce-pump-speed-sweep/` (folder + on-box
+   driver built and rehearsed 2026-09-06; the calibration-version
+   boot-blocker found that day is fixed, see `dac-output.md`; the
+   window waits on the spruce env + housekeeping items in the folder
+   README).
 4. **hp-twin fixture**: tlayouts config axis → `gw.nolan.layout.hp-twin.json`
    (hp-ctrl-box as HpTwin under hp-boss, its component the MIM modbus
    bridge) + a dormant HpTwin stub so both fixtures boot. hp-boss
@@ -460,7 +464,20 @@ real coverage; see GridWorks_CLAUDE ⏳ note). Order:
    published tree, and assert each constructs (axiom 1 fires on orphan
    prefixes) AND matches the expected handle shape for that state.
    Jessica believes some of these are wrong today; the failures are the
-   deliverable.
+   deliverable. **Matrix item found 2026-09-06** (rehearsing the spruce
+   sweep driver against the sim Nolan scada): a transition landing
+   mid-sequence. `NolanLocalControl.command_sequence` paces its steps
+   15 s apart and never re-checks `top_state`, so after admin woke the
+   scada (TopGoDormant at 08:15:38.956) the LC's in-flight `turn_on_hp`
+   still sent CloseRelay to the secondary pump at 08:15:53, caught only
+   by the relay's rights check (`Tried to command CloseRelay … didn't
+   have the rights: FromHandle auto.lc.n must be immediate boss of
+   ToHandle admin.secondary-pump-relay`). Dormant means commands
+   nothing; the matrix drives the admin wake-up DURING a sequence and
+   asserts no command leaves the LC after the transition. The same
+   rehearsal witnessed admin driving all four Nolan relays (pump,
+   iso, store pump, hp call) plus the DAC through the rewritten tree,
+   the shape the matrix's "admin wakes up" row asserts.
   Then, in this section with their own estimates (scopes on OPS-392):
      - `dac-output.md`
      - `pico-cycler-command.md`

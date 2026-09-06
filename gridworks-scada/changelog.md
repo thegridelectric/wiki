@@ -12,6 +12,27 @@ Newest at the top.
 
 ---
 
+## 2026-09-06 — patch linear.one.dimensional.calibration snafu (`a6833464`)
+
+Rehearsing the spruce pump-speed window on the laptop, the regenerated
+spruce artifact refused to boot: `DerivedGenerator` rejected its four
+affine depth channels, whose `linear.one.dimensional.calibration` said
+Version `001` while gwsproto pins `000` (sema's only version since the
+2026-08-13 staging squash; tlayouts hand-built the dict with the old
+version). Nothing caught it: `derived.channel.gt/002` types
+`Parameters` as a bare object and declares no dependency on the
+calibration word, so the word was outside the layout closure and the
+reverse conformance check never saw it, and the Nolan fixture (sim
+tanks, identity throughout) had no affine channel for the artifact-boot
+test to trip on. Decided with Jessica: no sema change; tlayouts seeds
+the word into its snapshot and constructs the calibration through the
+class. This commit is the scada side: the vendored closure copy
+refreshed from that snapshot, so the standing reverse check now covers
+the word (twin at `000`, verified); the Nolan fixture is the regenerated
+sim pair, whose sim tanks carry spruce's calibration so four affine
+channels boot in the suite; the mirror's docstring names `/000`, the
+version it pins.
+
 ## 2026-09-05 — is_simulated docstring names its future job: the clock
 
 Docstring only. After the decompression the property has one reader, the

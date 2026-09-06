@@ -11,8 +11,6 @@ repo's git history.
 
 Newest at the top.
 
----
-
 ## 2026-09-05 — Gate recipe names FIS's management-API credentials (`4c1fc1e`)
 
 The gate section of the rmq-docker README says what FIS needs from the

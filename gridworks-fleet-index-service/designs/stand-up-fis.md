@@ -1,6 +1,6 @@
 # Stand up FIS
 
-Status: Accepted · Pass 1 · Updated 2026-09-05 · Linear: OPS-422
+Status: Accepted · Pass 1 · Updated 2026-09-06 · Linear: OPS-422
 
 **EDD: yes** verified by the day-in-the-life handshake
 ([`../executor/day-in-the-life.md`](../executor/day-in-the-life.md)) run for real on the
@@ -20,9 +20,17 @@ the first with the predecessor closed before the successor is admitted.
 ## Build order (each step maps to a section of `executor/primary.md`)
 
 Steps 1–8 are built; the dev battery is green (27/27 verdicts plus the
-reconnect storm) with Findings A and B both closed. **Next
-move: step 9 — deploy FIS colocated with the staging broker (`hw1__2`) and
-run the battery there, the run that counts as verification.** The push
+reconnect storm) with Findings A and B both closed. Step 9's box is
+built and live: `hw1-2` serves `hw1__2` with the gate ON and FIS beside
+it on the `jm/stand-up-fis` branch (`experiments/2026-09-06-fis-staging-box/`,
+two findings fixed there: the broker container needs the host network to
+reach FIS on loopback; `fis api` now configures logging). Every word in
+the FIS closure is published. **Next move: the battery's remote rung
+against `hw1-2` — pull the pushed logging fix onto the box first, then
+carry the identities' principal rows there, cut their client certs on
+certbot against the real CA, and run `experiments/2026-09-05-fis-gate-battery/`
+with the broker host from the environment and the FIS and
+management-API-down legs over ssh. That green run is the Verified stamp.** The push
 accelerator (5c) is not on that path. Also open: mint the four
 platform-service principals (weather, gnr, ear, gjk) with `fis principal
 create` and cut their certs — the per-service walkthrough (who runs what,
@@ -160,11 +168,30 @@ is unchanged.
 
 9. **Deploy colocated with the broker** (*executor "Deployment"*): same
    box, localhost auth path, FIS before the broker in boot order; staging
-   box (`hw1__2`) first, prod after the done-when battery passes.
-   `fis.connect.claims` publishes before the box serves `hw1__2` — it
-   crosses the wire, and staging vocabulary is dev-brokers-only. The lease
-   row may stay `staging` longer: it is a row in FIS's own Postgres and
-   never crosses a broker.
+   box (`hw1-2`, serving `hw1__2`) first, prod after the done-when
+   battery passes. The staging box is its own Hetzner server, not the
+   prod broker box: the battery kills connections and takes the
+   management API down, and wiring the gate into prod is a container
+   recreate that wipes runtime users, which is the rehearsal this box
+   exists for. Repo half ✅: `service/fis-api.service`, `bash_aliases`,
+   `deploy.sh`, README "Deploying" in the FIS repo; `gridworks-infra/fis/`
+   (FIS on any broker box, plus the homedir README); the ephemeral box's
+   build with its staging `rabbitmq.conf` (TLS-only,
+   `fail_if_no_peer_cert`, vhost `hw1__2`) as the reproducer
+   `experiments/2026-09-06-fis-staging-box/`. Remaining,
+   in order:
+   - Publish `fis.connect.claims` in sema: it crosses the wire and
+     staging vocabulary is dev-brokers-only. The lease row and the auth
+     event may stay `staging` longer: rows in FIS's own Postgres.
+   - Build the box from the recipe (hcloud, certbot server cert for
+     `hw1-2.electricity.works`, Route 53); FIS up before the gate overlay.
+   - Carry the principal rows: the battery identities and the four
+     platform services, minted on the box with the same ids.
+   - Adapt the battery for a remote rung: broker host and ports from the
+     environment, FIS started and stopped over ssh (it starts FIS itself
+     today), the management-API-down leg through ssh, certs cut on certbot
+     against the real CA instead of the throwaway one.
+   - Run it; the green staging run is the Verified stamp.
 
 ## v1 scope
 

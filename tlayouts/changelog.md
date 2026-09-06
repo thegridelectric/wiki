@@ -12,6 +12,25 @@ Newest at the top.
 
 ---
 
+## 2026-09-06 — patch linear.one.dimensional.calibration snafu (`0a051f9`)
+
+The affine depth calibration in `house0_sema_gen.py` was a hand-built
+dict pinned at `linear.one.dimensional.calibration/001`, a version sema
+squashed away on 2026-08-13; every real-tank artifact since (spruce,
+oak) failed to boot on the scada, unseen because the word sits outside
+the layout closure (the derived-channel word types `Parameters` as a
+bare object). Now the word is seeded into the tlayouts snapshot
+(`tlayouts_seed_request.yaml`, with the reason) and the gen builds the
+calibration through `LinearOneDimensionalCalibration(...).to_dict()`,
+so its version is the snapshot's and the closure registry carries it
+for the scada mirror check. The `tank_kind == "real"` gate on the
+calibration is gone: a tank with a spec calibrates whether real or sim,
+so the spruce sim pair (the scada's Nolan fixture) exercises the affine
+path the real artifact boots with. Honeysuckle declares no tanks and is
+unchanged. Snapshot rebuilt at sema `d6f59e7`.
+
+---
+
 ## 2026-09-04 — correct power meter for honeysuckle (`56dbcd1`)
 
 `honeysuckle_sema_gen.py` set `power_meter_kind="sim-egauge"`, a value

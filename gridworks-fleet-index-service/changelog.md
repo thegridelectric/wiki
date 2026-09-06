@@ -12,6 +12,34 @@ Newest at the top.
 
 ---
 
+## 2026-09-06 — Production finishing: systemd unit, aliases, deploy script <!-- pending commit -->
+
+Build step 9 needs FIS to run on a box the way every other gwbase
+service does (gwbase executor "Deploying a gwbase service"): a `service/`
+directory with one unit per process (`fis-api.service`, the venv console
+script under systemd, `Restart=always`), `bash_aliases` that are pure
+spelling over systemctl (`fisstart`/`fisstop`/`fisrestart`/`fisstatus`/
+`fislog`), and a `deploy.sh` that puts the box on the pushed tip of
+`main`. FIS is stdout-only (uvicorn), so its log is journald and `fislog`
+follows `journalctl -u fis-api`. The unit orders itself before the broker
+container only by intent (the broker is docker-supervised, not a systemd
+unit), so the README states the boot rule in words: FIS up and answering
+`/ping` before the gate overlay is applied. The README gains a
+"Deploying" section: the box `.env` values that differ from dev, the
+Postgres container on the box's data mount, and the update path. The
+snapshot regen script drops `--allow-staged`: every word in the FIS
+closure is published now (sema `jm/publish-fis-words`), and the vendored
+snapshot is regenerated without the staging marker. No behavior change in
+the service itself, except one: `fis api` now configures logging
+(INFO to stdout), found on the staging box where the gate's verdict
+lines never reached the journal because nothing had set a handler.
+In gridworks-infra, a `fis/` service folder joins
+`ear/`, `gjk/`, `gnr/`: how FIS lives on any broker box (the login, the
+unit, the Postgres container, the boot rule) and the homedir README.
+The staging box itself is ephemeral, so its build is an experiment
+reproducer (`experiments/2026-09-06-fis-staging-box/`), not an infra
+folder.
+
 ## 2026-09-05 — The claimed run reaches `/auth/vhost` as the connection's user tag (`8d3f96c`)
 
 Closes Finding B from the dev battery. The broker's HTTP backend never

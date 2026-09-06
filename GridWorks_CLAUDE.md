@@ -232,6 +232,23 @@ distributed-trust principle it served — that principle is core vision.
   return the format type: validating and then returning `str` strips
   the type at every call site. Each such record carries the note
   naming the missing word that retires it.
+- **Context is a budget: read sections, not files.** A file over ~300
+  lines is never read whole for orientation, even when the ask says
+  "read X": list its `##` headers, read the stamp, the "what this is"
+  line and the sections the Focus names (the active spoke's "Do this
+  next", the handoff paragraph, the step in question), and say which
+  sections were skipped. When asked to read a huge file end to end,
+  push back with its line count and the section list, and read the
+  sections the human picks. A reading session's context is spent on
+  every later turn; a whole-file `cat` of three spokes cost 250K in one
+  session (2026-09-06).
+- **Harness and log output comes back as a verdict, not a transcript.**
+  Run harnesses, smoke tests and suites with stdout to a file and
+  return ONE line (PASS/ABORT, counts, the file path). Grep a log for
+  a named pattern with a line cap (`| head -20`), never dump it; when a
+  finding needs the surrounding lines, quote the few that carry it. A
+  run that must be looked at closely is delegated to a subagent that
+  returns the conclusion.
 - **No dead code, no assumed defaults** — when a refactor orphans a symbol,
   delete it in the same change. Do not introduce a default that hides a value
   the caller must declare — make it required, sourced from a `names` constant.
