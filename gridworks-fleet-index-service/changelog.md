@@ -12,7 +12,7 @@ Newest at the top.
 
 ---
 
-## 2026-09-07 — GitHub Actions: lint and tests on push and pull request <!-- pending commit -->
+## 2026-09-07 — GitHub Actions: lint and tests on push and pull request (`fbc3262`)
 
 `.github/workflows/tests.yml`, the house shape (grid-node-registry's
 `tests.yml`): a lint job (uv locked sync, `ruff check`, `ruff format

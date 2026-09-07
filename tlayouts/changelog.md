@@ -10,6 +10,22 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-07 — sim tank picos carry a liveness script; snapshot at sema fc741c2
+
+**What:** `House0SemaGenConfig` gains `sim_pico_life_s` / `sim_pico_reboot_s`
+(None = absent on the word); the sim tank emission passes them as
+`SimLifeS` / `SimRebootS`. Both sim configs (house0-sim, spruce-sim) set
+120 / 20. Snapshot rebuilt from `tlayouts_seed_request.yaml` at sema
+`fc741c2`; the only vocabulary change is the two fields on
+`sim.pico.tank.module.component.gt/001`.
+
+**Why:** the sim picos have to die and reboot for the scada's pico-cycler
+loop to be witnessed on a sim layout; 120 s life puts a flatline and a
+cycle inside the five-minute dev-broker rung. `scripts/regen_sema_snapshot.sh`
+and `src/tlayouts/sema_seed_request.yaml` are a stale pair (that seed drops
+six words the gens use); `build_tlayouts_snapshot.sh` with the root seed is
+what reproduces the committed tree.
+
 ---
 
 ## 2026-09-06 — patch linear.one.dimensional.calibration snafu (`0a051f9`)

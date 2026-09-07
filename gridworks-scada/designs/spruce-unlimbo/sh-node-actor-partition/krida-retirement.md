@@ -1,24 +1,299 @@
-# Krida retirement → board-generic relays (spoke)
+# Krida retirement, admin for Nolan, and the command interface (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-01 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
 
-> What this is: execute the scada half of the relay decommission whose
-> sema half shipped 2026-07-03 (`relay.control.config/000` replaces
-> `relay.actor.config` — `replaced_by` stamped; board-generic thin
-> per-relay components `i2c.relay.component.gt` / `gpio.relay.component.gt`
-> resolve RelayName/GpioName against the board record, the single source
-> of physical address). Estimate on OPS-392; runs at the end of the
-> command_node.py review section, after the tree matrix.
+> What this is: one spoke, combined 2026-09-07 from three that shared one
+> word, `scada.control.capabilities`: the scada half of the relay
+> decommission (per-relay thin components against a board record; sema
+> half shipped 2026-07-03), the admin UI as a first-class way to see and
+> hand-operate a Nolan-layout house, and how actors share what commands
+> they take. Estimate on OPS-392; runs next after pico-cycler-command.
+> The combined slug is still `krida-retirement`; rename is a separate
+> decision.
 
 ## Why now
 
-House0 sim-green (the single scada focus) is blocked on it: commanding a
-House0 relay reaches `relay.py`'s dead Krida multiplexer round-trip.
-There is no route to the merge gate's "both cases work" that doesn't
-either do this or revive the multiplexer against the recorded direction.
-It also dissolves `actuator_config`'s false cast (one config shape, no
-dispatch) and decouples family from board: a House0 with a Gw108 board
-becomes a pure layout fact.
+The gwadmin TUI shows no relays and no DACs for a Nolan layout
+(watched 2026-09-07 on the dev-broker sim): on link-up the client asks
+for `scada.control.capabilities`, `Scada.control_capabilities` looks up
+`H0N.relay_multiplexer` unguarded, Nolan has no such node, and the
+reply is never built (logged as `Trouble with SendLayout`, the
+neighbouring branch's label; every pico-cycler dev-broker run carried
+it unread). The word requires the Krida component and gwadmin reads
+every relay's config from its `ConfigList`. Admin is how a human runs
+a house during bring-up, and Nolan houses are installed this fall, so
+the panel comes first and in the smallest change that makes it work.
+The relay decommission is also what House0 sim-green (the single scada
+focus) is blocked on: commanding a House0 relay reaches `relay.py`'s
+dead Krida multiplexer round-trip. Rung 3 dissolves that.
+
+## ▶ Do this next: rung 1, the panel works for Nolan (2026-09-08)
+
+The smallest change that makes `gwa watch` render and drive a Nolan
+scada, with the word shaped once: per command node. No layout-word
+edit, no relay.py rework; those are rungs 2 and 3.
+
+1. **Sema first.** Enum-kind gate summary, then four staging enum words
+   the panel rows need: `reboot.picos` (single value `RebootPicos`),
+   `pico.cycler.event` (all ten values; gwsproto's class names a 000
+   that was never registered), `turn.hp.on.off`, `hp.boss.state`
+   (dropping the `gw1` prefix gwsproto still carries). This lands
+   pico-cycler-command's item 7; remove both rows from the conformance
+   test's `NO_WORD_ENUMS` allowlist when it does.
+2. **Word, in place.** `scada.control.capabilities/001` is staging.
+   `I2cRelayComponent` goes. In its place a list, one entry per command
+   node, carrying the vocabulary fields of `relay.control.config`
+   generalized: `ActorName`, `ChannelName`, `EventType`, the two events,
+   `StateType`, the two states (wiring facts stay on the relay's own
+   component). Type-kind gate summary first; whether the entry is a new
+   staging type word or `relay.control.config` reused is decided at
+   that gate. Axiom 4 rewritten: the ActorName set equals the names in
+   `RelayNodes` plus the interior command nodes; each ChannelName equals
+   the ControlChannels entry about that actor. gwsproto twin and the
+   tlayouts snapshot mirror in the same wave.
+3. **Scada projection.** `Scada.control_capabilities` builds the list:
+   relays from their own component (the thin component's single config
+   on Nolan; House0's `relay.actor.config` projected by dropping
+   `RelayIdx` until rung 3); the pico-cycler and hp-boss from what the
+   scada hard-codes today (`CommandNode.send_state_command`'s
+   ActorClass map, the cycler's `reboot.picos` handling). The
+   multiplexer lookup goes; the `SendControlCapabilities` branch logs
+   under its own name. Rung 2 moves this knowledge into the layout word
+   and deletes the hand-map; the projection does not change shape then.
+4. **gwadmin: one table.** `RelayWatchClient._get_relay_configs` reads
+   the list and the relay table lists every entry, pico-cycler and
+   hp-boss as rows beside the relays. Each row's toggle sends that
+   row's event on its own vocabulary; the pico-cycler row's action is
+   Reboot picos (the separate button and `p` binding go with it).
+   `relay_idx` leaves `RelayConfig`. `DACWatchClient.set_dac` takes the
+   node name. The hp-boss rewrite pair (`_send_set_command` to
+   `admin.hp-boss` speaking `TurnHpOnOff`, `process_admin_dispatch` back
+   to the relay) retires here: hp-boss is a row with its own vocabulary,
+   so admin addresses it directly and the scada stops rewriting.
+5. **Tests.** `tests/actors/test_admin_on_nolan.py::
+   test_control_capabilities_on_nolan` (xfail today, strict) goes green
+   and asserts the two interior rows; `test_admin.py`'s House0 cases
+   stay green; `test_admin_reboots_picos.py` drives the row's action
+   rather than the button's method.
+6. **Witness (the EDD bar).** `gwa watch` on the dev-broker sim Nolan
+   scada (the `devnolan` entry, localhost 1885) lists all twenty relays,
+   the pico-cycler and hp-boss rows, and the DAC; a relay toggles from
+   the panel and its state row follows; the pico-cycler row reboots the
+   picos and walks RelayOpening → PicosRebooting → PicosLive; the
+   hp-boss row turns the heat pump on and off. Recipe: `executor/
+   testing.md` "Recipe: admin over the wire".
+
+Rung 1 estimate: 6h (4–9). Rungs 2 and 3 are estimated on their own
+rows when they start.
+
+## Decisions (2026-09-07)
+
+- **The capabilities list is per command node, not per relay**
+  (option 1, chosen over a relays-only first cut that would reshape the
+  word twice). Rung 1 carries the pico-cycler and hp-boss entries and
+  the enum words they need.
+- **One table in the panel.** The command interface word grows to
+  cover interior command nodes, but the TUI keeps a single relay table
+  and lists the pico-cycler and hp-boss IN it, as rows beside the
+  relays, each with its own vocabulary (`reboot.picos`,
+  `turn.hp.on.off`) and state. No separate command-node widget; the
+  Reboot picos button becomes that row's action. The operator sees one
+  list of "things I can command" whatever kind of node executes it,
+  which is what the capabilities cover is (`executor/
+  control-hierarchy.md` "Set of command trees = control regimes;
+  capabilities = the cover"). A bit of hard-coding on the UI side to
+  bunch rows in that table (an interior node next to the relays it
+  owns, by name) is fine; it is presentation, and the word stays a
+  flat per-node list.
+
+## Why admin comes first
+
+Status: Accepted · Pass 1 · Updated 2026-09-05
+
+- **Admin is the capability vocabulary — and comes FIRST.** Per the
+  capability-protocol-and-verify design ([OPS-394](https://linear.app/gridworks/issue/OPS-394)), the actor capability
+  surface is calibrated to what the admin can do. This spoke is therefore
+  a **prerequisite** of the capability-protocol work, not a sibling
+  (Jessica, 2026-06-10): getting admin working against Nolan *discovers*
+  the field-proven vocabulary; the capability protocol then carries that
+  vocabulary into **intra-scada dispatch** (control states speaking
+  through `ShNodeActor`).
+- **Bring-up reality:** every spruce milestone (i2c relays, AC via fan
+  coils, resistive backup) gets exercised by a human through admin
+  before it's trusted to local control.
+
+## Capabilities heritage and the muddles to fix
+
+Status: Accepted · Pass 1 · Updated 2026-09-05
+
+**Heritage — why the type exists** (Jessica, 2026-06-10, told): to
+**decouple the admin's relay knowledge from `layout.lite`** — every time
+Thomas changed flo params, layout.lite's version moved and the gwa
+textual app broke until upgraded. Capabilities is the stable,
+control-focused projection the admin can depend on. That purpose is
+sound and survives every fix below.
+
+**State of the type** (verified 2026-06-10): sema already holds
+**v001 as canon** (`sema/definitions/types/scada.control.capabilities/001.yaml`)
+— canonical `spaceheat.node.gt/300` / `data.channel.gt/001` refs and
+four axioms (ActorClassConsistency, HandleTerminalMatchesName,
+AboutNodesAreControlNodes, I2cRelayComponent↔RelayNodes consistency).
+The deleted `jm/scada-control` branch was the scada-side
+*implementation* of this v001, not a proposal.
+
+**The muddles to fix (Jessica, 2026-06-10) — drive a v002:**
+
+1. **v000 axioms lived outside the sema spec** — written over bespoke
+   non-sema mini-types (`ControlNode`/`ControlChannel`). v001 fixed the
+   substrate; the lesson stands: axioms only over sema-registered
+   attributes.
+2. **CapturedByNodeName vs AboutNodeName confusion** — the admin's use
+   of ControlChannels never decided which it meant; we were likely
+   lucky they coincided for the channels in play. The v002 work MUST
+   first trace what gwa actually reads
+   (`gwadmin/watch/clients/relay_client.py` and friends) and then say
+   explicitly which name the contract carries and why.
+3. **House0 hardware baked into the type** — v001 still *requires*
+   `I2cRelayComponent` (`i2c.multichannel.dt.relay.component.gt`); a
+   Nolan house has `gw108.vdc.relay.component.gt`. v002 needs the
+   hub's three-axis treatment (capability · binding · hardware) —
+   likely per-node actuation-hardware references rather than one
+   top-level Krida component.
+4. **v001 usage inside admin is muddled** generally — the evaluation of
+   how gwa consumes the message is in scope here, not just the type
+   shape.
+5. **Registry state (2026-09-05):** `scada.control.capabilities` is at
+   `001`, status `staging`, refs `spaceheat.node.gt/302` and
+   `data.channel.gt/003`; there is no `002` (the earlier note claiming
+   one was squashed away 2026-08-13). Staging means the fix is an
+   in-place edit of `001`, never a new version.
+
+Sema changes go through sema word-authoring (v002 + upgrade template +
+registry deltas). **Sieg-loop visibility in admin** (can/should gwa see
+SiegLoop state?) is noted and **deferred to sieg-semantic-harmonization
+([OPS-400](https://linear.app/gridworks/issue/OPS-400))** — that design already owns the valve-telemetry-not-emitted
+gap.
+
+## What the admin tool needs from a scada (read 2026-09-05)
+
+Status: Accepted · Pass 1 · Updated 2026-09-05
+
+Read of `packages/gridworks-admin` (`cli.py`, `config.py`,
+`watch/clients/admin_client.py`, `dac_client.py`, `relay_client.py`,
+`watch/relay_app.py`, the widgets) against the admin executor's
+capabilities contract. Facts first, then the House0 assumptions.
+
+**Consumed.** On link-up the client requests `scada.control.capabilities`
+(`SendControlCapabilities`, re-requested every 60 s until it arrives),
+then `snapshot.spaceheat` (`SendSnap`). It never reads `layout.lite`.
+Per controllable node it keys everything off ONE name, the node's
+`Name`: the dispatch address is `admin.<Name>`; the state channel is the
+`ControlChannels` entry whose `AboutNodeName` equals it (the
+`CapturedByNodeName` question in the executor is settled by the code:
+admin never reads it); relay event and state vocabulary comes from the
+config entry whose `ActorName` equals it. State arrives from the
+snapshot's `LatestReadingList` and from the `single.reading` messages
+the scada forwards to the admin link for every relay and 0-10V channel
+(`Scada._forward_single_reading`), keyed channel name -> node.
+
+**Sent.** `AdminDispatch` wrapping an `FsmEvent` (`FromHandle admin`,
+`ToHandle admin.<Name>`, `EventType` and `EventName` from the relay
+config), `AdminAnalogDispatch` wrapping `AnalogDispatch` (`ToHandle
+admin.<Name>`, `Value` volts x10, 0-100), `AdminKeepAlive`,
+`AdminReleaseControl`; every message `Src admin`, `Dst <scada alias>`.
+`experiments/2026-09-05-dac-output-bench/bench_dispatch.py` is this
+client driving one DAC and is the seed for the Nolan client test.
+
+**Per node the tool needs exactly five things:** the dispatch address,
+the subject (about) node, the state channel name, the event and state
+vocabulary (relays only), and, display only, a board position (already
+optional). Nothing else in the word is read.
+
+**House0 assumptions to remove, in the package:**
+
+- `RelayWatchClient._get_relay_configs` reads relay configs from
+  `I2cRelayComponent.ConfigList` (the Krida board, a required field of
+  the word). Nolan relays each carry one `relay.control.config` on a
+  board-resident component; House0's `relay.actor.config` carries the
+  same nine fields plus `RelayIdx`.
+- `RelayWatchClient._send_set_command` rewrites `hp-scada-ops-relay` to
+  `admin.hp-boss` speaking `TurnHpOnOff`, and `Scada.process_admin_dispatch`
+  rewrites it straight back to a relay event on `hp-scada-ops-relay`.
+  The pair exists because under House0's sieg tree the relay's handle is
+  `admin.hp-boss.hp-scada-ops-relay`, so a direct `admin.<Name>` fails the
+  immediate-boss check. On Nolan the relay sits directly under the boss.
+- `DACWatchClient.set_dac` takes the table's DISPLAY name and appends
+  `-010v`; the row key is already the node name, so the app should pass
+  that.
+- `RelaysApp` and the House0 rows in `test_admin.py`'s commented tests.
+
+**The word edit this needs (staging `001`, in place; not started, needs
+Jessica):** replace `I2cRelayComponent` with a list of
+`relay.control.config/000`, one per `RelayNodes` entry, and rewrite
+axiom 4 over it (ActorName set equals RelayNodes names; each ChannelName
+equals the ControlChannels entry about that actor). The scada projects
+House0's `relay.actor.config` into it by dropping `RelayIdx` until the
+krida shift. The hp-boss rewrite pair then goes, with admin addressing
+the relay's actual handle from `RelayNodes` rather than composing
+`admin.<Name>`. `tests/actors/test_admin_on_nolan.py::
+test_control_capabilities_on_nolan` is the failing test that the edit
+turns green.
+
+## Rung 2: the command interface
+
+### What a command interface is today
+
+Three parts. Vocabulary: an event enum, named by `EventType` in
+`fsm.event`, with `EventName` constrained to it. Authority: the command
+tree (`FromHandle` is the immediate boss of `ToHandle`). Feedback: a state
+enum reported through `single.machine.state`, plus `fsm.full.report` per
+command for actuators.
+
+### How it is declared, three ways
+
+- Relays: in the layout word, per node. `relay.control.config` carries
+  `EventType` + the two events and `StateType` + the two states.
+- hp-boss, pico-cycler, LocalControl, LeafAlly: hard-coded in Python.
+  `CommandNode.send_state_command` maps `ActorClass.HpBoss` to
+  `TurnHpOnOff` by hand; the admin client addresses hp-boss because it was
+  written knowing to.
+- Admin's `scada.control.capabilities` is actuator-shaped (relay nodes,
+  DAC nodes, control channels, a Krida component); it cannot say "hp-boss
+  takes turn.hp.on.off".
+
+### Sema coverage is split
+
+State enums mostly have words (`gw1.main.auto.state`, the local-control
+and leaf-ally states, `zone.call.circuit.state`). Command enums mostly do
+not: `turn.hp.on.off`, `pico.cycler.event`, every local-control and
+leaf-ally `*.event`, `top.event`, `change.heat.pump.control`, the aquastat
+and store-flow vocabularies. The gwsproto docstrings cite sema URLs that
+resolve to nothing; `gw1.hp.boss.state` still carries the gw1 prefix.
+States crossed a wire so they got words; commands stayed in-process until
+admin started sending them. The `fsm.event` axiom EventNameBelongsToEventType
+cannot be checked for an enum the registry does not hold.
+
+### Proposal
+
+Static capability in the layout, dynamic authority in the tree, both in
+sema.
+
+1. A per-node command interface in the layout word: `EventType` and
+   `StateType` as enum references on every node that takes commands
+   (`relay.control.config`'s vocabulary fields generalized to interior
+   nodes; actuator configs keep their wiring facts).
+2. `send_state_command` looks the vocabulary up on the node; the
+   ActorClass switch goes (it is the hand-map the sema maxim names as the
+   tell).
+3. The admin capabilities projection becomes "every node with a command
+   interface, with its vocabulary"; the Krida component field retires with
+   it (krida-retirement).
+4. The missing command enums become registered sema words, staging; the
+   gw1 prefix rides snapshot-drop-gw1.
+
+hp-boss's own interface (`turn.hp.on.off` in, `hp.boss.state` out) stays
+fixed across strategies; the channel axis in `hp-twin.md` "Strategies" is the interface of the node hp-boss commands
+(`change.relay.state` today, a heat-pump command enum for the twin).
 
 ## Already landed (the ground this builds on)
 
@@ -44,7 +319,7 @@ becomes a pure layout fact.
   (`i2c.relay.component.gt` + `relay.py` resolving `RelayName` against
   the board) — House0 is the migration, not the invention.
 
-## The work
+## Rung 3: the relay decommission (the original krida-retirement work)
 
 1. **House0 fixture pair regenerated** with per-relay
    `i2c.relay.component.gt` (RelayName against the board's `I2cRelays`
@@ -103,9 +378,60 @@ hardware-decoupling section of `layout-word-axioms.md`) converges only
 after this chunk — post-retirement, EVERY relay is a thin component
 against a board record, so "which board" becomes one config axis.
 
+## Known gaps (verified 2026-06-10 unless noted)
+
+Status: Accepted · Pass 1 · Updated 2026-09-05
+- **Admin tests are House0-only.** `tests/test_misc/test_admin.py`
+  relay/DAC tests explicitly override to the House0 layout (relay
+  index 18, DFRs); there is no Nolan-layout admin coverage at all.
+- **Admin relay client** (`gwadmin/watch/clients/relay_client.py`) was
+  touched by the mined `jm/scada-control` sketch — its assumptions
+  about relay enumeration likely follow the House0 relay-bank shape
+  (`House0RelayIdx`); needs a read against the Nolan layout (vdc relay
+  on GPIO, no relay1–18 bank). *Inferred — verify.*
+- What a Nolan admin **should show** is partly different in kind: opto
+  heat-call states, learned setpoints + SetpointPhase per zone, gw-temp
+  channels — observation surfaces House0 admin doesn't have.
+
+## Definition of done
+
+Status: Accepted · Pass 1 · Updated 2026-09-05
+
+1. Admin connects to a Nolan-layout scada and renders its actual
+   actuators and channels (no crash on missing multiplexer/DFRs).
+2. A human can operate the Nolan actuators that exist through admin.
+   Today that is exactly one relay — **the pico cycler is the only
+   Nolan relay under scada control** (Jessica, 2026-06-10) — so it is
+   the first target; the AC/fan-coil path joins when chunk E lands.
+3. `test_admin.py` gains Nolan-layout cases alongside the House0
+   overrides (the both-layouts test pattern from the merge gate).
+4. The capabilities-type hardware-shape question is resolved jointly
+   with [OPS-394](https://linear.app/gridworks/issue/OPS-394) (likely: per-node actuation component reference, not a
+   single top-level I2cRelayComponent).
+
 ## Gate
 
 Suite green on both fixtures + `sema validate` on the regenerated
 House0 pair. EDD bar (bench/box boot) before the fleet regen ever uses
 any of it — real House0 boxes stay on their deployed artifacts until
 the coordinated dev-wave regen.
+
+## Open
+
+
+- **The governance-dial altitude (2026-08-11):** a second admin mode
+  where the circuit machines stay awake and admin issues
+  `SetGovernance` per circuit (`StatRules | Off |
+  Thermostatic(+setpoint)`) — safety by construction (raw relay admin
+  can express the cold-water mistake; governance admin cannot), and
+  the journal records intent, not pin flips. Raw relay mode remains
+  for bring-up. Model:
+  `zone-relays-and-thermostat-model.md` "Admin: two altitudes".
+- Whether learned-setpoint/SetpointPhase display belongs in admin or
+  stays a derived-channel/monitoring concern.
+
+- Does the interface live on the ShNode word or in a sibling list keyed by
+  node name? The node word is shared with every consumer; a sibling list
+  is a layout-word-only change.
+- Whether `new.command.tree` should carry the interface (it already
+  carries the nodes) or stay authority-only.

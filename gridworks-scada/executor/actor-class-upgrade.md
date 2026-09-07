@@ -52,7 +52,7 @@ do NOT ripple — only embedders do.
 
 Two actor classes → `gw1.actor.class/012` + `spaceheat.node.gt/302` +
 `layout.lite/014` + `new.command.tree/002` + `gw.nolan.layout/000` (draft, in
-place); capabilities v002 deferred to admin-for-nolan. Plus an immutability slip
+place); the capabilities upgrade deferred (OPS-392). Plus an immutability slip
 (editing `capabilities/001` in place) that had to be reverted. Rough effort: **a
 focused half-day of careful, mechanical sema surgery** — most of it the
 per-published-type tax (upgrade + axiom port + test bump + superseded example),

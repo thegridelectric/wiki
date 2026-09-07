@@ -10,18 +10,106 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-07 — sim tank picos post readings, live, and die on a schedule <!-- pending commit -->
+## 2026-09-07 — dev-broker rung fixes: sim GPIO relay reports; cycler waits tied to their cycle
+
+**What:** two fixes the pico-cycler dev-broker rung found. (1)
+`Relay._gpio_actuate_and_report` skipped the pin write AND the report
+when the board is simulated; it now skips only the pin write. The pin
+atomic report, `send_state` and the `fsm.full.report` to the boss go out
+as on a real board. `tests/actors/test_relay_gpio_sim.py`: the nolan
+pair's vdc-relay, commanded by the pico-cycler, answers with the full
+report under the command's `TriggerId`. (2) The cycler's relay-open and
+pico-reboot waits capture the cycle's `TriggerId` when spawned and do
+nothing if a different cycle is running when they fire; two tests in
+`tests/actors/test_pico_cycler_command.py` pin each wait to its cycle.
+
+**Why:** the dev-broker rung for the pico-cycler command
+(`experiments/2026-09-07-admin-reboots-picos/`) stalled in run 1 at its
+first cycle: the cycler waits for the relay's confirmation before
+closing it again, so on a sim board no cycle ever completed and no sim
+pico ever rebooted; the relay's state had committed, only its word to
+the boss was missing. With that fixed, run 2 showed the commanded cycle
+confirmed rebooted 3 s after its close: the self-provoked cycle's 60 s
+wait fired into it. Cycles closer than 60 s apart (a command or a zombie
+shake after a flatline cycle) got a false `ConfirmRebooted` and an early
+`fsm.full.report`.
+
+## 2026-09-07 — gwadmin: a Reboot picos button beside the relay list
+
+**What:** `RelayWatchClient.send_reboot_picos` publishes `admin.dispatch`
+whose trigger is `fsm.event` `admin` → `admin.pico-cycler`, `EventType`
+`reboot.picos`, fresh `TriggerId`; a `RebootPicosButton` in the relays
+section sends it with the usual timeout and restarts the admin timer,
+`p` is its key. No scada change: `process_admin_dispatch` already routes
+any `fsm.event` to the actor named by `ToHandle`'s last segment.
+`tests/actors/test_admin_reboots_picos.py` runs gwadmin's client method
+against a capturing admin client and feeds the dispatch it published
+through `Scada.process_admin_dispatch`: the cycler ends in RelayOpening
+and the relay open carries the dispatch's `TriggerId` (both sim
+fixtures). The loop's second half (relay cycling, sim picos dying and
+rebooting, the full report journaled) is the dev-broker rung.
+
+**Why:** with the cycler awake under admin, a sick pico during a long
+admin window (the 2026-09-06 sweep lost nineteen minutes to one) needs
+a hand on the cycler from the same screen that holds the relays.
+
+## 2026-09-07 — pico-cycler takes one command from its boss: reboot the picos
+
+**What:** the cycler accepts `fsm.event` with `EventType` `reboot.picos`
+addressed to its live handle from its immediate boss (under admin,
+`admin` → `admin.pico-cycler`), maps it onto the existing `ShakeZombies`
+transition and adopts the commander's `TriggerId`, so the cycle's
+`fsm.full.report` carries the command's id, as a relay's does. Any other
+commander, handle, or event type is refused the way `relay.py` refuses
+one (a `bad_boss` glitch, nothing else). The boot-time cycle enters
+through a new `Startup` event instead of `PicoMissing`, so the journal
+stops recording a missing pico that was never missing. Both enum words
+(`reboot.picos`, new; `pico.cycler.event` gaining `Startup`) exist in
+gwsproto only for now and sit on the conformance test's no-word
+allowlist; registering them in sema is deferred (spoke note).
+`tests/actors/test_pico_cycler_command.py` witnesses, on both sim
+fixtures, the accepted command with the adopted id, the three refusals,
+and the `Startup` entry.
+
+**Why:** with the cycler awake under admin (the interior-subtree rule),
+nothing let admin ask it for anything; a long admin window with a sick
+pico needed a way to provoke a cycle without reaching through to the
+relay. The provocation stays structured: the entering event says what
+kind, the `TriggerId` says who, the per-pico rows say which pico.
+
+## 2026-09-07 — pico-cycler reports each pico's state through machine.states
+
+**What:** `single.pico.state` (Alive / Flatlined / Zombie) mirrored in
+gwsproto; the cycler's in-process two-value enum goes. The cycler sends a
+`machine.states` row per pico, `MachineHandle` the pico-backed actor's
+node handle, at start, on every change (a pico flatlines before the
+cycle it provokes is triggered; comes back alive; crosses the zombie
+threshold), and in its periodic state report. The scada already folds
+machine states into `report`, so the roster reaches the journal with no
+new plumbing. `tests/actors/test_pico_roster.py` witnesses, on both sim
+fixtures, that the flatlined pico's row is sent before the cycler's own
+transition and that the others read Alive.
+
+**Why:** "which pico provoked this power cycle" is read off state, not a
+prose comment: the journal shows the roster at the moment the cycle
+fired, and a cycle's cause is the pico whose row flipped just before it.
+
+## 2026-09-07 — sim tank picos post readings, live, and die on a schedule
 
 **What:** `ApiTankModule` runs a simulated pico when its component is
-`sim.pico.tank.module.component.gt`: a reading source inside the actor
-posts a fixed microvolt profile per depth to itself at the channel's
-capture period, stops after `SimLifeS`, and resumes `SimRebootS` after
-the vdc relay closes following an open (read from the scada's recent
-machine states). Both fields are optional on the sim word (001, staging,
-edited in place) and mirrored in gwsproto; absence means no scripted
-death and no reboot. The tlayouts gens emit them for sim tanks and the
-pytest fixtures regenerate. A pytest drives the source directly, no
-clock tricks.
+`sim.pico.tank.module.component.gt`: `SimPicoSource` (in
+`api_tank_module.py`) posts a fixed stratified microvolt profile to the
+actor itself at the channel's capture period, goes silent `SimLifeS`
+after each boot, loses power when the vdc relay opens, and boots again
+`SimRebootS` after the relay closes following an open. The actor's
+`sim_pico_main` task ticks it once a second and feeds it each new
+`vdc-relay` row of the scada's `latest_machine_state`. Both fields are
+optional on the sim word and mirrored on the gwsproto twin; absence means
+no scripted death and no reboot. The sema closure copy and the two sim
+fixtures (`gw.house0.sim.layout.json`, `gw.nolan.layout.json`, 120 / 20
+on every sim tank) refresh from tlayouts. `tests/actors/test_sim_pico.py`
+drives the source with explicit instants (no clock tricks) and checks the
+actor builds and feeds it on both sim fixtures.
 
 **Why:** Every sim layout declares a sim pico per tank and nothing feeds
 it, so sim tank actors went silent after the 60 s capture period and

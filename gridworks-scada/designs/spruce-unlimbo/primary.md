@@ -56,7 +56,6 @@ real broker.
   `executor/running.md` "Experiment window on a deployed box"
 - `layout-word-axioms.md` — the staging axiom reshape of both layout
   words + fixture/generator moves
-- `admin-for-nolan.md` — admin UI sees and operates a Nolan house
 - `hello-world.md` — LTN ↔ SCADA over dev rabbit, consumed by a dev JK
 - `unsorted/` — drop-box for surfaced-but-not-yet-thought-through
   items (CT measurement chain, …)

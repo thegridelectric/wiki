@@ -12,6 +12,69 @@ Newest at the top.
 
 ---
 
+## 2026-09-07 — add the scada dispatch ack/nack pair and the pico-cycler words
+
+<!-- pending commit -->
+
+Branch `jm/pico-cycler-words`, six new staging words. `gw.dispatch.ack` /
+`gw.dispatch.nack` are the scada's acceptance layer for a command from a
+boss: the target node answers its boss directly, correlated by the
+command's `TriggerId`, success or refusal read off the TypeName; the nack
+carries a reason from `gw.scada.cmd.refusal.reason` (Busy, NotMyBoss,
+UnknownEvent, OutOfRange, NotAControlNode; default Unknown). The pair is
+scada-shaped on purpose (handles as addresses); other boundaries coin
+their own twins, the pattern the registry twins already follow. Outcome
+stays `fsm.full.report`. `analog.dispatch` is registered to match gwsproto
+(it already carried `TriggerId`, so one correlation key covers every
+dispatch). `reboot.picos` and `pico.cycler.event` are the cycler's command
+and event vocabularies that gwsproto held without a word.
+
+---
+
+## 2026-09-07 — bump sim pico for better testing
+
+Branch `jm/pico-cycler-words`. `sim.pico.tank.module.component.gt/001`
+(staging, edited in place) gains two optional `positive.int` fields,
+`SimLifeS` and `SimRebootS`: seconds a simulated pico posts after each boot
+before going silent, and seconds after the vdc relay closes following an
+open before it boots again. Absence means absence (never dies / stays
+dead). The scada's tank-module actor runs a simulated pico from them so the
+pico-cycler loop can be exercised on a sim layout; until now every sim
+layout declared a sim pico that nothing fed. Runtime regenerated; the
+000→001 upgrade docstring mirrors the new summary.
+
+## 2026-09-07 — single.pico.state: staging enum for a pico's health as the cycler sees it
+
+Branch `jm/pico-cycler-words`. New versioned enum `single.pico.state/000`
+(staging): Alive, Flatlined, Zombie, the per-pico state the scada's
+pico-cycler has kept in-process. Registered so the cycler can report each
+pico through `machine.states` and the journal holds the roster over time;
+"which pico provoked this power cycle" is then read off state instead of
+a free-text cause string on `fsm.atomic.report` (a branch that added such
+a string to a published word in place was not merged). Default is
+`Flatlined`, so an out-of-vocabulary value coerces to a sick pico, never a
+healthy one. `versioned` because a health roster may grow a value.
+
+
+## 2026-09-07 — gw.adc.waveform: staging word for one burst of ADS1115 conversions <!-- pending commit -->
+
+Branch `jm/adc-waveform-word`. New type `gw.adc.waveform/000` (staging):
+one burst of raw conversions from one input of an i2c ADC, with the
+chip (`i2c.adc.type`), its bus address, the PGA full scale, the
+configured data rate, the message creation time (`MessageCreatedMs`, the
+name JournalKeeper already keys `created_at` on for scada messages), the
+wall clock of the first conversion, and a host-timed microsecond offset
+per code. The word is
+the capture record for the CT measurement chain (OPS-518): the bench
+harness on honeysuckle writes instances of it directly, and the fold
+reads them. Offsets ride along because the pi cannot see the chip's
+conversion-ready signal, so a polled burst cannot promise one clean
+conversion per slot; the bench decides whether they can be dropped, and
+staging lets that happen in place. CT meaning (ratio, loops, burden)
+stays out of the capture word and goes to the component vocabulary.
+
+---
+
 ## 2026-09-06 — promote the FIS words <!-- pending commit -->
 
 Branch `jm/publish-fis-words`. Five promotions, bottom-up, nothing else:

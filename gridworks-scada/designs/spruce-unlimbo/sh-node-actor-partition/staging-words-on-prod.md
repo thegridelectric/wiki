@@ -26,7 +26,7 @@ has no release-gate flag.
    words matter to the broker; the closure words they `$ref` get dragged
    in by dependency, and the rest can stay staging.
 2. **Which are finished.** Publishing is immutability. A word still being
-   edited in place on the branch (the admin-for-nolan `scada.control.
+   edited in place on the branch (the krida-retirement `scada.control.
    capabilities/001` edit, the dac words) settles first, or it gets a new
    version straight after promotion.
 3. **The 52 twinless gwsproto names.** They do not block the broker but

@@ -60,15 +60,25 @@ removes; the same failure would hit any long admin window.
    cycler's pico discovery skipped `SimPicoTankModuleComponent`, so on
    every sim layout it held no picos and could cycle nothing; it now
    accepts the sim class as `api_tank_module.py` already did.
-2. Pico-cycler accepts ONE command from its boss: reboot the picos.
+2. ✅ Verified (dev-broker rung run 4, `b095261c`). Pico-cycler accepts ONE command from its boss: reboot the picos.
    It rides `fsm.event` with `EventType` `reboot.picos` (new enum word,
    single value `RebootPicos`), `ToHandle` `<root>.pico-cycler`, and
    maps onto the existing `ShakeZombies` transition. The cycler adopts
    the commander's `TriggerId` instead of minting its own, as relays do,
    so the cycle's `fsm.full.report` is tied to the command by id.
    No suspend/resume pair: under admin the cycler is never dormant
-   (below).
-3. gwadmin grows a pico-cycler control alongside its relay list.
+   (below). Refusals mirror `relay.py`: a sender whose handle is not
+   the `FromHandle` is dropped, a `ToHandle` that is not the cycler's
+   live handle earns a `bad_boss` glitch, any other `EventType` is
+   logged and dropped, and a command while a cycle is running is
+   ignored (`tests/actors/test_pico_cycler_command.py`, both sim
+   fixtures). The boot cycle enters through `Startup`.
+3. ✅ Verified (same run, driven through `send_reboot_picos`). gwadmin grows a pico-cycler control alongside its relay list: a
+   "Reboot picos" button (`p`) in the relays section,
+   `RelayWatchClient.send_reboot_picos` publishing the `admin.dispatch`.
+   `tests/actors/test_admin_reboots_picos.py` drives that client method
+   through `Scada.process_admin_dispatch` into the cycler and asserts the
+   relay open carries the dispatch's `TriggerId` (both sim fixtures).
 4. Tree-matrix admin rows move to the `admin.pico-cycler.vdc-relay`
    shape (marked xfail until this lands).
 5. Three enum words registered in sema, mirrored in gwsproto:
@@ -76,17 +86,52 @@ removes; the same failure would hit any long admin window.
    Flatlined so an unknown value reads as a sick pico; sema branch
    `jm/pico-cycler-words`), `reboot.picos`, and
    `pico.cycler.event` (gaining `Startup`, so the boot cycle stops
-   being reported as a `PicoMissing` with no pico missing). The cycler
+   being reported as a `PicoMissing` with no pico missing).
+   **gwsproto side done, sema side deferred (2026-09-07):** `RebootPicos`
+   and `Startup` exist in gwsproto only and sit on the conformance
+   test's `NO_WORD_ENUMS` allowlist. `pico.cycler.event` has never been
+   registered in sema (gwsproto's class names a 000 that does not
+   exist), so the sema catch-up is two NEW staging words, not a version
+   bump: `reboot.picos` and `pico.cycler.event` with all ten values.
+   Do it as item 7, at the end, on `jm/pico-cycler-words`; when they
+   land, remove both from the allowlist. ✅ The cycler
    reports each pico's state through `machine.states`
-   (`MachineHandle` the pico node, `StateEnum` `single.pico.state`);
-   the scada already folds machine states into `report`, so the roster
-   reaches the journal with no new plumbing.
-6. LAST, after the above lands: branch `jm/pico-state-reporting` off
+   (`MachineHandle` the pico-backed actor's handle, `StateEnum`
+   `single.pico.state`, gwsproto mirror `SinglePicoState`): the roster at
+   start and in the periodic report, and a row on every flip. The
+   flatline row is sent before the cycle it provokes is triggered, so a
+   cycle's cause is the pico whose row flipped just before it
+   (`tests/actors/test_pico_roster.py`, both sim fixtures). The scada
+   already folds machine states into `report`, so the roster reaches the
+   journal with no new plumbing.
+6. After the above lands: branch `jm/pico-state-reporting` off
    `actual-spruce` (the line running on the house) carrying only
    `single.pico.state`, the gwsproto mirror, and the per-pico
    `machine.states` reporting, so the roster is journaled on spruce
    this season. No command, no `TriggerId` adoption, no `Startup`
    there.
+7. The sema catch-up in item 5 lands in krida-retirement's rung 1
+   (the panel rows need the same enum words); drop the two allowlist
+   rows there.
+8. LAST, coverage for what the dev-broker rung exposed
+   (`experiments/2026-09-07-admin-reboots-picos/`) that has only the
+   broker run behind it; all in process, in
+   `tests/actors/test_pico_cycler_command.py` unless noted:
+   - the real overlap: cycle A closes, a command opens cycle B, A's
+     reboot timer fires into B (short `RELAY_OPEN_S` / `PICO_REBOOT_S`,
+     the relay's reports handed back); the two guard tests only swap
+     the cycle id under one wait;
+   - the full loop through the sim pico: relay confirms, cycler closes,
+     the sim source loses power and posts again `SimRebootS` later, and
+     that reading (not a timer) confirms the cycle;
+   - the journal path: the cycler's `fsm.full.report` delivered to the
+     scada lands in `report.FsmReportList` under the dispatch's id
+     (pass condition (a) of the rung);
+   - the GPIO relay's state committing before its pin write (the FSM
+     fires, then actuates; the i2c path is command-and-confirm), in
+     `tests/actors/test_relay_gpio_sim.py`;
+   - the admin acknowledgement, once decided;
+   - the tank actor's always-true flatline gate, with its fix.
 
 ## Cost accepted
 
@@ -95,19 +140,51 @@ sick — `relay.py`'s handle check rightly refuses a non-boss commander.
 
 ## ▶ Do this next
 
-Fresh session. First the sim-pico cluster, in this order: (1) pending
-changelog entry; (2) sema `jm/pico-cycler-words`: `SimLifeS` +
-`SimRebootS` on `sim.pico.tank.module.component.gt/001` in place (the
-type-kind gate summary was posted and confirmed 2026-09-07; re-read
-`authoring/types.md` "Property Definitions" before editing); (3) gwsproto
-mirror + `ApiTankModule` sim source with the re-evaluate docstring;
-(4) tlayouts gens emit the fields for sim tanks, run both gens, regenerate
-the pytest fixtures (the gens' constant swap for the cycler handles is
-also uncommitted there and has NOT been run yet: run the gens and diff
-`output/` against `gridworks-scada/tests/config` before committing it);
-(5) the source pytest; suite; commit. Then the other two words
-(`reboot.picos`, `pico.cycler.event` + `Startup`), item 2 with `TriggerId`
-adoption, item 3 in gwadmin, item 6 last.
+**The admin TUI is BROKEN for Nolan.** `gwa watch` shows no relays and
+no DACs for a Nolan scada (watched 2026-09-07 on the dev sim): the
+capabilities reply is never built because the word requires the Krida
+component. Item 3's Reboot picos button therefore cannot be reached
+from the panel today; it is exercised only through `send_reboot_picos`.
+The fix is krida-retirement's rung 1 (per-command-node capabilities,
+one table with the pico-cycler as a row), which runs next; this spoke
+does not wait on it for the decision below.
+
+**Decide the acknowledgement word, next round, before building.**
+Position going in (2026-09-07): feedback has two halves and admin gets
+neither. Completion already exists: `fsm.full.report` (TriggerId,
+FromName, the transitions) is the record of a command that ran; the
+cycler sends it to the primary scada and it is journaled. Forwarding it
+on the admin link when admin was the commander is plumbing, no new
+word. Acceptance does not exist: a command that is ignored (cycler
+mid-cycle), refused (bad boss, wrong event type) or analog (DAC, no
+FSM) produces nothing the sender can see, and that is the case an
+operator most needs. Proposal: one ack/nack pair, twins discriminated
+by TypeName (the shape of `g.node.cmd.ack` / `g.node.cmd.nack`),
+correlated by the command's TriggerId, sent direct to the commander
+for every dispatch including analog. The nack carries a reason enum
+(Busy, NotMyBoss, UnknownEvent, NotAControlNode); the ack says only
+"taken", and the outcome then arrives as the forwarded full report and
+the state rows. No third completion word, and acceptance is not folded
+into state rows. To settle in the round: (1) the correlation key,
+since `AnalogDispatch` may carry no TriggerId (it gains one, or the
+pair hashes content); (2) who answers, the target actor (it knows Busy)
+with the scada forwarding, or the scada alone (it knows only bad boss);
+lean: the actor answers, the scada forwards, the same path as the full
+report. Then item 4 (tree-matrix admin rows), item 6, and the
+`pico.cycler.state` / `pico.cycler.event` enum words ride
+krida-retirement's rung 1.
+
+The dev-broker rung is closed: run 4 on `b095261c`
+(`experiments/2026-09-07-admin-reboots-picos/`, `run4-report-events.txt`)
+had all three cycles, `Startup`, `PicoMissing` and the commanded
+`ShakeZombies` under the dispatch's id, confirm 20 s after their close,
+with the cycles 65 s and 57 s apart. Items 2 and 3 are Verified on it.
+
+Landed so far: items 1, 1a, 2 (`1229636c`), 3 (`7997fc9a`), the sim-pico
+source (`bb8f6478`, tlayouts `9c52bf3`), the per-pico roster
+(`single.pico.state`, item 5's reporting half), item 5's gwsproto
+half, and the two rung fixes (`b095261c`). Sema `fc741c2` carries the
+sim word.
 
 ## Decisions (2026-09-07)
 
@@ -129,7 +206,7 @@ adoption, item 3 in gwadmin, item 6 last.
   that analysis would have to parse back apart). The `alive` property
   from that branch is kept.
 
-## Sim pico source (decided 2026-09-07)
+## Sim pico source (decided 2026-09-07; built)
 
 Every sim layout declares a `sim.pico.tank.module.component.gt` per tank
 and nothing feeds it: the plant emits no microvolts and the raw depth
@@ -161,6 +238,43 @@ seeing the relay close following an open); the full loop with the
 cycler is the next rung, a sim Nolan scada on the dev broker for five
 minutes with the journaled `single.pico.state` roster as evidence.
 
+## Findings while building (2026-09-07)
+
+- `ApiTankModule.main`'s flatline gate reads `if self.last_error_report >
+  FLATLINE_REPORT_S`: a timestamp against a duration, always true, so
+  the report interval is the 10 s loop, not 60 s. And `electrical_channels`
+  is set only when `SendMicroVolts` is true but read unconditionally on
+  a flatline. Both pre-existing; the same shape sits in `api_btu_meter.py`
+  and `api_flow_module.py`. Fix with a test when those actors are reviewed.
+- tlayouts carries two seed files: `tlayouts_seed_request.yaml` (root,
+  `build_tlayouts_snapshot.sh`) reproduces the committed snapshot;
+  `src/tlayouts/sema_seed_request.yaml` (`scripts/regen_sema_snapshot.sh`,
+  the one the README names) is stale and drops six words. Retire one pair.
+- The sim configs set `SimLifeS` 120 / `SimRebootS` 20 so a flatline and a
+  cycle land inside the five-minute rung; the real-house rhythm is a
+  separate knob when one is wanted.
+- The tank actor's flatline gate above also means `PicoMissing` reaches
+  the cycler within ~10 s of the sim pico's silence; the dev-broker rung
+  measured 2 s.
+
+- **The gwadmin TUI cannot show a Nolan layout's relays yet.** On admin
+  link-up the scada answers `send.control.capabilities`, and
+  `Scada.control_capabilities` dereferences `H0N.relay_multiplexer`
+  unguarded; Nolan has no such node (its relays are thin
+  `gpio.relay.component.gt` / `i2c.relay.component.gt` components), so
+  the message is never built and the TUI's relay and DAC tables stay
+  empty. The word itself requires `I2cRelayComponent`, and gwadmin
+  reads every relay's config from its `ConfigList`. Watched first-hand
+  2026-09-07 (`gwa watch` on the dev sim). Every dev-broker run logged
+  it (`Trouble with SendLayout: 'NoneType' object has no attribute
+  'component'`, runs 1–4) and the driver never noticed because it
+  reads snapshots, not capabilities. The handler's log label is wrong:
+  the `SendControlCapabilities` branch in `scada.py` logs under the
+  `SendLayout` name. The `krida-retirement` spoke owns the fix (drop
+  the required Krida component from the word, then the admin package);
+  until it lands item 3's button is reachable only through
+  `send_reboot_picos`, and the pico-cycler row shows in the snapshot.
+
 ## Open
 
 - When the terminal-asset plant exists, is `sim.pico.tank.module` still
@@ -172,7 +286,3 @@ minutes with the journaled `single.pico.state` roster as evidence.
   liveness fields; or the plant feeds the actor's source through the sim
   seam and the source stays. Decide when the plant's tank model lands.
 
-- `MachineHandle` for a pico's `machine.states`: the pico node's handle
-  (pico actors are sensors, outside the command tree). Confirm the
-  scada's `process_machine_states` keys by trailing name and tolerates
-  many machines.

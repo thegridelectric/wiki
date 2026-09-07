@@ -32,9 +32,10 @@ under systemd and the management-API-down leg over ssh: 27/27 verdicts,
 storm 100/100, evidence in
 `experiments/2026-09-05-fis-gate-battery/battery-2026-09-06-hw1-2.log`.
 That is the done-when; `hw1-2` is dropped (its reproducer rebuilds it).
-Next move: prod, in the three steps under step 9 below — FIS on
-`hw1-1` first, then the principals and certs while the password path
-still stands, and only then the gate. The stamps are open: the
+Prod step 1 is done: FIS runs on `hw1-1` with the gate off and the
+mirror full. Next move: prod step 2 under step 9 below, the principals
+and certs while the password path still stands, and only then the
+gate. The stamps are open: the
 executor hub and its three spokes are `Draft · Pass 0`, the green
 staging run is their evidence, and the Pass/maturity call (Verified,
 `Reviewed 2026-09-06@7b00342`) is the human's.** The push accelerator
@@ -196,11 +197,16 @@ is unchanged.
      is the done-when; the stamps follow the human's call.
    - Prod, in this order; each step is safe on its own and the gate
      comes last:
-     1. **FIS on `hw1-1`** beside the broker, gate off:
+     1. ✅ **FIS on `hw1-1`** beside the broker, gate off:
         `gridworks-infra/fis/README.md` "Add FIS to a broker box" with
         `FIS_UNIVERSE=hw1` and the prod broker's management credential;
         the box pulls `main`. Nothing consults FIS yet; done when
-        `/ping` answers and the mirror holds the `hw1` nodes.
+        `/ping` answers and the mirror holds the `hw1` nodes. Done
+        2026-09-07 at `fbc3262`: ping ok, boot reconcile inserted the
+        25 `hw1` nodes from gnr, migrations at `a7c3e1f9b2d4`. The box
+        differs from the recipe's Hetzner shape (EC2, one 16 GB root
+        disk, no volume), so pgdata is a plain directory on root;
+        recorded in the infra README and the platform inventory.
      2. **Principals and certs** while the broker still offers password
         auth. Weather is a GNode: its row carries the registry's
         GNodeId (`hw1.isone.weather`, `2af8a877-…`; registry status

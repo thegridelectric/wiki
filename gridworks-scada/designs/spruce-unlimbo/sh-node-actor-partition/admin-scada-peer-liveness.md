@@ -27,8 +27,8 @@ nowhere; nothing on either side said so. An operator can believe they
 are controlling a scada they are absolutely not controlling, and the
 scada can sit in Admin, its auto machine Dormant, for the whole timeout
 with no operator attached. Matters before any spruce window where a
-human is holding the pump; it graduates into `admin-for-nolan.md` or its own chunk
-(this chunk).
+human is holding the pump; it graduates into `krida-retirement.md` (which absorbed
+admin-for-nolan 2026-09-07) or its own chunk (this chunk).
 
 What the scada experienced (`experiments/2026-09-05-dac-output-bench/
 boot-2026-09-05-run4.log`, pi time; the client disconnected eight

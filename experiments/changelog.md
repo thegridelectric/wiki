@@ -8,6 +8,30 @@ Newest at the top.
 
 ---
 
+## 2026-09-07 — adc-waveform-bench: capture harness, fold, and the vendored gw.adc.waveform <!-- pending commit -->
+
+Rung `2026-09-07-adc-waveform-bench/` for the CT measurement chain
+(OPS-518). `capture.py` runs on the pi (smbus2, bus 1, ADS1115 at 0x48)
+in two modes, single-shot with OS-bit polling and continuous at 860 SPS
+with change-detection dedupe, and writes a `gw.adc.waveform` instance
+through the vendored class. `fold.py` fits the mains frequency on the
+irregular samples by periodogram, folds onto one period and plots the
+composite; `synth.py` makes the dry-run instance the fold must recover.
+The snapshot seed gains `gw.adc.waveform`; numpy and matplotlib join
+the deps for the fold. The regen also caught the snapshot up with sema
+since 2026-08-13: the seed still pinned
+`i2c.thermistor.reader.component.gt` at 000 and 003, versions the
+squash folded into one 000, so the pin becomes the bare latest. That
+broke the ads-noise emitter, which decoded its archived reader record
+through the pre-squash 000 class: the record is in a wire shape no
+current word carries (reference volts and series resistance on the
+reader). The emitter now reads it as typed legacy evidence
+(`LegacyThermistorReader`, with the note naming what retires it) and
+its instances re-emit byte-stable. `fold.py` gains `--show` for the
+interactive matplotlib window. Run 1 is honeysuckle with no CT installed, so
+the expected picture is bias noise: it validates the sampling path and
+the fold before a CT exists on spruce.
+
 ## 2026-09-06 — fis staging box: dropped <!-- pending commit -->
 
 The staging-box reproducer's timeline records the teardown: server,

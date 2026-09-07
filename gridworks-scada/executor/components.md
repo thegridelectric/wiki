@@ -134,7 +134,7 @@ decode each via a union decoder, then pair component↔cac via
 | `dfr.component.gt` | DFRobot analog out | no | DfrConfig |
 | `fibaro.smart.implant.component.gt` | Fibaro Z-Wave | no | none |
 | `resistive.heater.component.gt` | resistive element | **yes** | none |
-| `sim.pico.tank.module.component.gt` | **sim** Pico tank | no | ConfigList; `SimulatesTypeName`/`Version`; `extra=allow` |
+| `sim.pico.tank.module.component.gt` | **sim** Pico tank | no | `SimulatesTypeName`/`Version`; `SimLifeS`/`SimRebootS` liveness script (the actor runs the pico); `extra=allow` |
 
 ## Irregularities (the warts, surfaced on purpose)
 
