@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-04
+Status: Draft · Pass 0 · Updated 2026-09-07
 
 # Components, device types, and the config list
 
@@ -103,7 +103,10 @@ both retire in the krida shift.
 ## Node → component, and the per-family buckets
 
 An `ShNode` references its component by `ComponentId`; the layout
-populates `node.component` at load. The layout stores devices in
+populates `node.component` at load. `ComponentId` stays on the wire
+beside the node `Name` even where a `ComponentBinding` holds: the Name
+is the unique identity within the house, the ComponentId identifies the
+physical instance, so a replacement (same name, new uuid) is trackable. The layout stores devices in
 **per-family buckets**, not one list: `Ads111xBased*`, `ElectricMeter*`,
 `ResistiveHeater*`, and a catch-all `Other*`, each split into a `*Cacs`
 list and a `*Components` list. `hardware_layout.py` `load_cacs()` /

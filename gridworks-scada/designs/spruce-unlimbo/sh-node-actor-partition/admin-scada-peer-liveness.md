@@ -2,7 +2,7 @@
 
 Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
 
-> What this is: a chunk of the `sh_node_actor` partition rope, unestimated.
+> What this is: a chunk of the `sh_node_actor` partition rope, 4h (2.5–8), queue item 2.
 > Hub: [`primary.md`](primary.md).
 
  Neither side notices a dead link:
@@ -11,9 +11,9 @@ client shows "sent" as if in control. Fix shape (below):
 `heartbeat.a` in both directions, a missed beat on the scada side
 releases Admin within seconds, the client shows live only while its
 echo returns; `heartbeat.a` has no gwsproto mirror yet. Matters before
-any spruce window where a human is holding the pump; candidate for
-the queue ahead of that, graduating with the on-box sender or into
-`admin-for-nolan.md`.
+any spruce window where a human is holding the pump; queued second on
+the rope, with hp-boss, so the admin command surface is settled before
+the tree matrix.
 
 ## Field evidence and fix shape
 

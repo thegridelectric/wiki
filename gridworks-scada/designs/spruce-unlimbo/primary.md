@@ -44,6 +44,9 @@ real broker.
   cleanup after the HydronicLayout collapse
 - **`sh-node-actor-partition/` — the five-strata split of the god
   base class; tiers, role-first dirs, `hydronic/` family files (active)**
+- `nolan-local-control/` — the loop that runs a Nolan house through a
+  heating season; gathers the scattered LC pieces; opens after the
+  partition rope
 - `control-strategy-selection.md` — ops chooses the machine, the
   machine owns its state; what replaces `SeasonalStorageMode`
 - `fall-layouts.md` — the four layouts arriving fall 2026 (one sim,
@@ -223,7 +226,8 @@ three axes explicitly; control states speak only axis 1.
   learning, heat-call sensing). The control loop that *uses* predicted
   setpoints is unwritten; written against the [OPS-394](https://linear.app/gridworks/issue/OPS-394)
   capability surface from day one — the zone slice of that surface is
-  settled in `zone-relays-and-thermostat-model.md`. [OPS-219](https://linear.app/gridworks/issue/OPS-219) lives here.
+  settled in `zone-relays-and-thermostat-model.md`. [OPS-219](https://linear.app/gridworks/issue/OPS-219) lives here;
+  the gathered plan is `nolan-local-control/`.
 - **E — minimal AC path (was: by July 15):** resolved as the summer
   hack on the box; its scada takeover is `summer-local-control.md`.
 

@@ -1,8 +1,9 @@
-# thermostat-chunk (unsorted item)
+# thermostat-chunk (spoke)
 
 Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
 
-> What this is: an unsorted item; hub [`primary.md`](primary.md).
+> What this is: a spoke of the Nolan local-control design; hub
+> [`primary.md`](primary.md). Graduated from unsorted 2026-09-07.
 
 **Thermostat chunk: sim thermostat, setpoint discovery, coverage,
 web-listen EDD** (from the Honeywell layout-plumbing read,

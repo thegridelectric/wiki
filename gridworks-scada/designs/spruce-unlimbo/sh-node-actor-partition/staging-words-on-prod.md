@@ -37,6 +37,21 @@ has no release-gate flag.
    spruce emits in the new vocabulary. List what each decodes today and
    what changes.
 
+## First wire case: `SendLayout` on a Nolan scada
+
+The LTN requests the layout with `SendLayout`; the scada answers with a
+`layout.lite` payload carrying every ShNode, every data channel, the
+tank, flow and relay-multiplexer components, and House0 ops fields
+(SeasonalStorageMode, BufferShortCycling, TotalStoreTanks). On a Nolan
+layout the builder crashes (`Trouble with SendLayout: 'NoneType' object
+has no attribute 'component'`, bench run 4, 2026-09-05; `scada.py`
+`layout_lite`). The crash is the small part: a fixed builder answers
+every request on hw1-1 with `layout.lite/013`, a staging word that drags
+the whole layout closure over the production broker in a House0-shaped
+payload. So the fix is decided by the split above, not in isolation: a
+Nolan scada either sends no layout until the word is reshaped and
+published, or sends a published word whose closure is published too.
+
 ## Prerequisites
 
 A scada-claiming session, the registry (`sema/definitions/`) read beside

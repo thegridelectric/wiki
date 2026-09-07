@@ -1,0 +1,90 @@
+# hp-twin (unsorted item)
+
+Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
+
+> What this is: an unsorted item; hub [`primary.md`](primary.md). The
+> heat pump's digital twin under hp-boss: sema command events in,
+> hardware protocol (modbus) out. Not part of the `sh_node_actor`
+> partition rope; it extends the first pass in
+> `../sh-node-actor-partition/hp-boss-cleanup.md` once we can talk
+> digitally to a heat pump (elm's native-modbus Arctic, spruce's Samsung
+> via the MIM). Parked 2026-09-07: waits on the modbus work and on
+> `hp-boss-cleanup`.
+
+## The twin architecture (decisions 2026-09-01)
+
+- **hp-boss stays sema-native**; the commandable device gets a **digital
+  twin actor** — sema command events in, hardware protocol (modbus)
+  out — exactly the relay-actor pattern (sema in, i2c out). One
+  coordination brain for every heat pump; only the twin differs,
+  selected by the component's DeviceType (axis 3). The sim story falls
+  out: a sim hp twin on the same command surface lets sim-spruce
+  exercise heat-pump control with no modbus wire.
+- **Taxonomy settled:** interior tree nodes = command nodes; tree
+  leaves = actuators (the existing code word — every actuator actor is
+  some device's twin, but "twin" is implementation nature, not a tree
+  role). Axiom families per layout word: Core / CommandNodes /
+  RequiredActuators (relays + DACs — Nolan's RequiredRelays
+  generalizes; the Nolan secondary-pump DAC belongs here) /
+  RequiredEquipment (physical inventory, NoActor — hp-odu and
+  hp-ctrl-box move here out of RequiredCommandNodes) / RequiredSensing
+  + conditional CommandableHeatPump.
+- **Actuator-hood of hp-odu vs hp-ctrl-box is per-instance data, never
+  vocabulary**: `HpCommandNodeName` declares it at authoring time
+  (spruce → hp-ctrl-box when the MIM is wired — NOT before, so it is
+  not required today; elm → hp-odu for the native Arctic); undeclared =
+  both NoActor, hp-boss dormant, safe degrade. RequiredActuators lists
+  only unconditionally-certain actuators.
+- **ActorClass: ONE new value, `HpTwin`** (settled 2026-09-01 after
+  weighing HpOduTwin/HpCtrlBoxTwin — two classes would re-introduce at
+  the heat pump the family-in-the-actor-class coupling the krida
+  retirement removes at the relays). Joins gw1.actor.class/013 in
+  place (staging). The pairing is the layout's declaration, not a
+  derivation: the CommandableHeatPump axiom is a biconditional —
+  HpCommandNodeName present ⇒ the named node is hp-odu or hp-ctrl-box
+  with a ComponentId, ActorClass HpTwin, effective handle under
+  hp-boss; AND any HpTwin-classed node SHALL be the declared node. So
+  at most one HpTwin per layout, only on those two names, zero when
+  undeclared. NO sim actor classes: sim twins ride sim device-type
+  records (the GridworksSimGw108 move; SimRelayActor is the old
+  pattern, not the template). Mirror-before-artifact: sema + gwsproto
+  enum first; a fixture speaks HpTwin only when at least a stub actor
+  exists (unknown ActorClass coerces to default at decode).
+  `layout.actuators` (relays + zero_tens) additionally returns the
+  declared node.
+- **Command-forest invariant (settled):** the layout's authored handles
+  are the INITIAL command tree; the invariant governs EVERY tree the
+  scada publishes. Enforcement splits by checkability:
+  (a) every actuator SHALL be a leaf and SHALL have a boss (dotted
+  handle), and (b) every dotted-handle leaf SHALL be an actuator or a
+  command node → sema axiom 2 on new.command.tree/002 (in place;
+  validated at construction on every publish, boot included).
+  (c) every non-actuator leaf SHALL be a command node in a Dormant
+  state → NOT expressible on the wire (the tree carries no state);
+  enforced in scada code and asserted by the tree matrix against the
+  state machines, with a NoActor waypoint's dormancy inherited from
+  its owning actor (a leaf `n` is dormant iff LocalControl is not
+  occupying it).
+- **Dormant gets one canonical meaning** (work item): a Dormant actor
+  performs no physical actuation and issues no commands to its
+  subtree; its handles stay in the published tree, inert; watchdog
+  pats, state reports and telemetry continue. Distinct axis from
+  MonitorOnly (ops-declared authority posture for the whole scada).
+  Code: one `dormant` predicate on the actor base tier, each actor
+  deriving it from its own enum — no per-enum string matching; clause
+  (c) consumes it.
+
+## Fixture
+
+tlayouts config axis →
+`gw.nolan.layout.hp-twin.json` (hp-ctrl-box as HpTwin under hp-boss,
+its component the MIM modbus bridge) + a dormant HpTwin stub so both
+fixtures boot. hp-boss driver selection keys on the control box's
+DeviceType value: a real value selects the modbus driver,
+`SimSamsungAE055FEYMCG` the sim twin; sim parts carry no device-type
+records.
+
+## Open
+
+- hp-boss modbus driver selection (keys on the commanded node's
+  component DeviceType); prep decisions of 2026-08-31 fold in here.
