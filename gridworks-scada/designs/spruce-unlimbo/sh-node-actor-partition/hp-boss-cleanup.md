@@ -12,8 +12,8 @@ Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
 
 - **hp-boss always exists** — every layout family, ActorClass HpBoss,
   enforced by each word's core axiom
-  (`CoreShNodesExistenceAndActorClass`). Chosen over
-  conditional-on-commandability because the confirmed reporting rule
+  (`CoreShNodesExistenceAndActorClass`); the actor runs in every layout
+  too (below). Chosen over conditional-on-commandability because the confirmed reporting rule
   requires it: **hp-scada-ops-relay reports to hp-boss in ALL states in
   ALL layouts** (the pico-cycler/vdc pattern; admin commands through
   it: `admin.hp-boss.hp-scada-ops-relay`).
@@ -21,9 +21,18 @@ Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
   `gw.house0.layout` MEANS has-sieg; sieg-less homes are
   `gw.house0.no.sieg`, see the layouts spoke). USING the loop is
   operational: `UseSiegLoop` migrates from `Hydronic` to
-  `gw.house0.operational.params`. hp-boss and sieg-loop are **dormant**
-  when unused — the MonitorOnly pattern: the node exists, the actor
-  learns engagement at boot; the command tree reflects it.
+  `gw.house0.operational.params`.
+- **hp-boss ALWAYS runs; the sieg-loop actor runs only when used.**
+  (2026-09-07.) hp-boss is constructed in every layout, sits in every
+  command tree with `hp-scada-ops-relay` under it, and owns the heat
+  pump's on/off. `UseSiegLoop` selects hp-boss's **strategy**, not its
+  existence: with the loop, TurnOn goes through `PreparingToTurnOn` and
+  waits on `SiegLoopReady`; without it, hp-boss closes the relay
+  directly. The sieg-loop actor is the one that exists only when the
+  loop is used. "Dormant" is not used for any of this; in scada code
+  that word means one thing, an actor whose node is a leaf of the
+  current command tree (`command-tree-matrix.md`), and hp-boss is never
+  a leaf.
 - **Commandable heat pumps hang under hp-boss.**
   `Hydronic.HpCommandNodeName` (optional, both words) names WHICH node
   takes commands — `hp-odu` (native modbus, e.g. elm's Arctic arriving
@@ -67,4 +76,9 @@ suite.
 
 ## Open
 
-- What "dormant" concretely refuses (mirror the MonitorOnly list).
+- Two code items ride this chunk from the matrix findings:
+  `process_fsm_event` must return after the `bad_boss` glitch, and the
+  `to_name == "hp-boss"` rewrite in `scada.py` goes, since it addresses a
+  handle that does not exist under admin in a sieg layout.
+- How hp-boss learns `UseSiegLoop` at boot (operational params, not the
+  layout word) once the field migrates.

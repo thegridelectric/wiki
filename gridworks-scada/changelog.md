@@ -10,6 +10,17 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-07 — Rename sieg_valve_dormant to sieg_valve_hold
+
+**What:** `HydronicHouse0Base.sieg_valve_dormant` becomes `sieg_valve_hold`
+(five call sites: sieg_loop, tou_base, both House0 leaf allies).
+
+**Why:** In scada code "Dormant" names one thing: an actor whose node is a
+leaf of the current command tree (LocalControl and LeafAlly top states,
+pico-cycler). The sieg valve method used the same word for "stop driving
+the valve", a second meaning that would blur the tree invariant the
+command-tree matrix tests. Renamed before that work starts.
+
 ---
 
 ## 2026-09-06 — HACK: vdc-relay stays under the pico-cycler when admin takes the tree (`829038b2`)
