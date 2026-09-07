@@ -26,7 +26,7 @@
 
 resolve_session_scope() {
   local sid="$1"
-  local claims="/Users/jessica/GridWorks/wiki/active-claims.md"
+  local claims="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/wiki/active-claims.md"
   SESSION_NAME=""
   SCOPE_PATHS=""
   [ -n "$sid" ] || return 0

@@ -63,7 +63,7 @@ status_short=$(git -C "$repo_root" status --short 2>/dev/null || true)
 #      never silences this case (bulk-on is a volume knob for a
 #      session's own sweeps, not a license over others' WIP).
 # Unidentified session: scope unknown — honor the override, else stop.
-TOOLS_DIR="/Users/jessica/GridWorks/wiki/tools"
+TOOLS_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=_session-scope.sh
 . "$TOOLS_DIR/_session-scope.sh"
 # shellcheck source=_repo-domain-pairs.sh
@@ -83,7 +83,7 @@ if [ "$own_scoped" = "yes" ]; then
     [ "${pair%%:*}" = "$repo_name" ] && domain="${pair##*:}"
   done
   if [ -n "$domain" ] \
-     && grep -q "pending commit" "/Users/jessica/GridWorks/wiki/$domain/changelog.md" 2>/dev/null; then
+     && grep -q "pending commit" "$TOOLS_DIR/../$domain/changelog.md" 2>/dev/null; then
     exit 0
   fi
 fi

@@ -15,7 +15,7 @@
 
 set -e
 
-UMBRELLA=/Users/jessica/GridWorks
+UMBRELLA="$(cd "$(dirname "$0")/../.." && pwd)"
 
 input=$(cat)
 

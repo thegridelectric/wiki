@@ -10,7 +10,7 @@
 # non-protected branch.
 set -e
 
-UMBRELLA=/Users/jessica/GridWorks
+UMBRELLA="$(cd "$(dirname "$0")/../.." && pwd)"
 PROTECTED="dev main master"
 
 input=$(cat)
