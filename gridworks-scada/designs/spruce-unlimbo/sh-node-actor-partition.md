@@ -1,6 +1,6 @@
 # sh_node_actor partition (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-05 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
 
 > What this is: the agreed rework of `sh_node_actor.py` (1852 lines, five
 > concerns, inherited by every node actor — the relay actor carries
@@ -297,6 +297,31 @@ one commit per repo).
    real value selects the modbus driver, `SimSamsungAE055FEYMCG` the
    sim twin; sim parts carry no device-type records.
 
+**Handoff state (2026-09-06 night → next).** Read THIS paragraph,
+then `pico-cycler-command.md` whole (short); nothing else to start.
+The spruce pump-speed window is DONE, four runs, all in
+`experiments/2026-09-06-spruce-pump-speed-sweep/` "Found": the curve
+is linear 3.5-8.5 V at 1.45 gpm/V with maximum from 9 V and no path
+dependence in the band; below 2.5 V the stop behaviour is path
+dependent (runs at 0.7 V from below, stays stopped to 0.7 V from
+above), unlike the booklet's bands. Run 2 lost its flow data to a
+flatlined pico under a dormant cycler; landed the same night as the
+HACK `829038b2` (vdc-relay stays under `auto.pico-cycler` for every
+boss, cycler never sent dormant), spoke "Interim hack". dac-output
+step 5 is complete; its Verified stamp waits on the spoke review.
+Spruce is restored (services active, window files removed, dev.env
+carries the admin block, box README current). Trees: scada
+`jm/spruce-unlimbo` at `829038b2` clean; experiments `main` at
+`2b2d189` plus the uncommitted run 2b/3 evidence and README in the
+sweep folder; tlayouts `jm/spruce` at `0a051f9` unpushed (18 commits).
+The pump's curve, its two-state stop region and the working values
+(3-9 V; stop at 1.5 V; start at 3 V; 0 V is minimum speed, not off)
+are captured in `unsorted.md` with the note that the pump model
+belongs in the layout as a device-type word. **Next move, first:**
+`pico-cycler-command.md` items 1 and 1a (the real fix that retires
+the hack), vocabulary question open with Jessica. Then the
+command-tree matrix with the LC dormant-sequence row.
+
 **Handoff state (2026-09-06, session upbeat-finch → next).** Read
 THIS paragraph, `dac-output.md` step 5 + "Blocker found and fixed",
 and the sweep README's "Before the window"; nothing else in these
@@ -505,9 +530,10 @@ real coverage; see GridWorks_CLAUDE ⏳ note). Order:
    rehearsal witnessed admin driving all four Nolan relays (pump,
    iso, store pump, hp call) plus the DAC through the rewritten tree,
    the shape the matrix's "admin wakes up" row asserts.
-  Then, in this section with their own estimates (scopes on OPS-392):
-     - `dac-output.md`
+  Then, in this section with their own estimates (scopes on OPS-392);
+  `pico-cycler-command.md` runs FIRST, before the matrix (2026-09-06):
      - `pico-cycler-command.md`
+     - `dac-output.md`
      -  `krida-retirement.md`
      
      -  REMOVE all gw1's and gw's in the snapshot generation for tlayouts.

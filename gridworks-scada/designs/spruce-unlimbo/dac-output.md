@@ -78,8 +78,12 @@ Status: Draft · Pass 0 · Updated 2026-09-05 · Linear: OPS-392
    and the isolation checklist below satisfied. Folder + on-box driver
    built 2026-09-06 (`experiments/2026-09-06-spruce-pump-speed-sweep/`),
    rehearsed on the sim Nolan scada; the artifact boot-blocker found
-   that day is fixed (below). Then the
-   command-tree matrix (`sh-node-actor-partition.md`).
+   that day is fixed (below). **Ran 2026-09-06:** run 1 PASS on the
+   real pump (curve in the experiment README "Found"); run 2 PASS with
+   no flow, the secondary BTU pico flatlined under a dormant cycler
+   (`pico-cycler-command.md` "Field evidence"); run 3 queued. Then
+   `pico-cycler-command.md`, then the command-tree matrix
+   (`sh-node-actor-partition.md`).
 
 ## Failures found on the bench (2026-09-05) — test first, then retry
 
@@ -206,11 +210,15 @@ Three layers keep staging vocabulary off the production broker; a
 window must hold all three.
 
 1. **Status tier with teeth.** The layout cluster is `staging`, which
-   means dev brokers only (OPS-445). Scada checks itself with
-   `packages/gridworks-scada-protocol/gwsproto_sema_conformance.py
-   --release-gate`: any gwsproto pin whose sema status is not
-   `published` fails the exit code. Red on `jm/spruce-unlimbo` by
-   design; the branch cannot deploy beyond dev until the words promote.
+   means dev brokers only (OPS-445). The check is by hand today: every
+   gwsproto schema pin and every word in the closure copy
+   (`sema_closure/registry.yaml`) against the sema registry's status;
+   `gwsproto_sema_conformance.py` has no release-gate flag. On
+   2026-09-06 the branch pins 95 non-published words (74 layout-closure
+   words in five dependency layers plus 21 wire words, `layout.lite/013`
+   among them, and `report.event/004` still draft) and 52 gwsproto
+   names with no sema word at all. Red by design; the branch cannot
+   deploy beyond dev until the words promote.
 2. **Credential-structural isolation.** The window scada keeps the real
    spruce identity but boots from `~/envs/dev.env`: dev-broker
    credentials only, upstream host the localhost tunnel

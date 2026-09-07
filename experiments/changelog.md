@@ -8,6 +8,46 @@ Newest at the top.
 
 ---
 
+## 2026-09-06 — fis staging box: dropped <!-- pending commit -->
+
+The staging-box reproducer's timeline records the teardown: server,
+primary IP and firewall deleted on Hetzner, the Route 53 record removed,
+the cert-inventory rows retired. **Why:** the box existed for the gate
+rehearsal, and the battery's green remote run closed that; the recipe
+rebuilds it in a quarter hour if prod's cutover needs a twin again.
+
+## 2026-09-06 — fis gate battery: remote run green against hw1-2 (`7b00342`)
+
+`2026-09-05-fis-gate-battery/` grows a second rig. The battery and the
+storm take their rig from the environment (`rig.py`): local is the
+harness broker on this machine with a FIS process the battery owns, as
+before; remote is a broker box with FIS under systemd, reached over ssh.
+`remote.env` names the box (`hw1-2.electricity.works`, `hw1__2`, the
+`hw1` identities); `setup-remote.sh` mints the identities' principal
+rows on the box with the registry's ids and cuts their client certs on
+certbot against the real CA (fetched, then removed from certbot);
+`run-remote.sh` runs both scripts against the box. On the remote rig
+FIS starts and stops through `systemctl` over ssh, the
+management-API-down leg runs an ad-hoc `fis api` with a wrong management
+password (launched with `setsid -f`: a trailing `&` left a subshell
+holding the ssh session open), the broker's connection list comes from
+`rabbitmqctl` in the box's container, the FIS database and `/ping` ride
+an ssh tunnel, and the run's FIS log is the journal for a window opened
+on the box's clock (this laptop runs 69 s ahead of the box). The README
+carries the remote rig, its runbook, the findings and the timeline; the
+green run's case log and storm summary sit beside it
+(`battery-2026-09-06-hw1-2.log`, `storm-2026-09-06-hw1-2.json`); the
+staging-box reproducer's timeline records step 9 done.
+**Why:** the stand-up-fis design's verification is the battery green
+against the staging box, not against a laptop broker: a real CA, real
+TLS to a real host, FIS as the box runs it.
+
+## 2026-09-06 — fis gate, and spruce pump speed sweep (`67323d7`)
+
+The fis half (the spruce half is the pump-speed sweep session's): the
+battery's second rig landed mid-flight, before the two harness fixes
+and the record in `7b00342` above.
+
 ## 2026-08-23 — re-run spruce store charge valve experiment (`fb604d8`)
 
 `2026-08-16-spruce-store-charge-valve/` re-dated to

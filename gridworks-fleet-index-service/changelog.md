@@ -12,7 +12,28 @@ Newest at the top.
 
 ---
 
-## 2026-09-06 — Production finishing: systemd unit, aliases, deploy script <!-- pending commit -->
+## 2026-09-07 — GitHub Actions: lint and tests on push and pull request <!-- pending commit -->
+
+`.github/workflows/tests.yml`, the house shape (grid-node-registry's
+`tests.yml`): a lint job (uv locked sync, `ruff check`, `ruff format
+--check`) and a tests job with a Postgres 16 service container, pointed
+at through the conftest's `FIS_TEST_PG_URL` opt-in so the suite does
+not spin up testcontainers on the runner. No broker service: FIS joins
+none. It mirrors `ci.sh` step for step, so a local green run predicts
+the remote one. **Why:** `main` is what a box pulls; from here on a
+red push shows before a deploy, not after.
+
+## 2026-09-06 — fis api configures logging (`41c61e6`)
+
+`fis api` calls `logging.basicConfig` (INFO to stdout) before uvicorn
+starts. Found on the staging box: the gate's verdict lines, the mirror's
+and the killer's are INFO on the standard logger, and under systemd
+nothing else configures logging, so only uvicorn's access lines reached
+the journal (a WARNING still got out through Python's last-resort
+handler, which is how the battery's remote rung saw the kill warning
+on a box without this fix). Pull onto `hw1-2` after the push.
+
+## 2026-09-06 — Production finishing: systemd unit, aliases, deploy script (`68966d2`)
 
 Build step 9 needs FIS to run on a box the way every other gwbase
 service does (gwbase executor "Deploying a gwbase service"): a `service/`
@@ -30,10 +51,7 @@ Postgres container on the box's data mount, and the update path. The
 snapshot regen script drops `--allow-staged`: every word in the FIS
 closure is published now (sema `jm/publish-fis-words`), and the vendored
 snapshot is regenerated without the staging marker. No behavior change in
-the service itself, except one: `fis api` now configures logging
-(INFO to stdout), found on the staging box where the gate's verdict
-lines never reached the journal because nothing had set a handler.
-In gridworks-infra, a `fis/` service folder joins
+the service itself. In gridworks-infra, a `fis/` service folder joins
 `ear/`, `gjk/`, `gnr/`: how FIS lives on any broker box (the login, the
 unit, the Postgres container, the boot rule) and the homedir README.
 The staging box itself is ephemeral, so its build is an experiment

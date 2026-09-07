@@ -12,6 +12,21 @@ Newest at the top.
 
 ---
 
+## 2026-09-06 — HACK: vdc-relay stays under the pico-cycler when admin takes the tree (`829038b2`)
+
+The spruce pump-speed window lost a whole run's flow data: the window
+boot power-cycled the picos, the secondary BTU pico did not rejoin, and
+the pico-cycler, sent dormant when admin woke the scada, could not cycle
+it back (`pico-cycler-command.md` "Field evidence"). Until the cycler
+has a command interface admin can talk to, this hack keeps the cycler
+running in every top state and leaves `vdc-relay` under
+`auto.pico-cycler` when `Scada.set_command_tree` rewrites the forest for
+admin, so admin talks to neither the cycler nor its relay. Hard-coded
+by name and marked as the hack it is; the design removes it by giving
+the cycler a boss command and reparenting the interior node. Tested on
+all three fixtures: admin's tree keeps `auto.pico-cycler.vdc-relay`, and
+`AutoGoesDormant` sends `GoDormant` to leaf-ally and local-control only.
+
 ## 2026-09-06 — patch linear.one.dimensional.calibration snafu (`a6833464`)
 
 Rehearsing the spruce pump-speed window on the laptop, the regenerated
