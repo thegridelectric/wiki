@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-07-15
+Status: Draft · Pass 0 · Updated 2026-09-07
 
 # Testing the SCADA — the two harnesses
 
@@ -147,6 +147,25 @@ wire key `gw.<src>.to.mm.<type>` already matches the new/future rabbit structure
 (it resolves to `TransportClass.MarketMaker` on the consumer side). See the
 gridworks-base design `must-accept-current-ltn-messages` for why the consumer
 (gwbase) tolerates these tokens.
+
+## Recipe: admin over the wire (`test_hp_boss_live.py`)
+
+An operator path is proven in three rungs: in-process (the actor with a captured
+`_send_to`), the live harness with a real admin client, then the bench. For the
+middle rung `ScadaLiveTest` runs the scada on the repo's local mosquitto; the
+admin side is the admin package's own `AdminClient`, so the wire shape is the
+TUI's. Enable the scada's admin link in the child settings
+(`ScadaSettings.admin = AdminLinkSettings(enabled=True, tls=TLSInfo(use_tls=False))`,
+host and port default to the local broker) and point the client's
+`CurrentAdminConfig` at the same host and port with the scada's
+`layout.scada_g_node_alias` as the long name. Assert on the scada side with
+`await_for`: `scada.top_state`, the actor's state, the relay actor's `state`
+(which on the sim board commits only after its readback), and the LocalControl
+wrapper's `top_state` after release. The relay rejects any command whose sender
+is not its handle parent, so a state change at a handle is proof of who
+commanded it. Mosquitto rather than the dev rabbit because CI starts mosquitto
+from `tests/config/` and the admin tests already ride it. Model:
+`tests/actors/test_hp_boss_live.py`.
 
 ## Running
 

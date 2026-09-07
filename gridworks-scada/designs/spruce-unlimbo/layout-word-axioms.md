@@ -88,7 +88,7 @@ Status: Draft · Pass 0 · Updated 2026-09-02 · Linear: OPS-392
    command node. (Clause (c) — non-actuator leaves are Dormant
    command nodes — is code+matrix territory, not wire-checkable.) Full
    rationale + the twin architecture and the single `HpTwin`
-   ActorClass: `sh-node-actor-partition/hp-boss-cleanup.md`.
+   ActorClass: `unsorted/hp-twin.md`.
 
 ## Simulated devices are a vocabulary (settled 2026-09-02)
 

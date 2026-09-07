@@ -1,6 +1,6 @@
 # Control hierarchy — HSMs, the command tree, and the capability cover
 
-Status: Draft · Pass 0 · Updated 2026-06-28
+Status: Draft · Pass 0 · Updated 2026-09-07
 
 > What this is: how the SCADA's hierarchical state machines (HSMs) and the command tree work **together**
 > — the piece the executor lacked. The HSM decides *who is in control*; the command tree *enforces* it via
@@ -17,7 +17,8 @@ Nested state machines, outermost first:
 - **`LocalControlTopState`** (`enums/local_control_top_state.py`, under LocalControl): `Normal |
   UsingNonElectricBackup | ScadaBlind | Monitor | Dormant`. Driven by `actors/local_control/tou_base.py`.
 - **Per-actor FSMs** that are themselves control nodes: `HpBoss` (`actors/hp_boss.py`:
-  HpOff/PreparingToTurnOn/HpOn), `SiegLoop` (`actors/sieg_loop.py`: a control FSM + a valve FSM),
+  HpOff/PreparingToTurnOn/HpOn; its states are intent, set when the command is sent, and it does not
+  wait for the relay), `SiegLoop` (`actors/sieg_loop.py`: a control FSM + a valve FSM),
   `PicoCycler` (`actors/pico_cycler.py`), `LeafAlly` (`actors/leaf_ally_loader.py`, storage-mode states).
 
 ## The command tree — control state projected onto handles
@@ -62,8 +63,39 @@ need not grant full leaf access).
 
 Most actuators **float** — re-parented under the current authority. Some sub-bosses own **fixed** relays
 regardless of who is on top: `pico-cycler` always owns the vdc relay (pico-reboot is cross-cutting),
-`hp-boss` owns `hp_scada_ops_relay`, `sieg-loop` owns the loop relays. These fixed sub-trees are the
-`use_sieg_loop` / pico-presence conditionals in `set_command_tree` (`scada.py:1252–1274`).
+`hp-boss` owns `hp-scada-ops-relay`, `sieg-loop` owns the loop relays. An interior node keeps its
+subtree: a tree rewrite reparents the interior node and never reaches through it to its relays.
+The pico-cycler hangs under the tree's **root**, not the boss: `admin.pico-cycler.vdc-relay` while
+admin holds the tree, `auto.pico-cycler.vdc-relay` under local-control or leaf-ally (the shape the
+layout words declare). Neither auto node commands the cycler, and it runs in every top state; it
+is never sent `GoDormant` or `WakeUp` on the Auto transitions. Dormant, for the cycler, keeps the
+one meaning it has everywhere: the node became a leaf and commands nothing, reserved for a mode
+that touches no relay at all.
+
+**hp-boss is the heat pump's command node in every layout.** Every layout word's core axiom requires
+the `hp-boss` node with ActorClass HpBoss, the actor is constructed in every layout, and both
+`set_command_tree` rewrites (`scada.py`, `actors/command_node.py`) place it under the boss with
+`hp-scada-ops-relay` under it, so the relay reports to hp-boss in every state and every layout and
+an operator commands the heat pump as `<boss>.hp-boss` with `TurnHpOnOff`, never the relay
+directly (`tests/actors/test_hp_boss.py`, `test_hp_boss_live.py`). Having a sieg loop is topology
+(the layout word); using it is operational: `UseSiegLoop` in the operational params selects
+hp-boss's **strategy**, not its existence. With the loop, TurnOn passes through
+`PreparingToTurnOn` and waits on `SiegLoopReady` (or `TURN_ON_ANYWAY_S`); without it hp-boss
+closes the relay at once. The sieg-loop actor is the one that exists only when the loop is used.
+"Dormant" is not used for any of this; in scada code it means one thing, an actor whose node is a
+leaf of the current command tree, and hp-boss is never a leaf. A commandable heat pump hangs under
+hp-boss: `Hydronic.HpCommandNodeName` names which node takes commands (`hp-odu` native modbus,
+`hp-ctrl-box` via a MIM) and the conditional axiom `CommandableHeatPump` requires that node to have
+a ComponentId and hp-boss as its effective handle parent.
+
+**Confirmation belongs to the relay actor, per board.** On a readback board (gw108) the relay
+writes, reads the pin back, commits its state only then, reports one `FsmFullReport` per TriggerId
+to its boss, and holds a failed command as the enforcement target retried every verify pass with a
+Critical glitch; on Krida it is commanded belief with no report. hp-boss does not wait on the
+report: a boss that did would hang on Krida and would still learn nothing about the heat pump,
+which answers a call minutes later. The honest on/off signal is the power channel. Witnessed on
+honeysuckle 2026-09-07 (`experiments/2026-09-07-hp-boss-admin-drive/`): the relay committed
+`RelayOpen` 14 ms after `HpOff` and `RelayClosed` 12 ms after `HpOn`.
 
 ## Shared *definitions*, per-topology *binding*
 
@@ -94,7 +126,7 @@ actuator-scope)` — Scada passes all actuators, a sub-actor passes `my_actuator
 
 - **Generic:** the handle→boss arithmetic (`hardware_layout.py`), the `ActorClass`→actor factory
   (`actors/__init__.py`), message routing, `my_actuators` discovery, the HSM enum definitions.
-- **House0-specific:** all `H0N.*` names; the `use_sieg_loop` sub-tree; the unconditional vdc→`auto.pico-cycler`
+- **House0-specific:** all `H0N.*` names; the `use_sieg_loop` sub-tree; the pico-cycler-under-root
   re-parenting; the `required_actuators = {relay_multiplexer, zero_ten_out_multiplexer}` assumption;
   `house_0_layout.py` requiring a pico-cycler when pico actors are present. A minimal sim layout
   (`gw1.simple.sim.layout`: no pico-cycler, no sieg, single `hp-relay`) follows the `else` branches —

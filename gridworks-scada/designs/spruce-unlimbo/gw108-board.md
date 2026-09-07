@@ -1,6 +1,6 @@
 # gw108 board documentation (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-08-11 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke holding the gw108 board facts the relay
 > port needs — schematic-verified signal chains, the expander map, and the
@@ -146,6 +146,65 @@ component-record fields; and the SPS ↔ poll-rate
 coupling as an axiom on the component word (per-chip sweep time —
 channels × conversion + overhead — bounded by a slack fraction of the
 poll period).
+
+## The CT signal chain (schematic-verified 2026-09-07, RevB nets; bench-verified on spruce)
+
+Each of the four CT terminal pairs drives an ADS1115 at 0x48 (the board
+record's `CtAdc`) single-ended, centred on the shared 1.65 V bias, with an
+optional on-board 470 Ω burden selected by a 2-pin header jumper. The
+chip's ALERT/RDY pin is not wired to the pi, so a reader takes single-shot
+conversions and stamps them itself (about 390 per second on the 100 kHz
+bus); the effective rate is the bus, not the chip.
+
+| Terminal | ADS1115 input | Burden jumper | 470 Ω | spruce (2026-09-07) |
+| --- | --- | --- | --- | --- |
+| CT1 | AIN0 (P0) | JP4 | R6 | store pump, current-output CT (100 A : 50 mA); jumper NOT fitted |
+| CT2 | AIN1 (P1) | JP3 | R5 | secondary pump, eGauge-style voltage-output CT (20 A rated); jumper open, correct |
+| CT3 | AIN2 (P2) | JP2 | R4 | nothing |
+| CT4 | AIN3 (P3) | JP1 | R3 | nothing |
+
+Board location: the screw-terminal strip labeled CT INPUTS on the left edge
+below THERMISTOR INPUTS, channels top to bottom CT1..CT4, each a + (signal)
+and − (bias) pair. The jumpers sit just right of the strip and are numbered
+the opposite way to the channels. A current-output CT needs its jumper
+fitted (else its secondary runs open); a voltage-output CT needs it open
+(its burden is internal, and 470 Ω in parallel changes its scale).
+
+**What the bench established (`experiments/2026-09-07-adc-waveform-bench/`):**
+
+- A voltage-output CT on CT2 works as wired, one pass through the CT, no
+  jumper: the secondary pump's current waveform is recovered by folding
+  two seconds of conversions on the fitted mains frequency. The waveform
+  is harmonic-rich (fifth harmonic above the fundamental), so a CT
+  channel's reading pipeline must report the composite waveform's rms,
+  not a sine fit.
+- The channel tracks the pump across its whole speed range (summer hack
+  stopped, pump relay energized by the driver, DAC stepped on Dac2 C):
+
+  | DAC V | secondary-flow gpm | waveform rms mV | fundamental pk mV | noise rms mV |
+  | --- | --- | --- | --- | --- |
+  | 3.0 | 0.64 | 10.0 | 3.4 | 3.4 |
+  | 4.5 | 3.04 | 32.5 | 11.3 | 11.2 |
+  | 6.0 | 5.13 | 87.5 | 37.3 | 23.3 |
+  | 7.5 | 7.29 | 180.7 | 86.5 | 49.7 |
+  | 9.0 | 9.00 | 274.0 | 152.8 | 47.6 |
+  | 10.0 | 8.99 | 261.7 | 152.8 | 100.1 |
+
+  Current rises about 27-fold from minimum to maximum speed while flow
+  rises 14-fold (pump power grows faster than flow); 9 V and 10 V give the
+  same flow and the same current.
+- Open inputs (CT3, CT4) float off the bias with 15 to 30 mV of noise and
+  no periodic content; a wired but idle channel sits on the bias with a
+  3 mV mains pickup. That signature tells wired from unwired without
+  opening the panel.
+
+**Open:** the absolute scale for CT2 (its rated millivolts at 20 A, or one
+clamp-meter reading against a ladder level); why CT1, unburdened and with
+the store pump off, shows CT2's waveform (same conductor, or pickup from
+the adjacent cable); the secondary-btu pico's own `secondary-pump-ct`
+reads a constant 1.67 V with the pump running. The CT channel-config
+vocabulary (ratio, passes, burden, the derived scale) is the
+ct-measurement-chain design's (OPS-518).
 
 ## Relay naming + the zone state machine (settled 2026-08-11)
 

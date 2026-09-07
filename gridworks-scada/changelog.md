@@ -10,6 +10,121 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-07 — sim tank picos post readings, live, and die on a schedule <!-- pending commit -->
+
+**What:** `ApiTankModule` runs a simulated pico when its component is
+`sim.pico.tank.module.component.gt`: a reading source inside the actor
+posts a fixed microvolt profile per depth to itself at the channel's
+capture period, stops after `SimLifeS`, and resumes `SimRebootS` after
+the vdc relay closes following an open (read from the scada's recent
+machine states). Both fields are optional on the sim word (001, staging,
+edited in place) and mirrored in gwsproto; absence means no scripted
+death and no reboot. The tlayouts gens emit them for sim tanks and the
+pytest fixtures regenerate. A pytest drives the source directly, no
+clock tricks.
+
+**Why:** Every sim layout declares a sim pico per tank and nothing feeds
+it, so sim tank actors went silent after the 60 s capture period and
+sim houses have never had tank temperatures. The pico-cycler now sees
+sim picos, and its loop (flatline, cycle, rejoin, zombie) needs a pico
+that actually posts, dies, and reboots to be witnessed; the full loop is
+the next rung on the dev broker. The source lives in the actor, not the
+plant, as a choice to re-evaluate once the terminal-asset plant carries
+tank physics.
+
+## 2026-09-07 — pico-cycler keeps its subtree under every boss; vdc hack retired
+
+**What:** `Scada.set_command_tree` reparents the pico-cycler as an interior
+node under the tree's root (`admin.pico-cycler` when admin holds the tree,
+`auto.pico-cycler` otherwise) and keeps `vdc-relay` under it, the same
+shape hp-boss already has; `HACK_VDC_RELAY_NAME` and the HACK comments on
+the dormancy transitions go. The cycler is not sent `GoDormant` or
+`WakeUp` on the Auto transitions: it runs in every top state. Tests in
+`tests/actors/test_command_tree_prefix_closed.py` pin the admin shape on
+all three fixtures and witness a flatlined pico being cycled while admin
+holds the tree (the cycler's `FsmEvent` to `admin.pico-cycler.vdc-relay`
+constructs and is addressed to the relay's live handle). Writing that
+witness found the cycler's pico discovery skipped
+`SimPicoTankModuleComponent`, so on every sim layout it held no picos; it
+now accepts the sim class as the tank-module actor already did.
+
+**Why:** An interior node keeps its subtree; tree rewrites reparent
+delegates and never reach through them. The 2026-09-06 spruce sweep lost
+nineteen minutes of window because admin's tree had taken the relay away
+from a dormant cycler and a flatlined BTU-meter pico stayed down. The
+cycler's boss is the tree root rather than local-control or leaf-ally
+because neither of those ever commands it; admin will (a `RebootPicos`
+command, next), and the scada itself does in auto. Dormant keeps its one
+meaning, "this node became a leaf", for a future mode that touches no
+relay at all.
+
+## 2026-09-07 — hp-boss admin drive becomes a live test
+
+**What:** `tests/actors/test_hp_boss_live.py`: a running Nolan scada on the
+test mosquitto, the admin package's own `AdminClient` on the admin side.
+Admin dispatches TurnOff then TurnOn to `admin.hp-boss` and releases; the
+test waits for the scada to wake into Admin, hp-boss to command the call
+relay at its handle under admin (the relay confirms at the sim pin and
+reports back to hp-boss), and LocalControl to return to Normal after
+release. The House0 pairs are present but commented out.
+
+**Why:** The local sim drive of 2026-09-07 (experiments repo) proved the
+path once against the dev rabbit; a proof that runs in CI has to ride the
+repo's mosquitto, which the admin tests already do. Admin is a real MQTT
+client here rather than an in-process `process_scada_message`, so the wire
+shape the TUI sends is what the scada decodes. The House0 pairs wait: the
+TurnOn leg there needs a `SiegLoopReady` from a sieg-loop actor that has
+never run unsupervised, so those rows come back with the sieg refactor.
+
+## 2026-09-07 — hp-boss drops its actuators-ready gate; Nolan LC wakes to Normal
+
+**What:** `HpBoss` no longer waits for `ActuatorsReady` before acting on a
+command, and the scada no longer lists it as an actuators-ready dependent.
+`NolanLocalControl`'s `TopWakeUp` lands in `Normal` instead of `Monitor`
+(HACK, marked in the transition table). Tests: the hp-boss tests stop
+setting `actuators_ready` by hand; the Nolan top-machine round trip
+expects `Normal` after wake.
+
+**Why:** The local sim drive (2026-09-07) showed hp-boss ignoring every
+command, admin's and LocalControl's alike, with "actuators not ready":
+the scada's `ActuatorsReady` fires only once the Krida relay multiplexer
+and the zero-ten multiplexer report, and a Nolan layout has neither node.
+The gate added nothing on a gw108, where the relay actor defers a command
+until its boot adoption completes and retries through the verify loop.
+The board-generic required-actuator set is krida-retirement's. The
+in-process test had hidden the gap by setting the flag. The Monitor
+landing left the Nolan TOU loop idle after every admin release; waking to
+Normal is a hack until ops selects the strategy (control-strategy
+selection).
+
+## 2026-09-07 — hp-boss is the heat pump's command node in every layout
+
+**What:** Both command-tree rewrites (`Scada.set_command_tree`,
+`CommandNode.set_command_tree`) place hp-boss under the boss and
+`hp-scada-ops-relay` under hp-boss in every layout; the sieg-loop pair
+rides only when the ops word says the loop is used. The two `hp_boss`
+properties lose their sieg gate; hp-boss joins the actuator-ready
+dependents everywhere. `send_state_command` learns hp-boss's vocabulary
+(`TurnHpOnOff`), so House0 `turn_on_HP`/`turn_off_HP` and the Nolan TOU
+sequences command hp-boss instead of the relay. The admin `to_name ==
+"hp-boss"` rewrite in `scada.py` is deleted. `HpBoss.process_fsm_event`
+returns after the `bad_boss` glitch and, in the sieg-less strategy, sets
+and reports `HpOn` on TurnOn; its four copies of the state report collapse
+into `report_state`. First hp-boss tests
+(`tests/actors/test_hp_boss.py`): tree placement for every boss on all
+three fixtures, both strategies, a stale-boss command changing nothing,
+and admin turning the heat pump on and off through hp-boss on the Nolan
+fixture. Nolan sequencing test targets updated.
+
+**Why:** hp-boss was conditional on the sieg loop everywhere, so a
+sieg-less house had no heat-pump command node and admin's dispatch was
+re-addressed to a relay handle that does not exist under admin in a sieg
+layout (the relay rejects it). The layout words already require the
+hp-boss node in every family; the actor now matches: it always runs, and
+`UseSiegLoop` selects its strategy rather than its existence. The
+missing `return` let a mis-addressed command execute after being logged
+as ignored; the sieg-less TurnOn left the reported state at `HpOff`.
+
 ## 2026-09-07 — Rename sieg_valve_dormant to sieg_valve_hold
 
 **What:** `HydronicHouse0Base.sieg_valve_dormant` becomes `sieg_valve_hold`

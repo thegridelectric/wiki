@@ -115,9 +115,9 @@ named, a guard):
    ⟺ `my_actuators()` is empty. Add the same assertion to
    `enforce_auto_state_consistency` only if the row finds a real drift;
    the reconciliation loop already runs, so the check is cheap.
-3. Fix `hp_boss.process_fsm_event` to `return` after the `bad_boss`
-   glitch (hp-boss-cleanup chunk; the row here asserts a stale-boss
-   command changes no relay).
+3. ✅ `hp_boss.process_fsm_event` returns after the `bad_boss` glitch
+   (landed in `30fbac27`); the row here asserts a stale-boss command
+   changes no relay.
 4. Sequence-interrupt row (the 2026-09-06 finding): start a
    `turn_on_hp` sequence, fire admin wake-up mid-sequence, assert no
    command leaves the LC after the tree rewrite. With proposal 1 the
@@ -130,6 +130,6 @@ named, a guard):
    `to_name == "hp-boss"` rewrite in `scada.py:462` re-addresses the
    dispatch to `admin.hp-scada-ops-relay`, but under admin the relay's
    handle is `admin.hp-boss.hp-scada-ops-relay`, so `relay.py:283`
-   rejects it. The fix is the hp-boss-cleanup done-when (admin commands
-   `TurnOn`/`TurnOff` to `admin.hp-boss`, hp-boss closes its relay) and
-   the deletion of that rewrite; the matrix row asserts the relay moves.
+   rejects it. ✅ Fixed in `30fbac27`: admin commands `TurnOn`/`TurnOff`
+   to `admin.hp-boss`, hp-boss closes its relay, and the rewrite is gone;
+   the matrix row asserts the relay moves.

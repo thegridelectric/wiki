@@ -6,10 +6,11 @@ Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
 > heat pump's digital twin under hp-boss: sema command events in,
 > hardware protocol (modbus) out. Not part of the `sh_node_actor`
 > partition rope; it extends the first pass in
-> `../sh-node-actor-partition/hp-boss-cleanup.md` once we can talk
+> hp-boss as the heat pump's command node (`executor/control-hierarchy.md`
+> "Fixed sub-trees vs floating actuators") once we can talk
 > digitally to a heat pump (elm's native-modbus Arctic, spruce's Samsung
 > via the MIM). Parked 2026-09-07: waits on the modbus work and on
-> `hp-boss-cleanup`.
+> hp-boss's first pass.
 
 ## The twin architecture (decisions 2026-09-01)
 
@@ -88,3 +89,15 @@ records.
 
 - hp-boss modbus driver selection (keys on the commanded node's
   component DeviceType); prep decisions of 2026-08-31 fold in here.
+
+## Strategies: a gate and a channel (carried from hp-boss's first pass)
+
+`UseSiegLoop` conflates two axes that vary independently once heat pumps
+are commanded digitally: a readiness gate on turn-on (sieg loop ready, or
+none; from the ops word) and a command channel (close the call relay, or
+command the node `HpCommandNodeName` names and read its feedback; from
+the layout word). A digital heat pump behind a sieg loop needs both.
+hp-boss keeps its interface (`TurnHpOnOff` in, `HpBossState` out) and
+composes a gate and a channel selected at construction, rather than one
+strategy per combination. Nothing beyond today's boolean is built; the
+twin is the second channel.

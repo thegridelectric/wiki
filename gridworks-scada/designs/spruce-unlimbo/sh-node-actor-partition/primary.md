@@ -143,13 +143,14 @@ hub). The what/why of each commit is in the scada changelog.
 | Move 2: sieg split, `Strategy` → `HardwareLayoutTypeName`, `HpCommandNodeName` + `CommandableHeatPump` + tree axioms, gwsproto port (09-02–03) | (same row) | 2h + 2h | sema `8451769` `7c3e0bd` `998b9c7` + `jm/layout-tree-axioms`; scada `d4faae53` `0d4ec979` `cd6244dd` `cc44c626`; tlayouts `1741a26` |
 | Move 3: DAC output actuator + word gate + reverse conformance sweep (09-04) | (same row) | 1.3h + 0.4h | scada `8166acc6` `341c99de` `5940d1b9`; tlayouts `d6a995e` `335e946`; sema `d6f59e7` |
 | Sequencing read + dac-output spoke (09-02) | (same row) | 0.5h | wiki only |
+| `hp-boss-cleanup` (09-01 decisions, 09-07 build): hp-boss the heat pump's command node in every layout, gate removal, first tests in three rungs, done-when witnessed on honeysuckle | 3h (2–9) | 1.3 + 0.6 = 1.9h, in interval | scada `30fbac27` `8e0b95c6` `3d871690`; `experiments/2026-09-07-hp-boss-admin-drive/` (`193f126` + rung 3); durable facts in `executor/control-hierarchy.md` "Fixed sub-trees vs floating actuators" and `executor/testing.md` "Recipe: admin over the wire"; open items routed to `../unsorted/` (`refactor-sieg`, `relay-tests`, `hp-twin`) and below |
 | dac-output tail: step 4 harness, honeysuckle bench rung, SIMULATED root cause, proactor CONNACK fix, step 5 rehearsal + two spruce windows (09-04–06) | (same row) | 1.8 + 0.7 + 0.25 + 3.0 + 1.0 + 1.5 + 2.0 + 1.5 = 11.75h | scada `0f1ff7be` `59284cc5` `ba2c9883` `a6833464` `829038b2`; proactor `3e5087f` (`v4.1.13+jm2`); tlayouts `0a051f9`; `experiments/2026-09-05-dac-output-bench/`, `experiments/2026-09-06-spruce-pump-speed-sweep/` |
 
 Sema round 2 closed at 20.4h against its 6h (4–12) row, past the high
 bound: the three word moves sum to 8.15h and the dac-output tail that
 move 3 opened adds 11.75h. The hp-twin (the heat pump's digital twin
 under hp-boss) is not part of this rope; it lives in
-`../unsorted/hp-twin.md` and extends `hp-boss-cleanup` once heat pumps
+`../unsorted/hp-twin.md` and extends hp-boss's first pass once heat pumps
 can be talked to digitally.
 
 What the rope found on the way, kept as facts:
@@ -205,9 +206,10 @@ edit); tlayouts `jm/spruce` at `0a051f9`, 18 commits unpushed; scada
 1 xfailed; experiments `main` at `2b2d189` plus the uncommitted run 2b/3
 evidence and README in `2026-09-06-spruce-pump-speed-sweep/`. The tlayouts
 snapshot and the gwsproto closure copy are both at sema `d6f59e7`.
-Changelogs reconciled, no pending markers. Honeysuckle runs scada
-`5940d1b9` with the admin link enabled in its `.env` and the standing
-layout restored. Spruce is restored after the sweep: services active,
+Changelogs reconciled, no pending markers. Honeysuckle holds scada
+`3d871690` (2026-09-07) with the admin link enabled in its `.env`, the
+standing layout restored, and no experiments clone or admin package on
+the box (bench drives run from the laptop through the ssh tunnel). Spruce is restored after the sweep: services active,
 window files removed, `dev.env` carries the admin block, box README
 current. Two House0 fixtures boot: `gw.house0.layout.json` (hand-kept
 beech real shape: LG parts, Honeywell circuit) and `gw.house0.sim.*`
@@ -311,9 +313,9 @@ principles (one settled name per commit):
 
 ## ▶ Do this next
 
-**Next move:** `pico-cycler-command.md` items 1 and 1a, the real fix that
-retires the hack `829038b2`; the vocabulary question is open with Jessica.
-Read that spoke whole (short); nothing else is needed to start.
+**Next move:** `pico-cycler-command.md`, the sim-pico cluster (its "Do
+this next" holds the order); items 1 and 1a landed in `668db20b`. Read
+that spoke whole (short); nothing else is needed to start.
 
 **Queue, in order.** Each item is its own commit with its own estimate
 (scopes on OPS-392). Jessica reviews each file before it lands:
@@ -321,11 +323,11 @@ functionality evaluation plus first-ever tests per file, in service of the
 single focus (sim House0 + sim spruce green with real coverage;
 GridWorks_CLAUDE ⏳ note).
 
-1. [`hp-boss-cleanup`](hp-boss-cleanup.md) (3h): hp-boss in every layout with first tests; done when admin turns the heat pump on and off through hp-boss on spruce.
-2. [`admin-scada-peer-liveness`](admin-scada-peer-liveness.md) (4h): neither side notices a dead admin link; `heartbeat.a` both ways. With hp-boss, clarifies the admin command surface before the tree matrix.
-3. [`pico-cycler-command`](pico-cycler-command.md) (4h): items 1 and 1a, the real fix that retires the vdc hack.
-4. [`command-tree-matrix`](command-tree-matrix.md) (3h; `actors/command_node.py`, 207 L): the state-transition tree matrix on `command_node.py`, with the LC dormant-sequence row.
-5. [`staging-words-on-prod`](staging-words-on-prod.md) (4h): the wire/layout-file word split that lets `jm/spruce` run on spruce against the production broker.
+1. ✅ DONE `hp-boss-cleanup` (3h, 1.9h actual): in the Done table.
+2. [`pico-cycler-command`](pico-cycler-command.md) (4h): items 1 and 1a, the real fix that retires the vdc hack.
+3. [`command-tree-matrix`](command-tree-matrix.md) (3h; `actors/command_node.py`, 207 L): the state-transition tree matrix on `command_node.py`, with the LC dormant-sequence row.
+4. [`staging-words-on-prod`](staging-words-on-prod.md) (4h): the wire/layout-file word split that lets `jm/spruce` run on spruce against the production broker.
+5. [`admin-scada-peer-liveness`](admin-scada-peer-liveness.md) (4h): neither side notices a dead admin link; `heartbeat.a` both ways. With hp-boss, clarifies the admin command surface before the tree matrix.
 6. [`krida-retirement`](krida-retirement.md) (6h): drop the required Krida component from `scada.control.capabilities`, then the admin package for Nolan.
 7. [`hydronic-shared-review`](hydronic-shared-review.md) (2h; `actors/hydronic/shared.py`, ~250 L): `actors/hydronic/shared.py` review + first tests.
 8. [`hydronic-house0-review`](hydronic-house0-review.md) (2h; `actors/hydronic/house0.py`, ~990 L): `actors/hydronic/house0.py` review; the buffer/storage judgment methods.
@@ -347,8 +349,39 @@ commit or a decision):
   pre-existing shape (three channels carry InPowerMetering, four
   components predate their words' config shape); closes with a translated
   beech gen, not by hand.
-- The admin release on the honeysuckle bench is still unwitnessed (run 4
-  timed out first).
+- hp-boss assumes `HpOn` at construction without reading the relay;
+  the relay adopts its own state at boot (`_boot_adopt`), hp-boss does
+  not. Small commit with a test (`../unsorted/relay-tests.md` item 4 is
+  the relay half).
+- "Task was destroyed but it is pending" at the end of every live test
+  that wakes admin (`test_hp_boss_live.py`, `test_admin_on_nolan.py`
+  alike, two lines each): the scada's `_timeout_admin` task
+  (`scada.py`, `_renew_admin_timeout`) is still pending when the event
+  loop closes. Release cancels it in the release path, so the survivor
+  is the timeout renewed by a dispatch after the first, or the shutdown
+  order not reaching the cancel.
+- Honeysuckle's standing layout (`hardware-layout.standing.json`, the
+  08-12 artifact) predates the Nolan word: it carries
+  `Hydronic.SiegLoopPlumbed` and `Hydronic.Strategy`, which the word no
+  longer permits, has no `hp-scada-ops-relay` and no `secondary-010v`,
+  and fails `sema validate` and the coverage check at `3d871690`. The
+  pair `tlayouts/honeysuckle_sema_gen.py` emits (archived in the
+  dac-output experiment, on the pi as `hardware-layout.dac-output.json`)
+  validates clean and is what every bench witness has run on. Making
+  that pair the standing layout is the refactor: one copy on the pi and
+  a line in its README. The rung-3 window restored the stale one.
+- **One scada per box, enforced.** Twice now a second scada has been
+  launched on honeysuckle while the first was still inside its
+  `timeout` (dac-output run 3 lost two passes; the hp-boss rung-3 window
+  on 2026-09-07 double-booted onto the same i2c bus and broker
+  identity). A convention ("check `pgrep` first") has not held. The
+  scada should refuse to start when another instance is running on the
+  box: a lock the process holds for its lifetime (a pid file under the
+  scada's state dir, or an advisory `flock` on it), checked in `cli.py
+  run` before any actor starts, with a plain refusal line naming the
+  live pid. The systemd unit on a deployed house already gives this;
+  bench and dev launches are where it is missing. Small commit, own
+  test.
 - The admin panel's own MQTT client ignores CONNACK reason codes, the
   same flaw the proactor fix closed on the scada side; fixes with the gridworks-admin package changes.
 - Honeywell web-listen path is dead in the field on `main` and here:
@@ -378,3 +411,4 @@ commit or a decision):
   experiments; push tlayouts `jm/spruce`.
 - Estimates roll-up: the `layout-word-axioms` chunk has no `r:sim-green`
   row and its 09-01 scratch portion is still to patch.
+- gwproactor tests are failing in CI right now; investigate and fix.

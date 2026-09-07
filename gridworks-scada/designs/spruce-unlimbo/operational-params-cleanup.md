@@ -521,3 +521,10 @@ ATN and HomeAlone names. Then the `H0N` sweep: 54 references left in the
 merged file, ~590 repo-wide, and `H0N` is an instantiated class carrying
 `self.tank` / `self.zone`, so those parts need a home before the constants
 can follow.
+
+## Open: hp-boss reads `UseSiegLoop` at boot
+
+hp-boss selects its strategy from `UseSiegLoop`, which moves from
+`Hydronic` (the layout word) to `gw.house0.operational.params`. Once the
+field migrates, hp-boss reads it from the operational params at
+construction; nothing else in the actor changes. Surfaced 2026-09-07.
