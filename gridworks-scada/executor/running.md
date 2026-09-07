@@ -105,12 +105,13 @@ A branch scada run on a deployed box (a "window": stop the services, boot
 the branch against the real plant, restore) keeps staging vocabulary off
 the production broker through three layers, and a window holds all three.
 
-1. **Status tier.** A staging layout cluster means dev brokers only. The
-   check is by hand today: every gwsproto schema pin and every word in
-   the closure copy (`sema_closure/registry.yaml`) against the registry's
-   status; `gwsproto_sema_conformance.py` has no release-gate flag. A
-   branch pinning non-published words cannot deploy beyond dev until they
-   promote.
+1. **Status tier.** The broker rule reaches the words that cross the
+   wire: those are published before a box speaks them to the production
+   broker, and the closure words they `$ref` come with them. Words that
+   only live in the layout file on the box may stay staging. The check is
+   by hand: every gwsproto schema pin and every word in the closure copy
+   (`sema_closure/registry.yaml`) against the registry's status;
+   `gwsproto_sema_conformance.py` has no release-gate flag.
 2. **Credential-structural.** The window scada keeps the box's real
    identity but boots from `~/envs/dev.env`: dev-broker credentials only,
    upstream host a localhost tunnel (`ssh -f -N -R 1885:localhost:1885
@@ -143,6 +144,8 @@ and the watch-list.
 
 ## Open
 
+- The wire-word versus layout-file-only split for the spruce branch has
+  not been drawn yet.
 - The full live bidirectional LTN↔SCADA run over dev rabbit (with a JK
   consuming) is not yet verified cold — that pass is the hello-world
   step of the spruce-unlimbo design; its findings reconcile here.

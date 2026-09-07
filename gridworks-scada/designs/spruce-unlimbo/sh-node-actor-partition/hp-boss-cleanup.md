@@ -1,10 +1,12 @@
-# hp-boss cleanup (spoke)
+# hp-boss-cleanup (rope chunk)
 
-Status: Draft · Pass 0 · Updated 2026-09-01 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
 
-> What this is: hp-boss becomes a first-class permanent system delegate —
-> present in every layout, tested for the first time. Decisions
-> 2026-09-01 with Jessica.
+> What this is: a chunk of the `sh_node_actor` partition rope, unestimated;
+> hub [`primary.md`](primary.md). hp-boss becomes a first-class permanent
+> system delegate, present in every layout, tested for the first time.
+> Decisions 2026-09-01. **Done when** admin turns the heat pump on and off
+> through hp-boss on spruce (below).
 
 ## Decisions
 
@@ -102,6 +104,13 @@ Status: Draft · Pass 0 · Updated 2026-09-01 · Linear: OPS-392
   Code: one `dormant` predicate on the actor base tier, each actor
   deriving it from its own enum — no per-enum string matching; clause
   (c) consumes it.
+
+## ▶ Do this next: admin turns the heat pump on and off through hp-boss
+
+The experimental test of success for this chunk: admin turns the heat pump
+on and off through hp-boss, the heat pump's command node, not by
+dispatching `hp-scada-ops-relay` directly; witnessed on spruce. Needed
+before anything else that touches the heat pump.
 
 ## Sieg loop needs its tires kicked
 

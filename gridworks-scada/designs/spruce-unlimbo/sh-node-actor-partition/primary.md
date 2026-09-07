@@ -1,4 +1,4 @@
-# sh_node_actor partition (spoke)
+# sh_node_actor partition (rope hub)
 
 Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
 
@@ -128,17 +128,18 @@ relay-idx LIKE patterns) is the phase-3 seed material.
 
 ## Done (the rope so far)
 
-One row per rope chunk. Estimates are the `r:sim-green` rows in
-`admin/jess-estimates.md`; Actual is the sum of that log's scratch rows
+One row per rope chunk, named by its slug, which is also the Work cell of
+its `r:sim-green` row in `admin/jess-estimates.md` (queue items and open
+findings below carry the same slugs); Actual is the sum of that log's scratch rows
 for the chunk (the roll-up into the log's Actual column is queued on the
 hub). The what/why of each commit is in the scada changelog.
 
 | Chunk | Est. (point, 90%) | Actual | Commits |
 | --- | --- | --- | --- |
-| Partition ladder + names grill (2026-09-01) | 1.5h (1–3) | 1h, in interval at bound | scada `bd13a371`; preceded by the Nolan sim pair + axioms 3–8 mirrors `617b5370` `4d5e552a` `bca080f7` (08-31, before the rope rows) |
+| `partition-names-grill` (2026-09-01): partition ladder + names grill | 1.5h (1–3) | 1h, in interval at bound | scada `bd13a371`; preceded by the Nolan sim pair + axioms 3–8 mirrors `617b5370` `4d5e552a` `bca080f7` (08-31, before the rope rows) |
 | Deletion pass (2026-09-01) | none | in the row above | in `bd13a371` |
-| Layout-word axioms + rev B + component identity (2026-09-01–02) | none (scratch row only) | 3h on 09-02 + a 09-01 portion still to patch | scada `963ccddc` `0311749b` |
-| Sema round 2, moves 1 + 1a: House0 word, Honeywell read, sim House0 pair (09-02) | 6h (4–12) for moves 1–4 together | 2.45h | sema `dfe93be`; scada `050fdd54` `98291cb6` `31a97366`; tlayouts `cdf531c` |
+| `layout-word-axioms` (2026-09-01–02): axioms 3–9 + rev B + component identity | none (unestimated, no row) | 3h on 09-02 + a 09-01 portion still to patch | scada `963ccddc` `0311749b` |
+| `sema-round-2`, moves 1 + 1a: House0 word, Honeywell read, sim House0 pair (09-02) | 6h (4–12) for moves 1–4 together | 2.45h | sema `dfe93be`; scada `050fdd54` `98291cb6` `31a97366`; tlayouts `cdf531c` |
 | Move 2: sieg split, `Strategy` → `HardwareLayoutTypeName`, `HpCommandNodeName` + `CommandableHeatPump` + tree axioms, gwsproto port (09-02–03) | (same row) | 2h + 2h | sema `8451769` `7c3e0bd` `998b9c7` + `jm/layout-tree-axioms`; scada `d4faae53` `0d4ec979` `cd6244dd` `cc44c626`; tlayouts `1741a26` |
 | Move 3: DAC output actuator + word gate + reverse conformance sweep (09-04) | (same row) | 1.3h + 0.4h | scada `8166acc6` `341c99de` `5940d1b9`; tlayouts `d6a995e` `335e946`; sema `d6f59e7` |
 | Sequencing read + dac-output spoke (09-02) | (same row) | 0.5h | wiki only |
@@ -154,7 +155,7 @@ What the rope found on the way, kept as facts:
 
 - The Honeywell thermostat actor files are byte-identical to `main` and
   their plumbing survives the DeviceComponent/sema port unchanged; read
-  findings in `unsorted.md`.
+  findings in `../unsorted/thermostat-chunk.md`.
 - The bench's two "failures" had one cause: the pi booted SIMULATED.
   Routing and comparison pass on the Nolan fixture
   (`tests/actors/test_admin_on_nolan.py`, `test_zero_ten_outputer.py`);
@@ -186,11 +187,11 @@ What the rope found on the way, kept as facts:
   no peer-liveness rule behind it. Full log and the preferred fix
   (`heartbeat.a`, both sides beat, a missed beat releases Admin in
   seconds, the client shows live only while its echo comes back):
-  `unsorted.md` "admin" item. Open below.
+  `admin-scada-peer-liveness.md`. Open below.
 - Spruce pump-speed sweep (`experiments/2026-09-06-spruce-pump-speed-sweep/`
   "Found"): linear 3.5–8.5 V at 1.45 gpm/V, maximum from 9 V, no path
   dependence in the band; below 2.5 V the stop is path dependent. Working
-  values in `unsorted.md`. Run 2 lost its flow data to a flatlined pico
+  values in `../unsorted/grundfos-pump-curve.md`. Run 2 lost its flow data to a flatlined pico
   under a dormant cycler, hence the HACK `829038b2`
   (`pico-cycler-command.md` "Interim hack"). The DAC output actuator is
   canonized in `executor/hardware-layout.md` "The 0-10V output actuator".
@@ -319,94 +320,20 @@ functionality evaluation plus first-ever tests per file, in service of the
 single focus (sim House0 + sim spruce green with real coverage;
 GridWorks_CLAUDE ⏳ note).
 
-1. **`pico-cycler-command.md` items 1 and 1a** (4h).
-2. **The command-tree matrix** (`actors/command_node.py`, 207 L): tree
-   navigation, `set_command_tree`, the `build_command_tree` funnel,
-   relay-command mechanics (`send_state_command`, `energize`,
-   `de_energize`, `actuator_config`). Test candidates:
-   `the_boss_of`/`my_actuators` truth table; `set_command_tree`
-   prefix-guard + sieg/non-sieg handle rewrites; funnel publishes an
-   axiom-valid tree (NewCommandTree now validates). **The state-transition
-   tree matrix (the big one, believed to catch real bugs):** today's only
-   coverage calls `scada.set_command_tree` DIRECTLY (3 bosses × 2
-   fixtures); nothing tests the trees the actual STATE TRANSITIONS
-   produce. Drive each transition on both fixtures: admin wakes up / times
-   out / releases; ally suit-up and hand-back; every LC top-event (incl.
-   `set_limited_command_tree`'s backup and scada-blind paths, House0
-   only); sieg vs non-sieg. Capture every published tree, and assert each
-   constructs (axiom 1 fires on orphan prefixes) AND matches the expected
-   handle shape for that state. Jessica believes some of these are wrong
-   today; the failures are the deliverable. **Row found 2026-09-06**
-   (rehearsing the sweep driver against the sim Nolan scada): a
-   transition landing mid-sequence. `NolanLocalControl.command_sequence`
-   paces its steps 15 s apart and never re-checks `top_state`, so after
-   admin woke the scada (TopGoDormant at 08:15:38.956) the LC's in-flight
-   `turn_on_hp` still sent CloseRelay to the secondary pump at 08:15:53,
-   caught only by the relay's rights check (`Tried to command CloseRelay
-   … didn't have the rights: FromHandle auto.lc.n must be immediate boss
-   of ToHandle admin.secondary-pump-relay`). Dormant means commands
-   nothing; the matrix drives the admin wake-up DURING a sequence and
-   asserts no command leaves the LC after the transition. The same
-   rehearsal witnessed admin driving all four Nolan relays (pump, iso,
-   store pump, hp call) plus the DAC through the rewritten tree, the shape
-   the "admin wakes up" row asserts.
-3. **`krida-retirement.md`** (6h): the `scada.control.capabilities`
-   in-place edit (staging) that drops the required Krida component, then
-   the gridworks-admin package for Nolan, both written up in
-   `admin-for-nolan.md` "What the admin tool needs from a scada"; the
-   failing test is `test_control_capabilities_on_nolan` (xfail today).
-4. **hp-twin fixture:** tlayouts config axis →
-   `gw.nolan.layout.hp-twin.json` (hp-ctrl-box as HpTwin under hp-boss,
-   its component the MIM modbus bridge) + a dormant HpTwin stub so both
-   fixtures boot. hp-boss driver selection keys on the control box's
-   DeviceType value: a real value selects the modbus driver,
-   `SimSamsungAE055FEYMCG` the sim twin; sim parts carry no device-type
-   records.
-5. **`actors/hydronic/shared.py` review** (~250 L): zone-circuit relay
-   helpers, vdc pair, onpeak/setpoint judgment, `latest_temps_f`. Shared
-   bar: "every layout we can imagine has this."
-6. **`actors/hydronic/house0.py` review** (~990 L): choreography +
-   judgment; the judgment methods (`is_buffer_*`, `is_storage_*`) are the
-   thinnest coverage in the repo and each needs a functionality
-   conversation, not just a test.
-7. **Finish the `is_simulated` decompression.** The 2026-09-05 pass
-   (scada `59284cc5`) took hardware backend selection and the fake
-   control inputs off the bit; what is left needs vocabulary. Provoked by
-   this partition, so it lives here; if this spoke keeps growing it
-   becomes a folder.
-   - **Sema:** the first-pass `TaDeed` type, the `ValidationState` enum
-     (`UnValidated`, `ValidatedRealAssetAndGps`,
-     `ValidatedRealAssetIncorrectGps`, `ValidatedSimulatedAsset`), and
-     the scada-to-LTN contract-rejection word (offered ContractId + the
-     scada's `ValidationState` as cause). Word-gate ritual per word, in a
-     sema-claiming session; gwsproto mirrors with rejecting tests.
-     Meanings and the transport-plane consequences are recorded under
-     OPS-420 ("TaDeed and the validation plane") and in the deeds
-     exploration.
-   - **Scada:** read the deed into a `ValidationState` (`UnValidated`
-     with no deed); the placeholder `tadeed.json` becomes an instance of
-     the word. **Refuse every LTN contract offer while `UnValidated`**,
-     sending the rejection word, tested on the in-process LTN↔SCADA rig
-     (`test_auto_state.py`'s shape: `Created` offered, handler stays
-     empty, auto state stays LocalControl, LTN receives the rejection).
-     The Krida and DFR multiplexers move to a layout fact until their
-     sim twin words exist. `is_simulated` itself stays for its sim-time
-     job (simulated-test-environment `sim-time.md`).
-8. **Remove all `gw1`s and `gw`s in the snapshot generation for
-   tlayouts.**
+1. [`hp-boss-cleanup`](hp-boss-cleanup.md) (unestimated): hp-boss in every layout with first tests; done when admin turns the heat pump on and off through hp-boss on spruce.
+2. [`pico-cycler-command`](pico-cycler-command.md) (4h): items 1 and 1a, the real fix that retires the vdc hack.
+3. [`command-tree-matrix`](command-tree-matrix.md) (3h; `actors/command_node.py`, 207 L): the state-transition tree matrix on `command_node.py`, with the LC dormant-sequence row.
+4. [`staging-words-on-prod`](staging-words-on-prod.md) (4h): the wire/layout-file word split that lets `jm/spruce` run on spruce against the production broker.
+5. [`krida-retirement`](krida-retirement.md) (6h): drop the required Krida component from `scada.control.capabilities`, then the admin package for Nolan.
+6. [`hydronic-shared-review`](hydronic-shared-review.md) (2h; `actors/hydronic/shared.py`, ~250 L): `actors/hydronic/shared.py` review + first tests.
+7. [`hydronic-house0-review`](hydronic-house0-review.md) (2h; `actors/hydronic/house0.py`, ~990 L): `actors/hydronic/house0.py` review; the buffer/storage judgment methods.
+8. [`is-simulated-decompression`](is-simulated-decompression.md) (1.5h): TaDeed + ValidationState words; refuse LTN offers while UnValidated.
+9. [`snapshot-drop-gw1`](snapshot-drop-gw1.md) (0.75h): remove all `gw1`s and `gw`s in the tlayouts snapshot generation.
 
 **Open findings and sign-offs** (unordered; each closes with a small
 commit or a decision):
 
-- **Admin↔scada peer liveness.** Neither side notices a dead link:
-  the scada holds Admin (auto Dormant) until a fixed 120 s timer, the
-  client shows "sent" as if in control. Fix shape in `unsorted.md`:
-  `heartbeat.a` in both directions, a missed beat on the scada side
-  releases Admin within seconds, the client shows live only while its
-  echo returns; `heartbeat.a` has no gwsproto mirror yet. Matters before
-  any spruce window where a human is holding the pump; candidate for
-  the queue ahead of that, graduating with the on-box sender or into
-  `admin-for-nolan.md`.
+- [`admin-scada-peer-liveness`](admin-scada-peer-liveness.md) (unestimated): neither side notices a dead admin link; `heartbeat.a` both ways.
 - Deletion sign-off: `run_async_actors_main` (orphaned by `run_scada.py`'s
   deletion); `git rm --cached scratch.py`.
 - Repo-wide ruff has ~70 pre-existing findings (`--fix` sanctioned after
@@ -443,11 +370,9 @@ commit or a decision):
   buffer; `HydronicSpaceheatNodeNames`' docstring claims buffer names for
   "every hydronic plant" (buffer names belong a tier down when the
   bufferless families arrive). The iso valve is already Nolan-scoped.
-- `gw1.simple.sim.layout` loadability is the N=3 stress test (no invented
-  family); standing rule: a new family's sim pair ships in the same wave
-  as its word.
+- [`simple-sim-n3`](simple-sim-n3.md) (3h): `gw1.simple.sim.layout` loadability as the N=3 stress test.
 - The pump model belongs in the layout as a device-type word
-  (`unsorted.md`).
+  (`../unsorted/pump-device-type.md`).
 - Housekeeping: commit the sweep run 2b/3 evidence + README in
   experiments; push tlayouts `jm/spruce`.
 - Estimates roll-up: the scratch rows behind the Done table (09-01
