@@ -1,6 +1,6 @@
 # Stand up FIS
 
-Status: Accepted · Pass 1 · Updated 2026-09-06 · Linear: OPS-422
+Status: Accepted · Pass 1 · Updated 2026-09-07 · Linear: OPS-422
 
 **EDD: yes** verified by the day-in-the-life handshake
 ([`../executor/day-in-the-life.md`](../executor/day-in-the-life.md)) run for real on the
@@ -31,15 +31,14 @@ minted on the box, client certs from certbot against the real CA, FIS
 under systemd and the management-API-down leg over ssh: 27/27 verdicts,
 storm 100/100, evidence in
 `experiments/2026-09-05-fis-gate-battery/battery-2026-09-06-hw1-2.log`.
-That is the done-when. Next move: the stamps — the executor hub and its
-three spokes are `Draft · Pass 0`; the green staging run is their
-evidence, and the Pass/maturity call (Verified, `Reviewed
-2026-09-06@7b00342`) is the human's. Then the four
-platform-service principals, then prod.** The push accelerator (5c) is
-not on that path. Also open: mint the four platform-service principals
-(weather, gnr, ear, gjk) with `fis principal create` and cut their
-certs — the per-service walkthrough (who runs what, in which order)
-lives in the mTLS design, OPS-420, "Minting a platform-service cert".
+That is the done-when; `hw1-2` is dropped (its reproducer rebuilds it).
+Next move: prod, in the three steps under step 9 below — FIS on
+`hw1-1` first, then the principals and certs while the password path
+still stands, and only then the gate. The stamps are open: the
+executor hub and its three spokes are `Draft · Pass 0`, the green
+staging run is their evidence, and the Pass/maturity call (Verified,
+`Reviewed 2026-09-06@7b00342`) is the human's.** The push accelerator
+(5c) is not on that path.
 
 1. ✅ **Scaffold the service.** FastAPI + Postgres + `uv` (mirror the
    grid-node-registry stack). Settings via `pydantic-settings` (own
@@ -195,8 +194,38 @@ is unchanged.
      cut on certbot against the real CA.
    - ✅ Run it: green 2026-09-06 (27/27, storm 100/100). The staging run
      is the done-when; the stamps follow the human's call.
-   - Prod: the gate overlay on `hw1-1`, a container recreate that wipes
-     runtime users, after the platform-service principals hold certs.
+   - Prod, in this order; each step is safe on its own and the gate
+     comes last:
+     1. **FIS on `hw1-1`** beside the broker, gate off:
+        `gridworks-infra/fis/README.md` "Add FIS to a broker box" with
+        `FIS_UNIVERSE=hw1` and the prod broker's management credential;
+        the box pulls `main`. Nothing consults FIS yet; done when
+        `/ping` answers and the mirror holds the `hw1` nodes.
+     2. **Principals and certs** while the broker still offers password
+        auth. Weather is a GNode: its row carries the registry's
+        GNodeId (`hw1.isone.weather`, `2af8a877-…`; registry status
+        Pending, which the gate does not check but the record should
+        say Active). gnr, ear and gjk are Service principals: ids
+        minted on the prod FIS with `fis principal create`, never on
+        dev; cert CN = the printed id; a cert-inventory row each. Each
+        service switches to cert plus claims one at a time (mTLS
+        design, OPS-420, "Minting a platform-service cert", order
+        weather, gnr, ear, gjk); a bad cert or claim falls back to the
+        password path, so nothing can go down here. Proof is each
+        service's own log showing the cert path taken: with the gate
+        off FIS is never called and `auth_events` stays empty.
+        Also here: the house scadas already connect with certs over
+        MQTT; read one box's cert CN against the registry. Their rows
+        must exist on the prod FIS with their GNodeIds and their CNs
+        must be those ids, or they are denied at the first reconnect
+        after the gate.
+     3. **The gate** on `hw1-1`: the overlay recreate (`compose.gate.yaml`,
+        host network), re-mint the default user, then watch
+        `auth_events` fill as each service reconnects. From this
+        instant a connection is in or out on cert and claims alone and
+        runtime users are wiped; the live-traffic cutover, the human's
+        to run, only after every service has been seen on the cert
+        path in step 2.
 
 ## v1 scope
 
