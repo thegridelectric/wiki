@@ -2,12 +2,20 @@
 
 Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
 
-> What this is: the agreed rework of `sh_node_actor.py` (1852 lines, five
-> concerns, inherited by every node actor — the relay actor carries
-> `turn_on_HP`, the thermistor reader carries `is_buffer_full`). Grilled
-> 2026-08-31; decisions below. Break first, upgrade second: each function
-> family also needs improvement, and the partition is itself the first
-> upgrade (it ends family-blind inheritance).
+> What this is: the rework of `sh_node_actor.py` (1852 lines, five
+> concerns, inherited by every node actor: the relay actor carried
+> `turn_on_HP`, the thermistor reader carried `is_buffer_full`). Grilled
+> 2026-08-31; the decision was to decouple the function families into
+> tiers (below). Because this is a fundamental part of the scada and the
+> code has little test coverage, the work runs as a **rope**: move
+> carefully and considered, one chunk at a time, and when a chunk exposes
+> significant technical debt, open another rope chunk rather than push
+> through. Each chunk gets its own estimate (`r:sim-green` rows in
+> `admin/jess-estimates.md`); the rope as a whole is not estimable. The
+> record here (Done, with estimate against actual per chunk) is the
+> evidence for a question we want answered: can full time-to-completion
+> in the scada code be estimated once a layer is open, where estimates
+> made from outside blew up?
 
 ## The tiers
 
@@ -38,14 +46,16 @@ actors/local_control/house0/   tou_base, all_tanks_tou, buffer_only_tou, standby
 actors/local_control/nolan.py
 actors/leaf_ally/house0/       all_tanks, buffer_only
 actors/leaf_ally/nolan.py
-actors/hydronic/               house0.py · nolan.py  (C+D)
+actors/hydronic/               shared.py · house0.py · nolan.py  (C+D)
 actors/                        sh_node_actor.py (A) · command_node.py (B)
                                local_control_loader.py · leaf_ally_loader.py
 ```
 
 `all_tanks` / `buffer_only` are House0-forever (Nolan homes are
 store-under-floor next); there is no cross-family sharing inside a role
-dir.
+dir. `hydronic/shared.py` holds the family-neutral material the move
+surfaced (zone-circuit relay helpers, the vdc pair, onpeak/setpoint
+judgment, `latest_temps_f`); its bar is in Discipline.
 
 ## Command-tree decisions
 
@@ -81,53 +91,16 @@ dir.
   hydronic/house0 → hydronic/nolan + dir moves), suite green at each,
   deliberate breakages (House0 helpers becoming uninheritable on Nolan)
   named in the changelog entry.
+- **The shared bar: "every layout we can imagine has this,"** not "both
+  current families use it." The fall roadmap has two likely-at-scale
+  layouts with no buffer tank and no iso valve, so `buffer_temps_available`
+  is duplicated in both family files rather than given a speculative
+  `buffered` middle tier.
 - **Deletions are list-first:** every zero-caller kill list is posted for
   sign-off before deletion (decided 2026-08-31; candidates already
   audited: `orig_sieg_loop.py`, `direct_reports`, `atomic_ally`/
   `home_alone` props, one of `is_buffer_full`/`_alt`, `hp_relay_state`,
   scada.py's duplicate node props).
-
-## Build status (2026-09-01 night run)
-
-- ✅ Tier B: `command_node.py` (nav + `publish_command_tree` funnel — all
-  three emit sites route through `build_command_tree`) + generic relay
-  mechanics (`send_state_command`, `energize`, `de_energize`,
-  `actuator_config`).
-- ✅ Hydronic tier: `hydronic/shared.py` + `hydronic/house0.py` +
-  `hydronic/nolan.py` (seed); impls + PicoCycler rebased.
-- ✅ Dir moves: `local_control/house0/`, `leaf_ally/house0/` (git mv),
-  loaders updated.
-- Suite 231 passed / 1 skipped after every rung; nothing deleted.
-- **`hydronic/shared.py` BLESSED (2026-09-01)** with the curation rule
-  sharpened by the fall roadmap (two likely-at-scale layouts have NO
-  buffer tank and NO iso valve): shared means "every layout we can
-  imagine has this," not "both current families use it." Zone-circuit
-  helpers, the vdc pair, onpeak/setpoint judgment, `latest_temps_f`
-  qualify; `buffer_temps_available` did not — moved to BOTH family files
-  (duplicated one-liner beats a speculative `buffered` middle tier).
-  Also fixed: `derived_generator` read the moved property without
-  inheriting the tier (latent AttributeError, untested path) — it reads
-  `self.data.buffer_temps_available` directly now.
-- **Bufferless-fall flags for the deeper layers** (not mixin-level, ride
-  the names cluster / base upgrades): `ScadaData.buffer_temps_available`
-  lives on the BASE data class; `scada.py`'s first-buffer-reading
-  fast-forward hack assumes a buffer; `HydronicSpaceheatNodeNames`'
-  docstring claims buffer names for "every hydronic plant" — buffer
-  names belong a tier down when the bufferless families arrive. The iso
-  valve is already Nolan-scoped (no contamination).
-- Third-layout question (2026-09-01): no invented family;
-  `gw1.simple.sim.layout` loadability queued as the N=3 stress test, and
-  the standing rule is **a new family's sim pair ships in the same wave
-  as its word**.
-- **DEVIATION (superseded by the blessing above):** `hydronic/shared.py` is a third file the
-  agreed two-file shape didn't have — the move surfaced genuinely
-  family-neutral material (zone-circuit relay helpers, the vdc pair,
-  onpeak/setpoint judgment, temperature access). Bless or redistribute.
-- Deferred upgrades (not in the move): House0-flavored channel lists
-  still built in `ShNodeActor.__init__`; `Scada.set_command_tree`
-  mechanics dedupe done only at the construction funnel (its rewrite
-  logic still its own); `zone_setpoints` attr lives in A but is used by
-  shared.
 
 ## Deletion pass (signed off + executed 2026-09-01)
 
@@ -140,8 +113,7 @@ build-up), `show_settings.py` (works, operator config check),
 `getkeys.py` (TLS commissioning tool). `scratch*` are personal
 scratchpads (`.gitignore` covers them; `scratch.py` predates the rule —
 untrack with `git rm --cached`). Lesson: importer-count is the wrong
-liveness test for operator CLIs. Awaiting sign-off:
-`run_async_actors_main` (orphaned by run_scada's deletion).
+liveness test for operator CLIs.
 
 ## Sequencing decision (2026-09-01, supersedes the hack-first debate)
 
@@ -154,249 +126,91 @@ before anything touches prod). The gridworks-data analysis
 (calc_hourly_data: House0-frozen channel strings, Nolan's NULL hp_kwh_el,
 relay-idx LIKE patterns) is the phase-3 seed material.
 
-## Handoff state (2026-09-05, session snug-mistral → next)
+## Done (the rope so far)
 
-**Landed this session:** scada `8166acc6` (conformance sweep checks the
-layout closure in reverse: gwsproto vendors the tlayouts snapshot
-registry at `packages/gridworks-scada-protocol/sema_closure/`, the
-standing test requires every closure word to have a gwsproto twin, and
-the wiki Stop hook `stop-snapshot-closure-sync.sh` blocks while the copy
-and the snapshot differ — refresh the copy in every snapshot wave);
-tlayouts `d6a995e` (Nolan gen emits DAC outputs, honeysuckle TODO folded
-in); scada `341c99de` (move 3: DAC output actuator — see item 3).
-Move 3's fixture swap is done; its **word side is
-the next move: the word gate below.**
+One row per rope chunk. Estimates are the `r:sim-green` rows in
+`admin/jess-estimates.md`; Actual is the sum of that log's scratch rows
+for the chunk (the roll-up into the log's Actual column is queued on the
+hub). The what/why of each commit is in the scada changelog.
 
-**Sema round 2, remaining moves, in order** (spec: `layout-word-axioms.md`;
-decisions settled there 2026-09-02). **Next move: the bench failures under item 3** (moves 1-3 and the word gate landed;
-one commit per repo).
+| Chunk | Est. (point, 90%) | Actual | Commits |
+| --- | --- | --- | --- |
+| Partition ladder + names grill (2026-09-01) | 1.5h (1–3) | 1h, in interval at bound | scada `bd13a371`; preceded by the Nolan sim pair + axioms 3–8 mirrors `617b5370` `4d5e552a` `bca080f7` (08-31, before the rope rows) |
+| Deletion pass (2026-09-01) | none | in the row above | in `bd13a371` |
+| Layout-word axioms + rev B + component identity (2026-09-01–02) | none (scratch row only) | 3h on 09-02 + a 09-01 portion still to patch | scada `963ccddc` `0311749b` |
+| Sema round 2, moves 1 + 1a: House0 word, Honeywell read, sim House0 pair (09-02) | 6h (4–12) for moves 1–4 together | 2.45h | sema `dfe93be`; scada `050fdd54` `98291cb6` `31a97366`; tlayouts `cdf531c` |
+| Move 2: sieg split, `Strategy` → `HardwareLayoutTypeName`, `HpCommandNodeName` + `CommandableHeatPump` + tree axioms, gwsproto port (09-02–03) | (same row) | 2h + 2h | sema `8451769` `7c3e0bd` `998b9c7` + `jm/layout-tree-axioms`; scada `d4faae53` `0d4ec979` `cd6244dd` `cc44c626`; tlayouts `1741a26` |
+| Move 3: DAC output actuator + word gate + reverse conformance sweep (09-04) | (same row) | 1.3h + 0.4h | scada `8166acc6` `341c99de` `5940d1b9`; tlayouts `d6a995e` `335e946`; sema `d6f59e7` |
+| Sequencing read + dac-output spoke (09-02) | (same row) | 0.5h | wiki only |
+| dac-output tail: step 4 harness, honeysuckle bench rung, SIMULATED root cause, proactor CONNACK fix, step 5 rehearsal + two spruce windows (09-04–06) | (same row, see note) | 1.8 + 0.7 + 0.25 + 3.0 + 1.0 + 1.5 + 2.0 + 1.5 = 11.75h | scada `0f1ff7be` `59284cc5` `ba2c9883` `a6833464` `829038b2`; proactor `3e5087f` (`v4.1.13+jm2`); tlayouts `0a051f9`; `experiments/2026-09-05-dac-output-bench/`, `experiments/2026-09-06-spruce-pump-speed-sweep/` |
 
-1. ✅ **House0 word** (landed 2026-09-02: sema `dfe93be`, scada
-   `050fdd54`, tlayouts `cdf531c`): axioms 10 RequiredActuators + 11
-   RequiredHeatpumpEquipment, mirror + rejecting tests, fixture on the
-   beech real shape (LG parts, Honeywell circuit).
-1a. ✅ **Honeywell read + sim House0** (built 2026-09-02, commits
-   pending at handoff: sema `SimHpIdu`; tlayouts `house0_sim_sema_gen.py`
-   + gen fold-in; scada sim pair `tests/config/gw.house0.sim.*` booting
-   beside beech, 269 passed). Read findings + the queued thermostat
-   chunk: `unsorted.md`. Order to land: sema → rebuild the tlayouts
-   snapshot (`./build_tlayouts_snapshot.sh` refuses a dirty sema tree)
-   → tlayouts → scada.
-2. **One commit per repo, three word moves together** (all edit the
-   layout words / `gw.hydronic` with mirrors and one regen wave, no
-   fixture swap):
-   - ✅ **The `gw.hydronic` sieg split** (landed 2026-09-03: sema
-     `8451769`, tlayouts `1741a26`, scada `d4faae53`; plus `layout.lite/013`
-     `Strategy` → `HardwareLayoutTypeName`, sema `7c3e0bd` / scada
-     `0d4ec979`; `UseSiegLoop` reads go through
-     `ScadaData.use_sieg_loop`, the assembly check is
-     `sema_to_dc.check_sieg_loop_assembly`, has-sieg is
-     `HydronicLayout.flow_manifold_variant_of`) (spoke "Dropped / superseded"):
-     drop `SiegLoopPlumbed` — invariant for the word, nothing reads it;
-     scada derives has-sieg from the presence of a SiegLoop-classed node
-     (true for the coming no-sieg word without a type check). Move
-     `UseSiegLoop` to `gw.house0.operational.params` — USING is
-     operational; the ten `layout.use_sieg_loop` reads (`scada.py`,
-     `command_node.py`, `hp_boss.py`, `api_btu_meter.py`,
-     `api_flow_module.py`) repoint to ops. Hydronic axiom 1 retires into
-     a scada assembly check (ops says use it ⇒ the layout has it).
-     Shared staging word: Nolan fixture + mirror, both House0 fixtures,
-     the Hydronic mirror and the House0 gen ride along.
-   - ◐ **`Hydronic.HpCommandNodeName` + `CommandableHeatPump` + ActuatorLeaves,
-     SEMA SIDE LANDED** (sema `998b9c7`, 2026-09-03): optional `HpCommandNodeName`
-     (`spaceheat.name`) on `gw.hydronic`; House0 axiom 12 / Nolan axiom
-     10 `CommandableHeatPump` (biconditional; RequiredHeatpumpEquipment's
-     NoActor clause defers to it); `new.command.tree/002` axiom 2
-     `ActuatorLeaves` with `gw1.actor.class:013` as axiom dependency and
-     dormancy in the extended description. Both sim fixtures validate
-     unchanged. **gwsproto port BUILT 2026-09-03 (scada commit
-     pending, 289 passed):** `House0Layout.check_axiom_12`,
-     `NolanLayout.check_axiom_10`, equipment checks skip the declared
-     node, `NewCommandTree.check_axiom_2`, `layout.actuators` returns the
-     declared node, rejecting tests per clause, coverage allowlists back
-     to empty/without them. **Also 2026-09-03 (sema branch
-     `jm/layout-tree-axioms`, commit pending; scada mirrors in the same
-     pending scada cluster, 298 passed):** both layout words carry the
-     tree word's `PrefixClosedHandles` + `ActuatorLeaves` (House0 13/14,
-     Nolan 11/12, identical wording); one gwsproto implementation in
-     `type_helpers/command_tree_axioms.py` serves all three types. After
-     the sema commit: rebuild the tlayouts snapshot again (layout words
-     changed) before the tlayouts snapshot commit. Move 2 is then complete.
-     **Also built 2026-09-03, riding the same three commits:** `Hydronic.Strategy`
-     dropped from `gw.hydronic` (family = the layout word); scada
-     `FlowManifoldVariant` deleted with nothing in its place (the House0
-     word means has-sieg; its dc-side manifold check duplicated axiom 8
-     and `House0LoadArgs` collapsed into `LoadArgs`), LocalControl loader
-     dispatches with `isinstance` on `layout.sema_layout`; the three new axioms sit in the coverage
-     allowlists as known unported/untested debt until the mirror port;
-     tlayouts gens drop the strategy label. Commit order: sema
-     `gw.hydronic: drop Strategy` (5 files, pending) → tlayouts snapshot
-     rebuild + sim-pair regen (should match the hand-edited scada
-     fixtures byte for byte) → tlayouts commit → scada commit.
-   - **new.command.tree/002 axiom 2 `ActuatorLeaves`** (sema side built
-     with the bullet above; `NewCommandTree` mirror gains `check_axiom_2`
-     in the scada commit), wording agreed
-     (leaf / actuator / command-node definitions at the top; NoActor
-     waypoints are the LocalControl node's children; dormancy of leaf
-     command nodes in `extended_description`, not a clause);
-     `gw1.actor.class:013` as axiom dependency.
-3. ✅ **DAC actuator (1b)** (landed 2026-09-04: tlayouts `d6a995e`, scada
-   `341c99de`): `ZeroTenOutputer` keys its mechanism on the component
-   (I2cDacOutputComponent → board DAC through `I2cBus`; no component →
-   House0's DFR multiplexer forward, noted as the missing per-output DFR
-   word); the writer actor, its three gwsproto mirrors and tests are
-   gone; the Nolan fixture carries `secondary-010v` (Dac2 C, power-on
-   code 3020 held exactly until the first dispatch; `AnalogDispatch.Value`
-   is volts × 10). **Word gate landed 2026-09-04** (sema `d6f59e7`,
-   tlayouts `335e946`, scada `5940d1b9`): Nolan axiom 5 gains
-   clause c (`secondary-010v`, ZeroTenOutputer, ComponentId an
-   `i2c.dac.output.component.gt`); both layout words and the tlayouts
-   seed drop the writer trio, so the closure no longer reaches it and
-   the scada reverse-conformance allowlist is empty; gwsproto mirror +
-   two rejecting tests. House0's `*-010v` ComponentId clause and the
-   per-output module word defer to the krida shift (`dac-output.md`
-   "Decided 2026-09-04"); the ConfigList rule is canonized in
-   `executor/components.md`. **Bench rung RAN 2026-09-05**
-   (`experiments/2026-09-05-dac-output-bench/`, FAIL, reproducer in
-   place): the admin dispatch reaches the scada and is forwarded, but
-   never reaches `ZeroTenOutputer` (no log, chip unchanged; suspect
-   `Scada._send_to`'s silent fall-through for an unrouted node or the
-   boss-handle rewrite under Admin), and `verify_eeprom` reprograms
-   every boot on EEPROM bytes that match the layout. **Test-first pass RAN 2026-09-05 (session
-   mighty-capon, scada commit pending):** the bench's two "failures"
-   were one cause, the pi booted SIMULATED (no TaDeed, sim parts in the
-   honeysuckle layout), so the fake chip took the dispatch and the
-   verify; routing and comparison pass on the Nolan fixture
-   (`tests/actors/test_admin_on_nolan.py`, `test_zero_ten_outputer.py`).
-   **The gwproactor connect-reason-code fix landed** (proactor
-   `3e5087f`, tag `v4.1.13+jm2`, scada pin `0f1ff7be`) and the
-   honeysuckle rung re-ran on it: the dispatch reaches the outputer on
-   the box, but the boot is still SIMULATED (`dac-output.md` "Why the
-   bench was simulated"). **Next move, first:** grill Jessica on the best
-   way to test the chip on honeysuckle. Dropping the two sim tank
-   modules is out: the layout requires the channels they capture, so
-   a sim-free honeysuckle layout would fail its own axioms. Candidates
-   to grill: a bench-only realness exemption, a sim device kind that
-   does not trip the derivation, or reading the chip through a path
-   that is not the scada's `I2cBus`. **Then:** the `scada.control.capabilities` in-place edit
-   (staging) that drops the required Krida component, then the
-   gridworks-admin package for Nolan, both written up in
-   `admin-for-nolan.md` "What the admin tool needs from a scada"; the
-   failing test is `test_control_capabilities_on_nolan`. The bench
-   re-run waits on the realness decision in `dac-output.md` "Why the
-   bench was simulated". Then `dac-output.md` step 5, queued as
-   `experiments/2026-09-06-spruce-pump-speed-sweep/` (folder + on-box
-   driver built and rehearsed 2026-09-06; the calibration-version
-   boot-blocker found that day is fixed, see `dac-output.md`; the
-   window waits on the spruce env + housekeeping items in the folder
-   README).
-4. **hp-twin fixture**: tlayouts config axis → `gw.nolan.layout.hp-twin.json`
-   (hp-ctrl-box as HpTwin under hp-boss, its component the MIM modbus
-   bridge) + a dormant HpTwin stub so both fixtures boot. hp-boss
-   driver selection keys on the control box's DeviceType value: a
-   real value selects the modbus driver, `SimSamsungAE055FEYMCG` the
-   sim twin; sim parts carry no device-type records.
+Sema round 2 against its 6h (4–12) row: the three word moves alone sum
+to 8.15h (inside the interval, over the point); with the dac-output tail
+they sum to 20.4h, past the high bound. Whether the tail counts against
+that row or is its own rope chunk opened by move 3 is an open call for
+the roll-up; move 4 (hp-twin) is still in the queue either way.
 
-**Handoff state (2026-09-06 night → next).** Read THIS paragraph,
-then `pico-cycler-command.md` whole (short); nothing else to start.
-The spruce pump-speed window is DONE, four runs, all in
-`experiments/2026-09-06-spruce-pump-speed-sweep/` "Found": the curve
-is linear 3.5-8.5 V at 1.45 gpm/V with maximum from 9 V and no path
-dependence in the band; below 2.5 V the stop behaviour is path
-dependent (runs at 0.7 V from below, stays stopped to 0.7 V from
-above), unlike the booklet's bands. Run 2 lost its flow data to a
-flatlined pico under a dormant cycler; landed the same night as the
-HACK `829038b2` (vdc-relay stays under `auto.pico-cycler` for every
-boss, cycler never sent dormant), spoke "Interim hack". dac-output
-step 5 is complete; its Verified stamp waits on the spoke review.
-Spruce is restored (services active, window files removed, dev.env
-carries the admin block, box README current). Trees: scada
-`jm/spruce-unlimbo` at `829038b2` clean; experiments `main` at
-`2b2d189` plus the uncommitted run 2b/3 evidence and README in the
-sweep folder; tlayouts `jm/spruce` at `0a051f9` unpushed (18 commits).
-The pump's curve, its two-state stop region and the working values
-(3-9 V; stop at 1.5 V; start at 3 V; 0 V is minimum speed, not off)
-are captured in `unsorted.md` with the note that the pump model
-belongs in the layout as a device-type word. **Next move, first:**
-`pico-cycler-command.md` items 1 and 1a (the real fix that retires
-the hack), vocabulary question open with Jessica. Then the
-command-tree matrix with the LC dormant-sequence row.
+What the rope found on the way, kept as facts:
 
-**Handoff state (2026-09-06, session upbeat-finch → next).** Read
-THIS paragraph, `dac-output.md` step 5 + "Blocker found and fixed",
-and the sweep README's "Before the window"; nothing else in these
-spokes is needed to start. Landed: tlayouts `0a051f9` (calibration
-word seeded into the snapshot, gen builds it through the class, sim
-tanks carry spruce's calibration), scada `a6833464` (closure copy +
-Nolan fixture with four affine channels + mirror docstring), the
-experiments folder `2026-09-06-spruce-pump-speed-sweep/` (on-box
-driver `sweep.py`, emitter, archived spruce pair, full runbook;
-rehearsed green against the sim Nolan scada: 34 levels echoed, four
-relays under admin). Trees: sema `dev` at `d6f59e7` clean; tlayouts
-`jm/spruce` at `0a051f9`; scada `jm/spruce-unlimbo` at `a6833464`,
-suite 310 passed / 3 skipped / 1 xfailed. Changelogs reconciled, no
-pending markers. **Next move, first:** the spruce window itself,
-which is Jessica's to open: (1) on spruce, add the five
-`SCADA_ADMIN__*` lines to `~/envs/dev.env` and record them in the box
-README, (2) settle the home-dir leftovers (the unlimbo checkout STAYS,
-the harness boots from it), (3) pull `~/experiments` and
-`~/gridworks-scada-unlimbo`, then the runbook top to bottom. **Then**
-the command-tree matrix (item 1 under "Do this next"), which now
-carries the LC dormant-sequence finding as a row. Open findings not
-yet acted on: `test_control_capabilities_on_nolan` still xfails on
-the House0 Krida requirement (admin-for-nolan.md); the admin panel's
-own MQTT client ignores CONNACK reason codes (dac-output.md failures
-item 4). Do NOT read the spokes whole: the sections above are the
-orientation (GridWorks_CLAUDE "Context is a budget").
+- The Honeywell thermostat actor files are byte-identical to `main` and
+  their plumbing survives the DeviceComponent/sema port unchanged; read
+  findings in `unsorted.md`.
+- The bench's two "failures" had one cause: the pi booted SIMULATED.
+  Routing and comparison pass on the Nolan fixture
+  (`tests/actors/test_admin_on_nolan.py`, `test_zero_ten_outputer.py`);
+  run 4 then passed on the real MCP4728 once the board record selected
+  the silicon (`59284cc5`); the boot still carries the `SIMULATED` label,
+  which is the `is_simulated` decompression in the queue.
+- **The admin link talked to the scada through a refused connection.**
+  With a wrong admin password the broker refused every CONNACK, and
+  gwproactor queued a connect on each refusal anyway: the link moved to
+  `awaiting_setup_and_peer`, emitted `mqtt.connect` and subscribed on a
+  socket the broker was closing, so the admin appeared connected while
+  nothing it sent could arrive. Fixed in gwproactor `3e5087f`
+  (`v4.1.13+jm2`, scada pin `0f1ff7be`): a refusal rides the
+  `mqtt_connect_failed` edge with its reason logged, verified against a
+  real password-gated mosquitto (`experiments/2026-09-05-dac-output-bench/`
+  README "Side findings", reproducer `test_connect_refused.py`). The admin panel's own client
+  (`constrained_mqtt_client.py`) still has the flaw, open below.
+- **Admin and scada both believed admin was in control after the
+  connection was gone** (bench run 4, 2026-09-05, scada `ba2c9883`,
+  log `boot-2026-09-05-run4.log`). The laptop's ssh tunnel had died
+  silently; the client disconnected eight seconds after its send, and
+  nothing on either side said so. The admin link never left `active`,
+  the scada stayed in Admin with LocalControl Dormant, and the only
+  thing that ends Admin is a fixed 120 s timer from the last admin
+  message, which here fired after SIGTERM, so the auto machine woke and
+  rewrote the command tree during teardown. An operator can believe they
+  are controlling a scada they are not, and the scada can sit in Admin
+  with no operator attached. The link has a `send_ping<admin>` task but
+  no peer-liveness rule behind it. Full log and the preferred fix
+  (`heartbeat.a`, both sides beat, a missed beat releases Admin in
+  seconds, the client shows live only while its echo comes back):
+  `unsorted.md` "admin" item. Open below.
+- Spruce pump-speed sweep (`experiments/2026-09-06-spruce-pump-speed-sweep/`
+  "Found"): linear 3.5–8.5 V at 1.45 gpm/V, maximum from 9 V, no path
+  dependence in the band; below 2.5 V the stop is path dependent. Working
+  values in `unsorted.md`. Run 2 lost its flow data to a flatlined pico
+  under a dormant cycler, hence the HACK `829038b2`
+  (`pico-cycler-command.md` "Interim hack"). The DAC output actuator is
+  canonized in `executor/hardware-layout.md` "The 0-10V output actuator".
 
-**Trees at handoff (2026-09-05, session snug-mistral):** sema `dev` at
-`d6f59e7` (cut `jm/<topic>` before any sema edit); tlayouts `jm/spruce`
-at `56dbcd1`, clean; scada `jm/spruce-unlimbo` at `5940d1b9`, clean and
-checked out on honeysuckle (admin link enabled in its `.env`, standing
-layout restored, 153 old events in `event-archive/`). The experiments
-folder holds uncommitted new files (`2026-09-05-dac-output-bench/`,
-`future/spruce-pump-speed-sweep/`, logbook lines). The tlayouts snapshot and the gwsproto closure copy
-are both at sema `d6f59e7`. Changelogs reconciled, no pending markers.
-Two House0 fixtures boot: `gw.house0.layout.json` (hand-kept beech real
-shape: LG parts, Honeywell circuit) and `gw.house0.sim.*` (from
-`tlayouts/house0_sim_sema_gen.py`); the named-type and prefix-closed
-tests run over both. The beech fixture still fails `sema validate` on
-pre-existing shape (three channels carry InPowerMetering, four
-components predate their words' config shape) — closes with a
-translated beech gen, not by hand. Estimate row: OPS-392 point 6h;
-scratch rows on the scoreboard for 09-02, 09-03 and 09-04 — sum at wrap.
+## State (2026-09-06)
 
-Then the tree matrix (`command_node.py` review) and the queued chunks
-(pico-cycler command 4h, krida retirement 6h).
-
-**Honeywell layout-plumbing read (2026-09-02, no code changed):** the
-four thermostat actor files are byte-identical to `main`; the plumbing
-they consume (`hardware_layout.component(name)`, `get_component_as_type`,
-`node_from_component`, the poller's `resolve()` building its REST
-settings from the hub's MakerAPI URL, `web_listener_nodes`) survives the
-DeviceComponent/sema port unchanged in behaviour, and the beech-shaped
-fixture carries every input the poll path needs (hub + poller
-components, `zone1-main-temp/-set/-state` captured by the stat node,
-s2 forwarding SyncedReadings with Src preserved). Findings:
-(1) the web-listen path is dead in the field on `main` and here:
-`HubitatWebEventHandler.__call__` uses `time.time()` with no `time`
-import and swallows the NameError in a bare except; and the stat node
-runs under `s2` while the hub's web server runs under `s`, so neither
-side ever finds the other's communicator to register handlers.
-Polling is the only live path. (2) LocalControl reads setpoints by
-scraping channel names (`'zone' in x and 'set' in x`) rather than the
-circuit's Thermostat, and nothing consumes `Thermostat.ComponentId` or
-`ThermostatKind` yet. (3) No test constructs the Hubitat or
-HoneywellThermostat actors; a poller test on a canned MakerAPI refresh
-response is the first coverage to add.
-
-**Standing cautions:** repo-wide ruff has ~70 pre-existing findings
-(`--fix` sanctioned after a commit); `run_async_actors_main` deletion +
-`git rm --cached scratch.py` await sign-off; the tlayouts snapshot builder
-refuses a dirty sema tree, so sema commits land before snapshot rebuilds;
-`gen_oak_sema.py` still passes the retired `zone_device_ids` and stays
-guarded behind the missing no-sieg word; the scada changelog's two 08-31
-entries sit above the 09-02 ones.
+Trees: sema `dev` at `d6f59e7`, clean (cut `jm/<topic>` before any sema
+edit); tlayouts `jm/spruce` at `0a051f9`, 18 commits unpushed; scada
+`jm/spruce-unlimbo` at `829038b2`, clean, suite 310 passed / 3 skipped /
+1 xfailed; experiments `main` at `2b2d189` plus the uncommitted run 2b/3
+evidence and README in `2026-09-06-spruce-pump-speed-sweep/`. The tlayouts
+snapshot and the gwsproto closure copy are both at sema `d6f59e7`.
+Changelogs reconciled, no pending markers. Honeysuckle runs scada
+`5940d1b9` with the admin link enabled in its `.env` and the standing
+layout restored. Spruce is restored after the sweep: services active,
+window files removed, `dev.env` carries the admin block, box README
+current. Two House0 fixtures boot: `gw.house0.layout.json` (hand-kept
+beech real shape: LG parts, Honeywell circuit) and `gw.house0.sim.*`
+(from `tlayouts/house0_sim_sema_gen.py`); the named-type and
+prefix-closed tests run over both.
 
 ## Names grilling decisions (2026-09-01; landed in `bd13a371`)
 
@@ -495,79 +309,147 @@ principles (one settled name per commit):
 
 ## ▶ Do this next
 
-The names grilling is done and the combined commit landed (`bd13a371`);
-each further settled change is its own commit. Now: the file-by-file
-review WITH Jessica — functionality evaluation + first-ever tests per
-file, in service of the single focus (sim House0 + sim spruce green with
-real coverage; see GridWorks_CLAUDE ⏳ note). Order:
-1. `actors/command_node.py` (207 L): tree navigation, `set_command_tree`,
-   the `build_command_tree` funnel, relay-command mechanics
-   (`send_state_command`, `energize`, `de_energize`, `actuator_config`).
-   Test candidates: `the_boss_of`/`my_actuators` truth table;
-   `set_command_tree` prefix-guard + sieg/non-sieg handle rewrites;
-   funnel publishes an axiom-valid tree (NewCommandTree now validates).
-   **The state-transition tree matrix (the big one — believed to catch
-   real bugs):** today's only coverage calls `scada.set_command_tree`
-   DIRECTLY (3 bosses × 2 fixtures); nothing tests the trees the actual
-   STATE TRANSITIONS produce. Drive each transition on both fixtures —
-   admin wakes up / times out / releases; ally suit-up and hand-back;
-   every LC top-event (incl. `set_limited_command_tree`'s backup and
-   scada-blind paths, House0 only); sieg vs non-sieg — capture every
-   published tree, and assert each constructs (axiom 1 fires on orphan
-   prefixes) AND matches the expected handle shape for that state.
-   Jessica believes some of these are wrong today; the failures are the
-   deliverable. **Matrix item found 2026-09-06** (rehearsing the spruce
-   sweep driver against the sim Nolan scada): a transition landing
-   mid-sequence. `NolanLocalControl.command_sequence` paces its steps
-   15 s apart and never re-checks `top_state`, so after admin woke the
-   scada (TopGoDormant at 08:15:38.956) the LC's in-flight `turn_on_hp`
-   still sent CloseRelay to the secondary pump at 08:15:53, caught only
-   by the relay's rights check (`Tried to command CloseRelay … didn't
-   have the rights: FromHandle auto.lc.n must be immediate boss of
-   ToHandle admin.secondary-pump-relay`). Dormant means commands
+**Next move:** `pico-cycler-command.md` items 1 and 1a, the real fix that
+retires the hack `829038b2`; the vocabulary question is open with Jessica.
+Read that spoke whole (short); nothing else is needed to start.
+
+**Queue, in order.** Each item is its own commit with its own estimate
+(scopes on OPS-392). Jessica reviews each file before it lands:
+functionality evaluation plus first-ever tests per file, in service of the
+single focus (sim House0 + sim spruce green with real coverage;
+GridWorks_CLAUDE ⏳ note).
+
+1. **`pico-cycler-command.md` items 1 and 1a** (4h).
+2. **The command-tree matrix** (`actors/command_node.py`, 207 L): tree
+   navigation, `set_command_tree`, the `build_command_tree` funnel,
+   relay-command mechanics (`send_state_command`, `energize`,
+   `de_energize`, `actuator_config`). Test candidates:
+   `the_boss_of`/`my_actuators` truth table; `set_command_tree`
+   prefix-guard + sieg/non-sieg handle rewrites; funnel publishes an
+   axiom-valid tree (NewCommandTree now validates). **The state-transition
+   tree matrix (the big one, believed to catch real bugs):** today's only
+   coverage calls `scada.set_command_tree` DIRECTLY (3 bosses × 2
+   fixtures); nothing tests the trees the actual STATE TRANSITIONS
+   produce. Drive each transition on both fixtures: admin wakes up / times
+   out / releases; ally suit-up and hand-back; every LC top-event (incl.
+   `set_limited_command_tree`'s backup and scada-blind paths, House0
+   only); sieg vs non-sieg. Capture every published tree, and assert each
+   constructs (axiom 1 fires on orphan prefixes) AND matches the expected
+   handle shape for that state. Jessica believes some of these are wrong
+   today; the failures are the deliverable. **Row found 2026-09-06**
+   (rehearsing the sweep driver against the sim Nolan scada): a
+   transition landing mid-sequence. `NolanLocalControl.command_sequence`
+   paces its steps 15 s apart and never re-checks `top_state`, so after
+   admin woke the scada (TopGoDormant at 08:15:38.956) the LC's in-flight
+   `turn_on_hp` still sent CloseRelay to the secondary pump at 08:15:53,
+   caught only by the relay's rights check (`Tried to command CloseRelay
+   … didn't have the rights: FromHandle auto.lc.n must be immediate boss
+   of ToHandle admin.secondary-pump-relay`). Dormant means commands
    nothing; the matrix drives the admin wake-up DURING a sequence and
    asserts no command leaves the LC after the transition. The same
-   rehearsal witnessed admin driving all four Nolan relays (pump,
-   iso, store pump, hp call) plus the DAC through the rewritten tree,
-   the shape the matrix's "admin wakes up" row asserts.
-  Then, in this section with their own estimates (scopes on OPS-392);
-  `pico-cycler-command.md` runs FIRST, before the matrix (2026-09-06):
-     - `pico-cycler-command.md`
-     - `dac-output.md`
-     -  `krida-retirement.md`
-     
-     -  REMOVE all gw1's and gw's in the snapshot generation for tlayouts.
-  
-2. `actors/hydronic/shared.py` (~250 L): zone-circuit relay helpers, vdc
-   pair, onpeak/setpoint judgment, `latest_temps_f`. Shared bar: "every
-   layout we can imagine has this."
-3. `actors/hydronic/house0.py` (~990 L): choreography + judgment; the
-   judgment methods (`is_buffer_*`, `is_storage_*`) are the thinnest
-   coverage in the repo and each needs a functionality conversation, not
-   just a test.
-Jessica reviews each file carefully before it is added; expect to
-evaluate functionality and add tests as part of each review.
+   rehearsal witnessed admin driving all four Nolan relays (pump, iso,
+   store pump, hp call) plus the DAC through the rewritten tree, the shape
+   the "admin wakes up" row asserts.
+3. **`krida-retirement.md`** (6h): the `scada.control.capabilities`
+   in-place edit (staging) that drops the required Krida component, then
+   the gridworks-admin package for Nolan, both written up in
+   `admin-for-nolan.md` "What the admin tool needs from a scada"; the
+   failing test is `test_control_capabilities_on_nolan` (xfail today).
+4. **hp-twin fixture:** tlayouts config axis →
+   `gw.nolan.layout.hp-twin.json` (hp-ctrl-box as HpTwin under hp-boss,
+   its component the MIM modbus bridge) + a dormant HpTwin stub so both
+   fixtures boot. hp-boss driver selection keys on the control box's
+   DeviceType value: a real value selects the modbus driver,
+   `SimSamsungAE055FEYMCG` the sim twin; sim parts carry no device-type
+   records.
+5. **`actors/hydronic/shared.py` review** (~250 L): zone-circuit relay
+   helpers, vdc pair, onpeak/setpoint judgment, `latest_temps_f`. Shared
+   bar: "every layout we can imagine has this."
+6. **`actors/hydronic/house0.py` review** (~990 L): choreography +
+   judgment; the judgment methods (`is_buffer_*`, `is_storage_*`) are the
+   thinnest coverage in the repo and each needs a functionality
+   conversation, not just a test.
+7. **Finish the `is_simulated` decompression.** The 2026-09-05 pass
+   (scada `59284cc5`) took hardware backend selection and the fake
+   control inputs off the bit; what is left needs vocabulary. Provoked by
+   this partition, so it lives here; if this spoke keeps growing it
+   becomes a folder.
+   - **Sema:** the first-pass `TaDeed` type, the `ValidationState` enum
+     (`UnValidated`, `ValidatedRealAssetAndGps`,
+     `ValidatedRealAssetIncorrectGps`, `ValidatedSimulatedAsset`), and
+     the scada-to-LTN contract-rejection word (offered ContractId + the
+     scada's `ValidationState` as cause). Word-gate ritual per word, in a
+     sema-claiming session; gwsproto mirrors with rejecting tests.
+     Meanings and the transport-plane consequences are recorded under
+     OPS-420 ("TaDeed and the validation plane") and in the deeds
+     exploration.
+   - **Scada:** read the deed into a `ValidationState` (`UnValidated`
+     with no deed); the placeholder `tadeed.json` becomes an instance of
+     the word. **Refuse every LTN contract offer while `UnValidated`**,
+     sending the rejection word, tested on the in-process LTN↔SCADA rig
+     (`test_auto_state.py`'s shape: `Created` offered, handler stays
+     empty, auto state stays LocalControl, LTN receives the rejection).
+     The Krida and DFR multiplexers move to a layout fact until their
+     sim twin words exist. `is_simulated` itself stays for its sim-time
+     job (simulated-test-environment `sim-time.md`).
+8. **Remove all `gw1`s and `gw`s in the snapshot generation for
+   tlayouts.**
 
-**Next step: finish the `is_simulated` decompression.** The 2026-09-05
-pass (scada `59284cc5`) took hardware backend selection and the fake
-control inputs off the bit; what is left is the part that needs
-vocabulary. Provoked by this partition, so it lives here; if this spoke
-keeps growing it becomes a folder.
+**Open findings and sign-offs** (unordered; each closes with a small
+commit or a decision):
 
-1. **Sema:** the first-pass `TaDeed` type, the `ValidationState` enum
-   (`UnValidated`, `ValidatedRealAssetAndGps`,
-   `ValidatedRealAssetIncorrectGps`, `ValidatedSimulatedAsset`), and the
-   scada-to-LTN contract-rejection word (offered ContractId + the scada's
-   `ValidationState` as cause). Word-gate ritual per word, in a
-   sema-claiming session; gwsproto mirrors with rejecting tests. Meanings
-   and the transport-plane consequences are recorded under OPS-420
-   ("TaDeed and the validation plane") and in the deeds exploration.
-2. **Scada:** read the deed into a `ValidationState` (`UnValidated` with
-   no deed); the placeholder `tadeed.json` becomes an instance of the
-   word. **Refuse every LTN contract offer while `UnValidated`**, sending
-   the rejection word, tested on the in-process LTN↔SCADA rig
-   (`test_auto_state.py`'s shape: `Created` offered, handler stays
-   empty, auto state stays LocalControl, LTN receives the rejection).
-   The Krida and DFR multiplexers move to a layout fact until their sim
-   twin words exist. `is_simulated` itself stays for its sim-time job
-   (simulated-test-environment `sim-time.md`).
+- **Admin↔scada peer liveness.** Neither side notices a dead link:
+  the scada holds Admin (auto Dormant) until a fixed 120 s timer, the
+  client shows "sent" as if in control. Fix shape in `unsorted.md`:
+  `heartbeat.a` in both directions, a missed beat on the scada side
+  releases Admin within seconds, the client shows live only while its
+  echo returns; `heartbeat.a` has no gwsproto mirror yet. Matters before
+  any spruce window where a human is holding the pump; candidate for
+  the queue ahead of that, graduating with the on-box sender or into
+  `admin-for-nolan.md`.
+- Deletion sign-off: `run_async_actors_main` (orphaned by `run_scada.py`'s
+  deletion); `git rm --cached scratch.py`.
+- Repo-wide ruff has ~70 pre-existing findings (`--fix` sanctioned after
+  a commit).
+- `gen_oak_sema.py` still passes the retired `zone_device_ids`; guarded
+  behind the missing no-sieg word.
+- The scada changelog's two 08-31 entries sit above the 09-02 ones.
+- The beech fixture `gw.house0.layout.json` fails `sema validate` on
+  pre-existing shape (three channels carry InPowerMetering, four
+  components predate their words' config shape); closes with a translated
+  beech gen, not by hand.
+- The admin release on the honeysuckle bench is still unwitnessed (run 4
+  timed out first).
+- The admin panel's own MQTT client ignores CONNACK reason codes, the
+  same flaw the proactor fix closed on the scada side; fixes with the gridworks-admin package changes.
+- Honeywell web-listen path is dead in the field on `main` and here:
+  `HubitatWebEventHandler.__call__` uses `time.time()` with no `time`
+  import and swallows the NameError in a bare except; the stat node runs
+  under `s2` while the hub's web server runs under `s`, so neither finds
+  the other's communicator. Polling is the only live path.
+- LocalControl reads setpoints by scraping channel names (`'zone' in x
+  and 'set' in x`) rather than the circuit's Thermostat; nothing consumes
+  `Thermostat.ComponentId` or `ThermostatKind` yet.
+- No test constructs the Hubitat or HoneywellThermostat actors; a poller
+  test on a canned MakerAPI refresh response is the first coverage to
+  add.
+- Deferred partition upgrades: House0-flavored channel lists still built
+  in `ShNodeActor.__init__`; `Scada.set_command_tree`'s rewrite logic
+  still its own (dedupe only at the construction funnel); `zone_setpoints`
+  attr lives in tier A but is used by shared.
+- Bufferless-fall flags (ride the names cluster / base upgrades, not the
+  mixin level): `ScadaData.buffer_temps_available` lives on the BASE data
+  class; `scada.py`'s first-buffer-reading fast-forward hack assumes a
+  buffer; `HydronicSpaceheatNodeNames`' docstring claims buffer names for
+  "every hydronic plant" (buffer names belong a tier down when the
+  bufferless families arrive). The iso valve is already Nolan-scoped.
+- `gw1.simple.sim.layout` loadability is the N=3 stress test (no invented
+  family); standing rule: a new family's sim pair ships in the same wave
+  as its word.
+- The pump model belongs in the layout as a device-type word
+  (`unsorted.md`).
+- Housekeeping: commit the sweep run 2b/3 evidence + README in
+  experiments; push tlayouts `jm/spruce`.
+- Estimates roll-up: the scratch rows behind the Done table (09-01
+  through 09-06) into the `r:sim-green` Actuals, with the tail question
+  above decided.

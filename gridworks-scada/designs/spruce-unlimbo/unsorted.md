@@ -16,8 +16,8 @@ Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
   are controlling a scada they are absolutely not controlling, and the
   scada can sit in Admin, its auto machine Dormant, for the whole timeout
   with no operator attached. Matters before any spruce window where a
-  human is holding the pump; it graduates with the on-box sender move
-  (dac-output.md "Do this next") or into `admin-for-nolan.md`.
+  human is holding the pump; it graduates into `admin-for-nolan.md` or its own chunk
+  (`sh-node-actor-partition.md` open findings).
 
   What the scada experienced (`experiments/2026-09-05-dac-output-bench/
   boot-2026-09-05-run4.log`, pi time; the client disconnected eight
@@ -111,9 +111,8 @@ Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
   home: it is the pi attached to a real gw108 at the Stoneman
   microgrid (tailscale `100.118.30.38`), and there is a real eGauge on
   site, so its power meter is `egauge` with that eGauge's identity, not
-  a sim knob. Fix when the bench rung of the DAC output actuator needs
-  the layout regenerated (`dac-output.md` step 4); until then the
-  deployed bench layout is the last good output.
+  a sim knob. Fix at the next honeysuckle regen; until then the deployed bench
+  layout is the last good output.
 - **Pumps need a type in the layout (2026-09-05).** Nothing in a layout
   says what each pump IS: make and model, and with it the control kind
   (0-10 V, PWM, on/off, fixed-speed) and the curve the control code

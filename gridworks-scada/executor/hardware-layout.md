@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-06-23
+Status: Draft · Pass 0 · Updated 2026-09-07
 
 # The hardware layout
 
@@ -321,6 +321,17 @@ temperature is the raw device reading run through a **linear correction**
   (no correction) and carries no Calibration. `derived_generator.handle_affine`
   applies `M·x + B` then scales to `FahrenheitX100`.
 
+The calibration word sits outside the layout closure: `derived.channel.gt`
+types `Parameters` as a bare object and declares no dependency on
+`linear.one.dimensional.calibration`, so neither the tlayouts snapshot
+validation nor the scada reverse-conformance check would see a version
+skew there (a `001` in the artifact against gwsproto's `000` pin refused
+every affine channel at boot on 2026-09-06). tlayouts therefore seeds the
+calibration word into its snapshot and builds the calibration through the
+snapshot class, so the word rides the closure copy and the standing scada
+conformance check covers it; the Nolan sim fixture carries its real twin's
+four affine channels so the suite's artifact-boot test covers the path.
+
 **How the coefficients are found.** They are **hand-discovered**: probe readings
 are logged to the database, compared against reference temperatures in a
 spreadsheet, and the per-depth `M`/`B` that best fit are read off and encoded.
@@ -471,6 +482,28 @@ gained register ops (`I2cReadReg`/`I2cWriteReg`) alongside the bit ops.
 > `i2c_relay_multiplexer`, the thermistor-reader and relay-component version
 > bumps, and minting the ADC/relay `gw1.device.type` values — is in flight,
 > tracked in the hardware-layout-pass-one design ([OPS-407](https://linear.app/gridworks/issue/OPS-407)).
+
+### The 0-10V output actuator
+
+The board DAC output is an actuator on the relay pattern: one node
+(`secondary-010v` on Nolan, ActorClass `ZeroTenOutputer`, a leaf under its
+boss in the command tree), one `i2c.dac.output.component.gt` naming the
+board and DAC channel with one `dac.output.config` (channel, EEPROM
+power-on code, reference, gain), one `VoltsTimesTen` DataChannel about and
+captured by the output node so the commanded level reports. As with
+`Relay`, the component selects the mechanism: an `I2cDacOutputComponent`
+drives the board DAC through `I2cBus`; no component means House0's DFR
+multiplexer forward (the per-output DFR word is missing; House0's
+`*-010v` nodes take per-output components with the krida shift). The
+command is `AnalogDispatch`, `Value` volts times ten, 0 to 100. At boot the
+actor verifies the chip EEPROM against the declared power-on values and
+reprograms only on a mismatch; its 60 s Multi-Write heartbeat re-asserts
+the LAST COMMANDED value, the power-on value only until the first command.
+An unwired DAC channel has no component and its EEPROM is never touched.
+Verified on the real MCP4728 2026-09-05 (`experiments/2026-09-05-dac-
+output-bench/` "Found", run 4: verify clean, a dispatched code read back
+from the chip 88 s later, EEPROM unchanged) and on spruce's secondary
+pump 2026-09-06 (`experiments/2026-09-06-spruce-pump-speed-sweep/`).
 
 ## Hacky/irregular bits (current)
 

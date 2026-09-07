@@ -66,6 +66,19 @@ becomes a pure layout fact.
    `Header.Src` (today it goes to `primary_scada`), so a relay
    confirms its own actuation by `TriggerId`.
 
+**The House0 010v nodes migrate to per-output components here.** Two
+0-10V mechanisms exist and only the gw108 one has code: the DFR modules
+are driven through the `zero-ten-multiplexer` node holding one
+`dfr.component.gt` with all three outputs in its ConfigList. Per-output
+components there need the outputer to resolve its own module and the
+multiplexer actor retired, the same shape as the relay side, so the
+per-output word (vendor-free name, `zero.ten.output.component.gt`
+proposed, linking field `ModuleComponentId`), the parent rename off the
+vendor name, the fixture surgery, House0 axiom 10's ComponentId clause
+and House0's ComponentBinding all land in this shift together (decided
+2026-09-04). Not needed for the command-tree matrix: House0's shape
+already puts the nodes in the tree.
+
 ## BoardBusList / layout-wide BusList (added 2026-09-02)
 
 The bus list today lives on `gw1.scada.device.type.gt` as `BusList` —

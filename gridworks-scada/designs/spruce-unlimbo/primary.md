@@ -50,9 +50,9 @@ real broker.
   three Millinocket installs); what each removes/adds
 - `pico-cycler-command.md` — interior-subtree rule + admin asks the
   cycler (never seizes vdc)
-- `dac-output.md` — the 0-10V output on the relay pattern (node +
-  board-resident component + tree leaf); bench then spruce before the
-  command-tree matrix
+- ✅ DONE dac-output — the 0-10V output on the relay pattern, distilled
+  into `executor/hardware-layout.md` "The 0-10V output actuator" and
+  `executor/running.md` "Experiment window on a deployed box"
 - `krida-retirement.md` — board-generic relay components; one
   actuation path in relay.py (scada half of the shipped sema
   decommission)

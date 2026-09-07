@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-06-10
+Status: Draft · Pass 0 · Updated 2026-09-07
 
 # Running an LTN + SCADA from a checkout (cold start)
 
@@ -98,6 +98,48 @@ current caveats:
 - A stale persisted `SlowContractHeartbeat` v000 in the state dir is
   rejected loudly by the now-v001 literal and ignored — harmless; clear
   `~/.local/share/gridworks/scada/event/` remnants if the noise bothers.
+
+## Experiment window on a deployed box
+
+A branch scada run on a deployed box (a "window": stop the services, boot
+the branch against the real plant, restore) keeps staging vocabulary off
+the production broker through three layers, and a window holds all three.
+
+1. **Status tier.** A staging layout cluster means dev brokers only. The
+   check is by hand today: every gwsproto schema pin and every word in
+   the closure copy (`sema_closure/registry.yaml`) against the registry's
+   status; `gwsproto_sema_conformance.py` has no release-gate flag. A
+   branch pinning non-published words cannot deploy beyond dev until they
+   promote.
+2. **Credential-structural.** The window scada keeps the box's real
+   identity but boots from `~/envs/dev.env`: dev-broker credentials only,
+   upstream host a localhost tunnel (`ssh -f -N -R 1885:localhost:1885
+   <box>`), never prod credentials, so staging-typed payloads physically
+   cannot reach the prod broker. The universe guardrail would refuse a
+   prod identity on localhost at a real boot; the harness runs inside its
+   test-boot exemption.
+3. **Paths-structural.** Boot through the window harness
+   (`WindowScadaApp`, `experiments/2026-08-10-ads-declared-rate/
+   window_boot.py`): its `paths_name()` override is the only paths-root
+   override that survives app construction, and it refuses to boot if the
+   event or log dirs resolve outside `~/.config/gridworks/scada-experiment/`.
+   Env-only overrides (`SCADA_PATHS__NAME`) are silently discarded. This
+   keeps the window's un-acked events out of the deployed scada's
+   persister.
+
+Window protocol on top of the layers: stop everything on the bus
+(`gwspaceheat-restart.timer`, `gwspaceheat`, any hack service; the transient
+timer restores them). Before restarting the deployed scada, remember its
+persister replays every un-acked event in its event dir to whatever broker
+it connects to (`start_reupload` on link-up): verify the deployed event dir
+(`~/.local/share/gridworks/scada/event/`) holds nothing window-born and
+archive-then-delete anything that is. One shutdown event once rode a
+deployed scada's startup reupload to prod and S3 through a shared paths
+root. Command senders run on the box itself from its `~/experiments` clone
+at a pushed SHA against `localhost:1883`; a window must not depend on a
+laptop tunnel, which can die silently. Stopping services, placing env
+files and restarting are the human's to run; a session preps the commands
+and the watch-list.
 
 ## Open
 

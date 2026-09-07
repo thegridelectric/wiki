@@ -46,8 +46,7 @@ Status: Draft · Pass 0 · Updated 2026-09-02 · Linear: OPS-392
    relays + 0-10V outputs (Nolan: `secondary-010v`, ActorClass
    ZeroTenOutputer, ComponentId an `i2c.dac.output.component.gt`;
    House0: the three `*-010v` nodes, Name + ActorClass only until the
-   krida shift gives them per-output components — `dac-output.md`
-   "Decided 2026-09-04"). The maybe-actuator heat pump never appears
+   krida shift gives them per-output components, `krida-retirement.md`). The maybe-actuator heat pump never appears
    here — only via axiom 5.
 7. **`RequiredHeatpumpEquipment`** (Nolan landed `e625ff6`; House0 as
    axiom 11, this round: `hp-odu` + `hp-idu`) — the heat-pump parts with components,
@@ -69,8 +68,8 @@ Status: Draft · Pass 0 · Updated 2026-09-02 · Linear: OPS-392
    ComponentBinding tests guard both fixtures (House0's skipped until
    the retirement).
 7b. **DAC output words** (words landed `912660c`; the fixture swap rides
-   the actor rebuild, 1b — see
-   `dac-output.md`): new `i2c.dac.output.component.gt` +
+   the actor rebuild, 1b; landed, `executor/hardware-layout.md` "The
+   0-10V output actuator"): new `i2c.dac.output.component.gt` +
    `dac.output.config` (+ `sim.dac.output.component.gt`); the writer
    trio (`i2c.dac.writer.component.gt`, `i2c.dac.channel.config`,
    `sim.dac.writer.component.gt`) orphaned in place with `replaced_by`
