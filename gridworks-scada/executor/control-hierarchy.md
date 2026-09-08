@@ -1,6 +1,6 @@
 # Control hierarchy — HSMs, the command tree, and the capability cover
 
-Status: Draft · Pass 0 · Updated 2026-09-07
+Status: Draft · Pass 0 · Updated 2026-09-08
 
 > What this is: how the SCADA's hierarchical state machines (HSMs) and the command tree work **together**
 > — the piece the executor lacked. The HSM decides *who is in control*; the command tree *enforces* it via
@@ -132,3 +132,50 @@ actuator-scope)` — Scada passes all actuators, a sub-actor passes `my_actuator
   (`gw1.simple.sim.layout`: no pico-cycler, no sieg, single `hp-relay`) follows the `else` branches —
   except the call to `self.layout.vdc_relay`, which must become "if this layout has a pico-cycler-owned
   relay."
+
+## Command interfaces and replies
+
+Status: Verified · Pass 0 · Updated 2026-09-08 · Reviewed 2026-09-08@c8555abe
+
+A command interface is three parts: vocabulary (an event enum named by
+`EventType` in `fsm.event`, with `EventName` constrained to it),
+authority (the command tree: `FromHandle` is the immediate boss of
+`ToHandle`), and feedback (a state enum reported through
+`single.machine.state`, plus `fsm.full.report` per command for
+actuators). Relays declare theirs in the layout word
+(`relay.control.config`); hp-boss and the pico-cycler carry theirs in
+`Scada.COMMAND_NODE_INTERFACES` (`gw_spaceheat/actors/scada.py:1653`).
+The capability cover (above) is the set of these interfaces read off
+the live handles.
+
+Every command node answers the boss that commanded it, through
+`gw_spaceheat/actors/command_reply.py`: `gw.dispatch.ack` on take,
+`gw.dispatch.nack` with a `gw.scada.cmd.refusal.reason` on refusal.
+Relays (`actors/relay.py:305`), hp-boss (`actors/hp_boss.py:106`), the
+0-10V outputer (`actors/zero_ten_outputer.py:185`) and the pico-cycler
+(`actors/pico_cycler.py:498`) all reply; the reasons in use are Busy
+(the cycler mid-cycle), UnknownEvent and OutOfRange. Admin is a boss
+like any other and gets the same replies. Interior bosses do not yet
+consume the acks their own relays send (an Open item on the
+krida-retirement work, OPS-392).
+
+## The pico-cycler command
+
+Status: Verified · Pass 0 · Updated 2026-09-08 · Reviewed 2026-09-08@c8555abe
+
+The pico-cycler takes one command from whichever boss holds the root:
+`reboot.picos` (`RebootPicos`), entering its cycle through
+`ShakeZombies` from PicosLive or AllZombies (`actors/pico_cycler.py:466`
+`process_fsm_event`). A cycle is RelayOpening, RelayOpen (the vdc relay
+held open 5 s), RelayClosing, PicosRebooting, PicosLive, the last on the
+first pico re-POST; the cycle's `TriggerId` is the command's. A command
+arriving mid-cycle is nacked Busy. The cycler also cycles on its own on
+`Startup` (the boot cycle) and `PicoMissing`. Each cycle's reboot wait
+(60 s) is tied to that cycle; a wait outliving its cycle is ignored as
+stale.
+
+Real timing (spruce gw108, 2026-09-08,
+`experiments/2026-09-08-spruce-admin-panel/`): the BTU picos re-POST
+7 to 9 s after the relay closes, so PicosLive arrives about 13 s after
+the command and the 60 s wait never fires in anger. The sim rung is
+`experiments/2026-09-07-admin-reboots-picos/`.

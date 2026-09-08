@@ -51,7 +51,20 @@ Next move, in order:
    gwsproto mirror drops `check_axiom_1` and its rejecting test, and
    the four actors' handle-mismatch paths send the nack through
    `command_reply.nack`.
-2. Rung 2 on its own estimate row.
+2. **Interior command nodes handle their relays' acks and nacks.**
+   With `c8555abe` every relay answers its boss on take or refusal, and
+   the interior bosses do not listen: on the auto path at boot
+   (LocalControl telling hp-boss TurnOff) hp-boss logged the relay's
+   `gw.dispatch.ack` as an unexpected message. Witnessed on the real
+   house, experiments commit `42f8382` ("spruce-admin-panel: admin TUI
+   drives the real spruce gw108 (krida-retirement rung 1 witness)"),
+   boot log 10:22:33. hp-boss and the pico-cycler take the ack as
+   confirmation of the step they are waiting on and the nack as the
+   failure of it (the cycler already waits on the relay's state report;
+   the ack is the earlier, cheaper signal), with a test per node that
+   drives the relay's reply through the boss. Same reply path as the
+   NotMyBoss nack, so it follows step 1 directly.
+3. Rung 2 on its own estimate row.
 
 **Rung 1 witnessed on the real house (2026-09-08, Verified ·
 Reviewed 2026-09-08@c8555abe).** `gwa watch spruce` from the laptop
@@ -108,14 +121,6 @@ rows when they start.
 
 ## Open after rung 1
 
-- **Interior command nodes do not handle their relays' acks.** With
-  `c8555abe` every relay acks its boss on take; on the auto path at boot
-  (LocalControl telling hp-boss TurnOff) hp-boss logged the relay's
-  `gw.dispatch.ack` as an unexpected message (spruce window 2026-09-08,
-  `experiments/2026-09-08-spruce-admin-panel/`). hp-boss and the
-  pico-cycler need an ack/nack handler for the relays they own, or the
-  relay must ack only a non-interior boss; decide with the NotMyBoss
-  nack, which is the same reply path.
 - **Relays under sieg-loop (House0 with the loop in use).** A node that
   commands actuators is a command node, so sieg-loop belongs in
   `CommandNodes` even though it takes no event command today; rung 1

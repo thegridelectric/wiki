@@ -10,6 +10,17 @@ repo's git history.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-09-08 — admin dispatch log names its target handle
+
+Branch `jm/spruce-unlimbo`. `Scada.process_admin_dispatch` logged only
+the event name (`AdminDispatch event is CloseRelay`); an expander relay
+dispatch left no trace of which node it went to, since only GPIO relays
+log their pin moves. Reading the 2026-09-08 spruce window
+(`experiments/2026-09-08-spruce-admin-panel/`) meant inferring the
+target from flow and the report's state rows. The line now carries the
+event's ToHandle. Log text only; no test.
+
 ## 2026-09-08 — command nodes answer their boss: DispatchAck on take, DispatchNack on refusal (`c8555abe`)
 
 Branch `jm/spruce-unlimbo`. The admin panel already tracks each

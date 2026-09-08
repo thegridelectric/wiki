@@ -1,6 +1,6 @@
 # Pico-cycler command (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-08 · Linear: OPS-392
 
 > What this is: admin keeps the pico-cycler running and asks it for vdc
 > relay actions, instead of seizing the relay. Decided 2026-09-01 with
@@ -137,16 +137,17 @@ sick — `relay.py`'s handle check rightly refuses a non-boss commander.
 
 ## ▶ Do this next
 
-**The admin TUI is BROKEN for Nolan.** `gwa watch` shows no relays and
-no DACs for a Nolan scada (watched 2026-09-07 on the dev sim): the
-capabilities reply is never built because the word requires the Krida
-component. Item 3's Reboot picos button therefore cannot be reached
-from the panel today; it is exercised only through `send_reboot_picos`.
-The fix is krida-retirement's rung 1 (per-command-node capabilities,
-one table with the pico-cycler as a row), which runs next; this spoke
-does not wait on it for the decision below.
+**The panel drives the cycler on the real house (2026-09-08).**
+krida-retirement rung 1 (`c8555abe`) made `gwa watch` render a Nolan
+scada with the pico-cycler as a row, and the spruce window
+(`experiments/2026-09-08-spruce-admin-panel/`) witnessed Reboot picos
+from that row twice on the real gw108: the row walked its states and
+the real picos re-POSTed 7 to 9 s after the relay closed. What the
+Verified claims below rest on is now in the scada executor
+(`control-hierarchy.md` "The pico-cycler command", "Command interfaces
+and replies").
 
-**Acknowledgement decided (2026-09-07); build it next.** Sema words
+**Acknowledgement decided (2026-09-07); built in `c8555abe` except the NotMyBoss nack, which waits on the word edit (krida-retirement step 1).** Sema words
 registered on `jm/pico-cycler-words` (pending commit): `gw.dispatch.ack`
 / `gw.dispatch.nack`, `gw.scada.cmd.refusal.reason`, `analog.dispatch`,
 `reboot.picos`, `pico.cycler.event`. The build, in order, each with a
@@ -156,7 +157,7 @@ test:
    (`AnalogDispatch` already matched its word); `analog.dispatch`,
    `reboot.picos`, `pico.cycler.event` off the conformance allowlists
    (pending commit on `jm/spruce-unlimbo`).
-2. Every command node answers its boss: relay, DAC output, pico-cycler,
+2. ✅ (`c8555abe`, all but NotMyBoss) Every command node answers its boss: relay, DAC output, pico-cycler,
    hp-boss send `DispatchAck` on take and `DispatchNack` with the reason
    on every refusal path that today only logs. The reply goes through
    `_send_to(from_node, …)`, which already publishes on the admin link

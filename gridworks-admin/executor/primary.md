@@ -107,33 +107,61 @@ for the related gRPC question.
 
 ## The capabilities contract (what the admin client consumes today)
 
-The `gwa` TUI learns what it can operate from
-**`scada.control.capabilities`**, published by the scada. Its purpose
-(told, Jessica 2026-06-10): **decouple the admin's relay knowledge from
-`layout.lite`** — historically every flo-params change bumped
-layout.lite's version and broke the TUI until it was upgraded;
-capabilities is the stable, control-focused projection the admin can
-depend on across layout churn.
+Status: Verified · Pass 1 · Updated 2026-09-08 · Reviewed 2026-09-08@c8555abe
 
-- **v001 is sema canon**
-  (`sema/definitions/types/scada.control.capabilities/001.yaml`,
-  verified 2026-06-10): `RelayNodes`/`DacNodes` as
-  `spaceheat.node.gt/300`, `ControlChannels` as `data.channel.gt/001`,
-  plus four axioms (ActorClassConsistency, HandleTerminalMatchesName,
-  AboutNodesAreControlNodes, I2cRelayComponent↔RelayNodes consistency).
-- **What the client keys off** (read 2026-09-05): one name per
-  controllable node, its `Name`. The dispatch address is `admin.<Name>`,
-  the state channel is the `ControlChannels` entry whose `AboutNodeName`
-  equals it (`CapturedByNodeName` is never read), and relay event/state
-  vocabulary is the config entry whose `ActorName` equals it. State
-  arrives from `snapshot.spaceheat` and from the `single.reading`
-  messages the scada forwards over the admin link for relay and 0-10V
-  channels. The client never reads `layout.lite`.
-- **Open:** `I2cRelayComponent` (the House0 Krida multiplexer) is a
-  required field, so a Nolan house cannot emit a valid instance and its
-  admin link answers every capabilities request with an error. The word
-  is `staging`, so the fix is an in-place edit; it is worked in the
-  spruce-unlimbo design (gridworks-scada domain, OPS-392).
+The `gwa` TUI learns what it can operate from
+**`scada.control.capabilities`**, published by the scada on link-up
+(the client asks with `SendControlCapabilities` and re-asks every 60 s
+until it arrives). Its purpose: **decouple the admin's knowledge of the
+house from `layout.lite`**. Historically every flo-params change bumped
+layout.lite's version and broke the TUI until it was upgraded;
+capabilities is the stable, control-focused projection the admin
+depends on across layout churn. The client never reads `layout.lite`.
+
+**The word, `001` (staging;
+`sema/definitions/types/scada.control.capabilities/001.yaml`).**
+`RelayNodes`, `DacNodes` and `CommandNodes` as `spaceheat.node.gt`,
+`ControlChannels` as `data.channel.gt`, and `CommandInterfaces`, one
+`gw.command.interface/000` per commandable node: `ActorName`,
+`EventType` (an enum word), `StateType` (an enum word) and `Commands`,
+the `{Event, ToState}` pairs the node takes. Axiom 4,
+CommandInterfacesCoverTheTree, is **the cover rule read off handles**:
+an interface exists for exactly the relays and command nodes whose
+handle does not extend a command node's handle. A relay owned by an
+interior command node (`vdc-relay` under the pico-cycler,
+`hp-scada-ops-relay` under hp-boss) keeps its state row and no
+interface; the operator commands it through its owner. DAC nodes take
+an analog value and carry no interface. The scada builds the cover from
+its live handles (`gw_spaceheat/actors/scada.py:1692`
+`control_capabilities`); relay vocabulary comes from each relay's own
+config, interior nodes' from `Scada.COMMAND_NODE_INTERFACES`
+(`scada.py:1653`).
+
+**What the client keys off.** One row per `CommandInterfaces` entry,
+keyed by `ActorName` (`watch/clients/relay_client.py:167`). The dispatch
+address is `admin.<ActorName>`; the row's actions are the interface's
+`Commands`; the row's state is the node's `StateType` value, taken from
+`snapshot.spaceheat`'s `LatestStateList` and from the
+`single.machine.state` the scada forwards over the admin link for every
+relay and command node (`scada.py:1556`). A row shows `?` until its
+node's first state report arrives. Readings for the 0-10V channels
+still arrive as forwarded `single.reading`. An interior node's owned
+relays are listed under it, by name, as presentation only; the word
+stays a flat per-node list.
+
+**Replies.** Every command node answers the boss that commanded it:
+`gw.dispatch.ack` on take, `gw.dispatch.nack` with a
+`gw.scada.cmd.refusal.reason` on refusal (Busy, UnknownEvent,
+OutOfRange today). The client tracks each command by `TriggerId` and
+toasts one line per answer (`watch/relay_app.py:255`).
+
+**Verified on the real house, 2026-09-08**
+(`experiments/2026-09-08-spruce-admin-panel/`): on spruce's Nolan
+layout the panel rendered the twenty relays, the pico-cycler and
+hp-boss rows and the DAC; Reboot picos, relay and valve events and DAC
+levels each reached the actor the row names and the row followed the
+node's state report. The sim witness with the same client is
+`experiments/2026-09-07-admin-reboots-picos/`.
 
 ## Client form factor
 
