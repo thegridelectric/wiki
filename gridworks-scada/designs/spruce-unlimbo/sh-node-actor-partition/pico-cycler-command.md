@@ -87,14 +87,10 @@ removes; the same failure would hit any long admin window.
    `jm/pico-cycler-words`), `reboot.picos`, and
    `pico.cycler.event` (gaining `Startup`, so the boot cycle stops
    being reported as a `PicoMissing` with no pico missing).
-   **gwsproto side done, sema side deferred (2026-09-07):** `RebootPicos`
-   and `Startup` exist in gwsproto only and sit on the conformance
-   test's `NO_WORD_ENUMS` allowlist. `pico.cycler.event` has never been
-   registered in sema (gwsproto's class names a 000 that does not
-   exist), so the sema catch-up is two NEW staging words, not a version
-   bump: `reboot.picos` and `pico.cycler.event` with all ten values.
-   Do it as item 7, at the end, on `jm/pico-cycler-words`; when they
-   land, remove both from the allowlist. ✅ The cycler
+   ✅ Sema side: `reboot.picos` and `pico.cycler.event` registered
+   2026-09-07 on `jm/pico-cycler-words` (pending commit); the
+   conformance allowlist rows drop with the gwsproto mirror step in
+   "Do this next". ✅ The cycler
    reports each pico's state through `machine.states`
    (`MachineHandle` the pico-backed actor's handle, `StateEnum`
    `single.pico.state`, gwsproto mirror `SinglePicoState`): the roster at
@@ -109,10 +105,11 @@ removes; the same failure would hit any long admin window.
    `single.pico.state`, the gwsproto mirror, and the per-pico
    `machine.states` reporting, so the roster is journaled on spruce
    this season. No command, no `TriggerId` adoption, no `Startup`
-   there.
-7. The sema catch-up in item 5 lands in krida-retirement's rung 1
-   (the panel rows need the same enum words); drop the two allowlist
-   rows there.
+   there. The journal side (journalkeeper vendoring the enums and
+   tracking unknown ones, then the dev-DB query) is the hub queue's
+   `journalkeeper-pico-states`, after krida-retirement.
+7. ✅ The item-5 enum words are registered (2026-09-07); allowlist rows
+   drop with the gwsproto mirror.
 8. LAST, coverage for what the dev-broker rung exposed
    (`experiments/2026-09-07-admin-reboots-picos/`) that has only the
    broker run behind it; all in process, in
@@ -149,30 +146,68 @@ The fix is krida-retirement's rung 1 (per-command-node capabilities,
 one table with the pico-cycler as a row), which runs next; this spoke
 does not wait on it for the decision below.
 
-**Decide the acknowledgement word, next round, before building.**
-Position going in (2026-09-07): feedback has two halves and admin gets
-neither. Completion already exists: `fsm.full.report` (TriggerId,
-FromName, the transitions) is the record of a command that ran; the
-cycler sends it to the primary scada and it is journaled. Forwarding it
-on the admin link when admin was the commander is plumbing, no new
-word. Acceptance does not exist: a command that is ignored (cycler
-mid-cycle), refused (bad boss, wrong event type) or analog (DAC, no
-FSM) produces nothing the sender can see, and that is the case an
-operator most needs. Proposal: one ack/nack pair, twins discriminated
-by TypeName (the shape of `g.node.cmd.ack` / `g.node.cmd.nack`),
-correlated by the command's TriggerId, sent direct to the commander
-for every dispatch including analog. The nack carries a reason enum
-(Busy, NotMyBoss, UnknownEvent, NotAControlNode); the ack says only
-"taken", and the outcome then arrives as the forwarded full report and
-the state rows. No third completion word, and acceptance is not folded
-into state rows. To settle in the round: (1) the correlation key,
-since `AnalogDispatch` may carry no TriggerId (it gains one, or the
-pair hashes content); (2) who answers, the target actor (it knows Busy)
-with the scada forwarding, or the scada alone (it knows only bad boss);
-lean: the actor answers, the scada forwards, the same path as the full
-report. Then item 4 (tree-matrix admin rows), item 6, and the
-`pico.cycler.state` / `pico.cycler.event` enum words ride
-krida-retirement's rung 1.
+**Acknowledgement decided (2026-09-07); build it next.** Sema words
+registered on `jm/pico-cycler-words` (pending commit): `gw.dispatch.ack`
+/ `gw.dispatch.nack`, `gw.scada.cmd.refusal.reason`, `analog.dispatch`,
+`reboot.picos`, `pico.cycler.event`. The build, in order, each with a
+test:
+
+1. ✅ gwsproto mirrors, local class names `DispatchAck` / `DispatchNack`
+   (`AnalogDispatch` already matched its word); `analog.dispatch`,
+   `reboot.picos`, `pico.cycler.event` off the conformance allowlists
+   (pending commit on `jm/spruce-unlimbo`).
+2. Every command node answers its boss: relay, DAC output, pico-cycler,
+   hp-boss send `DispatchAck` on take and `DispatchNack` with the reason
+   on every refusal path that today only logs. The reply goes through
+   `_send_to(from_node, …)`, which already publishes on the admin link
+   when the sender is admin. Read 2026-09-07, per file:
+   - `relay.py` `_process_event_message`: the two handle mismatches are
+     NotMyBoss; a wrong `EventType` only prints today and falls
+     through to the i2c "not the pair" ignore, so it becomes
+     UnknownEvent and returns; an unknown event name is UnknownEvent;
+     ack once the event is taken (before the actuation task). No Busy:
+     a re-command re-actuates.
+   - `zero_ten_outputer.py` `process_analog_dispatch`: NotMyBoss for a
+     sender not in the layout or a stale `ToHandle`, OutOfRange, ack on
+     take; `process_message` has `Header.Src` for the reply address.
+   - `pico_cycler.py` `process_fsm_event`: NotMyBoss twice, UnknownEvent,
+     Busy when the state is not PicosLive / AllZombies, ack when the
+     ShakeZombies transition fires.
+   - `hp_boss.py` `process_fsm_event`: NotMyBoss for the `ToHandle`
+     mismatch; the `FromHandle` mismatch only logs today (a TODO asks for
+     more), decide whether it refuses; UnknownEvent; ack on take,
+     including the idempotent TurnOn while already HpOn.
+   - Not sent yet: NotAControlNode. Only the scada's routing knows the
+     target is not a command node (`process_admin_dispatch` finds no
+     communicator, silently). Decide who speaks for a node that cannot.
+   - **`gw.dispatch.nack` axiom 1 cannot hold.** A NotMyBoss nack goes
+     to the sender, and the sender is by definition not the boss of the
+     node's live handle (admin sending to `admin.relay` while the relay
+     lives at `auto.relay`). The nack's `ToHandle` is the command's
+     `FromHandle`, whoever that was; the ack keeps its axiom. Staging
+     word, edited in place: drop axiom 1, reword `ToHandle`; then the
+     gwsproto mirror drops `check_axiom_1` and its test.
+   - Adjacent flaw, not this step's: `Scada.process_admin_dispatch`
+     logs "Expected admin!" for a non-admin sender and then routes the
+     dispatch anyway (no return).
+   - Tests: the `capture(actor)` pattern in
+     `tests/actors/test_pico_cycler_command.py` (both fixtures) sees the
+     reply as a `(dst, payload)` pair; one refusal test per reason per
+     actor, one ack test each.
+3. Dropped 2026-09-07: the pico-cycler's `fsm.full.report` stays
+   addressed to `primary_scada`. That is the journal path run 4 proved
+   (the report lands in `report.FsmReportList` under the dispatch's id),
+   and admin's need is met by the pair plus the journaled state rows.
+   The relay does the opposite (`boss_by_trigger`), so under admin its
+   full reports go to the panel and never reach the journal; an open
+   item for the relay review, not a reason to move the cycler.
+4. ✅ gwadmin: the relay and DAC clients remember each dispatch by
+   `TriggerId` (`clients/dispatch_replies.py`), decode the pair off the
+   admin link, and the panel notifies taken / refused with the reason
+   against the command it sent (`tests/test_misc/
+   test_admin_dispatch_replies.py`). Until step 2 lands the scada sends
+   nothing, so the panel stays silent on the wire; the dev-broker rung
+   that witnesses a nack on screen belongs to step 2.
 
 The dev-broker rung is closed: run 4 on `b095261c`
 (`experiments/2026-09-07-admin-reboots-picos/`, `run4-report-events.txt`)
@@ -187,6 +222,23 @@ half, and the two rung fixes (`b095261c`). Sema `fc741c2` carries the
 sim word.
 
 ## Decisions (2026-09-07)
+
+- **The node answers its boss, directly.** Acceptance is one pair,
+  `gw.dispatch.ack` / `gw.dispatch.nack`, discriminated by TypeName,
+  correlated by the command's `TriggerId`, sent by the target node to
+  the boss that commanded it, for every dispatch including analog. The
+  ack says only "taken"; the outcome is `fsm.full.report` and the state
+  rows, to the same boss. The nack carries
+  `gw.scada.cmd.refusal.reason` (Unknown default, Busy, NotMyBoss,
+  UnknownEvent, OutOfRange, NotAControlNode). The target node answers
+  because it alone knows busy, wrong boss, and out-of-vocabulary; the
+  scada knows only "not admin". The pair is scada-shaped on purpose
+  (tree handles as addresses); the LTN and market boundaries coin their
+  own twins with their own address fields and reason vocabulary, the
+  pattern `g.node.cmd.ack` and `gw.weather.cmd.ack` already follow, and
+  a market acceptance is a contract (`market.maker.ack`), not a "taken".
+  `analog.dispatch` already carried `TriggerId` in gwsproto; the sema
+  word matches it, so one correlation key covers every dispatch.
 
 - **Dormant means "this node became a leaf and commands nothing."**
   The cycler goes dormant only in a future mode that touches no relay

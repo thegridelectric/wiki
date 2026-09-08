@@ -313,9 +313,8 @@ principles (one settled name per commit):
 
 ## ▶ Do this next
 
-**Next move:** `pico-cycler-command.md`, the sim-pico cluster (its "Do
-this next" holds the order); items 1 and 1a landed in `668db20b`. Read
-that spoke whole (short); nothing else is needed to start.
+**Next move:** `krida-retirement.md` rung 1 (its "Do this next" holds
+the order); `pico-cycler-command.md` step 2 waits behind it.
 
 **Queue, in order.** Each item is its own commit with its own estimate
 (scopes on OPS-392). Jessica reviews each file before it lands:
@@ -326,13 +325,22 @@ GridWorks_CLAUDE ⏳ note).
 1. ✅ DONE `hp-boss-cleanup` (3h, 1.9h actual): in the Done table.
 2. [`pico-cycler-command`](pico-cycler-command.md) (4h): items 1 and 1a, the real fix that retires the vdc hack.
 3. [`krida-retirement`](krida-retirement.md) (6h + rungs; absorbed admin-for-nolan and command-interface 2026-09-07): rung 1 is the gwadmin panel rendering and driving a Nolan scada (the `scada.control.capabilities` edit), rung 2 the per-node command interface, rung 3 the relay decommission.
-4. [`staging-words-on-prod`](staging-words-on-prod.md) (4h): the wire/layout-file word split that lets `jm/spruce` run on spruce against the production broker.
-5. [`command-tree-matrix`](command-tree-matrix.md) (3h; `actors/command_node.py`, 207 L): the state-transition tree matrix on `command_node.py`, with the LC dormant-sequence row.
-6. [`admin-scada-peer-liveness`](admin-scada-peer-liveness.md) (4h): neither side notices a dead admin link; `heartbeat.a` both ways. With hp-boss, clarifies the admin command surface before the tree matrix.
-7. [`hydronic-shared-review`](hydronic-shared-review.md) (2h; `actors/hydronic/shared.py`, ~250 L): `actors/hydronic/shared.py` review + first tests.
-8. [`hydronic-house0-review`](hydronic-house0-review.md) (2h; `actors/hydronic/house0.py`, ~990 L): `actors/hydronic/house0.py` review; the buffer/storage judgment methods.
-9. [`is-simulated-decompression`](is-simulated-decompression.md) (1.5h): TaDeed + ValidationState words; refuse LTN offers while UnValidated.
-10. [`snapshot-drop-gw1`](snapshot-drop-gw1.md) (0.75h): remove all `gw1`s and `gw`s in the tlayouts snapshot generation.
+4. `journalkeeper-pico-states` (unestimated; own row when it starts):
+   gridworks-journalkeeper vendors the new enum words (`single.pico.state`,
+   `pico.cycler.event`, `pico.cycler.state`, `gw.scada.cmd.refusal.reason`)
+   and reworks how it tracks enums so a state row whose enum it has not
+   seen is journaled rather than dropped or coerced; then query the dev
+   journal DB for the per-pico Flatlined / Alive rows the dev-broker rung
+   emitted (`experiments/2026-09-07-admin-reboots-picos/`). This is the
+   journal half of reading a pico flatline off the database; the spruce
+   half is `pico-cycler-command.md` item 6. After krida-retirement.
+5. [`staging-words-on-prod`](staging-words-on-prod.md) (4h): the wire/layout-file word split that lets `jm/spruce` run on spruce against the production broker.
+6. [`command-tree-matrix`](command-tree-matrix.md) (3h; `actors/command_node.py`, 207 L): the state-transition tree matrix on `command_node.py`, with the LC dormant-sequence row.
+7. [`admin-scada-peer-liveness`](admin-scada-peer-liveness.md) (4h): neither side notices a dead admin link; `heartbeat.a` both ways. With hp-boss, clarifies the admin command surface before the tree matrix.
+8. [`hydronic-shared-review`](hydronic-shared-review.md) (2h; `actors/hydronic/shared.py`, ~250 L): `actors/hydronic/shared.py` review + first tests.
+9. [`hydronic-house0-review`](hydronic-house0-review.md) (2h; `actors/hydronic/house0.py`, ~990 L): `actors/hydronic/house0.py` review; the buffer/storage judgment methods.
+10. [`is-simulated-decompression`](is-simulated-decompression.md) (1.5h): TaDeed + ValidationState words; refuse LTN offers while UnValidated.
+11. [`snapshot-drop-gw1`](snapshot-drop-gw1.md) (0.75h): remove all `gw1`s and `gw`s in the tlayouts snapshot generation.
 
 **Open findings and sign-offs** (unordered; each closes with a small
 commit or a decision):

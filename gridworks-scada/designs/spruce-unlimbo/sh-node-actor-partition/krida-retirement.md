@@ -27,67 +27,95 @@ The relay decommission is also what House0 sim-green (the single scada
 focus) is blocked on: commanding a House0 relay reaches `relay.py`'s
 dead Krida multiplexer round-trip. Rung 3 dissolves that.
 
-## ▶ Do this next: rung 1, the panel works for Nolan (2026-09-08)
+## ▶ Do this next: rung 1 step 6, the witness
+
+Rung 1 is built and its tests are green (sema `343fc9e`, `59530ac`;
+scada `01e6c7df` plus the amend that carries the rest of the working
+tree). What remains is the EDD bar: `gwa watch` on the dev-broker sim
+Nolan scada (the `devnolan` entry, localhost 1885) lists all twenty
+relays, the pico-cycler and hp-boss rows, and the DAC; a relay toggles
+from the panel and its state row follows; the pico-cycler row reboots
+the picos and walks RelayOpening → PicosRebooting → PicosLive; the
+hp-boss row turns the heat pump on and off. Recipe: `executor/
+testing.md` "Recipe: admin over the wire".
+
+Two things to know before running it: the panel's rows take state from
+`single.machine.state` (snapshot `LatestStateList` plus the live
+forward), not from a relay reading's 0/1; and every row shows `?` until
+its node's first state report arrives, so a fresh boot needs a moment.
+A relay owned by an interior node (`vdc-relay`, `hp-scada-ops-relay`)
+shows state with no action; the cycler and hp-boss rows carry those
+commands.
+
+When the witness passes: stamp this section Verified with the run,
+sum the scratch hours on OPS-392, and start rung 2 on its own estimate
+row.
+
+## Rung 1, landed (2026-09-07)
 
 The smallest change that makes `gwa watch` render and drive a Nolan
 scada, with the word shaped once: per command node. No layout-word
 edit, no relay.py rework; those are rungs 2 and 3.
 
-1. **Sema first.** Enum-kind gate summary, then four staging enum words
-   the panel rows need: `reboot.picos` (single value `RebootPicos`),
-   `pico.cycler.event` (all ten values; gwsproto's class names a 000
-   that was never registered), `turn.hp.on.off`, `hp.boss.state`
-   (dropping the `gw1` prefix gwsproto still carries). This lands
-   pico-cycler-command's item 7; remove both rows from the conformance
-   test's `NO_WORD_ENUMS` allowlist when it does.
-2. **Word, in place.** `scada.control.capabilities/001` is staging.
-   `I2cRelayComponent` goes. In its place a list, one entry per command
-   node, carrying the vocabulary fields of `relay.control.config`
-   generalized: `ActorName`, `ChannelName`, `EventType`, the two events,
-   `StateType`, the two states (wiring facts stay on the relay's own
-   component). Type-kind gate summary first; whether the entry is a new
-   staging type word or `relay.control.config` reused is decided at
-   that gate. Axiom 4 rewritten: the ActorName set equals the names in
-   `RelayNodes` plus the interior command nodes; each ChannelName equals
-   the ControlChannels entry about that actor. gwsproto twin and the
-   tlayouts snapshot mirror in the same wave.
-3. **Scada projection.** `Scada.control_capabilities` builds the list:
-   relays from their own component (the thin component's single config
-   on Nolan; House0's `relay.actor.config` projected by dropping
-   `RelayIdx` until rung 3); the pico-cycler and hp-boss from what the
-   scada hard-codes today (`CommandNode.send_state_command`'s
-   ActorClass map, the cycler's `reboot.picos` handling). The
-   multiplexer lookup goes; the `SendControlCapabilities` branch logs
-   under its own name. Rung 2 moves this knowledge into the layout word
-   and deletes the hand-map; the projection does not change shape then.
-4. **gwadmin: one table.** `RelayWatchClient._get_relay_configs` reads
-   the list and the relay table lists every entry, pico-cycler and
-   hp-boss as rows beside the relays. Each row's toggle sends that
-   row's event on its own vocabulary; the pico-cycler row's action is
-   Reboot picos (the separate button and `p` binding go with it).
-   `relay_idx` leaves `RelayConfig`. `DACWatchClient.set_dac` takes the
-   node name. The hp-boss rewrite pair (`_send_set_command` to
-   `admin.hp-boss` speaking `TurnHpOnOff`, `process_admin_dispatch` back
-   to the relay) retires here: hp-boss is a row with its own vocabulary,
-   so admin addresses it directly and the scada stops rewriting.
-5. **Tests.** `tests/actors/test_admin_on_nolan.py::
-   test_control_capabilities_on_nolan` (xfail today, strict) goes green
-   and asserts the two interior rows; `test_admin.py`'s House0 cases
-   stay green; `test_admin_reboots_picos.py` drives the row's action
-   rather than the button's method.
-6. **Witness (the EDD bar).** `gwa watch` on the dev-broker sim Nolan
-   scada (the `devnolan` entry, localhost 1885) lists all twenty relays,
-   the pico-cycler and hp-boss rows, and the DAC; a relay toggles from
-   the panel and its state row follows; the pico-cycler row reboots the
-   picos and walks RelayOpening → PicosRebooting → PicosLive; the
-   hp-boss row turns the heat pump on and off. Recipe: `executor/
-   testing.md` "Recipe: admin over the wire".
+1. **Sema.** Staging enum words `turn.hp.on.off`, `hp.boss.state` (no
+   `gw1`), `pico.cycler.state`; new types `gw.command.interface/000`
+   (ActorName, EventType, StateType, Commands) and
+   `gw.command.transition/000` (`{Event, ToState}`).
+2. **Word, in place.** `scada.control.capabilities/001` dropped
+   `I2cRelayComponent` for `CommandNodes` and `CommandInterfaces`.
+   Axiom 4 is the cover rule read off handle prefixes: an interface for
+   every relay or command node whose Handle does not extend a command
+   node's Handle. Not in the tlayouts closure, so no snapshot wave.
+3. **Scada projection.** `Scada.control_capabilities` builds the cover
+   from the layout's live handles: relays from their own config (thin
+   component on Nolan, Krida config list on House0), hp-boss and the
+   pico-cycler from `Scada.COMMAND_NODE_INTERFACES`. Relay and
+   command-node `single.machine.state` is forwarded to the admin link.
+4. **gwadmin: one table.** Rows from `CommandInterfaces`; state is the
+   node's state name; the cycler and hp-boss are rows with their own
+   vocabulary. The hp-boss rewrite pair, `relay_idx`, the reboot button
+   and its `p` binding are gone; the DAC send uses the row key.
+5. **Tests.** `test_control_capabilities_on_nolan` green with the two
+   interior rows and the two owned relays; the cycler and dispatch-reply
+   tests drive the row's command; rejecting tests per axiom in
+   `tests/named_types`.
 
 Rung 1 estimate: 6h (4–9). Rungs 2 and 3 are estimated on their own
 rows when they start.
 
+## Open after rung 1
+
+- **Relays under sieg-loop (House0 with the loop in use).** sieg-loop
+  takes no event command, so it is not a `CommandNodes` entry, and the
+  two loop relays under it are listed with interfaces the cover axiom
+  requires; an admin dispatch to them is refused by the immediate-boss
+  check. Sieg-loop's place in the cover belongs to
+  sieg-semantic-harmonization (OPS-400).
+- **`Scada.COMMAND_NODE_INTERFACES`** is the hand-map rung 2 retires:
+  the hp-boss and pico-cycler vocabularies live there until the layout
+  word carries a per-node command interface.
+- The gridworks-admin executor's "capabilities contract" Open item (the
+  Krida field) is resolved by this rung and wants its rewrite; that
+  domain is edited under its own claim.
+
 ## Decisions (2026-09-07)
 
+- **The per-node entry is a new word, `gw.command.interface`**, not
+  `relay.control.config` reused: that word requires WiringConfig and has
+  a relay's two-event shape. Its `{Event, ToState}` pair is the named
+  type `gw.command.transition`, because the sema spec forbids axioms
+  reaching into inline objects.
+- **No ChannelName on the interface.** Admin finds a node's state channel
+  as the `ControlChannels` entry about that node; a copy on the interface
+  would only be a field to keep in agreement.
+- **Axiom 4 is the cover rule, from the handles.** The scada executor
+  ("capabilities = the cover") says an interior node keeps its subtree
+  and the operator commands the heat pump through hp-boss, never the
+  relay. So the interface set equals the nodes whose Handle is
+  `<root>.<Name>`, read off `RelayNodes` and the new `CommandNodes`;
+  `vdc-relay` and `hp-scada-ops-relay` keep their state rows and are
+  commanded through the cycler and hp-boss. DacNodes take an analog
+  value and carry no interface.
 - **The capabilities list is per command node, not per relay**
   (option 1, chosen over a relays-only first cut that would reshape the
   word twice). Rung 1 carries the pico-cycler and hp-boss entries and

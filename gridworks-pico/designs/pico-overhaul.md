@@ -1,15 +1,19 @@
 # pico-overhaul (design)
 
-Status: Draft · Pass 0 · Updated 2026-08-13 · Linear: OPS-402
+Status: Draft · Pass 0 · Updated 2026-09-08 · Linear: OPS-402
 
 **EDD: yes** the verification is a bench pico on the real broker: it survives
 repeated power-cycles-during-flash-write (no FS corruption) and re-joins wifi on
 its own after the AP is dropped — not code review.
 
-**Sequencing:** hold execution until spruce-unlimbo (OPS-392) and
-hardware-layout-pass-one (OPS-407) land — the Pico hardware identity section
-below authors `PicoBoardVariant` into the same in-flight tlayouts gen path
-those designs are still reshaping.
+**Sequencing:** the firmware steps (flash-write discipline, reconnect, the
+params self-report) run now; a fleet flash is planned for 2026-09-09. Only
+the layout half of Pico hardware identity (authoring `PicoBoardVariant`
+into the component words and the tlayouts gen path) waits for
+spruce-unlimbo (OPS-392) and hardware-layout-pass-one (OPS-407), which are
+still reshaping that path.
+
+**▶ Active spoke: this file, "Build order" — steps 3, 4 and 6.**
 
 > What this is: the one consolidating design for `gridworks-pico` — **needed for
 > scaling, before September 2026**. The code has fractured enough that
@@ -371,15 +375,28 @@ a reporting module by following one page, with one provisioner script.
 4. Self-healing reconnect — run `experiments/future/pico-rejoin/` first to set
    the actual timeout/backoff numbers, then implement against them.
 5. ADC fixes (supply voltage, integer math, ISR cleanup).
-6. Pico hardware identity: register `tank.module.params` (+ btu/flow
-   equivalents) as sema words carrying `PicoBoardVariant` +
-   `MicropythonVersion`; wire the provisioner + layout-gen to author
-   `PicoBoardVariant` into the layout.
+6. Pico hardware identity: ◐ `tank.module.params` is registered in sema
+   (110 published as shipped; 200 staging adds `PicoBoardVariant` +
+   `MicropythonVersion`; enum `pico.board.variant`, default `Unknown`).
+   Still to do: the gwsproto twin at 200 on every scada branch a house
+   runs; the firmware sending 200 (variant derived from `os.uname().machine`
+   plus the comms_config link type, version from `os.uname().release`); the
+   btu/flow equivalents; the provisioner + layout-gen authoring
+   `PicoBoardVariant` into the layout (waits, see Sequencing).
 7. Provisioning cleanup (one true provisioner + the runbook).
 8. Soak test (the EDD experiment) before declaring done.
 
 ## Open
 
+- Ethernet picos are still deployed (beech tank2 and tank3 at least), so
+  the `connect_to_ethernet` path stays in the firmware until those boards
+  are swapped; the Wiznet rejection above governs new provisioning, not
+  the next flash. `pico.board.variant` carries both Wiznet values for
+  that reason.
+- The exact `os.uname().machine` strings for the PicoW and the hand-built
+  Wiznet firmware are not recorded; read one of each (honeysuckle bench,
+  a beech ethernet pico) before the firmware derives `PicoBoardVariant`
+  from them.
 - A shared `common.py` beyond networking (config load/save, the ISR/loop
   skeleton) — likely yes; scope it once `net.py` lands.
 - `flow_module` doesn't exist yet (only archived `flow_hall`/`flow_reed` code

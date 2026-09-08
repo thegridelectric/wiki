@@ -10,6 +10,59 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-08 — tank.module.params 200: pico reports its board and MicroPython version (`de477fd5` on jm/spruce-unlimbo; same change committed by hand on main, jm/spruce, actual-spruce)
+
+Branch `jm/spruce-unlimbo`. gwsproto's `TankModuleParams` moves from the
+twinless 110 to sema's `tank.module.params/200`, mirroring sema `d103725`:
+required `PicoBoardVariant` (new enum twin `pico.board.variant`, default
+`Unknown`) and `MicropythonVersion`, axiom 1 kept. The api-tank-module
+actor echoes both back in its params reply. 200 is the only version the
+scada accepts: a pico still on 110 firmware has its params post rejected
+(a problem event per post) but its microvolts keep flowing, since that
+path is gated on the layout's PicoHwUid and never on the handshake; what
+it loses until reflash is the capture offset. Dual-version support was
+not worth three divergent branches for a window that closes at the fleet
+flash. `tank.module.params` leaves the conformance allowlist. The same
+change goes to `dev` and `actual-spruce` by hand, since the two files
+differ on each.
+
+## 2026-09-07 — command interface for admin added (`cc6f3382`)
+
+Branch `jm/spruce-unlimbo`. The gwadmin TUI showed no relays and no DACs
+for a Nolan layout: the capabilities builder dereferenced the House0
+`relay_multiplexer` node unguarded and the word required a Krida
+component. gwsproto now mirrors sema `343fc9e`: `GwCommandInterface`,
+`GwCommandTransition`, the `HpBossState` twin re-pointed at
+`hp.boss.state` (no `gw1`), and `ScadaControlCapabilities` reshaped with
+`CommandNodes` and `CommandInterfaces` and the cover axiom (an interface
+for every relay or command node not under an interior command node).
+Three rows leave the conformance allowlist. `Scada.control_capabilities`
+builds the cover from the layout: relay interfaces from each relay's own
+config (thin component on Nolan, Krida config list on House0), hp-boss and
+the pico-cycler from the vocabulary the actors hard-code today (rung 2 of
+the krida-retirement spoke moves that into the layout word). The scada
+forwards `single.machine.state` to the admin link the way it forwards
+relay readings, so interior rows follow live. gwadmin keeps one table: the
+pico-cycler and hp-boss are rows beside the relays, each toggled in its
+own vocabulary; the hp-boss rewrite pair, `relay_idx`, and the separate
+Reboot picos button go. `test_control_capabilities_on_nolan` loses its
+xfail and asserts the two interior rows.
+
+## 2026-09-07 — gwsproto and gwadmin carry the dispatch ack/nack pair
+
+
+Branch `jm/spruce-unlimbo`. gwsproto mirrors the sema words landed in sema
+`f2168ed`: `DispatchAck` / `DispatchNack` (`gw.dispatch.ack` /
+`gw.dispatch.nack`, axiom 1 ToHandleIsBoss), the
+`GwScadaCmdRefusalReason` enum, and `AnalogDispatch` now carries its sema
+docstring; `analog.dispatch`, `reboot.picos` and `pico.cycler.event` leave
+the conformance allowlists. gwadmin's relay and DAC clients remember each
+dispatch they publish by `TriggerId`, decode the pair off the admin link,
+and hand the panel taken / refused with the reason, so an operator sees a
+dropped command instead of silence. Why now: the acknowledgement decision
+of 2026-09-07 (the node answers its boss directly; the scada-side senders
+follow in the next commit).
+
 ## 2026-09-07 — dev-broker rung fixes: sim GPIO relay reports; cycler waits tied to their cycle
 
 **What:** two fixes the pico-cycler dev-broker rung found. (1)

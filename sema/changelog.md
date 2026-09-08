@@ -12,9 +12,73 @@ Newest at the top.
 
 ---
 
+## 2026-09-08 — Merge jm/command-interface into jm/pico-params <!-- pending commit -->
+
+Merge commit so dev carries both branches. Resolution: `metadata.
+last_updated` keeps the later stamp, indexes and runtime regenerated.
+Also folds one edit: the `tank.module.params/200` example drops its
+`"PicoAB": null`, since sema's canonical dump omits absent optionals and
+the gwsproto conformance re-dump was flagged as drift.
+
+## 2026-09-08 — add tank.module.params v200 (`d103725`)
+
+Branch `jm/pico-params`. The tank-module pico's params post has been a
+hand-built dict on the wire for a year with no registry entry (its
+gwsproto twin pins version 110 and sits on the twinless allowlist). It
+now has one. Version 110 is registered published, mirroring the wire
+byte for byte, including axiom 1 (PicoAB in a or b). Version 200,
+staging, adds two required fields so the scada can see what board a pico
+is: `PicoBoardVariant` (new staging enum `pico.board.variant`, default
+`Unknown` so an unrecognised board shows up as such rather than being
+coerced to a real one) and `MicropythonVersion` (live telemetry from
+`os.uname()`, never persisted). Link type had been unobservable on the
+LAN, and the layout does not carry it; the params post is the one
+handshake every pico already does, so it carries the self-report. The
+110 to 200 upgrade refuses with `UpgradeRequiresContext`: a 110 message
+cannot know its board. Version 200 rather than 120 tracks the number the
+firmware branch already sends.
+
+## 2026-09-07 — capabilities axiom 4 reads the cover off handle prefixes (`59530ac`)
+
+Branch `jm/command-interface`. The cover rule as first written required
+an interface for nodes whose Handle has exactly two tokens, which only
+holds while admin is the tree root; the scada builds the message from
+the layout's live handles, and under local control a relay's Handle is
+`auto.lc.n.<relay>`. The rule is now prefix-based: a node gets an
+interface unless its Handle extends a `CommandNodes` entry's Handle. Same
+meaning (an interior node keeps its subtree), true under every authority.
+Runtime template and the sema tests follow.
+
+## 2026-09-07 — command interfaces: scada.control.capabilities becomes the cover of the tree (`343fc9e`)
+
+Branch `jm/command-interface`. `scada.control.capabilities/001` (staging,
+edited in place) drops the required Krida `I2cRelayComponent`, which no
+Nolan house could emit and which tied the admin projection to one board,
+the opposite of the word's purpose (decouple admin from layout churn).
+In its place: `CommandNodes` (interior nodes that take event commands,
+hp-boss and the pico-cycler) and `CommandInterfaces`, one
+`gw.command.interface` per node the tree root commands directly. Axiom 4
+is rewritten as the cover rule the scada executor already states
+(capabilities is the cover of the command tree, not the tree): the
+interface set equals the relay and command nodes whose Handle is
+`<root>.<Name>`. A relay under an interior node (the cycler's vdc relay,
+hp-boss's ops relay) is listed for its state and commanded through its
+owner, which is what retires the admin client's hp-boss rewrite pair.
+DacNodes take an analog value and carry no interface. `created` bumped
+forward to satisfy dependency ordering (unpushed staging referrer).
+
+New staging words: `gw.command.interface/000` (ActorName, EventType,
+StateType, Commands; axioms: non-empty, events and states are values of
+the named enums for the six vocabularies the scada speaks today),
+`gw.command.transition/000` (the `{Event, ToState}` pair, a named type
+because axioms may not reach into inline objects), and the three enum
+words the interfaces name that gwsproto held without a word:
+`turn.hp.on.off` (literal), `hp.boss.state` (versioned; the `gw1` prefix
+gwsproto carries is dropped), `pico.cycler.state` (versioned). Runtime
+counterexample tests added for both types' axioms.
+
 ## 2026-09-07 — add the scada dispatch ack/nack pair and the pico-cycler words
 
-<!-- pending commit -->
 
 Branch `jm/pico-cycler-words`, six new staging words. `gw.dispatch.ack` /
 `gw.dispatch.nack` are the scada's acceptance layer for a command from a
@@ -27,7 +91,9 @@ their own twins, the pattern the registry twins already follow. Outcome
 stays `fsm.full.report`. `analog.dispatch` is registered to match gwsproto
 (it already carried `TriggerId`, so one correlation key covers every
 dispatch). `reboot.picos` and `pico.cycler.event` are the cycler's command
-and event vocabularies that gwsproto held without a word.
+and event vocabularies that gwsproto held without a word. Also picks up
+the `sim.pico.tank.module.component.gt` 000 upgrade docstring that the
+previous commit's regen missed.
 
 ---
 
@@ -56,7 +122,7 @@ a string to a published word in place was not merged). Default is
 healthy one. `versioned` because a health roster may grow a value.
 
 
-## 2026-09-07 — gw.adc.waveform: staging word for one burst of ADS1115 conversions <!-- pending commit -->
+## 2026-09-07 — gw.adc.waveform: staging word for one burst of ADS1115 conversions
 
 Branch `jm/adc-waveform-word`. New type `gw.adc.waveform/000` (staging):
 one burst of raw conversions from one input of an i2c ADC, with the
@@ -75,7 +141,7 @@ stays out of the capture word and goes to the component vocabulary.
 
 ---
 
-## 2026-09-06 — promote the FIS words <!-- pending commit -->
+## 2026-09-06 — promote the FIS words
 
 Branch `jm/publish-fis-words`. Five promotions, bottom-up, nothing else:
 `fis.authorization.decision/000`, `fis.authorization.reason/000`,
