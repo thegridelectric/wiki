@@ -1,6 +1,6 @@
 # Krida retirement, admin for Nolan, and the command interface (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-08 · Linear: OPS-392
 
 > What this is: one spoke, combined 2026-09-07 from three that shared one
 > word, `scada.control.capabilities`: the scada half of the relay
@@ -27,29 +27,52 @@ The relay decommission is also what House0 sim-green (the single scada
 focus) is blocked on: commanding a House0 relay reaches `relay.py`'s
 dead Krida multiplexer round-trip. Rung 3 dissolves that.
 
-## ▶ Do this next: rung 1 step 6, the witness
+## ▶ Do this next: the NotMyBoss nack (sema first), then the witness
 
-Rung 1 is built and its tests are green (sema `343fc9e`, `59530ac`;
-scada `01e6c7df` plus the amend that carries the rest of the working
-tree). What remains is the EDD bar: `gwa watch` on the dev-broker sim
-Nolan scada (the `devnolan` entry, localhost 1885) lists all twenty
-relays, the pico-cycler and hp-boss rows, and the DAC; a relay toggles
-from the panel and its state row follows; the pico-cycler row reboots
-the picos and walks RelayOpening → PicosRebooting → PicosLive; the
-hp-boss row turns the heat pump on and off. Recipe: `executor/
-testing.md` "Recipe: admin over the wire".
+The 2026-09-08 dev-broker session moved four things under rung 1 and
+they are in (`adbd1d6f`, `e0029d3d`, `c8555abe`): the cycler and
+command-node rows follow `machine.states` live rather than the 30 s
+snapshot; the table groups an owned relay under its owner; every
+command node acks on take and nacks Busy / UnknownEvent / OutOfRange,
+and the panel toasts one line per answered command; the button label is
+the event alone. On the panel a Reboot picos click shows RelayOpening
+at once, PicosRebooting 5 s later, PicosLive about 20 s after that on
+the sim.
 
-Two things to know before running it: the panel's rows take state from
+Next move, in order:
+
+1. **The NotMyBoss nack, sema first.** The staging word
+   `gw.dispatch.nack` is edited in place: drop axiom 1, reword
+   `ToHandle` as the refused command's FromHandle (the decision and the
+   per-file read are in `pico-cycler-command.md` "Acknowledgement
+   decided", the bullet "`gw.dispatch.nack` axiom 1 cannot hold"). A
+   sema turn with the word gate: read `sema/spec/primary.md` and the
+   type registry and authoring spokes, post the summary, wait. Then the
+   gwsproto mirror drops `check_axiom_1` and its rejecting test, and
+   the four actors' handle-mismatch paths send the nack through
+   `command_reply.nack`.
+2. Rung 2 on its own estimate row.
+
+**Rung 1 witnessed on the real house (2026-09-08, Verified ·
+Reviewed 2026-09-08@c8555abe).** `gwa watch spruce` from the laptop
+against a window scada on the spruce gw108
+(`experiments/2026-09-08-spruce-admin-panel/`): the twenty relays, the
+cycler and hp-boss rows and the DAC rendered; Reboot picos cycled the
+vdc-relay twice more after the boot cycle and the real picos re-POSTed
+7 to 9 s after each close; the secondary pump and the iso valve were
+each driven from their rows and `secondary-flow` followed within a
+snapshot; the DAC moved pump speed. One 0x21 expander reset happened
+under CloseValve with the pump coil energized and cost no output.
+hp-boss was not exercised (the Samsung ignores the call contact). The
+tank picos' params POST is rejected until gridworks-pico PR #15 ships
+the 200 fields; readings still arrive.
+
+Two things to know: the panel's rows take state from
 `single.machine.state` (snapshot `LatestStateList` plus the live
-forward), not from a relay reading's 0/1; and every row shows `?` until
-its node's first state report arrives, so a fresh boot needs a moment.
-A relay owned by an interior node (`vdc-relay`, `hp-scada-ops-relay`)
-shows state with no action; the cycler and hp-boss rows carry those
-commands.
-
-When the witness passes: stamp this section Verified with the run,
-sum the scratch hours on OPS-392, and start rung 2 on its own estimate
-row.
+forward, which covers `machine.states` senders too), and every row
+shows `?` until its node's first state report arrives. A relay owned by
+an interior node (`vdc-relay`, `hp-scada-ops-relay`) shows state with
+no action; the cycler and hp-boss rows carry those commands.
 
 ## Rung 1, landed (2026-09-07)
 
@@ -85,12 +108,21 @@ rows when they start.
 
 ## Open after rung 1
 
-- **Relays under sieg-loop (House0 with the loop in use).** sieg-loop
-  takes no event command, so it is not a `CommandNodes` entry, and the
-  two loop relays under it are listed with interfaces the cover axiom
-  requires; an admin dispatch to them is refused by the immediate-boss
-  check. Sieg-loop's place in the cover belongs to
-  sieg-semantic-harmonization (OPS-400).
+- **Interior command nodes do not handle their relays' acks.** With
+  `c8555abe` every relay acks its boss on take; on the auto path at boot
+  (LocalControl telling hp-boss TurnOff) hp-boss logged the relay's
+  `gw.dispatch.ack` as an unexpected message (spruce window 2026-09-08,
+  `experiments/2026-09-08-spruce-admin-panel/`). hp-boss and the
+  pico-cycler need an ack/nack handler for the relays they own, or the
+  relay must ack only a non-interior boss; decide with the NotMyBoss
+  nack, which is the same reply path.
+- **Relays under sieg-loop (House0 with the loop in use).** A node that
+  commands actuators is a command node, so sieg-loop belongs in
+  `CommandNodes` even though it takes no event command today; rung 1
+  leaves it out, lists the two loop relays under it with interfaces the
+  cover axiom requires, and an admin dispatch to them is refused by the
+  immediate-boss check. Not needed for Nolan; sieg-loop's entry and its
+  vocabulary belong to sieg-semantic-harmonization (OPS-400).
 - **`Scada.COMMAND_NODE_INTERFACES`** is the hand-map rung 2 retires:
   the hp-boss and pico-cycler vocabularies live there until the layout
   word carries a per-node command interface.

@@ -357,6 +357,21 @@ commit or a decision):
   pre-existing shape (three channels carry InPowerMetering, four
   components predate their words' config shape); closes with a translated
   beech gen, not by hand.
+- **Pico liveness is three drifting copies** (`api_tank_module.py`,
+  `api_btu_meter.py`, `api_flow_module.py`; read 2026-09-08). Each
+  keeps `last_heard`, a `flatline_seconds`, a `missing()` and a 10 s
+  loop that sends `PicoMissing` plus a `ChannelFlatlined` per channel,
+  rate-limited to one report per `FLATLINE_REPORT_S`. The tank module's
+  rate limit compares the last-report timestamp to 60 instead of the
+  elapsed time, so once missing it reports every 10 s; and its threshold
+  is 1x the capture period where the btu and flow modules use 2.5x, so
+  one slow post reads as missing (this is why a pico cut by a commanded
+  cycle is flagged inside the 5 s relay-open window). The improvement is
+  one liveness home in `pico_actor_base.py`: `last_heard`, a threshold of
+  2.5x the expected post period the actor supplies, `missing()`, and the
+  report loop with its rate limit, sending the first report on the
+  transition to missing; each api actor then contributes only its
+  period and its channel list. Small commit with a test per actor.
 - hp-boss assumes `HpOn` at construction without reading the relay;
   the relay adopts its own state at boot (`_boot_adopt`), hp-boss does
   not. Small commit with a test (`../unsorted/relay-tests.md` item 4 is

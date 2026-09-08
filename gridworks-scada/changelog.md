@@ -10,6 +10,73 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-08 — command nodes answer their boss: DispatchAck on take, DispatchNack on refusal (`c8555abe`)
+
+Branch `jm/spruce-unlimbo`. The admin panel already tracks each
+command it sends by TriggerId and toasts the reply, but no scada actor
+sent one, so a click was never answered and a refusal (the cycler
+mid-cycle) was invisible. The relay, the 0-10V outputer, the
+pico-cycler and hp-boss now send `DispatchAck` to the commander once
+the command is taken, before actuation, and `DispatchNack` with the
+reason on the refusal paths that only logged: UnknownEvent for a wrong
+event type or an event name the node's machine does not take, Busy for
+the cycler outside PicosLive / AllZombies, OutOfRange for a DAC value.
+hp-boss no longer treats an unknown event name as TurnOn, and acks the
+idempotent TurnOn while already HpOn. NotMyBoss (a stale or wrong
+handle) still only logs: the nack word's axiom 1 (ToHandle is the boss
+of FromHandle) cannot hold for a reply to a sender that is not the
+boss; that is the staging-word edit already decided in the design, and
+those paths gain their nack when it ships. Tests:
+`tests/actors/test_dispatch_replies.py`, one ack and one refusal case
+per actor on both sim fixtures. gwadmin's toasts, in the same commit:
+one line per reply to a command this panel sent,
+"admin.buffer-bottom-elt-relay took OpenRelay" or "… refused
+RebootPicos: Busy" (a DAC set reads "took set 65"); a reply to a command
+this panel did not send is silent; the keep-alive toasts are gone, the
+timer display already shows the renewal.
+
+## 2026-09-08 — pico liveness: one rule for the three api actors, and the cycler guards from the open (`e0029d3d`)
+
+Branch `jm/spruce-unlimbo`. Two paired flaws behind spurious pico
+flatlines. The tank, BTU and flow actors each kept their own copy of
+"is my pico posting": the tank module's rate limit compared its
+last-report timestamp to 60 rather than the elapsed time, so once
+missing it sent PicoMissing every 10 s loop tick, and its threshold was
+one capture period where the other two used 2.5, so a single slow post
+read as missing. A false PicoMissing is expensive: the cycler answers
+it by power-cycling the shared VDC bus, every pico on the house reboots
+and rejoins wifi as a herd (the 2026-08 pico gap analysis). All three
+now hold a `PicoLiveness` (`actors/pico_liveness.py`, pure, clock
+passed in): missing after 2.5 expected post periods, first report at
+the crossing, one a minute while the silence lasts, a post resets it;
+each actor contributes its expected post period and its channel list.
+The flow module raises on a device type it has no period for instead
+of returning None. The second flaw: the cycler's "ignore PicoMissing
+within a minute of a cycle" guard stamped its clock at the relay close,
+leaving the 5 s open window unguarded, so a pico cut by a commanded
+cycle was marked Flatlined; the clock now starts at the relay-open
+confirmation. Tests: `tests/actors/test_pico_liveness.py` (the rule,
+and the tank module wired to it on both sim fixtures), the guard case
+in `test_pico_cycler_command.py`. The BTU and flow actors have no
+fixture layout; their wiring is covered by the shared class only.
+
+## 2026-09-08 — admin panel follows the pico-cycler live (`adbd1d6f`)
+
+Branch `jm/spruce-unlimbo`. The dev-broker witness for the Nolan admin
+panel: a Reboot picos click showed PicosRebooting on the panel many
+seconds late, because the cycler reports its transitions (and the
+per-pico Alive/Flatlined roster) as `machine.states`, and the scada
+forwards only `single.machine.state` to the admin link, so those rows
+moved on the 30 s snapshot while relay and hp-boss rows moved live. The
+scada's `machine.states` handler now forwards the latest state it
+already builds through the same admin forward; the forward is limited
+to a node's own state (the reported handle ends in the sender's name),
+so the cycler's per-pico roster rows stay on the snapshot. gwadmin: the
+command button's label is the event alone (the `n` key hint is gone); the
+relay table groups a relay owned by an interior node directly under its
+owner (vdc-relay under pico-cycler, hp-scada-ops-relay under hp-boss)
+instead of sorting by name.
+
 ## 2026-09-08 — tank.module.params 200: pico reports its board and MicroPython version (`de477fd5` on jm/spruce-unlimbo; same change committed by hand on main, jm/spruce, actual-spruce)
 
 Branch `jm/spruce-unlimbo`. gwsproto's `TankModuleParams` moves from the
