@@ -1,6 +1,6 @@
 # mTLS + FIS auth
 
-Status: Accepted · Pass 1 · Updated 2026-09-05 · Linear: OPS-420
+Status: Accepted · Pass 2 · Updated 2026-09-08 · Linear: OPS-420
 
 **EDD: yes** verified by real handshakes against a broker running the full
 stack: a client proves identity with its cert and claims, FIS allows a valid
@@ -329,11 +329,24 @@ until closed alongside this rollout). Per-house recipe: mint (with consent)
 
 ## Rollout order
 
-1. **Now:** platform-service certs for weather, gnr, ear, gjk, by the
-   walkthrough below ("Minting a platform-service cert"); the CN grammar
-   is settled (a FIS-minted principal id) and FIS mints the row
-   (OPS-422). Houses are done (notch 2, below). Minting is the long pole;
-   it never waits on software.
+1. **Now:** the issuance tool and the broker-side revocation list
+   ("Minting a platform-service cert" and "Cert lifecycle" below), then
+   platform-service certs for weather, gnr, ear, gjk through the tool.
+   The CN grammar is settled (a FIS-minted principal id) and FIS mints
+   the row (OPS-422). Houses are done (notch 2, below). Revocation is
+   witnessed on the local battery rig (its throwaway CA, both
+   transports) before the CRL is set up on prod; the staging box has
+   done its work and is not rebuilt for this.
+
+   **Do this next:** the rig leg. Tool built and dry-run against
+   weather (2026-09-08); ledger bootstrap commands in
+   `scratch/cert-ledger-bootstrap.md` (human runs). In
+   `experiments/2026-09-05-fis-gate-battery/`: a second same-CN cert
+   and a CRL writer in `certs/gen_certs.sh`, `ssl_options.crl_check =
+   peer` plus an `advanced.config` and a `crl/` mount on the rig broker,
+   and battery cases for the ping-pong, the refusal on 5671 and 8883
+   after revocation with no restart, and the expired CRL. Then the prod
+   set-up sequence ("Cert lifecycle"), then the four service certs.
 2. **FIS v1** (OPS-422; its build plan is revised to match this design:
    claims from `AuthProps`, run-scoped leases, `/auth/topic` alias pinning,
    sync-kill-before-allow, no client_properties parsing).
@@ -389,57 +402,169 @@ until closed alongside this rollout). Per-house recipe: mint (with consent)
 
 ## Minting a platform-service cert
 
-The per-service walkthrough for weather, gnr, ear, gjk, and any later
-platform service. It differs from the house recipe in two ways: the CN is
-a FIS-minted principal id, not a GNodeId, and the cert lands on a cloud
-box under the service's XDG config dir, not on a pi. Row first, cert
-second, so the CN is never a hand-picked value a row is later back-filled
-to match.
+One operator command issues any client cert, for a GNode or a Service,
+and one revokes one. The tool is
+`gridworks-infra/authority/certbot/mint-client-cert.py`, run from a
+laptop under `uv run` (inline dependencies, no project setup), in the
+shape of the scada repo's `getkeys.py`: ssh to certbot for the CA
+operations, ssh pipes for every transfer (every box is a `~/.ssh/config`
+host; the material crosses the laptop in memory only), nothing left on
+certbot but the ledger. It replaces the by-hand walkthrough that moved cert material
+through a laptop in three copies. Custody rules unchanged: certbot opens
+to per-person keys only, so the human runs the tool; Claude preps the
+invocation, the inventory line, and the confirmation checks.
 
-Division of labor is fixed by the custody rules: certbot opens to
-per-person keys only, and anything placed on a deployed box outside its
-repo is the human's hand and gets recorded. So the human mints, copies,
-and restarts; Claude preps each command, the inventory entry, and the
-confirmation checks.
+`mint <name>` does, in order, stopping at the first failure and safe to
+rerun:
 
-1. **Mint the row** (Claude preps, human runs):
-   `uv run fis principal create --kind Service --display-name <svc>` on the
-   dev FIS on the dev machine; keep the printed id. Until a staging or
-   prod FIS exists, the dev database is the ledger, and the row is carried
-   to whichever FIS will gate the box as a record, never re-typed.
-2. **Cut the cert on certbot** (human, per-person ssh):
-   `gwcert key add --certs-dir <svc-dir> --common-name <id>`, expiry
-   steered to summer 2028 and staggered off the others (leaf policy,
-   rmqbot executor "PKI"). Record it in
-   `gridworks-infra/authority/cert-inventory.md` (Claude drafts the line).
-3. **Place the material on the service box** (human): cert, key, and
-   `ca.crt` under the service's XDG config dir
-   (`~/.config/gridworks/<service_name>/`); note the placement in the
-   box's instance-README as non-repo state.
-4. **Switch the service to cert-plus-claims** (Claude preps the three
-   lines, human applies): `<PREFIX>_RABBIT__TLS__CA_CERT_PATH`,
-   `…__CERT_PATH`, `…__PRIVATE_KEY_PATH` in the service's `.env`, and the
-   broker URL scheme to `amqps`; restart via systemd.
-5. **Confirm** (Claude preps the checks, human reads them on the box): the
-   actor reconnects and its journal or ear traffic resumes. Until the
-   broker offers the `GRIDWORKS` mechanism, the connect falls back to
-   password auth cleanly; the cert is in place for notch 4 and proves
-   nothing more yet. Once notch 4 is on, the FIS `auth_events` row for the
-   principal is the confirmation.
+1. **Resolve the CN.** A GNode (`--g-node <alias>`): the registry's
+   GNodeId, read through the public gnr façade, never typed. A Service
+   (`--service`): `fis principal create --kind Service` over ssh on the
+   FIS that gates the cert, reusing an existing row with that display
+   name so a rerun never forks ids. A GNode's row is created the same
+   way with `--g-node-id`, on the same FIS. The FIS is named by
+   `--fis <ssh host>`; prod is `fis` (hw1-1), staging its own login.
+   The row exists before the cert, so the CN is never a hand-picked
+   value a row is later back-filled to match.
+2. **Cut the cert on certbot** with `gwcert key add --common-name <CN>`
+   and the day count from `--expires <date>` (leaf policy, "Cert
+   lifecycle"). The serial is read back from the cert and written to
+   the ledger with the CN, the name, and the expiry.
+3. **Regenerate the CRL** from the ledger and place it on the broker
+   box ("Cert lifecycle"), so a rekey and a mint are the same code path.
+4. **Transfer** cert, key (mode 600), and `ca.crt` over ssh to
+   `--dest <remote>:<certs dir>`; the certs dir is the service's XDG
+   config dir (`~/.config/gridworks/<service_name>/certs`) for a gwbase
+   service, the scada or LTN certs dir for a house.
+5. **Delete the material from certbot.** Only the ledger and the CA
+   stay there; a leaf's private key exists on the box it serves and
+   nowhere else, and a lost key is re-issued, never restored.
+6. **Print what the human does next**: the three `.env` lines for the
+   service's prefix (`<PREFIX>_RABBIT__TLS__CA_CERT_PATH`,
+   `…__CERT_PATH`, `…__PRIVATE_KEY_PATH`; the URL scheme `amqps`), the
+   restart, the confirm command, and the cert-inventory row.
 
-Order across the four: weather first (already on amqps, a GNode, lowest
-blast radius), then gnr, ear, gjk.
+`revoke <name>` marks the ledger entry revoked with a date and reason,
+regenerates the CRL, and places it. The scada repo's `getkeys.py` is
+retired once the tool has issued a house cert: a cert cut outside the
+tool is one the ledger cannot revoke; its removal (and a README pointer at
+the tool) is a scada-claiming session's change. Replacing a house pi is `revoke`
+then `mint` for the same GNode: the old cert is refused at the next
+handshake, the new one carries the same CN, and FIS sees the principal
+it always did. `--dry-run` prints every command without running one.
+
+Confirmation, with the gate off: the broker does not offer the GridWorks
+mechanism, so the client presents its cert and falls back to password
+auth, and the service's own log cannot tell the two paths apart. The
+witness is the broker's connection list, which shows the presented
+cert's subject:
+
+    sudo docker exec rmq1 rabbitmqctl list_connections user ssl peer_cert_subject auth_mechanism
+
+Once notch 4 is on, the FIS `auth_events` row for the principal is the
+confirmation.
+
+Order across the four platform services: weather first (already on
+amqps, a GNode, lowest blast radius), then gnr, ear, gjk. Expiries
+steered to summer 2028 and staggered a fortnight apart.
 
 ## Cert lifecycle
 
-The rollout proceeds on the **manual 2-year policy** proven at beech:
-expiries steered to summer and staggered so the fleet never shares a cliff;
-minted on certbot (`gwcert key add --common-name <id>`), by provisioning
-alongside the `principal` row for new principals. **Renewal automation is a
-follow-on design**, not this one's blocker — it needs FIS and provisioning
-built first, and when it lands, lifetimes drop hard (90–180 days):
-short-lived certs are also the practical revocation story, since no
-realistic CRL/OCSP distribution to the fleet exists.
+Leaves follow the **manual 2-year policy** proven at beech: expiries
+steered to summer and staggered so the fleet never shares a cliff;
+minted on certbot by the tool above, alongside the `principal` row.
+**Renewal automation is a follow-on design**, not this one's blocker; it
+needs FIS and provisioning built first, and when it ships, lifetimes
+drop hard (90–180 days).
+
+**Revocation is a CRL on the broker.** Verification runs in two
+directions, and they differ completely in cost. The fleet verifies the
+*broker's* cert, so revoking that would mean distributing a list to
+every pi, LTN box, and service box and keeping it fresh there; that is
+not done, and the broker cert's lifetime is its only rotation. The
+broker verifies every *client* cert, and it is the only thing that
+does, so a client-cert revocation list has one reader on one box we
+already operate. That is what the two-pi case needs: a replaced pi's
+predecessor holds a still-valid cert with the same CN, and the gate
+cannot tell them apart (instance ids are minted per boot, so the
+predecessor rejoins as a fresh instance and the two supersede each
+other in turn). No FIS-side check can close this on MQTT, since the
+MQTT adapter forwards nothing of the cert but the username
+(rmqbot executor "What the broker forwards to an auth backend"). The
+CRL closes it on both transports, at the TLS handshake, before FIS is
+asked.
+
+Mechanics:
+
+- **The ledger** lives on certbot beside the CA: one entry per issued
+  leaf (name, CN, serial, expiry) with an optional revocation (date,
+  reason). Public metadata, mirrored into
+  `gridworks-infra/authority/cert-inventory.md`.
+- **The CRL** is built from the ledger on every mint or revoke, signed
+  by the CA, with a one-year `nextUpdate`, and placed on the broker box
+  in the broker's certs dir under the hash-dir name Erlang expects
+  (`<issuer hash>.r0`). An empty CRL is placed before `crl_check` is
+  turned on; with no CRL for the issuer, `peer` refuses every
+  handshake.
+- **The broker** sets `ssl_options.crl_check = peer` (a `rabbitmq.conf`
+  key) and the hash-dir cache in a small `advanced.config`, since the
+  cache option has no conf-schema key. The cache reads the file from
+  disk at every handshake, so a replaced CRL is live at once; no
+  restart, no per-rekey config.
+- **The CRL's own expiry** is the one operational commitment: past
+  `nextUpdate`, `peer` refuses every new connection until a fresh CRL is
+  placed. Every mint or revoke re-signs it, and the daily platform-drift
+  check carries its expiry with a warning weeks ahead.
+- **FIS holds no cert state.** A revoked cert never reaches it; the
+  broker log records the refusal, the ledger the reason. A "current
+  serial" column at FIS would be a second ledger to keep in step, on one
+  transport only, and enforce nothing; it is not built.
+
+### Setting up the CRL on the broker
+
+Once, per broker box, in this order; each step is safe on its own and
+the check is last. Witnessed first on the local battery rig with the
+same conf fragment and the rig's throwaway CA.
+
+1. **Start the ledger on certbot** from the certs already issued: the
+   broker cert, the six house scadas, the six LTNs, beech's pilot
+   material. Serials are read from the issued certs where they still sit
+   in `~/.local/share/gridworks/ca/certs`; a cert that was deleted from
+   certbot after transfer is read from its box
+   (`openssl x509 -noout -serial`). Nothing is revoked yet.
+2. **Build and place the first CRL.** `mint-client-cert.py crl` builds
+   it from the ledger (empty revocation set, one-year `nextUpdate`),
+   names it `<issuer hash>.r0` (the hash is OpenSSL's `-subject_hash`
+   of the CA name, what Erlang's `short_name_hash` computes), and
+   rclones it into `$RMQ1_CERTS/crl/` on the box. The file is placed
+   BEFORE the broker is told to check it.
+3. **Mount the directory** in `rmq-docker/compose.yaml`:
+   `${RMQ1_CERTS}/crl:/etc/rabbitmq/crl:ro`. A directory mount, not a
+   file mount, so a replaced file is seen without a container recreate.
+4. **Point the cache at it** in a new `rmq-docker/config/advanced.config`
+   mounted at `/etc/rabbitmq/advanced.config`, the cache option having
+   no conf-schema key:
+
+       [{rabbit, [{ssl_options, [{crl_cache,
+           {ssl_crl_hash_dir, {internal, [{dir, "/etc/rabbitmq/crl"}]}}}]}]}].
+
+   `advanced.config` merges with `rabbitmq.conf`; the listener and cert
+   keys stay where they are. That the two files' `ssl_options` merge
+   key-by-key rather than one replacing the other is checked on the rig,
+   not assumed.
+5. **Turn the check on** in `rabbitmq.conf`: `ssl_options.crl_check =
+   peer`. Recreate the container (steps 3 to 5 are one recreate, at a
+   quiet hour: every client reconnects).
+6. **Check.** Every fleet client is back (the connection list, the
+   journal); then a throwaway cert cut for the purpose is revoked, the
+   CRL replaced, and its connect refused at the handshake on 5671 and
+   8883 with the broker log naming the CRL, while an unrevoked client
+   still connects. Then the drift-check line for the CRL's `nextUpdate`.
+
+The MQTT listener shares `ssl_options` with AMQP on this broker
+(`mqtt.listeners.ssl` takes the global block), so one setting covers
+both; the rig run confirms that, since it is the assumption the two-pi
+case rests on.
 
 ## Build-time artifacts (no open decisions)
 
@@ -473,7 +598,9 @@ realistic CRL/OCSP distribution to the fleet exists.
 - **scada/proactor** — `client_id = GNodeInstanceId` + `ssl_cert_login`
   migration for the MQTT fleet.
 - **provisioning** — mint client cert + `principal` row for both GNode and
-  service kinds.
+  service kinds. Until a provisioning service exists, the operator tool
+  in `gridworks-infra/authority/certbot/` is that capability, and the
+  ledger and CRL live with the CA on certbot.
 
 ## Done-when
 
@@ -512,3 +639,10 @@ a real stack; the first four carry over from that issue.
   connection and the reconnect converges on the new alias.
 - A publish carries a `user_id` the broker validates against the connection
   identity.
+- **Revocation holds on both transports.** Two certs with the same CN
+  supersede each other in turn on the current conf (the flaw, witnessed
+  first); once the older serial is listed and the CRL placed, that cert
+  is refused at the handshake on AMQP and on MQTT with no broker restart,
+  and the newer one is admitted. An expired CRL refuses every new
+  connection, witnessed so the drift check's line is known to matter.
+  Rig first (throwaway CA), then the prod set-up sequence above.
