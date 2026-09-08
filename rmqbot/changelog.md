@@ -11,6 +11,25 @@ repo's git history.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-09-08 — mint-client-cert.py: issue, record and revoke client certs; broker CRL
+
+`authority/certbot/mint-client-cert.py`, an operator CLI in the shape of
+the scada repo's `getkeys.py`: `mint` resolves the CN (a GNode's registry
+id through the gnr façade, a Service's from `fis principal create` on the
+gating FIS), cuts the cert on certbot, records name, CN, serial and expiry
+in a ledger beside the CA, rebuilds the CRL and places it on the broker,
+streams cert, key and `ca.crt` to the destination over ssh, deletes the
+leaf from certbot, and prints the service's `.env` lines and the confirm
+command. `revoke` marks a ledger entry and re-places the CRL; `record`
+enters certs issued before the ledger; `crl` rebuilds on demand. The
+certbot README gains the section. **Why:** the by-hand walkthrough moved
+key material through a laptop in three copies, and a replaced pi's
+predecessor kept a valid cert with the same CN that the FIS gate cannot
+tell from the new one; the CRL on the broker (the only verifier of client
+certs) refuses it at the handshake on AMQP and MQTT alike. Design:
+mtls-fis-auth "Cert lifecycle".
+
 ## 2026-09-05 — Gate recipe names FIS's management-API credentials (`4c1fc1e`)
 
 The gate section of the rmq-docker README says what FIS needs from the
