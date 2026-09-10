@@ -147,6 +147,10 @@ when it rewrites the root tree. Rows for the matrix, on both fixtures:
   all three bosses and FiveVOff under local-control (the AutoWakesUp
   case) are asserted (`test_command_tree_prefix_closed.py`,
   `test_five_v_boss.py`).
+- The admin rows in the `admin.pico-cycler.vdc-relay` shape (the
+  cycler under the root, its relay under it, while admin holds the
+  tree), marked xfail today; moved here from the pico-cycler spoke
+  2026-09-10.
 - The boss's own two publishes: TurnOff taken (relay under the boss)
   and the closed confirmation (relay back under the cycler), each an
   axiom-valid tree. Asserted.

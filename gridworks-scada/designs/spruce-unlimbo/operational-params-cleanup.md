@@ -116,7 +116,7 @@ axioms 6/7/8; `universe-guardrail.md` lacks `Linear:`. Spruce hub:
 A/B/D understated; `summer-local-control.md:64-66,298` system.mode
 Cooling thread superseded; `spruce-relay-control.md:113-128` "what
 remains" all done; zone spoke ▶ at done work (circuit FSM actor not
-built); admin-for-nolan (now in `sh-node-actor-partition/krida-retirement.md`) registry-state notes false post-squash/inverted;
+built); admin-for-nolan (now in `krida-retirement.md`) registry-state notes false post-squash/inverted;
 this spoke's "Nolan word's contents" (§ below) contradicts the identical
 words — rewrite. Sim hub `:162` "No code yet" false, TODO item 2 done,
 ▶ build-plant Phase A never started; `new-sema-words-to-review.md`
@@ -226,8 +226,7 @@ exists to pay down.
 
 ## Bring House0 up to snuff
 
-House0 must reach parity with Nolan so the merge gate ("both cases work") is
-real. Landed/known items live elsewhere (the hand-touched fixture pair — see
+House0 must reach parity with Nolan so that both families really run. Landed/known items live elsewhere (the hand-touched fixture pair — see
 the fixtures TODO above; "Test House0" — wire conftest to run both families —
 in the Cleanup queue). This section is the home for the rest.
 
@@ -283,9 +282,9 @@ retire as House0 comes up to snuff. (Left 2026-08-16, per Jessica.)
 - **Test House0** — `conftest.py` still pins the Nolan pair only, so the
   now-loadable `gw.house0` pair (layout ⊕ ops, completed 2026-08-15) is
   never exercised by a test. An axiom that has never rejected anything is a
-  claim, not a check. Wire the suite to run BOTH families (the merge gate's
-  "both cases green"), accepting it will surface House0-specific failures to
-  work through. This is the payoff of the dual-layout gate.
+  claim, not a check. Wire the suite to run BOTH families, accepting it will surface
+  House0-specific failures to work through. This is the payoff of running
+  two layouts.
 
 - **`whitewire_threshold_watts` belongs in operational params; which
   circuits are power-metered belongs in the layout** (settled

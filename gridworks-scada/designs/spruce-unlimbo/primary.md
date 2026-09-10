@@ -1,6 +1,6 @@
 # Spruce un-limbo (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-08-15 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-09-10 · Linear: OPS-392
 
 **EDD: yes** bench (honeysuckle) and box harness runs are the verification;
 spokes reach Verified only when an experiment runs against the real bus or a
@@ -15,9 +15,8 @@ real broker.
 > question can be answered: do estimates made after a layer is open hold,
 > where estimates made from outside blew up? Second, sort the eighteen
 > spokes into three piles: done (distill into `executor/`, delete), live,
-> parked. Third, rewrite this hub in present tense; the June strata below
-> ("Branch state", "Test state by commit", "The merge gate") go to the
-> changelog. The work since June came in four layers, each visible only
+> parked. Third, rewrite this hub in present tense. The work since June
+> came in four layers, each visible only
 > once the one above was open (what runs; layouts and mirrors; the
 > hardware bus; the vocabulary); eight spokes were born on 2026-09-02
 > alone, and fifteen of eighteen are Draft Pass 0. The sort needs the
@@ -31,6 +30,16 @@ real broker.
 
 ## Spokes
 
+The order is roughly the priority order.
+
+- `krida-retirement.md` — House0 relays and 0-10V outputs onto per-device
+  components against the board record, one actuation path in `relay.py`,
+  the multiplexer actors retired; the critical path for maple and beech
+- `correct-house0-tlayouts.md` — the House0 fixture pair from a
+  sema-native beech gen, never by hand; validates
+- `house0-zero-ten-outputs.md` — House0's three 0-10V outputs onto
+  per-output components, the DFR multiplexer actor retired; after the
+  relay decommission
 - `gw108-board.md` — schematic-verified board facts: zone signal
   chain, expander map, DAC/EEPROM (living reference)
 - `spruce-admin-rig.md` — the standing admin-panel rig on the real house
@@ -64,127 +73,32 @@ real broker.
 - `hello-world.md` — LTN ↔ SCADA over dev rabbit, consumed by a dev JK
 - `unsorted/` — drop-box for surfaced-but-not-yet-thought-through
   items (CT measurement chain, …)
-- `gleanings.md` — residual live content from closed spokes
-  (both-cases survey · layout-augments carry/skip · gw.nolan.layout
-  closing)
+- `finalize-layout-lite-13.md` — take `layout.lite/013` and its closure
+  from staging to published so spruce can send it on the production
+  broker; a before-merge item
+
+Not in the list: `gleanings.md` holds residual content from spokes
+closed in August (both-cases survey, layout-augments carry/skip,
+gw.nolan.layout closing). It is a parking file, not a workstream; the
+sort into done / live / parked decides what of it survives.
 
 The simulated-actors spoke moved to the simulated-test-environment
-design (2026-06-11, harness elevated to the top); the merge gate's
-"testing green for BOTH" rides that harness.
+design (2026-06-11, harness elevated to the top); testing green for
+every layout family rides that harness.
 
-## The commitment (the deadline driver)
+## The deadline driver
 
-**Air conditioning at Matt Polstein's, with pride in the scada code**
-(committed for July 15). As of 2026-07-15 the **monobloc heat pump is
-providing the air conditioning**; the remaining bar — the near-term goal —
-is the **scada controlling spruce's i2c relays**, so the promised shape
-runs under scada control: AC off-peak, plus pre-cooling the room a bit
-during the afternoon shoulder. Constraints:
+**Deploy the new code on the whole fleet before the heating season.**
+Three layout families, six houses:
 
-- Cooling uses the **fan coil units directly from the heat pump**. NOT the
-  radiant floor and NOT the store tanks (that would require reversing water
-  flow).
-- Suspicion to validate: **long cooling bouts** are more efficient.
-- Later option, eyes open: use the thermal store for cooling accepting that
-  the water mixes — no stratification, very limited capacity.
+- **spruce** — `gw.nolan.layout`; runs `jm/spruce-unlimbo` today.
+- **maple, beech** — `gw.house0.layout` (siegenthaler loop).
+- **fir, elm, oak** — House0 with no sieg loop, `gw.house0.no.sieg`;
+  not built yet (`fall-layouts.md`).
 
-## The merge gate (Jessica, 2026-06-10 — Open, Draft)
-
-The working branch merges to main only when **both cases work**:
-
-- two layout instances — **`house0.layout` and `gw.nolan.layout`** (the
-  latter already drafted as a Sema type) — and
-- **scada operations, layout generation, and testing green for BOTH.**
-
-Rationale: with one layout type, per-house special cases hide in
-hand-coded generators (tlayouts today: nine `gen_<house>.py` scripts).
-Two layouts is the minimum that forces control code to be parameterized
-by layout rather than forked per house — the meta-goal's first proof.
-
-**Merge gate ≠ July-15 gate.** Spruce already runs an unmerged branch;
-the AC commitment rides the branch line while both-cases convergence
-happens. The dual-layout work needs its own honest timeline so "after
-July 15" doesn't become "never."
-
-## Branch state (verified 2026-06-10)
-
-- **What runs on spruce: `td/orig-pred-set`** (Thomas's branch; tip
-  `3c100867`, 2026-05-26). It **contains `jm/spruce`** as an ancestor —
-  all the i2c work (i2c bus actor, relay board, thermistor reader, Gw108
-  components) is already in it — and it merged dev on 2026-05-26
-  (`b4c3d65f`), so it sits only ~10 commits behind dev, 32 ahead.
-  Textually it merges clean with dev; the real blocker is semantic
-  (House0 relay actuation disabled — next section).
-- **`jm/spruce-unlimbo`** — created 2026-06-10 off `td/orig-pred-set`:
-  the working branch for this design.
-- **Gleaned from `jm/spruce-new`:** exactly 2 commits, cherry-picked
-  onto `jm/spruce-unlimbo`: `62bc7218` (scada.py docstring), `2b603cc0`
-  (ChannelConfigBase + RelayActorConfig / I2cThermistorChannelConfig
-  version bumps + named-type tests).
-- **`jm/layout-augments`** — chunk B's glean source (pushed to origin
-  2026-06-10): the `gwsproto/names/` progression (core / house0 /
-  hydronic_spaceheat / nolan node+channel names), preliminary nolan
-  layout gen, derived-channel axioms — 12 unique commits, forked before
-  Thomas's May work, so absorbing it is a reconciliation job. The branch
-  tests skip `test_layout_gen.py` pointing at this rework.
-- **Deleted 2026-06-10:** `jm/pico` (TankModule3Params prep — regenerate
-  later), `jm/pred-set`, `jm/maple-hack`, `jm/spruce`, `jm/spruce-new`
-  (fully gleaned), `jm/scada-control` (capability-type sketch mined into
-  the capability-protocol-and-verify design first).
-- **tlayouts** rides a lock-step `jm/spruce` branch (sema-native,
-  pushed to origin since 2026-08-03); its `main` pairs with House0-era
-  scada, its `jm/spruce` pairs with the spruce line. Coupling details
-  in `gleanings.md`. The gens are dev-laptop tooling and run in the
-  **sibling scada checkout's venv** (that venv's python with
-  `PYTHONPATH="src:<scada>/gw_spaceheat"`; tlayouts' own uv env has no
-  gwsproto, deliberately) because `names` and the board device-type
-  records still import from gwsproto. Temporary: chunk B moves both
-  into sema, after which the gens run self-contained and the
-  venv/branch pairing dissolves into ordinary snapshot versioning.
-- Sema `jm/nolan` holds the draft `gw.nolan.layout` type (2 commits ahead
-  of sema dev).
-
-## Test state by commit — RESOLVED (2026-06-11, commit `b3cf2c4b`)
-
-The "merge `bb4f6294` is the suspect" hypothesis was a **red herring** — not
-a branch regression at all. Two independent causes, both fixed in `b3cf2c4b`
-("Green the test suite: House0 AsyncCaptureDelta + local test dotenv wiring"):
-
-- **The 10 s link timeout** (`test_auto_state_home_alone_to_ltn` and the
-  scada↔LTN link tests) was **local environment, not code**: the test dotenv
-  that turns TLS off for the plain local broker never loaded — `conftest.py`
-  declared dead dotenv constants while `gwproactor_test` reads a different
-  name (`GWPROACTOR_TEST_DOTENV_PATH` / `tests/.env-gwproactor-test`). So the
-  LTN broker defaulted `tls.use_tls=True` and hung against plain mosquitto.
-  Fixed: conftest now wires the dotenv var, and the local rig is committed
-  (un-gitignored).
-- **CI's two failures** were the `AsyncCaptureDelta` axiom: the
-  `RelayActorConfig` v003 bump (`dab55d20`) enforces "AsyncCapture ⇒
-  AsyncCaptureDelta" but only `nolan-layout.json` got the values;
-  `house0-layout.json`'s 14 relays were left without it. Fixed: backfilled
-  `AsyncCaptureDelta: 1`.
-
-Both ride entirely on `td/orig-pred-set` — the merge and the sim-time bridge
-were innocent. The full debugging is an EDD worked example in
-`experiments/logbook.md`. Tests green on `jm/spruce-unlimbo`.
-
-## Why the branch can't run House0 (verified disable points)
-
-Jessica: "I have disabled the meaning of turning on and off relays."
-Confirmed in code on the branch:
-
-- `gw_spaceheat/actors/relay.py` — `process_message`'s dispatch of
-  `FsmAtomicReport` from the relay multiplexer is **commented out**, so
-  the legacy Krida-multiplexer actuation round-trip never completes; and
-  `relay.py:88` looks up `H0N.relay_multiplexer` unconditionally, which
-  the Nolan layout doesn't have. The refactor split actuation into a
-  Gw108 direct-GPIO path (`_actuate_and_report`) and the legacy
-  multiplexer path (`_actuate_and_defer_report`, round-trip dead).
-- `tests/conftest.py` hardcodes `nolan-layout.json` — House0 tests never
-  run on CI on this branch.
-- tlayouts `jm/spruce` drops `add_relays()` from House0 generators and
-  switches tank calibration constants to 100×-scaled values — it cannot
-  generate correct House0 layouts.
+The July air-conditioning commitment at spruce is met (the monobloc
+heat pump cools through the fan coils; cooling never uses the radiant
+floor or the store tanks). Its scada takeover is `summer-local-control.md`.
 
 ## The conceptual model to build (the design's center of gravity)
 

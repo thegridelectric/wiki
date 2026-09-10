@@ -56,6 +56,27 @@ The same shapes serve in-process and on the wire. Sema's jurisdiction is
 the wire; an in-process surface uses the same enums so the two never
 drift ([OPS-394](https://linear.app/gridworks/issue/OPS-394), capability principles).
 
+## Rows and vocabularies
+
+A declaration keeps two lists apart. The **rows** are the nodes the
+counterparty sees state for; the **vocabularies** are the commands it may
+send, one entry per node and event type. The two do not coincide: a node
+under an interior command node is a row with no vocabulary (its owner's
+row carries the command), and an interior node may have several
+vocabularies. In `scada.control.capabilities` the rows are
+`CommandNodes`, the vocabularies `CommandInterfaces`.
+
+The strain in the current shape is that a row's state enum rides on its
+vocabulary, so a row with no vocabulary declares no state type; the admin
+client takes a row's state type from its first interface and matches an
+interface-less row's `single.machine.state` against an empty string,
+special-casing `relay.pin` (`gwadmin/watch/clients/relay_client.py`). It
+renders, not by contract. The fix is a state type on every row, with
+vocabularies kept as the sendable set; it rides with the layout-word
+declaration for interior nodes (Open below). Until then the scada holds
+the split by hand, `Scada.COMMAND_NODE_CLASSES` (rows) and
+`Scada.COMMAND_NODE_INTERFACES` (vocabularies).
+
 ## Rules
 
 Candidates while this doc is Draft; each becomes binding when a second

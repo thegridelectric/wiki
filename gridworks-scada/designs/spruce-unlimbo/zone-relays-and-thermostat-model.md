@@ -198,7 +198,7 @@ the belief.
   Thermostatic(+setpoint)`). Safety by construction — raw admin can
   express the cold-water mistake, governance admin cannot; and the
   journal records intent, not pin flips. Governance mode becomes the
-  operating default; lands in `sh-node-actor-partition/krida-retirement.md`'s
+  operating default; lands in `krida-retirement.md`'s
   scope (admin for Nolan) when that work resumes.
 
 ## The relay actor, adjusted

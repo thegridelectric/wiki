@@ -70,6 +70,13 @@ Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
 
 ## Where they run
 
+10. Under admin the relay's `boss_by_trigger` sends its `fsm.full.report`
+    to the panel and never to the journal, the opposite of the cycler
+    (whose full report stays addressed to `primary_scada` and lands in
+    `report.FsmReportList`). Decide whether the relay's report also
+    goes to the journal; the test is one dispatch under admin and a
+    look at the next report.
+
 Items 2, 3, 4 and 9 are in-process on the sim board and belong beside
 `tests/actors/test_hp_boss.py` as a relay test file of their own. Items
 1, 6 and 7 need the live harness and the sim plant. Item 5 waits on the

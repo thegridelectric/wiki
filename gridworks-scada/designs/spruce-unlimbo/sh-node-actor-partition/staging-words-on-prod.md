@@ -41,7 +41,7 @@ has no release-gate flag.
    Its closure holds `spaceheat.node.gt/302` and `gw1.actor.class/013`,
    so publishing it freezes those layout-closure words too. It also
    carries the cover of the command tree, which rung 2 of
-   `krida-retirement.md` (the per-node command interface) may reshape.
+   `../krida-retirement.md` (the per-node command interface) may reshape.
    Decide after rung 2 whether it publishes as `001` or as a `002`
    shaped by that work; until then the admin panel decodes a staging
    word from production scadas.

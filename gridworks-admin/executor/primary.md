@@ -190,7 +190,7 @@ for the gRPC question.
 
 ## The capabilities contract (what the admin client consumes today)
 
-Status: Verified · Pass 1 · Updated 2026-09-08 · Reviewed 2026-09-08@ea3365b5
+Status: Verified · Pass 1 · Updated 2026-09-10 · Reviewed 2026-09-08@ea3365b5
 
 This is the scada's command surface toward admin, the first built to the
 cross-cutting pattern ([`../../command-surface.md`](../../command-surface.md)).
@@ -230,7 +230,37 @@ address is `admin.<ActorName>`; the row's actions are the interface's
 `snapshot.spaceheat`'s `LatestStateList` and from the
 `single.machine.state` the scada forwards over the admin link for every
 relay and command node (`scada.py:1556`). A row shows `?` until its
-node's first state report arrives. Readings for the 0-10V channels
+node's first state report arrives. A row's state type is taken from
+its node's first interface; a row with no interface (an owned relay,
+the cycler under five-v-boss) declares none, and the client matches
+its `single.machine.state` against an empty string, special-casing
+`relay.pin` (`watch/clients/relay_client.py:185`, `:264`). It renders,
+not by contract; the shape and its fix are in
+[`../../command-surface.md`](../../command-surface.md) "Rows and
+vocabularies".
+
+The concrete case is the 5 V bus on a Nolan layout. The tree runs
+`auto.five-v-boss.pico-cycler.vdc-relay`, so the cover names one
+interface holder, five-v-boss, with two vocabularies (`turn.5v.on.off`:
+TurnOff → FiveVOff, TurnOn → PicoCycler; `reboot.picos`: RebootPicos →
+PicoCycler), and two rows under it with no vocabulary, the pico-cycler
+(state `pico.cycler.state`) and the vdc-relay (state
+`relay.closed.or.open`). The panel indents a row under its owner
+however deep the chain (`watch/widgets/relays.py` `owner_chain`,
+`row_order_key`), so the operator reads:
+
+```
+five-v-boss        PicoCycler     [TurnOff] [TurnOn] [RebootPicos]
+  pico-cycler      PicosLive
+    vdc-relay      RelayClosed
+```
+
+A RebootPicos click shows the cycler row go RelayOpening at once, the
+vdc-relay row RelayOpen, then PicosRebooting and PicosLive as the
+cycler's own reports arrive; the five-v-boss row stays PicoCycler
+throughout. The same pattern gives hp-boss its owned
+`hp-scada-ops-relay` row (`tests/actors/test_five_v_boss.py::
+test_panel_row_gathers_both_vocabularies`). Readings for the 0-10V channels
 still arrive as forwarded `single.reading`. An interior node's owned
 relays are listed under it, by name, as presentation only; the word
 stays a flat per-node list.

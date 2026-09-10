@@ -10,14 +10,29 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-10 — SimPicoSource docstring: how the sim pico operates and what it is not <!-- pending commit -->
+## 2026-09-10 — Non-admin admin messages are dropped, not executed (`b3cf3426`)
 
-Docstring only, on `actors/api_tank_module.py` `SimPicoSource`: the tick
-loop, the vdc-relay power coupling, the SimLifeS / SimRebootS script and
-its layout source, and the limits (fixed readings, scheduled death,
-reboots always succeed, no HTTP). **Why:** the sim picos were read as
-"tests only"; the class runs in every sim layout, and what it does and
-does not simulate should be readable at the class.
+**What:** `gw_spaceheat/actors/scada.py` — `process_admin_dispatch`,
+`process_admin_analog_dispatch` and `process_admin_keep_alive` now
+`return` after logging "Ignoring … Expected admin!"; before, the branch
+logged the refusal and fell through to wake Admin, renew the timeout and
+route the event anyway. `tests/actors/test_admin_on_nolan.py::
+test_non_admin_sender_is_refused` sends all three from hp-boss and
+asserts TopState stays Auto and nothing is routed.
+
+**Why:** the handlers said one thing and did another; a message from any
+node could put the scada in Admin and drive an actuator. Found reading the
+admin path for the peer-liveness chunk (`sh-node-actor-partition`); this
+commit closes that chunk.
+
+Also in the commit, docstring only, on `actors/api_tank_module.py`
+`SimPicoSource`: the tick loop, the vdc-relay power coupling, the
+SimLifeS / SimRebootS script and its layout source, and the limits (fixed
+readings, scheduled death, reboots always succeed, no HTTP). **Why:** the
+sim picos were read as "tests only"; the class runs in every sim layout,
+and what it does and does not simulate should be readable at the class.
+
+---
 
 ## 2026-09-10 — gwadmin offers every command a row's vocabularies allow, and owned rows indent
 

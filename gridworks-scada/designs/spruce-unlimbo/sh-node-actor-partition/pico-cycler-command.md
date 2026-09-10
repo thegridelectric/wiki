@@ -85,8 +85,9 @@ removes; the same failure would hit any long admin window.
    publishes the `admin.dispatch` in the row's own vocabulary
    (`ca53f6d2`; tests `tests/test_misc/test_admin_five_v_boss_row.py`,
    `test_admin_row_order.py`, `tests/actors/test_admin_reboots_picos.py`).
-4. Tree-matrix admin rows move to the `admin.pico-cycler.vdc-relay`
-   shape (marked xfail until this lands).
+4. Moved to `command-tree-matrix.md` "five-v-boss rows" (2026-09-10):
+   the admin rows in the `admin.pico-cycler.vdc-relay` shape, xfail
+   today.
 5. Three enum words registered in sema, mirrored in gwsproto:
    ✅ `single.pico.state` (Alive / Flatlined / Zombie, default
    Flatlined so an unknown value reads as a sick pico; sema branch
@@ -94,7 +95,7 @@ removes; the same failure would hit any long admin window.
    `pico.cycler.event` (gaining `Startup`, so the boot cycle stops
    being reported as a `PicoMissing` with no pico missing).
    ✅ Sema side: `reboot.picos` and `pico.cycler.event` registered
-   2026-09-07 on `jm/pico-cycler-words` (pending commit); the
+   2026-09-07 (sema `f2168ed`); the
    conformance allowlist rows drop with the gwsproto mirror step in
    "Do this next". ✅ The cycler
    reports each pico's state through `machine.states`
@@ -115,30 +116,10 @@ removes; the same failure would hit any long admin window.
    actual-spruce".
 7. ✅ The item-5 enum words are registered (2026-09-07); allowlist rows
    drop with the gwsproto mirror.
-8. LAST, coverage for what the dev-broker rung exposed
-   (`experiments/2026-09-07-admin-reboots-picos/`) that has only the
-   broker run behind it; all in process, in
-   `tests/actors/test_pico_cycler_command.py` unless noted:
-   - the real overlap: cycle A closes, a command opens cycle B, A's
-     reboot timer fires into B (short `RELAY_OPEN_S` / `PICO_REBOOT_S`,
-     the relay's reports handed back); the two guard tests only swap
-     the cycle id under one wait;
-   - the full loop through the sim pico: relay confirms, cycler closes,
-     the sim source loses power and posts again `SimRebootS` later, and
-     that reading (not a timer) confirms the cycle;
-   - the journal path: the cycler's `fsm.full.report` delivered to the
-     scada lands in `report.FsmReportList` under the dispatch's id
-     (pass condition (a) of the rung);
-   - the GPIO relay's state committing before its pin write (the FSM
-     fires, then actuates; the i2c path is command-and-confirm), in
-     `tests/actors/test_relay_gpio_sim.py`;
-   - the admin acknowledgement, once decided;
-   - the tank actor's always-true flatline gate, with its fix.
-
-## Cost accepted
-
-No raw admin path to vdc-relay when the pico-cycler actor itself is
-sick — `relay.py`'s handle check rightly refuses a non-boss commander.
+8. Coverage for what the dev-broker rung exposed moved to spruce-settled
+   ([OPS-532](https://linear.app/gridworks/issue/OPS-532)) on
+   2026-09-10; the tank actor's flatline gate is covered by
+   `tests/actors/test_pico_liveness.py`.
 
 ## Roster on actual-spruce (item 6, what it takes)
 
@@ -242,10 +223,11 @@ queue (BEFORE); the three re-energized picos are the launch spoke
 `../extra-pico-channels.md` (BEFORE); the gwadmin-on-Nolan claim was
 stale (krida rung 1 fixed it 09-07), and the open question is how much
 of krida rungs 2 and 3 is BEFORE; pico liveness is one rule
-(`e0029d3d`, retires the drifting-copies finding and the extra 5 V
-cycle on TurnOn). Still to decide: the item-8 coverage list, the
-NotMyBoss / NotAControlNode refusal paths, the beech fixture, the
-held-off roster reading, the snapshot handle lag, item 4's xfail rows
+(`e0029d3d`, retires the drifting-copies finding; the extra 5 V cycle
+on TurnOn survives any hold longer than 2.5 capture periods, since the
+liveness clock is not restarted at power-on; it is after-launch work
+under [OPS-532](https://linear.app/gridworks/issue/OPS-532)). Still to decide: the item-8 coverage list, the
+the beech fixture
 (command-tree-matrix), and the hours roll-up for this spoke's row.
 Then distill (what stays is listed under "Close-down mechanics" in
 the grill) and delete this file.
@@ -396,7 +378,7 @@ Verified claims below rest on is now in the scada executor
 and replies").
 
 **Acknowledgement decided (2026-09-07); built in `ea3365b5` except the NotMyBoss nack, which waits on the word edit (krida-retirement step 1).** Sema words
-registered on `jm/pico-cycler-words` (pending commit): `gw.dispatch.ack`
+registered (sema `f2168ed`): `gw.dispatch.ack`
 / `gw.dispatch.nack`, `gw.scada.cmd.refusal.reason`, `analog.dispatch`,
 `reboot.picos`, `pico.cycler.event`. The build, in order, each with a
 test:
@@ -404,7 +386,7 @@ test:
 1. ✅ gwsproto mirrors, local class names `DispatchAck` / `DispatchNack`
    (`AnalogDispatch` already matched its word); `analog.dispatch`,
    `reboot.picos`, `pico.cycler.event` off the conformance allowlists
-   (pending commit on `jm/spruce-unlimbo`).
+   (scada `0c4127a1`).
 2. ✅ (`ea3365b5`, all but NotMyBoss) Every command node answers its boss: relay, DAC output, pico-cycler,
    hp-boss send `DispatchAck` on take and `DispatchNack` with the reason
    on every refusal path that today only logs. The reply goes through
@@ -428,7 +410,8 @@ test:
      including the idempotent TurnOn while already HpOn.
    - Not sent yet: NotAControlNode. Only the scada's routing knows the
      target is not a command node (`process_admin_dispatch` finds no
-     communicator, silently). Decide who speaks for a node that cannot.
+     communicator, silently). Parked with the command-interface work,
+     `../krida-retirement.md` "Open" (2026-09-10).
    - **`gw.dispatch.nack` axiom 1 cannot hold.** A NotMyBoss nack goes
      to the sender, and the sender is by definition not the boss of the
      node's live handle (admin sending to `admin.relay` while the relay
@@ -448,8 +431,8 @@ test:
    (the report lands in `report.FsmReportList` under the dispatch's id),
    and admin's need is met by the pair plus the journaled state rows.
    The relay does the opposite (`boss_by_trigger`), so under admin its
-   full reports go to the panel and never reach the journal; an open
-   item for the relay review, not a reason to move the cycler.
+   full reports go to the panel and never reach the journal; filed in
+   `../unsorted/relay-tests.md` (item 10).
 4. ✅ gwadmin: the relay and DAC clients remember each dispatch by
    `TriggerId` (`clients/dispatch_replies.py`), decode the pair off the
    admin link, and the panel notifies taken / refused with the reason
@@ -573,15 +556,17 @@ minutes with the journaled `single.pico.state` roster as evidence.
   relay sat under `auto.five-v-boss` in the snapshot after the release
   restore while the published tree had it under the cycler). The
   published `new.command.tree` is the authority; anything grouping rows
-  off snapshot handles is a report period behind. Check on the spruce
-  witness how the panel groups the relay row across a hold.
+  off snapshot handles is a report period behind. The panel groups
+  rows off the cover's `CommandNodes` handles, not snapshot handles, so
+  no witness is needed; dropped 2026-09-10.
 - The cycler's roster still flips during the hold: `process_pico_missing`
   marks a pico Flatlined before its state guard, and its 60 s
   `last_open_time` grace is the cycler's own open, not the boss's. The
   dormant cycler cycles nothing (tested), but the panel and the journal
-  will show Flatlined rows while the 5 V is held off. Left as is: the
-  picos are dark, and the cycler stays untouched. Decide on the spruce
-  witness whether a held-off roster reading is worth a cycler edit.
+  show Flatlined rows while the 5 V is held off. Settled 2026-09-10 as
+  the reading we want (the picos are dark; that it is commanded shows
+  on the five-v-boss row): `executor/control-hierarchy.md` "The
+  pico-cycler command".
 - The scada reads five-v-boss's subtree shape off its last reported
   state (`Scada.five_v_boss_state`, PicoCycler until the first report);
   the scada's tree rewrite and the actor's own transitions call one
@@ -601,10 +586,8 @@ minutes with the journaled `single.pico.state` roster as evidence.
   on teardown and the whole directory goes green, including the
   baseline miss. The other in-process fixtures still leak; a shared
   conftest fixture with the teardown is the fix, its own small commit.
-- The beech fixture `gw.house0.layout.json` is hand-kept; it gained the
-  node and the new handles by hand (the layout word's axiom 4 requires
-  it). `HydronicLayout`'s essential-nodes check still lists neither
-  five-v-boss nor the cycler; the layout words carry the requirement.
+- The beech fixture `gw.house0.layout.json` is hand-kept: the hub's
+  `correct-house0-tlayouts.md` (2026-09-10).
 
 ## Findings while building (2026-09-07)
 
@@ -625,23 +608,17 @@ minutes with the journaled `single.pico.state` roster as evidence.
   the cycler within ~10 s of the sim pico's silence; the dev-broker rung
   measured 2 s.
 
-- **The gwadmin TUI cannot show a Nolan layout's relays yet.** On admin
-  link-up the scada answers `send.control.capabilities`, and
-  `Scada.control_capabilities` dereferences `H0N.relay_multiplexer`
-  unguarded; Nolan has no such node (its relays are thin
-  `gpio.relay.component.gt` / `i2c.relay.component.gt` components), so
-  the message is never built and the TUI's relay and DAC tables stay
-  empty. The word itself requires `I2cRelayComponent`, and gwadmin
-  reads every relay's config from its `ConfigList`. Watched first-hand
-  2026-09-07 (`gwa watch` on the dev sim). Every dev-broker run logged
-  it (`Trouble with SendLayout: 'NoneType' object has no attribute
-  'component'`, runs 1–4) and the driver never noticed because it
-  reads snapshots, not capabilities. The handler's log label is wrong:
-  the `SendControlCapabilities` branch in `scada.py` logs under the
-  `SendLayout` name. The `krida-retirement` spoke owns the fix (drop
-  the required Krida component from the word, then the admin package);
-  until it lands item 3's button is reachable only through
-  `send_reboot_picos`, and the pico-cycler row shows in the snapshot.
+- **gwadmin shows a Nolan layout's relays.** `Scada.control_capabilities`
+  builds the cover from the layout's live handles by `ActorClass` (relays,
+  DAC outputs, command nodes) and touches no Krida node
+  (`gw_spaceheat/actors/scada.py` `control_capabilities`, since
+  `cc6f3382`); `layout_lite` guards its `H0N.relay_multiplexer` lookup.
+  The pico reboot is the five-v-boss row's command in the panel
+  (`tests/actors/test_admin_reboots_picos.py`), and
+  `tests/actors/test_admin_on_nolan.py::test_control_capabilities_on_nolan`
+  covers the projection. Before `cc6f3382` the projection dereferenced the
+  multiplexer unguarded and every dev-broker run logged `Trouble with
+  SendLayout: 'NoneType' object has no attribute 'component'`.
 
 ## Open
 

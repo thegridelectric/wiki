@@ -11,6 +11,21 @@ repo's git history.
 Newest at the top.
 ---
 
+<!-- pending commit -->
+## 2026-09-10 — promote turn.5v.on.off/000 and five.v.boss.state/000 to published
+
+**What:** the two five-v-boss enums flip staging → published (`sema promote`,
+pins recorded, public registry regenerated). Enums, no dependencies.
+
+**Why:** the five-v-boss hold was witnessed on spruce 2026-09-09 (TurnOff →
+FiveVOff, five picos flatlined through the hold, cycler cycled nothing,
+TurnOn), which was the stated condition. The rest of that wave
+(`new.command.tree/003`, `spaceheat.node.gt/303`,
+`scada.control.capabilities/002`, `sim.pico.tank.module.component.gt/001`,
+`gw1.actor.class/014`) stays staging by decision.
+
+---
+
 ## 2026-09-10 — patch old layout.lite's to match the wire in Dec 2025 (`f3349f4`)
 
 On `dev`. `layout.lite` 005 and 006 take `TankModuleComponents.items`

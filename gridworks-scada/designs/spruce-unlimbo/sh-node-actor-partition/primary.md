@@ -1,6 +1,6 @@
 # sh_node_actor partition (rope hub)
 
-Status: Draft · Pass 0 · Updated 2026-09-09 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-10 · Linear: OPS-392
 **EDD: yes** the simulated House0 and spruce runs and the real-house
 witness runs are the verification; a chunk reaches Verified only when
 one of them exercises it (`experiments/`).
@@ -150,6 +150,7 @@ hub). The what/why of each commit is in the scada changelog.
 | dac-output tail: step 4 harness, honeysuckle bench rung, SIMULATED root cause, proactor CONNACK fix, step 5 rehearsal + two spruce windows (09-04–06) | (same row) | 1.8 + 0.7 + 0.25 + 3.0 + 1.0 + 1.5 + 2.0 + 1.5 = 11.75h | scada `0f1ff7be` `59284cc5` `ba2c9883` `a6833464` `829038b2`; proactor `3e5087f` (`v4.1.13+jm2`); tlayouts `0a051f9`; `experiments/2026-09-05-dac-output-bench/`, `experiments/2026-09-06-spruce-pump-speed-sweep/` |
 | `snapshot-drop-gw1` (2026-09-08): the chunk was already satisfied (the tlayouts seed has stripped `gw`/`gw1` local names through sema `local_names` since 07-03); closed with the seed consolidation onto sema's template pair | 0.75h (0.5–1) | 0.25h, below interval | tlayouts: root seed + build script deleted, `scripts/regen_sema_snapshot.sh` the one path (`3118aa7`) |
 | `is-simulated-decompression` (2026-09-09): `ta.validation.state`, `ta.deed`, `slow.contract.rejection` in staging; gwsproto twins; the scada reads its deed into a `validation_state`, `is_simulated` answers from the layout alone, an `UnValidated` scada refuses LTN offers with the rejection word, witnessed on the in-process LTN rig; honeysuckle no-deed witness still to run | 1.5h (1–4) | 0.5h, below interval | sema `12a608f`; scada `4bb46035` |
+| `admin-scada-peer-liveness` (2026-09-10): `process_admin_dispatch`, `process_admin_analog_dispatch` and `process_admin_keep_alive` return after logging "Ignoring" instead of executing; refusal test from hp-boss | under 1h | 0.3h | scada `b3cf3426` |
 
 Sema round 2 closed at 20.4h against its 6h (4–12) row, past the high
 bound: the three word moves sum to 8.15h and the dac-output tail that
@@ -194,9 +195,9 @@ What the rope found on the way, kept as facts:
   no peer-liveness rule behind it. The fix (a session opened by
   take-control, `heartbeat.a` both ways, a missed beat releases Admin in
   seconds) is the admin domain's
-  [OPS-529](https://linear.app/gridworks/issue/OPS-529); what stays on
-  this rope is the `process_admin_dispatch` missing-`return` bug,
-  `admin-scada-peer-liveness.md`.
+  [OPS-529](https://linear.app/gridworks/issue/OPS-529). The
+  `process_admin_dispatch` missing-`return` bug found on the same read
+  is fixed (scada `b3cf3426`).
 - Spruce pump-speed sweep (`experiments/2026-09-06-spruce-pump-speed-sweep/`
   "Found"): linear 3.5–8.5 V at 1.45 gpm/V, maximum from 9 V, no path
   dependence in the band; below 2.5 V the stop is path dependent. Working
@@ -330,7 +331,7 @@ GridWorks_CLAUDE ⏳ note).
 
 1. ✅ DONE `hp-boss-cleanup` (3h, 1.9h actual): in the Done table.
 2. [`pico-cycler-command`](pico-cycler-command.md) (4h): items 1 and 1a, the real fix that retires the vdc hack.
-3. [`krida-retirement`](krida-retirement.md) (6h + rungs; absorbed admin-for-nolan and command-interface 2026-09-07): rung 1 is the gwadmin panel rendering and driving a Nolan scada (the `scada.control.capabilities` edit), rung 2 the per-node command interface, rung 3 the relay decommission.
+3. [`krida-retirement`](../krida-retirement.md) (6h + rungs): now a spoke of the spruce-unlimbo hub, first in its list; rung 1 (the panel on Nolan) is in, rung 3 (the relay decommission) is its next move.
 4. `journalkeeper-pico-states` (unestimated; own row when it starts):
    gridworks-journalkeeper vendors the new enum words (`single.pico.state`,
    `pico.cycler.event`, `pico.cycler.state`, `gw.scada.cmd.refusal.reason`)
@@ -341,7 +342,7 @@ GridWorks_CLAUDE ⏳ note).
    journal half of reading a pico flatline off the database; the spruce
    half is `pico-cycler-command.md` item 6. After krida-retirement.
 5. [`command-tree-matrix`](command-tree-matrix.md) (3h; `actors/command_node.py`, 207 L): the state-transition tree matrix on `command_node.py`, with the LC dormant-sequence row.
-6. [`admin-scada-peer-liveness`](admin-scada-peer-liveness.md) (quick, under 1h): the `process_admin_dispatch` missing `return` (logs "Ignoring", dispatches anyway) plus a refusal test. The liveness and takeover work moved to the admin domain ([OPS-529](https://linear.app/gridworks/issue/OPS-529)).
+6. ✅ DONE `admin-scada-peer-liveness` (under 1h, 0.3h actual): in the Done table. The liveness and takeover work is the admin domain's [OPS-529](https://linear.app/gridworks/issue/OPS-529).
 7. [`hydronic-shared-review`](hydronic-shared-review.md) (2h; `actors/hydronic/shared.py`, ~250 L): `actors/hydronic/shared.py` review + first tests.
 8. [`hydronic-house0-review`](hydronic-house0-review.md) (2h; `actors/hydronic/house0.py`, ~990 L): `actors/hydronic/house0.py` review; the buffer/storage judgment methods.
 9. ✅ DONE [`is-simulated-decompression`](is-simulated-decompression.md) (1.5h, 0.5h actual): in the Done table; the spoke holds the honeysuckle witness still to run.
@@ -362,7 +363,7 @@ commit or a decision):
 - The beech fixture `gw.house0.layout.json` fails `sema validate` on
   pre-existing shape (three channels carry InPowerMetering, four
   components predate their words' config shape); closes with a translated
-  beech gen, not by hand.
+  beech gen, not by hand: the hub's `correct-house0-tlayouts.md`.
 - ✅ Pico liveness is one rule (`actors/pico_liveness.py`, scada
   `e0029d3d`): 2.5 expected post periods to missing, one report at the
   crossing then one a minute, shared by the tank, BTU and flow actors;

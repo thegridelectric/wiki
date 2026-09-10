@@ -1,6 +1,6 @@
 # Control hierarchy — HSMs, the command tree, and the capability cover
 
-Status: Draft · Pass 0 · Updated 2026-09-08
+Status: Draft · Pass 0 · Updated 2026-09-10
 
 > What this is: how the SCADA's hierarchical state machines (HSMs) and the command tree work **together**
 > — the piece the executor lacked. The HSM decides *who is in control*; the command tree *enforces* it via
@@ -59,18 +59,28 @@ override-select among them. **`scada.control.capabilities` is not the tree** —
 command to the node that executes it. A regime's cover may be a *subset* (restricted authority — admin
 need not grant full leaf access).
 
+The cover word keeps rows (`CommandNodes`, the nodes an operator sees
+state for) and vocabularies (`CommandInterfaces`, what an operator may
+send) apart; the pattern and its current strain are in
+`wiki/command-surface.md` "Rows and vocabularies".
+
 ## Fixed sub-trees vs floating actuators
 
 Most actuators **float** — re-parented under the current authority. Some sub-bosses own **fixed** relays
 regardless of who is on top: `pico-cycler` always owns the vdc relay (pico-reboot is cross-cutting),
 `hp-boss` owns `hp-scada-ops-relay`, `sieg-loop` owns the loop relays. An interior node keeps its
 subtree: a tree rewrite reparents the interior node and never reaches through it to its relays.
-The pico-cycler hangs under the tree's **root**, not the boss: `admin.pico-cycler.vdc-relay` while
-admin holds the tree, `auto.pico-cycler.vdc-relay` under local-control or leaf-ally (the shape the
-layout words declare). Neither auto node commands the cycler, and it runs in every top state; it
-is never sent `GoDormant` or `WakeUp` on the Auto transitions. Dormant, for the cycler, keeps the
-one meaning it has everywhere: the node became a leaf and commands nothing, reserved for a mode
-that touches no relay at all.
+The pico-cycler hangs under **five-v-boss**, which hangs under the tree's root:
+`<root>.five-v-boss.pico-cycler.vdc-relay`, root `admin` while admin holds the tree, `auto` under
+local-control or leaf-ally (the shape both layout words declare; tlayouts `nolan_sema_gen.py`,
+`house0_sema_gen.py`). Neither auto node commands the cycler, and it runs in every top state; the
+Auto transitions send it no `GoDormant` or `WakeUp` (`scada.py:1004-1022`). The reason it never
+sleeps under admin: on the 2026-09-06 spruce pump-speed sweep the dormant cycler could not cycle
+a flatlined pico and `secondary-flow` was lost for nineteen minutes
+(`experiments/2026-09-06-spruce-pump-speed-sweep/`). Rejected with it: an admin-mode toggle that
+would hand the vdc relay to the operator directly. Dormant, for the cycler, keeps the one meaning
+it has everywhere: the node became a leaf and commands nothing, reserved for a mode that touches
+no relay at all, which is what five-v-boss's hold is (next section).
 
 **hp-boss is the heat pump's command node in every layout.** Every layout word's core axiom requires
 the `hp-boss` node with ActorClass HpBoss, the actor is constructed in every layout, and both
@@ -164,13 +174,61 @@ like any other and gets the same replies. Interior bosses do not yet
 consume the acks their own relays send (an Open item on the
 krida-retirement work, OPS-392).
 
+## five-v-boss: the 5 V hold
+
+Status: Verified · Pass 0 · Updated 2026-09-10 · Reviewed 2026-09-09@4bb46035
+
+five-v-boss is the command node for the 5 V bus that feeds every pico. It
+sits between the root and the pico-cycler in every layout and takes two
+vocabularies: `turn.5v.on.off` (TurnOff, TurnOn) and the forwarded
+`reboot.picos`. Its states (`five.v.boss.state`): PicoCycler (the normal
+state: the cycler owns the vdc relay and runs its liveness loop),
+TurningOff, FiveVOff, TurningOn. Boot is always PicoCycler
+(`scada.py:1710`); the scada reads the boss's last reported state when
+it rewrites the root tree, and one `shape_five_v_subtree` writes the
+subtree shape for both the scada's rewrite and the actor's own
+transitions (`actors/five_v_boss.py`).
+
+**The hold.** TurnOff is taken only in PicoCycler with the relay last
+reported closed (`five_v_boss.py:174-205`); otherwise Busy. Taken, the
+boss sends the cycler `GoDormant`, reparents the vdc relay under itself
+and opens it; the picos go dark by design, and the roster reads Flatlined
+for the hold ("The pico-cycler command"). TurnOn in FiveVOff closes the
+relay; the closed confirmation reparents the relay back under the cycler,
+republishes the tree and sends the cycler `WakeUp`. TurnOn at rest is
+acked and does nothing; either command during Turning* is Busy. Each
+hold produces two full reports, one per direction.
+
+**Wake.** `wake.up` from the scada on AutoWakesUp (admin release and the
+admin keepalive timeout alike) restores the 5 V from FiveVOff or
+TurningOff (`five_v_boss.py:230`, `scada.py:1017`), so LocalControl never
+inherits a dark fleet.
+
+**Rejected** (2026-09-08): a raw admin path to the vdc relay; an
+admin-mode toggle on the cycler; a hold expressed as a cycler state; and
+a hands-off flag on the relay. Each either let the cycler sleep under
+admin or gave the relay two commanders.
+
+**Witnessed.** Dev sim run 4 and spruce 2026-09-09
+(`experiments/2026-09-08-five-v-boss-hold/` "Found"): TurnOff to FiveVOff
+in 27 ms, five picos flatlined through the hold, the cycler cycled
+nothing, TurnOn in 12 ms. Tests: `tests/actors/test_five_v_boss.py` (18,
+on the Nolan and House0-sim pairs).
+
+**WORK IN PROGRESS: diagrams.** This section and the two above need
+graphic command-tree diagrams: the tree under each root (admin,
+local-control, leaf-ally) with the five-v-boss subtree in PicoCycler and
+in FiveVOff, and the hold's two reparents drawn as before/after. Until
+they exist the handle paths above are the picture.
+
 ## The pico-cycler command
 
-Status: Verified · Pass 0 · Updated 2026-09-08 · Reviewed 2026-09-08@ea3365b5
+Status: Verified · Pass 0 · Updated 2026-09-10 · Reviewed 2026-09-08@ea3365b5
 
-The pico-cycler takes one command from whichever boss holds the root:
+The pico-cycler takes one command, from five-v-boss (which forwards the
+operator's RebootPicos and passes the cycler's reply back):
 `reboot.picos` (`RebootPicos`), entering its cycle through
-`ShakeZombies` from PicosLive or AllZombies (`actors/pico_cycler.py:466`
+`ShakeZombies` from PicosLive or AllZombies (`actors/pico_cycler.py:468`
 `process_fsm_event`). A cycle is RelayOpening, RelayOpen (the vdc relay
 held open 5 s), RelayClosing, PicosRebooting, PicosLive, the last on the
 first pico re-POST; the cycle's `TriggerId` is the command's. A command
@@ -184,3 +242,13 @@ Real timing (spruce gw108, 2026-09-08,
 7 to 9 s after the relay closes, so PicosLive arrives about 13 s after
 the command and the 60 s wait never fires in anger. The sim rung is
 `experiments/2026-09-07-admin-reboots-picos/`.
+
+**The roster reads Flatlined during a 5 V hold, and that is the reading
+we want.** While five-v-boss holds the bus off (FiveVOff) the cycler is
+Dormant and cycles nothing, but `process_pico_missing` still marks each
+silent pico Flatlined, so the panel and the journal show Flatlined rows
+for the hold's duration. The rows are true: the picos are dark. The
+roster reports pico liveness and nothing else; that the darkness is
+commanded is read off a different machine, the five-v-boss row
+(`five.v.boss.state` FiveVOff) and the top state that put admin in
+charge. No held-off roster reading is added to the cycler.
