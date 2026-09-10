@@ -1,11 +1,12 @@
 # api-pattern — the house HTTP pattern
 
-Status: Draft · Pass 0 · Updated 2026-08-11
+Status: Draft · Pass 0 · Updated 2026-09-10
 
 > What this is: how GridWorks services expose HTTP surfaces — the
 > route grammar, the sema-word contract, and the read-façade posture.
 > Canonical home for the pattern; per-service docs (gnr's executor,
-> service changelogs) state their own adoption and converge here.
+> service changelogs) state their own adoption and converge here. The
+> sibling for commands is [`command-surface.md`](command-surface.md).
 
 ## The split — by traffic shape, not by consumer
 
@@ -84,7 +85,11 @@ Where an external protocol dictates the shape, the deviation is taken
 and documented as such — e.g. FIS's `/auth/*` routes speak the
 rabbitmq-auth-backend-http contract (`{"result": "allow"|"deny"}`),
 not the house grammar. The exception is the external contract, never
-convenience.
+convenience. A second kind: a counterparty that cannot reach rabbit at
+all. The homeowner's phone app commands the LTN over HTTPS because a
+phone has no broker (gridworks-ltn executor "Homeowner command
+surface"); the command is still a sema word with a contractual ack, and
+nothing else about the surface changes.
 
 ## Examples
 

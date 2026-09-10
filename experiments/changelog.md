@@ -8,18 +8,35 @@ Newest at the top.
 
 ---
 
-## 2026-09-09 — gw108-ct-testing: cycle.py reads all four CT inputs across store-pump off/on; schematic trace in the handoff <!-- pending commit -->
+## 2026-09-10 — gw108-ct-testing: cut to run 3 and the explanation; ci.sh green <!-- pending commit -->
 
-The RevB schematic and copper say the four CT inputs return through one
-undecoupled 50 kΩ `1V65` node and that CT3 is wired like the others, so
-spruce's P2 is an open burden path (no shunt on JP2, most likely); the
-trace and the bench experiment that settles it are in the handoff
-README. `cycle.py` is the spruce version of that experiment's first
-state: with the blue current CT on P0 it captures all four inputs with
-the store pump off and then on (iso valve held open, secondary pump
-untouched), repeated per cycle, and reads each empty input as TIED,
-INDEPENDENT or OPEN from its rise, its ratio to P0 and its bias. It
-imports the ssh, relay and fold plumbing from `peek.py`.
+The folder now holds one run and why it matters. Run 3 at spruce (a
+voltage CT on the CT4 connector, nothing on CT1) shows P0 reading 94 %
+of the CT's signal with nothing attached; the RevB schematic and copper
+say why: the four CT inputs return through one `1V65` node held by
+nothing but two 100 kΩ resistors, so the node wobbles at 60 Hz by half
+the CT's voltage and any shunted input reads the wobble. The README
+walks the circuit step by step, states the fix (10 µF from `1V65` to
+ground, shunts on used headers; Joe's CircuitLab reproduction agrees),
+and the bench check before spruce is touched. The purpose of the CTs is
+on/off detection, so that is the bar. The speed ladder (six
+secondary-pump drive levels on one pass through the CT, 2026-09-07)
+keeps its own `speed-ladder/` subfolder with a README that embeds the
+7.5 V waveform and the ladder figure, both committed PNGs; its
+`staircase.py` carries its own level label so `fold.py` can lose the
+ladder-level lookup. Removed: the jumper and synth scripts, the other
+26 spruce instances and the day's handoff, and `cycle.py` with its tie1
+run (that run's one durable fact, that only CT1's header carries a
+shunt, is in the README). The pre-prune
+folder is kept outside git at `scratch/gw108-ct-testing-before-prune-2026-09-10`.
+
+`ci.sh` is green again: the pyright exclusion list gains the
+August–September scripts that import environments this repo lacks
+(gwwf, gwbase, gnr, gwadmin, smbus2, paho, sqlalchemy), two real type
+errors are fixed (`stub_fis.py`'s log_message signature; `staircase.py`
+labelling a missing flow reading instead of dividing None), and the own-version decode of the
+ads-noise reader instance is dropped with a note: that file records the
+pre-regenesis word, which no snapshot carries any more.
 
 ## 2026-09-09 — gw108-ct-testing: folder renamed from adc-waveform-bench; spruce runs 1–7 in a dated subfolder; peek.py --channels <!-- pending commit -->
 

@@ -73,7 +73,8 @@ headline.
   running alongside HA, HA as one of its actors) may sidestep the
   reimplementation cost.
 - **Minimal LTN-wrapper surface.** What is the smallest contract an HA SCADA
-  must honor (heartbeat cadence, identity, message types)?
+  must honor (heartbeat cadence, identity, message types)? The command half
+  is the scada → LTN row of [`../command-surface.md`](../command-surface.md).
 - **HA ecosystem mechanics.** How HA integrations / add-ons are built and
   distributed (core vs HACS), and what constraints that places on shipping a
   long-running, stateful, broker-connected component.

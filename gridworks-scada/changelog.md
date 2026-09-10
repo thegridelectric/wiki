@@ -11,6 +11,29 @@ repo's git history.
 Newest at the top.
 
 <!-- pending commit -->
+## 2026-09-10 — gwadmin offers every command a row's vocabularies allow, and owned rows indent
+
+`RelayWidgetConfig.next_command` (one command per row) becomes
+`offered_commands`: per vocabulary (`event_type`), a two-command
+vocabulary offers the command whose `to_state` differs from the observed
+state and a one-command vocabulary is offered when the observed state
+equals its target. On `five-v-boss` in `PicoCycler` that is `TurnOff`
+and `RebootPicos`; in `FiveVOff` it is `TurnOn` alone; mid-transition
+nothing. The panel grows a second button, `p`, for the second offer
+(`n` stays the first); both keys bind on the `Relays` widget, and the
+second button is hidden when the row has one offer, so those rows keep
+their single full-width button. The Name cell of an owned node indents
+one step, whatever its depth, so pico-cycler and vdc-relay line up
+under five-v-boss. Tests: `tests/test_misc/
+test_admin_five_v_boss_row.py` (offers per state, the relay row, the
+cycler row) and the indent assertion in `test_admin_row_order.py`.
+
+**Why:** the spruce window (`experiments/2026-09-08-five-v-boss-hold/`)
+showed the five-v-boss row offering only `TurnOff`: `next_command`
+picked the first command leading elsewhere, and `RebootPicos` leads to
+`PicoCycler`, so in `PicoCycler` it was never chosen. The hold and the
+reboot are both meant to be one keypress from the row.
+
 ## 2026-09-09 — pico-cycler reports each pico's state through machine.states (actual-spruce line)
 
 Branch `jm/pico-state-reporting`, cut from `actual-spruce` (`30fc7f59`).

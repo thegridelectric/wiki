@@ -1,6 +1,6 @@
 # Krida retirement, admin for Nolan, and the command interface (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-08 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-10 · Linear: OPS-392
 
 > What this is: one spoke, combined 2026-09-07 from three that shared one
 > word, `scada.control.capabilities`: the scada half of the relay
@@ -389,7 +389,8 @@ different one, the scada's surface toward its transactive node, which
 may share the same structures: the nodes a boss sees and reports it
 receives, apart from the vocabularies it may send. Whatever rung 2
 settles for the admin surface is a shape to reuse there, not a word to
-share.
+share. Both rows, and the rules they share, are tabled in
+[`../../../../command-surface.md`](../../../../command-surface.md).
 
 ## Already landed (the ground this builds on)
 

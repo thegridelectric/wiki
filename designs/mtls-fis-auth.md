@@ -213,8 +213,9 @@ session) alone is never authority to issue a control command:
 - the gateway **forwards** that assertion to FIS and holds **no standing
   authority** to issue commands on a session's behalf — it is a transport
   bridge, not an authority;
-- authority **scales with impact** (read < low-impact preference < mode
-  change < relay/actuator) — the strongest proof gates the strongest action.
+- authority **scales with impact** (read < in-band setpoint < mode
+  change < relay/actuator) — the strongest proof gates the strongest action
+  ([`../command-surface.md`](../command-surface.md) rule 8).
 
 ## TaDeed and the validation plane
 

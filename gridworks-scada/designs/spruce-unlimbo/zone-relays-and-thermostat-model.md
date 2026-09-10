@@ -1,6 +1,6 @@
 # Zone relays + the thermostat model in the layout (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-08-11 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-10 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke settling how zones, zone-call
 > circuits, thermostats, and their relays are modeled in the layout —
@@ -84,8 +84,10 @@ kind appears. A comms stat can BE the zone's temperature source.
 
 Axioms: `Learned` ⇒ `ServesZone` has a temperature channel;
 `FromThermostat` ⇒ the thermostat type is comms-capable. `FromThermostat`
-means READ — no setpoint write path exists on any fleet (survey
-below). Learned setpoint values + `SetpointPhase` belief stay runtime
+means READ — no setpoint write path to a wall stat exists on any fleet
+(survey below). A homeowner's setpoint enters one tier up, as a command
+on the LTN's homeowner surface (gridworks-ltn executor "Homeowner
+command surface"); it reaches a circuit only as governance dispatch. Learned setpoint values + `SetpointPhase` belief stay runtime
 state, never layout.
 
 `ActuatorKind` bounds what a call may mean — a radiant floor cannot
@@ -151,8 +153,11 @@ from the stat, not just the schedule from noise. Today's summer hack
 holds ARE this state, informally; hack parity = commanding
 `SwitchToOff` on the floor circuits.
 
-Bosses (LocalControl, the LTN↔Scada surface, the future UI, admin)
-command GOVERNANCE, not postures: a `SetGovernance` command of
+Bosses (LocalControl, the LTN↔Scada surface, admin) command
+GOVERNANCE, not postures. A homeowner's app is never a boss here: the
+LTN takes the setpoint on its own surface and commands governance
+([`../../../command-surface.md`](../../../command-surface.md) rule 7).
+The command is `SetGovernance`, of
 (circuit handle, event, `SetpointF?`), axiom: `SetpointF` present ⇔
 event is `SwitchToThermostatic`. Takeover works uniformly on every
 stat kind because no setpoint write path exists anywhere — takeover

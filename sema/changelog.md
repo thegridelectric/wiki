@@ -11,6 +11,21 @@ repo's git history.
 Newest at the top.
 ---
 
+## 2026-09-10 — patch old layout.lite's to match the wire in Dec 2025 (`f3349f4`)
+
+On `dev`. `layout.lite` 005 and 006 take `TankModuleComponents.items`
+back to the `oneOf` of `pico.tank.module.component.gt` 010 and 011, with
+the deploy-lag note (011 arrived 2025-12-05; some houses emitted v010
+tanks under these layouts through 2025-12-12), and the 010 dependency in
+the registry. Hashes re-pinned, indexes rebuilt, runtime regenerated so
+the two old versions import the 010 class.
+
+**Why:** an in-place correction to two published words under the
+bootstrap allowance: the December wire data is the authority, and the
+journal's back-fill must decode it. The union had lived only in
+journalkeeper's vendored snapshot, where a regen erased it; canonical
+here, every consumer keeps it.
+
 ## 2026-09-09 — promote single.pico.state/000 to published (`a96abb4`)
 
 On `jm/promote-single-pico-state`. The pico-cycler's per-pico

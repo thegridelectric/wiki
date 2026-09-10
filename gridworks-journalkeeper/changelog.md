@@ -10,6 +10,28 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-10 — read single.pico.state (`3a8bc57`)
+
+Branch `jm/single-pico-state-snapshot`. The seed gains the enum
+`single.pico.state` (published `000`: Alive, Flatlined, Zombie) and the
+snapshot is regenerated from the sema repo with the `layout.lite` 005 and
+006 deploy-lag union restored there. Every pico-backed node in a layout
+(actor class `ApiTankModule`, `ApiFlowModule`, `ApiBtuMeter`) gets one
+enum pseudo channel, `<node>-pico-state`, unit type `single.pico.state`;
+a `machine.states` row whose `StateEnum` is `single.pico.state` projects
+into the channel named from its handle's last segment, the node name,
+with the enum's index as the value (Alive 0, Flatlined 1, Zombie 2), the
+way every other state channel is stored. `tests/test_pico_state_channels.py`
+covers the channel roster, the dropped tally, and the projection.
+
+**Why:** the spruce scada (`actual-spruce` at `69d5d6ec`) now reports
+each pico's health as a `machine.states` row keyed by the pico-backed
+actor's handle, so the journal can show which pico flatlined before a
+cycle. Rows only decoded as vocabulary would sit in the message payload;
+a channel per pico makes them a reading series beside the tank
+temperatures. The union on `layout.lite` 005 and 006 was shipped wire
+data the back-fill needed and had lived only in the vendored copy;
+it is now canonical in sema, so a regen keeps it.
 ## 2026-08-30 — use gw_journalkeeper for dev and prod (`39c8474`)
 
 `Settings.db_url` still defaulted to the legacy `journaldb_dev` database,

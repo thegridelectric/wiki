@@ -6,7 +6,7 @@ hop above each scada in the GridWorks fleet. It schedules the house's
 heating against forecasts and prices using a forward-looking optimizer
 (FLO).
 
-> Status: Draft · Pass 0 · Updated 2026-05-24
+> Status: Draft · Pass 0 · Updated 2026-09-10
 >
 > **Acceptable-minimum bootstrap** for a domain whose code does not yet
 > live in its own repo (the production code is in
@@ -135,6 +135,59 @@ matures.)
 4. **FLO is private.** The optimizer logic stays in
    `gridworks-innovations/gridworks-flo/`; LTN public code consumes
    it as a dependency.
+5. **Three command surfaces, each declared.** Down to the scada (the
+   dispatch contract), across from admin, and out to the homeowner. The
+   LTN is the single writer of dispatch and mode to the scada; every
+   other party's intent reaches the scada by the LTN translating it.
+   Pattern: [`../../command-surface.md`](../../command-surface.md).
+
+## Homeowner command surface
+
+The setpoint, and how the system responds to it while the LTN is in
+charge, is the contract between the LTN and the homeowner. A setpoint
+change from the homeowner's app is a command on the surface the LTN
+offers the homeowner, and the LTN's reply is what it is now bound to do.
+It is not a reading the LTN may ignore, and it is not a command on the
+scada.
+
+- **Declaration.** The LTN publishes, per zone, the commands the
+  homeowner may send and their allowed values: the setpoint, and the
+  comfort band the homeowner grants around it. The app renders from the
+  declaration; it never learns the house another way. The band is the
+  flexibility the homeowner grants the LTN, exercised day to day; the
+  trading-rights grant is the same principle at the contract level
+  (`../../vision/data-meaning-sovereignty.md`).
+- **Reply.** Every command gets a contractual ack or a nack with a
+  reason. Ack states the setpoint the LTN will hold, by when, and within
+  what band. A request outside the contract is refused, not silently
+  clamped.
+- **What ack binds the LTN to.** The FLO plans the zone temperature
+  inside the band, treating the house mass as a second, bounded store
+  alongside the water tanks, and dispatches the scada to deliver it. The
+  scada-side mechanism is the zone circuit's governance machine
+  (`ScadaThermostatic` with the planned setpoint); under a live contract
+  an optimized circuit is never left deferring to its wall stat.
+- **Feedback.** The circuit's governance report, published on change, is
+  the "setpoint changed" event. It is distinct from the ack and may lag
+  it by an hour or never come when the plan already satisfies the band.
+  The app receives it as a server-sent events stream from the LTN's read
+  façade, never by polling the LTN.
+- **Carrier.** The phone has no broker. The app commands over the LTN's
+  HTTPS surface, the one foreign-contract exception to writes-ride-rabbit
+  (`../../api-pattern.md` "Foreign-contract exceptions"). In-home
+  sources (a wall dial's learned setpoint, a comms stat) reach the LTN
+  upward through the scada as readings; the LTN merges both.
+- **Auth.** A setpoint inside the band is low-impact and rides a normal
+  app session. Changing the band or the contract terms needs the
+  step-up assertion.
+- **When the LTN is absent.** LocalControl honors the last accepted
+  setpoint as a plain thermostat.
+
+Build: the web → LTN leg under
+[OPS-408](https://linear.app/gridworks/issue/OPS-408); the scada-side
+governance command under
+[OPS-392](https://linear.app/gridworks/issue/OPS-392); the FLO house-mass
+model in the private repo.
 
 ## §5 — Glossary
 
@@ -155,7 +208,7 @@ matures.)
 
 | Sections | File | Covers |
 | --- | --- | --- |
-| §1–§5 | **primary.md** (this file) | Where the code is, how it runs, FLO dependency, cleanup status, glossary |
+| §1–§5 | **primary.md** (this file) | Where the code is, how it runs, FLO dependency, the homeowner command surface, cleanup status, glossary |
 | §7 | _Open_ | LTN ↔ scada MQTT protocol (link name, topics, message types) |
 | §8 | _Open_ | LTN ↔ rest-of-fleet AMQP protocol (what LTN publishes on `amq.topic`; what it subscribes to) |
 | §9 | _Open_ | Contract / scheduling state machine (`contract_handler.py`) |

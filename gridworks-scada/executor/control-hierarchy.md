@@ -137,6 +137,11 @@ actuator-scope)` — Scada passes all actuators, a sub-actor passes `my_actuator
 
 Status: Verified · Pass 0 · Updated 2026-09-08 · Reviewed 2026-09-08@ea3365b5
 
+These interfaces and replies are the scada's command surface toward
+admin, the first built to the cross-cutting pattern
+([`../../command-surface.md`](../../command-surface.md)); the same
+shape serves the surface toward the LTN.
+
 A command interface is three parts: vocabulary (an event enum named by
 `EventType` in `fsm.event`, with `EventName` constrained to it),
 authority (the command tree: `FromHandle` is the immediate boss of

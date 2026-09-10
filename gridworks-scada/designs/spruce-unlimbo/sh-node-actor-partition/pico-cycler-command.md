@@ -1,6 +1,6 @@
 # Pico-cycler command (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-09 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-10 · Linear: OPS-392
 
 > What this is: admin keeps the pico-cycler running and asks it for vdc
 > relay actions, instead of seizing the relay. Decided 2026-09-01 with
@@ -203,9 +203,29 @@ them against the cycler's cycles by time. The projected channels per
 pico actor, with the enum vendored, are the hub queue's
 `journalkeeper-pico-states`.
 
-Built 2026-09-09: steps 1 to 4 done (enum, the four hooks, the roster
-test green on both test layouts, the word published); step 5 is the
-merge and the pull on the box. The cycler's pico discovery on this
+Built 2026-09-09: steps 1 to 5 done (enum, the four hooks, the roster
+test green on both test layouts, the word published, merged to
+`actual-spruce` as `69d5d6ec`); the pull on the box and the service
+restart remain. Journal side built 2026-09-10 (journalkeeper branch
+`jm/single-pico-state-snapshot`, pending commit): the snapshot vendors
+the enum and every pico-backed node gets a `<node>-pico-state` channel,
+so the hub queue's `journalkeeper-pico-states` is done with it.
+
+TODO, in order:
+
+1. Dev rung: journalkeeper reads `single.pico.state`. Sim scada on the
+   dev broker (the 09-07 setup) with a journalkeeper on the same broker
+   against a fresh local DB; persist its `layout.lite`, let a pico
+   flatline and cycle, then query `reading_channels` for the
+   `<node>-pico-state` rows and `readings` for the Flatlined (1) and
+   Alive (0) values in time order, the flatline row before the cycler's
+   own state row. Pass condition: the roster and the flip are readable
+   as channel readings, no dropped-reading tally for those channels.
+2. Spruce: pull `actual-spruce` at `69d5d6ec` or later onto the box,
+   restart the service, and repeat the query against the production
+   journal after the next report. Journalkeeper must be running the
+   per-pico channel code by then; a report that arrives before the
+   box's `layout.lite` is re-persisted only tallies dropped rows. The cycler's pico discovery on this
 line also had to accept `SimPicoTankModuleComponent` (the branch's
 finding, again) or the test layouts give it no picos; the house layout
 has only real pico components. Carried caveat: on this line the comm
@@ -217,23 +237,32 @@ tests until that rig is looked at.
 
 ## ▶ Do this next
 
-**The panel offers both five-v-boss commands, and owned rows indent.**
-The spruce window passed (`experiments/2026-09-08-five-v-boss-hold/`,
-window section, scada `4bb46035`): TurnOff from the row cut the 5 V,
-five picos flatlined under a dormant cycler, TurnOn woke it, release
-from PicoCycler restored nothing, as designed. Two gwadmin gaps came
-back with it, both gwadmin-only:
+**Dev rung for the roster on the journal side** (the TODO under
+"Roster on actual-spruce", item 1): sim scada on the dev broker with a
+journalkeeper against a fresh local DB, a flatline and a cycle, then
+the `<node>-pico-state` rows read back in time order. Item 2 (the
+spruce pull and the production query) follows it.
 
-1. The five-v-boss row offered only TurnOff. `RelayWidgetConfig.next_command`
-   returns the first command whose `to_state` differs from the observed
-   state; RebootPicos leads to PicoCycler, so in PicoCycler it is never
-   chosen, and the row has a single button. Offer commands per
-   vocabulary (a one-command vocabulary is offered when the state
-   equals its target) and give the second its own key, `p`.
-2. Indent the pico-cycler and vdc-relay rows under five-v-boss; the
-   row config already carries `owner`.
+Built 2026-09-10 (pending commit on `jm/spruce-unlimbo`), from the
+spruce window (`experiments/2026-09-08-five-v-boss-hold/`, window
+section, scada `4bb46035`), where TurnOff from the row cut the 5 V,
+five picos flatlined under a dormant cycler, TurnOn woke it, and the
+five-v-boss row offered only TurnOff:
 
-Also carried from the window: fancoil, floor1 and pipes1 never posted
+1. The row offers per vocabulary: `RelayWidgetConfig.offered_commands`
+   gives a two-command vocabulary's command that leads elsewhere and a
+   one-command vocabulary when the state equals its target, so
+   `PicoCycler` offers `TurnOff` and `RebootPicos`, `FiveVOff` offers
+   `TurnOn`. Two buttons, `n` and `p`, bound on the `Relays` widget;
+   the second is hidden on a one-offer row, which keeps its single
+   full-width button.
+2. The Name cell of an owned node indents one step, whatever its
+   depth, so pico-cycler and vdc-relay line up under five-v-boss. A
+   headless Textual pilot run rendered the table to check it; the
+   unit tests are `tests/test_misc/test_admin_five_v_boss_row.py`
+   and the indent case in `test_admin_row_order.py`.
+
+Carried from the window: fancoil, floor1 and pipes1 never posted
 (no channel readings in either report) and the cycler cycled the live
 picos for them twice after TurnOn. Whether they exist on the wall is a
 site question before the deployed scada runs the three-tank layout.

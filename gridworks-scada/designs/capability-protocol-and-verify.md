@@ -1,6 +1,6 @@
 # Capability protocol + verify (design)
 
-Status: Draft · Pass 0 · Updated 2026-06-10 · Linear: OPS-394
+Status: Draft · Pass 0 · Updated 2026-09-10 · Linear: OPS-394
 
 > What this is: encode the scada actor's functional abilities as an explicit
 > protocol in `ShNodeActor` methods — the only language control states may
@@ -24,7 +24,8 @@ Status: Draft · Pass 0 · Updated 2026-06-10 · Linear: OPS-394
 3. **Sema at the wire only.** The capability calls are in-process; Sema's
    jurisdiction is serialized JSON crossing system boundaries. So
    `scada.control.capabilities` (Sema) mirrors only the boundary-crossing
-   subset (admin remote commands today; dispatch contracts someday). One
+   subset (admin remote commands today; dispatch contracts someday; both
+   are rows in [`../../command-surface.md`](../../command-surface.md)). One
    capability vocabulary, two carriers, kept in correspondence — neither
    forced into the other. (Jessica, 2026-06-10: "not sure we want to force
    this into sema" — settled as wire-only unless revisited.)

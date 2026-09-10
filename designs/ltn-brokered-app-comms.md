@@ -1,6 +1,6 @@
 # ltn-brokered-app-comms
 
-Status: Draft · Pass 0 · Updated 2026-06-26 · Linear: OPS-408
+Status: Draft · Pass 0 · Updated 2026-09-10 · Linear: OPS-408
 
 **EDD: yes** verified by a real round trip — change a house's mode/params from a
 web frontend and observe the SCADA apply it (no restart) via the LTN, on a real
@@ -69,9 +69,17 @@ That is why it can land sooner.
      the LTN, no SCADA message needed.
    - **SCADA control params** that affect on-device behavior need a **runtime
      param-update** LTN→SCADA, instead of a layout bump.
-3. **Thermostat-style preferences (later).** Customer comfort intent → LTN; the
-   LTN **translates** it into dispatch / contract terms (it is the thinking half).
-   The house stays in `Auto`.
+3. **Homeowner setpoint and band.** A setpoint change from the homeowner's
+   app is a command on the surface the LTN offers the homeowner, and the
+   LTN's reply is the contract: ack states the setpoint it will hold, by
+   when, within what band; nack gives the reason. The LTN translates it
+   into zone governance dispatch to the scada; the house stays in `Auto`.
+   The phone has no broker, so the command rides the LTN's HTTPS surface
+   (the named foreign-contract exception to writes-ride-rabbit) and the
+   "changed" event returns as a server-sent events stream from the LTN's
+   read façade, never by polling. Terms and rules:
+   [`../gridworks-ltn/executor/primary.md`](../gridworks-ltn/executor/primary.md)
+   "Homeowner command surface", [`../command-surface.md`](../command-surface.md).
 
 ## Web-frontend auth (the passkey ceremony)
 

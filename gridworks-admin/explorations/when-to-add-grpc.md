@@ -21,7 +21,7 @@ operator → SCADA traffic.
 
 The "mechanism vs. meaning" decoupling discipline ensures we keep
 the option to add other carriers without redoing the operation
-contracts.
+contracts ([`../../command-surface.md`](../../command-surface.md) rule 10).
 
 ## Candidate triggers for adding gRPC
 

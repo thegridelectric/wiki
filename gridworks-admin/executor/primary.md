@@ -1,6 +1,6 @@
 # gridworks-admin — primary
 
-Status: Draft · Pass 1 · Updated 2026-09-09
+Status: Draft · Pass 1 · Updated 2026-09-10
 
 > **What this is.** The hub for the GridWorks admin domain: the
 > operator-facing surface for incident-mode intervention on a deployed
@@ -16,9 +16,11 @@ Admin is the rare, time-bounded back door through which a named human
 drives a scada's actuators directly. The scada's TopState goes
 `Auto → Admin`, its own control goes Dormant, and the heating SLA is
 suspended for the duration. Admin is parallel to the control plane,
-never part of it: the LTN stays the scada's one normal writer, and
-customer preferences never come here (they ride the LTN,
-[OPS-408](https://linear.app/gridworks/issue/OPS-408)).
+never part of it: the LTN stays the scada's one normal writer, and a
+homeowner's setpoint never comes here: it is a command on the surface
+the LTN offers the homeowner
+([OPS-408](https://linear.app/gridworks/issue/OPS-408); the pattern every
+such surface follows: [`../../command-surface.md`](../../command-surface.md)).
 
 ## Motivation
 
@@ -66,8 +68,10 @@ key, on any carrier ([`../../api-pattern.md`](../../api-pattern.md)
 
 ### What admin is NOT
 
-- The customer-facing thermostat interface. Homeowner / fleet-owner
-  preferences route through the LTN and stay in `Auto`.
+- The customer-facing thermostat interface. A homeowner's setpoint is a
+  command on the LTN's homeowner surface (gridworks-ltn executor
+  "Homeowner command surface"); the LTN translates it and the house
+  stays in `Auto`.
 - General remote management or developer-style RPC.
 - Live-state monitoring at fleet scale — that's observability
   ([`../../observability/`](../../observability/)), always-on, both
@@ -179,13 +183,17 @@ there so that only the carrier changes later.
 ### Mechanism vs. meaning decoupling
 
 Operation contracts are typed request, typed response, idempotent
-where possible, one audit event per call, whatever the carrier. See
+where possible, one audit event per call, whatever the carrier
+([`../../command-surface.md`](../../command-surface.md) rule 10). See
 [`../explorations/when-to-add-grpc.md`](../explorations/when-to-add-grpc.md)
 for the gRPC question.
 
 ## The capabilities contract (what the admin client consumes today)
 
 Status: Verified · Pass 1 · Updated 2026-09-08 · Reviewed 2026-09-08@ea3365b5
+
+This is the scada's command surface toward admin, the first built to the
+cross-cutting pattern ([`../../command-surface.md`](../../command-surface.md)).
 
 The `gwa` TUI learns what it can operate from
 **`scada.control.capabilities`**, published by the scada on link-up
