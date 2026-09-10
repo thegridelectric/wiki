@@ -7,6 +7,9 @@
 #
 # Scope-aware: only fires for a session whose Scope claims tlayouts/ or
 # gridworks-scada/ (an unidentified session checks unconditionally).
+# Branch-aware: the closure lives on the scada epic branch; a checkout on
+# any other branch (the house line, a topic branch cut for a run) has no
+# copy to keep in step, so the check stands down there.
 # Override: ~/.claude/.bulk-stop-override(.<session>) silences it.
 
 set -e
@@ -31,6 +34,8 @@ if [ -n "$SCOPE_PATHS" ] && ! echo "$SCOPE_PATHS" | grep -qxE "tlayouts|gridwork
 fi
 
 [ -f "$SNAPSHOT" ] || exit 0
+SCADA_BRANCH=$(git -C "$UMBRELLA/gridworks-scada" branch --show-current 2>/dev/null || true)
+[ "$SCADA_BRANCH" = "jm/spruce-unlimbo" ] || exit 0
 if [ -f "$VENDORED" ] && cmp -s "$SNAPSHOT" "$VENDORED"; then
   exit 0
 fi

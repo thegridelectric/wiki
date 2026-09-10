@@ -8,6 +8,26 @@ Newest at the top.
 
 ---
 
+## 2026-09-10 — pico-state-journal-dev-rung: journalkeeper reads the cycler's per-pico roster on the dev broker <!-- pending commit -->
+
+New folder. The actual-spruce sim scada (`69d5d6ec`, nolan layout,
+simulated) with an LTN peer on the dev broker, and journalkeeper
+`3a8bc57` on a fresh local `tsdb_devrung`: `buffer-pico-state` and
+`tank1-pico-state` appear from `layout.lite` 012 and carry Alive then
+Flatlined in time order, PASS. Harness `mqtt_types.py`, two capture
+tallies, and the journal readback with its query. Found on the way:
+the journalkeeper makes no `pico-cycler` state channel, so the spoke's
+"flatline row before the cycler's own row" has nothing to order
+against; the live persistor never prints its dropped counter; the
+`jm/spruce-unlimbo` line emits `layout.lite` 013 (staging), which the
+journal seed does not carry; the laptop's stale scada event backlog
+uploads on link-active and flaps an old-decoder LTN.
+
+**Why:** the spruce pull of the roster line is next, and a report
+reaching the journal before it knows the channels only tallies drops.
+Seeing the pairing work on the dev broker first is the rung the spoke
+asked for.
+
 ## 2026-09-10 — gw108-ct-testing: cut to run 3 and the explanation; ci.sh green <!-- pending commit -->
 
 The folder now holds one run and why it matters. Run 3 at spruce (a

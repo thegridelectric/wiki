@@ -73,12 +73,18 @@ removes; the same failure would hit any long admin window.
    logged and dropped, and a command while a cycle is running is
    ignored (`tests/actors/test_pico_cycler_command.py`, both sim
    fixtures). The boot cycle enters through `Startup`.
-3. ✅ Verified (same run, driven through `send_reboot_picos`). gwadmin grows a pico-cycler control alongside its relay list: a
-   "Reboot picos" button (`p`) in the relays section,
-   `RelayWatchClient.send_reboot_picos` publishing the `admin.dispatch`.
-   `tests/actors/test_admin_reboots_picos.py` drives that client method
-   through `Scada.process_admin_dispatch` into the cycler and asserts the
-   relay open carries the dispatch's `TriggerId` (both sim fixtures).
+3. ✅ gwadmin: the five-v-boss row carries both of its vocabularies.
+   `RelayWidgetConfig.offered_commands` offers per vocabulary: a
+   two-command one offers the command that leads elsewhere, a
+   one-command one when the observed state is its target, so
+   `PicoCycler` offers `TurnOff` and `RebootPicos`, `FiveVOff` offers
+   `TurnOn`. Two buttons, `n` for the first offer and `p` for the
+   second, bound on the `Relays` widget; the second hides on a
+   one-offer row, which keeps its single full-width button. Owned rows
+   indent one step under their owner. `RelayWatchClient.send_command`
+   publishes the `admin.dispatch` in the row's own vocabulary
+   (`ca53f6d2`; tests `tests/test_misc/test_admin_five_v_boss_row.py`,
+   `test_admin_row_order.py`, `tests/actors/test_admin_reboots_picos.py`).
 4. Tree-matrix admin rows move to the `admin.pico-cycler.vdc-relay`
    shape (marked xfail until this lands).
 5. Three enum words registered in sema, mirrored in gwsproto:
@@ -100,16 +106,13 @@ removes; the same failure would hit any long admin window.
    (`tests/actors/test_pico_roster.py`, both sim fixtures). The scada
    already folds machine states into `report`, so the roster reaches the
    journal with no new plumbing.
-6. ✅ Built (pending commit on `jm/pico-state-reporting`, worktree
-   `gridworks-scada-roster`; `single.pico.state/000` published `a96abb4`).
-   Branch `jm/pico-state-reporting` off
-   `actual-spruce` (the line running on the house) carrying only
-   `single.pico.state`, the gwsproto mirror, and the per-pico
-   `machine.states` reporting, so the roster is journaled on spruce
-   this season. No command, no `TriggerId` adoption, no `Startup`
-   there. The journal side (journalkeeper vendoring the enums and
-   tracking unknown ones, then the dev-DB query) is the hub queue's
-   `journalkeeper-pico-states`, after krida-retirement.
+6. ✅ Live on spruce (2026-09-10). `actual-spruce` `69d5d6ec` carries
+   only `single.pico.state`, its gwsproto mirror, and the per-pico
+   `machine.states` reporting; no command, no `TriggerId` adoption, no
+   `Startup` there. The journal side (journalkeeper `4f0a932` on
+   production) gives every pico-backed node a `<node>-pico-state`
+   channel; spruce's nine are in the journal. Details under "Roster on
+   actual-spruce".
 7. ✅ The item-5 enum words are registered (2026-09-07); allowlist rows
    drop with the gwsproto mirror.
 8. LAST, coverage for what the dev-broker rung exposed
@@ -203,45 +206,64 @@ them against the cycler's cycles by time. The projected channels per
 pico actor, with the enum vendored, are the hub queue's
 `journalkeeper-pico-states`.
 
-Built 2026-09-09: steps 1 to 5 done (enum, the four hooks, the roster
-test green on both test layouts, the word published, merged to
-`actual-spruce` as `69d5d6ec`); the pull on the box and the service
-restart remain. Journal side built 2026-09-10 (journalkeeper branch
-`jm/single-pico-state-snapshot`, pending commit): the snapshot vendors
-the enum and every pico-backed node gets a `<node>-pico-state` channel,
-so the hub queue's `journalkeeper-pico-states` is done with it.
+Done 2026-09-10. Steps 1 to 5: enum, the four hooks, the roster test
+green on both test layouts, the word published, merged to
+`actual-spruce` as `69d5d6ec`, pulled onto spruce and the service
+restarted at 15:59 UTC. Journal side: journalkeeper `3a8bc57` vendors
+the enum and gives every pico-backed node a `<node>-pico-state`
+channel; merged to `main` as `4f0a932` and deployed to the gjk box at
+15:57 UTC, before the spruce restart, so the box's `layout.lite` created
+the channels before its first report. The dev rung passed first
+(`experiments/2026-09-10-pico-state-journal-dev-rung/`): channels from
+a published `layout.lite`, Alive then Flatlined in time order. Spruce's
+first two roster rows, nine picos Alive, were in the production journal
+minutes after the restart. Two of the rung's pass conditions turned out
+unreadable and are dropped: the journal makes no `pico-cycler` state
+channel to order the roster against, and the live journalkeeper never
+prints its dropped-reading counter.
 
-TODO, in order:
-
-1. Dev rung: journalkeeper reads `single.pico.state`. Sim scada on the
-   dev broker (the 09-07 setup) with a journalkeeper on the same broker
-   against a fresh local DB; persist its `layout.lite`, let a pico
-   flatline and cycle, then query `reading_channels` for the
-   `<node>-pico-state` rows and `readings` for the Flatlined (1) and
-   Alive (0) values in time order, the flatline row before the cycler's
-   own state row. Pass condition: the roster and the flip are readable
-   as channel readings, no dropped-reading tally for those channels.
-2. Spruce: pull `actual-spruce` at `69d5d6ec` or later onto the box,
-   restart the service, and repeat the query against the production
-   journal after the next report. Journalkeeper must be running the
-   per-pico channel code by then; a report that arrives before the
-   box's `layout.lite` is re-persisted only tallies dropped rows. The cycler's pico discovery on this
-line also had to accept `SimPicoTankModuleComponent` (the branch's
-finding, again) or the test layouts give it no picos; the house layout
-has only real pico components. Carried caveat: on this line the comm
-tests under `tests/actors` (`test_scada.py`, `test_auto_state.py`,
+The cycler's pico discovery on this line also had to accept
+`SimPicoTankModuleComponent` (the branch's finding, again) or the test
+layouts give it no picos; the house layout has only real pico
+components. Carried caveat: on this line the comm tests under
+`tests/actors` (`test_scada.py`, `test_auto_state.py`,
 `test_power_meter.py`) time out waiting for the scada-to-LTN link
 against the shared test mosquitto, with or without the change; the
-suite gate for the merge is the roster test plus the in-process actor
+suite gate for the merge was the roster test plus the in-process actor
 tests until that rig is looked at.
 
 ## ▶ Do this next
 
-**Dev rung for the roster on the journal side** (the TODO under
-"Roster on actual-spruce", item 1): sim scada on the dev broker with a
-journalkeeper against a fresh local DB, a flatline and a cycle, then
-the `<node>-pico-state` rows read back in time order. Item 2 (the
-spruce pull and the production query) follows it.
+**Read spruce's roster over its first hours and settle the site
+question.** The house line is live: spruce runs `actual-spruce`
+`69d5d6ec`, the production journalkeeper runs `4f0a932` (dev merged to
+main and deployed 2026-09-10, 15:57 UTC), and after the scada restart at
+15:59 UTC the journal holds nine `<node>-pico-state` channels for
+spruce (buffer, tank1, fancoil, floor1, pipes1, dist-btu, primary-btu,
+secondary-btu, store-btu) with every pico Alive (0) in the start-up
+roster. The roster marks a pico Flatlined only when it stops posting,
+so the next hour of readings says which of fancoil, floor1 and pipes1
+exist on the wall (the 09-08 window saw them never post). Query: the
+one in `experiments/2026-09-10-pico-state-journal-dev-rung/
+journal-readback.txt`, filtered to
+`terminal_asset_alias = 'hw1.isone.me.versant.keene.spruce.ta'` and
+bounded in time (an unbounded join on `readings` hits the statement
+timeout). Then remove the three from the layout or fix the boards, and
+the roster on actual-spruce is done; item 2 of its TODO closes with it.
+
+Item 1, the dev rung, passed 2026-09-10 (that folder): with an LTN peer
+on the dev broker the actual-spruce sim scada's `layout.lite` 012 gave
+the journal `buffer-pico-state` and `tank1-pico-state`, and the rows
+read back Alive then Flatlined in time order. Three things it changed
+about the plan. The journal creates no `pico-cycler` state channel, so
+the roster rows cannot be ordered against the cycler's own row; the
+cycle (`PicoMissing`, `RelayOpening`) comes first and the Flatlined rows
+follow at the cycler's 60 s wait. The live journalkeeper never prints
+its dropped-reading counter, so "no dropped tally" is not readable from
+its log; the channels and rows existing is the evidence. And the
+`jm/spruce-unlimbo` line emits `layout.lite` 013, which is staging and
+outside the journal seed, so a journal rung for that line waits on
+promotion (the staging-words-on-prod item), not on code.
 
 Built 2026-09-10 (pending commit on `jm/spruce-unlimbo`), from the
 spruce window (`experiments/2026-09-08-five-v-boss-hold/`, window
@@ -330,9 +352,9 @@ like every command node.
   `five-v-boss` the `wake.up` message local-control gets. In `FiveVOff`
   or `TurningOff` it runs the turn-on path with a self-minted
   `TriggerId`; in `PicoCycler` or `TurningOn` it is ignored.
-  LocalControl never inherits a dark fleet. (Open: whether a keepalive
-  timeout, as opposed to an explicit release, should restore 5 V to a
-  board someone may be touching; decided as yes for now.)
+  LocalControl never inherits a dark fleet. A keepalive timeout, not
+  only an explicit release, restores 5 V to a board someone may be
+  touching: decided 2026-09-10, closed.
 
 **Rejected.** A held-off state inside the cycler's own FSM (six
 transient states and every timer guard would reason about it; the
@@ -656,12 +678,7 @@ minutes with the journaled `single.pico.state` roster as evidence.
 
 ## Open
 
-- When the terminal-asset plant exists, is `sim.pico.tank.module` still
-  useful? The plant is the physics source, so tank temperatures should
-  come from it; the sim pico's remaining job would be the pico's
-  liveness story (posts, dies, reboots after a power cycle), which is
-  device behaviour, not plant physics. Two answers: the plant posts
-  microvolts over HTTP like a real pico and the word keeps only the
-  liveness fields; or the plant feeds the actor's source through the sim
-  seam and the source stays. Decide when the plant's tank model lands.
-
+Nothing. The sim pico stays as the unit-test source for pico liveness
+(posts, dies, reboots after a power cycle), the role it plays in the
+cycler and admin tests today; the terminal-asset plant is the physics
+source and does not replace it.

@@ -10,10 +10,9 @@ repo's git history.
 
 Newest at the top.
 
-<!-- pending commit -->
 ## 2026-09-10 — gwadmin offers every command a row's vocabularies allow, and owned rows indent
 
-`RelayWidgetConfig.next_command` (one command per row) becomes
+Commit `ca53f6d2` on `jm/spruce-unlimbo`. `RelayWidgetConfig.next_command` (one command per row) becomes
 `offered_commands`: per vocabulary (`event_type`), a two-command
 vocabulary offers the command whose `to_state` differs from the observed
 state and a one-command vocabulary is offered when the observed state
@@ -26,7 +25,10 @@ their single full-width button. The Name cell of an owned node indents
 one step, whatever its depth, so pico-cycler and vdc-relay line up
 under five-v-boss. Tests: `tests/test_misc/
 test_admin_five_v_boss_row.py` (offers per state, the relay row, the
-cycler row) and the indent assertion in `test_admin_row_order.py`.
+cycler row) and the indent assertion in `test_admin_row_order.py`. Also deleted:
+`gwadmin/watch/widgets/relay_state_text.py`, a `RelayStateText` widget
+no module imported, rendering through a `RelayWidgetConfig` method that
+no longer existed.
 
 **Why:** the spruce window (`experiments/2026-09-08-five-v-boss-hold/`)
 showed the five-v-boss row offering only `TurnOff`: `next_command`
