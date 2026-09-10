@@ -20,10 +20,10 @@ The non-GNode interfaces have not been designed. They include at least:
 - **Today:** the **textual admin panel** (`packages/gridworks-admin`, `gwadmin`)
   lives in the SCADA repo and depends on **tailscale** for security, talking to
   the **LOCAL MQTT broker on each Pi** (`ADMIN_MQTT = "admin"` link).
-- **Target:** migrate to a **rabbit-native admin in the cloud**, once **mTLS**
-  is in place — see [[../../../gridworks-fleet-index-service/research/design]].
-  The trust model shifts from "tailscale network membership" to "mTLS client
-  identity + FIS authorization."
+- **Target:** one admin identity per universe on the prod broker, named
+  humans with personal certs behind an admin process, the scada owning the
+  session; the admin domain holds it
+  ([`../../gridworks-admin/executor/primary.md`](../../gridworks-admin/executor/primary.md)).
 
 ## Why this is its own concern
 

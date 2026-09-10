@@ -83,7 +83,7 @@ hand-copies).
 
 ## Field state (what is known, 2026-08-23)
 
-Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-23@5fda749 (`experiments/2026-08-23-spruce-relay-stress/`, `experiments/2026-08-23-spruce-store-charge-valve/`) — the iso-relay rule and the charge-valve no-flow result; the rest is field record
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-23@5fda749 (`experiments/2026-08-23-gw108-relay-stress/2026-08-23-spruce/`, `experiments/2026-08-23-spruce-store-charge-valve/`) — the iso-relay rule and the charge-valve no-flow result; the rest is field record
 
 - **Charge valve** (silk "DISCHARGE VALVE", 0x21 port 1 bit 3; to be
   named charge valve in scada): **drive polarity unresolved, and the
@@ -102,7 +102,7 @@ Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-23@5fda749 
 - **Iso valve**: energized = OPEN, fails closed (field-verified
   2026-07-16).
 - **0x21 resets** (OPS-452 lineage): the 2026-08-23 relay-stress
-  experiment (`experiments/2026-08-23-spruce-relay-stress/`) found the
+  experiment (`experiments/2026-08-23-gw108-relay-stress/2026-08-23-spruce/`) found the
   trigger: **energizing the iso-valve relay while fewer than two other
   0x21 coils are energized** (66 % of energizes reset it with none on,
   2 in 15 with one, 0 with two or more; the secondary-pump relay never

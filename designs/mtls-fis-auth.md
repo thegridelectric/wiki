@@ -338,15 +338,16 @@ until closed alongside this rollout). Per-house recipe: mint (with consent)
    transports) before the CRL is set up on prod; the staging box has
    done its work and is not rebuilt for this.
 
-   **Do this next:** the rig leg. Tool built and dry-run against
-   weather (2026-09-08); ledger bootstrap commands in
-   `scratch/cert-ledger-bootstrap.md` (human runs). In
-   `experiments/2026-09-05-fis-gate-battery/`: a second same-CN cert
-   and a CRL writer in `certs/gen_certs.sh`, `ssl_options.crl_check =
-   peer` plus an `advanced.config` and a `crl/` mount on the rig broker,
-   and battery cases for the ping-pong, the refusal on 5671 and 8883
-   after revocation with no restart, and the expired CRL. Then the prod
-   set-up sequence ("Cert lifecycle"), then the four service certs.
+   **Do this next:** the prod set-up sequence ("Setting up the CRL on
+   the broker" below), the rig leg being done (2026-09-08, 38/38 in
+   `experiments/2026-09-05-fis-gate-battery/`). Tool built and dry-run
+   against weather; ledger bootstrap commands in
+   `scratch/cert-ledger-bootstrap.md` (human runs: step 1). Then the
+   rmqbot side on a `jm/` branch: `crl/` mount in `rmq-docker/
+   compose.yaml`, `rmq-docker/config/advanced.config` carrying the whole
+   TLS block, the `ssl_options.*` lines out of the box's `rabbitmq.conf`
+   (step 3 and 4; one recreate, quiet hour, human runs), the check
+   (step 6), the drift-check line. Then the four service certs.
 2. **FIS v1** (OPS-422; its build plan is revised to match this design:
    claims from `AuthProps`, run-scoped leases, `/auth/topic` alias pinning,
    sync-kill-before-allow, no client_properties parsing).
@@ -506,10 +507,11 @@ Mechanics:
   (`<issuer hash>.r0`). An empty CRL is placed before `crl_check` is
   turned on; with no CRL for the issuer, `peer` refuses every
   handshake.
-- **The broker** sets `ssl_options.crl_check = peer` (a `rabbitmq.conf`
-  key) and the hash-dir cache in a small `advanced.config`, since the
-  cache option has no conf-schema key. The cache reads the file from
-  disk at every handshake, so a replaced CRL is live at once; no
+- **The broker** carries its whole `ssl_options` block, `crl_check =
+  peer` and the hash-dir cache included, in `advanced.config`: the cache
+  option has no conf-schema key, and a list there replaces the conf
+  file's keys outright rather than merging. The cache reads the file
+  from disk at every handshake, so a replaced CRL is live at once; no
   restart, no per-rekey config.
 - **The CRL's own expiry** is the one operational commitment: past
   `nextUpdate`, `peer` refuses every new connection until a fresh CRL is
@@ -541,20 +543,30 @@ same conf fragment and the rig's throwaway CA.
 3. **Mount the directory** in `rmq-docker/compose.yaml`:
    `${RMQ1_CERTS}/crl:/etc/rabbitmq/crl:ro`. A directory mount, not a
    file mount, so a replaced file is seen without a container recreate.
-4. **Point the cache at it** in a new `rmq-docker/config/advanced.config`
-   mounted at `/etc/rabbitmq/advanced.config`, the cache option having
-   no conf-schema key:
+4. **Move the whole TLS block** into a new
+   `rmq-docker/config/advanced.config` mounted at
+   `/etc/rabbitmq/advanced.config`, and delete every `ssl_options.*`
+   line from `rabbitmq.conf`. An `ssl_options` list in `advanced.config`
+   REPLACES the conf file's keys rather than merging with them
+   (witnessed on 4.1.8: a cache-only list left both TLS listeners with
+   no cert and the broker crashed at boot), and the cache option has no
+   conf-schema key, so the block has one home:
 
-       [{rabbit, [{ssl_options, [{crl_cache,
-           {ssl_crl_hash_dir, {internal, [{dir, "/etc/rabbitmq/crl"}]}}}]}]}].
+       [{rabbit, [{ssl_options, [
+           {cacertfile, "/etc/rabbitmq/rmq-cacert.crt"},
+           {certfile,   "/etc/rabbitmq/rmq-cert.crt"},
+           {keyfile,    "/etc/rabbitmq/rmq-key.pem"},
+           {verify, verify_peer},
+           {fail_if_no_peer_cert, false},
+           {crl_check, peer},
+           {crl_cache, {ssl_crl_hash_dir, {internal, [{dir, "/etc/rabbitmq/crl"}]}}}
+       ]}]}].
 
-   `advanced.config` merges with `rabbitmq.conf`; the listener and cert
-   keys stay where they are. That the two files' `ssl_options` merge
-   key-by-key rather than one replacing the other is checked on the rig,
-   not assumed.
-5. **Turn the check on** in `rabbitmq.conf`: `ssl_options.crl_check =
-   peer`. Recreate the container (steps 3 to 5 are one recreate, at a
-   quiet hour: every client reconnects).
+   Paths and values as the box's `rabbitmq.conf` has them today;
+   `fail_if_no_peer_cert` flips to `true` in this list at notch 3.
+5. **Recreate the container** (steps 3 and 4 are one recreate, at a
+   quiet hour: every client reconnects). The listeners now check the
+   CRL.
 6. **Check.** Every fleet client is back (the connection list, the
    journal); then a throwaway cert cut for the purpose is revoked, the
    CRL replaced, and its connect refused at the handshake on 5671 and
@@ -563,8 +575,8 @@ same conf fragment and the rig's throwaway CA.
 
 The MQTT listener shares `ssl_options` with AMQP on this broker
 (`mqtt.listeners.ssl` takes the global block), so one setting covers
-both; the rig run confirms that, since it is the assumption the two-pi
-case rests on.
+both; the rig run confirmed it (a revoked cert refused on 8883 as on
+5671), since it is the assumption the two-pi case rests on.
 
 ## Build-time artifacts (no open decisions)
 
@@ -645,4 +657,7 @@ a real stack; the first four carry over from that issue.
   is refused at the handshake on AMQP and on MQTT with no broker restart,
   and the newer one is admitted. An expired CRL refuses every new
   connection, witnessed so the drift check's line is known to matter.
-  Rig first (throwaway CA), then the prod set-up sequence above.
+  **Witnessed on the rig 2026-09-08** (throwaway CA, both transports,
+  FIS never asked for a revoked cert, `StartedAt` unchanged:
+  `experiments/2026-09-05-fis-gate-battery/`, run `20260908T1619`).
+  Prod remains: the set-up sequence above.

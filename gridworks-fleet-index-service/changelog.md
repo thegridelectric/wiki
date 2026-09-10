@@ -12,6 +12,21 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-09-08 — dead root seed and build script dropped
+
+Branch `jm/sema-snapshot-pattern`. `fis_seed_request.yaml` and
+`build_fis_snapshot.sh` are deleted; nothing read them. The vendored
+snapshot was already built from `src/fis/sema_seed_request.yaml` by
+`scripts/regen_sema_snapshot.sh` (the seed copy in `indexes/` matched the
+src seed, not the root one), and a regen through that path changes only
+the registry stamp.
+
+**Why:** the root seed listed a different, stale target set (`g.node.gt`,
+the local_names strip) and would have misled the next session into
+building the wrong snapshot. One seed, the template pair every consumer
+uses.
+
 ## 2026-09-07 — GitHub Actions: lint and tests on push and pull request (`fbc3262`)
 
 `.github/workflows/tests.yml`, the house shape (grid-node-registry's

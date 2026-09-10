@@ -1,6 +1,6 @@
 # Scada-owned admin hold
 
-Status: Draft · Pass 0 · Updated 2026-06-22 · Linear: OPS-194
+Status: Draft · Pass 0 · Updated 2026-09-09 · Linear: OPS-194
 
 **EDD: yes** verified by a real-broker experiment: set a long hold, kill the
 admin panel, confirm the relays stay held and the scada reverts exactly at the
@@ -50,6 +50,24 @@ So "admin dies after I walk away" is not a crash — the hold simply lasts the
    should not silently reset the hold to 5 min; decide the semantics (inherit
    the current hold? a minimum floor?).
 4. *(consider)* pump doctor running under admin.
+
+## Session and hold are different things
+
+The admin session ([OPS-529](https://linear.app/gridworks/issue/OPS-529))
+is a human at the controls, bounded by heartbeat: when the beats stop the
+scada ends the session within seconds. The hold this design owns is a
+deliberately set timed posture, bounded by its deadline and a safety cap.
+Both are legitimate and the two must not be conflated: a dead session
+must end live control, and a hold the operator explicitly asked to
+outlive the session must survive it. So the decisions here are:
+
+- the **default** when a session dies is session-bound: the scada leaves
+  Admin by the missed-beat rule, and the hold does not outlive it;
+- a **long hold** and **hold-until-released** are explicit asks in the
+  take-control or keep-alive word, survive the session, and are bounded
+  by the safety cap;
+- the scada reports which of the two it is in, with the holder and the
+  remaining time, so a reopened panel shows the truth.
 
 ## Open
 

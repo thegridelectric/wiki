@@ -1,6 +1,6 @@
 # command-tree-matrix (rope chunk)
 
-Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-08 · Linear: OPS-392
 
 > What this is: a chunk of the `sh_node_actor` partition rope; estimate 3h; `actors/command_node.py`, 207 L.
 > Hub: [`primary.md`](primary.md).
@@ -133,3 +133,31 @@ named, a guard):
    rejects it. ✅ Fixed in `30fbac27`: admin commands `TurnOn`/`TurnOff`
    to `admin.hp-boss`, hp-boss closes its relay, and the rewrite is gone;
    the matrix row asserts the relay moves.
+
+## five-v-boss rows (added 2026-09-08)
+
+five-v-boss is the first node whose subtree shape is a function of its
+own state, and the scada reads that state off the latest-state list
+when it rewrites the root tree. Rows for the matrix, on both fixtures:
+
+- Root rewrite under each boss (admin, local-control, leaf-ally) with
+  five-v-boss last reported in each of its four states: PicoCycler puts
+  vdc-relay under the cycler; TurningOff, FiveVOff and TurningOn put it
+  under the boss with the cycler a leaf. Today only PicoCycler under
+  all three bosses and FiveVOff under local-control (the AutoWakesUp
+  case) are asserted (`test_command_tree_prefix_closed.py`,
+  `test_five_v_boss.py`).
+- The boss's own two publishes: TurnOff taken (relay under the boss)
+  and the closed confirmation (relay back under the cycler), each an
+  axiom-valid tree. Asserted.
+- Admin wake-up during TurningOff (the relay's open in flight):
+  `wake.up` runs the turn-on path under a new id and the late open
+  confirmation is ignored (the id no longer matches). Not yet driven;
+  the mid-sequence row for the boss, the twin of the LC row above.
+- The dormant cycler receiving PicoMissing during the hold sends no
+  command (asserted) and the boss in FiveVOff nacks Busy to
+  RebootPicos (asserted): the two ways a command could leave the held
+  subtree.
+- Admin releasing while the boss is in TurningOn (the close already in
+  flight) must not double-close: `wake.up` in TurningOn is ignored.
+  Asserted at the actor; not yet through `Scada.auto_trigger`.

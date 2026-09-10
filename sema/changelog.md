@@ -9,10 +9,108 @@ This changelog does NOT track wiki edits — those live in the wiki
 repo's git history.
 
 Newest at the top.
-
 ---
 
-## 2026-09-08 — Merge jm/command-interface into jm/pico-params <!-- pending commit -->
+## 2026-09-09 — promote single.pico.state/000 to published (`a96abb4`)
+
+On `jm/promote-single-pico-state`. The pico-cycler's per-pico
+`machine.states` rows carry this enum, and the roster is going onto the
+deployed spruce line, where words that cross the wire to the production
+broker must be published. Promotion record only: the `status` flip, the
+sha256 pin in `published_hashes.yaml`, the regenerated public index.
+
+## 2026-09-09 — TaDeed words: ta.validation.state, ta.deed, slow.contract.rejection (`12a608f`)
+
+On `dev`, all three staging. `ta.validation.state` is
+the enum a TaValidator's finding is recorded in (`UnValidated` default,
+`ValidatedRealAssetAndGps`, `ValidatedRealAssetIncorrectGps`,
+`ValidatedSimulatedAsset`). `ta.deed` v000 is the first-pass deed: TaId,
+TaAlias, ValidationState, ValidatorAlias, IssuedS, with axiom 1 refusing a
+simulated-asset deed on a world-universe alias. `slow.contract.rejection`
+v000 is the scada-to-LTN answer to a contract offer it will not take:
+FromGNodeAlias, the offered ContractId, the scada's ValidationState as
+cause, MessageCreatedMs.
+
+**Why:** the scada's `is_simulated` bit conflated three questions (sim
+time, which silicon, may it trade); the board record took the silicon
+question and these words take the trading one, so a scada reads a real
+deed and refuses LTN offers while `UnValidated` instead of a placeholder
+file's existence deciding. The rejection is its own word because a
+heartbeat presumes a contract the scada has started, and the published
+`slow.dispatch.contract.status` enum cannot grow a value in place. The
+signature over the deed and the owner principal are not in v000: the
+signing convention and the principal word are still open in the deeds
+exploration.
+
+## 2026-09-08 — five-v-boss words: turn.5v.on.off, five.v.boss.state, gw1.actor.class/014 and the spaceheat.node.gt/303 cascade (`a241693`)
+
+Branch `jm/five-v-boss-words`. The scada gains a command node above the
+pico-cycler that can hold the picos' 5 V supply off (a pico swap on site
+had to pull the supply by hand). Two new enums, staging: `turn.5v.on.off`
+(`TurnOn`, `TurnOff`) is the hold vocabulary a boss names on an
+`fsm.event`; `five.v.boss.state` (`PicoCycler`, `TurningOff`, `FiveVOff`,
+`TurningOn`) says who owns the vdc relay. A new actor means
+`gw1.actor.class/014` (`FiveVBoss`), and that pulls the same chain the
+`HpTwin` bump did on 2026-08-12: `spaceheat.node.gt/303` pins 014; the
+staging words that carry nodes (`gw.nolan.layout`, `gw.house0.layout`,
+`layout.lite/013`) move to 303 in place, with the two layout words'
+command-node axiom now requiring `five-v-boss` and their ActuatorLeaves
+axiom admitting the class; the published referrers get staging versions
+pinned to 303, `new.command.tree/003` and `scada.control.capabilities/002`.
+The capabilities word's axiom 4b relaxes from one interface per node to
+one per (node, vocabulary), since five-v-boss carries both
+`turn.5v.on.off` and `reboot.picos`. Every new version stays staging
+until the spruce witness. The three staging referrers' `created` stamps
+move forward to the wave's stamp (dependency ordering), the scaffolded
+axiom validators for 303 / 003 / 002 are ported from their predecessors,
+the three upgrade functions are written (302→303 is a version lift), and
+`new.command.tree/002`, superseded without an example, gets the one the
+snapshot round-trip needs; its published-hash pin is rewritten for that
+example only (`published_hashes --rewrite`), the README records that
+this is the sanctioned re-pin case, and a sema design proposes teaching
+the pin to hash the schema without its examples. `pico.cycler.state`, `pico.cycler.event`,
+`reboot.picos` and `single.pico.state` are unchanged: the cycler itself
+is untouched by the design.
+
+## 2026-09-08 — report.event v004 published; gw.dispatch.nack answers the sender, not the boss; new admin-scada words published (`a6148da`)
+
+Branch `jm/admin-scada-published`. `gw.dispatch.nack/000` (staging, edited
+in place) drops axiom 1 (`ToHandleIsBoss`) and rewords `ToHandle` as the
+refused command's `FromHandle`: a NotMyBoss refusal goes back to whoever
+sent the command, who by definition is not the boss of the node's live
+handle (admin sending to `admin.relay` while the relay lives at
+`auto.relay`), so the axiom could never hold on the one reply it exists
+for. The ack keeps its axiom. Then the admin-scada command vocabulary is
+promoted staging to published, bottom-up, because those words start
+crossing between production instances this afternoon and published is
+the status that may travel outside dev brokers. The orphaned axiom
+template for the dropped axiom goes with it. Fourteen words in all: the
+ack/nack pair, `analog.dispatch`, the command-interface pair and their
+enums, and `scada.control.capabilities/001` with its closure
+`spaceheat.node.gt/302` and `gw1.actor.class/013`. The capabilities word
+is the admin panel's contract with a production scada, and every idea
+still open for the command surface fits it as an entry or a vocabulary,
+not a field; if rung 2 moves the interface onto the ShNode word that
+becomes 303 and a 002 by the normal path. `spaceheat.node.gt/302` is
+carried by `layout.lite` and `new.command.tree` over the wire anyway.
+
+The scada on `jm/spruce-unlimbo` has
+sent every report under `report.event/004` while the registry held it
+as a draft with the `/draft/` URL and no example: a draft on the
+production wire the moment spruce connects. The version is `003` plus
+three axioms tying the envelope to its report (MessageId to Report.Id,
+TimeCreatedMs to Report.MessageCreatedMs, Src to Report.FromGNodeAlias),
+which the scada meets by construction and gwsproto already enforces. It
+gets the canonical `$id`, the `003` example carried forward, an upgrade
+template from `003`, staging, and promotion in one sitting.
+`new.command.tree/002` is promoted with it: authority-only, closure
+published since `spaceheat.node.gt/302` went; its axiom 2 names actor
+classes by name, so a new actuator or command-node class will mean a
+003, accepted as the price of a wire-checkable invariant. With these
+every word the scada emits on the LTN and admin links is published
+except `layout.lite/013`, which the scada no longer sends.
+
+## 2026-09-08 — Merge jm/command-interface into jm/pico-params (`21a9b06`)
 
 Merge commit so dev carries both branches. Resolution: `metadata.
 last_updated` keeps the later stamp, indexes and runtime regenerated.

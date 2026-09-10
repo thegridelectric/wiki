@@ -12,6 +12,20 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-09-08 — seed moves to src/gnr; root build script dropped
+
+Branch `jm/sema-snapshot-pattern`. `gnr_seed_request.yaml` becomes
+`src/gnr/sema_seed_request.yaml`, `build_gnr_snapshot.sh` is deleted, and
+`scripts/regen_sema_snapshot.sh` reads the moved seed. Snapshot regenerated
+through it at sema `a241693`: same vocabulary, the newer generator's typed
+`decode(expect=...)` overloads in `codec.py`, and the snapshot README.
+
+**Why:** every consumer follows sema's template pair,
+`scripts/regen_sema_snapshot.sh` reading `src/<pkg>/sema_seed_request.yaml`,
+the two paths the generated snapshot banner names. gnr kept a second build
+script at the root and its seed beside it.
+
 ## 2026-08-27 — README: new instance bring-up + populate from the seed store (`274b974`)
 
 **What:** the repo README gains a "New instance" section — bring-up order

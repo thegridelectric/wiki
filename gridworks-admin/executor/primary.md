@@ -1,63 +1,68 @@
 # gridworks-admin — primary
 
-Status: Draft · Pass 1 · Updated 2026-09-05
+Status: Draft · Pass 1 · Updated 2026-09-09
 
-> **What this is.** The acceptable-minimum hub for the GridWorks
-> admin domain — the operator-facing surface for incident-mode
-> intervention on a deployed SCADA. Captures the substrate (prod
-> broker), the one-layer FIS authz model, the tight operation
-> surface (5–7 SCADA admin methods), and the migration off the
-> tailscale-MQTT path. Most operational details are Open.
+> **What this is.** The hub for the GridWorks admin domain: the
+> operator-facing surface for incident-mode intervention on a deployed
+> scada. Holds the trust model (one admin identity per universe, named
+> humans behind it), the admin session (holder, session id, heartbeat,
+> hold), the substrate and its routing gap, and the stages off the
+> tailscale + local-MQTT path. The running mechanism today is in
+> [`conversation.md`](conversation.md).
 
 ## One-line summary
 
-Admin is the rare, time-bounded, mTLS-authed surface for
-incident-mode operator intervention on a SCADA. It runs on the
-prod RabbitMQ broker (the same broker the control plane uses)
-under FIS-authorized operator Principals, with per-method routing
-keys for fine-grained authz. Admin is **parallel to** the control
-plane — not part of it — and explicitly suspends the heating SLA
-when invoked. Customer-facing thermostat preferences DO NOT come
-here; they route through the LTN.
+Admin is the rare, time-bounded back door through which a named human
+drives a scada's actuators directly. The scada's TopState goes
+`Auto → Admin`, its own control goes Dormant, and the heating SLA is
+suspended for the duration. Admin is parallel to the control plane,
+never part of it: the LTN stays the scada's one normal writer, and
+customer preferences never come here (they ride the LTN,
+[OPS-408](https://linear.app/gridworks/issue/OPS-408)).
 
 ## Motivation
 
 The existing admin path (`gridworks-scada/packages/gridworks-admin/`,
-the `gwa watch` TUI talking to a local Mosquitto broker on each Pi
-via tailscale) was right for the <30-home era. Two pressures break
-it:
+the `gwa watch` TUI talking to a local Mosquitto broker on each Pi via
+tailscale) was right for the bench and the first houses. Two pressures
+break it:
 
-1. **Tailscale device-limit (~100)** caps the fleet at hundreds of
-   homes; we're sized for thousands.
-2. **Trust model** — tailscale-membership-authed admin doesn't
-   compose with the mTLS+FIS Principal model we want for all
-   prod-broker connections (see
-   [`../../gridworks-fleet-index-service/explorations/principal-model.md`](../../gridworks-fleet-index-service/explorations/principal-model.md)).
+1. **No identity on the path.** The local broker takes any client;
+   nothing says which human sent a dispatch, and nothing notices when
+   the human's link dies (bench run 4, 2026-09-05: a tunnel died
+   silently and the scada sat in Admin with no operator attached).
+2. **Trust model.** Tailscale-membership auth does not compose with the
+   mTLS + FIS Principal model for every prod-broker connection
+   ([OPS-420](https://linear.app/gridworks/issue/OPS-420)), and a
+   per-Pi tailnet does not scale with the fleet.
 
-Admin needs its own design domain because its trust model, audit
-requirements, and operational shape differ from both the control
-plane (which it interrupts) and the customer-facing LTN API.
+Admin needs its own domain because its trust model, audit
+requirements, and operational shape differ from both the control plane
+(which it interrupts) and the customer-facing LTN API.
 
 ## Scope
 
 Admin is **incident mode**: SCADA TopState `Auto → Admin`. When an
 operator enters Admin on a SCADA, that SCADA's hierarchical control
 goes Dormant; the actuator forest reassigns to operator commands;
-the **heating SLA is suspended** for the duration. Time-bounded by
-`AdminKeepAlive` renewals; auto-reverts on timeout.
+the **heating SLA is suspended** for the duration.
 
 Operation surface (per `gw_spaceheat/actors/scada.py:78-82, 287-487`):
 
-| Method | Status |
+| Word | Status |
 |---|---|
-| `AdminDispatch` — direct actuator/relay command | Existing |
-| `AdminAnalogDispatch` — analog setpoint command | Existing |
-| `AdminKeepAlive` — extend Admin-mode timeout | Existing |
-| `AdminReleaseControl` — explicit return to Auto | Existing |
-| `ReadState` — live state snapshot query | MVP-likely |
+| `admin.dispatch` — direct actuator/relay command | Existing |
+| `admin.analog.dispatch` — analog setpoint command | Existing |
+| `admin.keep.alive` — extend the hold | Existing |
+| `admin.release.control` — explicit return to Auto | Existing |
+| take-control — open a session, name the operator | Planned (session) |
+| holder-changed — the scada announces a takeover | Planned (session) |
+| `ReadState` — live state query | MVP-likely |
 | `PushLayout` — hardware-layout reconfig | Defer |
 
-5–7 methods total. Tight.
+The method is the TypeName. There is no method slot in any routing
+key, on any carrier ([`../../api-pattern.md`](../../api-pattern.md)
+"Route grammar", gwbase `transport.md` "Routing-key grammar").
 
 ### What admin is NOT
 
@@ -70,44 +75,117 @@ Operation surface (per `gw_spaceheat/actors/scada.py:78-82, 287-487`):
 - Provisioning / installer
   ([`../../gridworks-provisioning/`](../../gridworks-provisioning/)),
   which runs pre-identity over HTTPS.
+- A platform-down tool. Every admin path rides a broker; when the
+  broker is gone the scada is in LocalControl by design and the human
+  path is ssh to the Pi.
 
-## Substrate — prod broker
+## Invariants
 
-The SCADA Pi is double-NAT'd behind a residential router and a
-GridWorks router; inbound connections aren't possible. The Pi
-makes outbound AMQP connections to brokers. So admin's substrate
-must be a broker — the only NAT-friendly carrier for
-operator→SCADA traffic.
+- **One admin identity per universe.** The scada has two talkers, its
+  LTN and `<universe>.admin` (`hw1.admin`). Admin is one broker
+  principal with one cert; FIS single-writer on it gives one admin
+  connection per run. Four people never become four scada peers.
+- **Named humans behind it, each with a personal cert.** The admin
+  identity is held by an admin process the humans authenticate to with
+  their own client certs (a CLI or TUI over HTTPS, not a browser). The
+  roster of who may drive admin is the set of certs that process
+  accepts. The human's name rides in the take-control word and in
+  every audit event; the broker never sees the human.
+- **A login is never authority.** If a browser front ever exists it
+  follows the mTLS rule: a phishing-resistant hardware-bound credential
+  per human, a fresh step-up assertion for actuator commands, and a
+  gateway that mints a short-lived cert for that human rather than
+  holding standing authority of its own (mtls-fis-auth,
+  [OPS-420](https://linear.app/gridworks/issue/OPS-420), "Gateway
+  boundary").
+- **The scada owns the session.** Holder, session id, last heartbeat
+  and deadline live on the scada. The admin process arbitrates which
+  human is behind the identity; the scada enforces one session per
+  scada regardless. Neither layer trusts the other to have got it
+  right.
+- **Session and hold are different things.** A session is a human at
+  the controls, bounded by heartbeat; losing it ends live control
+  within seconds. A hold is a deliberately set timed posture (pump off
+  for three hours), bounded by its deadline and a safety cap; it may
+  outlive the session only when the operator asked for that. The
+  default is session-bound.
+- **Hearing a heartbeat is never an invitation.** Every beat carries
+  the session id; a beat or command on an unknown session is ignored.
+  Joining is an explicit take-control, recorded and announced.
+- **Every direct message names both parties.** From-alias and to-alias
+  in the routing key and the header; the broker pins the from-alias
+  (the addressed `gw` envelope,
+  [OPS-428](https://linear.app/gridworks/issue/OPS-428)).
+- **Every open, takeover, release and expiry is an audit event** on
+  `ear`, naming the human.
 
-**Admin runs on the same prod broker the control plane uses.**
+## The admin session
 
-Rationale: we have to trust the prod broker anyway (it carries the
-control plane); standing up a second broker doesn't reduce the
-trust surface. The Principal model
-([principal-model](../../gridworks-fleet-index-service/explorations/principal-model.md))
-gives per-cert isolation between principal kinds (gnode / service /
-operator) — trust-realm separation is enforced at the cert and
-permission-map level, not at the broker boundary. This parallels
-the analytics-broker deferral (`../../rmqbot/designs/analytics-broker-shovel.md`)
-which landed at the same conclusion for the same reason.
+The session is the unit of "we are actually talking right now".
 
-A dedicated admin broker stays as a future option if compliance,
-cross-region failover, or a class of consumers needs broker-level
-separation. Not now.
+- **Open.** The admin process sends take-control naming the human
+  (`OperatorName`) and minting a session id. The scada records
+  `(holder, session id, last hex, deadline)`, enters Admin, and answers
+  with its first beat.
+- **Beat.** `heartbeat.a` both ways, 2 s cadence, no acks demanded: a
+  fresh `MyHex` and the peer's last as `YourLastHex`, plus the session
+  id (planned `heartbeat.a/001`; one hex character stays enough once
+  the session id carries identity). The client shows "in control" only
+  while its own echo returns. Three missed beats end the session at the
+  scada; a dead tunnel is visible at both ends in under ten seconds.
+- **Takeover.** A take-control from another human opens a new session;
+  the old one is dead from that moment. The scada publishes
+  holder-changed so the bumped client shows "admin taken by George"
+  and stops beating. The admin process tells both humans first, but
+  the scada's rule does not depend on that.
+- **Release and expiry.** Explicit `admin.release.control`, missed
+  beats, or the hold deadline. Any of them returns the scada to Auto
+  through the same path.
+- **What survives a dead session** is the hold question above; the
+  first pass leaves the existing timeout as the hold and lets the
+  session govern only live control and the display.
+
+## Substrate and routing
+
+**Today:** the admin client speaks MQTT to the Pi's local Mosquitto
+over tailscale, on the `gw` envelope, as the proactor's fixed `admin`
+peer (`conversation.md`). No identity, no liveness.
+
+**Target: the prod broker.** We trust it for the control plane; a
+second broker would not shrink the trust surface. The Principal model
+separates admin from the control plane at the cert and permission
+level, not at a broker boundary (the same reasoning as the
+analytics-broker deferral, `../../rmqbot/designs/analytics-broker-shovel.md`).
+
+**The routing gap.** The scada sits outside the gwbase fabric: it
+subscribes on `amq.topic`, so reach to a scada is gated by connection
+auth alone, never by the binding table, and the `gw` key has no
+destination alias (`to.<to-class>` only resolved because each proactor
+link was 1:1). Admin is the first second talker and needs a real
+to-alias. Two consequences, both owned by the proactor makeover
+([OPS-428](https://linear.app/gridworks/issue/OPS-428)):
+
+- the addressed envelope, `gw.<from-alias>.to.<to-class>.<to-alias>.<type-name>`
+  with a header carrying `MessageId` and `CreatedAtUnixMs`;
+- the scada joining the fabric, so `adminmic_tx → scada_tx` and
+  `ltnmic_tx → scada_tx` are the only edges into a scada. The MQTT
+  plugin's exchange (`mqtt.exchange`) can be pointed at `scada_tx`
+  instead of `amq.topic`; this holds as long as every MQTT client on
+  the prod broker is a scada.
+
+Until then admin stays on the local broker, with the session built
+there so that only the carrier changes later.
 
 ### Mechanism vs. meaning decoupling
 
-Operation contracts are designed REST-shaped — typed request,
-typed response, idempotent where possible, one audit event per
-call — even though the carrier is AMQP. The HTTPS gateway path
-(see "Client form factor" below) consumes the same operation
-contracts. See
+Operation contracts are typed request, typed response, idempotent
+where possible, one audit event per call, whatever the carrier. See
 [`../explorations/when-to-add-grpc.md`](../explorations/when-to-add-grpc.md)
-for the related gRPC question.
+for the gRPC question.
 
 ## The capabilities contract (what the admin client consumes today)
 
-Status: Verified · Pass 1 · Updated 2026-09-08 · Reviewed 2026-09-08@c8555abe
+Status: Verified · Pass 1 · Updated 2026-09-08 · Reviewed 2026-09-08@ea3365b5
 
 The `gwa` TUI learns what it can operate from
 **`scada.control.capabilities`**, published by the scada on link-up
@@ -163,205 +241,77 @@ levels each reached the actor the row names and the row followed the
 node's state report. The sim witness with the same client is
 `experiments/2026-09-07-admin-reboots-picos/`.
 
-## Client form factor
+## Identity and audit
 
-Two client paths, sharing one operation contract.
+- **On the broker,** `hw1.admin` is a service-kind Principal: one cert,
+  one FIS lease per run, from-alias pinned on every publish. FIS needs
+  no operator kind and no per-method permission map.
+- **Behind it,** the admin process holds the roster: the client certs
+  of the humans allowed to drive admin in that universe. A human's
+  identity is universe-independent; their authority is not (a `w`
+  admin is a separate, heavier question under the validation plane).
+- **Attribution.** The human's name is in the take-control word and in
+  every audit event the scada and the admin process emit. Broker-side
+  `validated-user-id` does not survive the MQTT hop and is not relied
+  on.
+- **Audit stream.** Every open, takeover, release, expiry and dispatch
+  goes to `ear` as a structured event: human, target scada, word,
+  session id, result. This is the first-class record; broker logs are
+  backup.
 
-### Fat client — TUI (lift from existing `gwa watch`)
+## Stages
 
-A long-running terminal app maintains an mTLS+AMQP connection
-directly to the prod broker. The operator's laptop holds the
-operator cert. ~60% of the existing `gridworks-admin` package
-lifts cleanly (TUI widgets, CLI scaffolding, protocol-state
-machines, message types); the focused rewrite is the MQTT
-transport → AMQP transport layer (~700 lines of paho → pika).
-
-```
-TUI (laptop, operator cert) → AMQP (prod broker) → SCADA
-```
-
-**Audience:** GridWorks ops staff who already use `gwa`.
-Transitional — narrow audience that doesn't scale to partners or
-field techs.
-
-### Thin client — Web (the durable end-state)
-
-A backend **admin gateway service** maintains AMQP connections to
-the broker; clients (browser, mobile-responsive) talk
-HTTPS+WebSocket to the gateway. Operators authenticate to the
-gateway via web SSO+MFA; the gateway holds a service-class
-Principal cert that FIS authorizes; the gateway logs the human
-operator identity (from the SSO session) into every audit event.
-
-```
-Browser → HTTPS+WS → admin-gateway (service Principal cert) →
-  AMQP (prod broker) → SCADA
-```
-
-**Audience:** GridWorks ops at HQ (fleet-wide visibility), field
-installers / partner staff (responsive on tablet / phone), broader
-future audience. Phone-native is deferred behind PWA-on-web, which
-typically covers field-tech needs at far lower build cost than
-iOS/Android native.
-
-The gateway is its own design surface — see
-[`../explorations/admin-gateway-service.md`](../explorations/admin-gateway-service.md).
-
-### Why both, and why the gateway is non-optional eventually
-
-Browser mTLS for end-users is hostile (per-device cert install with
-no real story for mobile / partner audiences). A gateway tier is
-needed to bridge web SSO+MFA → broker mTLS+FIS. Since the gateway
-must exist for any web/phone path, it gets designed alongside the
-TUI work — not bolted on after.
-
-The TUI continues to work alongside the gateway path. Operators
-who prefer it can keep using it (or also use it for low-level
-debugging) even after web v2 ships.
-
-## Authz — single layer, FIS-driven
-
-**One-layer authz**: FIS, via the broker's HTTP auth-backend, makes
-the entire access decision. SCADA does not duplicate the authz
-check; it trusts FIS and executes.
-
-### Per-method routing keys
-
-Each admin method gets its own routing key on the prod broker:
-
-```
-admin.<scada-alias>.dispatch
-admin.<scada-alias>.analog-dispatch
-admin.<scada-alias>.keep-alive
-admin.<scada-alias>.release
-admin.<scada-alias>.read-state
-admin.<scada-alias>.push-layout      (later)
-```
-
-The FIS Principal's permission map for an operator names which
-routing keys (`admin.<scope>.<method>`) they may publish to.
-Scope (which SCADAs) and method (which actions) are encoded
-together as the resource pattern.
-
-### Flow
-
-```
-Operator publishes AdminDispatch payload to routing key
-  admin.d1.scada.beech.dispatch
-       ↓
-Broker calls FIS /auth/resource
-  (operator cert subject, resource=admin.d1.scada.beech.dispatch, permission=write)
-       ↓
-FIS Principal lookup → permission map check → allow/deny
-       ↓
-SCADA consumes the routing key; suffix names the method
-SCADA executes (trusting FIS's authz decision)
-```
-
-### Operator identity for audit
-
-Depends on the client form factor:
-
-- **TUI (fat client):** operator publishes directly with their
-  cert. With RabbitMQ's `validated-user-id` plugin enabled on the
-  prod broker, `properties.user_id` on every message is guaranteed
-  to match the AMQP connection's authenticated identity (the
-  operator's cert subject). SCADA reads `properties.user_id` and
-  trusts it for the audit event.
-- **Gateway (thin client):** gateway publishes on behalf of the
-  operator. `properties.user_id` is the gateway's *service*
-  identity. The operator identity rides as a custom message header
-  the gateway sets (e.g., `x-operator-subject`); the SCADA trusts
-  the claim because the gateway is itself FIS-authorized to be the
-  operator proxy.
-
-The broker-side `validated-user-id` decision is captured in
-[`../../gridworks-fleet-index-service/explorations/principal-model.md`](../../gridworks-fleet-index-service/explorations/principal-model.md)
-(needs the plugin enabled). Gateway-side custom-header attribution
-mechanism details in
-[`../explorations/admin-gateway-service.md`](../explorations/admin-gateway-service.md).
-
-## Audit
-
-Every admin operation emits a structured event to `ear` for
-durable audit. Operator subject (per "Operator identity for
-audit"), target SCADA, method (from routing key), payload hash,
-result. The audit stream is the *first-class record* of all admin
-activity — treat it as the primary surface, with broker logs as
-backup.
-
-## Migration
-
-Three stages:
-
-1. **Today — `gwa` over tailscale + local Mosquitto.** Existing
-   path continues. No change required.
-
-2. **TUI on prod broker (max code lift).** Stand up the
-   per-method-routing-key topology + FIS operator-Principal
-   support on the prod broker. Lift the existing `gwadmin` package
-   to a `gridworks-admin-cli` (or in-place extension) that swaps
-   the MQTT transport for AMQP — ~60% of the code carries over.
-   Operator certs installed on ops laptops. Run alongside stage 1
-   for some number of homes before deprecating tailscale-MQTT.
-
-3. **Web v2 via admin gateway (durable end-state).** Build the
-   admin gateway service exposing HTTPS+WebSocket to web/mobile
-   clients; gateway holds a service-class Principal cert and
-   logs operator identity from SSO sessions. Build the web client
-   against the gateway. TUI continues to work; ops staff can
-   choose. PWA-on-web covers field-tech / phone needs.
-
-Tailscale stops being load-bearing for admin after stage 2.
-Stage 3 opens admin to a broader audience without requiring
-per-device cert install.
+1. **Today.** `gwa` over tailscale to the Pi's Mosquitto; the proactor
+   admin link; hold by timeout only.
+2. **Session on the local broker.** Take-control, heartbeat, takeover
+   and holder-changed on the existing path; one fixed MQTT client id so
+   the broker disconnects the previous admin client; the scada
+   ignoring an old session. Everything built here carries into stage 3
+   unchanged. Design:
+   [OPS-529](https://linear.app/gridworks/issue/OPS-529).
+3. **Admin on the fabric.** `hw1.admin` on the prod broker with the
+   addressed envelope and the scada in the fabric
+   ([OPS-428](https://linear.app/gridworks/issue/OPS-428)), FIS
+   pinning ([OPS-420](https://linear.app/gridworks/issue/OPS-420)).
+   Tailscale stops carrying admin. Design:
+   [OPS-429](https://linear.app/gridworks/issue/OPS-429).
+4. **Read-only views**, when wanted, come through the public read
+   façade ([`../../api-pattern.md`](../../api-pattern.md)), no
+   session. A browser front for control is not planned.
 
 ## Open
 
-- **Q6.4 Cert lifecycle for operator certs** — FIS-issued. Rotation
-  cadence, revocation triggers, MFA gating for high-impact
-  operations. Captured in
-  [principal-model](../../gridworks-fleet-index-service/explorations/principal-model.md)
-  Open list.
-- **Q6.7 First-MVP-shipped operations** — recommend: `ReadState`,
-  enter-admin (via first `AdminDispatch`), `AdminReleaseControl`,
-  `AdminDispatch`, `AdminAnalogDispatch`, `AdminKeepAlive`. Defer
-  `PushLayout` and cert-rotate until v2.
-- **TUI package extraction.** Does the lifted TUI live in the
-  existing `gridworks-scada/packages/gridworks-admin/` (re-pointed
-  at prod broker), or extract to a standalone `gridworks-admin-cli`
-  repo? Probably extract when the prod-broker path is verified —
-  removes the admin client's coupling to the SCADA repo's release
-  cadence.
-- **Admin gateway** — design decisions captured in
-  [`../explorations/admin-gateway-service.md`](../explorations/admin-gateway-service.md):
-  SSO provider, MFA gating, audit-attribution shape, gateway
-  high-availability, where it deploys (cloud-side; alongside FIS?).
-- **Per-method routing-key naming** — kebab-case (`analog-dispatch`)
-  vs lower-snake (`analog_dispatch`) vs sema-typed (`admin.dispatch`).
-  Probably kebab-case for routing-key segments; align with
-  RabbitMQ idioms.
-- **When to consider a dedicated admin broker (deferred B3)** —
-  compliance audit physically requires separation; cross-region DR;
-  admin volume grows beyond plausible.
+- **Hold semantics** past the first pass: the default hold when a
+  session dies, the "until released" option and its safety cap
+  ([OPS-194](https://linear.app/gridworks/issue/OPS-194)).
+- **`heartbeat.a/001`** with a required session id, adopted for
+  admin ↔ scada, LTN ↔ scada link liveness and supervisor ↔
+  supervisee alike; the contract-tier instrument stays its own word.
+  Sema authoring turn, not yet done.
+- **Admin process shape at stage 3:** a cloud service, or the same
+  process on an operator's laptop holding the `hw1.admin` cert as the
+  interim.
+- **`ReadState` and `PushLayout`** scope; the TUI package extraction out
+  of the scada repo.
+- **When a dedicated admin broker would be worth it:** compliance
+  separation, cross-region DR, or admin volume beyond plausible.
 
 ## Cross-references
 
 - [`conversation.md`](conversation.md) — how the client and a scada
   talk today: the admin link, the request/forward conversation, the
   timeout, the tree under admin, the two indirect addresses.
-
 - [`../explorations/when-to-add-grpc.md`](../explorations/when-to-add-grpc.md)
   — when to add a gRPC pathway alongside the broker substrate
+- [`../explorations/admin-gateway-service.md`](../explorations/admin-gateway-service.md)
+  — the browser-front question, still exploratory
 - [`../../gridworks-fleet-index-service/explorations/principal-model.md`](../../gridworks-fleet-index-service/explorations/principal-model.md)
-  — FIS-side auth model; operator is one Principal kind
-- `../../rmqbot/designs/analytics-broker-shovel.md`
-  — same-reasoning analytics-broker deferral
-- [`../../gridworks-scada/explorations/non-gnode-interfaces.md`](../../gridworks-scada/explorations/non-gnode-interfaces.md)
-  — original framing of admin as an open concern
-- [`../../gridworks-base/executor/actors.md`](../../gridworks-base/executor/actors.md)
-  — gwbase 0.5.0; admin runs as a non-GNode actor (`ActorBase` ear-tap) on
-  the rabbit toolkit (operator-side may not use gwbase at all)
+  — FIS-side auth model
+- [`../../gridworks-base/executor/transport.md`](../../gridworks-base/executor/transport.md)
+  — routing-key grammars and the fabric the scada is not yet in
+- [`../../gridworks-scada/executor/scada-ltn-link-state.md`](../../gridworks-scada/executor/scada-ltn-link-state.md)
+  — the LTN link's liveness today and why the 1:1 link cannot carry a
+  second talker
 - Legacy code: `gridworks-scada/packages/gridworks-admin/` (the
   `gwa` CLI), `gridworks-scada/gw_spaceheat/actors/scada.py:287-487`
   (the AdminDispatch / AdminKeepAlive / AdminReleaseControl

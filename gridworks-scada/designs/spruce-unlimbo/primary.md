@@ -33,6 +33,8 @@ real broker.
 
 - `gw108-board.md` — schematic-verified board facts: zone signal
   chain, expander map, DAC/EEPROM (living reference)
+- `spruce-admin-rig.md` — the standing admin-panel rig on the real house
+  (tmux scada off the dev broker, shared with the person on site).
 - `spruce-relay-control.md` — chunk A record: reader→bus verified;
   code-survey pins, relay roster (layout side complete 2026-08-11),
   bench/boot reproducers, window safety arrangement

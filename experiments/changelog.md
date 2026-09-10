@@ -8,6 +8,70 @@ Newest at the top.
 
 ---
 
+## 2026-09-09 — gw108-ct-testing: cycle.py reads all four CT inputs across store-pump off/on; schematic trace in the handoff <!-- pending commit -->
+
+The RevB schematic and copper say the four CT inputs return through one
+undecoupled 50 kΩ `1V65` node and that CT3 is wired like the others, so
+spruce's P2 is an open burden path (no shunt on JP2, most likely); the
+trace and the bench experiment that settles it are in the handoff
+README. `cycle.py` is the spruce version of that experiment's first
+state: with the blue current CT on P0 it captures all four inputs with
+the store pump off and then on (iso valve held open, secondary pump
+untouched), repeated per cycle, and reads each empty input as TIED,
+INDEPENDENT or OPEN from its rise, its ratio to P0 and its bias. It
+imports the ssh, relay and fold plumbing from `peek.py`.
+
+## 2026-09-09 — gw108-ct-testing: folder renamed from adc-waveform-bench; spruce runs 1–7 in a dated subfolder; peek.py --channels <!-- pending commit -->
+
+The bench folder now carries the question it answers (which gw108 CT
+inputs read what) rather than the first tool used. Today's seven
+`peek.py` runs at spruce, with the CT arrangement changed between runs,
+live in `2026-09-09-spruce-runs/` with a handoff README: three of the
+four ADC inputs (P0, P1, P3) carry one signal whichever holds the CT, P2
+is independent with a different bias, and the voltage-type CT was the
+noise source. `peek.py` takes `--channels` so the own channel per phase
+follows the CT placement. The eGauge CT moved to eGauge port 05 for the
+secondary pump (tlayouts changelog has that side).
+
+## 2026-09-08 — gw108-relay-stress: one folder per harness, honeysuckle run 3 (bench board clean) <!-- pending commit -->
+
+Third run of the relay-stress harness, on the bench gw108 (honeysuckle,
+nothing on the relay contacts): B3 0/100, F3 0/30, A3 0/30 against
+35/100 and 17/100 on spruce's two boards. The reset needs what spruce
+hangs on the iso relay's contacts, not the board. Honeysuckle got its
+first `~/experiments` clone, recorded in its box README.
+
+The three relay-stress runs now share `2026-08-23-gw108-relay-stress/`:
+the harness at the top, one dated subfolder per run with its own README,
+a hub README with the runs table. The 08-23 and 09-08 spruce folders
+moved under it; every path reference (logbook, ci.sh, the pump-speed
+sweep and admin-panel READMEs, two wiki files) follows. The 08-23
+instances keep their `spruce-relay-stress` ExperimentSlug, as recorded
+at emission.
+
+---
+
+## 2026-09-08 — fis-gate-battery: the revocation group (CRL on the rig broker) <!-- pending commit -->
+
+The replaced-pi case from the mTLS + FIS auth design (OPS-420): a
+predecessor pi holds a still-valid cert with the same CN as its
+successor, and the gate cannot tell them apart. `certs/gen_certs.sh`
+now mints a second same-CN cert for weather and the scada and an empty
+CRL; `certs/crl.sh` rewrites the throwaway CA's CRL (revoke by serial,
+`--expired` for a one-second `nextUpdate`) into the hash-dir name
+Erlang looks up. The rig broker mounts a `crl/` directory and an
+`advanced.config`, `rig.py` gains the CRL, effective-`ssl_options`,
+`StartedAt` and broker-log levers (local rig only), and `battery.py`
+runs five revocation cases after the MQTT leg: the ping-pong on both
+transports first, then refusal at the handshake on 5671 and 8883 with
+FIS never asked and no restart, the newer cert admitted, the expired
+list refusing everyone, a fresh list admitting again. 38/38, storm
+100/100. Found on the first run: `advanced.config`'s `ssl_options`
+REPLACES the conf file's rather than merging, so the whole TLS block
+(material, tightening, `crl_check`, `crl_cache`) lives in
+`advanced.config` and `rabbitmq.conf` carries no `ssl_options.*`; the
+design's prod set-up sequence is corrected to match.
+
 ## 2026-09-07 — adc-waveform-bench: capture harness, fold, and the vendored gw.adc.waveform <!-- pending commit -->
 
 Rung `2026-09-07-adc-waveform-bench/` for the CT measurement chain

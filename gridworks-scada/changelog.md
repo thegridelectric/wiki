@@ -11,17 +11,147 @@ repo's git history.
 Newest at the top.
 
 <!-- pending commit -->
-## 2026-09-08 — admin dispatch log names its target handle
+## 2026-09-09 — pico-cycler reports each pico's state through machine.states (actual-spruce line)
 
-Branch `jm/spruce-unlimbo`. `Scada.process_admin_dispatch` logged only
-the event name (`AdminDispatch event is CloseRelay`); an expander relay
-dispatch left no trace of which node it went to, since only GPIO relays
-log their pin moves. Reading the 2026-09-08 spruce window
-(`experiments/2026-09-08-spruce-admin-panel/`) meant inferring the
-target from flow and the report's state rows. The line now carries the
-event's ToHandle. Log text only; no test.
+Branch `jm/pico-state-reporting`, cut from `actual-spruce` (`30fc7f59`).
+The replica of `d367ece5` on `jm/spruce-unlimbo` for the line running
+on the house: gwsproto gains `SinglePicoState` (the published
+`single.pico.state/000`: Alive, Flatlined, Zombie; default Flatlined),
+the cycler drops its private two-value enum and sends one
+`machine.states` row per pico, keyed by the pico-backed actor's handle,
+at start, on every flip, and with each periodic report;
+`tests/actors/test_pico_roster.py` witnesses the rows on both test
+layouts. For that the cycler's pico discovery also accepts
+`SimPicoTankModuleComponent`, as `api_tank_module.py` on this line
+already does; the house layout has only real pico components, so the
+box's roster is unchanged by it. No command, no `TriggerId` adoption,
+no `Startup`; nothing else on the actor moves.
 
-## 2026-09-08 — command nodes answer their boss: DispatchAck on take, DispatchNack on refusal (`c8555abe`)
+**Why:** which pico provoked a cycle was a log line the journal never
+saw. The flatline row is sent before the cycle it provokes, so the
+journal can read a cycle's cause off the pico whose row flipped just
+before it, this season, without touching the report words.
+
+## 2026-09-09 — is-simulated decompression: TaDeed read into a ValidationState; UnValidated refuses LTN offers (`4bb46035`)
+
+Branch `jm/spruce-unlimbo`. gwsproto gains the twins of the three new
+staging words (`ta.validation.state`, `ta.deed`, `slow.contract.rejection`)
+with their tests and the deed axiom's rejecting test. The scada reads the
+deed file at `settings.paths.tadeed` into a `validation_state`
+(`UnValidated` when the file is absent), and `is_simulated` now answers
+only from the layout (`has_simulated_component`), its sim-time job. In
+`process_slow_contract_heartbeat` an `UnValidated` scada answers a
+`Created` offer with `slow.contract.rejection` to the LTN and starts
+nothing; the LTN logs the rejection and drops its pending contract. The
+Krida and DFR multiplexers read the layout fact directly instead of the
+scada bit. The test config dir gains a `ValidatedSimulatedAsset` deed
+fixture copied beside the layout, so the existing LTN rig keeps passing;
+`test_contract_rejection.py` deletes it and witnesses the refusal.
+
+**Why:** the placeholder file's existence was standing in for three
+different questions. Which silicon to drive went to the board record on
+2026-09-05; this takes the trading question to a real word, so a bench
+or a fresh install cannot enter an LTN contract until a validator has
+attested it, and the LTN learns why instead of timing out.
+
+## 2026-09-08 — remove a few gw prefixes (`d9f372e3`)
+
+Branch `jm/spruce-unlimbo`. `GwCommandInterface`, `GwCommandTransition` and
+`GwScadaCmdRefusalReason` become `CommandInterface`, `CommandTransition`
+and `ScadaCmdRefusalReason`, modules renamed to match, across gwsproto,
+the scada actors, gwadmin and the tests. The wire TypeNames
+(`gw.command.interface`, `gw.command.transition`,
+`gw.scada.cmd.refusal.reason`) are unchanged, and so are the rejecting
+tests' function names: `test_axiom_coverage.py` keys them to the sema
+TypeName (`test_gw_command_interface_axiom_<n>`), not the class.
+
+**Why:** gwsproto's local names strip the `gw`/`gw1` namespace segment,
+the same rule the snapshot consumers apply through sema's `local_names`;
+these three were the only twins that kept it.
+
+## 2026-09-08 — five-v-boss rung fixes: gwadmin row vocabularies, atomic labels, cycler Dormant row (`6cdf8a1d`)
+
+Branch `jm/spruce-unlimbo`. The five-v-boss dev-broker rung
+(`experiments/2026-09-08-five-v-boss-hold/`) stopped at its first
+command: the panel's row for five-v-boss took only `RebootPicos`.
+`RelayWatchClient._get_relay_configs` keyed the scada's command
+interfaces by node name, so a node with two vocabularies kept whichever
+came last, and the row's single `event_type` could not have carried
+both anyway. Each `CommandTransition` now carries its own event type
+and a row's commands are the union over its node's interfaces; sending
+looks the event type up from the command. The in-process test covers
+the three commands and two event types the five-v-boss row offers.
+Same run, the journal side: five-v-boss's off path reported its second
+atomic as `TurnOn:TurningOff->FiveVOff`; each half of a path is now
+labelled by the command that caused it (the vocabulary has no
+confirmation event).
+And the cycler's `GoDormant` ran the raw transition, so its Dormant
+row reached the scada only on the next periodic report (72 s after the
+command in one run, past 90 s in another); it now goes through
+`trigger_event` like `WakeUp`, which sends the row at the transition.
+Same commit, the leak the rung's tests surfaced: on a simulated layout the scada's constructor
+started the sim-time paho thread against the broker, so every in-process
+`ScadaApp.instantiate()` in the tests (22 files) leaked a thread that
+churned while the live tests later in the run waited for their links,
+timing some out. The listener is still built in the constructor but
+starts in `Scada.start_tasks`, which only a running scada reaches; the
+in-process tests never start it and nothing has to stop it. The
+five-v-boss test file's own teardown for the leak is gone with it. A
+teardown fixture that stopped every started listener was tried first
+and cost the suite 27 s in thread joins.
+
+## 2026-09-08 — five-v-boss: a hold on the 5 V above the pico-cycler (`4daec1ab`)
+
+Branch `jm/spruce-unlimbo`. On site the 5 V supply had to be pulled by
+hand for a pico swap: the panel could reboot the picos but not hold
+them powered down while someone worked on the board. The cycler is
+field-tested and stays as it is; the hold lives in a new command node
+above it, `five-v-boss`, under the tree's root in every layout. At rest
+the cycler owns `vdc-relay` under it (`auto.five-v-boss.pico-cycler.vdc-relay`);
+on `TurnOff` the boss sends the cycler dormant, reparents the relay
+under itself, opens it and holds `FiveVOff`; on `TurnOn` (or the
+scada's `AutoWakesUp`, so LocalControl never inherits a dark fleet) it
+closes the relay, hands it back and wakes the cycler. `RebootPicos` is
+forwarded to the cycler under the command's TriggerId and the reply
+passed back. gwsproto mirrors the seven staging words of the sema wave
+(`turn.5v.on.off`, `five.v.boss.state`, `gw1.actor.class/014`,
+`spaceheat.node.gt/303`, `new.command.tree/003`,
+`scada.control.capabilities/002` with axiom 4b now unique on
+(ActorName, EventType), the layout words' axiom 4); the tlayouts
+snapshot and the closure registry refresh in the same wave (sema
+`a241693`, tlayouts `c31414a`); both sim gens emit the node and the fixtures regenerate,
+the hand-kept beech fixture by hand. `Scada.set_command_tree` reparents
+`five-v-boss` under the root and shapes its subtree from the boss's
+last reported state through the one `shape_five_v_subtree` the actor
+also uses, replacing the hard-coded vdc-under-cycler lines; the scada's
+AutoWakesUp sends it `wake.up`. `COMMAND_NODE_CLASSES` (the rows the
+panel sees and whose state it gets live: five-v-boss, pico-cycler,
+hp-boss) is split from `COMMAND_NODE_INTERFACES` (the vocabularies,
+one entry per vocabulary; FiveVBoss has two, PicoCycler none). gwadmin
+sorts rows by the owner chain from the top, so vdc-relay sits under the
+cycler under five-v-boss. Tests: `tests/actors/test_five_v_boss.py`, 18
+cases on both sim fixtures (the tree under every boss, each transition
+and its reports, Busy / NotMyBoss / UnknownEvent, the forwarded reboot
+end to end through the real cycler, a PicoMissing during the hold, the
+wake-up paths); its fixture stops the sim-time listener on teardown,
+the leak that was timing out the live tests once enough in-process apps
+had been instantiated. The cycler, admin and prefix-closed tests move
+to the new handles.
+
+## 2026-09-08 — hp-boss hack assuming it starts in HpOff (`cdce340b`)
+
+Branch `jm/spruce-unlimbo`. On the spruce admin window the hp-boss row
+sat at `?` for the whole session and offered no button: the boss
+constructed itself in `HpOn` and only reported a state on a change, so
+with the call relay open at boot nothing ever reached the scada's
+latest-state list, and a two-command row with no observed state offers
+nothing. Worse for heating: LocalControl's TurnOn into that default was
+treated as already done, and the relay never closed. The boss now boots
+`HpOff`, matching the relay's boot posture, and reports that state in
+`start()` the way the pico-cycler reports its roster. Test covers the
+boot state and the start report.
+
+## 2026-09-08 — command nodes answer their boss: DispatchAck on take, DispatchNack on refusal (`ea3365b5`)
 
 Branch `jm/spruce-unlimbo`. The admin panel already tracks each
 command it sends by TriggerId and toasts the reply, but no scada actor
@@ -45,6 +175,14 @@ one line per reply to a command this panel sent,
 RebootPicos: Busy" (a DAC set reads "took set 65"); a reply to a command
 this panel did not send is silent; the keep-alive toasts are gone, the
 timer display already shows the renewal.
+
+Squashed in after the 2026-09-08 spruce window: `Scada.process_admin_dispatch`
+logged only the event name (`AdminDispatch event is CloseRelay`), and an
+expander relay dispatch left no trace of which node it went to, since only
+GPIO relays log their pin moves; reading the window meant inferring the
+target from flow and the report's state rows. The line now carries the
+event's ToHandle. Log text only; no test. The window itself ran on the
+pre-squash tree `c8555abe` (this commit minus that line).
 
 ## 2026-09-08 — pico liveness: one rule for the three api actors, and the cycler guards from the open (`e0029d3d`)
 
@@ -356,6 +494,29 @@ the valve", a second meaning that would blur the tree invariant the
 command-tree matrix tests. Renamed before that work starts.
 
 ---
+
+## 2026-09-08 — conformance: report.event no longer drifts (`609e4085`)
+
+Branch `jm/spruce-unlimbo`. `report.event/004` is published in sema, so
+gwsproto's pin matches the registry and the conformance test's known
+type-version drift list empties. layout.lite keeps being sent: the
+journal on hw1-1 reads it to interpret the data channels, so a scada
+that sends none produces readings nothing downstream can name; spruce
+stays off rmqbot until `layout.lite` is published with its closure.
+
+## 2026-09-08 — a command to the wrong handle gets a NotMyBoss nack (`a22c4cc7`)
+
+Branch `jm/spruce-unlimbo`. The four command nodes (relay, 0-10V
+outputer, pico-cycler, hp-boss) answered every refusal but one: a
+command addressed to a handle that is not the node's live handle
+(admin sending to `admin.relay` while the relay lives at `auto.relay`)
+was logged and dropped, and the sender saw nothing. Each such branch
+now sends `gw.dispatch.nack` with reason NotMyBoss back to the sender,
+through the same `command_reply.nack` path as the other refusals. That
+reply goes to a sender who is by definition not the node's boss, so the
+gwsproto `DispatchNack` mirror drops `check_axiom_1` and its test in
+step with the sema word, which dropped the axiom in place. One
+NotMyBoss test per actor in `tests/actors/test_dispatch_replies.py`.
 
 ## 2026-09-06 — HACK: vdc-relay stays under the pico-cycler when admin takes the tree (`829038b2`)
 

@@ -135,7 +135,7 @@ actuator-scope)` — Scada passes all actuators, a sub-actor passes `my_actuator
 
 ## Command interfaces and replies
 
-Status: Verified · Pass 0 · Updated 2026-09-08 · Reviewed 2026-09-08@c8555abe
+Status: Verified · Pass 0 · Updated 2026-09-08 · Reviewed 2026-09-08@ea3365b5
 
 A command interface is three parts: vocabulary (an event enum named by
 `EventType` in `fsm.event`, with `EventName` constrained to it),
@@ -161,7 +161,7 @@ krida-retirement work, OPS-392).
 
 ## The pico-cycler command
 
-Status: Verified · Pass 0 · Updated 2026-09-08 · Reviewed 2026-09-08@c8555abe
+Status: Verified · Pass 0 · Updated 2026-09-08 · Reviewed 2026-09-08@ea3365b5
 
 The pico-cycler takes one command from whichever boss holds the root:
 `reboot.picos` (`RebootPicos`), entering its cycle through

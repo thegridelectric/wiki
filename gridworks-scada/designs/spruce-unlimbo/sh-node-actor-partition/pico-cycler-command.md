@@ -1,6 +1,6 @@
 # Pico-cycler command (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-08 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-09 · Linear: OPS-392
 
 > What this is: admin keeps the pico-cycler running and asks it for vdc
 > relay actions, instead of seizing the relay. Decided 2026-09-01 with
@@ -100,7 +100,9 @@ removes; the same failure would hit any long admin window.
    (`tests/actors/test_pico_roster.py`, both sim fixtures). The scada
    already folds machine states into `report`, so the roster reaches the
    journal with no new plumbing.
-6. After the above lands: branch `jm/pico-state-reporting` off
+6. ✅ Built (pending commit on `jm/pico-state-reporting`, worktree
+   `gridworks-scada-roster`; `single.pico.state/000` published `a96abb4`).
+   Branch `jm/pico-state-reporting` off
    `actual-spruce` (the line running on the house) carrying only
    `single.pico.state`, the gwsproto mirror, and the per-pico
    `machine.states` reporting, so the roster is journaled on spruce
@@ -135,10 +137,238 @@ removes; the same failure would hit any long admin window.
 No raw admin path to vdc-relay when the pico-cycler actor itself is
 sick — `relay.py`'s handle check rightly refuses a non-boss commander.
 
+## Roster on actual-spruce (item 6, what it takes)
+
+The question the roster answers for the house this season: which pico
+provoked each cycle. The cycler's `fsm.full.report` never carried that;
+the trigger comment (`fsm_comment`) is logged and dropped. The per-pico
+`machine.states` rows of `d367ece5` on `jm/spruce-unlimbo` carry it as
+typed data: the flatline row is sent before the cycle it provokes, so a
+cycle's cause is the pico whose row flipped just before it, and the
+periodic roster shows who was alive, flatlined or zombie at every
+report. The work is to replicate that commit on a branch cut from
+`actual-spruce`; the report words do not change.
+
+Where the deployed line stands (`actual-spruce` at `30fc7f59`):
+
+- `pico_cycler.py` defines its own two-value `SinglePicoState`
+  (Alive, Flatlined) as a `GwStrEnum`; Zombie is the `zombies` set.
+  Nothing per pico is sent; the cycler's own `machine.states` row is.
+- gwsproto there has no `SemaEnum` base, no conformance test, no
+  `sema_closure/` copy; enums are `AslEnum` with `values` / `default` /
+  `enum_name` / `enum_version` classmethods.
+- `Scada.process_machine_states` keys rows by the handle's last segment
+  (the tank actor's name), so pico rows sit beside the cycler's own row,
+  and `report/003` already folds `StateList` into the journal-bound
+  report. No scada change.
+- No test exercises the cycler on that line. The sim pico component
+  (`sim_pico_tank_module_component.py`) does exist there.
+
+The branch, `jm/pico-state-reporting` off `actual-spruce` (a worktree,
+the way `gridworks-scada-cycler` holds the panel work):
+
+1. gwsproto: `enums/single_pico_state.py` in the line's `AslEnum` style
+   (Alive, Flatlined, Zombie; default Flatlined; docstring
+   `Sema: https://schemas.electricity.works/enums/single.pico.state/000`),
+   exported from `enums/__init__.py`. `sema validate` a `machine.states`
+   payload carrying it.
+2. `pico_cycler.py`: drop the local enum, import the gwsproto one, port
+   the four hooks of `d367ece5` (`pico_state`, `report_pico_state`,
+   `report_pico_roster`, and the calls at flatline, zombie threshold,
+   recovery, `start`, and the periodic loop). About forty-five lines;
+   nothing else on the actor moves. No command, no `TriggerId`
+   adoption, no `Startup`.
+3. Test: `tests/actors/test_pico_roster.py` ported; its assertions are
+   fixture-independent (every pico reported alive at start, the flatline
+   row precedes the cycle, a second missing report adds no row, readings
+   bring the row back, zombie at the threshold, rows validate on the
+   wire) but its `PAIRS` fixture is the branch's sim layouts, so the
+   fixture is rewritten against `tests/config/nolan-layout.json` with
+   the line's sim pico component.
+4. Sema gate before the box speaks it: `single.pico.state/000` is
+   `staging`; a word that crosses the wire to the production broker is
+   published first (`executor/running.md` "Experiment window on a
+   deployed box", status tier). A promotion-only sema turn, `sema
+   promote`, then the gwsproto docstring pin is already the published
+   URL.
+5. Deploy: merge to `actual-spruce`, push, pull on the box, restart the
+   service. Nothing hand-placed.
+
+Journal side, day one: journalkeeper's `machine.states` axiom 2 checks
+only `relay.closed.or.open`, so the rows validate; `STATE_CHANNELS` has
+no entry for a tank actor's handle, so they project to no reading
+channel (one "no channel" warn per row per report) and stay in the
+journaled `report` payload, where a JSON query over `StateList` reads
+them against the cycler's cycles by time. The projected channels per
+pico actor, with the enum vendored, are the hub queue's
+`journalkeeper-pico-states`.
+
+Built 2026-09-09: steps 1 to 4 done (enum, the four hooks, the roster
+test green on both test layouts, the word published); step 5 is the
+merge and the pull on the box. The cycler's pico discovery on this
+line also had to accept `SimPicoTankModuleComponent` (the branch's
+finding, again) or the test layouts give it no picos; the house layout
+has only real pico components. Carried caveat: on this line the comm
+tests under `tests/actors` (`test_scada.py`, `test_auto_state.py`,
+`test_power_meter.py`) time out waiting for the scada-to-LTN link
+against the shared test mosquitto, with or without the change; the
+suite gate for the merge is the roster test plus the in-process actor
+tests until that rig is looked at.
+
 ## ▶ Do this next
 
+**The panel offers both five-v-boss commands, and owned rows indent.**
+The spruce window passed (`experiments/2026-09-08-five-v-boss-hold/`,
+window section, scada `4bb46035`): TurnOff from the row cut the 5 V,
+five picos flatlined under a dormant cycler, TurnOn woke it, release
+from PicoCycler restored nothing, as designed. Two gwadmin gaps came
+back with it, both gwadmin-only:
+
+1. The five-v-boss row offered only TurnOff. `RelayWidgetConfig.next_command`
+   returns the first command whose `to_state` differs from the observed
+   state; RebootPicos leads to PicoCycler, so in PicoCycler it is never
+   chosen, and the row has a single button. Offer commands per
+   vocabulary (a one-command vocabulary is offered when the state
+   equals its target) and give the second its own key, `p`.
+2. Indent the pico-cycler and vdc-relay rows under five-v-boss; the
+   row config already carries `owner`.
+
+Also carried from the window: fancoil, floor1 and pipes1 never posted
+(no channel readings in either report) and the cycler cycled the live
+picos for them twice after TurnOn. Whether they exist on the wall is a
+site question before the deployed scada runs the three-tank layout.
+
+## five-v-boss (decided 2026-09-08)
+
+**Why.** On site the 5 V supply had to be pulled by hand for a pico
+swap: the panel can reboot the picos but cannot hold them powered down
+while someone works on the board, nor bring them back except through
+the reboot cycle. The pico-cycler is field-tested code that stays as it
+is; the hold lives in a node above it.
+
+**Shape.** `five-v-boss` is a command node under the tree's root, in
+every layout. In its resting state the pico-cycler owns `vdc-relay`
+under it; while it holds the 5 V off it owns the relay directly and the
+cycler is a dormant leaf, the way the scada's auto machine makes one
+child the boss and the other dormant.
+
+```
+root (admin | auto)
+└── five-v-boss              state PicoCycler          state FiveVOff
+    ├── pico-cycler ── vdc-relay   |   pico-cycler  (dormant leaf)
+    └──                            |   vdc-relay    (owned directly)
+```
+
+**Command surface.** Two vocabularies on one node, each a
+`gw.command.interface` entry in `scada.control.capabilities`:
+
+- `turn.5v.on.off` (`TurnOn`, `TurnOff`; default `TurnOn`): the hold.
+- `reboot.picos` (`RebootPicos`): forwarded to the cycler.
+
+Admin never addresses the cycler or the relay; it commands
+`five-v-boss`, which answers with `gw.dispatch.ack` / `gw.dispatch.nack`
+like every command node.
+
+**Machine** (`five.v.boss.state`: `PicoCycler`, `TurningOff`,
+`FiveVOff`, `TurningOn`; default `PicoCycler`):
+
+- `PicoCycler`. `RebootPicos` is forwarded to the cycler as its boss
+  with the command's `TriggerId`; the cycler's ack or nack is passed
+  back to the commander. `TurnOff` takes only when `vdc-relay`'s last
+  reported state (the scada's latest machine states) is closed, which
+  also means the cycler is not mid-cycle; otherwise nack `Busy`. On
+  take: `GoDormant` to the cycler, reparent the relay under
+  `five-v-boss`, publish the tree, open the relay, enter `TurningOff`.
+  `TurnOn` is acked and does nothing.
+- `TurningOff` → `FiveVOff` on the relay's open confirmation
+  (`fsm.full.report` from the relay). Commands nack `Busy`.
+- `FiveVOff`. `TurnOn` closes the relay and enters `TurningOn`.
+  `RebootPicos` and `TurnOff` nack `Busy`. A `PicoMissing` from a tank
+  or meter actor reaches the dormant cycler and is dropped there; the
+  picos are dark by design and the roster is silent.
+- `TurningOn` → `PicoCycler` on the relay's closed confirmation:
+  reparent the relay under the cycler, publish the tree, `WakeUp` to
+  the cycler. The cycler's `WakeUp` closes the relay again, idempotent,
+  and the picos re-POST as after any cycle. Commands nack `Busy`.
+- Every transition is an `fsm.atomic.report` under the command's
+  `TriggerId`; the hold's two halves are two `fsm.full.report`s (off:
+  `PicoCycler` → `FiveVOff`; on: `FiveVOff` → `PicoCycler`), each sent
+  to `primary_scada` for the journal. State rows through
+  `machine.states` on every transition and in the periodic report.
+- Boot: `PicoCycler`, no persistence. A restarted scada never comes up
+  with the picos dark.
+- Admin release and admin timeout: the scada's `AutoWakesUp` sends
+  `five-v-boss` the `wake.up` message local-control gets. In `FiveVOff`
+  or `TurningOff` it runs the turn-on path with a self-minted
+  `TriggerId`; in `PicoCycler` or `TurningOn` it is ignored.
+  LocalControl never inherits a dark fleet. (Open: whether a keepalive
+  timeout, as opposed to an explicit release, should restore 5 V to a
+  board someone may be touching; decided as yes for now.)
+
+**Rejected.** A held-off state inside the cycler's own FSM (six
+transient states and every timer guard would reason about it; the
+cycler is field-tested and stays untouched). A separate `pico-power`
+node under a selector (its whole job is what `vdc-relay`'s own FSM
+already does). A peer "cycle please" request from the cycler to a
+power node (a non-boss triggering a relay defeats the command tree). A
+`pick` command on the selector (the tree flip is a consequence of the
+hold, not something admin asks for).
+
+**Sema cascade** (`gw1.actor.class` 013 and `spaceheat.node.gt` 302 are
+published; the 2026-08-12 `HpTwin` bump is the precedent):
+
+1. New enums, staging: `turn.5v.on.off`, `five.v.boss.state`.
+2. `gw1.actor.class` 014 adds `FiveVBoss`, staging.
+3. `spaceheat.node.gt` 303 pins `gw1.actor.class/014`, staging.
+4. Staging words edited in place to `spaceheat.node.gt/303`:
+   `gw.nolan.layout`, `gw.house0.layout`, `gw1.simple.sim.layout`,
+   `layout.lite`. The two layout words' axiom 4 gains
+   `"five-v-boss" → ActorClass "FiveVBoss"` and the fixed handles become
+   `auto.five-v-boss.pico-cycler.vdc-relay` (axioms 11 and 12 hold as
+   written).
+5. Published referrers get new versions pinned to 303, staging:
+   `new.command.tree` 003, `scada.control.capabilities` 002. Every
+   new version in this wave stays staging until the spruce witness.
+6. gwsproto mirrors for all of the above; `sema_closure/registry.yaml`
+   refreshed with the tlayouts snapshot in the same wave; conformance
+   allowlist rows dropped as the mirrors land.
+
+**Scada code** (small):
+
+- `actors/five_v_boss.py`, a `CommandNode`; `ActorClass.FiveVBoss`
+  wired in the actor registry.
+- `Scada.set_command_tree`: reparent `five-v-boss` under the root and
+  ask it to rewrite its own subtree (its state decides the shape),
+  replacing the hard-coded vdc-under-cycler lines.
+- `COMMAND_NODE_INTERFACES`: `FiveVBoss` with two interfaces; the
+  `PicoCycler` entry is dropped (the cycler is no longer commanded from
+  outside its subtree).
+- `auto_trigger` `AutoWakesUp`: `wake.up` to `five-v-boss`.
+- The cycler's `RebootPicos` handling is unchanged; its boss is now
+  `five-v-boss` instead of the root, which its handle checks already
+  accept.
+- tlayouts: both gens emit the node and the new fixed handles; the
+  pytest fixtures regenerate.
+- gwadmin: one row per node, so the two interfaces on `five-v-boss`
+  merge into one row offering `TurnOff` in `PicoCycler`, `TurnOn` in
+  `FiveVOff`, and `RebootPicos` (`p`) in `PicoCycler`; the vdc-relay
+  row groups under whoever owns it; the cycler row shows state only.
+
+**Tests** (`tests/actors/test_five_v_boss.py`, both sim fixtures):
+`TurnOff` sends the cycler dormant, reparents the relay and opens it;
+`TurnOff` with the relay open nacks `Busy`; a `PicoMissing` during
+`FiveVOff` cycles nothing; `TurnOn` closes the relay and the closed
+confirmation hands the relay back and wakes the cycler; `RebootPicos`
+in `PicoCycler` reaches the cycler with the adopted `TriggerId` and in
+`FiveVOff` nacks; `wake.up` in `FiveVOff` restores; the tree-prefix
+tests carry the new shape under every boss.
+
+**Verification.** Dev-broker sim rung: hold off through a would-be
+flatline, restore, journal shows both full reports under the dispatch
+ids. Then spruce from the panel with the 5 V measured at the board.
+
 **The panel drives the cycler on the real house (2026-09-08).**
-krida-retirement rung 1 (`c8555abe`) made `gwa watch` render a Nolan
+krida-retirement rung 1 (`ea3365b5`) made `gwa watch` render a Nolan
 scada with the pico-cycler as a row, and the spruce window
 (`experiments/2026-09-08-spruce-admin-panel/`) witnessed Reboot picos
 from that row twice on the real gw108: the row walked its states and
@@ -147,7 +377,7 @@ Verified claims below rest on is now in the scada executor
 (`control-hierarchy.md` "The pico-cycler command", "Command interfaces
 and replies").
 
-**Acknowledgement decided (2026-09-07); built in `c8555abe` except the NotMyBoss nack, which waits on the word edit (krida-retirement step 1).** Sema words
+**Acknowledgement decided (2026-09-07); built in `ea3365b5` except the NotMyBoss nack, which waits on the word edit (krida-retirement step 1).** Sema words
 registered on `jm/pico-cycler-words` (pending commit): `gw.dispatch.ack`
 / `gw.dispatch.nack`, `gw.scada.cmd.refusal.reason`, `analog.dispatch`,
 `reboot.picos`, `pico.cycler.event`. The build, in order, each with a
@@ -157,7 +387,7 @@ test:
    (`AnalogDispatch` already matched its word); `analog.dispatch`,
    `reboot.picos`, `pico.cycler.event` off the conformance allowlists
    (pending commit on `jm/spruce-unlimbo`).
-2. ✅ (`c8555abe`, all but NotMyBoss) Every command node answers its boss: relay, DAC output, pico-cycler,
+2. ✅ (`ea3365b5`, all but NotMyBoss) Every command node answers its boss: relay, DAC output, pico-cycler,
    hp-boss send `DispatchAck` on take and `DispatchNack` with the reason
    on every refusal path that today only logs. The reply goes through
    `_send_to(from_node, …)`, which already publishes on the admin link
@@ -290,6 +520,73 @@ the capture period, stops after `SimLifeS`, resumes `SimRebootS` after
 seeing the relay close following an open); the full loop with the
 cycler is the next rung, a sim Nolan scada on the dev broker for five
 minutes with the journaled `single.pico.state` roster as evidence.
+
+## Findings while building five-v-boss (2026-09-08)
+
+- The dev-broker rung's first command was refused by the admin client
+  itself: gwadmin's `_get_relay_configs` keyed the command interfaces by
+  node name, so five-v-boss's row kept only `reboot.picos`, and the row
+  carried one `event_type` in any case. Fixed in the run: each command
+  carries its event type, a row's commands are the union over its node's
+  interfaces, and the in-process test checks the three commands under
+  two types (`tests/actors/test_five_v_boss.py`). The in-process tests
+  had covered the scada's capabilities word, not the panel's reading of
+  it; the rung is where that seam shows.
+- The rung's persisted `report.event`s showed the off path's second
+  atomic labelled `TurnOn:TurningOff->FiveVOff`. Fixed in the run: both
+  halves of a path carry the command that caused them. Open underneath:
+  `turn.5v.on.off` has no confirmation event, so the relay-confirmed
+  half has no name of its own; the cycler's enum names each step. Leave
+  the two-value vocabulary unless the journal reader needs the halves
+  told apart by event rather than by state.
+- On TurnOn the woken cycler goes PicosLive and, 1.6 s later, a
+  `PicoMissing` from a still-dark pico sends it through a full reboot
+  cycle (open 5 s, close, live 20 s after) before the picos' first
+  posts. Harmless in the sim; on the real board it is one extra 5 V
+  cycle per turn-on. Same root as the held-off roster: the tank actors'
+  liveness clock runs through the hold.
+- The cycler's Dormant row lagged the command by up to a report period:
+  `GoDormant` called the raw transition, and only `WakeUp` went through
+  `trigger_event` (row + atomic at the transition). Fixed in the run, the
+  one edit to the cycler this spoke makes; the panel's cycler row now
+  flips with the boss's.
+- After a reparent the snapshot's `LatestStateList` shows a node under
+  the handle its last state row carried, until it reports again (the
+  relay sat under `auto.five-v-boss` in the snapshot after the release
+  restore while the published tree had it under the cycler). The
+  published `new.command.tree` is the authority; anything grouping rows
+  off snapshot handles is a report period behind. Check on the spruce
+  witness how the panel groups the relay row across a hold.
+- The cycler's roster still flips during the hold: `process_pico_missing`
+  marks a pico Flatlined before its state guard, and its 60 s
+  `last_open_time` grace is the cycler's own open, not the boss's. The
+  dormant cycler cycles nothing (tested), but the panel and the journal
+  will show Flatlined rows while the 5 V is held off. Left as is: the
+  picos are dark, and the cycler stays untouched. Decide on the spruce
+  witness whether a held-off roster reading is worth a cycler edit.
+- The scada reads five-v-boss's subtree shape off its last reported
+  state (`Scada.five_v_boss_state`, PicoCycler until the first report);
+  the scada's tree rewrite and the actor's own transitions call one
+  `shape_five_v_subtree`, so the shape is written in one place.
+  `COMMAND_NODE_CLASSES` (the rows: five-v-boss, pico-cycler, hp-boss)
+  is now separate from `COMMAND_NODE_INTERFACES` (the vocabularies;
+  the cycler has none), so the cycler's state still reaches the panel.
+- gwadmin's row order key was one level (owner, then name); a
+  three-deep chain would not have grouped. It is now the owner chain
+  from the top.
+- Every in-process `ScadaApp.instantiate()` starts the sim-time paho
+  thread (`Scada._sim_time_listener`, `loop_start` against the test
+  broker) and no fixture stopped it; 36 more instantiations and the
+  five live tests later in the run (`test_scada.py`, `test_power_meter.py`)
+  time out waiting for their links (one of them already fails at
+  baseline in `tests/actors`). The new file's fixture stops the listener
+  on teardown and the whole directory goes green, including the
+  baseline miss. The other in-process fixtures still leak; a shared
+  conftest fixture with the teardown is the fix, its own small commit.
+- The beech fixture `gw.house0.layout.json` is hand-kept; it gained the
+  node and the new handles by hand (the layout word's axiom 4 requires
+  it). `HydronicLayout`'s essential-nodes check still lists neither
+  five-v-boss nor the cycler; the layout words carry the requirement.
 
 ## Findings while building (2026-09-07)
 

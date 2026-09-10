@@ -13,24 +13,26 @@ Status: Draft · Pass 0 · Updated 2026-09-08 · Linear: OPS-392
 
 ## Why now
 
-The gwadmin TUI shows no relays and no DACs for a Nolan layout
-(watched 2026-09-07 on the dev-broker sim): on link-up the client asks
-for `scada.control.capabilities`, `Scada.control_capabilities` looks up
-`H0N.relay_multiplexer` unguarded, Nolan has no such node, and the
-reply is never built (logged as `Trouble with SendLayout`, the
-neighbouring branch's label; every pico-cycler dev-broker run carried
-it unread). The word requires the Krida component and gwadmin reads
-every relay's config from its `ConfigList`. Admin is how a human runs
-a house during bring-up, and Nolan houses are installed this fall, so
-the panel comes first and in the smallest change that makes it work.
-The relay decommission is also what House0 sim-green (the single scada
-focus) is blocked on: commanding a House0 relay reaches `relay.py`'s
-dead Krida multiplexer round-trip. Rung 3 dissolves that.
+The sema changes this design still owes come first, so that the
+staging-words-on-prod pass (`staging-words-on-prod.md`, item 5 of the
+hub) runs on a settled vocabulary: the `gw.dispatch.nack` edit
+(NotMyBoss), the interior nodes' ack handling that rides the same
+reply path, and rung 2's per-node command interface in the layout
+word. Rung 1 is in and witnessed on the real house (2026-09-08), so
+the panel is no longer the pressure; the words are.
 
-## ▶ Do this next: the NotMyBoss nack (sema first), then the witness
+Background. The panel came first because admin is how a human runs a
+house during bring-up and Nolan houses are installed this fall; before
+rung 1 the TUI showed no relays and no DACs for a Nolan layout (the
+capabilities reply was never built, the word requiring the Krida
+component). The relay decommission (rung 3) is also what House0
+sim-green (the single scada focus) is blocked on: commanding a House0
+relay reaches `relay.py`'s dead Krida multiplexer round-trip.
+
+## ▶ Do this next: interior command nodes handle their relays' replies
 
 The 2026-09-08 dev-broker session moved four things under rung 1 and
-they are in (`adbd1d6f`, `e0029d3d`, `c8555abe`): the cycler and
+they are in (`adbd1d6f`, `e0029d3d`, `ea3365b5`): the cycler and
 command-node rows follow `machine.states` live rather than the 30 s
 snapshot; the table groups an owned relay under its owner; every
 command node acks on take and nacks Busy / UnknownEvent / OutOfRange,
@@ -39,20 +41,21 @@ the event alone. On the panel a Reboot picos click shows RelayOpening
 at once, PicosRebooting 5 s later, PicosLive about 20 s after that on
 the sim.
 
+The NotMyBoss nack is in (2026-09-08): `gw.dispatch.nack/000` dropped
+axiom 1 in place and `ToHandle` is the refused command's FromHandle;
+the gwsproto mirror lost `check_axiom_1`; the four command nodes nack
+NotMyBoss from their handle-mismatch branch, one test per actor in
+`tests/actors/test_dispatch_replies.py`. The admin-scada command
+vocabulary (the ack/nack pair, `analog.dispatch`, the command
+interface pair and their enums) is published as of the same day, since
+those words cross between production instances from 2026-09-08 on;
+`scada.control.capabilities/001` is the one still staging, see
+`staging-words-on-prod.md`.
+
 Next move, in order:
 
-1. **The NotMyBoss nack, sema first.** The staging word
-   `gw.dispatch.nack` is edited in place: drop axiom 1, reword
-   `ToHandle` as the refused command's FromHandle (the decision and the
-   per-file read are in `pico-cycler-command.md` "Acknowledgement
-   decided", the bullet "`gw.dispatch.nack` axiom 1 cannot hold"). A
-   sema turn with the word gate: read `sema/spec/primary.md` and the
-   type registry and authoring spokes, post the summary, wait. Then the
-   gwsproto mirror drops `check_axiom_1` and its rejecting test, and
-   the four actors' handle-mismatch paths send the nack through
-   `command_reply.nack`.
-2. **Interior command nodes handle their relays' acks and nacks.**
-   With `c8555abe` every relay answers its boss on take or refusal, and
+1. **Interior command nodes handle their relays' acks and nacks.**
+   With `ea3365b5` every relay answers its boss on take or refusal, and
    the interior bosses do not listen: on the auto path at boot
    (LocalControl telling hp-boss TurnOff) hp-boss logged the relay's
    `gw.dispatch.ack` as an unexpected message. Witnessed on the real
@@ -62,12 +65,11 @@ Next move, in order:
    confirmation of the step they are waiting on and the nack as the
    failure of it (the cycler already waits on the relay's state report;
    the ack is the earlier, cheaper signal), with a test per node that
-   drives the relay's reply through the boss. Same reply path as the
-   NotMyBoss nack, so it follows step 1 directly.
-3. Rung 2 on its own estimate row.
+   drives the relay's reply through the boss.
+2. Rung 2 on its own estimate row.
 
 **Rung 1 witnessed on the real house (2026-09-08, Verified ·
-Reviewed 2026-09-08@c8555abe).** `gwa watch spruce` from the laptop
+Reviewed 2026-09-08@ea3365b5).** `gwa watch spruce` from the laptop
 against a window scada on the spruce gw108
 (`experiments/2026-09-08-spruce-admin-panel/`): the twenty relays, the
 cycler and hp-boss rows and the DAC rendered; Reboot picos cycled the
@@ -353,12 +355,41 @@ sema.
 3. The admin capabilities projection becomes "every node with a command
    interface, with its vocabulary"; the Krida component field retires with
    it (krida-retirement).
-4. The missing command enums become registered sema words, staging; the
-   gw1 prefix rides snapshot-drop-gw1.
+4. The missing command enums become registered sema words, staging; their
+   `gw1` prefix drops out of the local class names through the tlayouts
+   seed's `local_names` rule, as for every other `gw1` word.
 
 hp-boss's own interface (`turn.hp.on.off` in, `hp.boss.state` out) stays
 fixed across strategies; the channel axis in `hp-twin.md` "Strategies" is the interface of the node hp-boss commands
 (`change.relay.state` today, a heat-pump command enum for the twin).
+
+### Rows vs. vocabularies (found building five-v-boss, 2026-09-08)
+
+five-v-boss put the pico-cycler under an interior command node, so the
+cycler is a row the panel sees (its state arrives live) with no
+vocabulary the panel may send. The word already holds that split:
+CommandNodes are the rows, CommandInterfaces the vocabularies, one
+entry per node and event type since 002; the scada code had conflated
+the two in one dict and now keeps `COMMAND_NODE_CLASSES` (rows) apart
+from `COMMAND_NODE_INTERFACES` (vocabularies). The strain is elsewhere:
+a row's state vocabulary rides on its interface, so an interface-less
+row declares no StateType, and the panel matches its
+`single.machine.state` rows against an empty string. It renders by
+luck, not by contract. Rung 2 should give every listed node its own
+state type (on the node entry, or a small per-node list), keep
+interfaces as the sendable vocabularies, and, with the per-node
+interface in the layout word, make capabilities a pure projection of
+the tree. The cycler row on the five-v-boss dev-broker rung is the
+witness: a clean state reading makes this an executor note; a blank
+makes it the row that opens rung 2.
+
+The same seam appears one level up. An LTN facing a scada it did not
+build is not a consumer of this command surface; it consumes a
+different one, the scada's surface toward its transactive node, which
+may share the same structures: the nodes a boss sees and reports it
+receives, apart from the vocabularies it may send. Whatever rung 2
+settles for the admin surface is a shape to reuse there, not a word to
+share.
 
 ## Already landed (the ground this builds on)
 

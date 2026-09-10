@@ -1,6 +1,6 @@
 # TaDeed and TaTradingRights without Algorand
 
-Status: Draft · Pass 0 · Updated 2026-09-05
+Status: Draft · Pass 0 · Updated 2026-09-09
 
 > What this is: the successor to the legacy Algorand ownership plane —
 > TaDeed (proof a validated terminal asset is owned), TaTradingRights
@@ -174,9 +174,12 @@ already gives consumers broker-authenticated provenance on every message.
   serves the identity forest), a `w`-universe registrar sibling, or FIS
   (which consults but maybe shouldn't own). The terminalasset-registry
   domain exists to answer this.
-- **Word schemas** — `ta.deed`, `ta.trading.rights`, the retire/transfer/
-  clawback record kinds; signature scheme and canonical form (sema words
-  are the payload; the signing convention is new ground).
+- **Word schemas** — `ta.deed` v000 and `ta.validation.state` exist in
+  staging (TaId, TaAlias, ValidationState, ValidatorAlias, IssuedS; no
+  signature, no owner yet). Still open: `ta.trading.rights`, the
+  retire/transfer/clawback record kinds, the owner principal field, and
+  the signature scheme and canonical form (sema words are the payload; the
+  signing convention is new ground).
 - **Validator onboarding** — how a TaValidator's key is issued, scoped, and
   retired; whether validator certs carry constraints or FIS holds a
   `validator` principal kind (the principal-model exploration has the

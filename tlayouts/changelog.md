@@ -10,6 +10,91 @@ repo's git history.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-09-09 — spruce: egauge port 05 meters the secondary pump (secondary-pump-pwr replaces dist-pump-pwr) (`60d4e11` on jm/spruce, titled "add egauge for secondary-pump-pwr"; actual-spruce commit pending)
+
+The gw108 CT chain could not give a conclusive secondary-pump-on signal
+(the 2026-09-07 bench: three of four ADC inputs tied, the CT picking up
+the store pump), and the dist flow meter's port on the eGauge had a CT
+with nothing useful behind it. George moved the eGauge CT to the
+secondary pump, reconfigured port 05 as a 5 A CT named
+`05-secondary-pump`. Both lines: the power channel at address 9008 is now
+`secondary-pump-pwr` about a `secondary-pump` node (80 W nameplate,
+5 W capture delta); `dist-pump-pwr` and its node are gone. Box layouts
+replaced from these artifacts in the same window.
+
+## 2026-09-09 — spruce: floor1 tank module is pico_71156b (`91ce50e` on jm/spruce; `e47b4d1` on actual-spruce)
+
+The floor1 board on site is a fresh WIZnet (ethernet) pico, `pico_71156b`;
+the layouts still named `pico_586e36`. `jm/spruce`: `spruce_sema_gen.py`
+takes the new HwUid (commit titled "update pipes1"; the diff is the floor1
+id). `actual-spruce`: `spruce.json` and the commented `gen_spruce.py` block
+take the same HwUid. Both box layouts were replaced from these artifacts in
+the same window. The board still has no ethernet cable, and when a pico with this id first
+posted (after the 11:51 unlimbo restart) it identified itself as
+store-btu, so it is being reprogrammed as floor1 before it can post.
+
+## 2026-09-09 — spruce: fancoil, floor1 and pipes1 tank modules back in both lines (`b326578` on jm/spruce; `9c75b40` + merge `138c28e` on actual-spruce)
+
+Two commits, one per branch, plus a merge on actual-spruce that only absorbs a re-authored duplicate of the July CT-notes commit. `jm/spruce`: `spruce_sema_gen.py` restores
+the three `ExtraTankSpec` entries and their seven identity deriveds.
+`actual-spruce`: `gen_spruce.py` restores the three `add_tank3` blocks,
+drops the duplicate second registration of the pipes1/floor1 pair, and
+takes the secondary-btu HwUid to `pico_108a2b` (the swap the box already
+ran with, hand-edited there on 2026-08-10 and recorded on `jm/spruce` in
+`50cf8df`, never on this branch); `spruce.json` is the pre-removal
+artifact with that one HwUid fix, checked equal to the running box file
+plus the three modules.
+
+**Why:** the three wifi picos were physically disconnected on 2026-08-10
+and are being re-powered; both scadas on spruce need to see them at
+their next restart. The jm/spruce regeneration used the running
+scada-experiment layout as its id reference, extended with the three
+modules' ids from the actual line, so every existing node, channel and
+component keeps its id and the restored channels carry the ids they had
+before August in both lines.
+
+## 2026-09-08 — one seed, one regen script (`3118aa7`)
+
+**What:** `src/tlayouts/sema_seed_request.yaml` is the only seed: the nine
+targets and the `local_names` rule moved in from the root-level
+`tlayouts_seed_request.yaml`, which is deleted together with
+`build_tlayouts_snapshot.sh`. The snapshot is rebuilt through
+`scripts/regen_sema_snapshot.sh`; only its seed-copy indexes change.
+
+**Why:** two seeds and two build scripts had drifted apart: the root pair
+was the one recent commits used, while the README and the snapshot's own
+banner pointed at the pair every other consumer has, sema's template
+(`scripts/regen_sema_snapshot.sh` reading `src/<pkg>/sema_seed_request.yaml`).
+One seed, one path, the one an LLM is pointed at from inside any snapshot.
+
+## 2026-09-08 — five-v-boss in both sim gens; snapshot at sema a241693
+
+**What:** both gens (`house0_sema_gen.py`, `nolan_sema_gen.py`) emit a
+`five-v-boss` node (ActorClass `FiveVBoss`, handle `auto.five-v-boss`) and
+reparent the pico cycler under it: `auto.five-v-boss.pico-cycler` and
+`auto.five-v-boss.pico-cycler.<vdc relay>`. Snapshot rebuilt at sema
+`a241693`: `gw1.actor.class/014`, `spaceheat.node.gt/303`, and both layout
+words' command-node axiom name `FiveVBoss` as an interior node.
+
+**Why:** the pico-cycler-command chunk of the `sh_node_actor` partition
+puts a command node between the cycler and the 5 V relay, so admin asks the
+boss to hold the picos' supply off instead of seizing the relay while the
+cycler keeps running. The layouts have to carry the node before the scada
+side can be tested on either sim fixture.
+
+## 2026-09-08 — swap out spruce secondary btu pico
+
+**What:** `spruce_sema_gen.py` names `pico_108a2b` as the secondary-btu
+BTU meter's HwUid (was `pico_1c3c31`).
+
+**Why:** the secondary BTU pico was replaced on site on 2026-09-08. The
+scada accepts a pico's params only when its HwUid matches the layout,
+so the uid has to change at the source. The two layout files on the
+spruce box (the deployed scada's legacy file and the window scada's
+`gw.nolan.layout` copy) were patched by hand the same afternoon; the
+regenerated pair supersedes them at the next layout upload.
+
 ## 2026-09-07 — sim tank picos carry a liveness script; snapshot at sema fc741c2
 
 **What:** `House0SemaGenConfig` gains `sim_pico_life_s` / `sim_pico_reboot_s`
