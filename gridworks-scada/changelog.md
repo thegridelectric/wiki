@@ -10,6 +10,15 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-10 — SimPicoSource docstring: how the sim pico operates and what it is not <!-- pending commit -->
+
+Docstring only, on `actors/api_tank_module.py` `SimPicoSource`: the tick
+loop, the vdc-relay power coupling, the SimLifeS / SimRebootS script and
+its layout source, and the limits (fixed readings, scheduled death,
+reboots always succeed, no HTTP). **Why:** the sim picos were read as
+"tests only"; the class runs in every sim layout, and what it does and
+does not simulate should be readable at the class.
+
 ## 2026-09-10 — gwadmin offers every command a row's vocabularies allow, and owned rows indent
 
 Commit `ca53f6d2` on `jm/spruce-unlimbo`. `RelayWidgetConfig.next_command` (one command per row) becomes

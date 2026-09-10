@@ -340,13 +340,13 @@ GridWorks_CLAUDE ⏳ note).
    emitted (`experiments/2026-09-07-admin-reboots-picos/`). This is the
    journal half of reading a pico flatline off the database; the spruce
    half is `pico-cycler-command.md` item 6. After krida-retirement.
-5. [`staging-words-on-prod`](staging-words-on-prod.md) (4h): the wire/layout-file word split that lets `jm/spruce` run on spruce against the production broker.
-6. [`command-tree-matrix`](command-tree-matrix.md) (3h; `actors/command_node.py`, 207 L): the state-transition tree matrix on `command_node.py`, with the LC dormant-sequence row.
-7. [`admin-scada-peer-liveness`](admin-scada-peer-liveness.md) (quick, under 1h): the `process_admin_dispatch` missing `return` (logs "Ignoring", dispatches anyway) plus a refusal test. The liveness and takeover work moved to the admin domain ([OPS-529](https://linear.app/gridworks/issue/OPS-529)).
-8. [`hydronic-shared-review`](hydronic-shared-review.md) (2h; `actors/hydronic/shared.py`, ~250 L): `actors/hydronic/shared.py` review + first tests.
-9. [`hydronic-house0-review`](hydronic-house0-review.md) (2h; `actors/hydronic/house0.py`, ~990 L): `actors/hydronic/house0.py` review; the buffer/storage judgment methods.
-10. ✅ DONE [`is-simulated-decompression`](is-simulated-decompression.md) (1.5h, 0.5h actual): in the Done table; the spoke holds the honeysuckle witness still to run.
-11. ✅ DONE `snapshot-drop-gw1` (0.75h, 0.25h actual): in the Done table.
+5. [`command-tree-matrix`](command-tree-matrix.md) (3h; `actors/command_node.py`, 207 L): the state-transition tree matrix on `command_node.py`, with the LC dormant-sequence row.
+6. [`admin-scada-peer-liveness`](admin-scada-peer-liveness.md) (quick, under 1h): the `process_admin_dispatch` missing `return` (logs "Ignoring", dispatches anyway) plus a refusal test. The liveness and takeover work moved to the admin domain ([OPS-529](https://linear.app/gridworks/issue/OPS-529)).
+7. [`hydronic-shared-review`](hydronic-shared-review.md) (2h; `actors/hydronic/shared.py`, ~250 L): `actors/hydronic/shared.py` review + first tests.
+8. [`hydronic-house0-review`](hydronic-house0-review.md) (2h; `actors/hydronic/house0.py`, ~990 L): `actors/hydronic/house0.py` review; the buffer/storage judgment methods.
+9. ✅ DONE [`is-simulated-decompression`](is-simulated-decompression.md) (1.5h, 0.5h actual): in the Done table; the spoke holds the honeysuckle witness still to run.
+10. ✅ DONE `snapshot-drop-gw1` (0.75h, 0.25h actual): in the Done table.
+11. LAST [`staging-words-on-prod`](staging-words-on-prod.md) (4h): the wire/layout-file word split, and with it the `layout.lite` the deployed box emits. Last on purpose: the layout's contents are settled against how local control actually runs on spruce, so everything above shapes it before it is fixed.
 
 **Open findings and sign-offs** (unordered; each closes with a small
 commit or a decision):
@@ -363,21 +363,10 @@ commit or a decision):
   pre-existing shape (three channels carry InPowerMetering, four
   components predate their words' config shape); closes with a translated
   beech gen, not by hand.
-- **Pico liveness is three drifting copies** (`api_tank_module.py`,
-  `api_btu_meter.py`, `api_flow_module.py`; read 2026-09-08). Each
-  keeps `last_heard`, a `flatline_seconds`, a `missing()` and a 10 s
-  loop that sends `PicoMissing` plus a `ChannelFlatlined` per channel,
-  rate-limited to one report per `FLATLINE_REPORT_S`. The tank module's
-  rate limit compares the last-report timestamp to 60 instead of the
-  elapsed time, so once missing it reports every 10 s; and its threshold
-  is 1x the capture period where the btu and flow modules use 2.5x, so
-  one slow post reads as missing (this is why a pico cut by a commanded
-  cycle is flagged inside the 5 s relay-open window). The improvement is
-  one liveness home in `pico_actor_base.py`: `last_heard`, a threshold of
-  2.5x the expected post period the actor supplies, `missing()`, and the
-  report loop with its rate limit, sending the first report on the
-  transition to missing; each api actor then contributes only its
-  period and its channel list. Small commit with a test per actor.
+- ✅ Pico liveness is one rule (`actors/pico_liveness.py`, scada
+  `e0029d3d`): 2.5 expected post periods to missing, one report at the
+  crossing then one a minute, shared by the tank, BTU and flow actors;
+  tests in `tests/actors/test_pico_liveness.py`.
 - hp-boss assumes `HpOn` at construction without reading the relay;
   the relay adopts its own state at boot (`_boot_adopt`), hp-boss does
   not. Small commit with a test (`../unsorted/relay-tests.md` item 4 is

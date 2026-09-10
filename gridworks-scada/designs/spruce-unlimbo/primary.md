@@ -51,6 +51,9 @@ real broker.
   partition rope
 - `control-strategy-selection.md` — ops chooses the machine, the
   machine owns its state; what replaces `SeasonalStorageMode`
+- `extra-pico-channels.md` — fancoil / floor1 / pipes1 (re-energized
+  2026-09): which of their channels and deriveds the Nolan layout word
+  requires vs tracks; before launch
 - `fall-layouts.md` — the four layouts arriving fall 2026 (one sim,
   three Millinocket installs); what each removes/adds
 - ✅ DONE dac-output — the 0-10V output on the relay pattern, distilled

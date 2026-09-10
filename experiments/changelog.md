@@ -8,7 +8,7 @@ Newest at the top.
 
 ---
 
-## 2026-09-10 — pico-state-journal-dev-rung: journalkeeper reads the cycler's per-pico roster on the dev broker <!-- pending commit -->
+## 2026-09-10 — pico-state-reported: journalkeeper reads the cycler's per-pico roster on the dev broker <!-- pending commit -->
 
 New folder. The actual-spruce sim scada (`69d5d6ec`, nolan layout,
 simulated) with an LTN peer on the dev broker, and journalkeeper
@@ -27,6 +27,16 @@ uploads on link-active and flaps an old-decoder LTN.
 reaching the journal before it knows the channels only tallies drops.
 Seeing the pairing work on the dev broker first is the rung the spoke
 asked for.
+
+Also in the folder: the same rows read from the production journal once
+spruce ran the line (`spruce-pico-states.txt`, the `psql` one-liner in
+the README, and the state changes as a table). They are the roster's
+first field use: five tank modules dark together from the router
+replacement while the BTU picos stayed alive, read off the journal
+alone. The folder was renamed from `pico-state-journal-dev-rung` to
+`pico-state-reported` to cover both halves, and the dev rung's laptop
+artifacts (captures, harness, decoded instances, readback) were
+dropped; the README keeps its findings.
 
 ## 2026-09-10 — gw108-ct-testing: cut to run 3 and the explanation; ci.sh green <!-- pending commit -->
 

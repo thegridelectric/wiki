@@ -214,7 +214,7 @@ the enum and gives every pico-backed node a `<node>-pico-state`
 channel; merged to `main` as `4f0a932` and deployed to the gjk box at
 15:57 UTC, before the spruce restart, so the box's `layout.lite` created
 the channels before its first report. The dev rung passed first
-(`experiments/2026-09-10-pico-state-journal-dev-rung/`): channels from
+(`experiments/2026-09-10-pico-state-reported/`): channels from
 a published `layout.lite`, Alive then Flatlined in time order. Spruce's
 first two roster rows, nine picos Alive, were in the production journal
 minutes after the restart. Two of the rung's pass conditions turned out
@@ -234,60 +234,27 @@ tests until that rig is looked at.
 
 ## ▶ Do this next
 
-**Read spruce's roster over its first hours and settle the site
-question.** The house line is live: spruce runs `actual-spruce`
-`69d5d6ec`, the production journalkeeper runs `4f0a932` (dev merged to
-main and deployed 2026-09-10, 15:57 UTC), and after the scada restart at
-15:59 UTC the journal holds nine `<node>-pico-state` channels for
-spruce (buffer, tank1, fancoil, floor1, pipes1, dist-btu, primary-btu,
-secondary-btu, store-btu) with every pico Alive (0) in the start-up
-roster. The roster marks a pico Flatlined only when it stops posting,
-so the next hour of readings says which of fancoil, floor1 and pipes1
-exist on the wall (the 09-08 window saw them never post). Query: the
-one in `experiments/2026-09-10-pico-state-journal-dev-rung/
-journal-readback.txt`, filtered to
-`terminal_asset_alias = 'hw1.isone.me.versant.keene.spruce.ta'` and
-bounded in time (an unbounded join on `readings` hits the statement
-timeout). Then remove the three from the layout or fix the boards, and
-the roster on actual-spruce is done; item 2 of its TODO closes with it.
+**Close this spoke: take the grill's answers and file each undone
+item BEFORE (stays here or on the launch hub) or AFTER
+(`../../spruce-settled/`).** The grill of 2026-09-10 listed twenty
+items; answered so far: the `layout.lite` split is last on the hub
+queue (BEFORE); the three re-energized picos are the launch spoke
+`../extra-pico-channels.md` (BEFORE); the gwadmin-on-Nolan claim was
+stale (krida rung 1 fixed it 09-07), and the open question is how much
+of krida rungs 2 and 3 is BEFORE; pico liveness is one rule
+(`e0029d3d`, retires the drifting-copies finding and the extra 5 V
+cycle on TurnOn). Still to decide: the item-8 coverage list, the
+NotMyBoss / NotAControlNode refusal paths, the beech fixture, the
+held-off roster reading, the snapshot handle lag, item 4's xfail rows
+(command-tree-matrix), and the hours roll-up for this spoke's row.
+Then distill (what stays is listed under "Close-down mechanics" in
+the grill) and delete this file.
 
-Item 1, the dev rung, passed 2026-09-10 (that folder): with an LTN peer
-on the dev broker the actual-spruce sim scada's `layout.lite` 012 gave
-the journal `buffer-pico-state` and `tank1-pico-state`, and the rows
-read back Alive then Flatlined in time order. Three things it changed
-about the plan. The journal creates no `pico-cycler` state channel, so
-the roster rows cannot be ordered against the cycler's own row; the
-cycle (`PicoMissing`, `RelayOpening`) comes first and the Flatlined rows
-follow at the cycler's 60 s wait. The live journalkeeper never prints
-its dropped-reading counter, so "no dropped tally" is not readable from
-its log; the channels and rows existing is the evidence. And the
-`jm/spruce-unlimbo` line emits `layout.lite` 013, which is staging and
-outside the journal seed, so a journal rung for that line waits on
-promotion (the staging-words-on-prod item), not on code.
-
-Built 2026-09-10 (pending commit on `jm/spruce-unlimbo`), from the
-spruce window (`experiments/2026-09-08-five-v-boss-hold/`, window
-section, scada `4bb46035`), where TurnOff from the row cut the 5 V,
-five picos flatlined under a dormant cycler, TurnOn woke it, and the
-five-v-boss row offered only TurnOff:
-
-1. The row offers per vocabulary: `RelayWidgetConfig.offered_commands`
-   gives a two-command vocabulary's command that leads elsewhere and a
-   one-command vocabulary when the state equals its target, so
-   `PicoCycler` offers `TurnOff` and `RebootPicos`, `FiveVOff` offers
-   `TurnOn`. Two buttons, `n` and `p`, bound on the `Relays` widget;
-   the second is hidden on a one-offer row, which keeps its single
-   full-width button.
-2. The Name cell of an owned node indents one step, whatever its
-   depth, so pico-cycler and vdc-relay line up under five-v-boss. A
-   headless Textual pilot run rendered the table to check it; the
-   unit tests are `tests/test_misc/test_admin_five_v_boss_row.py`
-   and the indent case in `test_admin_row_order.py`.
-
-Carried from the window: fancoil, floor1 and pipes1 never posted
-(no channel readings in either report) and the cycler cycled the live
-picos for them twice after TurnOn. Whether they exist on the wall is a
-site question before the deployed scada runs the three-tank layout.
+The spruce roster line is live and witnessed: `actual-spruce`
+`69d5d6ec` on the box, journalkeeper `4f0a932` on production, nine
+`<node>-pico-state` channels, and the roster's first field use on
+2026-09-10 read a path failure off the journal alone
+(`experiments/2026-09-10-pico-state-reported/`).
 
 ## five-v-boss (decided 2026-09-08)
 
