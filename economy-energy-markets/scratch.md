@@ -44,7 +44,7 @@ complete).
 ### Already read this session (Pass 1) — need triage pass
 
 The TER Initiative PDFs and other materials previously under
-`dera-stand-up/old-market-participation-model/` have been moved into
+`prospects/dera-stand-up/old-market-participation-model/` have been moved into
 `legacy/old_words/`. Paths below reflect the new location.
 
 | Source | Pass 1 read | Triage status | Notes |

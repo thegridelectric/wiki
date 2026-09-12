@@ -587,7 +587,7 @@ minutes with the journaled `single.pico.state` roster as evidence.
   baseline miss. The other in-process fixtures still leak; a shared
   conftest fixture with the teardown is the fix, its own small commit.
 - The beech fixture `gw.house0.layout.json` is hand-kept: the hub's
-  `correct-house0-tlayouts.md` (2026-09-10).
+  `correct-house0.md` (2026-09-10).
 
 ## Findings while building (2026-09-07)
 

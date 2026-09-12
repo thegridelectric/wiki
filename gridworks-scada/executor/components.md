@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-07
+Status: Draft · Pass 0 · Updated 2026-09-10
 
 # Components, device types, and the config list
 
@@ -94,11 +94,12 @@ board-resident actor (`I2cBus`, `Relay` on a GPIO relay, `GpioSensor`,
 body of code either way (`actors/i2c_bus.py`, `drivers/sim_i2c.py`). So a bench
 box with a real `Gw108RevB` record drives the real chips even while its tank
 modules are `SimSensor` and it holds no TaDeed. `ScadaAppInterface.is_simulated`
-(no TaDeed or any sim component) answers a different question, whether this
-scada is a real terminal asset, and gates only system-level behavior (the
-sim-time bridge). Residue: the House0 Krida and DFR multiplexers still read that
-bit, because the House0 component vocabulary has no sim twin for either device;
-both retire in the krida shift.
+answers a different question, whether the layout carries any simulated
+device (`HydronicLayout.has_simulated_component`), and gates only the
+sim-time bridge; whether the scada may trade is the deed's
+`validation_state` (`scada-ltn-link-state.md` "The trading gate"). The
+House0 DFR multiplexer still reads the layout fact for its backend until
+the 0-10V outputs get per-output components.
 
 ## Node → component, and the per-family buckets
 
@@ -134,7 +135,7 @@ decode each via a union decoder, then pair component↔cac via
 | `dfr.component.gt` | DFRobot analog out | no | DfrConfig |
 | `fibaro.smart.implant.component.gt` | Fibaro Z-Wave | no | none |
 | `resistive.heater.component.gt` | resistive element | **yes** | none |
-| `sim.pico.tank.module.component.gt` | **sim** Pico tank | no | `SimulatesTypeName`/`Version`; `SimLifeS`/`SimRebootS` liveness script (the actor runs the pico); `extra=allow` |
+| `sim.pico.tank.module.component.gt` | **sim** Pico tank | no | `SimulatesTypeName`/`Version`; `SimLifeS`/`SimRebootS` liveness script (the actor runs the pico in-process, no HTTP ingress; absent = no scripted death / a dead pico stays dead; reboots always succeed); `extra=allow` |
 
 ## Irregularities (the warts, surfaced on purpose)
 

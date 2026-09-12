@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-06-25
+Status: Draft · Pass 0 · Updated 2026-09-12
 
 # SCADA ↔ LTN link state (the proactor linking mechanism)
 
@@ -89,6 +89,44 @@ supervisor-tier liveness in a single trust domain and explicitly names
 scada↔LTN contract liveness as "a distinct, heavier mechanism … not
 modeled by this type" — amend that canon or mint a sibling type
 (sema-side decision, pending).
+
+## The trading gate: the deed decides whether an offer is taken
+
+Status: Verified · Pass 0 · Updated 2026-09-12 · Reviewed 2026-09-12@9e9a61d8
+
+Whether a scada may enter an LTN contract is a fact a TaValidator
+attests, read from a `ta.deed` instance, never from the layout or from
+the presence of a placeholder file. `ScadaAppInterface.validation_state`
+reads the deed at `settings.paths.tadeed` (default `ta-deed.json` beside
+the hardware layout) into a `ta.validation.state`: `UnValidated` when
+there is no deed, else the deed's `ValidatedRealAssetAndGps`,
+`ValidatedRealAssetIncorrectGps` or `ValidatedSimulatedAsset`. Only the
+state is read today; the signature over the deed and the owner
+principal wait on the signing convention and principal word
+(`../explorations/deeds-and-trading-rights.md`).
+
+An `UnValidated` scada answers a `Created` offer with
+`slow.contract.rejection` (its alias, the ContractId, its validation
+state) and starts nothing: no scada heartbeat, no tree change, the auto
+state stays LocalControl (`actors/scada.py`
+`process_slow_contract_heartbeat`, the first branch). The LTN drops its
+pending Created heartbeat on the rejection and unlinks its contract
+file, so the refused offer is neither resent nor reloaded at the next
+boot (`actors/ltn/contract_handler.py`
+`process_slow_contract_rejection`). With a deed present the offer is
+taken: the scada goes LocalControl to LeafTransactiveNode and both
+sides' heartbeats read Received.
+
+The gate is layout-blind. Both halves are tested on the Nolan and the
+House0-sim pairs on the in-process rig (`tests/actors/
+test_contract_rejection.py`, `tests/actors/test_auto_state.py`); the rig
+is the witness here because a live LTN creates offers only inside ten
+seconds of the top of the hour with a price and a FLO figure in hand,
+and the path is the same on either transport.
+
+`is_simulated` is a different question with a different answer: the
+layout carries a simulated device (`HydronicLayout.has_simulated_component`),
+and its one job is the sim-time bridge.
 
 ## What belongs on the upstream stream (principle, 2026-06-11)
 

@@ -1,63 +1,41 @@
-Status: Draft · Pass 0 · Updated 2026-09-07
+Status: Draft · Pass 0 · Updated 2026-09-12
 
 # Testing the SCADA — the two harnesses
 
 What this is: the two ways to exercise real scada code without hardware. The
-**sim-boot harness** boots the real scada on the real dev broker — the behavioral
+**on-broker gate** boots the real scada on the real dev broker — the behavioral
 gate layout and actor changes verify through. The **in-process `ScadaLiveTest`
 harness** exercises a real LTN talking to a real SCADA in one process — for
 anything that crosses the LTN↔SCADA link (addressing, topics, contract/heartbeat
 flow, event upload).
 
-## The sim-boot harness (on-broker behavioral gate)
+## The on-broker gate (dev rabbit)
 
-`gw_spaceheat/sim_boot.py` boots a real `ScadaApp` standalone against
-`gw-dev-rabbit` (MQTT `localhost:1885` via the Rabbit MQTT plugin, exactly as a
-real house connects), `is_simulated=True`, with **no LTN parent** so the scada
-sits in LocalControl. It runs the actor tree for a bounded number of seconds
-(`asyncio.wait_for` around `proactor.run_forever()`) and reports how many channel
-values populated:
+The behavioral gate for layout and actor changes is a real `ScadaApp` booted
+against `gw-dev-rabbit` (MQTT `localhost:1885` via the Rabbit MQTT plugin,
+exactly as a real house connects), on a sim fixture pair, driven by an
+experiment script and captured to `experiments/<date>-<slug>/`. The entry
+is the live one, `gws run`, with the pair and the admin link given by
+environment (`SCADA_PATHS__HARDWARE_LAYOUT`, `SCADA_PATHS__OPERATIONAL_PARAMS`,
+`SCADA_ADMIN__*`, `SCADA_SECONDS_PER_REPORT`), bounded by `timeout`; the
+model runs are `experiments/2026-09-07-admin-reboots-picos/` and the dev
+rung of `experiments/2026-09-10-beech-krida-witness/`.
 
-```
-cd gw_spaceheat && ./venv/bin/python sim_boot.py [layout.json] [seconds]
-```
-
-Requires the `gw-dev-rabbit` container up (creds in `gridworks-scada/.env`).
-
-- **Any real per-home fixture boots** — `simulate_sensors` (`sim_layout.py`)
-  transforms the layout in-memory: the pico-fed sensor actors (`ApiTankModule`,
-  `ApiFlowModule`, `ApiBtuMeter`, the poller) swap for a generic
-  **`SimSensorActor`** that self-generates `SyncedReadings` on a timer (no picos,
-  no faked HTTP), swapped components' ConfigLists project to their
-  `capture.tuning/000` core, and aliases are dev-ified so the layout is
-  universe-coherent with the dev broker. No on-disk sim fixture needed.
-- **The universe guardrail runs at boot** — `app.assert_universe_coherence()`:
-  `universe_of(alias) == universe_of(broker_host)`, `localhost ⇒ d1`. A simulated
-  layout can never reach a real-money broker.
-- **The ops artifact rides beside the layout** — `sim_boot` derives
-  `operational_params_path` from the booted layout's per-home sibling dir
-  (`tests/config/<home>/gw.house0.operational.params.json`).
+- **Where sim-ness comes from:** the fixture. Its board record (`SimGw108`)
+  makes the board-resident actors run against `SimI2c` and no GPIO
+  (`executor/components.md` "Hardware backend selection is the layout's
+  job"); its sim pico tank modules run a scripted pico inside the tank actor
+  (below); `SimSensor` (`actors/sim_sensor.py`) stands behind every other
+  pushed-reading position. The House0 DFR multiplexer still reads the
+  layout's `has_simulated_component` for its backend.
+- **The universe guardrail runs at boot** (`universe.py`,
+  `ScadaApp.assert_universe_coherence`): `universe_of(alias) ==
+  universe_of(broker_host)`, `localhost ⇒ d1`. A simulated layout can never
+  reach a real-money broker.
 - **Why on-broker, not in-process:** an in-process harness shares a backdoor
   transport and a wall clock and goes green while real comms behavior stays
-  invisible (the EDD bar). Booting on the dev broker exercises the real MQTT
-  wiring; this harness is the seed the fuller sim rig
-  ([OPS-40](https://linear.app/gridworks/issue/OPS-40)) grows from — its
-  self-faking slice is the subset that work subsumes.
-- **Boot path:** the live entry is `cli.py run` → `ScadaApp.main()`; `Scada` is a
-  proactor `PrimeActor` taking a `ScadaAppInterface`, so the App is required.
-  `sim_boot` mirrors that entry, bounded. The older `command_line_utils.get_scada`
-  / `run_scada.py` path is stale — it no longer matches the PrimeActor signature;
-  don't use it.
-- **Where sim-ness comes from:** a fixture's board record (`SimGw108`) makes the
-  board-resident actors run against `SimI2c` and no GPIO
-  (`executor/components.md` "Hardware backend selection is the layout's job");
-  the House0 Krida and DFR multiplexers still key on the derived
-  `ScadaAppInterface.is_simulated`. Sensor input is a separate gap: device
-  actors get readings *pushed* (pico HTTP POSTs, the thermostat REST poller);
-  `SimSensorActor` fills exactly that.
-- **Current limits:** the relay-actuation paths are not exercised, and
-  LocalControl runs a documented sim placeholder for the "turn on the heat pump"
-  path — real relay-actuation control grows by iteration against the running rig.
+  invisible (the EDD bar). The fuller sim rig is the simulated-test-environment
+  design ([OPS-40](https://linear.app/gridworks/issue/OPS-40)).
 
 ## The in-process harness (`ScadaLiveTest`)
 
@@ -86,6 +64,28 @@ link is wired (the SCADA is the party that goes offline, so it dials out).
 copies that layout into an **isolated XDG config dir per test** — so each test
 gets a clean house-0 layout and never touches your real `~/.config`. The SCADA
 short_name comes from this layout via `H0N.primary_scada = "s"`.
+
+**The test deed.** `tests/config/gw.nolan.ta.deed.json` is a
+`ValidatedSimulatedAsset` deed that conftest copies beside every role's
+layout, so a test scada may take LTN contracts by default;
+`test_contract_rejection.py` deletes it to witness the refusal
+(`scada-ltn-link-state.md` "The trading gate"). Only the deed's
+`ValidationState` is read, so one deed serves both fixture pairs.
+
+**Pico liveness in-process.** The sim pico (`sim.pico.tank.module.component.gt`)
+is the liveness source for the cycler and admin tests: `ApiTankModule` runs
+the source inside the actor, posting `microvolts` to itself at the channel's
+capture period, with no HTTP ingress. `SimLifeS` scripts the death and
+`SimRebootS` the reboot after a vdc-relay close; a reboot always succeeds,
+so a sim house never produces a Zombie. The sim configs set 120 s / 20 s so a
+flatline and a cycle fit inside a five-minute broker rung; the real-house
+rhythm is a separate knob when one is wanted. The terminal-asset plant is
+the physics source and does not replace the sim pico.
+
+**The sim-time listener starts only in `Scada.start_tasks`.** An
+instantiated-but-not-started scada must not open a paho thread against the
+test broker; when it did, every `ScadaApp.instantiate()` leaked a listener
+and the live tests later in the run timed out waiting for their links.
 
 ## Basic usage
 

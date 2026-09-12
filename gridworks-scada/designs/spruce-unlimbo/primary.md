@@ -35,11 +35,13 @@ The order is roughly the priority order.
 - `krida-retirement.md` — House0 relays and 0-10V outputs onto per-device
   components against the board record, one actuation path in `relay.py`,
   the multiplexer actors retired; the critical path for maple and beech
-- `correct-house0-tlayouts.md` — the House0 fixture pair from a
-  sema-native beech gen, never by hand; validates
 - `house0-zero-ten-outputs.md` — House0's three 0-10V outputs onto
   per-output components, the DFR multiplexer actor retired; after the
   relay decommission
+- `correct-house0.md` — House0 made right: the fixture pair
+  from the sema-native gen and `sema validate` green, the H0N/H0CN
+  retirement carried through the hydronic file reviews, the House0
+  word's requirement axioms to the Nolan shape; after the 0-10V shift
 - `gw108-board.md` — schematic-verified board facts: zone signal
   chain, expander map, DAC/EEPROM (living reference)
 - `spruce-admin-rig.md` — the standing admin-panel rig on the real house

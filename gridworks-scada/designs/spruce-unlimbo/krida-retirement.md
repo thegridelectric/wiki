@@ -1,6 +1,6 @@
 # Krida retirement (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-10 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-11 · Linear: OPS-392
 
 > What this is: the scada half of the relay decommission (per-relay thin
 > components against a board record; the sema half shipped 2026-07-03),
@@ -10,20 +10,104 @@ Status: Draft · Pass 0 · Updated 2026-09-10 · Linear: OPS-392
 > reply path are in; rung 3 (the decommission) is the critical path for
 > maple and beech and is why this spoke is first in the hub's list.
 
-## ▶ Do this next: rung 3, the relay decommission
+## ▶ Do this next: close the spoke
 
-In order:
+Rung 3 is witnessed (item 2 below). Next, in a fresh session: land the
+pending scada commit (eGauge `debug` fix + pico params twins at 100,
+suite 520 green), then the close-down: components.md and
+control-hierarchy.md to present tense for the one actuation path and
+per-relay confirmation, the Open items routed (rung 2 and the refusal
+paths to `../../../command-surface.md`; interior-node acks and the
+GPIO name branch to a flat Linear issue; the gwsproto multichannel
+retirement to `correct-house0.md`; BoardBusList to
+`layout-word-axioms.md`), this file deleted and the hub's spoke list
+and the six files naming it fixed. Before any new beech window: a
+sema-authored beech generator from `tlayouts/gen_beech.py` (the
+window pair derived from the House0 fixture ran simulated tank
+modules and a foreign hubitat on the real box), and the beech unlimbo
+venv rebuilt or pulled past the eGauge fix.
 
-1. **Rung 3** below, on its own estimate row. Items 1 to 4; item 5 is
-   in.
-2. **Interior command nodes handle their relays' acks and nacks.** With
-   `ea3365b5` every relay answers its boss on take or refusal; five-v-boss
-   listens (`process_cycler_reply`), hp-boss and the pico-cycler do not:
-   hp-boss logs a relay's `gw.dispatch.ack` as an unexpected message
-   (witnessed on the real house, experiments `42f8382`, boot log
-   10:22:33). Each takes the ack as confirmation of the step it waits on
-   and the nack as its failure, with a test per node that drives the
-   relay's reply through the boss.
+### The RelayEnergizedLevel wave and the rung-3 witness (done)
+
+Rung 3's five items are built on `jm/spruce-unlimbo` (`1a7a41d1`,
+2026-09-10 evening, not yet pushed): both House0 fixtures carry a Krida
+`scada.board.component.gt`, a `krida` node, an `i2c-bus` node and one
+`i2c.relay.component.gt` per relay; `relay.py` has one I2C path; the bus
+actor drives a PCF8575 as one port word (`SimPcf8575` in the sim
+driver); the multiplexer actor and every reference are gone;
+`tests/actors/test_relay_i2c_house0.py` proves all thirteen relays
+resolve on both fixtures and vdc-relay energizes low and reports. Suite
+516 passed.
+
+The survey found the Krida panel is **active-low** (the multiplexer's
+private enums: Energize = 0; power-on all-high is every relay off) while
+the gw108 drives high, so the board record gained a required
+`RelayEnergizedLevel` (sema, same evening, staging in place; axiom 5
+`RelayEnergizedLevelRange`) and the relay actor translates its logical
+pin value to the board's level at the write and the readback. The gw108
+rev B driver is an NPN low-side switch with a 100k base pull-down
+(`signal_relay` module, `gridworks-hardware`), so a floating pin is off
+there too; rev C keeps active-high.
+
+Next, in order:
+
+1. ✅ DONE (sema `7d58bd1`, tlayouts `c4c026a`, scada `1a7a41d1`,
+   2026-09-10; closure registry byte-equal to the snapshot; kept here
+   until canonized into executor) **Land the sema commit, then the
+   tlayouts half of the wave** (needs a
+   clean sema checkout): add `"RelayEnergizedLevel": 1` after
+   `SupportsPinReadback` in
+   `src/tlayouts/device_types/gw108.revb-gw1.scada.device.type.gt-000.json`
+   and `0` in `scada.krida-…json`, run `scripts/regen_sema_snapshot.sh`,
+   tlayouts tests, then copy the snapshot registry into the scada
+   closure (`packages/gridworks-scada-protocol/sema_closure/registry.yaml`)
+   and run the conformance test. Then the scada commit.
+2. ✅ DONE **Witnessed on beech (2026-09-11, Verified · Reviewed
+   2026-09-11@1a7a41d1).** `experiments/2026-09-10-beech-krida-witness/`:
+   a window scada on the real box, admin took zone1-down (relays 17 and
+   18 on the second Krida) and made a heat call; every dispatch acked
+   within two seconds and read back; the port word on the bus went
+   `0xff` → `0x3f` → `0xff`; the Caleffi box started the dist pump 32 s
+   after the call (`dist-flow` 0 → 196–200, return water 155.7 → 161.2 F)
+   and stopped it within ten seconds of the release; the deployed scada
+   came back with both port words as before. Nine of nine, on the dev
+   rung the evening before and again that morning. Pump power was not
+   witnessed (the window's eGauge driver produced no reading; a driver
+   fault, the box reaches the meter). Side findings, not this rung's:
+   the pico-cycler rebooted the vdc-relay every 65 s because the
+   fixture's simulated tank picos flatline on a real box, and beech's
+   real tank picos post a `TankModuleParams` the current word rejects
+   (older firmware).
+3. **GPIO relays onto the config-driven FSM.** `Relay.initialize_fsm`
+   still matches node names for `gpio.relay.component.gt`; the
+   `EVENT_ENUM_BY_NAME` / `STATE_ENUM_BY_NAME` maps now carry every
+   relay vocabulary, so the name branch can go. Separate change.
+4. **The real House0 fixture is `sema validate`-invalid for reasons
+   older than this rung** (old meter `Exponent`, channel
+   `InPowerMetering`, hubitat shapes; 1392 errors before and after the
+   surgery). That is `correct-house0-tlayouts.md`'s; the sim fixture
+   validates clean.
+
+**Item 4 of the old list (retire the gwsproto multichannel component and
+`RelayActorConfig`) is blocked by the closure**, not by scada: the
+vendored closure registry carries `i2c.multichannel.dt.relay.component.gt:004`
+and `sim.relay.component.gt:000` (whose ConfigList is
+`relay.actor.config/003`), the House0 word's Components union lists the
+multichannel word, and the conformance test requires their twins. Scada
+stops using them in this rung; the twins and `LayoutLite.I2cRelayComponent`
+retire in the sema wave that drops them from the House0 word, with the
+House0 `BoardResolution` axiom (mirror of Nolan axiom 2).
+
+Then:
+
+- **Interior command nodes handle their relays' acks and nacks.** With
+  `ea3365b5` every relay answers its boss on take or refusal; five-v-boss
+  listens (`process_cycler_reply`), hp-boss and the pico-cycler do not:
+  hp-boss logs a relay's `gw.dispatch.ack` as an unexpected message
+  (witnessed on the real house, experiments `42f8382`, boot log
+  10:22:33). Each takes the ack as confirmation of the step it waits on
+  and the nack as its failure, with a test per node that drives the
+  relay's reply through the boss.
 
 Rung 2 is an Open item below.
 
@@ -169,34 +253,37 @@ rows when they start.
 
 This is what keeps House0 from running the way Nolan does. Both House0
 fixtures still carry one Krida `i2c.multichannel.dt.relay.component.gt`
-and the `relay-multiplexer` and `zero-ten-multiplexer` nodes; the
-`i2c_relay_multiplexer` and `i2c_zero_ten_multiplexer` actors still
-exist; `relay.py` has two actuation paths, and the Krida one
+and the `relay-multiplexer` node; the `i2c_relay_multiplexer` actor still
+exists; `relay.py` has two actuation paths, and the Krida one
 (`_krida_actuate`) sends a pin event to the multiplexer and never gets a
 report back, so a House0 relay's boss sees no confirmation. `conftest.py`
-runs the live pair on the Nolan layout only.
+runs the live pair on the Nolan layout only. The ordered plan is the
+"Do this next" above.
 
-1. **House0 fixture pair hand-edited** (`tests/config/gw.house0.layout.json`,
-   `gw.house0.sim.layout.json`) to carry per-relay
-   `i2c.relay.component.gt` (RelayName against the board's `I2cRelays`
-   map — the Krida board record must carry that map, mirroring the
-   Gw108 pattern), the Krida multichannel component and the
-   `relay-multiplexer` node dropped, `sema validate` green. The
-   hand-edited pair is the contract the tlayouts gen reproduces
-   (`correct-house0-tlayouts.md`).
-2. **`relay.py` reworked to one actuation path** — resolve RelayName
-   against the board, write via `I2cBus`; delete the dead multiplexer
-   round-trip (`_actuate_and_defer_report`) and `relay_multiplexer`
-   lookups.
-3. **Remove `i2c_relay_multiplexer` actor + `i2c_relay_board`**; the
-   multiplexer node leaves the layout in the same regen;
-   `H0N.relay_multiplexer` retires in tandem.
-4. **Retire gwsproto `I2cMultichannelDtRelayComponent` +
-   `RelayActorConfig`**; `actuator_config` gets the honest single
-   config shape.
-5. ✅ DONE **`I2cBus` reply-to**: the bus actor replies `I2cResult` to
-   the requester via `Header.Src` (`actors/i2c_bus.py`), so a relay can
-   confirm its own actuation by `TriggerId`.
+Findings from the 2026-09-10 survey that shaped it:
+
+- **The two boards' expanders speak different bus protocols.** gw108 is
+  TCA9555 (addressed output, input and configuration registers); the
+  Krida panel is PCF8575 (one quasi-bidirectional port, written and read
+  as a word, no configuration register). `relay.py`'s I2C path, the bus
+  actor's expander init and guard, and `SimTca9555` were all written for
+  the TCA9555. Hence `ExpanderType` on the board record.
+- **The bus actor picks fake silicon from the board record only** (never
+  a runtime flag), so the House0 sim fixture needs a simulated Krida
+  value in `gw1.sim.device.type`. Both House0 fixtures run actors in the
+  suite (`test_hp_boss` runs all three pairs).
+- **Krida addresses are field-chosen.** The record's expanders carry
+  `AllowedI2cAddressList` and no `I2cAddress`; the chosen pair lives on
+  the board component's `I2cAddressList`, index-aligned. The relay and
+  bus actors read only the fixed address today.
+- **The regenerated Nolan fixture differs from the scada copy** by the
+  2026-09-09 spruce changes (secondary-pump rename, the fancoil, floor1
+  and pipes1 modules), so the scada fixtures are hand-patched for now;
+  syncing them with the generator is `correct-house0-tlayouts.md`'s.
+
+✅ DONE **`I2cBus` reply-to**: the bus actor replies `I2cResult` to the
+requester via `Header.Src` (`actors/i2c_bus.py`), so a relay can confirm
+its own actuation by `TriggerId`.
 
 The 0-10V per-output shift and the tlayouts regen of the House0 pair are
 spokes of their own (`house0-zero-ten-outputs.md`,

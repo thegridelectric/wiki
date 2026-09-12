@@ -45,4 +45,9 @@ simulated-test-environment design's `primary.md`.)
 - **Validate hand-written types against the canonical runtime** — serialize
   an instance and run `sema validate <payload.json>`; exit 0 = conforms.
   gwsproto types are written by hand, not generated from a snapshot; `sema
-  validate` — not any generated copy — is what proves them correct.
+  validate` — not any generated copy — is what proves them correct. This is
+  an authoring step, run from the sema checkout (`uv run sema validate
+  <payload.json>`); paste the `OK:` line into the PR description as the
+  record. It is NOT a scada test: scada CI never installs or calls sema,
+  and a test that shells out to it is the antipattern (consumers vendor a
+  snapshot and test against the copy).

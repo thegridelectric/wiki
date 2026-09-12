@@ -1,6 +1,6 @@
 # gridworks-scada — Rebuild Specification (primary)
 
-Status: Draft · Pass 0 · Updated 2026-06-23
+Status: Draft · Pass 0 · Updated 2026-09-12
 
 The faithful-rebuild hub for `gridworks-scada`. Intended to grow into a
 language-agnostic account complete enough to rebuild the SCADA from these docs.
@@ -128,10 +128,12 @@ Normative across the domain — full statements in
 - The SCADA terminates a contract on **SLA breach**, never for convenience.
 - The liveness **heartbeat is SCADA↔LTN** (not cloud↔LTN), because the SCADA is
   the party that actually goes offline.
-- **Open / not-yet-in-code:** TerminalAsset **deed** (third-party-validated GPS
-  / asset-type / metering) and **TradingRights** certificate (homeowner→
-  aggregator, with clawback; required by both MarketMaker and SCADA from the
-  LTN). See
+- The TerminalAsset **deed** (`ta.deed`, a TaValidator's attestation of the
+  asset) gates every LTN offer: no deed, no contract
+  ([`scada-ltn-link-state.md`](scada-ltn-link-state.md) "The trading gate").
+  Its signature and owner principal, and the **TradingRights** certificate
+  (homeowner→aggregator, with clawback; required by both MarketMaker and
+  SCADA from the LTN), are open:
   [`../explorations/deeds-and-trading-rights.md`](../explorations/deeds-and-trading-rights.md).
 
 ## Map of the spec

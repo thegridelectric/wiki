@@ -35,6 +35,13 @@ command.
   (`my_actuators()`, `:245`) on its own state change; `set_hierarchical_fsm_handles` (`:1192`) wires the
   fixed FSM sub-tree.
 
+The published `new.command.tree` is the authority on where a node sits.
+A snapshot's `LatestStateList` shows each node under the handle its last
+state row carried, so after a reparent it lags the tree by up to one
+report period; anything that groups rows by handle reads the published
+tree (gwadmin groups off the capability cover's `CommandNodes`), never
+the snapshot.
+
 ## The interaction — the crux
 
 **The HSM *decides* control; the command tree *enforces* it.** Every `MainAutoState`/`TopState` transition
@@ -242,6 +249,16 @@ Real timing (spruce gw108, 2026-09-08,
 7 to 9 s after the relay closes, so PicosLive arrives about 13 s after
 the command and the 60 s wait never fires in anger. The sim rung is
 `experiments/2026-09-07-admin-reboots-picos/`.
+
+**What provoked a cycle is structured, not prose.** The provocation
+kind is the cycle's entering event (`PicoMissing`, `ShakeZombies`,
+`RebootPicos` through five-v-boss, `Startup`); a commanded cycle is tied
+to its commander by `TriggerId`; which pico provoked it is read off the
+journaled per-pico `machine.states` rows (`single.pico.state`: Alive,
+Flatlined, Zombie, the roster at start and in every periodic report, and
+a row on each flip). The flatline row is sent before the cycle it
+provokes is triggered, so a cycle's cause is the pico whose row flipped
+just before it (`tests/actors/test_pico_roster.py`).
 
 **The roster reads Flatlined during a 5 V hold, and that is the reading
 we want.** While five-v-boss holds the bus off (FiveVOff) the cycler is

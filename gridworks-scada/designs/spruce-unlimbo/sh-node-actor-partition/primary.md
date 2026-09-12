@@ -149,7 +149,7 @@ hub). The what/why of each commit is in the scada changelog.
 | `hp-boss-cleanup` (09-01 decisions, 09-07 build): hp-boss the heat pump's command node in every layout, gate removal, first tests in three rungs, done-when witnessed on honeysuckle | 3h (2–9) | 1.3 + 0.6 = 1.9h, in interval | scada `30fbac27` `8e0b95c6` `3d871690`; `experiments/2026-09-07-hp-boss-admin-drive/` (`193f126` + rung 3); durable facts in `executor/control-hierarchy.md` "Fixed sub-trees vs floating actuators" and `executor/testing.md` "Recipe: admin over the wire"; open items routed to `../unsorted/` (`refactor-sieg`, `relay-tests`, `hp-twin`) and below |
 | dac-output tail: step 4 harness, honeysuckle bench rung, SIMULATED root cause, proactor CONNACK fix, step 5 rehearsal + two spruce windows (09-04–06) | (same row) | 1.8 + 0.7 + 0.25 + 3.0 + 1.0 + 1.5 + 2.0 + 1.5 = 11.75h | scada `0f1ff7be` `59284cc5` `ba2c9883` `a6833464` `829038b2`; proactor `3e5087f` (`v4.1.13+jm2`); tlayouts `0a051f9`; `experiments/2026-09-05-dac-output-bench/`, `experiments/2026-09-06-spruce-pump-speed-sweep/` |
 | `snapshot-drop-gw1` (2026-09-08): the chunk was already satisfied (the tlayouts seed has stripped `gw`/`gw1` local names through sema `local_names` since 07-03); closed with the seed consolidation onto sema's template pair | 0.75h (0.5–1) | 0.25h, below interval | tlayouts: root seed + build script deleted, `scripts/regen_sema_snapshot.sh` the one path (`3118aa7`) |
-| `is-simulated-decompression` (2026-09-09): `ta.validation.state`, `ta.deed`, `slow.contract.rejection` in staging; gwsproto twins; the scada reads its deed into a `validation_state`, `is_simulated` answers from the layout alone, an `UnValidated` scada refuses LTN offers with the rejection word, witnessed on the in-process LTN rig; honeysuckle no-deed witness still to run | 1.5h (1–4) | 0.5h, below interval | sema `12a608f`; scada `4bb46035` |
+| `is-simulated-decompression` (2026-09-09): `ta.validation.state`, `ta.deed`, `slow.contract.rejection` in staging; gwsproto twins; the scada reads its deed into a `validation_state`, `is_simulated` answers from the layout alone, an `UnValidated` scada refuses LTN offers with the rejection word, witnessed on the in-process LTN rig on both sim pairs (`9e9a61d8`) | 1.5h (1–4) | 0.5h, below interval | sema `12a608f`; scada `4bb46035` |
 | `admin-scada-peer-liveness` (2026-09-10): `process_admin_dispatch`, `process_admin_analog_dispatch` and `process_admin_keep_alive` return after logging "Ignoring" instead of executing; refusal test from hp-boss | under 1h | 0.3h | scada `b3cf3426` |
 
 Sema round 2 closed at 20.4h against its 6h (4–12) row, past the high
@@ -343,9 +343,8 @@ GridWorks_CLAUDE ⏳ note).
    half is `pico-cycler-command.md` item 6. After krida-retirement.
 5. [`command-tree-matrix`](command-tree-matrix.md) (3h; `actors/command_node.py`, 207 L): the state-transition tree matrix on `command_node.py`, with the LC dormant-sequence row.
 6. ✅ DONE `admin-scada-peer-liveness` (under 1h, 0.3h actual): in the Done table. The liveness and takeover work is the admin domain's [OPS-529](https://linear.app/gridworks/issue/OPS-529).
-7. [`hydronic-shared-review`](hydronic-shared-review.md) (2h; `actors/hydronic/shared.py`, ~250 L): `actors/hydronic/shared.py` review + first tests.
-8. [`hydronic-house0-review`](hydronic-house0-review.md) (2h; `actors/hydronic/house0.py`, ~990 L): `actors/hydronic/house0.py` review; the buffer/storage judgment methods.
-9. ✅ DONE [`is-simulated-decompression`](is-simulated-decompression.md) (1.5h, 0.5h actual): in the Done table; the spoke holds the honeysuckle witness still to run.
+7. `hydronic-shared-review` and `hydronic-house0-review` (2h each): folded into the hub's [`correct-house0`](../correct-house0.md) as the walk-through that carries the House0 names retirement (2026-09-11).
+9. ✅ DONE `is-simulated-decompression` (1.5h, 0.5h actual): in the Done table; canonized as `executor/scada-ltn-link-state.md` "The trading gate" (2026-09-12).
 10. ✅ DONE `snapshot-drop-gw1` (0.75h, 0.25h actual): in the Done table.
 11. LAST [`staging-words-on-prod`](staging-words-on-prod.md) (4h): the wire/layout-file word split, and with it the `layout.lite` the deployed box emits. Last on purpose: the layout's contents are settled against how local control actually runs on spruce, so everything above shapes it before it is fixed.
 
@@ -363,7 +362,7 @@ commit or a decision):
 - The beech fixture `gw.house0.layout.json` fails `sema validate` on
   pre-existing shape (three channels carry InPowerMetering, four
   components predate their words' config shape); closes with a translated
-  beech gen, not by hand: the hub's `correct-house0-tlayouts.md`.
+  beech gen, not by hand: the hub's `correct-house0.md`.
 - ✅ Pico liveness is one rule (`actors/pico_liveness.py`, scada
   `e0029d3d`): 2.5 expected post periods to missing, one report at the
   crossing then one a minute, shared by the tank, BTU and flow actors;

@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-07
+Status: Draft · Pass 0 · Updated 2026-09-12
 
 # Running an LTN + SCADA from a checkout (cold start)
 
@@ -82,8 +82,8 @@ and `LTN_SCADA_MQTT__{…same…}`.
 
 ## Verified live run (2026-06-10, scada leg)
 
-`gws run` on `jm/spruce-unlimbo`, nolan layout, `SCADA_IS_SIMULATED=true`,
-against `gw-dev-rabbit` (the **preferred dev broker for running** —
+`gws run` on `jm/spruce-unlimbo`, nolan layout (sim-ness comes from the
+fixture, there is no flag), against `gw-dev-rabbit` (the **preferred dev broker for running** —
 mosquitto is for pytest): all three links connect and reach
 `awaiting_peer` (see [`scada-ltn-link-state.md`](scada-ltn-link-state.md));
 GpioSensor zone actors, DerivedGenerator, LeafAlly all run. Two

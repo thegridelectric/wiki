@@ -12,7 +12,83 @@ Newest at the top.
 ---
 
 <!-- pending commit -->
-## 2026-09-10 — promote turn.5v.on.off/000 and five.v.boss.state/000 to published
+## 2026-09-12 — House0 relays on per-relay components against the Krida board record; one I2C actuation path
+
+**What:** `gw1.scada.device.type.gt/000` (staging, in place) gains the
+required `RelayEnergizedLevel` field (`non.negative.int`) with Axiom 5
+`RelayEnergizedLevelRange` (0 or 1), the axiom template, fixtures for the
+new axiom and the existing ones, and the registry summary updated. Indexes
+rebuilt, runtime regenerated. Authored 2026-09-10 on local dev as 7d58bd1;
+rebased onto origin/dev after the async.btu.params merge, with the registry
+`last_updated` stamp resolved to the later value.
+
+**Why:** which expander pin level energizes a relay coil is a fact of the
+board's driver circuit, not of its expander chip, so it sits on the board
+record beside the expanders rather than on `i2c.expander.type`. The Krida
+board is active-low; without the field the scada would have to hard-code
+polarity per board. The relay actuation work on gridworks-scada
+(`1a7a41d1`) reads it.
+
+## 2026-09-12 — promote to staging; add baseurl.failure.alert (`bdaf9b3`)
+
+**What:** new type `baseurl.failure.alert/100` (HwUid, ActorNodeName as
+`spaceheat.name`, BaseUrl, Message), registered from the wire shape the
+picos have posted since the pico overhaul, with a runtime fixture and
+test. Four promotions bottom-up via `sema promote`: `pico.board.variant/000`,
+`tank.module.params/200`, `async.btu.params/100`,
+`baseurl.failure.alert/100`, each pinned in `published_hashes.yaml`.
+Indexes rebuilt, runtime regenerated.
+
+**Why:** the picos posting these words run in real houses, and staging
+vocabulary is dev-broker only, so the whole cluster has to be published
+before the scada side (gridworks-scada PR 575) merges. `baseurl.failure.alert`
+had no Sema word at any version; gwsproto carried a `000` label that never
+matched anything on the wire, so only `100` is registered. Publishing
+`async.btu.params/100` required its `pico.board.variant` pin to go first,
+and `tank.module.params/200` rides along for the same reason.
+
+## 2026-09-11 — Add async.btu.params version 000 and 100 (`35c6efb`)
+
+**What:** new type `async.btu.params`: `000` published from the shipped
+gwsproto AsyncBtuParams wire shape, `100` (staging at this commit) adding
+required `PicoBoardVariant` (`pico.board.variant/000`) and
+`MicropythonVersion`. Axiom 1 (ReadCtVoltage iff CtChannelName) on both
+versions; the 000→100 upgrade refuses without context since only the
+posting pico knows its board. Fixtures and runtime tests for both versions.
+Indexes rebuilt, runtime regenerated.
+
+**Why:** the async BTU meter pico now reports its board and MicroPython
+release at the params handshake, mirroring `tank.module.params/200`, so
+the scada can hold the reported board against the layout. First
+teammate-authored Sema word.
+
+## 2026-09-10 — i2c.expander.type enum, ExpanderType on i2c.expander, SimKridaDoubleRelayBoard16 (`f1e551c`)
+
+**What:** new versioned enum `i2c.expander.type/000` (`Tca9555`,
+`Pcf8575`, default Tca9555) in the `i2c.dac.type` / `i2c.mux.type`
+pattern. `i2c.expander/000` (staging, in place) gains the required
+`ExpanderType` field referencing it; the registry summary and structural
+dependencies follow, and the board-record example and the two
+`gw1.scada.device.type.gt` runtime fixtures carry the field.
+`gw1.sim.device.type/000` (staging, in place) appends
+`SimKridaDoubleRelayBoard16`. The created-timestamp cascade forward-bumps
+`i2c.expander`, `gw1.scada.device.type.gt`, `gw.nolan.layout` and
+`gw.house0.layout` (all staging) to the enum's stamp. Indexes rebuilt,
+runtime regenerated.
+
+**Why:** the relay decommission on House0 (krida-retirement rung 3) puts
+the Krida panel's relays on the same board-resident I2C path as gw108's,
+and the two boards' expanders speak different bus protocols: TCA9555 has
+addressed output, input and configuration registers, PCF8575 is one
+quasi-bidirectional port written and read as a word. The relay and bus
+actors need the chip declared on the board record rather than inferred
+from the DeviceType name. The simulated Krida value lets the House0 sim
+layouts run the same path against fake silicon, which is what
+`gw1.sim.device.type` exists for.
+
+---
+
+## 2026-09-10 — promote turn.5v.on.off/000 and five.v.boss.state/000 to published (`e96229d`)
 
 **What:** the two five-v-boss enums flip staging → published (`sema promote`,
 pins recorded, public registry regenerated). Enums, no dependencies.

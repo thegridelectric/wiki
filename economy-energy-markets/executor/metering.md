@@ -33,7 +33,7 @@ Status: Draft · Pass 0 · Updated 2026-06-07
 
 The v1 master economy meter is the **EKM Omnimeter**. This is
 committed externally in the 2026-06-05 letter to ISO-NE
-([`../../../dera-stand-up/letter-to-iso.20260605.md`](../../../dera-stand-up/letter-to-iso.20260605.md))
+([`../../../prospects/dera-stand-up/letter-to-iso.20260605.md`](../../../prospects/dera-stand-up/letter-to-iso.20260605.md))
 as the revenue-grade meter GridWorks will install behind the
 Versant bonus meter.
 

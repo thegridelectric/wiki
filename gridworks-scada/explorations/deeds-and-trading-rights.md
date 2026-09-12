@@ -1,9 +1,11 @@
 # Concern: TerminalAsset deeds & TradingRights
 
-Status: Draft · Pass 0 · Updated 2026-06-23
+Status: Draft · Pass 0 · Updated 2026-09-12
 
-Design intent from Jessica. **Not implicit in the SCADA code yet** — Jessica
-wants this written up here as the target. Historical context in `old_words/`.
+The target mechanism. The deed half is in code as far as the validation
+state: `ta.deed` gates every LTN offer (`../executor/scada-ltn-link-state.md`
+"The trading gate"). Open here: the signature over the deed, the owner
+principal, and the whole TradingRights half. Historical context in `old_words/`.
 
 ## The target mechanism (Jessica)
 

@@ -10,6 +10,33 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-10 — snapshot regen: RelayEnergizedLevel on the board records (`c4c026a` on jm/spruce)
+
+The vendored snapshot regenerated from sema `7d58bd1`: `gw1.scada.device.type.gt`
+with its required `RelayEnergizedLevel` and axiom 5. The two vendored board
+records declare their relay drive: `gw108.revb` 1 (NPN low-side driver, a
+high pin energizes), `scada.krida` 0 (active-low; power-on all-high leaves
+every relay off). The snapshot registry is mirrored into the scada closure
+copy in the same wave.
+
+**Why:** the House0 relay decommission drives Krida relays through the same
+relay actor as gw108's, and the two boards energize on opposite pin levels;
+the relay actor translates from the record instead of hand-mapping by
+DeviceType (sema changelog, same date).
+
+## 2026-09-10 — snapshot regen: i2c.expander.type, ExpanderType on board records, SimKridaDoubleRelayBoard16 (`dd7fd0a` on jm/spruce)
+
+The vendored snapshot regenerated from sema `f1e551c`: the new
+`i2c.expander.type` enum, `i2c.expander` with its required `ExpanderType`,
+and `gw1.sim.device.type` with `SimKridaDoubleRelayBoard16`. The two
+vendored board records declare their chip: `gw108.revb` Tca9555, `scada.krida`
+Pcf8575. The snapshot registry is mirrored into the scada closure copy in the
+same wave.
+
+**Why:** the House0 relay decommission drives Krida relays through the
+same bus actor as gw108's, and the two expander chips speak different bus
+protocols; the board record now says which (sema changelog, same date).
+
 <!-- pending commit -->
 ## 2026-09-09 — spruce: egauge port 05 meters the secondary pump (secondary-pump-pwr replaces dist-pump-pwr) (`60d4e11` on jm/spruce, titled "add egauge for secondary-pump-pwr"; actual-spruce commit pending)
 

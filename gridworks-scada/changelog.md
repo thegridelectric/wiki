@@ -10,6 +10,136 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-12 — The contract refusal and the LTN takeover are tested on both sim fixtures (`9e9a61d8`)
+
+**What.** `tests/actors/test_contract_rejection.py` (no deed: the
+offer is refused) and `tests/actors/test_auto_state.py` (deed present:
+the scada goes LocalControl to LeafTransactiveNode and the heartbeats
+read Received both ways) run on the Nolan and the House0-sim layout
+pairs (the five-v-boss two-pair pattern), loading each through
+`load_layout` and handing it to `ScadaLiveTest`, with an alias assert
+proving the rig booted the pair it was given.
+
+**Why.** The deed gate and the takeover are layout-independent by
+design, and the partition's single focus is both sim houses green with
+real coverage; one fixture proved only Nolan. The House0 sim had never
+been seen taking an LTN contract; it does, and its derived generator
+publishes the heating forecast the leaf ally needs in time. The in-process rig is the witness for
+the is-simulated decompression chunk in place of a broker run: the
+path it exercises (a real LTN offer, the scada's rejection word, the
+LTN dropping its pending contract) is the same on either transport,
+and a live LTN cannot be asked to offer on demand (it creates
+contracts only inside ten seconds of the top of the hour, with a price
+and a FLO figure in hand).
+
+## 2026-09-12 — eGauge driver constructs on pyModbusTCP 0.3.0; async.btu.params and baseurl.failure.alert twins at 100 (`58ee6df7`)
+
+**What.** The `debug` field is gone from the eGauge driver's
+`ModbusClientSettings` (and the explicit argument from the watch
+utility). gwsproto `AsyncBtuParams` is version 100 with
+`PicoBoardVariant` and `MicropythonVersion`; `BaseurlFailureAlert` is
+version 100; both carry the `Sema:` docstring and leave the
+conformance test's gwsproto-only allowlist. Tests for both params
+types taken from `td/new-pico-codes` (the subprocess-to-sema test
+dropped).
+
+**Why.** The beech window (experiments `2026-09-10-beech-krida-witness`)
+booted the real eGauge driver from a dev.txt venv for the first time
+and it failed at construction: dev.txt pins pyModbusTCP 0.3.0 (since
+2026-02-17), which removed the `debug` constructor argument, while
+base.txt and drivers.txt keep 0.2.0, so every deployed scada and the
+older spruce window venv were fine. The field was always `False` and
+the library now logs frames through `pyModbusTCP.client` instead;
+nothing is lost. The pin disagreement itself stays for base's next
+bump. The two type bumps are the pico firmware's current wire shape,
+published in sema on 2026-09-11 and 2026-09-12 and already on
+`td/new-pico-codes` off `actual-spruce`.
+
+## 2026-09-12 — publish baseurl.failure.alert; patch tests (`16df0b25`)
+
+**What:** `test_conforms_to_sema_runtime` removed from the tank.module.params
+and async.btu.params named-type tests; the wire-shape, axiom, enum-coercion
+and old-version tests stay. `BaseurlFailureAlert` gains the `Sema:` docstring
+for `baseurl.failure.alert/100`. On `td/new-pico-codes`.
+
+**Why:** the test called `python -m sema validate`, but sema has no
+`__main__`, so it always failed with "No module named sema.__main__" and the
+skip guard matched that text: it never ran anywhere, CI included. Making it
+real would mean scada CI depending on the live sema repo, which is not the
+house pattern (consumers vendor a snapshot and test against the copy, as
+jm/spruce-unlimbo does with the closure registry). `sema validate` stays an
+authoring step run from the sema checkout. The `baseurl.failure.alert/100`
+word now exists (published 2026-09-12), so the twin names it like the other
+pico params types.
+
+## 2026-09-10 — House0 relays on per-relay components against the Krida board record; one I2C actuation path (`1a7a41d1`)
+
+**What:** both House0 fixtures (`tests/config/gw.house0.layout.json`,
+`gw.house0.sim.layout.json`) carry a `scada.board.component.gt` for the
+Krida panel (keeping the old multichannel component's id, with
+`I2cAddressList [32, 33]`), a `krida` NoActor board node, an `i2c-bus`
+node and one `i2c.relay.component.gt` per relay (`Relay<RelayIdx>`, the
+`relay.actor.config` carried over as `relay.control.config/000`), each
+relay node and its state channel pointing at the relay itself; the
+multichannel component and the `relay-multiplexer` node are gone. The
+real file gains the Krida `gw1.scada.device.type.gt` record; the sim
+file's record is `SimKridaDoubleRelayBoard16`. `ScadaBoardComponent.
+expander_address` resolves a field-addressed expander from the
+component's list (checked against `AllowedI2cAddressList`);
+the gwsproto `ScadaDeviceTypeGt` twin gains the required
+`RelayEnergizedLevel` with `check_axiom_5` (0 or 1), and the Krida record
+declares 0; the three fixtures' board records carry it by hand (gw108 1,
+Krida 0) until the tlayouts regen; the vendored closure registry is
+refreshed from the regenerated tlayouts snapshot and the conformance test
+passes against it. `relay.py` has one I2C path: `I2cActuation` carries the expander
+type and energizing level, logical pin values translate to the board's
+level at the write and the readback, a PCF8575 has no config register,
+and the config-driven FSM maps register every relay vocabulary House0
+declares (aquastat, heat-pump, heatcall, keep-send, primary-pump,
+store-flow). `i2c_bus.py` keys expanders by resolved address, runs the
+TCA9555 init and reset guard on TCA9555 addresses only, and drives a
+PCF8575 through `_receive_bytes`/`_send_bytes` as one two-byte port
+word; `SimPcf8575` beside `SimTca9555`. The `i2c_relay_multiplexer`
+actor and every reference (`required_actuators`, the `Scada` property,
+the LayoutLite source, `H0N.relay_multiplexer` in both names modules,
+`relay_multiplexer_logging_level`, the `command_node` cast) are deleted.
+Tests: `tests/actors/test_relay_i2c_house0.py` (all thirteen relays
+resolve on both fixtures, the sim bus is PCF8575-only, vdc-relay
+energizes low and reports), `test_sim_i2c.py` PCF8575 cases,
+`test_krida_record.py` against the record alone. Suite 516 passed.
+
+**Why:** House0 relays were the last hardware realization hard-coded in
+actor code (the second arm of `relay.py`), and the Krida arm never
+reported back, so a House0 relay's boss saw no confirmation. With every
+relay a thin component against a board record, "which board" is a layout
+axis and maple and beech run the same relay code as spruce. The panel's
+polarity had lived only in the multiplexer's private enums (Energize =
+0); it now lives on the board record as `RelayEnergizedLevel` (sema
+changelog, same date), a fact of the board's driver circuit rather than
+its expander chip, so the relay actor looks it up instead of hand-mapping
+by DeviceType. The gwsproto multichannel twins
+stay until the sema wave drops them from the House0 word (the vendored
+closure still carries them). Not touched: the real House0 fixture was
+already `sema validate`-invalid before this change (1392 errors: old
+meter `Exponent`, channel `InPowerMetering`, hubitat shapes) and stays
+so; that is the House0 tlayouts regen's to fix. Four touched files were
+already outside `ruff format` at HEAD and were not reformatted.
+
+## 2026-09-10 — gwsproto twins for i2c.expander.type, ExpanderType and SimKridaDoubleRelayBoard16 (`aadf5d0a`)
+
+**What:** `gwsproto/enums/i2c_expander_type.py` (new twin, exported),
+`I2cExpander.ExpanderType` required, `SimDeviceType.SimKridaDoubleRelayBoard16`,
+the Krida board record declares `Pcf8575` on both expanders. The Nolan and
+House0-sim fixtures carry `ExpanderType` on their board records by hand
+(Tca9555 / Pcf8575) until the tlayouts regen reproduces them; the vendored
+closure copy is refreshed from the tlayouts snapshot in the same wave.
+
+**Why:** mirrors the sema round of the same date (wiki/sema changelog);
+the first step of krida-retirement rung 3, which needs the expander chip
+on the board record before `relay.py` can drive Krida relays through the
+bus actor.
+
+
 ## 2026-09-10 — Non-admin admin messages are dropped, not executed (`b3cf3426`)
 
 **What:** `gw_spaceheat/actors/scada.py` — `process_admin_dispatch`,

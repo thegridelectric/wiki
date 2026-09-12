@@ -302,7 +302,7 @@ is tagged with its origin: **GW** (GridWorks design choice), **ISO**
     GridWorks can qualify. **Chasing down DARD qualification
     is a load-bearing open work item** — it bypasses the
     III.6.4(f) Load-Asset settlement-location ambiguity entirely.
-    (c) Open follow-ups tracked in `dera-stand-up/` (operational)
+    (c) Open follow-ups tracked in `prospects/dera-stand-up/` (operational)
     and (when seeded) `regulatory-posture.md` (architectural).
 18. **MarketMaker is fractal, runs internal markets, and
     co-optimizes across timeframes.** (**GW**)
@@ -450,7 +450,7 @@ Second-pass (refine the architecture; written or being written):
 ## Where the first deployment lives
 
 Operational scratch for the Knifes Edge stand-up lives at
-`dera-stand-up/` (top-level, not in git). That folder holds deal
+`prospects/dera-stand-up/` (top-level, not in git). That folder holds deal
 documents, regulator outreach drafts, candidate-entity research, and
 timelines. This wiki domain holds the durable architectural spec
 that the deployment implements.
