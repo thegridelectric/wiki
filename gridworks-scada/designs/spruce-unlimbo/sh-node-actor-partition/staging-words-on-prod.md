@@ -26,7 +26,7 @@ has no release-gate flag.
    words matter to the broker; the closure words they `$ref` get dragged
    in by dependency, and the rest can stay staging.
 2. **Which are finished.** Publishing is immutability. A word still being
-   edited in place on the branch (the krida-retirement `scada.control.
+   edited in place on the branch (the `scada.control.
    capabilities/001` edit, the dac words) settles first, or it gets a new
    version straight after promotion.
 3. **The 52 twinless gwsproto names.** They do not block the broker but
@@ -40,8 +40,8 @@ has no release-gate flag.
    staging** (2026-09-08; the other eleven are published, see below).
    Its closure holds `spaceheat.node.gt/302` and `gw1.actor.class/013`,
    so publishing it freezes those layout-closure words too. It also
-   carries the cover of the command tree, which rung 2 of
-   `../krida-retirement.md` (the per-node command interface) may reshape.
+   carries the cover of the command tree, which the per-node command
+   interface (`../../../../command-surface.md` "Open") may reshape.
    Decide after rung 2 whether it publishes as `001` or as a `002`
    shaped by that work; until then the admin panel decodes a staging
    word from production scadas.
@@ -87,7 +87,7 @@ word the scada emits on either link is published or has no word at all;
 
 | Word | Version | Status | Link | Finished? |
 | --- | --- | --- | --- | --- |
-| `layout.lite` | 013 | staging | LTN, scada→ltn, on link-up and as the `SendLayout` reply | No. House0-shaped and the builder crashes on Nolan ("First wire case" below). Its closure drags seven staging words: `gw1.actuation.authority/000`, `gw1.service.mode/000`, `pico.tank.module.component.gt/012`, `sim.pico.tank.module.component.gt/001`, `pico.flow.module.component.gt/001`, and the Krida pair `i2c.multichannel.dt.relay.component.gt/004` + `relay.actor.config/003` that krida-retirement rung 3 retires. |
+| `layout.lite` | 013 | staging | LTN, scada→ltn, on link-up and as the `SendLayout` reply | No. House0-shaped and the builder crashes on Nolan ("First wire case" below). Its closure drags seven staging words: `gw1.actuation.authority/000`, `gw1.service.mode/000`, `pico.tank.module.component.gt/012`, `sim.pico.tank.module.component.gt/001`, `pico.flow.module.component.gt/001`, and the Krida pair `i2c.multichannel.dt.relay.component.gt/004` + `relay.actor.config/003` that the House0 word wave retires (`../correct-house0.md` "Open"). |
 | `new.command.tree` | 002 | published 2026-09-08 | LTN, scada→ltn, every tree change (`scada.py:1241`) | Yes. Axiom 2 names actor classes, so a new actuator or command-node class is a 003; accepted. |
 | `report.event` | 004 | published 2026-09-08 | LTN, scada→ltn, every report (`scada.py:1375`) | Yes. Was a draft on the wire: `003` plus three envelope axioms (MessageId = Report.Id, TimeCreatedMs = Report.MessageCreatedMs, Src = Report.FromGNodeAlias), met by construction in `send_report`. |
 
@@ -143,5 +143,5 @@ the rule the split exists to keep, so the gate to connecting is
 the next move: read what JournalKeeper and the data repos take from
 `layout.lite` today (which fields, which nested words) so the reshaped
 word carries exactly that, then decide whether the reshape waits for
-krida-retirement rung 3 to take the Krida pair out of the closure or a
-014 goes first without them.
+the sema wave that takes the Krida pair out of the closure
+(`../correct-house0.md` "Open") or a 014 goes first without them.

@@ -90,9 +90,9 @@ HandleTerminalMatchesName · AboutNodesAreControlNodes ·
 I2cRelayComponent↔RelayNodes consistency. The sketch was the scada-side
 implementation of that v001. The **targeted v002 update** (the
 CapturedByNodeName/AboutNodeName muddle, the required House0 Krida
-component blocking Nolan, the gwa-usage evaluation) lives in the
-spruce-unlimbo design's krida-retirement spoke (which absorbed
-admin-for-nolan 2026-09-07) — not here.
+component blocking Nolan, the gwa-usage evaluation) shipped with
+the admin panel on Nolan under
+[OPS-392](https://linear.app/gridworks/issue/OPS-392) (2026-09-08) — not here.
 
 **Heritage code moves (ideas tried, not yet ratified):**
 
@@ -112,12 +112,12 @@ admin-for-nolan 2026-09-07) — not here.
 
 **Sequencing (Jessica, 2026-06-10): admin-first.** This design is about
 **intra-scada dispatch** — control states speaking through the
-`ShNodeActor` capability surface. The spruce-unlimbo design's
-krida-retirement spoke (admin for Nolan) is a **prerequisite**: getting admin working
-against a Nolan house *discovers* the field-proven capability vocabulary
-(admin is the calibration standard per principle 1); this design then
-carries that vocabulary into the control states. The
-`scada.control.capabilities` upgrade rides that spoke, not here.
+`ShNodeActor` capability surface. Admin working
+against a Nolan house ([OPS-392](https://linear.app/gridworks/issue/OPS-392), in since
+2026-09-08) was the **prerequisite**: it *discovered* the field-proven
+capability vocabulary (admin is the calibration standard per principle 1);
+this design carries that vocabulary into the control states. The
+`scada.control.capabilities` upgrade rode that work, not here.
 
 Nolan local control (spruce-unlimbo Chunk D) is **written against this
 protocol from day one** — this design and the spruce work co-evolve, but

@@ -368,7 +368,7 @@ flatline, restore, journal shows both full reports under the dispatch
 ids. Then spruce from the panel with the 5 V measured at the board.
 
 **The panel drives the cycler on the real house (2026-09-08).**
-krida-retirement rung 1 (`ea3365b5`) made `gwa watch` render a Nolan
+The admin panel on Nolan (`ea3365b5`) made `gwa watch` render a Nolan
 scada with the pico-cycler as a row, and the spruce window
 (`experiments/2026-09-08-spruce-admin-panel/`) witnessed Reboot picos
 from that row twice on the real gw108: the row walked its states and
@@ -377,7 +377,7 @@ Verified claims below rest on is now in the scada executor
 (`control-hierarchy.md` "The pico-cycler command", "Command interfaces
 and replies").
 
-**Acknowledgement decided (2026-09-07); built in `ea3365b5` except the NotMyBoss nack, which waits on the word edit (krida-retirement step 1).** Sema words
+**Acknowledgement decided (2026-09-07); built in `ea3365b5` except the NotMyBoss nack, which waited on the word edit (in since `a22c4cc7`).** Sema words
 registered (sema `f2168ed`): `gw.dispatch.ack`
 / `gw.dispatch.nack`, `gw.scada.cmd.refusal.reason`, `analog.dispatch`,
 `reboot.picos`, `pico.cycler.event`. The build, in order, each with a
@@ -411,7 +411,7 @@ test:
    - Not sent yet: NotAControlNode. Only the scada's routing knows the
      target is not a command node (`process_admin_dispatch` finds no
      communicator, silently). Parked with the command-interface work,
-     `../krida-retirement.md` "Open" (2026-09-10).
+     `../../../../command-surface.md` "Open".
    - **`gw.dispatch.nack` axiom 1 cannot hold.** A NotMyBoss nack goes
      to the sender, and the sender is by definition not the boss of the
      node's live handle (admin sending to `admin.relay` while the relay

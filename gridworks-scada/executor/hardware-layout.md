@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-07
+Status: Draft · Pass 0 · Updated 2026-09-12
 
 # The hardware layout
 
@@ -116,7 +116,7 @@ behind this morning's `AsyncCaptureDelta` greening, one layer up).
   copy-paste gen scripts with no shared base, and per-house divergence in
   code rather than data — e.g. `gen_spruce.py` drops `add_relays()`
   entirely, uses one tank + BTU meters, default (zero) tank calibrations.
-  `oak` is the full House0 (20 relays via the i2c multiplexer, 4 Pico tank
+  `oak` is the full House0 (20 relays on the Krida panel, 4 Pico tank
   modules, power meter, HpBoss) — the layout the dashboard experiment uses.
   Each `gen_<house>.py` gets stable ids from a prior layout —
   `LayoutIDMap.from_path(output/<house>.generated.json)`, or
@@ -379,8 +379,11 @@ Flag and fix per home as part of the migration.
 
 ## I²C and board-resident components
 
-A gw108-class board hosts many parts — relays, an ADC, a DAC, GPIO — that
-each need a physical address on the board. The board is the **single source
+A scada board hosts many parts — relays, an ADC, a DAC, GPIO — that
+each need a physical address on the board. Both families follow this
+pattern: the gw108 and the two-board Krida relay panel House0 runs
+(`KridaDoubleRelayBoard16`, one device, basement markings `Relay1`–`Relay32`
+as the RelayNames). The board is the **single source
 of physical truth**; the parts on it are thin references that name *which*
 thing they are and let the board hold the address. Three layers, the outer
 two backed by actors:
@@ -402,10 +405,12 @@ two backed by actors:
 
 Board-resident parts stay uniform `ComponentBase`, each with its own coarse
 `gw1.device.type` value and no specialized `*.device.type.gt` record — their
-physical facts live in the board's config lists. So three device types are in
-play: the board (`GridworksScadaGw108`), an ADC-on-gw108, and an
-I²C-relay-on-gw108 (the last two named in the design while the actor layer
-lands).
+physical facts live in the board's config lists. A layout carries one
+`scada.board.component.gt` per board, an `i2c-bus` node per bus and one
+`i2c.relay.component.gt` per relay, on both families; the relay actor
+resolves its `RelayName` against the board record at boot
+(`tests/actors/test_relay_i2c_house0.py` proves all thirteen House0 relays
+on both fixtures).
 
 ### The Sema I²C vocabulary
 
@@ -452,8 +457,10 @@ or a list-length bound is an **axiom**, not a primitive constraint —
 
 - **`BusMembership`** (enforced on `gw1.scada.device.type.gt`): every device
   config's `I2cBus` appears in the board's `BusList`.
-- **Board↔component cross-consistency** (the target the actor migration
-  enforces, replacing the multiplexer's silent `ActorName` matching): a relay
+- **Board↔component cross-consistency** (the relay actor enforces it at
+  boot; the Nolan word states it as axiom 2 and the House0 word gains its
+  `BoardResolution` mirror in the sema wave that drops the multichannel
+  word, OPS-392): a relay
   component's `RelayName ∈ board.I2cRelays`; its `WiringConfig ∈` that relay's
   `SupportedWiringConfigs`; no two relay components on one board share a
   `RelayName` (⇒ no bit-address collision); a thermistor reader's ADC
@@ -477,11 +484,37 @@ to a *different* address is harmless; the one rule is never start a second
 conversion on the *same* chip before reading the first. This is why `I2cBus`
 gained register ops (`I2cReadReg`/`I2cWriteReg`) alongside the bit ops.
 
-> The actor layer that wires this — the `I2cBus` actor receiving the composed
-> ops with `I2cResult` replying to the requester, retiring `I2cRelayBoard` +
-> `i2c_relay_multiplexer`, the thermistor-reader and relay-component version
-> bumps, and minting the ADC/relay `gw1.device.type` values — is in flight,
-> tracked in the hardware-layout-pass-one design ([OPS-407](https://linear.app/gridworks/issue/OPS-407)).
+The `I2cBus` actor (`actors/i2c_bus.py`) receives the composed ops and
+replies `I2cResult` to the requester named by `Header.Src`, so a relay
+confirms its own actuation by `TriggerId`. `relay.py` has one I2C
+actuation path for both families; there is no multiplexer actor.
+
+### Expander types and the energized level
+
+The two boards' expanders speak different bus protocols, so the board
+record names the chip (`ExpanderType` on `i2c.expander`, enum
+`i2c.expander.type`). The gw108 uses a TCA9555 (addressed output, input
+and configuration registers); the Krida panel a PCF8575 (one
+quasi-bidirectional port written and read as a word, no configuration
+register). The bus actor drives each accordingly, and picks fake silicon
+from the board record alone, never a runtime flag: a simulated House0
+board is a `gw1.sim.device.type` value (`SimKridaDoubleRelayBoard16`,
+driver `SimPcf8575`; the gw108's is `SimTca9555`).
+
+The Krida panel is active-low (power-on all-high is every relay off)
+while the gw108 drives high, so the record carries a required
+`RelayEnergizedLevel` (axiom `RelayEnergizedLevelRange`) and the relay
+actor translates its logical pin value to the board's level at the write
+and at the readback. The gw108 rev B driver is an NPN low-side switch
+with a 100k base pull-down, so a floating pin is off there too; rev C
+keeps active-high. The Krida first bank is inverted on the wire (marking
+1 → pin 7, …, 8 → pin 0), declared as pin data on the record.
+
+Krida addresses are field-chosen by DIP switch: the record carries
+`AllowedI2cAddressList` and no `I2cAddress`; the chosen pair lives on the
+board component's `I2cAddressList`, index-aligned. The relay and bus
+actors read only the fixed address today; the chosen-address path is an
+open gap.
 
 ### The 0-10V output actuator
 
@@ -494,7 +527,7 @@ captured by the output node so the commanded level reports. As with
 `Relay`, the component selects the mechanism: an `I2cDacOutputComponent`
 drives the board DAC through `I2cBus`; no component means House0's DFR
 multiplexer forward (the per-output DFR word is missing; House0's
-`*-010v` nodes take per-output components with the krida shift). The
+`*-010v` nodes take per-output components with the 0-10V shift). The
 command is `AnalogDispatch`, `Value` volts times ten, 0 to 100. At boot the
 actor verifies the chip EEPROM against the declared power-on values and
 reprograms only on a mismatch; its 60 s Multi-Write heartbeat re-asserts

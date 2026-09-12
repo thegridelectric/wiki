@@ -1,6 +1,6 @@
 # Control hierarchy — HSMs, the command tree, and the capability cover
 
-Status: Draft · Pass 0 · Updated 2026-09-10
+Status: Draft · Pass 0 · Updated 2026-09-12
 
 > What this is: how the SCADA's hierarchical state machines (HSMs) and the command tree work **together**
 > — the piece the executor lacked. The HSM decides *who is in control*; the command tree *enforces* it via
@@ -105,12 +105,12 @@ hp-boss: `Hydronic.HpCommandNodeName` names which node takes commands (`hp-odu` 
 `hp-ctrl-box` via a MIM) and the conditional axiom `CommandableHeatPump` requires that node to have
 a ComponentId and hp-boss as its effective handle parent.
 
-**Confirmation belongs to the relay actor, per board.** On a readback board (gw108) the relay
-writes, reads the pin back, commits its state only then, reports one `FsmFullReport` per TriggerId
-to its boss, and holds a failed command as the enforcement target retried every verify pass with a
-Critical glitch; on Krida it is commanded belief with no report. hp-boss does not wait on the
-report: a boss that did would hang on Krida and would still learn nothing about the heat pump,
-which answers a call minutes later. The honest on/off signal is the power channel. Witnessed on
+**Confirmation belongs to the relay actor, per board.** On both board families the relay
+writes through `I2cBus`, reads the pin back, commits its state only then, reports one
+`FsmFullReport` per TriggerId to its boss, and holds a failed command as the enforcement target
+retried every verify pass with a Critical glitch. hp-boss does not wait on the report: it would
+learn nothing about the heat pump, which answers a call minutes later. The honest on/off signal
+is the power channel. Witnessed on
 honeysuckle 2026-09-07 (`experiments/2026-09-07-hp-boss-admin-drive/`): the relay committed
 `RelayOpen` 14 ms after `HpOff` and `RelayClosed` 12 ms after `HpOn`.
 
@@ -144,8 +144,7 @@ actuator-scope)` — Scada passes all actuators, a sub-actor passes `my_actuator
 - **Generic:** the handle→boss arithmetic (`hardware_layout.py`), the `ActorClass`→actor factory
   (`actors/__init__.py`), message routing, `my_actuators` discovery, the HSM enum definitions.
 - **House0-specific:** all `H0N.*` names; the `use_sieg_loop` sub-tree; the pico-cycler-under-root
-  re-parenting; the `required_actuators = {relay_multiplexer, zero_ten_out_multiplexer}` assumption;
-  `house_0_layout.py` requiring a pico-cycler when pico actors are present. A minimal sim layout
+  re-parenting; `house_0_layout.py` requiring a pico-cycler when pico actors are present. A minimal sim layout
   (`gw1.simple.sim.layout`: no pico-cycler, no sieg, single `hp-relay`) follows the `else` branches —
   except the call to `self.layout.vdc_relay`, which must become "if this layout has a pico-cycler-owned
   relay."
@@ -178,8 +177,8 @@ Relays (`actors/relay.py:305`), hp-boss (`actors/hp_boss.py:106`), the
 (`actors/pico_cycler.py:498`) all reply; the reasons in use are Busy
 (the cycler mid-cycle), UnknownEvent and OutOfRange. Admin is a boss
 like any other and gets the same replies. Interior bosses do not yet
-consume the acks their own relays send (an Open item on the
-krida-retirement work, OPS-392).
+consume the acks their own relays send
+([OPS-537](https://linear.app/gridworks/issue/OPS-537)).
 
 ## five-v-boss: the 5 V hold
 

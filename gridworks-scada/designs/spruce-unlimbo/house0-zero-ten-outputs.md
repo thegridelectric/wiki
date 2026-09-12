@@ -8,9 +8,9 @@ Status: Accepted · Pass 1 · Updated 2026-09-12 · Linear: OPS-392
 > `executor/hardware-layout.md` "The 0-10V output actuator"), the
 > `zero-ten-multiplexer` actor retired, and the power-on level of every
 > 0-10V output (both families) moved out of the layout into the
-> operational params. Carved out of the relay decommission
-> (`krida-retirement.md` rung 3) on 2026-09-10; it follows that rung
-> because both retire a multiplexer actor and the relay one sets the
+> operational params. Carved out of the relay decommission on
+> 2026-09-10; it follows that work (done, witnessed on beech 2026-09-11)
+> because both retire a multiplexer actor and the relay one set the
 > shape. Slug is provisional.
 
 ## The shape (decided 2026-09-12)

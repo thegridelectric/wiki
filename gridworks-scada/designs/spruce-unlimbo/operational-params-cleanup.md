@@ -116,7 +116,7 @@ axioms 6/7/8; `universe-guardrail.md` lacks `Linear:`. Spruce hub:
 A/B/D understated; `summer-local-control.md:64-66,298` system.mode
 Cooling thread superseded; `spruce-relay-control.md:113-128` "what
 remains" all done; zone spoke ▶ at done work (circuit FSM actor not
-built); admin-for-nolan (now in `krida-retirement.md`) registry-state notes false post-squash/inverted;
+built); admin-for-nolan (done under OPS-392) registry-state notes false post-squash/inverted;
 this spoke's "Nolan word's contents" (§ below) contradicts the identical
 words — rewrite. Sim hub `:162` "No code yet" false, TODO item 2 done,
 ▶ build-plant Phase A never started; `new-sema-words-to-review.md`

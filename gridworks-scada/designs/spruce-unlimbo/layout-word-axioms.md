@@ -1,6 +1,6 @@
 # Layout-word axioms sitting (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-02 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-12 · Linear: OPS-392
 
 > What this is: the agreed reshape of `gw.house0.layout/000` and
 > `gw.nolan.layout/000` axioms (both staging — in-place edits), plus the
@@ -46,7 +46,7 @@ Status: Draft · Pass 0 · Updated 2026-09-02 · Linear: OPS-392
    relays + 0-10V outputs (Nolan: `secondary-010v`, ActorClass
    ZeroTenOutputer, ComponentId an `i2c.dac.output.component.gt`;
    House0: the three `*-010v` nodes, Name + ActorClass only until the
-   krida shift gives them per-output components, `krida-retirement.md`). The maybe-actuator heat pump never appears
+   0-10V shift gives them per-output components, `house0-zero-ten-outputs.md`). The maybe-actuator heat pump never appears
    here — only via axiom 5.
 7. **`RequiredHeatpumpEquipment`** (Nolan landed `e625ff6`; House0 as
    axiom 11, this round: `hp-odu` + `hp-idu`) — the heat-pump parts with components,
@@ -176,6 +176,19 @@ gen is the N=2 stress test that keeps the interface honest.
 First increment (landing now with the board node): the board becomes a
 config axis — `board_node_name` + `board_record_file` with gw108-revb
 defaults — instead of an imported constant.
+
+## BoardBusList / layout-wide BusList
+
+The bus list today lives on `gw1.scada.device.type.gt` as `BusList`, a
+board-scoped fact with a layout-scoped job. Direction: rename the
+device-type field `BoardBusList`, add a `BusList` directly to the layout
+words, and an axiom that the layout's BusList lines up with the union of
+its board device-types' BoardBusLists. This is also where the
+bus-actor↔board bijection (required conditionally in all non-sim words)
+gets its footing: bus actors pair with layout BusList entries. Every
+relay is now a thin component against a board record on both families,
+so "which board" is one config axis and the hardware realization
+interface in "Hardware decoupling" can converge here.
 
 ## Sequencing (each its own commit)
 

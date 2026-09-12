@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-10
+Status: Draft · Pass 0 · Updated 2026-09-12
 
 # Components, device types, and the config list
 
@@ -125,7 +125,7 @@ decode each via a union decoder, then pair component↔cac via
 | `electric.meter.component.gt` | power meter | **yes** | ElectricMeterChannelConfig |
 | `ads111x.based.component.gt` | ADS1115 ADC sensor | **yes** | AdsChannelConfig |
 | `i2c.thermistor.reader.component.gt` | I2C thermistor reader | no | I2cThermistorChannelConfig |
-| `i2c.multichannel.dt.relay.component.gt` | I2C relay board | no | RelayActorConfig; `extra=allow` |
+| `i2c.multichannel.dt.relay.component.gt` | I2C relay board | no | RelayActorConfig; `extra=allow`; scada no longer reads it (the gwsproto twin stays until the House0 word drops it) |
 | `gw108.gpio.relay.component.gt` | GPIO relay | no | RelayActorConfig (exactly 1) |
 | `gw108.gpio.sensor.component.gt` | GPIO sensor | no | ChannelConfig (exactly 1) |
 | `hubitat.component.gt` | Hubitat hub | no | embedded `Hubitat` |
@@ -204,7 +204,7 @@ re-spelled on each. The old family of config words that carried
 `Unit`, `Exponent`, and capture cadence on the component
 (`channel.config`, `relay.actor.config`, the pico module configs) is
 what this rule replaces; the retired `dfr.config` still carries that
-shape in the beech fixture until the krida shift.
+shape in the beech fixture until the 0-10V shift.
 
 ## What belongs in the hardware layout — and what doesn't
 

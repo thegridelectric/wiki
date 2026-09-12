@@ -1,6 +1,6 @@
 # Spruce un-limbo (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-09-10 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-09-12 · Linear: OPS-392
 
 **EDD: yes** bench (honeysuckle) and box harness runs are the verification;
 spokes reach Verified only when an experiment runs against the real bus or a
@@ -32,9 +32,9 @@ real broker.
 
 The order is roughly the priority order.
 
-- `krida-retirement.md` — House0 relays and 0-10V outputs onto per-device
-  components against the board record, one actuation path in `relay.py`,
-  the multiplexer actors retired; the critical path for maple and beech
+- ✅ DONE krida-retirement — House0 relays onto per-relay components
+  against the Krida board record, one I2C actuation path, the relay
+  multiplexer retired; witnessed on beech 2026-09-11
 - `house0-zero-ten-outputs.md` — House0's three 0-10V outputs onto
   per-output components, the DFR multiplexer actor retired; after the
   relay decommission
@@ -121,11 +121,11 @@ Three things are currently conflated and must be separated cleanly
    valve/pump choreography on different manifolds.
 3. **Hardware realization** — *which physical device executes the
    mechanism.* Differs even where the capability is identical: the
-   **pico cycler relay** exists in both schemes, but is a Krida
-   i2c-multiplexer relay on House0 and a Gw108 GPIO relay on Nolan.
-   Today this axis leaks into actor code as the two hard-coded paths in
-   `relay.py`; it belongs in the layout (component/actor selection), so
-   the relay actor is one body of code with layout-bound actuation.
+   **pico cycler relay** exists in both schemes, but is a Krida panel
+   relay on House0 and a Gw108 GPIO relay on Nolan. This axis lives in
+   the layout (the relay's component selects the board and the
+   mechanism), so the relay actor is one body of code with layout-bound
+   actuation.
 
 The layout types (`house0.layout`, `gw.nolan.layout`) should carry all
 three axes explicitly; control states speak only axis 1.

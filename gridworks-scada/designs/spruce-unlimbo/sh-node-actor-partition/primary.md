@@ -331,7 +331,7 @@ GridWorks_CLAUDE ⏳ note).
 
 1. ✅ DONE `hp-boss-cleanup` (3h, 1.9h actual): in the Done table.
 2. [`pico-cycler-command`](pico-cycler-command.md) (4h): items 1 and 1a, the real fix that retires the vdc hack.
-3. [`krida-retirement`](../krida-retirement.md) (6h + rungs): now a spoke of the spruce-unlimbo hub, first in its list; rung 1 (the panel on Nolan) is in, rung 3 (the relay decommission) is its next move.
+3. ✅ DONE krida-retirement (6h + rungs): the panel on Nolan, the reply path, and the House0 relay decommission; witnessed on beech 2026-09-11, closed 2026-09-12.
 4. `journalkeeper-pico-states` (unestimated; own row when it starts):
    gridworks-journalkeeper vendors the new enum words (`single.pico.state`,
    `pico.cycler.event`, `pico.cycler.state`, `gw.scada.cmd.refusal.reason`)
@@ -340,7 +340,7 @@ GridWorks_CLAUDE ⏳ note).
    journal DB for the per-pico Flatlined / Alive rows the dev-broker rung
    emitted (`experiments/2026-09-07-admin-reboots-picos/`). This is the
    journal half of reading a pico flatline off the database; the spruce
-   half is `pico-cycler-command.md` item 6. After krida-retirement.
+   half is `pico-cycler-command.md` item 6.
 5. [`command-tree-matrix`](command-tree-matrix.md) (3h; `actors/command_node.py`, 207 L): the state-transition tree matrix on `command_node.py`, with the LC dormant-sequence row.
 6. ✅ DONE `admin-scada-peer-liveness` (under 1h, 0.3h actual): in the Done table. The liveness and takeover work is the admin domain's [OPS-529](https://linear.app/gridworks/issue/OPS-529).
 7. `hydronic-shared-review` and `hydronic-house0-review` (2h each): folded into the hub's [`correct-house0`](../correct-house0.md) as the walk-through that carries the House0 names retirement (2026-09-11).

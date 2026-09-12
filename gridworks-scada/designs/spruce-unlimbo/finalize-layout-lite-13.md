@@ -29,7 +29,8 @@ Status: Draft · Pass 0 · Updated 2026-09-10 · Linear: OPS-392
    today (which fields, which nested words), so 013 carries exactly
    that and nothing that forces a further reshape before publishing.
 2. Decide the closure: publish 013 with the Krida pair in it, or cut a
-   014 without them after krida-retirement rung 3 takes them out.
+   014 without them once the sema wave drops them from the House0 word
+   (`correct-house0.md` "Open"; scada stopped reading them 2026-09-10).
 3. Fix the builder for the Nolan layout; boot on the bench and on the
    box and confirm the emitted instance validates (`sema validate`).
 4. Promote bottom-up (`sema promote`), refresh the vendored closure

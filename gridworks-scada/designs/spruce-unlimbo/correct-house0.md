@@ -1,6 +1,6 @@
 # Correct House0 (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-11 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-12 · Linear: OPS-392
 
 > What this is: House0 made right, in three strands that only close
 > together. **tlayouts:** the House0 fixture pair comes from the
@@ -156,8 +156,21 @@ each goes to.
 - Whether `HydronicLayout`'s essential-nodes check should name
   five-v-boss and the cycler, or stay a minimal list with the layout
   words as the requirement.
-- Whether this becomes its own flat Linear issue (title `correct-house0`): three pieces of work
-  depend on it (the krida gate, the 0-10V shift's fixture regen, the
-  fall installs' regen), which is the shared-dependency rule's case.
+- Whether this becomes its own flat Linear issue (title `correct-house0`): two pieces of work
+  depend on it (the 0-10V shift's fixture regen, the fall installs'
+  regen), which is the shared-dependency rule's case.
+- The gwsproto multichannel relay component and `RelayActorConfig` (the
+  twins of `i2c.multichannel.dt.relay.component.gt:004` and
+  `sim.relay.component.gt:000`, plus `LayoutLite.I2cRelayComponent`)
+  retire in the sema wave that drops them from the House0 word's
+  Components union, with the House0 `BoardResolution` axiom (mirror of
+  Nolan axiom 2). Scada stopped using them 2026-09-10; the vendored
+  closure registry and the conformance test are what keep them.
+- Before any new beech window: a sema-authored beech generator from
+  `tlayouts/gen_beech.py` (the 2026-09-11 window pair, derived from the
+  House0 fixture, ran simulated tank modules and a foreign hubitat on
+  the real box), and the beech unlimbo venv rebuilt or pulled past the
+  eGauge fix (`58ee6df7`). Beech's real tank picos post a
+  `TankModuleParams` the current word rejects (older firmware).
 - `H0N.tank` / `H0N.zones` instantiated machinery: home undecided.
 - `DeviceType` and `SimDeviceType`: one enum or a union, for line item 6.

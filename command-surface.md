@@ -1,6 +1,6 @@
 # command-surface — what a command surface is and how we build one
 
-Status: Draft · Pass 0 · Updated 2026-09-10
+Status: Draft · Pass 0 · Updated 2026-09-12
 
 > What this is: the cross-cutting pattern for a **command surface**: the
 > declared set of commands one GridWorks party offers to one counterparty,
@@ -121,3 +121,21 @@ surface is built against it.
   word or two.
 - Where the in-process command interface for interior nodes is declared
   ([OPS-392](https://linear.app/gridworks/issue/OPS-392) proposes the layout word).
+  Deferred, not decided against: hp-boss and the pico-cycler declare their
+  vocabulary in `Scada.COMMAND_NODE_INTERFACES` and
+  `CommandNode.send_state_command` maps the HpBoss actor class to
+  `TurnHpOnOff` by hand; relays declare theirs in the layout word
+  (`relay.control.config`). Whether the layout word carries an interface
+  per node, so capabilities become a pure projection of the tree and the
+  hand-map goes, waits for a second consumer of the surface. Sub-questions:
+  whether the interface lives on the ShNode word (shared with every
+  consumer) or in a sibling list keyed by node name (a layout-word-only
+  change); whether `new.command.tree` carries it or stays authority-only.
+- Two refusals with no speaker. NotAControlNode: only the scada's routing
+  knows a dispatch target is not a command node (`process_admin_dispatch`
+  finds no communicator and drops it silently). hp-boss's `FromHandle`
+  mismatch only logs. Decide who speaks and whether the admin sees them,
+  with the command-interface work.
+- Command enums still without sema words: `top.event`,
+  `change.heat.pump.control`, every LocalControl and LeafAlly event enum;
+  the LC and ally state words still carry the `gw1` prefix.
