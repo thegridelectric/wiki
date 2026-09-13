@@ -6,8 +6,8 @@ Status: Draft · Pass 0 · Updated 2026-09-08 · Linear: OPS-392
 > the admin panel against the latest `jm/spruce-unlimbo`, with a person
 > on site (George, 2026-09-08). The scada runs in a shared tmux session
 > on the box off the dev broker, so spruce stays off rmqbot while
-> `layout.lite/013` is staging (`sh-node-actor-partition/
-> staging-words-on-prod.md`). The one-off form of this is
+> `layout.lite/013` is staging (`finalize-layout-lite-13.md`). The
+> one-off form of this is
 > `experiments/2026-09-08-spruce-admin-panel/` "Protocol"; this spoke
 > makes it repeatable and open-ended.
 

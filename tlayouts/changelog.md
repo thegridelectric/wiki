@@ -37,7 +37,26 @@ same wave.
 same bus actor as gw108's, and the two expander chips speak different bus
 protocols; the board record now says which (sema changelog, same date).
 
-<!-- pending commit -->
+## 2026-09-12 — snapshot regen: zero.ten.power.on in the ops words, dac.output.config wiring only, Gp8403 DACs on the House0 board record (`6d28e10` on jm/spruce)
+
+The vendored snapshot regenerated from sema `9cdeec5`: `zero.ten.power.on`
+arrives, `dac.output.config` loses its EEPROM fields, `i2c.dac.type` gains
+`Gp8403`, `i2c.dac.vref` leaves the closure. The seed lists
+`dfr.component.gt` explicitly with a note: it is orphaned in sema and out
+of `gw.house0.layout`'s union, so closure no longer reaches it, and
+`house0_sema_gen.emit_dfr` still emits it until the gen moves to
+per-output components. The House0 gen turns its three DFR levels (20, 40,
+0 volts times ten; the DFR field name says times 100 and is wrong) into
+`ZeroTenPowerOnList` entries; the Nolan gen's `DacOutputSpec` carries
+`power_on_volts_times_ten` instead of a raw code and the DAC output config
+drops the three fields; spruce and honeysuckle move from code 3020 (7.55 V)
+to 76 (7.6 V). The `scada.krida` record gains two `i2c.dac.capability`
+entries (`Dfr1`/`Dfr2`, `Gp8403`, 94 and 95, two channels each): the
+board record is the bus population, and House0's I2C bus carries the
+Krida expanders and the two DFRobot modules. The spruce gen validates
+through the snapshot; tlayouts tests pass. The gens import `gwsproto`,
+which the tlayouts env lacks: run them with the scada venv's python.
+
 ## 2026-09-09 — spruce: egauge port 05 meters the secondary pump (secondary-pump-pwr replaces dist-pump-pwr) (`60d4e11` on jm/spruce, titled "add egauge for secondary-pump-pwr"; actual-spruce commit pending)
 
 The gw108 CT chain could not give a conclusive secondary-pump-on signal

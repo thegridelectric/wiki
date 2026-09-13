@@ -10,6 +10,83 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-12 — House0's three 0-10V outputs on per-output components against the Krida record; the GP8403 arm; the multiplexer retired (`17e277d3`)
+
+**What.** Both House0 fixtures: the `zero-ten-multiplexer` node and its
+`dfr.component.gt` are gone; each `*-010v` node carries an
+`i2c.dac.output.component.gt` naming the Krida board and its DAC
+(`Dfr1` A/B, `Dfr2` A, the multiplexer's output indices 1–3) with a
+wiring-only `dac.output.config`; the three `VoltsTimesTen` channels are
+captured by their own node; the real record gains the two `Gp8403`
+entries (94, 95) verbatim from the tlayouts `scada.krida` file, the sim
+record two `Mcp4728` entries at the same addresses. `ZeroTenOutputer`
+has one arm: the chip branch is in the write path (`write_register`
+shared; MCP4728 command bytes vs the GP8403 output register, code in
+bits 4–15, low byte first — byte for byte the multiplexer's
+`write_word_data`), and the one-time boot step is `prepare_chip`
+(EEPROM verify on the MCP4728, the 0-10 V range register on the
+GP8403, which keeps nothing across a power-up); `resolve_dac` checks
+the channel against the DAC's `Channels`. `SimI2c` places MCP4728s
+directly on the bus (`muxless_dacs`, by address) beside the muxed
+family; the bus actor builds both from the record. Retired:
+`actors/i2c_zero_ten_multiplexer.py`, the `zero_ten_out_multiplexer`
+names, the DFR-config lookups in `House0Hydronic.set_010_defaults` and
+the two leaf allies (they now read the ops word through
+`zero_ten_power_on_volts_times_ten`). The scada's required actuators
+are the `ZeroTenOutputer` nodes, and each reports `ActuatorsReady` when
+its heartbeat task starts. Tests: per-output resolution on both House0
+fixtures, the sim pair driving muxless DACs through the real bus actor,
+the GP8403 wire bytes, the ready report; `ScadaLiveTest` gains
+`ops_path` so a live test on a non-Nolan layout boots the primary scada
+with its pair's ops artifact.
+
+**Why.** The Krida move repeated for the 0-10V side (OPS-392): one
+component word and one actor arm for every output in both families,
+the vendor difference inside the board record and the driver, no I2C
+writer outside the bus actor. The multiplexer was the sole sender of
+the scada's actuator-ready signal; with it gone every 0-10V output
+reports for itself, the same place in its lifecycle. The live-test
+harness seeds every config dir with the Nolan ops file, which the
+House0 outputs tolerated only while they had no component to resolve;
+naming the pair's ops in the test is the honest boot. The DFR words'
+gwsproto twins and `DfrComponent` stay until the House0 gen moves off
+them.
+
+## 2026-09-12 — The 0-10V power-on level comes from the ops word; chip facts are driver tables; gwsproto twins for the sitting (`f9d67f30`)
+
+**What.** gwsproto: `ZeroTenPowerOn` (axiom 1 TenVoltCeiling), both
+operational-params twins gain `ZeroTenPowerOnList` with axiom 2
+ZeroTenPowerOnNodeUniqueness (the window axiom renumbers to 3),
+`DacOutputConfig` is wiring only (its EepromRanges axiom gone),
+`I2cDacType` gains `Gp8403`, `I2cDacVref` deleted (out of the closure,
+no user), the closure registry mirrored from the tlayouts snapshot.
+Scada: `drivers/mcp4728.py` carries the chip facts (4096 codes, internal
+reference, gain 1, 10.24 V full scale behind the gw108 output stage,
+stores a power-on value); new `drivers/gp8403.py` (register map, 10 V
+full scale, stores nothing). `ZeroTenOutputer` keeps a `DAC_FACTS` table
+keyed on the board record's `DacType`, takes its power-on code from the
+ops word through `sema_to_dc.zero_ten_power_on_volts_times_ten`
+(boot fails when the ops word names no level), skips the EEPROM verify
+when the chip cannot store, and refuses a `Gp8403` DAC with a plain
+message until the House0 arm lands; `GW108_OUTPUT_GAIN` and the Vdd
+refusal go. Fixtures: the Nolan `secondary-010v` config loses its three
+fields; the three ops-params artifacts gain the list (spruce 76,
+House0 20/40/0). Tests: rejecting tests for the ops axioms 2 and 3 and
+for `zero.ten.power.on` (the two ops `:2` allowlist entries retired), the
+outputer tests on 3040 (7.6 V) with the bench chip bytes now read as a
+code mismatch, the DAC output component tests without the EEPROM
+fields. Suite 526 passed.
+
+**Why.** The power-on level is what a pump does with the scada down, a
+per-house choice, so it is tunable and belongs in the ops word in the
+unit the dispatch and the reporting channel already use; facts fixed by
+the choice of chip and board stay in scada drivers, keyed on the record's
+`DacType`, since sema carries what crosses a boundary or varies per
+house. Spruce's pump moves from 7.55 V to 7.6 V: the bench chip bytes
+that once verified clean now reprogram once at the next boot, which is
+the one EEPROM-touching path doing its job. House0's own outputs follow
+on this same arm in the next cluster. Design: OPS-392.
+
 ## 2026-09-12 — The contract refusal and the LTN takeover are tested on both sim fixtures (`9e9a61d8`)
 
 **What.** `tests/actors/test_contract_rejection.py` (no deed: the

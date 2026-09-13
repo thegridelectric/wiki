@@ -346,7 +346,7 @@ GridWorks_CLAUDE ⏳ note).
 7. `hydronic-shared-review` and `hydronic-house0-review` (2h each): folded into the hub's [`correct-house0`](../correct-house0.md) as the walk-through that carries the House0 names retirement (2026-09-11).
 9. ✅ DONE `is-simulated-decompression` (1.5h, 0.5h actual): in the Done table; canonized as `executor/scada-ltn-link-state.md` "The trading gate" (2026-09-12).
 10. ✅ DONE `snapshot-drop-gw1` (0.75h, 0.25h actual): in the Done table.
-11. LAST [`staging-words-on-prod`](staging-words-on-prod.md) (4h): the wire/layout-file word split, and with it the `layout.lite` the deployed box emits. Last on purpose: the layout's contents are settled against how local control actually runs on spruce, so everything above shapes it before it is fixed.
+11. ✅ DONE staging-words-on-prod (4h): the wire/layout-file word split, canonized in `executor/running.md` "Experiment window on a deployed box"; the one wire word still staging is `layout.lite`, finalized in `../finalize-layout-lite-13.md`; the after-deploy publishing of the layout and ops words is spruce-settled's `publish-layouts-and-operational-params.md`.
 
 **Open findings and sign-offs** (unordered; each closes with a small
 commit or a decision):

@@ -1,6 +1,6 @@
 # Spruce settled (hub)
 
-Status: Draft · Pass 0 · Updated 2026-09-10 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
+Status: Draft · Pass 0 · Updated 2026-09-12 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
 
 **EDD: yes** the deployed spruce line and the simulated houses are the
 verification; a spoke reaches Verified only when a run against one of
@@ -29,6 +29,9 @@ them exercises it (`experiments/`).
   commit order, admin ack)
 - `command-tree-diagrams.md` — the graphic command-tree diagrams the
   control-hierarchy executor asks for
+- `publish-layouts-and-operational-params.md` — the layout closure and
+  the operational-params pair from staging to published once the fleet
+  runs them, and the wire words that still have no sema word minted
 
 ## Related work
 

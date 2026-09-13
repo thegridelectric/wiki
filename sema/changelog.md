@@ -11,8 +11,34 @@ repo's git history.
 Newest at the top.
 ---
 
-<!-- pending commit -->
-## 2026-09-12 — House0 relays on per-relay components against the Krida board record; one I2C actuation path
+## 2026-09-12 — The 0-10V power-on level moves to operational-params; dac.output.config is wiring only; Gp8403 (`9cdeec5`)
+
+**What:** new type `zero.ten.power.on/000` (staging: NodeName,
+PowerOnVoltsTimesTen; Axiom 1 TenVoltCeiling, template, fixture and
+test). Both operational-params words gain the required
+`ZeroTenPowerOnList` (Axiom 2 ZeroTenPowerOnNodeUniqueness; the window
+axiom renumbers to 3; `created` re-stamped to the sitting, dependency
+ordering). `dac.output.config/000` drops PowerOnRawValue, PowerOnVref,
+PowerOnGain and its EepromRanges axiom (template and tests retired;
+the `i2c.dac.output.component.gt` example and fixture follow).
+`i2c.dac.type/000` appends `Gp8403`. `dfr.component.gt` and
+`dfr.config` get `replaced_by` (i2c.dac.output.component.gt,
+dac.output.config) and leave `gw.house0.layout`'s Components union.
+Indexes rebuilt, runtime regenerated. All edits in place: every word is
+staging.
+
+**Why:** the power-on level is what a pump does with the scada down, a
+per-house choice, so it is operational rather than wiring, in the unit
+the AnalogDispatch command and the VoltsTimesTen channel already use.
+Chip and board facts (code span, reference and gain bits, full-scale
+terminal volts, whether the chip stores a power-on value) are fixed by
+the choice of device and stay in scada driver tables, so nothing else
+is added to the DAC words. The GP8403 value lets the House0 board
+record carry its DFRobot modules as DAC entries, which puts House0's
+0-10V outputs on the same per-output component and actor arm as the
+gw108's. Design: OPS-392.
+
+## 2026-09-12 — House0 relays on per-relay components against the Krida board record; one I2C actuation path (`cf310df`)
 
 **What:** `gw1.scada.device.type.gt/000` (staging, in place) gains the
 required `RelayEnergizedLevel` field (`non.negative.int`) with Axiom 5
