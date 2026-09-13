@@ -52,6 +52,28 @@ release checks against that schema. The registry status only matters
 when the consumer runs on a non-dev broker, which the public registry
 already governs.
 
+## Growing a snapshot, and growing the registry
+
+Two different acts. Adding words that already exist to a snapshot is an
+edit to the consumer's seed request and a regen with the same installed
+version; no release is involved. Authoring a new word is a change to the
+registry: pull request to `dev`, merge, promotion, release from `main`,
+then the consumer bumps its pin and regenerates. The release is what puts
+the new word in the tool that generates snapshots. Draft words never
+reach a snapshot under any route; the public registry excludes them.
+
+That makes our release cadence a gate on other people's words, since the
+spec has one registry and namespaces only scope names inside it. Two
+rules keep the gate open:
+
+- **Release on every merge to `main`**, automated: CI builds the wheel and
+  tags it, so a promotion wave and a release are one event and nobody
+  waits. New vocabulary is a minor bump; tooling-only change is a patch.
+- **Pre-release wheels from `dev`** for a contributor whose word is still
+  staging. Staging words run on dev brokers only, so a dev wheel that
+  carries them matches the status rules: staging word, dev wheel, dev
+  broker; published word, release wheel, any broker.
+
 ## The one code change
 
 Every sema tool locates the repo tree from its own file
@@ -64,9 +86,7 @@ changes.
 
 ## Open
 
-- Release cadence and version scheme: a release per promotion wave;
-  whether the minor number tracks new published words and the patch
-  number tooling, or the spec draft number leads.
+- Whether the spec draft number should lead the major version.
 - Where the package is published: PyPI, or a git tag installed by URL
   until the name is worth claiming. PyPI is the stranger-friendly answer
   and the launch is for strangers.
