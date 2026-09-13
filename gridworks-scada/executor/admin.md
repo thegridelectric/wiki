@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-10
+Status: Draft · Pass 0 · Updated 2026-09-13
 
 # Admin (pointer)
 
@@ -22,10 +22,15 @@ Scada-side facts (the seam, not the domain):
 - The admin handlers live in `scada.py` (`AdminDispatch` /
   `AdminAnalogDispatch` / `AdminKeepAlive` / `AdminReleaseControl`);
   TopState `Auto → Admin` suspends hierarchical control while an
-  operator holds the house. An `AdminDispatch` is re-addressed to the
-  node its `ToHandle` names and delivered as that node's own command;
-  the node answers admin as it would any boss (control-hierarchy
-  "Command replies").
+  operator holds the house. An `AdminDispatch` or
+  `AdminAnalogDispatch` is unwrapped and delivered in-process to the
+  node its `ToHandle` names, header source `admin`, payload untouched:
+  the admin client authors `FromHandle admin` and `ToHandle` the node's
+  handle under admin, so the node's two authority checks
+  (control-hierarchy "Command interfaces and replies") read the admin
+  client's own claim. Admin is the only party outside the scada that
+  commands an actuator; the LTN has no path to a relay or a 0-10V
+  output except through the leaf ally's place in the tree.
 
 Everything else — trust model, prod-broker migration, client form
 factors, audit — is in the gridworks-admin executor.

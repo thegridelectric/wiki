@@ -10,6 +10,21 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-13 — patch DAC bug (`6bfa2bf9`)
+
+The 0-10V code clamps at the chip's top code: full scale wrote 0 V on
+the GP8403.
+
+The beech witness of the per-output 0-10V arm (2026-09-13) drove the
+dist pump cleanly at 2, 5 and 8 V, and at 10 V the pump fell to its
+lost-signal speed: `code_from_volts_times_ten` rounds full scale to
+4096, one past the last 12-bit code, and `gp8403.encode_word` masks
+it to 0. The retired multiplexer's `int(4095 * value / 100)` never
+reached 4096. One clamp to `codes - 1` where the code is derived; the
+MCP4728 tops at code 4000 at 10 V and was never exposed. The GP8403
+wire-byte test now pins level 100 (word `0xFFF0`), and the gw108 sim
+rig gets a full-scale dispatch test.
+
 ## 2026-09-13 — The LTN's remaining dev senders go (keep-seconds reset, valve send/keep harder, LWT control params) (`2a93b51e`)
 
 Four more hand-authored senders on the LTN, uncalled and addressing the

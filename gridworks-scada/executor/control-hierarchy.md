@@ -178,8 +178,9 @@ in the tree. The receiver compares them.
 
 1. **FromHandle mismatch** (the source node's handle is not the
    payload's `FromHandle`): the message is misrouted or forged and there
-   is nobody to answer. The node logs, sends a `Glitch`, and stops. The
-   receiver reports because it is the only party that can.
+   is nobody to answer. The node logs, sends a warning `Glitch`
+   (`bad_sender`), and stops. The receiver reports because it is the
+   only party that can.
 2. **Stale ToHandle** (`ToHandle` is not the node's live handle): the
    node replies `gw.dispatch.nack` with `NotMyBoss` to the sender and
    stops, and says nothing else. Only the sender knows whether the
@@ -195,7 +196,10 @@ both checks: relay (`actors/relay.py` `_process_event_message`),
 hp-boss (`actors/hp_boss.py` `process_fsm_event`), five-v-boss
 (`actors/five_v_boss.py` `process_fsm_event`), pico-cycler
 (`actors/pico_cycler.py` `process_fsm_event`), 0-10V outputer
-(`actors/zero_ten_outputer.py` `process_analog_dispatch`). Every node
+(`actors/zero_ten_outputer.py` `process_analog_dispatch`). In each the
+message handler resolves the header source to a layout node and hands
+it to the command handler with the payload; a source not in the layout
+is dropped before either check. Every node
 that takes commands joins this list as it is built; sieg-loop under
 admin and the thermostat state machines are next. The check reads only
 the shared envelope, so it is a candidate for one shared site on the

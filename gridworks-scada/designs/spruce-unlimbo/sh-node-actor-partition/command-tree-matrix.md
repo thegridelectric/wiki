@@ -36,53 +36,18 @@ transition. The same rehearsal witnessed admin driving all four Nolan
 relays (pump, iso, store pump, hp call) plus the DAC through the
 rewritten tree, the shape the "admin wakes up" row asserts.
 
-## One sender rule for five nodes (built 2026-09-13, `06dcfc3a`)
+## One sender rule for five nodes (✅ `06dcfc3a`, `2a93b51e`)
 
-Every message arrives with two names for the sender: the transport
-header's source (who put it on the wire) and the payload's FromHandle
-(who the sender claims to be in the tree). All five command nodes
-(relay, pico-cycler, hp-boss, five-v-boss, 0-10V outputer) now resolve
-the header source to a node in the message handler, hand it to the
-command handler, and refuse when its handle differs from FromHandle:
-log, one `bad_sender` warning glitch to the LTN, no reply to the claimed
-commander, stop. A stale ToHandle earns the NotMyBoss nack and nothing
-else; the nack is the report, so the `bad_boss` glitch is gone.
+Canonized in `executor/control-hierarchy.md` "Command interfaces and
+replies" (the two checks, in order, and the nodes holding them) and
+`executor/admin.md` (the admin dispatch forward; no LTN path to an
+actuator). Tests: the impostor case per node in
+`tests/actors/test_dispatch_replies.py`, the mis-sendered TurnOn in
+`test_hp_boss.py`, five-v-boss's stale and impostor cases, the cycler's
+nack-without-glitch.
 
-| Node | Stale ToHandle | FromHandle mismatch |
-| --- | --- | --- |
-| all five | NotMyBoss nack, return | log + `bad_sender` glitch, return |
-
-Why the outputer was the odd one: its handler passed the payload alone
-and the command handler looked the sender up by FromHandle, checking the
-claim against itself; the docstring justified it as reply routing. The
-reply still goes to the commander named by FromHandle; that never needed
-the lookup to double as authentication.
-
-The scada's analog-dispatch rebuild (HUGE HACK) is deleted. It re-authored
-the admin's AnalogDispatch under the scada's own name, which is why the
-outputer could never compare wire source with claim. The admin path now
-forwards the dispatch in-process with header source admin and the payload
-untouched, as AdminDispatch relay events already were (gwadmin's
-`dac_client.py` authors FromHandle admin, ToHandle the output's handle
-under admin). The LTN's four analog senders and the scada's wire branch
-accepting AnalogDispatch from the LTN are deleted with it: written before
-the admin panel, uncalled, and authoring `auto.dist-010v`-style handles
-that break the tree by construction. There is no scenario in the current
-tree where the LTN commands a DAC directly.
-
-Tests: one impostor case per node in `test_dispatch_replies.py` (plus
-sender-not-in-layout for the outputer); the mis-sendered TurnOn that
-hp-boss used to act on in `test_hp_boss.py`; five-v-boss's stale and
-impostor cases; the cycler's stale case asserts nack-without-glitch. The
-outputer rig had been sending as `lc` while the boot boss is the
-local-control normal node `n`; the rig now sends as the boss it names.
-
-Danglers:
-
-- The LTN's remaining dev senders (`reset_keep_seconds`, `send_harder`,
-  `keep_harder`, `set_lwt_control_params`) still hand-author
-  `ltn.leaf-ally` handles. Same smell, different words; untouched here.
-- Bosses glitching on an unexpected NotMyBoss nack goes with OPS-537.
+Dangler: bosses glitching on an unexpected NotMyBoss nack goes with
+OPS-537.
 
 ## Dormant is the leaf state (examined 2026-09-07)
 
