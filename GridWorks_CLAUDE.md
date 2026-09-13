@@ -1,6 +1,6 @@
 # GridWorks — working conventions for Claude
 
-Status: Accepted · Pass 2 · Updated 2026-08-27
+Status: Accepted · Pass 2 · Updated 2026-09-13
 
 > Canonical at `wiki/GridWorks_CLAUDE.md`; symlink setup in
 > [`README.md`](README.md#setup). Paths are relative to the umbrella dir
@@ -340,6 +340,16 @@ control manifold — no iso valve and no buffer tank; the third is a cement
 store-under-floor with no water tanks at all. Scada code SHALL NOT assume
 a buffer tank, an iso valve, or water store tanks exist; "shared" means
 every layout we can imagine has it, not both current families.
+
+**Periodic mypy sweep of scada `actors/` (no gate).** After any
+change that moves methods between actor base classes, and at each
+milestone, run `venv/bin/mypy --ignore-missing-imports
+--follow-imports=silent actors` from `gw_spaceheat/` and read only the
+`has no attribute` lines, filtered against the runtime-injected
+`transitions` trigger names. A reader on a plain base of a name that
+moved to a tier is the defect this catches (`bd13a371` left two; one
+stopped the scada, one silently stalled the sieg valve). Not a CI gate:
+the trigger noise and the hand-derived gwsproto make one mostly noise.
 
 **Run the repo's CI entrypoint before suggesting a code-repo commit** — the
 full gate (`ci.sh` or documented equivalent: lint, format, drift/codegen

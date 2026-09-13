@@ -1,6 +1,6 @@
 # Control hierarchy — HSMs, the command tree, and the capability cover
 
-Status: Draft · Pass 0 · Updated 2026-09-12
+Status: Draft · Pass 0 · Updated 2026-09-13
 
 > What this is: how the SCADA's hierarchical state machines (HSMs) and the command tree work **together**
 > — the piece the executor lacked. The HSM decides *who is in control*; the command tree *enforces* it via
@@ -151,7 +151,7 @@ actuator-scope)` — Scada passes all actuators, a sub-actor passes `my_actuator
 
 ## Command interfaces and replies
 
-Status: Verified · Pass 0 · Updated 2026-09-08 · Reviewed 2026-09-08@ea3365b5
+Status: Accepted · Pass 0 · Updated 2026-09-13
 
 These interfaces and replies are the scada's command surface toward
 admin, the first built to the cross-cutting pattern
@@ -159,25 +159,57 @@ admin, the first built to the cross-cutting pattern
 shape serves the surface toward the LTN.
 
 A command interface is three parts: vocabulary (an event enum named by
-`EventType` in `fsm.event`, with `EventName` constrained to it),
-authority (the command tree: `FromHandle` is the immediate boss of
-`ToHandle`), and feedback (a state enum reported through
-`single.machine.state`, plus `fsm.full.report` per command for
-actuators). Relays declare theirs in the layout word
+`EventType` in `fsm.event`, with `EventName` constrained to it; an
+analog value in `analog.dispatch`), authority (the command tree:
+`FromHandle` is the immediate boss of `ToHandle`), and feedback (a
+state enum reported through `single.machine.state`, plus
+`fsm.full.report` per command for actuators). Both command words carry
+the same authority envelope: `FromHandle`, `ToHandle`, `TriggerId`.
+Relays declare their vocabulary in the layout word
 (`relay.control.config`); hp-boss and the pico-cycler carry theirs in
 `Scada.COMMAND_NODE_INTERFACES` (`gw_spaceheat/actors/scada.py:1653`).
 The capability cover (above) is the set of these interfaces read off
 the live handles.
 
+**Two authority checks, in order, before a command is read.** A message
+names its sender twice: the transport header's source is who put it on
+the wire, and the payload's `FromHandle` is who the sender claims to be
+in the tree. The receiver compares them.
+
+1. **FromHandle mismatch** (the source node's handle is not the
+   payload's `FromHandle`): the message is misrouted or forged and there
+   is nobody to answer. The node logs, sends a `Glitch`, and stops. The
+   receiver reports because it is the only party that can.
+2. **Stale ToHandle** (`ToHandle` is not the node's live handle): the
+   node replies `gw.dispatch.nack` with `NotMyBoss` to the sender and
+   stops, and says nothing else. Only the sender knows whether the
+   refusal matters (a handover in progress, or a stale tree), so the
+   sender decides whether to report it. The journal holds 2,734
+   `bad_boss` glitches from 2025-01 to 2026-05, one per relay per
+   attempt, nearly all the house's own boss commanding relays whose
+   handles had already moved to the LTN side; the fact worth recording
+   was one stale tree per incident, at the boss.
+
+The receiver speaks only when nobody else can. Command nodes holding
+both checks: relay (`actors/relay.py` `_process_event_message`),
+hp-boss (`actors/hp_boss.py` `process_fsm_event`), five-v-boss
+(`actors/five_v_boss.py` `process_fsm_event`), pico-cycler
+(`actors/pico_cycler.py` `process_fsm_event`), 0-10V outputer
+(`actors/zero_ten_outputer.py` `process_analog_dispatch`). Every node
+that takes commands joins this list as it is built; sieg-loop under
+admin and the thermostat state machines are next. The check reads only
+the shared envelope, so it is a candidate for one shared site on the
+command-node base rather than a copy per handler.
+
 Every command node answers the boss that commanded it, through
 `gw_spaceheat/actors/command_reply.py`: `gw.dispatch.ack` on take,
 `gw.dispatch.nack` with a `gw.scada.cmd.refusal.reason` on refusal.
-Relays (`actors/relay.py:305`), hp-boss (`actors/hp_boss.py:106`), the
-0-10V outputer (`actors/zero_ten_outputer.py:185`) and the pico-cycler
-(`actors/pico_cycler.py:498`) all reply; the reasons in use are Busy
-(the cycler mid-cycle), UnknownEvent and OutOfRange. Admin is a boss
-like any other and gets the same replies. Interior bosses do not yet
-consume the acks their own relays send
+The reasons in use are NotMyBoss, Busy (the cycler mid-cycle),
+UnknownEvent and OutOfRange. Admin is a boss like any other and gets
+the same replies; it shows a nack to the operator and does not glitch.
+Interior bosses do not yet consume the acks and nacks their own relays
+send, and the one-glitch-per-stale-tree report on an unexpected
+NotMyBoss rides with that work
 ([OPS-537](https://linear.app/gridworks/issue/OPS-537)).
 
 ## five-v-boss: the 5 V hold

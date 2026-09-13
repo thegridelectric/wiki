@@ -1,6 +1,6 @@
 # snapshot-drift-check — vendored sema snapshots are provably unedited
 
-Status: Draft · Pass 0 · Updated 2026-09-12 · Linear: OPS-536
+Status: Draft · Pass 0 · Updated 2026-09-13 · Linear: OPS-538
 
 **EDD: no** build-out of a CI check; verified by running it against a
 deliberately hand-edited snapshot and against a clean one.
@@ -73,9 +73,10 @@ Resolve this first; everything else follows from it.
 - The sema CLI refuses to run from a dirty checkout; a CI clone is clean by
   construction, and the pinned commit must exist on the remote (a pin to an
   unpushed local commit is the failure to name in the error).
-- Making sema a proper pip-installable package (the CLI currently locates
-  its repo tree at import time, in `reverse_query.py`) is worth doing but is
-  not on this design's path; the clone-and-`uv run` route needs none of it.
+- The pin is a package version once sema is published from `main`
+  (`consumer-conformance.md`), and the rebuild runs the installed tool.
+  The clone-and-`uv run` route is the fallback only while no release
+  exists.
 
 ## Do this next
 

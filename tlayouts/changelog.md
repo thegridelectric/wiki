@@ -10,6 +10,13 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-13 — Snapshot regen: House0 layout axiom 10 clause c and axiom 15 ComponentBinding (`44050b1` on jm/spruce)
+
+The vendored snapshot follows the sema commit that adds the 0-10V
+component binding clause and `ComponentBinding` to `gw.house0.layout`;
+no generator change, the sim House0 gen already emits per-output
+components and the web-server node.
+
 ## 2026-09-10 — snapshot regen: RelayEnergizedLevel on the board records (`c4c026a` on jm/spruce)
 
 The vendored snapshot regenerated from sema `7d58bd1`: `gw1.scada.device.type.gt`

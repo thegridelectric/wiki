@@ -1,6 +1,6 @@
 # Spruce un-limbo (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-09-12 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-09-13 · Linear: OPS-392
 
 **EDD: yes** bench (honeysuckle) and box harness runs are the verification;
 spokes reach Verified only when an experiment runs against the real bus or a
@@ -57,6 +57,9 @@ The order is roughly the priority order.
   cleanup after the HydronicLayout collapse
 - **`sh-node-actor-partition/` — the five-strata split of the god
   base class; tiers, role-first dirs, `hydronic/` family files (active)**
+- `sieg-command-tree.md` — the Siegenthaler loop's tier and command
+  surface (admin included); `SiegLoop` sits on `House0Hydronic` until
+  then; opens with the fall layouts
 - `nolan-local-control/` — the loop that runs a Nolan house through a
   heating season; gathers the scattered LC pieces; opens after the
   partition rope

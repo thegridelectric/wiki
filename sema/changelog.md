@@ -9,6 +9,19 @@ This changelog does NOT track wiki edits — those live in the wiki
 repo's git history.
 
 Newest at the top.
+
+## 2026-09-13 — House0 layout word: axiom 10 binds each 0-10V output to a DAC output component; axiom 15 ComponentBinding (`8c21017`, titled "improvements to house0 layout")
+
+`gw.house0.layout/000` (staging, edited in place) catches up to the Nolan
+word now that the House0 fixtures carry per-node components. Axiom 10
+`RequiredActuators` gains clause c: each of `dist-010v`, `primary-010v`
+and `store-010v` has a ComponentId that is an `i2c.dac.output.component.gt`
+in Components (Nolan axiom 5c's wording, for three nodes). New axiom 15
+`ComponentBinding`, Nolan axiom 7 verbatim: every component referenced by
+exactly one ShNode, the node's Name being the part's identity in the house
+and the ComponentId the replaceable instance. House0 could not carry it
+while the krida multichannel relay component was shared by fourteen relay
+nodes. Runtime axiom template extended to match; indexes rebuilt.
 ---
 
 ## 2026-09-12 — The 0-10V power-on level moves to operational-params; dac.output.config is wiring only; Gp8403 (`9cdeec5`)

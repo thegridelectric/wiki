@@ -1,6 +1,6 @@
 # Publish the layouts and the operational params (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-12 · Linear: OPS-532
+Status: Draft · Pass 0 · Updated 2026-09-13 · Linear: OPS-532
 
 > What this is: the after-deploy publishing round. The fleet moves onto
 > the new code with the hardware layouts and the operational-params
@@ -37,6 +37,25 @@ Status: Draft · Pass 0 · Updated 2026-09-12 · Linear: OPS-532
    hand today: every gwsproto schema pin and every word in the closure
    copy against the registry's status. Once the closure is published,
    the test can require it, so a staging word on the wire fails CI.
+
+## Parameters coming down from the LTN
+
+The LTN once carried a dev sender for the loop's leaving-water
+controller (`set.lwt.control.params`: proportional, integral and
+derivative gains, control interval, T1, T2; defaults 5.0 / 2 / 1 / 5 s
+/ 15 / 65), addressed `ltn` to `ltn.leaf-ally`. Deleted 2026-09-13,
+uncalled; the scada-side receiver `process_set_lwt_control_params`
+remains. It is the one concrete instance so far of the general
+question this spoke has to answer: how the LTN sends a scada new
+operational params, and a new layout, in production. A controller's
+gains are operational params, not a command; they belong in the
+operational-params word and arrive the way the rest of that word does,
+not as a one-off wire word addressed at a handle. The shape to settle
+here: whether the LTN publishes a whole new ops-params instance the
+scada adopts atomically (and what the scada does with a running
+controller when the gains change), or the ops word gains a versioned
+partial update; and the same for the layout, where adoption means a
+restart today.
 
 ## Open
 

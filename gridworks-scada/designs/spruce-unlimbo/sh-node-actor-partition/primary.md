@@ -1,6 +1,6 @@
 # sh_node_actor partition (rope hub)
 
-Status: Draft · Pass 0 · Updated 2026-09-10 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-13 · Linear: OPS-392
 **EDD: yes** the simulated House0 and spruce runs and the real-house
 witness runs are the verification; a chunk reaches Verified only when
 one of them exercises it (`experiments/`).
@@ -321,7 +321,7 @@ principles (one settled name per commit):
 
 ## ▶ Do this next
 
-**▶ Active spoke: [`pico-cycler-command.md`](pico-cycler-command.md)**
+**▶ Active spoke: [`command-tree-matrix.md`](command-tree-matrix.md)**
 
 **Queue, in order.** Each item is its own commit with its own estimate
 (scopes on OPS-392). Jessica reviews each file before it lands:
@@ -341,7 +341,7 @@ GridWorks_CLAUDE ⏳ note).
    emitted (`experiments/2026-09-07-admin-reboots-picos/`). This is the
    journal half of reading a pico flatline off the database; the spruce
    half is `pico-cycler-command.md` item 6.
-5. [`command-tree-matrix`](command-tree-matrix.md) (3h; `actors/command_node.py`, 207 L): the state-transition tree matrix on `command_node.py`, with the LC dormant-sequence row.
+5. **[`command-tree-matrix`](command-tree-matrix.md)** (3h; `actors/command_node.py`, 207 L): the sender rule for five nodes (built), then the state-transition tree matrix on `command_node.py`, with the LC dormant-sequence row.
 6. ✅ DONE `admin-scada-peer-liveness` (under 1h, 0.3h actual): in the Done table. The liveness and takeover work is the admin domain's [OPS-529](https://linear.app/gridworks/issue/OPS-529).
 7. `hydronic-shared-review` and `hydronic-house0-review` (2h each): folded into the hub's [`correct-house0`](../correct-house0.md) as the walk-through that carries the House0 names retirement (2026-09-11).
 9. ✅ DONE `is-simulated-decompression` (1.5h, 0.5h actual): in the Done table; canonized as `executor/scada-ltn-link-state.md` "The trading gate" (2026-09-12).
@@ -367,6 +367,16 @@ commit or a decision):
   `e0029d3d`): 2.5 expected post periods to missing, one report at the
   crossing then one a minute, shared by the tank, BTU and flow actors;
   tests in `tests/actors/test_pico_liveness.py`.
+- Move residue from `bd13a371`: two plain-`ShNodeActor` readers of
+  moved names were not repointed, `DerivedGenerator` (`latest_temps_f`,
+  `required_kwh`; the loud one, it stops the scada) and `SiegLoop` (six
+  House0 choreography names; silent, the movement error is swallowed).
+  Closed by the queue in `../house0-zero-ten-outputs.md`. What it
+  exposes about the tiers: C+D stack on B (`HydronicNode` extends
+  `CommandNode`), so a plant-judgment reader outside the tree (the
+  derived generator) has no tier to inherit; and the sieg choreography
+  is not House0's once a fall layout has the loop without the House0
+  set (`../sieg-command-tree.md`).
 - hp-boss assumes `HpOn` at construction without reading the relay;
   the relay adopts its own state at boot (`_boot_adopt`), hp-boss does
   not. Small commit with a test (`../unsorted/relay-tests.md` item 4 is

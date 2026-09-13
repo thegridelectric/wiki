@@ -1,6 +1,6 @@
 # House0 0-10V per-output components (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-09-12 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-09-13 · Linear: OPS-392
 
 > What this is: House0's three `*-010v` outputs onto per-output
 > components on the shape the gw108 DAC output already has
@@ -197,12 +197,40 @@ which stays with the twins.
   `dfr.config`, both ops words, both layout words at 000): edits are
   in place. Claims `sema/` and `tlayouts/` while it runs.
 
-## ▶ Do this now: the House0 binding (step 5)
+## ▶ Do this now: the sim soak, then the House0 binding (step 5)
 
-Steps 1–4 are built (below). Next, on `jm/spruce-unlimbo`: House0
-axiom 10's ComponentId clause and House0's ComponentBinding
-(`layout-word-axioms.md` items 6 and 7a); the binding test is skipped
-until then. Then the witness.
+Steps 1–4 are built (below). Before step 5 and before the beech window:
+the sim House0 pair must run 10 minutes clean on the dev broker, idle
+and then with the sweep driver in front. The dev rung's shutdown traced
+to partition residue (scada `bd13a371` moved 82 defs off `ShNodeActor`;
+two plain-`ShNodeActor` readers were not repointed), so the queue is:
+
+1. ✅ DONE `SiegLoop` onto `House0Hydronic` (six moved names; its movement
+   errors were swallowed by "Error during movement" and the valve
+   never moved). Interim: `sieg-command-tree.md` is where it ends.
+   Test: one keep-more movement on the sim House0 fixture sends the
+   relay commands and logs no movement error.
+2. ✅ DONE `DerivedGenerator` reads `self.data.latest_temperatures_f` and the
+   required-energy channel directly (lines 755 and 846); it stays on
+   tier A, it is a producer outside the command tree. Test: the
+   keepalive survives its first main-loop pass after a forecast.
+3. ✅ DONE Delete `orig_sieg_loop.py` (signed-off kill list); `sieg_loop.py`
+   points at scada `c55fe9eb` for the original.
+4. ✅ DONE mypy over `gw_spaceheat/actors/` once (no moved-name read remains); post the attribute-error
+   list and close every plain-base read of a moved name it finds.
+5. ✅ DONE typing decision: no gate (the `transitions` triggers and
+   the hand-derived gwsproto make a gate mostly noise); a periodic
+   mypy sweep of `gw_spaceheat/actors/` filtered to attribute errors,
+   recorded in GridWorks_CLAUDE's scada renovation section.
+
+Then the soaks (✅ DONE 2026-09-13: idle and with the driver, both 10
+minutes clean on scada `3f607f8c`). A fault on a missing channel or node is hand-added to
+`tests/config/gw.house0.sim.layout.json` and to the beech window pair
+in the witness folder's `instances/` (and to its `derive_layout.py`
+so a re-derive keeps it), with a line in `correct-house0.md`. Then on
+`jm/spruce-unlimbo`: House0 axiom 10's ComponentId clause and House0's
+ComponentBinding (`layout-word-axioms.md` items 6 and 7a); the binding
+test is skipped until then. Then the witness.
 
 **Found during step 4, for whoever picks up next:**
 
@@ -219,11 +247,8 @@ until then. Then the witness.
   drifts (`gw1.quantity`, `gw1.unit` at 002 vs snapshot 001).
 - The witness rung's dev run (sim House0 on the dev broker, scada
   `17e277d3`) proved the arm end to end through admin and the bus
-  actor, then the scada shut itself down: `DerivedGenerator` has no
-  `latest_temps_f` on the House0 sim fixture, its keepalive dies at
-  boot and the watchdog stops the proactor two minutes in. Not this
-  step's code; it must be fixed before the beech window (the same
-  shutdown would end the window mid-sweep).
+  actor, then the scada shut itself down on the derived generator's
+  missing `latest_temps_f`; the queue above closes it.
 
 **What the step-4 session knew first (kept for the record):**
 
@@ -287,17 +312,18 @@ until then. Then the witness.
    re-surveyed and retired, per-output resolution on both House0
    fixtures, the sim pair driving its DACs through the real bus actor,
    each output reporting `ActuatorsReady`; suite green.
-5. **House0 (do this now, above):** axiom 10's ComponentId clause and
-   House0's ComponentBinding (`layout-word-axioms.md` items 6 and 7a;
-   the binding test is skipped until then).
-6. Witness (below; rung set up 2026-09-12, dev run done, beech
-   window waits on the derived-generator fix noted above), then the
-   close-down on the krida pattern.
+5. ✅ DONE (sema `8c21017`, tlayouts `44050b1`, scada `e6d5b39b`) axiom
+   10's ComponentId clause c and House0's ComponentBinding as axiom 15
+   (`layout-word-axioms.md` items 6 and 7a); the binding test un-skipped,
+   the real House0 fixture given its web-server node (the one orphan
+   component left after the krida retirement).
+6. Witness (below; rung set up 2026-09-12, dev run and both soaks
+   done, beech pulled), then the close-down on the krida pattern.
 
 ## Witness, gate, definition of done
 
 - **Witness:** `experiments/2026-09-12-beech-dist-010v-sweep/` (set
-  up 2026-09-12, not yet run): a `dist-010v` sweep on beech in a window
+  up 2026-09-12, beech not yet run): a `dist-010v` sweep on beech in a window
   scada on the krida witness rig, the zone1-down heat call in front so
   the dist pump runs, `dist_sweep.py` on the box; dist flow and the
   reported `VoltsTimesTen` channel at each step, the deployed scada
@@ -313,3 +339,18 @@ until then. Then the witness.
 - **Done:** one component word and one actor arm for every 0-10V
   output in both families, power-on levels in the ops words, the
   multiplexer and the DFR words gone, the beech witness Verified.
+
+## Findings
+
+Surfaced by the 2026-09-13 mypy sweep and the residue read; each is a
+small fix with a test, or a decision to leave it.
+
+- `scada.py:119,121` read `is_simulated` and `scada.py:1043` reads
+  `validation_state` off `AppInterface`, which declares neither; the
+  concrete app has them. Either the interface gains them or the reads
+  narrow to the concrete type.
+- `ltn.py` calls `self.send_threadsafe`, which `Ltn` does not have.
+- `derived_generator.py:843` (`evaluate_strategy`): the buffer's usable
+  energy in kWh is compared against the required-energy channel in Wh,
+  so the "consider all tanks" advisory fires a thousand times too
+  readily. Same on `dev`, in the field for the season. Advisory only.

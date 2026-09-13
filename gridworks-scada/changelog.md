@@ -10,6 +10,71 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-13 — The LTN's remaining dev senders go (keep-seconds reset, valve send/keep harder, LWT control params) (`2a93b51e`)
+
+Four more hand-authored senders on the LTN, uncalled and addressing the
+leaf ally by a `ltn.leaf-ally` handle the tree never produces: written
+for troubleshooting the Siegenthaler loop before the admin panel
+existed. Deleted with the analog senders' reasoning. The scada-side
+receivers stay. What the three loop senders did is recorded in the sieg
+command-tree design; the LWT control-params sender is recorded with the
+publish-layouts-and-operational-params design, since a controller's
+parameters coming down from the LTN is an operational-params question,
+not a command.
+
+## 2026-09-13 — One sender rule for five command nodes; the analog-dispatch rebuild and the LTN's analog senders go (`06dcfc3a`)
+
+Every command node now checks the sender the same way: the transport
+header names who put the message on the wire, the payload's FromHandle
+names who the sender claims to be, and a mismatch is logged, glitched
+(`bad_sender`) and dropped before anything actuates. hp-boss used to log
+the mismatch and keep processing; five-v-boss never checked; the 0-10V
+outputer looked its sender up by the payload's own FromHandle, checking
+the claim against itself. The outputer's message handler now resolves the
+header source and hands the node to the command handler like the other
+four. A stale ToHandle keeps its NotMyBoss nack but no longer also
+glitches `bad_boss`: the nack is the report.
+
+The scada's analog-dispatch rebuild (the HUGE HACK) is deleted. It
+re-authored the admin's AnalogDispatch under the scada's own name with a
+derived FromHandle, which is why the wire source could never be checked
+against the claim. The admin's dispatch is now forwarded in-process with
+header source admin and the payload untouched, the way AdminDispatch relay
+events already were; the admin client authors FromHandle admin and
+ToHandle the output's handle under admin, so nothing needs rebuilding.
+With it go the LTN's four analog senders (keep-seconds, dist, primary and
+store 0-10V) and the scada's wire branch accepting AnalogDispatch from the
+LTN: written before the admin panel existed, uncalled, and authoring
+handles ("auto.dist-010v") that break the command tree by construction.
+The outputer test rig had been sending as `lc` while the boot boss is the
+local-control normal node; it now sends as the boss it names.
+
+## 2026-09-13 — House0 layout mirror: axiom 10 clause c and axiom 15 ComponentBinding; the real House0 fixture gets its web-server node (`e6d5b39b`)
+
+`House0Layout` mirrors the word's two additions (`check_axiom_10` clause
+c, `check_axiom_15`). The hand-kept real House0 fixture had a web-server
+component no node referenced, the one binding violation left after the
+krida retirement; it gains the `web-server` NoActor node the sim and Nolan
+fixtures already have. The skipped ComponentBinding test becomes the
+axiom-15 reject test (orphan the web server), and a clause-c test rebinds
+`dist-010v` to the wrong component kind. Both House0 fixtures and Nolan
+pass; suite 541. The closure registry copy is refreshed from the tlayouts
+snapshot in the same wave.
+
+## 2026-09-13 — Partition residue: SiegLoop onto House0Hydronic, DerivedGenerator reads its data directly, orig sieg loop deleted (`3f607f8c`)
+
+The partition (`bd13a371`) moved 82 defs off `ShNodeActor` and left two
+plain-base readers unrepointed. `DerivedGenerator` died on
+`latest_temps_f` a minute into every boot once a forecast arrived and
+its watchdog stopped the scada (the 0-10V witness's dev rung caught it);
+it now reads `self.data` directly and stays a producer outside the
+command tree. `SiegLoop` lost six choreography names and its movement
+error was swallowed, so the valve silently never moved; it inherits
+`House0Hydronic` as an interim, with the sieg tier and admin surface to
+be designed before the fall layouts. `orig_sieg_loop.py` goes per the
+signed-off kill list; `sieg_loop.py` points at `c55fe9eb` where the
+original still ran. Each fix carries its first test.
+
 ## 2026-09-12 — House0's three 0-10V outputs on per-output components against the Krida record; the GP8403 arm; the multiplexer retired (`17e277d3`)
 
 **What.** Both House0 fixtures: the `zero-ten-multiplexer` node and its

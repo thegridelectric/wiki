@@ -112,6 +112,10 @@ and to push back when the focus runs too small or pulls away from it (see
   trust-building (already present in the GNode roles — World, TimeCoordinator,
   NetworkModeler — and the SCADA simulated-test-environment design). See
   [`hybrid-game.md`](hybrid-game.md).
+- **Agents as participants** — AI agents and swarms join the way anyone
+  joins: speak Sema, build a slice of the tree, play in the sim, cross into
+  reality through a human validator. Make the grid the most attractive game
+  a swarm can find. See [`agents-as-participants.md`](agents-as-participants.md).
 - **Permissionless eyes** — independent measurement of constrained lines as
   the act that bootstraps a MarketMaker, buildable without utility permission.
   See [`permissionless-eyes.md`](permissionless-eyes.md).

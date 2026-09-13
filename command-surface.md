@@ -1,6 +1,6 @@
 # command-surface — what a command surface is and how we build one
 
-Status: Draft · Pass 0 · Updated 2026-09-12
+Status: Draft · Pass 0 · Updated 2026-09-13
 
 > What this is: the cross-cutting pattern for a **command surface**: the
 > declared set of commands one GridWorks party offers to one counterparty,
@@ -131,11 +131,13 @@ surface is built against it.
   whether the interface lives on the ShNode word (shared with every
   consumer) or in a sibling list keyed by node name (a layout-word-only
   change); whether `new.command.tree` carries it or stays authority-only.
-- Two refusals with no speaker. NotAControlNode: only the scada's routing
+- One refusal with no speaker. NotAControlNode: only the scada's routing
   knows a dispatch target is not a command node (`process_admin_dispatch`
-  finds no communicator and drops it silently). hp-boss's `FromHandle`
-  mismatch only logs. Decide who speaks and whether the admin sees them,
-  with the command-interface work.
+  finds no communicator and drops it silently). Decide who speaks and
+  whether the admin sees it, with the command-interface work. (The
+  `FromHandle` mismatch is settled: the receiver logs, glitches, and
+  stops; scada executor `control-hierarchy.md` "Command interfaces and
+  replies".)
 - Command enums still without sema words: `top.event`,
   `change.heat.pump.control`, every LocalControl and LeafAlly event enum;
   the LC and ally state words still carry the `gw1` prefix.
