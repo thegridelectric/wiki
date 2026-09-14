@@ -1,6 +1,6 @@
 # Command-node vocabulary — inconsistent uses (HOLD spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-532
 
 **EDD: no** a vocabulary-coherence spoke; verification is the sema word-gate
 plus the conformance suite once the terms settle.
@@ -77,14 +77,13 @@ actuator is commandable + actuator, never commanding). Under this reading the
 Settling this edits change-controlled vocabulary (`new.command.tree`,
 `scada.control.capabilities`, the layout words' axiom names) plus their
 gwsproto mirrors and every doc and docstring that uses the term — a
-deliberate sema word-gate sitting, its own flat Linear issue (shared
-vocabulary, per the designs-process convention). Not folded into any current
-build. The `command_reply.py` docstring keeps "command nodes" for now (only
+deliberate sema word-gate sitting, resolved in its own nested spoke when the
+command-node work comes up. Not folded into any current build. The `command_reply.py` docstring keeps "command nodes" for now (only
 the stale count was generalized); it is corrected when the taxonomy lands.
 
 ## Do this next
 
-Open the flat Linear issue. Take the taxonomy through the sema word-gate —
+Take the taxonomy through the sema word-gate —
 decide which of Commanding / Commandable / Actuator become vocabulary and
 whether `CommandNode` is retired or made the umbrella — then sweep the
 docstring, the `scada.control.capabilities` field, and the axiom prose to

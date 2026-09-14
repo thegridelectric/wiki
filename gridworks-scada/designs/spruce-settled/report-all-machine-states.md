@@ -130,8 +130,7 @@ what they are: they are control-path messages, not journal messages.
   from alias) and the running count in the periodic summary at info,
   so "was anything dropped" is readable from the log. Small change in
   gridworks-journalkeeper, its own commit.
-- The `journalkeeper-pico-states` item on the
-  `../spruce-unlimbo/sh-node-actor-partition.md` queue (vendor the four
+- The `journalkeeper-pico-states` item (vendor the four
   enum words) is the
   first step of the rule above; the rule retires the per-word vendoring
   as a manual step.

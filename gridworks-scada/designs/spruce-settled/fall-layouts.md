@@ -7,19 +7,14 @@ Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linea
 > what is known about each so the partition/names work is shaped for N
 > families, not 2. Details being filled in with Jessica.
 
-## The third in-field family first: `gw.house0.no.sieg` (not built yet)
+## The third in-field family: `gw.house0.no.sieg`
 
-Honesty about the fleet: there are already THREE layouts in the field.
-`gw.house0.layout` (has a siegenthaler loop — maple, beech),
-`gw.nolan.layout`, and the sieg-less house0 topology that **oak, fir,
-and elm** actually are — to be authored as **`gw.house0.no.sieg`**. A
-sieg loop is a topology change (family), not a variant; whether the
-loop is USED is an operational param (`UseSiegLoop` migrates layout →
-ops), and hp-boss/sieg-loop sit dormant when unused. Today's
-`gw.house0` test fixture has `UseSiegLoop: false` — it has been quietly
-modeling this third family and likely becomes its fixture when the
-word is authored. Not being built now; the house0 word's
-sieg-unconditional tightening waits on it.
+There are three in-field layout families, not two: `gw.house0.layout`
+(has a siegenthaler loop — maple, beech), `gw.nolan.layout`, and the
+sieg-less house0 topology that **oak, fir, and elm** actually are,
+authored as `gw.house0.no.sieg`. Authoring that word and its oak / fir /
+elm generators is a launch item and moved to OPS-392; this spoke keeps
+the per-install physical detail below.
 
 ## The four
 

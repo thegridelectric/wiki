@@ -14,130 +14,100 @@ real broker.
 > launch needs is a spoke here; what makes the deployed line good over
 > the season is `../spruce-settled/`.
 
-## Spokes
-
-In priority order. Launch items are the ones the six-box deploy cannot
-go without.
-
-- ✅ DONE krida-retirement — House0 relays onto per-relay components
-  against the Krida board record, one I2C actuation path, the relay
-  multiplexer retired; witnessed on beech 2026-09-11
-- ✅ DONE house0-zero-ten-outputs — House0's three 0-10V outputs onto
-  per-output components against the board record, one actor arm for
-  both chips, the power-on level in the ops words, the DFR multiplexer
-  actor retired; witnessed on beech 2026-09-13; in
-  `executor/hardware-layout.md` "The 0-10V output actuator"
-- ✅ DONE dac-output — the 0-10V output on the relay pattern; in
-  `executor/hardware-layout.md` "The 0-10V output actuator" and
-  `executor/running.md` "Experiment window on a deployed box"
-- ✅ DONE pico-cycler-command — the cycler under a command interface
-  with the ack pair, the per-pico state roster on the deployed line,
-  the sim pico source, the panel rows; est. 4h (2–8), actual 9.6h; with
-  five-v-boss, the 5 V hold above it, est. 5h (3–10), actual 2.5h; in
-  `executor/control-hierarchy.md` "The pico-cycler command" and
-  "five-v-boss: the 5 V hold", `executor/testing.md` "Pico liveness
-  in-process"
-- `correct-house0.md` — House0 made right: the fixture pair from the
-  sema-native gen and `sema validate` green, the H0N/H0CN retirement
-  carried through the hydronic file reviews, the House0 word's
-  requirement axioms to the Nolan shape
-- `sh-node-actor-partition.md` — the five-strata split of the god base
-  class: tiers, role-first dirs, names decisions, the rope's Done
-  ledger with estimate against actual per chunk; to retire: distill
-  into the executor, then delete (recipe in its "Do this next")
-- `command-tree-matrix.md` — the sender rule for five nodes (built), the
-  state-transition tree matrix on `command_node.py`, the relay's full
-  report to the journal
-- HOLD `command-node-vocabulary.md` — "command node" is used with
-  inconsistent meanings across the sema words and code (commander /
-  actuator / ack-replier); the Commanding–Commandable–Actuator taxonomy is
-  parked until the next command-node sitting (surfaced 2026-09-14 during the
-  `command_reply` docstring fix)
-- `zone-relays-and-thermostat-model.md` — the zone / circuit /
-  thermostat model in the layout, the relay actor's confirmed state, the
-  thermostat chunk (sim thermostat, setpoint discovery, first
-  Hubitat/Honeywell tests)
-- `operational-params-cleanup.md` — the ops words per family and the
-  coherence cleanup after the HydronicLayout collapse
-- `layout-word-axioms.md` — the staging axiom reshape of both layout
-  words + fixture/generator moves
-- `extra-pico-channels.md` — fancoil / floor1 / pipes1: which of their
-  channels and deriveds the Nolan layout word requires vs tracks
-- `control-strategy-selection.md` — the LTN and the scada select the
-  correct control strategy per house; ops chooses the machine, the
-  machine owns its state; the LTN side still to design
-- `nolan-local-control.md` — the loop that runs a Nolan house through a
-  heating season; opens after the partition rope
-- `refactor-sieg.md` — the sieg loop's first exercise on the new code;
-  the House0 rows of the hp-boss live test uncommented; before maple
-  and beech take the branch
-- `main-changes.md` — the commits `main` took after the branch point,
-  each carried or dismissed before the branch becomes `main`
-- `odds-and-ends.md` — small launch items, one problem / change / test
-  each (the panel's unobserved row offers every command; hp-boss
-  reports its state at start; the LTN Dst-routing test)
-- `finalize-layout-lite-13.md` — `layout.lite/013` and its closure from
-  staging to published so spruce can send it on the production broker;
-  `gw.nolan.layout` closes with the same promote
-
-Testing green for every layout family rides the simulated-test-environment
-design's harness.
-
-## The deadline driver
-
-**Deploy the new code on the whole fleet before the heating season.**
 Three layout families, six houses:
 
 - **spruce** — `gw.nolan.layout`; runs `jm/spruce-unlimbo` today.
 - **maple, beech** — `gw.house0.layout` (siegenthaler loop).
 - **fir, elm, oak** — House0 with no sieg loop, `gw.house0.no.sieg`;
-  not built yet (`../spruce-settled/fall-layouts.md`).
+  the word and gens are a launch item (`house0-no-sieg-layout.md`).
 
-Spruce's summer cooling runs on the box's summer hack (the monobloc heat
-pump cools through the fan coils; cooling never uses the radiant floor or
-the store tanks); the scada's takeover of it is the Nolan local control
-work.
+## Spokes
 
-## The conceptual model (the design's center of gravity)
+In priority order. Launch items are the ones the six-box deploy cannot
+go without.
 
-Three things the code conflated and the layouts separate:
+1. ✅ DONE krida-retirement (est 6h → ≈15h) —
+   House0 relays onto per-relay components against the Krida board record,
+   one I2C actuation path, the relay multiplexer retired; witnessed on beech
+   2026-09-11
+2. ✅ DONE house0-zero-ten-outputs (est 3h → 4.0h) — House0's three 0-10V
+   outputs onto per-output components against the board record, one actor arm
+   for both chips, the power-on level in the ops words, the DFR multiplexer
+   actor retired; witnessed on beech 2026-09-13; in
+   `executor/hardware-layout.md` "The 0-10V output actuator"
+3. ✅ DONE dac-output (est ?? → ≈9h) — the 0-10V output on the
+   relay pattern; in `executor/hardware-layout.md` "The 0-10V output
+   actuator" and `executor/running.md` "Experiment window on a deployed box"
+4. ✅ DONE pico-cycler-command (est 4h → 9.6h; five-v-boss est 5h → 2.5h) —
+   the cycler under a command interface with the ack pair, the per-pico state
+   roster on the deployed line, the sim pico source, the panel rows, plus
+   five-v-boss (the 5 V hold above it); in `executor/control-hierarchy.md`
+   "The pico-cycler command" and "five-v-boss: the 5 V hold",
+   `executor/testing.md` "Pico liveness in-process"
+5. ✅ DONE sh-node-actor-partition (est ?? → ??) — the
+   five-strata split of the god base class (A infra · B command-tree · C+D
+   hydronic per family · E zone-TOU) and the role-first directory shape; in
+   `executor/control-hierarchy.md` "The node-actor partition". The
+   hydronic-file reviews and H0N/H0CN retirement it surfaced carry on in
+   `correct-house0.md` rung 5
+6. `correct-house0.md` (OPS-539, per-rung) — House0 made right: the fixture
+   pair from the sema-native gen and `sema validate` green, the H0N/H0CN
+   retirement carried through the hydronic file reviews, the House0 word's
+   requirement axioms to the Nolan shape
+7. `operational-params-cleanup.md` — the ops words per family and the
+   coherence cleanup after the HydronicLayout collapse
+8. `nolan-local-control.md` — the loop that runs a Nolan house through a
+   heating season; opens after the partition rope
+9. `control-strategy-selection.md` — the LTN and the scada select the
+   correct control strategy per house; ops chooses the machine, the
+   machine owns its state; the LTN side still to design
+10. `layout-word-axioms.md` — the staging axiom reshape of both layout
+    words + fixture/generator moves
+11. `house0-no-sieg-layout.md` — the `gw.house0.no.sieg` word (House0 with
+    the sieg surface deleted) and the oak / fir / elm generators; three of
+    the six boxes are this family
+12. `extra-pico-channels.md` — fancoil / floor1 / pipes1: which of their
+    channels and deriveds the Nolan layout word requires vs tracks
+13. `relay-actor-enforcement.md` — the relay actor keeps every relay reliable
+    on the new code: assert-then-verify with I2C self-heal, confirmed state
+    from pin-readback, honest boot; the two relay-test gaps that witness it
+    pulled forward to launch. The zone-call / thermostat control model on top
+    is post-launch (OPS-532)
+14. `refactor-sieg.md` — the sieg loop's first exercise on the new code;
+    the House0 rows of the hp-boss live test uncommented; before maple
+    and beech take the branch
+15. `command-tree-matrix.md` (est 3h) — the sender rule for five nodes (built),
+    the state-transition tree matrix on `command_node.py`, the relay's full
+    report to the journal
+16. `odds-and-ends.md` — small launch items, one problem / change / test
+    each (the panel's unobserved row offers every command; hp-boss
+    reports its state at start; the LTN Dst-routing test)
+17. `main-changes.md` — the commits `main` took after the branch point,
+    each carried or dismissed before the branch becomes `main`
+18. `finalize-layout-lite-13.md` — `layout.lite/013` and its closure from
+    staging to published so spruce can send it on the production broker;
+    `gw.nolan.layout` closes with the same promote
+19. `deployment.md` — the fleet rollout to all six boxes as `main`:
+    precondition gates, per-family order and verification, rollback to the
+    prior SHA, and the post-launch tlayouts loop for updating a deployed
+    layout or ops
 
-1. **Capability set** — *what intents exist at a house.* Differs per
-   scheme: Nolan has capabilities House0 lacks (resistive backup
-   elements, fan coils, heat-exchanger pump) and lacks ones House0 has
-   (store charge/discharge across three tanks, Honeywell setpoint
-   reading via Hubitat; reading only, no setpoint write path exists).
-   The capability-protocol-and-verify design
-   ([OPS-394](https://linear.app/gridworks/issue/OPS-394)) defines the
-   vocabulary; this design adds that the vocabulary is **per-layout
-   subsetted**, not universal.
-2. **Capability → mechanism binding** — *what an intent means on this
-   plumbing* (OPS-394 principle 2). "Charge buffer" is different
-   valve/pump choreography on different manifolds.
-3. **Hardware realization** — *which physical device executes the
-   mechanism.* Differs even where the capability is identical: the pico
-   cycler relay exists in both schemes, on a Krida panel relay at House0
-   and a gw108 relay at Nolan. This axis lives in the layout (the relay's
-   component selects the board), so the relay actor is one body of code
-   with layout-bound actuation.
+Testing green for every layout family rides the simulated-test-environment
+design's harness.
 
-The layout words carry all three axes explicitly; control states speak
-only axis 1. The zone slice of the capability surface is settled in
-`zone-relays-and-thermostat-model.md`; plant and store capabilities are
-open.
+## The invariant: layouts carry three axes
 
-## The meta-goal (why this is vision-grade, not a chore)
+Every layout word carries three axes explicitly, and control states speak
+only the first:
 
-We are still finding the best designs for different scenarios: new-build
-green homes vs old median homes in northern Maine. At least five different
-heat pumps go in this fall, thermal stores under evaluation range from
-store-under-floor to oxygenated 350-gallon basement tanks, and the flow
-control manifolds and sensing keep changing.
-
-The system must let us **reason like this brain-dump and adjust on the
-fly to new configurations**: control schemes parameterized by layout
-(layouts as complex sema types), not hand-coded per house. Spruce is the
-first proof.
+1. **Capability set** — what intents exist at a house. The vocabulary is
+   **per-layout subsetted**, not universal (OPS-394 defines it).
+2. **Capability → mechanism binding** — what an intent means on this
+   plumbing (a "charge buffer" is different valve/pump choreography on
+   different manifolds).
+3. **Hardware realization** — which device executes it. One relay actor,
+   layout-bound: the same code drives a Krida panel relay at House0 and a
+   gw108 relay at Nolan because the relay's component selects the board.
 
 ## Open
 
@@ -148,3 +118,12 @@ first proof.
   after the simulated Nolan scada runs in dev, before the merge.
 - Executor write-up as spokes verify: layout-strategy routing, relay
   actuation paths, test-layout selection.
+
+## Related work
+
+- The upstream data-side once-over — gridworks-data, web-backend, and
+  web-frontend ingesting the three layout families without per-house
+  channel-name specials — is its own cross-cutting design,
+  [OPS-542](https://linear.app/gridworks/issue/OPS-542). It runs downstream:
+  this launch produces the layouts, that design makes the data pipeline read
+  them.

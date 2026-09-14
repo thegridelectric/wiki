@@ -28,7 +28,8 @@ Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linea
    enforcement target retried on the next verify pass, the Critical
    glitch sent to the boss. Test: a sim i2c bus that can be told to
    fail the next read or write; assert the glitch, the state staying
-   put, and the commit on the retry once the fault clears.
+   put, and the commit on the retry once the fault clears. Pulled forward
+   to launch under OPS-392's relay-actor enforcement.
 3. **Superseded commands.** A newer command arrives while an older one
    is still unconfirmed; `_commit_command` must drop the older one
    (`self._i2c_command is not command`). Test: two dispatches in quick
@@ -38,7 +39,8 @@ Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linea
    and adopts the state without writing (`UNKNOWN_STATE` until then).
    Test: a sim bus preloaded with the pin high, the relay adopting
    `EnergizedState` at start and reporting a self-loop, and a command
-   received before adoption deferred, not lost.
+   received before adoption deferred, not lost. Pulled forward to launch
+   under OPS-392's relay-actor enforcement.
 5. **The relay report reaching hp-boss.** hp-boss receives
    `FsmFullReport` (the `case FsmFullReport()` in `hp_boss.py`) and
    does nothing visible with it. Proposal: hp-boss notes confirmation
@@ -76,7 +78,8 @@ Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linea
     `../spruce-unlimbo/command-tree-matrix.md` item 7 as a launch item.
 
 Gap 1 is a launch item and lives with `../spruce-unlimbo/refactor-sieg.md`;
-the rest wait for the deployed line. Items 2, 3, 4 and 9 are in-process on the sim board and belong beside
+gaps 2 and 4 are launch items pulled forward under OPS-392's relay-actor
+enforcement; the rest wait for the deployed line. Items 2, 3, 4 and 9 are in-process on the sim board and belong beside
 `tests/actors/test_hp_boss.py` as a relay test file of their own. Items
 1, 6 and 7 need the live harness and the sim plant. Item 5 waits on the
 hp-boss proposal; item 8 on a fixture. The witness on real hardware for

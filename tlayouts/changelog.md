@@ -10,6 +10,30 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-14 — beech real deployment layout from the sema House0 gen (`7c2db53` on jm/spruce)
+
+`beech_gen.py` authors the real Keene Beech `gw.house0.layout` — a sieg-loop
+House0 home with two Honeywell-via-Hubitat zones, an LG Multi V split heat pump,
+an eGauge, four pico tank modules, two BTU picos, three standalone flow picos, and
+an ADS analog-temp board — as a deployment artifact (`output/beech/`), id-preserving
+against the deployed layout and `sema validate` green. It replaces the hand-kept
+beech real shape that `gw.house0.layout.json` used to carry.
+
+Getting there needed the House0 real path built out on the shared gen, all with
+spruce + sim output byte-identical:
+- `btus` moves to `LayoutGenConfig` and `emit_btu_meters` runs in the House0 build
+  before `emit_flow`, so a BTU pico's flow channel satisfies the bare-flow emit.
+- `DeviceType` is now the gwsproto enum (the local name), replacing tlayouts' partial
+  hand-kept mirror — the words still type the field as a string; the enum supplies it.
+- `FlowSpec` gains a Hall/Reed `kind` axis (Saier default; Ekm/Omega reed) and the
+  `dist2` position, fixing the Reed-hardcode; names route through FlowNodeNames/
+  FlowChannelNames.
+- `AdsChannelSpec` gains a thermistor make/model axis (Tewa default, Amphenol for the
+  zone air-temps); a House0 zone's temperature reads the ADS `gw-temp` where one exists
+  and falls back to the Honeywell temp otherwise.
+- `TankSpec` gains asymmetric depth-1/depth-3 calibration and a sensor order, matching
+  beech's tank3 (B −108/−481) and tank2/tank3 reverse order.
+
 ## 2026-09-14 — Family-neutral base generator and the hardware modules (`5347f3c` on jm/spruce)
 
 `NolanSemaGen` subclassed `House0SemaGen`, so a Nolan driver imported

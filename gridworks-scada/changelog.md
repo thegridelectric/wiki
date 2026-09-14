@@ -10,6 +10,17 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-14 — House0 fixture becomes a generated simulated layout (`<!-- pending commit -->`)
+
+`tests/config/gw.house0.layout.json` was a hand-authored hodge-podge of real
+and simulated devices assembled to run a test (944 `sema validate` errors). It
+is replaced by the output of the tlayouts sim House0 gen — a House0-shaped
+layout with every component simulated — so `sema validate` is green and the
+scada suite boots it in-process. The real beech and maple layouts move to their
+own house gens as deployment artifacts, out of the scada test config. Rung 4 of
+correct-house0 (OPS-539). (Placeholder started by another session to unblock
+the changelog gate; refine to match the actual commit.)
+
 ## 2026-09-14 — command_reply docstring: bossable nodes, not "command nodes" (`ade7bed2`)
 
 The `command_reply.py` docstring called the DispatchAck/Nack repliers "the

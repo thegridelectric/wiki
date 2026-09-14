@@ -231,7 +231,7 @@ the fixtures TODO above; "Test House0" — wire conftest to run both families �
 in the Cleanup queue). This section is the home for the rest.
 
 **Thermostat concepts expand to state machines — for BOTH layouts.** The zone /
-circuit / thermostat model (`zone-relays-and-thermostat-model.md`) grows to carry
+circuit / thermostat model (`../spruce-settled/thermostat-and-zone-control.md`) grows to carry
 the zone and circuit finite state machines. Consequence for sim coverage: once
 House0 is fully on that model, **GPIO opto sensors and the thermostat/hubitat
 integration are no longer needed on House0** — a heat call is sensed through the

@@ -63,3 +63,17 @@ Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
   so the gwbase-actor revert finds it.
 - **Test.** The test is the change; it fits the single scada focus as
   coverage on a real spruce-window behavior.
+
+## Admin panel client queues connects on CONNACK refusal
+
+- **Problem.** The admin panel's own MQTT client (`constrained_mqtt_client.py`)
+  queues a connect on each CONNACK refusal — the same flaw fixed in gwproactor
+  `3e5087f` (`v4.1.13+jm2`) for the scada. With a wrong password the broker
+  refuses every CONNACK while the panel appears connected and nothing it sends
+  can arrive. Found on the 2026-09-05 dac-output bench
+  (`experiments/2026-09-05-dac-output-bench/` README "Side findings",
+  reproducer `test_connect_refused.py`).
+- **Change.** Mirror the gwproactor fix: a refusal rides a `mqtt_connect_failed`
+  edge with its reason logged, no re-queued connect on the closing socket.
+- **Test.** Against a password-gated mosquitto, a wrong password surfaces the
+  refusal instead of a false "connected".

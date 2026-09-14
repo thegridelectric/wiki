@@ -1,31 +1,28 @@
-# Zone relays + the thermostat model in the layout (spoke)
+# Zone circuits and the thermostat model (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-532
 
-> What this is: spruce-unlimbo spoke settling how zones, zone-call
-> circuits, thermostats, and their relays are modeled in the layout —
-> the design the i2c-relay build codes against. The grill walked the tree
-> 2026-08-11; the model below is resolved, pending the sema word-gate
-> discussion before any vocabulary lands. Board facts:
-> `../spruce-settled/gw108-board.md`.
+> What this is: how zones, zone-call circuits, thermostats, and their
+> relays are modeled in the layout, and the control model on top — the
+> circuit FSM, the governance machine, setpoint belief, and the thermostat
+> chunk. Post-launch: the deployed line runs the zone relays under the wall
+> thermostats and admin direct control, so the scada-side zone-call control
+> is not a launch item. The relay-actor enforcement that keeps every relay
+> reliable at launch is OPS-392. The model below is resolved, pending the
+> sema word-gate discussion before any vocabulary lands. Board facts:
+> `gw108-board.md`.
 
-## ▶ Next move
+## Next move
 
-Not re-set since the relay path shipped (its EDD gate was met
-2026-08-12, `experiments/2026-08-12-spruce-witness-window/`); the
-thermostat chunk below is the candidate. What the relay build was:
-**the scada relay path** — the
-actors that make the emitted relay nodes real: `I2cBus`/`I2cRelayBoard`
-registration, the relay actor resolving `RelayName` against the board
-record, the OPS-452 init-guard, layout-address validation. The
-layout side is in: spruce is 4 zones + 5 circuits with relay pairs,
-plant relays (hp call, secondary pump), and the Dac2 writer (tlayouts
+Activates after the launch; the thermostat chunk below is the first work.
+The layout side is already in: spruce is 4 zones + 5 circuits with relay
+pairs, plant relays (hp call, secondary pump), and the Dac2 writer (tlayouts
 `jm/spruce`, 2026-08-11); the Learned⇒temp-channel axiom lives on
-`gw.hydronic` and validates at decode. Still without vocabulary:
-`ChangeZoneCallSource` gwsproto mirror and the roster-named
-`NolanZoneNodeNames` relay constants (move with their actor call
-sites); iso-valve waits on its valve-function enum + the 0x21 wired
-inventory.
+`gw.hydronic` and validates at decode. The `HeatcallSource → ZoneCallSource`
+code rename and the roster-named `NolanZoneNodeNames` relay constants ride
+the launch name-retirement in OPS-539; the `ChangeZoneCallSource` mirror and
+the rest of the vocabulary here stay staged until the promote. Iso-valve
+waits on its valve-function enum + the 0x21 wired inventory.
 
 ## Vocabulary — landed as staging (sema `jm/zone-words`, 2026-08-11)
 
@@ -199,113 +196,6 @@ the belief.
   journal records intent, not pin flips. Governance mode becomes the
   operating default; its own work, after the per-node command interface
   (`../../../command-surface.md` "Open").
-
-## The relay actor, adjusted
-
-- Reported state becomes CONFIRMED state (post pin-readback), not
-  commanded belief; commanded-vs-pin mismatch ⇒ glitch. Add
-  `Unknown`; kill the assumed de-energized initial
-  (`relay.py:498-505`).
-- **`Unknown` is internal machine state only — never on the wire**
-  (settled 2026-08-11): the state vocabularies carry no Unknown value,
-  and an out-of-vocab wire value silently coerces to the enum default
-  at decode (`Unknown` → `WallThermostat` would be a lie). The relay
-  reports nothing until its first confirmation (readback boards: boot
-  pin-adoption, sub-second; no-readback boards: boot assert); a failed
-  boot readback is a Glitch and honest silence on the channel. Open
-  (word-gate, vocabulary conversation): if `Unknown` ever joins the
-  words, it arguably should become the enum DEFAULT so garbled wire
-  values decode honestly instead of as the failsafe posture.
-- **One state channel per relay, not two** (settled 2026-08-11): the
-  gw108 offers two reads (output register = commanded, input register
-  = actual pin), but they diverge only during a fault, and the
-  divergence IS the fault evidence — it rides the Glitch's register
-  snapshot (config/output/input), not a second journal channel. The
-  channel's MEANING upgrades from commanded belief to pin-confirmed
-  state; name and UUID unchanged. The whitewire opto channels remain
-  the independent downstream read; the four-value display state stays
-  a derived view.
-- **Enforcement is assert-then-verify, converging on intent** (settled
-  2026-08-12, revising the 08-11 verify-only sketch): the relay's
-  5-minute loop re-asserts its target UNCONDITIONALLY (the hack's
-  enforce / the krida `maintain_relay_states` behavior — enforcement
-  must not depend on the readback being trustworthy), then confirms at
-  the pin; the output register is read first purely as drift evidence
-  (the 07-16 tell). The target is the pending command when one is
-  unconfirmed — a commanded transition that fails confirmation is held
-  as the enforcement target (`I2cCommand`, scada-internal record) and
-  retried every pass until it confirms, then commits + sends the late
-  FsmFullReport — so a transient EIO heals within ≤5 min without the
-  boss re-commanding (the hack's dac3-recovery behavior). The boss MAY
-  still re-command (a newer command supersedes the held target) but is
-  not the only healer. Glitches throttle to once per failure streak
-  (the hack's `_dac_write_failing` pattern). The traffic cost is
-  trivial and serialized; the 08-05 postmortem cleared bus ops of
-  aggravating the board. After a reset REPAIR the bus actor pokes the
-  affected relays (`ExpanderReinitialized`, a process-internal payload
-  carrying the expander address — never crosses the broker, not a sema
-  word): each relay on that chip re-asserts immediately instead of
-  waiting for its next verify pass (Jessica 2026-08-12 — 0x21 carries
-  the critical cooling actuators; the hack repaired in the same pass,
-  and now so do we).
-- **Krida: actuation leg live, report round-trip dead** (corrected
-  2026-08-12 — the admin suite caught the earlier "whole path is dead"
-  reading): the multiplexer DOES actuate on the pin event and reports
-  state on its own channels; only the relay-side confirmation
-  round-trip (`_process_atomic_report`, dispatch commented out) never
-  existed in practice — that machinery is deleted. The actuation leg
-  stays (`_krida_actuate`: commanded belief, no FsmFullReport to the
-  boss), with the multiplexer lookup scoped to the krida component
-  type (the former unconditional lookup was the Nolan-layout crash
-  point). Dissolution path unchanged: House0 migration to
-  `i2c.relay.component.gt` on the krida board record with
-  `SupportsPinReadback: false` — the commanded-belief branch of the
-  new actor serves it with zero new machinery, and the multiplexer
-  actor + legacy component type dissolve then. At that migration
-  `test_relay_i2c.py` parameterizes its rig on the board record
-  (readback true/false), becoming the both-boards relay suite:
-  pin-confirmed semantics on gw108, assert-only commanded belief on
-  krida. Until then it is a gw108-family test and SHOULD pin the
-  nolan artifact explicitly once the both-cases conftest lands.
-- No transitional states at the relay level — a single-bit actuation
-  is one serialized bus round-trip; command and readback ride the
-  same op. In-betweens belong to the circuit FSM.
-- The dead krida-multiplexer round-trip path is deleted, not revived.
-- `HeatcallSource → ZoneCallSource` (`WallThermostat | Scada`)
-  renames at `relay.py:466-472` + the new vocabulary — season-neutral.
-- **Readback is a declared board capability**: `SupportsPinReadback`
-  on the board record — gw108 true (TCA9555 input registers), krida
-  false (no known query path). Readback boards: confirmed semantics,
-  boot adopts from pins. No-readback boards: commanded-belief
-  semantics, boot resolves `Unknown` by ASSERTING the required
-  posture (the only way to know a krida's state is to set it);
-  enforce re-asserts rather than verifies. If a bench test ever
-  proves the krida readable (`starter-scripts/single_krida.py` rig),
-  flipping the declaration upgrades the House0 fleet with zero
-  actor-code change.
-
-## Relay state in snapshots and the journal (window #2 finding, 2026-08-12)
-
-Snapshots carry two parallel lists: `LatestReadingList` (channel
-values) and `LatestStateList` (`SingleMachineState` entries —
-MachineHandle / StateEnum / State). The i2c relay actors report state
-as machine states, so all 13 relay states (`zone.call.source`,
-`valve.open.or.closed`, `relay.closed.or.open`) plus the LC top state
-ride EVERY snapshot's state list — but the relay **DataChannels**
-(`zone5-…-failsafe-relay` etc., Quantity Unitless) never receive
-channel VALUES on the Nolan path. House0 publishes both cadences
-(verified 2026-08-12): on-change — the krida multiplexer sends a
-`SingleReading` on the relay's channel at actuation — and
-synchronous — `maintain_relay_states` sends all relay channels as
-`SyncedReadings` every 60 s; values are `RelayEnergizationState`
-ints (DeEnergized=0, Energized=1). Direction for the next relay
-cluster: the Nolan relay actors publish the same 0/1 energization
-reading at CONFIRM (on-change, pin-confirmed — stronger than
-House0's commanded belief) and at each verify pass (periodic,
-5 min) — two send sites (`_commit_command`, `_verify_and_report`).
-The enum-valued state stays on `SingleMachineState`; the channel
-carries energization. (Viewer note: `snap_watch.py` prints only the
-readings list; a state-list patch is queued in starter-scripts.)
 
 ## Enfolding the Honeywell mechanism (survey 2026-08-11)
 

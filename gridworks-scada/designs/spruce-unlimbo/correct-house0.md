@@ -21,7 +21,7 @@ once, so the strands close together, not in isolation.
    and the registry/authoring spokes, post the summary, wait) is brought to the
    shape the Nolan word already has. Every House0 layout — simulated or real —
    validates against it. It carries fourteen live axioms;
-   [rung 7](#rungs) lists the gaps against Nolan.
+   [rung 6](#rungs) lists the gaps against Nolan.
 
 2. **Three gens emit the layouts**, all from the shared family-gen machinery
    (`layout_gen.py` + `src/tlayouts/hardware/`), never hand-kept:
@@ -46,7 +46,7 @@ once, so the strands close together, not in isolation.
 
 **Names retirement is the cross-cutting thread** — not a strand of its own. Each
 settled name moves the word, the gens, the fixtures and the code together. The
-settled principles ([rung 6](#rungs) holds the live inventory):
+settled principles ([rung 5](#rungs) holds the live inventory):
 
 - A names class is **vocabulary**, not a required-set — "if a layout has the
   thing, this is its name"; requiredness lives in each layout word's axioms.
@@ -102,15 +102,17 @@ gens, the fixtures and the code together.
    - **`sim_house0_gen` → `gw.house0.layout.json`** — the scada suite's House0
      fixture: a House0-shaped layout (sieg loop, buffer, store tanks) with every
      component `SimDeviceType`, `sema validate` green, booted in-process. Today
-     this file is instead the hand-authored *real beech* shape and fails validate
-     with 944 errors — the symptom of a real deployment layout sitting in the
-     fixture slot, not a worklist; this rung replaces it with generated sim
-     output.
-   - **`beech_gen.py` → the real beech deployment layout** (real Krida panel, LG
-     nameplate, Honeywell-via-Hubitat zone circuit, DFRobot outputs;
-     `old_gen_beech.py` is the legacy spec to mine, not to port). A box artifact,
-     not a scada fixture.
-   - **`maple_gen.py` → the real maple deployment layout**, same config class.
+     this file is a hand-authored hodge-podge of real and simulated devices
+     assembled to run a test, and fails validate with 944 errors — the symptom of
+     an ad-hoc fixture where a cleanly generated simulated layout belongs, not a
+     worklist; this rung replaces it with generated sim output.
+   - ✅ DONE (`7c2db53`) **`beech_gen.py` → the real beech deployment layout**
+     (real Krida panel, LG Multi V split HP, Honeywell-via-Hubitat zones, DFRobot
+     outputs). `sema validate` green, id-preserving against the deployed layout.
+     A box artifact, not a scada fixture.
+   - **▶ `maple_gen.py` → the real maple deployment layout**, same config class —
+     the next gen. Like beech but DERIVES primary-flow (`DerivedSiegSum`) rather
+     than measuring it.
 
    Oak, fir and elm are the sieg-less family and wait for `gw.house0.no.sieg`;
    `oak_gen.py`, a House0-shaped config for a no-sieg house that raises at the
@@ -170,6 +172,11 @@ gens, the fixtures and the code together.
      sim-pair regen + gwsproto literals + code repoints.
    - `ZoneNodes` ≡ `HydronicSpaceheatZoneNodeNames` duplication (`relay.py`
      still builds `ZoneNodes` in `initialize_fsm`).
+   - `HeatcallSource → ZoneCallSource` (`WallThermostat | Scada`) at
+     `relay.py:466-472` + the roster-named `NolanZoneNodeNames` relay
+     constants (move with their actor call sites) — season-neutral; pairs
+     with the staged `ZoneCallSource` vocabulary (the zone-control model,
+     OPS-532). Routed here from the relay-actor split, 2026-09-14.
    - Actor↔layout name duplication and Nolan-wrong direct name reads —
      `operational-params-cleanup.md` items 4-5 (the lists live there).
    - Buffer-side elt load-node ordering: `elt-buffer-top` deployed vs
@@ -177,7 +184,7 @@ gens, the fixtures and the code together.
    - Un-audited corners: the `simple_sim` tier, `House0ChannelNames.__init__`,
      `names/*/helpers.py`.
 
-7. **The sema word sitting** (word-gate ritual): bring the House0 word's axioms
+6. **The sema word sitting** (word-gate ritual): bring the House0 word's axioms
    to the Nolan shape —
    - `RequiredSensing` — add the missing `dist-flow` and `store-flow` channels.
    - `RequiredActuators` — carry the per-output ComponentIds the 0-10V shift
@@ -196,7 +203,7 @@ gens, the fixtures and the code together.
    every axiom is run on the fixtures by the loader — the word tightens only once
    they pass.
 
-8. **Line items.**
+7. **Line items.**
    - **DeviceType as the enum in gwsproto.** The words leave `DeviceType` a
      string so other organizations can use the schema; inside our repo every
      value comes from the closed list we own, enforced today only at authoring
@@ -222,9 +229,9 @@ gens, the fixtures and the code together.
 - **The scada repo holds only simulated layouts.** The real beech/maple layouts
   are deployment artifacts (real hardware), generated per-house and deployed to
   the box — never scada test fixtures. `gw.house0.layout.json` is the *simulated*
-  House0 fixture; the 944 validate errors under the current hand-authored file
-  were the symptom of a real layout sitting in the fixture slot, cleared by
-  rung 4, not a worklist.
+  House0 fixture; the 944 validate errors under the current file were the symptom
+  of a hand-authored hodge-podge of real and simulated devices sitting where a
+  cleanly generated simulated layout belongs, cleared by rung 4, not a worklist.
 - `H0N.tank` / `H0N.zones` instantiated machinery: home undecided.
 - Whether `HydronicLayout`'s essential-nodes check should name five-v-boss and
   the cycler, or stay a minimal list with the layout words as the requirement.

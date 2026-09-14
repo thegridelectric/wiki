@@ -169,6 +169,57 @@ actuator-scope)` — Scada passes all actuators, a sub-actor passes `my_actuator
   except the call to `self.layout.vdc_relay`, which must become "if this layout has a pico-cycler-owned
   relay."
 
+## The node-actor partition
+
+Node actors are partitioned into tiers by concern, so a change to one concern
+touches one inheritance root rather than the base every actor shares (the flaw
+this cured: the relay actor once carried `turn_on_HP`, the thermistor reader
+`is_buffer_full`):
+
+- **A — actor infrastructure** (`sh_node_actor.py`): the identity accessors
+  (`services`, `node`, `layout`, `data`, `ops`), `await_with_watchdog`, the send
+  helper, logging. Every node actor inherits A.
+- **B — command-tree mechanics** (`actors/command_node.py`): inherited only by
+  the **interior** nodes of the command tree — those that take commands from
+  above and command reports below (Scada, LocalControl, LeafAlly, hp-boss,
+  pico-cycler, five-v-boss, and the circuit FSMs as they arrive). The tree
+  deepens over time, so B is written for N inheritors, not a fixed few. Leaf
+  actuators only *check* handles (that stays in `relay.py`); sensors are outside
+  the tree.
+- **C+D — actuation choreography + plant judgment** (`actors/hydronic/<family>.py`,
+  one file per layout family — `house0.py`, `nolan.py`): the two strata share
+  domain, consumers and lifecycle, so they share a file until one outgrows a
+  single concern. The name matches the artifact side (`Hydronic`, `gw.hydronic`,
+  `HydronicLayout`).
+- **E — zone/TOU pieces** (`get_zone_setpoints`, `is_onpeak`, `is_system_cold`):
+  family-neutral, reading ops words.
+
+Directory shape is role first, then family:
+
+```
+actors/local_control/house0/   tou_base, all_tanks_tou, buffer_only_tou, standby
+actors/local_control/nolan.py
+actors/leaf_ally/house0/       all_tanks, buffer_only
+actors/leaf_ally/nolan.py
+actors/hydronic/               shared.py · house0.py · nolan.py
+actors/                        sh_node_actor.py (A) · command_node.py (B)
+                               local_control_loader.py · leaf_ally_loader.py
+```
+
+There is no cross-family sharing inside a role dir (`all_tanks` / `buffer_only`
+are House0's, since Nolan homes are store-under-floor). `hydronic/shared.py`
+holds only family-neutral material — zone-circuit relay helpers, the vdc pair,
+onpeak/setpoint judgment, `latest_temps_f`. Its bar is **"every layout we can
+imagine has this,"** not "both current families use it": a helper that assumes a
+buffer tank, an iso valve or store tanks belongs in the family file, since the
+fall roadmap has bufferless, iso-valve-less layouts.
+
+**Each interior node owns the command tree at and under it and publishes it.**
+Publication is the full-tree `new.command.tree` snapshot — the wire contract is
+replace-in-entirety. The construction sites (`scada.py`, the command-node base,
+`tou_base.set_limited_command_tree`) route through one B-tier
+`publish_command_tree()`, so a publication-policy change is one line.
+
 ## Command interfaces and replies
 
 Status: Accepted · Pass 0 · Updated 2026-09-14 · Reviewed 2026-09-14@293b0215

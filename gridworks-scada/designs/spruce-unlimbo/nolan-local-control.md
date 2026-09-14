@@ -7,16 +7,16 @@ Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
 > is observation-only plus a scripted summer witness; the loop that USES
 > predicted setpoints is unwritten. This spoke gathers what the design
 > already knows about it (scattered across five spokes until 2026-09-07)
-> and is where the work goes **after `sh-node-actor-partition.md`**: the
-> rope settles the actor tiers, the command-tree mechanics, hp-boss and
-> the admin command surface that this loop sits on. Do not start here
-> until the rope's queue is clear.
+> and is where the work goes now that the node-actor partition is complete
+> (`executor/control-hierarchy.md` "The node-actor partition"): the actor
+> tiers, the command-tree mechanics, hp-boss and the admin command surface
+> this loop sits on are in place.
 
 ## Where it sits
 
 - Thread D of the spruce-unlimbo hub (OPS-219 lives there): written
   against the OPS-394 capability surface from day one; the zone slice of
-  that surface is settled in `zone-relays-and-thermostat-model.md`.
+  that surface is settled in `../spruce-settled/thermostat-and-zone-control.md`.
 - Partition tier C+D: Nolan plant judgment lives in
   `actors/hydronic/nolan.py`, the loop in `actors/local_control/nolan.py`,
   loaded by `local_control_loader.py` from the ops word
@@ -24,7 +24,7 @@ Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
   machine owns its state).
 - Names: `backup` and `scada-blind` are House0 names for now; they
   return to a shared tier only if this rework needs them
-  (`sh-node-actor-partition.md` "Names grilling decisions").
+  (`correct-house0.md` "The three strands").
 
 ## What the actor does today
 
@@ -65,7 +65,7 @@ are gathered.
 - **Setpoints by channel-name scraping.** LocalControl finds zone
   setpoints with `'zone' in x and 'set' in x` rather than the circuit's
   Thermostat; nothing consumes `Thermostat.ComponentId` or
-  `ThermostatKind` yet (`zone-relays-and-thermostat-model.md`
+  `ThermostatKind` yet (`../spruce-settled/thermostat-and-zone-control.md`
   "Thermostat chunk").
 
 ## Shape to converge on
@@ -77,14 +77,14 @@ HpOffStoreOff / HpOnStoreOff / HpOnStoreCharge / HpOffStoreDischarge /
 Dormant). Nolan's states are its own; the shared bar applies ("every
 layout we can imagine has this", so no buffer, iso valve or store tank
 assumed). The circuit actor runs two machines with LocalControl as the
-boss (`zone-relays-and-thermostat-model.md`); no zone-boss actor until
+boss (`../spruce-settled/thermostat-and-zone-control.md`); no zone-boss actor until
 one earns its place. Open: which of the House0 machine set (Standby /
 AllTanksTou / BufferOnlyTou) has a Nolan analogue at all, and where the
 schedule lives (ops artifact, settled by the ops-params work).
 
 ## ▶ Do this next
 
-Nothing yet: this spoke opens when the `sh-node-actor-partition.md` queue
-is clear. First move then: grill the Nolan state machine (states, what
-each refuses, how predicted setpoints enter) against the defect list
-above, and record the result here.
+Nothing yet: the node-actor partition is complete and the House0 hydronic
+reviews continue under `correct-house0.md` rung 5. First move: grill the Nolan
+state machine (states, what each refuses, how predicted setpoints enter)
+against the defect list above, and record the result here.

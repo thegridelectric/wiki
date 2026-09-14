@@ -38,11 +38,23 @@ them exercises it (`experiments/`).
   launch by spruce-unlimbo's refactor-sieg spoke
 - `pump-device-type.md` — a device-type word per pump model (control
   kind, curve, stop machine); carries the measured Grundfos UPMS 20-78 F
+- `hp-device-type-records.md` — a vendored `hp.device.type.gt` record for
+  every fleet heat pump (LG and Mitsubishi still missing) so a house gen
+  binds its hp-odu/hp-idu to nameplate facts, not a bare DeviceType string
 - `hp-twin.md` — the heat pump's digital twin under hp-boss: sema
   command events in, modbus out; waits on the modbus work
 - `sieg-command-tree.md` — the Siegenthaler loop's tier and command
   surface (admin included); `SiegLoop` sits on `House0Hydronic` until
   then; opens with the fall layouts
+- `thermostat-and-zone-control.md` — the zone / circuit / thermostat
+  control model deferred out of the launch: the circuit FSM, the
+  governance machine, setpoint belief, and the thermostat chunk (sim
+  thermostat, setpoint discovery, Hubitat/Honeywell); the launch-side
+  relay-actor enforcement is OPS-392
+- HOLD `command-node-vocabulary.md` — "command node" is used with
+  inconsistent meanings across the sema words and code (commander /
+  actuator / ack-replier); the Commanding–Commandable–Actuator taxonomy is
+  parked until its command-node sitting
 - `fall-layouts.md` — the four layouts arriving fall 2026 (one sim,
   three Millinocket installs); what each removes/adds
 - `gw108-board.md` — schematic-verified board facts: zone signal
