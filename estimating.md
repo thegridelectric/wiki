@@ -1,10 +1,20 @@
 # estimating — what the scoreboard has taught us
 
-Status: Draft · Pass 0 · Updated 2026-09-05
+Status: Draft · Pass 0 · Updated 2026-09-14
 
 > What this is: the lessons drawn from the owner's estimates log (per
 > person, kept outside the wiki; the raw estimate-vs-actual rows). The scoreboard records what
 > happened; this records what to do differently next time.
+
+## The unit is the spoke
+
+Estimate at the spoke, not below it. An earlier practice split a brown-field
+spoke into per-chunk estimates — a `rope:` row with `· r:<name>` members, or
+numbered rungs — to test whether the pieces became estimable once the layer was
+open. The per-piece machinery cost more than the calibration it bought, and the
+boundaries kept shifting as the work revealed itself. So a spoke gets one
+estimate, quoted with the two-halves method below, and the scoreboard records
+the Actual against the whole spoke.
 
 ## The dominant signal: new code vs. old code
 

@@ -48,6 +48,11 @@ go without.
 - `command-tree-matrix.md` — the sender rule for five nodes (built), the
   state-transition tree matrix on `command_node.py`, the relay's full
   report to the journal
+- HOLD `command-node-vocabulary.md` — "command node" is used with
+  inconsistent meanings across the sema words and code (commander /
+  actuator / ack-replier); the Commanding–Commandable–Actuator taxonomy is
+  parked until the next command-node sitting (surfaced 2026-09-14 during the
+  `command_reply` docstring fix)
 - `zone-relays-and-thermostat-model.md` — the zone / circuit /
   thermostat model in the layout, the relay actor's confirmed state, the
   thermostat chunk (sim thermostat, setpoint discovery, first

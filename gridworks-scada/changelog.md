@@ -10,6 +10,18 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-14 — command_reply docstring: bossable nodes, not "command nodes" (`ade7bed2`)
+
+The `command_reply.py` docstring called the DispatchAck/Nack repliers "the
+four command nodes (relay, 0-10V outputer, pico-cycler, hp-boss)" — wrong on
+two counts against the sema `new.command.tree` `ActuatorLeaves` definition:
+relays and 0-10V outputers are actuators, NOT command nodes, and five-v-boss
+also replies. Reworded to "the two replies a bossable node owes its boss …
+relays, 0-10V outputers and the interior command nodes (pico-cycler, hp-boss,
+five-v-boss)" — consistent with the existing sema vocabulary. Docstring only;
+the deeper "command node" overload across the words stays tracked in the HOLD
+spoke (command-node-vocabulary), unresolved.
+
 ## 2026-09-14 — House0 sim fixture display names follow the tlayouts gen (`293b0215`)
 
 Regenerated from the tlayouts House0 gen after its board axis change:

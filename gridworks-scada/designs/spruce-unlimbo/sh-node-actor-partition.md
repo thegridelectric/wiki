@@ -223,94 +223,13 @@ beech real shape: LG parts, Honeywell circuit) and `gw.house0.sim.*`
 (from `tlayouts/house0_sim_gen.py`); the named-type and
 prefix-closed tests run over both.
 
-## Names grilling decisions (2026-09-01; landed in `bd13a371`)
+## Names grilling decisions — moved
 
-- **The walk-through carries the names work.** Each file review gives
-  the H0N/H0CN references in THAT file their tier decisions and
-  repoints, per the tandem rule — no standalone names pass over files
-  the review will visit. Pure names leftovers: the tank1-elt commit and
-  an end-of-review sweep for members no reviewed file holds.
-
-- **Tandem H0N retirement per settled name.** Each name the grilling
-  settles lands as one unit in this cluster: constant in the right
-  disjoint class → H0N/H0CN member deleted → call sites repointed
-  (through `self.layout.X` where a property exists). The House0 test
-  fixture carries the renames NOW (it is a sim artifact); the real-fleet
-  channel-history split still rides the one-coordinated-regen-per-home
-  in the dev wave. Out of tandem: `H0N.tank`/`.zones` (instantiated
-  machinery, home undecided) and unsettled names.
-- **Liveness is judged over the alias union.** A disjoint-class constant
-  with no direct readers is NOT unused while H0N/H0CN members carry the
-  same name — consumer counts mean nothing until the corresponding
-  aliases are deleted in tandem.
-- **Every layout has a store pump** (all five, slab included), so
-  `store-pump-relay` is `HydronicSpaceheatNodeNames`' name; the Nolan
-  duplicate is deleted. House0's `store-pump-failsafe-relay` was this
-  relay poorly named: `store_pump_failsafe` deleted from H0N/H0CN/
-  House0NodeNames/House0ChannelNames, both call sites repointed
-  (`relay.py`, `tou_base.py`), fixture pair renamed to
-  `store-pump-relay` (sema-safe: no live axiom pins the old name).
-  Suite 231 passed / 1 skipped after.
-
-- **No `Literal` in names classes** — bare assignments throughout
-  `gwsproto/names/`; the annotation narrowed nothing any signature
-  demanded and doubled every rename. H0N keeps its until deleted (no
-  churn on a dying class).
-- **`backup`/`scada-blind` are House0 names** (moved core→House0NodeNames)
-  — may return to a shared tier when the Nolan state machine and its
-  local control are worked through, not before.
-- **A names class is vocabulary, not a required-set** — "if a layout has
-  the thing, this is its name"; requiredness lives in each layout word's
-  axioms. Adopted for the elt decision below.
-- **Store-tank element names go per-tank** (`tank1-top-elt`,
-  `tank1-top-elt-pwr`, `tank1-top-elt-relay` + bottoms, via
-  `TankNodeNames`/`TankChannelNames`; flat store-elt constants deleted;
-  buffer elts stay flat hydronic-tier, Nolan copies deleted).
-  `SingleStoreTank` stays in the Nolan word; the tank is already
-  `tank1`. Store-loop names (`store-flow`, `store-btu`, `store-pump-relay`,
-  pipes) are circuit names and keep `store-*`. Execution = its own
-  commit AFTER the combined landing: gw.nolan.layout in-place edit
-  (staging; word-gate ritual) + tlayouts sim-pair regen + gwsproto
-  literals + code repoints.
-- **hp-odu prose trimmed to one line** ("for monoblocs, hp-odu IS the
-  heat pump"); the multi-odu indexing speculation stays deleted, and
-  device identity is the layout's device-type records' job. Modbus
-  driver selection confirmed consistent with the ShNode concept:
-  node → component → DeviceType is the lookup (hp-boss keys on the
-  ctrl-box component's DeviceType, same pattern as the i2c board item).
-- **Commit cadence pivot (agreed 2026-09-01):** finish grilling the
-  pre-existing names threads → land the ONE combined commit (green) →
-  every further settled change is its own commit, starting with the
-  tank1-elt move.
-
-**Names open inventory (2026-09-01) — settled means the committed diff,
-not the project.** Still open, retiring incrementally under the decided
-principles (one settled name per commit):
-
-- H0N/H0CN retirement: 277 refs remain; only three members retired so
-  far (`store_pump_failsafe`, `thermistor_common_relay`,
-  `House0RelayIdx`). Every remaining member needs a tier decision +
-  call-site repoint — system-actor names, the rest of the relay roster,
-  ~40 H0CN channel aliases, `ScadaWeb`.
-- `H0N.tank`/`.zones` instantiated machinery — home undecided.
-- `ZoneNodes` ≡ `HydronicSpaceheatZoneNodeNames` duplication (`relay.py`
-  still builds `ZoneNodes` in `initialize_fsm`).
-- Actor↔layout name duplication and Nolan-wrong direct name reads —
-  `operational-params-cleanup.md` items 4-5 (the lists live there).
-- tank1-elt execution (decided above; own commit).
-- `gw.house0.layout` axiom 2 lacks the command-tree bones: it requires
-  s/ltn/la/lc/derived-generator but not `n`, `auto`, `admin` or their
-  handles, which Nolan's RequiredCommandNodes pins and the command-tree
-  machinery assumes ("the normal node is required in every layout" —
-  Jessica). Extend axiom 2 to the Nolan shape, same sema sitting as the
-  tank1-elt move.
-- Buffer-side elt load-node ordering: `elt-buffer-top` deployed vs
-  `buffer_top_elt` in HSNN — the store side dissolves into tank1
-  naming; the buffer side still renames in the coordinated regen.
-- `HydronicSpaceheatNodeNames` buffer-names docstring claims "every
-  hydronic plant" — false when the bufferless fall families arrive.
-- Un-audited corners: the `simple_sim` tier, `House0ChannelNames.__init__`,
-  `names/*/helpers.py`.
+The settled names principles and the live H0N/H0CN retirement inventory
+(refreshed to the branch's 423 `H0N.` + 105 `H0CN.` count) now live in
+`correct-house0.md` (key context "The three strands" + rung 5), which owns
+the names surface. This section is retained here only as a pointer until the
+spoke retires.
 
 ## Command-tree rules (confirmed with Jessica, 2026-09-01)
 
@@ -326,11 +245,16 @@ Retire this spoke (decided 2026-09-14): distill, then delete.
 1. "The tiers", "Directory shape" and "Command-tree decisions" →
    `executor/control-hierarchy.md`, beside the command-node base and
    the interior-node rules (a new executor file if it runs long).
-2. "Names grilling decisions" → `executor/hardware-layout.md` "Names".
+2. Names — already moved. The settled principles and the live H0N/H0CN
+   inventory are in `correct-house0.md` (they ride to
+   `executor/hardware-layout.md` "Names" when that spoke retires, not from
+   here); the "Names grilling decisions — moved" pointer above deletes with
+   the file.
 3. The Done ledger → one ✅ DONE line per chunk on the spruce-unlimbo
-   hub with estimate against actual, as pico-cycler-command has; the
-   calibration reading (do estimates made after a layer is open hold?)
-   gets one sentence in `admin/jess-estimates.md`.
+   hub with estimate against actual, as pico-cycler-command has. (Estimation
+   is spoke-level now — see `estimating.md` "The unit is the spoke" — so the
+   per-chunk rope calibration this ledger fed is closed; no further chunk
+   estimates.)
 4. Queue leftovers: `journalkeeper-pico-states` →
    `../spruce-settled/report-all-machine-states.md`, which already names
    it; the sign-offs (`run_async_actors_main`, repo-wide ruff,
