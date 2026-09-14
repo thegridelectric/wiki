@@ -184,10 +184,10 @@ this spoke.
 ### Readiness — the spruce + honeysuckle layouts and the boot ladder
 
 The identity split (settled 2026-07-28): **the honeysuckle bench owns the dev
-role** — `honeysuckle_sema_gen.py` mints a `d1.bench.honeysuckle` trio, and
+role** — `honeysuckle_gen.py` mints a `d1.bench.honeysuckle` trio, and
 the bench pi (wired to the bench gw108) is where the reader→bus experiment
 boots against a dev broker. **The spruce layout carries the real identity**:
-`spruce_sema_gen.py` emits the deployed `hw1.isone.me.versant.keene.spruce`
+`spruce_gen.py` emits the deployed `hw1.isone.me.versant.keene.spruce`
 aliases and GNodeIds verbatim (upgraded to `g.node.gt/005` shape), with all
 69 channel UUIDs carried from the deployed layout — the artifact for the
 eventual spruce deployment, not a dev variant. Sim-booting the spruce layout
@@ -207,9 +207,9 @@ the dev-spruce working branch squashed into it 2026-08-03, pushed to
 origin). The ladder is built: the sema snapshot is rebuilt post-merge
 (`jm/single-bus-owner` landed on sema dev,
 `c1cab63`), the Nolan emitters are ported, and both gens exist —
-`honeysuckle_sema_gen.py` (the `d1.bench.honeysuckle` trio; its
+`honeysuckle_gen.py` (the `d1.bench.honeysuckle` trio; its
 `output/honeysuckle/` artifacts are the ones on the bench pi) and
-`spruce_sema_gen.py` (the deployed identity + carried deployed-gen content:
+`spruce_gen.py` (the deployed identity + carried deployed-gen content:
 hp-ctrl-box eGauge register 9010, gw108 CT notes, zone-5 fancoil cooling
 zone, identity derived channels, real pico HW uids; UUID stability via
 `LayoutIDMap` keyed off the deployed `spruce.json`). The `actual-spruce`

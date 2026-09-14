@@ -114,7 +114,7 @@ the truth oracle. **That is backwards.** Settled direction:
   [`../../executor/hardware-layout.md`](../../executor/hardware-layout.md).
 - The sema-native gen, authoring-side in **tlayouts on the sema snapshot** (2026-07-04):
   `tlayouts.house0_sema_gen.gen_artifacts` emits each home's (static layout, operational params)
-  pair, snapshot-validated; oak + house0-stub gens live (`gen_oak_sema.py`, `gen_house0_stub_sema.py`);
+  pair, snapshot-validated; oak + house0-stub gens live (`oak_gen.py`, `gen_house0_stub_sema.py`);
   scada keeps the consuming side (`gw_spaceheat/sema_to_dc.py`: `assemble_runtime_layout` /
   `ops_and_sema_to_dc` + the file-based diff-and-adopt oracle). The `house0_sema_gen_check.py`
   equivalence oracle retired with the move. Detail in [`gen-pipeline.md`](gen-pipeline.md).

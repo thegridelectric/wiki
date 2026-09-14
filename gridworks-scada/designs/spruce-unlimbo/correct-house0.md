@@ -1,9 +1,10 @@
 # Correct House0 (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-13 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-09-14 · Linear: OPS-392
 
 > What this is: House0 made right, in three strands that only close
-> together. **tlayouts:** the House0 fixture pair comes from the
+> together. Flat work issue: OPS-539 (hours and scope live there; the
+> hub's issue is OPS-392). **tlayouts:** the House0 fixture pair comes from the
 > sema-native gen and passes `sema validate`, never kept by hand.
 > **scada code:** the House0 references in the scada (the H0N/H0CN
 > aliases, the direct name reads) are corrected and retired, carried
@@ -11,7 +12,7 @@ Status: Draft · Pass 0 · Updated 2026-09-13 · Linear: OPS-392
 > review, since every name decision changes the gen, the fixtures and
 > the word at once. **sema:** the House0 layout word's requirements for
 > nodes and channels are brought to the shape the Nolan word already
-> has. Runs after `house0-zero-ten-outputs.md`, which gives the three
+> has. Runs after the 0-10V shift (done 2026-09-13), which gave the three
 > `*-010v` nodes their per-output components; the gen, not the
 > fixtures, is the thing to get right, because the pair regenerates
 > again for the fall installs.
@@ -100,7 +101,7 @@ the conformance test.
 
 ## Sequencing
 
-1. `house0-zero-ten-outputs.md` lands (the per-output components exist).
+1. ✅ The 0-10V shift is in (the per-output components exist).
    Its fixture surgery is hand-patched, as krida rung 3's was: the
    House0 gen's `emit_dfr` (still the legacy type-key, the DFR
    component, multiplexer node) is brought to the per-output shape
@@ -145,20 +146,83 @@ the conformance test.
    property. If a fall house gets a direct boiler-call relay, the name
    returns with its generator row and a caller in one change.
 
+## Where the gen stands (measured 2026-09-14)
+
+- `house0_sim_gen.py` does not run: `house0_sema_gen.py` still
+  reads `H0N.relay_multiplexer` (line 887), a name krida rung 3
+  deleted, and `emit_dfr` (line 1356) still emits `dfr.component.gt`,
+  `dfr.config` and the `zero-ten-multiplexer` node. Two retirements
+  behind the fixtures.
+- `sema validate`: the sim fixture `gw.house0.sim.layout.json` is OK;
+  the real fixture `gw.house0.layout.json` fails with 944 errors
+  (485 missing fields, 288 extra inputs, the rest TypeName/Version
+  literals on config and component words). The old-shape carriers:
+  `InPowerMetering` on channels, pre-word hubitat shapes, old config
+  TypeNames.
+- No sema-native generator emits the real House0 fixture today:
+  `gen_beech.py` is the commented legacy spec; `house0-stub/` output is
+  from August.
+
+## Rungs
+
+1. ✅ DONE (2026-09-14) **Sim pair from the gen.** `house0_sema_gen.py`
+   emits the board record and its `krida`-bound anchor, the `i2c-bus`
+   node, per-relay and per-output components against the record, the
+   power-on levels in the ops word; the sim board record is vendored
+   as `device_types/sim.krida-…json`. The sim gen's output is
+   semantically identical to the hand-patched pair with every id
+   preserved; the scada fixture pair is now the gen's output verbatim.
+2. ✅ DONE (2026-09-14) **The board as a config axis, gw108 the default.** The House0 gen
+   takes its board from config (node name, record file, the simulated
+   twin, the bus addresses) and its 0-10V outputs as specs against
+   that board, on the shape the Nolan gen already has; the default is
+   gw108 rev B. Beech, maple and the sim declare krida plus DFRobot
+   explicitly. Why gw108 is the default: it is what every install from
+   here on uses, no new krida or DFR panel will be built, and beech's
+   panel may itself be replaced by a gw108. Makes "which board" a
+   one-axis swap, the hardware-decoupling shape in
+   `layout-word-axioms.md`.
+3. **Family-neutral hardware modules.** The Nolan gen subclasses the
+   House0 gen, and the layout-neutral specs (board axis, DAC output,
+   ops, heat-pump part, tank, power channel) live in
+   `house0_sema_gen.py`, so a Nolan driver imports from a module named
+   for another family. Target: a family-neutral base generator (id
+   map, accumulators, emit helpers) with House0 and Nolan as siblings;
+   `src/tlayouts/hardware/` modules that realize one kind each
+   (board, i2c relay, DAC output, thermistor channel, tank module,
+   power meter) against a board record, each with its spec beside it;
+   a family gen owns only the plant roster its word requires. A move,
+   not a redesign: byte-identical regen of the five outputs is the
+   check. Before rung 4 so the beech driver is written once.
+4. **Real fixture from the gen: `gen_beech.py`.** The House0 word means
+   has-a-sieg-loop, so its two homes are beech and maple: `gen_beech.py`
+   authors the real fixture (sieg surface, LG nameplate,
+   Honeywell-via-Hubitat zone circuit, krida panel, DFRobot outputs)
+   and `gen_maple.py` follows on the same config class. Oak, fir and elm
+   are the sieg-less family and wait for `gw.house0.no.sieg`;
+   `oak_gen.py`, a House0-shaped config for a no-sieg house that
+   raises at the stub, is not a House0 driver and retires into that
+   family's generator when its word exists. `sema validate` OK on it. The 944
+   errors are the worklist. Known already: the real fixture's Krida
+   record carries an older DisplayName than the vendored record.
+5. Strand 2, the hydronic reviews (own estimates, listed above).
+6. Strand 3, the sema sitting (word-gate ritual); sequenced after 4
+   because every axiom is mirrored in gwsproto and run on both
+   fixtures by the loader, so the word tightens only once the real
+   fixture validates.
+
 ## Do this next
 
-Open the word-gate discussion for strand 3 while strand 2 starts on
-`shared.py`: list which H0N/H0CN members `shared.py` holds and the tier
-each goes to.
+Rung 3: the family-neutral base generator and `src/tlayouts/hardware/`
+modules, specs beside their realizers; move only, then regenerate
+spruce, spruce-sim, spruce-async1, honeysuckle and house0-sim and
+confirm byte-identical output before anything else changes.
 
 ## Open
 
 - Whether `HydronicLayout`'s essential-nodes check should name
   five-v-boss and the cycler, or stay a minimal list with the layout
   words as the requirement.
-- Whether this becomes its own flat Linear issue (title `correct-house0`): two pieces of work
-  depend on it (the 0-10V shift's fixture regen, the fall installs'
-  regen), which is the shared-dependency rule's case.
 - The gwsproto multichannel relay component and `RelayActorConfig` (the
   twins of `i2c.multichannel.dt.relay.component.gt:004` and
   `sim.relay.component.gt:000`, plus `LayoutLite.I2cRelayComponent`)

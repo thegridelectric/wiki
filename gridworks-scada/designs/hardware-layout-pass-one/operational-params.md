@@ -80,7 +80,7 @@ rides the sema gen (`sema_gen` emits **both** the static sema and `operational-p
 fleet ops-params are produced by re-authoring, not hand-written JSON. **The fork is built into the
 gen** (`tlayouts.house0_sema_gen.gen_artifacts` returns the static-layout + operational-params pair; the
 snapshot types enforce the capture-stripped static shape structurally) and **the first two pairs are
-gen-emitted** — `tlayouts/gen_oak_sema.py` (82 capture tunings) and `gen_house0_stub_sema.py` (36, the
+gen-emitted** — `tlayouts/oak_gen.py` (82 capture tunings) and `gen_house0_stub_sema.py` (36, the
 all-sim skeleton), each written to `tlayouts/output/<home>/` after decoding through the sema snapshot.
 Remaining homes ride the per-home gen build-out alongside the `tests/config/` regeneration in
 [`gen-pipeline.md`](gen-pipeline.md).

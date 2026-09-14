@@ -1,6 +1,6 @@
 # GridWorks — working conventions for Claude
 
-Status: Accepted · Pass 2 · Updated 2026-09-13
+Status: Accepted · Pass 2 · Updated 2026-09-14
 
 > Canonical at `wiki/GridWorks_CLAUDE.md`; symlink setup in
 > [`README.md`](README.md#setup). Paths are relative to the umbrella dir
@@ -340,6 +340,22 @@ control manifold — no iso valve and no buffer tank; the third is a cement
 store-under-floor with no water tanks at all. Scada code SHALL NOT assume
 a buffer tank, an iso valve, or water store tanks exist; "shared" means
 every layout we can imagine has it, not both current families.
+
+**Bring up unlimbo on spruce = `experiments/spruce_window.sh`.** Run
+from the laptop with the local `gw-dev-rabbit` up: `on [minutes]` stops
+the deployed scada and its restart timer, opens the `ssh -R 1885` tunnel
+to the laptop's dev broker, and boots the box's
+`~/gridworks-scada-unlimbo` checkout from `~/envs/dev.env` (no minutes =
+a standing window until `off`; a crash does not restart, check
+`status`); `off` kills the window, copies its log to `scratch/`, and
+restarts the deployed scada; `status` shows services, window, tunnel and
+the 0x21 relay bits. Watch with `gwa watch spruce`. Before `on`, pull
+both box checkouts to the pushed SHA if the code moved. The window reads
+its layout and ops params from `~/.config/gridworks/scada-experiment/`
+on the box; those files are the tlayouts spruce gen's output
+(`tlayouts/spruce_gen.py` run from the scada venv, writing `output/spruce/`)
+and must stay byte-identical to it, with a dated `*.pre-<change>.json`
+copy left beside each edit.
 
 **Periodic mypy sweep of scada `actors/` (no gate).** After any
 change that moves methods between actor base classes, and at each

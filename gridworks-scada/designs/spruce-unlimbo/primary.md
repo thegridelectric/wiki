@@ -1,12 +1,12 @@
 # Spruce un-limbo (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-09-13 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-09-14 · Linear: OPS-392
 
 **EDD: yes** bench (honeysuckle) and box harness runs are the verification;
 spokes reach Verified only when an experiment runs against the real bus or a
 real broker.
 
-**▶ Active spoke: [`sh-node-actor-partition/primary.md`](sh-node-actor-partition/primary.md)**
+**▶ Active spoke: [`correct-house0.md`](correct-house0.md)**
 
 > **When you get around to re-organizing this hub** (a fresh session,
 > after the "do this now" queue is clear), in this order. First, roll the
@@ -35,9 +35,11 @@ The order is roughly the priority order.
 - ✅ DONE krida-retirement — House0 relays onto per-relay components
   against the Krida board record, one I2C actuation path, the relay
   multiplexer retired; witnessed on beech 2026-09-11
-- `house0-zero-ten-outputs.md` — House0's three 0-10V outputs onto
-  per-output components, the DFR multiplexer actor retired; after the
-  relay decommission
+- ✅ DONE house0-zero-ten-outputs — House0's three 0-10V outputs onto
+  per-output components against the board record, one actor arm for
+  both chips, the power-on level in the ops words, the DFR multiplexer
+  actor retired; witnessed on beech 2026-09-13; distilled into
+  `executor/hardware-layout.md` "The 0-10V output actuator"
 - `correct-house0.md` — House0 made right: the fixture pair
   from the sema-native gen and `sema validate` green, the H0N/H0CN
   retirement carried through the hydronic file reviews, the House0

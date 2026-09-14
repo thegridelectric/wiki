@@ -10,6 +10,42 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-14 — House0 sim fixture pair: 0-10V captions from the gen <!-- pending commit -->
+
+Regenerated from the tlayouts House0 gen after its board axis change:
+the three 0-10V nodes and channels take the caption form the Nolan
+outputs use (`Dist Pump 010V`, channel `Dist Pump 010V Level`) instead
+of the hardware-named `Dist DFR` / `Dist 010V`; every id unchanged.
+Captions only; the suite is the check. Rung 2 of correct-house0
+(OPS-539).
+
+## 2026-09-14 — House0 sim fixture pair regenerated from the tlayouts gen (`0944df35`)
+
+`tests/config/gw.house0.sim.layout.json` and its operational params
+are now the House0 gen's output verbatim, not a hand-patched file.
+Content is unchanged (every node, component, channel and id the same;
+only list order and key order moved), so the suite is the check. From
+here the sim pair is never edited by hand: a fixture change is a gen
+change in tlayouts, regenerated here. Rung 1 of correct-house0
+(OPS-539); the real House0 fixture is still hand-kept until rung 2.
+
+## 2026-09-13 — Scada narrows its services to ScadaAppInterface; the all-tanks advisory compares kWh with kWh (`b89020ec`)
+
+`Scada` sits on the proactor's `PrimeActor`, whose `services` is typed
+as the proactor `AppInterface`; the reads of `is_simulated` and
+`validation_state` were attribute errors under mypy even though the
+runtime object is always a `ScadaAppInterface`. The same one-line
+cast `ShNodeActor` already carries. Those two are scada concepts (the
+sim-time bridge, the TA deed) and stay off the proactor interface.
+No behavior change; the mypy sweep is the check.
+
+Also `DerivedGenerator.evaluate_strategy`: the buffer's usable energy
+(kWh) was compared against the required-energy channel (Wh), so the
+"consider all tanks" advisory fired a thousand times too readily; the
+same on `dev` in the field all season. The channel value is now
+divided by 1000 before the comparison, as the message text already
+did. Advisory only, no control path.
+
 ## 2026-09-13 — patch DAC bug (`6bfa2bf9`)
 
 The 0-10V code clamps at the chip's top code: full scale wrote 0 V on

@@ -14,7 +14,7 @@ Status: Draft · Pass 0 · Updated 2026-09-10 · Linear: OPS-392
 Re-energized on site 2026-09 after being disconnected 2026-08-10; the
 scada on spruce (`actual-spruce` `69d5d6ec`) reports each in its pico
 roster. Each is a `GridworksTankModule3` reading three thermistor
-depths under its own actor name (`tlayouts/spruce_sema_gen.py`,
+depths under its own actor name (`tlayouts/spruce_gen.py`,
 `extra_tank_modules`; generator `nolan_sema_gen.py`
 `emit_extra_tank_modules`):
 
@@ -67,7 +67,7 @@ decision.
 
 - Each of the sixteen rows above has a decision recorded here.
 - The required ones are named in the Nolan layout word, and
-  `spruce_sema_gen.py` emits them under the required names.
+  `spruce_gen.py` emits them under the required names.
 - The scada's coverage check refuses a Nolan layout missing a
   required one, with a test.
 - Snapshot on spruce shows every pico posting after the deployed

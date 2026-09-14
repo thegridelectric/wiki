@@ -21,7 +21,9 @@ some out into `readings`.
 ## Role & tier
 
 journalkeeper is an **analytics / audit tap**, not part of the production
-control plane. It is a pure consumer: it holds no authority, makes no control
+control plane (the canonical statement of the two planes:
+`wiki/glossary.md` "Control plane vs. observability plane"). It is a pure
+consumer: it holds no authority, makes no control
 decisions, and owns no meaning — it records an interpretable copy of bus
 traffic for query, audit, and analytics. (Where meaning *does* live — Sema +
 the authority seeds — see `wiki/vision/where-meaning-lives-in-gridworks.md`

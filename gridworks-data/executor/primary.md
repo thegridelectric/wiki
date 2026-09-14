@@ -97,6 +97,11 @@ the `wiki/dev-stack/` recipes once that domain exists.
    passwords. (Open: provide a non-interactive bootstrap path.)
 7. **DB URL form** is `postgresql+psycopg://<user>:<pw>@<host>:<port>/gridworks`
    using the psycopg3 driver (not psycopg2).
+8. **This database is observability plane, never a control dependency.**
+   Production — SCADA leaves, LTNs, MarketMakers — never reads it to make
+   a control decision and keeps running when it is down, slow, or
+   mid-migration. Canonical statement: [`glossary.md`](../../glossary.md)
+   "Control plane vs. observability plane".
 
 ## §5 — Schema reference (Open)
 

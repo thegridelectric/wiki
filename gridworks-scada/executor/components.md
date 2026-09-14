@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-12
+Status: Draft · Pass 0 · Updated 2026-09-14
 
 # Components, device types, and the config list
 
@@ -97,9 +97,7 @@ modules are `SimSensor` and it holds no TaDeed. `ScadaAppInterface.is_simulated`
 answers a different question, whether the layout carries any simulated
 device (`HydronicLayout.has_simulated_component`), and gates only the
 sim-time bridge; whether the scada may trade is the deed's
-`validation_state` (`scada-ltn-link-state.md` "The trading gate"). The
-House0 DFR multiplexer still reads the layout fact for its backend until
-the 0-10V outputs get per-output components.
+`validation_state` (`scada-ltn-link-state.md` "The trading gate").
 
 ## Node → component, and the per-family buckets
 
@@ -132,7 +130,6 @@ decode each via a union decoder, then pair component↔cac via
 | `hubitat.poller.component.gt` | Hubitat poller | no | embedded `Poller` |
 | `rest.poller.component.gt` | REST poller | no | embedded `Rest` |
 | `web.server.component.gt` | web server | no | embedded `WebServer` |
-| `dfr.component.gt` | DFRobot analog out | no | DfrConfig |
 | `fibaro.smart.implant.component.gt` | Fibaro Z-Wave | no | none |
 | `resistive.heater.component.gt` | resistive element | **yes** | none |
 | `sim.pico.tank.module.component.gt` | **sim** Pico tank | no | `SimulatesTypeName`/`Version`; `SimLifeS`/`SimRebootS` liveness script (the actor runs the pico in-process, no HTTP ingress; absent = no scripted death / a dead pico stays dead; reboots always succeed); `extra=allow` |
@@ -203,8 +200,9 @@ shared vocabulary word across component types rather than being
 re-spelled on each. The old family of config words that carried
 `Unit`, `Exponent`, and capture cadence on the component
 (`channel.config`, `relay.actor.config`, the pico module configs) is
-what this rule replaces; the retired `dfr.config` still carries that
-shape in the beech fixture until the 0-10V shift.
+what this rule replaces. `dfr.component.gt` and `dfr.config` are orphaned
+(`replaced_by` the DAC output pair) and out of both layout words' unions;
+their gwsproto twins stay until the House0 gen stops emitting them.
 
 ## What belongs in the hardware layout — and what doesn't
 

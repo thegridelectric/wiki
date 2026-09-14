@@ -10,6 +10,54 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-14 — beech's house0 layout generates automatically (`400e858` on jm/spruce)
+
+`House0SemaGenConfig` now carries the board (equipment node name,
+device-type record file, its simulated twin, bus addresses, display)
+and the 0-10V outputs as `DacOutputSpec`s against that board, with
+gw108 rev B as the default; `emit_board` and `DacOutputSpec` move from
+the Nolan gen to the base, and the Nolan subclass loses its copies
+(spruce, spruce-sim, spruce-async1 and honeysuckle regenerate
+byte-identical). The two existing House0 homes declare their krida
+panel and DFRobot outputs in their drivers (the sim, oak). Why gw108
+is the default: it is what every install from here on uses, no new
+krida or DFRobot panel will be built, and beech's panel may itself be
+replaced by a gw108. "Which board" is now a one-axis swap, the
+hardware-decoupling shape. The sim House0 pair's three 0-10V captions
+take the Nolan form (`Dist Pump 010V`, channel `… Level`) in place of
+the hardware-named `Dist DFR`; ids unchanged. Rung 2 of correct-house0
+(OPS-539).
+The board axis is the change the title names: House0's real layout can
+now be generated on its own board declaration. Also: the six commented-out legacy generators renamed `old_gen_<house>.py`,
+contents untouched; the live drivers renamed to `<house>_gen.py` (`spruce_gen`,
+`spruce_sim_gen`, `honeysuckle_gen`, `house0_sim_gen`, `oak_gen`; sema is
+implied for every live generator), with the drivers' and the component-id
+test's imports following the rename.
+
+## 2026-09-14 — House0 gen: relays and 0-10V outputs on the board record; the DFR multiplexer gone (`06368c7` on jm/spruce)
+
+`house0_sema_gen.py` had fallen two retirements behind the scada
+fixtures it is meant to emit: it still read the deleted
+`relay_multiplexer` name (the sim gen would not run) and emitted the
+orphaned `dfr.component.gt` / `dfr.config` pair with the
+`zero-ten-multiplexer` node. `emit_relays` now emits the shape krida
+rung 3 hand-patched in: the board record and its
+`scada.board.component.gt` anchor bound to the `krida` node, the
+`i2c-bus` actor node, and one `i2c.relay.component.gt` per relay
+against the record's RelayName, each relay-state channel captured by
+its own node. `emit_dfr` becomes `emit_dac_outputs`: one
+`i2c.dac.output.component.gt` per output (Dfr1 A/B, Dfr2 A) with a
+wiring-only `dac.output.config`, the power-on level in
+`ZeroTenPowerOnList` (config field renamed
+`zero_ten_power_on_volts_times_ten`, the old name was volts times a
+hundred in name only). The simulated board record
+`SimKridaDoubleRelayBoard16` is vendored as a device-type file
+(`sim.krida-…`) beside the real one, since its DACs are `Mcp4728`
+twins rather than an identity swap. The sim gen's output is now
+semantically identical to the scada sim fixture pair with every id
+preserved; the fixtures are replaced by the gen's output in the same
+wave (scada). Rung 1 of correct-house0 (OPS-539).
+
 ## 2026-09-13 — Snapshot regen: House0 layout axiom 10 clause c and axiom 15 ComponentBinding (`44050b1` on jm/spruce)
 
 The vendored snapshot follows the sema commit that adds the 0-10V

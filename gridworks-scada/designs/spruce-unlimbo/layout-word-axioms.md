@@ -45,8 +45,8 @@ Status: Draft · Pass 0 · Updated 2026-09-12 · Linear: OPS-392
    RequiredRelays generalizes: the unconditionally-certain tree leaves,
    relays + 0-10V outputs (Nolan: `secondary-010v`, ActorClass
    ZeroTenOutputer, ComponentId an `i2c.dac.output.component.gt`;
-   House0: the three `*-010v` nodes, Name + ActorClass only until the
-   0-10V shift gives them per-output components, `house0-zero-ten-outputs.md`). The maybe-actuator heat pump never appears
+   House0: the three `*-010v` nodes, each with its per-output component
+   since the 0-10V shift). The maybe-actuator heat pump never appears
    here — only via axiom 5.
 7. **`RequiredHeatpumpEquipment`** (Nolan landed `e625ff6`; House0 as
    axiom 11, this round: `hp-odu` + `hp-idu`) — the heat-pump parts with components,
@@ -130,7 +130,7 @@ type, definitions and runtime.
   fixture predates its component words' config shape (electric meter,
   web server, hubitat, poller; three channels still carry
   InPowerMetering); the generator fold-in closes that.
-- **Sim House0 is its own fixture** (built 2026-09-02): `house0_sim_sema_gen.py`
+- **Sim House0 is its own fixture** (built 2026-09-02): `house0_sim_gen.py`
   emits `gw.house0.sim.*` — a Nolan-type zone circuit (MechanicalDial,
   Learned, whitewire on the sim meter power channel, a sim temperature
   sensor for the zone), sim sensors behind every flow position and the

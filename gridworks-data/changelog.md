@@ -10,6 +10,18 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-14 — README: the database is observability, never a control dependency <!-- pending commit -->
+
+**Why:** A design for automated house-parameter fitting was about to
+have the LTN's estimator read the journal DB, which would make
+production depend on the analytics database. The rule that production
+keeps running when this database is down was held in people's heads,
+not written where a newcomer to this repo would see it. The README now
+states it standalone (repos do not cite the wiki); the canonical wiki
+statement is `glossary.md` "Control plane vs. observability plane", with
+matching invariants in the gridworks-data and journalkeeper executor
+specs.
+
 ## 2026-09-01 — set refresh window to the 2024-10-13 ..2026-01-09 (`f0e3f28`)
 
 Post-import step 2 for the eventstore back-fill: point

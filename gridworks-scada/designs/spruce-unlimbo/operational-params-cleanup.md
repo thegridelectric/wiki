@@ -198,7 +198,7 @@ The `tests/config/` artifacts are the frozen authored pairs the suite
 loads. The BLESSED path is that every one is **regenerated from its
 tlayouts sema generator**, not hand-edited here. The Nolan pair is there
 (2026-08-31): `tests/config/gw.nolan.{layout,operational.params}.json` IS
-the sim-spruce pair emitted by `tlayouts/spruce_sim_sema_gen.py` —
+the sim-spruce pair emitted by `tlayouts/spruce_sim_gen.py` —
 identical sensed surface to real spruce, sim drivers (sim tanks, sim-sensor
 BTUs, `GridworksSimGw108` board twin, sim power meter on the eGauge channel
 surface), `d1.isone.me.versant.keene.spruce.*`. The House0 pair is still
@@ -216,7 +216,7 @@ hand-touched:
   no `hp-idu-pwr` channel, so the hand-add is a minimal placeholder.
 
 **Retire this by regenerating the House0 pair from tlayouts** (blocked
-today: `gen_house0_stub_sema.py`/`gen_oak_sema.py` still point their id
+today: `gen_house0_stub_sema.py`/`oak_gen.py` still point their id
 reference at the deleted `tests/config/house0-layout.json`). Until the
 house0 sema generator produces a complete, axiom-valid pair (transactive
 channel, full capture tuning, correct GNode aliases), the fixtures drift

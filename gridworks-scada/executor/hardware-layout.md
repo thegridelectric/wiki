@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-12
+Status: Draft · Pass 0 · Updated 2026-09-14
 
 # The hardware layout
 
@@ -518,25 +518,60 @@ open gap.
 
 ### The 0-10V output actuator
 
-The board DAC output is an actuator on the relay pattern: one node
-(`secondary-010v` on Nolan, ActorClass `ZeroTenOutputer`, a leaf under its
+Every 0-10V output in both families is an actuator on the relay pattern:
+one node (`secondary-010v` on Nolan; `dist-010v`, `primary-010v`,
+`store-010v` on House0; ActorClass `ZeroTenOutputer`, a leaf under its
 boss in the command tree), one `i2c.dac.output.component.gt` naming the
-board and DAC channel with one `dac.output.config` (channel, EEPROM
-power-on code, reference, gain), one `VoltsTimesTen` DataChannel about and
-captured by the output node so the commanded level reports. As with
-`Relay`, the component selects the mechanism: an `I2cDacOutputComponent`
-drives the board DAC through `I2cBus`; no component means House0's DFR
-multiplexer forward (the per-output DFR word is missing; House0's
-`*-010v` nodes take per-output components with the 0-10V shift). The
-command is `AnalogDispatch`, `Value` volts times ten, 0 to 100. At boot the
-actor verifies the chip EEPROM against the declared power-on values and
-reprograms only on a mismatch; its 60 s Multi-Write heartbeat re-asserts
-the LAST COMMANDED value, the power-on value only until the first command.
-An unwired DAC channel has no component and its EEPROM is never touched.
-Verified on the real MCP4728 2026-09-05 (`experiments/2026-09-05-dac-
-output-bench/` "Found", run 4: verify clean, a dispatched code read back
-from the chip 88 s later, EEPROM unchanged) and on spruce's secondary
-pump 2026-09-06 (`experiments/2026-09-06-spruce-pump-speed-sweep/`).
+board record and its DAC channel with one `dac.output.config`
+(`ChannelName`, `ActorName`, `DacChannel`: wiring only, chip-neutral), and
+one `VoltsTimesTen` DataChannel about and captured by the output node so
+the commanded level reports. The command is `AnalogDispatch`, `Value`
+volts times ten, 0 to 100. Each output reports its own `ActuatorsReady`;
+the scada's required actuators are the `ZeroTenOutputer` nodes.
+
+**One actor arm.** `ZeroTenOutputer` resolves its DAC from the board
+record's `i2c.dac.capability` entry and drives it through the `I2cBus`
+single owner (`muxed_op`, `MuxName` None where the record has no mux).
+The chip branch is in the driver layer, keyed on the record's `DacType`
+and the board's `DeviceType`: `drivers/mcp4728.py` (gw108: internal
+reference, gain 1, five-times output stage for 10.24 V full scale, a
+storable EEPROM power-on value) and `drivers/gp8403.py` (the DFRobot
+modules on House0's I2C panel, two `Gp8403` entries at addresses 94 and 95
+in the `scada.krida` record, registers 0x02 and 0x04, 10 V full scale,
+stores nothing). Sema carries what crosses a boundary or varies per
+house; facts fixed by the choice of device are these driver tables. The
+top code clamps at 4095: rounding to 4096 under the 12-bit mask wrote 0 V
+at full scale (found on beech, scada `6bfa2bf9`).
+
+**The power-on level is an operational param.** What the pump does with
+the scada down is a per-house tunable, not wiring, so it lives in
+`ZeroTenPowerOnList` (`zero.ten.power.on`: node name and
+`PowerOnVoltsTimesTen`, at most 100) on both ops words. Nolan's secondary
+pump is 76; House0's dist, primary and store are 20, 40 and 0. Boot fails
+loudly when a DAC-backed output has no ops entry. On the MCP4728 the actor
+verifies the chip EEPROM against the ops level at boot and reprograms only
+on a mismatch, the one EEPROM-touching path; the GP8403 stores nothing, so
+the ops level is what the actor asserts at boot and on every heartbeat,
+and a scada-down DFRobot pump sits at the chip's own default (a driver
+fact of a prototype on its way out, not something to work around). On
+both chips the 60 s heartbeat re-asserts the LAST COMMANDED value, the
+power-on value only until the first command, one reading per successful
+write. An unwired DAC channel has no component and its EEPROM is never
+touched. The ops word loads once at boot (`actors/scada_data.py`
+`load_operational_params`); a changed level is edit the artifact, restart.
+
+**Sim.** No simulated GP8403: the sim House0 record
+`SimKridaDoubleRelayBoard16` carries two `Mcp4728` entries, so the sim
+House0 drives its three outputs through `SimMcp4728` on the same arm and
+verify path as Nolan (`SimI2c.muxless_dacs`). The GP8403 arm is covered by
+a unit test of the driver's wire bytes and by the beech witness.
+
+Verified: the real MCP4728 on the bench 2026-09-05
+(`experiments/2026-09-05-dac-output-bench/` "Found", run 4) and spruce's
+secondary pump 2026-09-06 (`experiments/2026-09-06-spruce-pump-speed-sweep/`);
+the GP8403 arm end to end on beech `dist-010v` 2026-09-13
+(`experiments/2026-09-12-beech-dist-010v-sweep/`: dist pump power followed
+the level, 4 W at 2 V to 48 W at 10 V, up and down).
 
 ## Hacky/irregular bits (current)
 

@@ -221,7 +221,7 @@ the box (bench drives run from the laptop through the ssh tunnel). Spruce is res
 window files removed, `dev.env` carries the admin block, box README
 current. Two House0 fixtures boot: `gw.house0.layout.json` (hand-kept
 beech real shape: LG parts, Honeywell circuit) and `gw.house0.sim.*`
-(from `tlayouts/house0_sim_sema_gen.py`); the named-type and
+(from `tlayouts/house0_sim_gen.py`); the named-type and
 prefix-closed tests run over both.
 
 ## Names grilling decisions (2026-09-01; landed in `bd13a371`)
@@ -356,7 +356,7 @@ commit or a decision):
   deletion); `git rm --cached scratch.py`.
 - Repo-wide ruff has ~70 pre-existing findings (`--fix` sanctioned after
   a commit).
-- `gen_oak_sema.py` still passes the retired `zone_device_ids`; guarded
+- `oak_gen.py` still passes the retired `zone_device_ids`; guarded
   behind the missing no-sieg word.
 - The scada changelog's two 08-31 entries sit above the 09-02 ones.
 - The beech fixture `gw.house0.layout.json` fails `sema validate` on
@@ -371,7 +371,7 @@ commit or a decision):
   moved names were not repointed, `DerivedGenerator` (`latest_temps_f`,
   `required_kwh`; the loud one, it stops the scada) and `SiegLoop` (six
   House0 choreography names; silent, the movement error is swallowed).
-  Closed by the queue in `../house0-zero-ten-outputs.md`. What it
+  Closed by the 0-10V shift (done 2026-09-13). What it
   exposes about the tiers: C+D stack on B (`HydronicNode` extends
   `CommandNode`), so a plant-judgment reader outside the tree (the
   derived generator) has no tier to inherit; and the sieg choreography
@@ -393,7 +393,7 @@ commit or a decision):
   `Hydronic.SiegLoopPlumbed` and `Hydronic.Strategy`, which the word no
   longer permits, has no `hp-scada-ops-relay` and no `secondary-010v`,
   and fails `sema validate` and the coverage check at `3d871690`. The
-  pair `tlayouts/honeysuckle_sema_gen.py` emits (archived in the
+  pair `tlayouts/honeysuckle_gen.py` emits (archived in the
   dac-output experiment, on the pi as `hardware-layout.dac-output.json`)
   validates clean and is what every bench witness has run on. Making
   that pair the standing layout is the refactor: one copy on the pi and
