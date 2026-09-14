@@ -10,7 +10,7 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-14 — House0 sim fixture pair: 0-10V captions from the gen <!-- pending commit -->
+## 2026-09-14 — House0 sim fixture display names follow the tlayouts gen (`293b0215`)
 
 Regenerated from the tlayouts House0 gen after its board axis change:
 the three 0-10V nodes and channels take the caption form the Nolan

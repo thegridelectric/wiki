@@ -1,6 +1,6 @@
 # Control hierarchy — HSMs, the command tree, and the capability cover
 
-Status: Draft · Pass 0 · Updated 2026-09-13
+Status: Draft · Pass 0 · Updated 2026-09-14
 
 > What this is: how the SCADA's hierarchical state machines (HSMs) and the command tree work **together**
 > — the piece the executor lacked. The HSM decides *who is in control*; the command tree *enforces* it via
@@ -105,6 +105,26 @@ hp-boss: `Hydronic.HpCommandNodeName` names which node takes commands (`hp-odu` 
 `hp-ctrl-box` via a MIM) and the conditional axiom `CommandableHeatPump` requires that node to have
 a ComponentId and hp-boss as its effective handle parent.
 
+**The call contact, its interlock, and the failsafe direction.** At spruce
+`hp-scada-ops-relay` drives a normally-open RIB whose contact asserts the
+control box's external cool-call input, configured on the Samsung side as
+the sole compressor on/off authority: closed runs the unit, open stops it,
+and the unit keeps its own protections (defrost, minimum cycle times,
+water limits) while called. A second relay adds the independent heat
+call; the two SHALL be software-interlocked so both are never closed at
+once (a manufacturer constraint). The failsafe is heat pump OFF: a dead
+controller opens the contacts. That direction is forced by the iso valve,
+which fails closed (energized = open), so a heat pump left running on a
+controller failure would push against a closed valve. Choosing
+call-closed-on-failure, so an autonomous heat pump keeps serving the
+house, requires rewiring the valve normally open first; the valve's
+wiring is config data on its relay component, never baked into names or
+code. The plant order the takeover of `spruce_summer_hack.py`
+reproduces, per state change: iso valve open, then the secondary-pump
+0-10 V level, then the pump relay, then the call; failsafe-open on exit;
+and a five-minute drift enforcement re-asserting every relay and DAC
+level against the held command.
+
 **Confirmation belongs to the relay actor, per board.** On both board families the relay
 writes through `I2cBus`, reads the pin back, commits its state only then, reports one
 `FsmFullReport` per TriggerId to its boss, and holds a failed command as the enforcement target
@@ -151,7 +171,7 @@ actuator-scope)` — Scada passes all actuators, a sub-actor passes `my_actuator
 
 ## Command interfaces and replies
 
-Status: Accepted · Pass 0 · Updated 2026-09-13
+Status: Accepted · Pass 0 · Updated 2026-09-14 · Reviewed 2026-09-14@293b0215
 
 These interfaces and replies are the scada's command surface toward
 admin, the first built to the cross-cutting pattern
@@ -166,10 +186,21 @@ state enum reported through `single.machine.state`, plus
 `fsm.full.report` per command for actuators). Both command words carry
 the same authority envelope: `FromHandle`, `ToHandle`, `TriggerId`.
 Relays declare their vocabulary in the layout word
-(`relay.control.config`); hp-boss and the pico-cycler carry theirs in
-`Scada.COMMAND_NODE_INTERFACES` (`gw_spaceheat/actors/scada.py:1653`).
-The capability cover (above) is the set of these interfaces read off
-the live handles.
+(`relay.control.config`); hp-boss and five-v-boss carry theirs in
+`Scada.COMMAND_NODE_INTERFACES` (`gw_spaceheat/actors/scada.py:1672`).
+The pico-cycler has no interface of its own: it is owned by five-v-boss,
+which forwards `RebootPicos` to it. The capability cover (above) is the
+set of these interfaces read off the live handles.
+
+**The full report is the written record, not the commander's feedback.**
+Every actuator and command node addresses its `fsm.full.report` to
+`primary_scada`, whoever commanded, so the journal holds each transition
+under the command's `TriggerId`. The commander learns take or refusal
+from the ack pair and the outcome from the state rows. The pico-cycler
+and five-v-boss do this; the relay's `boss_by_trigger` addressing, which
+under admin sends the report to the panel and never to the journal, is
+the divergence still to close (a launch item, with its test, in the
+spruce un-limbo design).
 
 **Two authority checks, in order, before a command is read.** A message
 names its sender twice: the transport header's source is who put it on
@@ -208,11 +239,19 @@ command-node base rather than a copy per handler.
 Every command node answers the boss that commanded it, through
 `gw_spaceheat/actors/command_reply.py`: `gw.dispatch.ack` on take,
 `gw.dispatch.nack` with a `gw.scada.cmd.refusal.reason` on refusal.
-The reasons in use are NotMyBoss, Busy (the cycler mid-cycle),
-UnknownEvent and OutOfRange. Admin is a boss like any other and gets
-the same replies; it shows a nack to the operator and does not glitch.
-Interior bosses do not yet consume the acks and nacks their own relays
-send, and the one-glitch-per-stale-tree report on an unexpected
+The reasons in use are NotMyBoss, Busy (the cycler mid-cycle;
+five-v-boss outside PicoCycler, or with the relay not yet reported
+closed), UnknownEvent and OutOfRange. Admin is a boss like any other and
+gets the same replies; it shows a nack to the operator and does not
+glitch. A forwarded command is answered through the forwarder:
+five-v-boss sends `RebootPicos` on to the cycler under the commander's
+`TriggerId`, remembers who commanded, and passes the cycler's ack or
+nack back with the handles rewritten to its own and the commander's
+(`actors/five_v_boss.py` `process_cycler_reply`); a reply it did not
+forward is logged and dropped. That is the one interior node consuming
+a reply today: hp-boss and the cycler do not yet act on the acks and
+nacks their own relays send (hp-boss logs its relay's ack as
+unexpected), and the one-glitch-per-stale-tree report on an unexpected
 NotMyBoss rides with that work
 ([OPS-537](https://linear.app/gridworks/issue/OPS-537)).
 

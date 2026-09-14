@@ -489,6 +489,24 @@ replies `I2cResult` to the requester named by `Header.Src`, so a relay
 confirms its own actuation by `TriggerId`. `relay.py` has one I2C
 actuation path for both families; there is no multiplexer actor.
 
+### The ADC noise floor
+
+The thermistor reader's baseline configuration (single-shot 128 SPS, read
+at 1 Hz, raw) measures 0.011–0.012 °C sample-to-sample stddev on the
+gw108 zone thermistors, about 45× below the 0.5 °C async-report
+threshold, so zone temperatures need no smoothing. The noise is white
+(a 5 Hz + EMA mode reduced it by the √5 the arithmetic predicts), so
+any future averaging can be sized by calculation rather than
+re-measured; smoothing buys ~1 s of lag and ~30 % bus occupancy at
+5 Hz × 4 channels for a reduction the zone temps do not need. One
+channel (zone3-upstairs at spruce) carries a low-frequency component
+smoothing cannot remove. The open question the floor leaves is
+glitch robustness, not noise: the reader publishes each in-band sample
+as truth, so one garbled-but-plausible read publishes a wrong value.
+Candidate closures are two consecutive in-band samples before an async
+publish, or the EMA, which absorbs single-sample glitches by
+construction. Record and reproducer: `experiments/2026-08-06-ads-noise/`.
+
 ### Expander types and the energized level
 
 The two boards' expanders speak different bus protocols, so the board

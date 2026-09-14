@@ -1,11 +1,13 @@
 # Control strategy selection (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-08-27 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
 
-> What this is: spruce-unlimbo spoke settling how the scada chooses which
+> What this is: spruce-unlimbo spoke on how the LTN and the scada
+> select the correct control strategy for each different house: which
 > LeafAlly and LocalControl machines run, who owns a machine's starting
-> state, and what replaces `SeasonalStorageMode`. Decisions taken with
-> Jessica 2026-08-27; the sema edits are gated below.
+> state, and what replaces `SeasonalStorageMode`. The scada-side
+> decisions of 2026-08-27 are below and on the branch; the design still
+> needs work, the LTN side above all, and stays a launch item.
 
 ## Decisions (2026-08-27)
 

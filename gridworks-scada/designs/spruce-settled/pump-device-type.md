@@ -1,8 +1,11 @@
-# pump-device-type (unsorted item)
+# pump-device-type
 
-Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
 
-> What this is: an unsorted item; hub [`primary.md`](primary.md).
+> What this is: a spoke of [`primary.md`](primary.md): a device-type
+> word per pump model, so the layout says what hangs off each pump
+> output. No launch depends on it; the measured curve below is already
+> in code.
 
 **Pumps need a type in the layout (2026-09-05).** Nothing in a layout
 says what each pump IS: make and model, and with it the control kind

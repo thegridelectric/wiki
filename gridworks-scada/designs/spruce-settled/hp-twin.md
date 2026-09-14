@@ -1,8 +1,8 @@
-# hp-twin (unsorted item)
+# hp-twin
 
-Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
 
-> What this is: an unsorted item; hub [`primary.md`](primary.md). The
+> What this is: a spoke of [`primary.md`](primary.md). The
 > heat pump's digital twin under hp-boss: sema command events in,
 > hardware protocol (modbus) out. Not part of the `sh_node_actor`
 > partition rope; it extends the first pass in

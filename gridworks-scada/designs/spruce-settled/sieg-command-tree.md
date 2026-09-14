@@ -1,6 +1,6 @@
 # Sieg command tree (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-13 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
 
 > What this is: the Siegenthaler loop's place in the command tree and
 > its command surface, admin included, worked out before the fall

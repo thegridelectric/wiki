@@ -1,24 +1,23 @@
 # Zone relays + the thermostat model in the layout (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-10 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
 
 > What this is: spruce-unlimbo spoke settling how zones, zone-call
 > circuits, thermostats, and their relays are modeled in the layout —
-> the design the i2c-relay build (steps 3 + 6 in
-> `summer-local-control.md`) codes against. The grill walked the tree
+> the design the i2c-relay build codes against. The grill walked the tree
 > 2026-08-11; the model below is resolved, pending the sema word-gate
 > discussion before any vocabulary lands. Board facts:
-> [`gw108-board.md`](gw108-board.md). Code gaps:
-> [`spruce-relay-control.md`](spruce-relay-control.md). Surviving
-> both-cases survey facts: [`gleanings.md`](gleanings.md).
+> `../spruce-settled/gw108-board.md`.
 
 ## ▶ Next move
 
-**The scada relay path (summer-local-control build step 6)** — the
+Not re-set since the relay path shipped (its EDD gate was met
+2026-08-12, `experiments/2026-08-12-spruce-witness-window/`); the
+thermostat chunk below is the candidate. What the relay build was:
+**the scada relay path** — the
 actors that make the emitted relay nodes real: `I2cBus`/`I2cRelayBoard`
 registration, the relay actor resolving `RelayName` against the board
-record, the OPS-452 init-guard, layout-address validation. Code gaps
-and roster: [`spruce-relay-control.md`](spruce-relay-control.md). The
+record, the OPS-452 init-guard, layout-address validation. The
 layout side is in: spruce is 4 zones + 5 circuits with relay pairs,
 plant relays (hp call, secondary pump), and the Dac2 writer (tlayouts
 `jm/spruce`, 2026-08-11); the Learned⇒temp-channel axiom lives on
@@ -336,6 +335,60 @@ Code pins verified on `jm/spruce-unlimbo`:
   dashboard `containers.py:191-203` which hardcodes Honeywell per
   zone) switch to reading the record.
 
+## Thermostat chunk
+
+Sim thermostat, setpoint discovery, coverage, web-listen EDD (from the Honeywell layout-plumbing read,
+2026-09-02). The read found that Hubitat push events never reached
+the scada: `hubitat_interface.py` used `time.time()` without
+importing `time` and swallowed the NameError, so the field has only
+ever had the periodic MakerAPI poll. The one-line import landed
+2026-09-02 as its own commit; it does NOT by itself revive the path,
+because the stat node runs under `s2` and the hub's web server under
+`s`, so neither finds the other's communicator to register handlers.
+What this chunk covers, as one estimated unit:
+- A **sim thermostat**: a simulated Hubitat/MakerAPI surface the
+  poller and web-listen actors run against unchanged (canned refresh
+  responses; a POST to the listen path), so the real-shaped House0
+  fixture boots and reads in the sim framework. Distinct from the
+  sim House0's Nolan-type mechanical dial.
+- **Setpoint discovery cleanup**: LocalControl finds zone setpoints
+  by substring-matching channel names (`'zone' in x and 'set' in x`)
+  and nothing consumes the circuit's `Thermostat` (kind, ComponentId).
+  Resolve setpoint and zone-temp channels through the zone circuit
+  declaration instead.
+- **Coverage**: no test constructs `Hubitat` or `HoneywellThermostat`;
+  first tests are the poller on a canned refresh response asserting
+  the SyncedReadings it emits, and the web handler on a canned event
+  (the test that would have caught the import).
+- **EDD**: the web-listen path tried end to end in the sim
+  framework, which decides the `s`/`s2` placement question (move the
+  stat under `s`, or route registration across the pair) with a
+  witnessed event rather than by reading. Reproducer under
+  `experiments/`, logbook line, scoped Verified claim.
+
+## Wiring facts are config data, and unwired positions get no node
+
+- **Valve position never enters names, enum values or actor code.**
+  The iso valve at spruce is normally closed (energized = open, fails
+  closed; field-verified 2026-07-16), so its relay component carries
+  `DeEnergizedState: ValveClosed` / `EnergizedState: ValveOpen` on the
+  staging valve words (`valve.open.or.closed`, `change.valve.state`).
+  A rewire to a normally-open valve, likely, and it flips the heat
+  pump's failsafe direction (`executor/control-hierarchy.md` "Fixed
+  sub-trees vs floating actuators"), edits those two values and nothing
+  else.
+- **Only wired positions get nodes.** The board record carries every
+  position the board has (zone 6, `IsoValveFailsafe`, the rest of
+  0x21); the layout emits a node only for a position something is wired
+  to, and wired-or-not is the layout's fact, gathered per position
+  before the gen emits it. Names carry no board index; chip, port and
+  bit are the component record's job.
+- **Relay names name the function.** `zone<n>-<name>-failsafe-relay` /
+  `-ops-relay` for the zone pairs with `ZoneCallSource`
+  (`WallThermostat | Scada`); `hp-scada-ops-relay` kept verbatim as
+  the fleet role, season-neutral; `secondary-pump-relay` is the pump's
+  on/off authority and its speed is the 0-10 V output, never zeroed.
+
 ## Sequencing
 
 **The promote holds until the end of spruce-unlimbo.** The
@@ -356,7 +409,7 @@ are cosmetic legacy for the proactor port.
   circuit's mode in hand).
 - Zone 0-10V analog outputs (dac1/dac2 a-c): in the capability
   surface someday (variable-speed zone circulators), or out until a
-  house uses one. Not blocking; the DAC map is in `gw108-board.md`.
+  house uses one. Not blocking; the DAC map is in `../spruce-settled/gw108-board.md`.
 - Mode is system-level (`SystemMode`): capability declarations turn
   mode changes into checkable safety semantics — a system entering
   cooling mode must not route cold water to heat-only emitters. Meet

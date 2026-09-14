@@ -1,8 +1,8 @@
-# relay-tests (unsorted item)
+# relay-tests
 
-Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
 
-> What this is: an unsorted item; hub [`primary.md`](primary.md). The
+> What this is: a spoke of [`primary.md`](primary.md). The
 > tests the hp-boss witness of 2026-09-07 did not give us. That witness
 > (`experiments/2026-09-07-hp-boss-admin-drive/`, rung 3 on honeysuckle)
 > covered one path: admin to hp-boss to the call relay on a Nolan
@@ -17,7 +17,8 @@ Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
    delivered by hand (`tests/actors/test_hp_boss.py`). Test: the
    House0 rows of `tests/actors/test_hp_boss_live.py` uncommented, with
    the sieg-loop actor on the sim plant actually sending `SiegLoopReady`
-   (carried in `refactor-sieg.md`). A second case: no ready message
+   (carried in `../spruce-unlimbo/refactor-sieg.md`, which owns this
+   gap before the launch). A second case: no ready message
    arrives and `TURN_ON_ANYWAY_S` closes the relay anyway, with the
    constant shortened through settings rather than the clock.
 2. **Failed confirmation and the retry loop.** The relay's
@@ -70,14 +71,12 @@ Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
 
 ## Where they run
 
-10. Under admin the relay's `boss_by_trigger` sends its `fsm.full.report`
-    to the panel and never to the journal, the opposite of the cycler
-    (whose full report stays addressed to `primary_scada` and lands in
-    `report.FsmReportList`). Decide whether the relay's report also
-    goes to the journal; the test is one dispatch under admin and a
-    look at the next report.
+10. Where the relay's full report goes: decided 2026-09-14 (to the
+    journal, like the cycler) and moved to
+    `../spruce-unlimbo/command-tree-matrix.md` item 7 as a launch item.
 
-Items 2, 3, 4 and 9 are in-process on the sim board and belong beside
+Gap 1 is a launch item and lives with `../spruce-unlimbo/refactor-sieg.md`;
+the rest wait for the deployed line. Items 2, 3, 4 and 9 are in-process on the sim board and belong beside
 `tests/actors/test_hp_boss.py` as a relay test file of their own. Items
 1, 6 and 7 need the live harness and the sim plant. Item 5 waits on the
 hp-boss proposal; item 8 on a fixture. The witness on real hardware for

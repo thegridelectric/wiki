@@ -1,6 +1,6 @@
 # gw108 board documentation (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
 
 > What this is: spruce-unlimbo spoke holding the gw108 board facts the relay
 > port needs — schematic-verified signal chains, the expander map, and the
@@ -215,7 +215,7 @@ House0 precedent (`layout_gen/relay.py`): per zone a
 gw108 realizes all of these.
 
 Both decisions settled in
-[`zone-relays-and-thermostat-model.md`](zone-relays-and-thermostat-model.md):
+[`../spruce-unlimbo/zone-relays-and-thermostat-model.md`](../spruce-unlimbo/zone-relays-and-thermostat-model.md):
 the enum renames to `ZoneCallSource` (`WallThermostat | Scada`) —
 season-neutral, since the same relay pair carries spruce's cooling
 calls (House0's legacy `HeatcallSource` stands until that layout

@@ -150,7 +150,7 @@ the contract stream).
   periodic `send_ping` tasks per link. `awaiting_peer → active` requires
   hearing the peer — verifying that back-and-forth (and the
   `response_timeout` regression `active → awaiting_peer`) needs the LTN
-  running too: it rides the unlimbo hello-world work
+  running too: it rides the spruce un-limbo work
   ([OPS-392](https://linear.app/gridworks/issue/OPS-392)).
 
 ## Observed startup sequence (verified 2026-06-10, dev rabbit; wire capture + both process logs)

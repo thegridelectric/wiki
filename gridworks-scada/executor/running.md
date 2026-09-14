@@ -8,8 +8,7 @@ process from a gridworks-scada checkout — the first stop for any Claude
 AND the scada leg of the live-broker path verified 2026-06-10 on
 `jm/spruce-unlimbo` (see "Verified live run" below); the LTN leg is
 `told` from [`experimentation-rig.md`](experimentation-rig.md) and the
-README until the hello-world verification pass (in the spruce-unlimbo
-design) confirms the pair end to end.
+README until a cold live run of the pair confirms it end to end.
 
 ## 0 · Environment
 
@@ -147,8 +146,7 @@ and the watch-list.
 - The wire-word versus layout-file-only split for the spruce branch has
   not been drawn yet.
 - The full live bidirectional LTN↔SCADA run over dev rabbit (with a JK
-  consuming) is not yet verified cold — that pass is the hello-world
-  step of the spruce-unlimbo design; its findings reconcile here.
+  consuming) is not yet verified cold; its findings reconcile here when it runs.
 - Whether a SCADA on the nolan layout needs Scada2/local_mqtt presence
   to run live, or runs degraded without it.
 - `gws run_s2` (Scada2) is undocumented here — add when first needed.

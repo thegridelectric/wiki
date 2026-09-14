@@ -1,6 +1,6 @@
 # Finalize `layout.lite/013` (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-12 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
 
 > What this is: the spoke that takes `layout.lite/013` from staging to
 > published with its closure, so the spruce scada can send it on the
@@ -68,3 +68,7 @@ is the gate to connecting.
 ## Open
 
 - Whether `014` goes first (no Krida pair) or `013` publishes as is.
+- `gw.nolan.layout` closes with the same epic-end promote: registry
+  status finalized, regenerate, validate against the real layouts. The
+  promote holds until the House0 word runs on all the House0 homes
+  (`zone-relays-and-thermostat-model.md` "Sequencing").

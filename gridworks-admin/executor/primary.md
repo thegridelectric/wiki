@@ -1,6 +1,6 @@
 # gridworks-admin — primary
 
-Status: Draft · Pass 1 · Updated 2026-09-10
+Status: Draft · Pass 1 · Updated 2026-09-14
 
 > **What this is.** The hub for the GridWorks admin domain: the
 > operator-facing surface for incident-mode intervention on a deployed
@@ -190,7 +190,7 @@ for the gRPC question.
 
 ## The capabilities contract (what the admin client consumes today)
 
-Status: Verified · Pass 1 · Updated 2026-09-10 · Reviewed 2026-09-08@ea3365b5
+Status: Verified · Pass 1 · Updated 2026-09-14 · Reviewed 2026-09-08@ea3365b5
 
 This is the scada's command surface toward admin, the first built to the
 cross-cutting pattern ([`../../command-surface.md`](../../command-surface.md)).
@@ -239,6 +239,21 @@ not by contract; the shape and its fix are in
 [`../../command-surface.md`](../../command-surface.md) "Rows and
 vocabularies".
 
+**What a row offers.** The panel shows a subset of the interface's
+commands, chosen from the row's observed state, one per vocabulary
+(`watch/widgets/relay_widget_info.py` `offered_commands`). A
+two-command vocabulary offers the command that leads away from the
+current state; a one-command vocabulary (RebootPicos on five-v-boss)
+is offered when the observed state is its target, since the node takes
+it only at rest. Two buttons, `n` for the first offer and `p` for the
+second; the second hides on a one-offer row. A row whose state has not
+been observed offers nothing today; the decided behavior (2026-09-14)
+is that it offers every command, since an unreported node is exactly
+the one the operator needs to reach (hp-boss reports only on a
+transition, so on the 2026-09-08 spruce window the heat pump could not
+be commanded from the panel until it moved). The change and its test
+are pending in gwadmin.
+
 The concrete case is the 5 V bus on a Nolan layout. The tree runs
 `auto.five-v-boss.pico-cycler.vdc-relay`, so the cover names one
 interface holder, five-v-boss, with two vocabularies (`turn.5v.on.off`:
@@ -250,7 +265,7 @@ however deep the chain (`watch/widgets/relays.py` `owner_chain`,
 `row_order_key`), so the operator reads:
 
 ```
-five-v-boss        PicoCycler     [TurnOff] [TurnOn] [RebootPicos]
+five-v-boss        PicoCycler     [TurnOff] [RebootPicos]
   pico-cycler      PicosLive
     vdc-relay      RelayClosed
 ```

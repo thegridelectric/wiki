@@ -88,7 +88,7 @@ Status: Draft · Pass 0 · Updated 2026-09-12 · Linear: OPS-392
    command node. (Clause (c) — non-actuator leaves are Dormant
    command nodes — is code+matrix territory, not wire-checkable.) Full
    rationale + the twin architecture and the single `HpTwin`
-   ActorClass: `unsorted/hp-twin.md`.
+   ActorClass: `../spruce-settled/hp-twin.md`.
 
 ## Simulated devices are a vocabulary (settled 2026-09-02)
 
@@ -149,10 +149,11 @@ type, definitions and runtime.
 
 Layouts DO NOT determine sensing/actuation hardware — the axiom side
 already says so (RequiredBoardActors dropped; sensing kind-agnostic;
-relay axioms are Name+ActorClass only). The generators still entangle
-family with hardware: `NolanSemaGen` IS the gw108 emitters,
-`House0SemaGen` IS krida/DFR/TSnap/hubitat. Target shape (marries the
-SHARED-actors / SPECIFIC-hardware split):
+relay axioms are Name+ActorClass only). The generators follow since
+2026-09-14 (correct-house0 rung 3): `layout_gen.py` is the family-neutral
+base, `src/tlayouts/hardware/` realizes one kind per module, and the
+family gens own the plant roster. The shape (marries the SHARED-actors
+/ SPECIFIC-hardware split):
 
 - A family generator owns the PLANT: the hardware-neutral roster (relay
   names + control semantics, sensing surface, zones, hydronic facts) —

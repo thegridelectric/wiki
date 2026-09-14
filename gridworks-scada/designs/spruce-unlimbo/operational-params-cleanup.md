@@ -113,9 +113,9 @@ this spoke; `layout-boundary.md:138` names nonexistent
 `gw.house0.sieg.layout`; `axioms.md` C/D/F open → landed as house0
 axioms 6/7/8; `universe-guardrail.md` lacks `Linear:`. Spruce hub:
 `house0.layout` (→`gw.house0.layout`), 06-10 branch snapshot, chunks
-A/B/D understated; `summer-local-control.md:64-66,298` system.mode
-Cooling thread superseded; `spruce-relay-control.md:113-128` "what
-remains" all done; zone spoke ▶ at done work (circuit FSM actor not
+A/B/D understated; the summer-local-control system.mode Cooling thread
+superseded (spoke since deleted); the spruce-relay-control "what remains"
+all done (spoke since distilled and deleted); zone spoke ▶ at done work (circuit FSM actor not
 built); admin-for-nolan (done under OPS-392) registry-state notes false post-squash/inverted;
 this spoke's "Nolan word's contents" (§ below) contradicts the identical
 words — rewrite. Sim hub `:162` "No code yet" false, TODO item 2 done,

@@ -1,6 +1,6 @@
 # Fall 2026 layouts (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-01 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
 
 > What this is: the four layouts arriving after House0 and Nolan — one
 > simulated, three installed in Millinocket in fall 2026. This spoke holds

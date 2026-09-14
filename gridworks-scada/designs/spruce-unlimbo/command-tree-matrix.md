@@ -1,9 +1,10 @@
-# command-tree-matrix (rope chunk)
+# command-tree-matrix (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-13 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
 
-> What this is: a chunk of the `sh_node_actor` partition rope; estimate 3h; `actors/command_node.py`, 207 L.
-> Hub: [`primary.md`](primary.md).
+> What this is: a spoke of [`primary.md`](primary.md); estimate 3h;
+> `actors/command_node.py`, 207 L. Came out of the `sh_node_actor`
+> partition rope.
 
 ## ▶ Do this next: the state-transition tree matrix (2026-09-13)
 
@@ -146,6 +147,15 @@ named, a guard):
    rejects it. ✅ Fixed in `30fbac27`: admin commands `TurnOn`/`TurnOff`
    to `admin.hp-boss`, hp-boss closes its relay, and the rewrite is gone;
    the matrix row asserts the relay moves.
+7. The relay's full report goes to the journal, not the commander
+   (decided 2026-09-14; rule in `executor/control-hierarchy.md`
+   "Command interfaces and replies"): `relay.py` addresses
+   `fsm.full.report` to `primary_scada` like the cycler, dropping
+   `boss_by_trigger` for that message; the ack pair still goes to the
+   commander. Test: one dispatch under admin on both fixtures, the
+   report reaches the scada's report path, the panel still gets the ack.
+   Before the launch: admin on a live house is exactly what leaves
+   unattributed actuations otherwise.
 
 ## five-v-boss rows (added 2026-09-08)
 

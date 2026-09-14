@@ -136,8 +136,8 @@ progression this session made concrete:
   layout-augments rework, building one is near-declarative: the sema type
   says *what a layout is*, a clean `layout_gen` *builds one*, and a
   *simulated* one is just choosing `Sim*` device types. (Depends on the
-  layout-augments fold and the `gw.nolan.layout` closing — both parked
-  in spruce-unlimbo's `gleanings.md`.)
+  `gw.nolan.layout` closing, which rides the epic-end promote in the
+  spruce un-limbo design.)
 - **Eventually — a docker fleet.** Simulated houses with **randomized tank
   counts** (and other varied parameters), spun up as a fleet for scaled
   experiments — the top of the World scale trajectory, where docker finally

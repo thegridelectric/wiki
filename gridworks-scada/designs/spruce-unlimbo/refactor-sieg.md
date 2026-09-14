@@ -1,13 +1,15 @@
-# refactor-sieg (unsorted item)
+# refactor-sieg
 
-Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
 
-> What this is: an unsorted item; hub [`primary.md`](primary.md). The
+> What this is: a spoke of [`primary.md`](primary.md). Maple and beech
+> keep the sieg loop, so the branch cannot go onto them until the loop
+> has run on the new code. The
 > sieg-loop control has never run unsupervised in the field for a long
 > stretch, so the hp-boss test work was its first exercise only on the
 > sieg-less side; treat it as unverified. Field confidence comes only
 > through the design's EDD bar (bench and box runs), not the suite.
-> Parked 2026-09-07.
+> A launch item.
 
 ## Carried from hp-boss's first pass
 
@@ -21,6 +23,11 @@ Status: Draft · Pass 0 · Updated 2026-09-07 · Linear: OPS-392
   `TURN_ON_ANYWAY_S` in the test settings. The in-process
   `test_hp_boss.py` already runs all three pairs by delivering
   `SiegLoopReady` by hand.
+- The tests the sieg leg still owes beyond the live pairs (no ready
+  message and `TURN_ON_ANYWAY_S` closing the relay anyway, the constant
+  shortened through settings) are gap 1 of
+  `../spruce-settled/relay-tests.md`; that file's other gaps wait for
+  the deployed line.
 - hp-boss's strategy split (readiness gate × command channel) is a
-  proposal in `hp-twin.md`; the sieg-loop actor is the first gate
+  proposal in `../spruce-settled/hp-twin.md`; the sieg-loop actor is the first gate
   provider.

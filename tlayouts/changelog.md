@@ -10,6 +10,32 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-14 — Family-neutral base generator and the hardware modules (`5347f3c` on jm/spruce)
+
+`NolanSemaGen` subclassed `House0SemaGen`, so a Nolan driver imported
+its DAC spec and board emitter from a module named for another family,
+and every hardware realization (relays, DAC outputs, the meter, tank
+modules, thermistor readers) lived in whichever family wrote it first.
+Now `layout_gen.py` holds what every family shares (`LayoutGen`,
+`LayoutGenConfig`: the id map, the accumulators, the stable-id helpers,
+the ops kwargs, and the emitters no layout word varies: GNodes, web
+server, heat-pump parts, pico flow meters, primary flow, derived
+channels, the hydronic core), and `hardware/` holds one module per
+kind with its spec beside its realizer (`board`, `i2c_relay`,
+`dac_output`, `thermistor`, `tank_module`, `power_meter`, `gpio_relay`,
+`gpio_sensor`, `btu_meter`, `hubitat_zone`), each a function that
+appends to a gen. House0 and Nolan are siblings on
+`LayoutGen` and own only their plant roster. The two families' i2c
+relay and DAC emitters collapse into one each, the family fact (the
+node's handle, the channel caption) a parameter; the relay wiring and
+event/state bundles are typed `RelayKind` constants. `DeviceType` and
+`SimDeviceType` move to `tlayouts.device_types`, the vocabulary home.
+Nolan's redundant `__init__`, `emit_gnodes`, `emit_heat_pump_parts` and
+duplicated config fields go. Drivers repoint their imports. A move, not
+a redesign: spruce, spruce-sim, spruce-async1, honeysuckle (both
+variants) and house0-sim regenerate byte-identical. Rung 3 of
+correct-house0 (OPS-539).
+
 ## 2026-09-14 — beech's house0 layout generates automatically (`400e858` on jm/spruce)
 
 `House0SemaGenConfig` now carries the board (equipment node name,

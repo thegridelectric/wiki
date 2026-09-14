@@ -101,11 +101,9 @@ the conformance test.
 
 ## Sequencing
 
-1. ✅ The 0-10V shift is in (the per-output components exist).
-   Its fixture surgery is hand-patched, as krida rung 3's was: the
-   House0 gen's `emit_dfr` (still the legacy type-key, the DFR
-   component, multiplexer node) is brought to the per-output shape
-   here, with the board record and the ops-params list.
+1. ✅ The 0-10V shift is in (the per-output components exist), and
+   the House0 gen emits that shape on the board record with the
+   ops-params list; the sim pair is the gen's output (rungs 1 and 2).
 2. Strand 2, one file at a time, each review its own commit; the gen
    and fixture move with each rename.
 3. Strand 1: the gen reproduces the pair; `sema validate` green on both.
@@ -146,22 +144,30 @@ the conformance test.
    property. If a fall house gets a direct boiler-call relay, the name
    returns with its generator row and a caller in one change.
 
-## Where the gen stands (measured 2026-09-14)
+## Where the gen stands (2026-09-14, after tlayouts `400e858`)
 
-- `house0_sim_gen.py` does not run: `house0_sema_gen.py` still
-  reads `H0N.relay_multiplexer` (line 887), a name krida rung 3
-  deleted, and `emit_dfr` (line 1356) still emits `dfr.component.gt`,
-  `dfr.config` and the `zero-ten-multiplexer` node. Two retirements
-  behind the fixtures.
+- `house0_sema_gen.py` runs and emits the sim pair on the board record
+  (`emit_relays`, `emit_dac_outputs`, `emit_board`); the scada sim
+  fixture pair is its output verbatim (scada `0944df35`, `293b0215`).
+  The board and the 0-10V outputs are config (`House0SemaGenConfig`),
+  gw108 rev B the default; the sim and oak declare krida plus DFRobot.
+- Drivers are `<house>_gen.py` (`spruce_gen`, `spruce_sim_gen`,
+  `honeysuckle_gen`, `house0_sim_gen`, `oak_gen`); the six commented
+  legacy generators are `old_gen_<house>.py`, contents untouched.
+- `layout_gen.py` is the family-neutral base (`LayoutGen`,
+  `LayoutGenConfig`); House0 and Nolan are siblings on it and own only
+  their plant roster. `src/tlayouts/hardware/` realizes one kind per
+  module against the board record (`board`, `i2c_relay`, `dac_output`,
+  `thermistor`, `tank_module`, `power_meter`, `gpio_relay`,
+  `gpio_sensor`, `btu_meter`, `hubitat_zone`), spec beside realizer.
 - `sema validate`: the sim fixture `gw.house0.sim.layout.json` is OK;
   the real fixture `gw.house0.layout.json` fails with 944 errors
   (485 missing fields, 288 extra inputs, the rest TypeName/Version
   literals on config and component words). The old-shape carriers:
   `InPowerMetering` on channels, pre-word hubitat shapes, old config
   TypeNames.
-- No sema-native generator emits the real House0 fixture today:
-  `gen_beech.py` is the commented legacy spec; `house0-stub/` output is
-  from August.
+- No generator emits the real House0 fixture: `old_gen_beech.py` is
+  the commented legacy spec; `house0-stub/` output is from August.
 
 ## Rungs
 
@@ -182,23 +188,21 @@ the conformance test.
    panel may itself be replaced by a gw108. Makes "which board" a
    one-axis swap, the hardware-decoupling shape in
    `layout-word-axioms.md`.
-3. **Family-neutral hardware modules.** The Nolan gen subclasses the
-   House0 gen, and the layout-neutral specs (board axis, DAC output,
-   ops, heat-pump part, tank, power channel) live in
-   `house0_sema_gen.py`, so a Nolan driver imports from a module named
-   for another family. Target: a family-neutral base generator (id
-   map, accumulators, emit helpers) with House0 and Nolan as siblings;
-   `src/tlayouts/hardware/` modules that realize one kind each
-   (board, i2c relay, DAC output, thermistor channel, tank module,
-   power meter) against a board record, each with its spec beside it;
-   a family gen owns only the plant roster its word requires. A move,
-   not a redesign: byte-identical regen of the five outputs is the
-   check. Before rung 4 so the beech driver is written once.
-4. **Real fixture from the gen: `gen_beech.py`.** The House0 word means
-   has-a-sieg-loop, so its two homes are beech and maple: `gen_beech.py`
+3. ✅ DONE (2026-09-14) **Family-neutral hardware modules.**
+   `layout_gen.py` is the base generator (id map, accumulators, emit
+   helpers) with House0 and Nolan as siblings; `src/tlayouts/hardware/`
+   realizes one kind per module (board, i2c relay, DAC output,
+   thermistor channel, tank module, power meter, gpio relay, gpio
+   sensor, BTU meter, hubitat zone) against the board record, spec
+   beside realizer; a family gen owns only the plant roster its word
+   requires. A move, not a redesign: the five outputs regenerated
+   byte-identical.
+4. **Real fixture from the gen: `beech_gen.py`.** The House0 word means
+   has-a-sieg-loop, so its two homes are beech and maple: `beech_gen.py`
    authors the real fixture (sieg surface, LG nameplate,
-   Honeywell-via-Hubitat zone circuit, krida panel, DFRobot outputs)
-   and `gen_maple.py` follows on the same config class. Oak, fir and elm
+   Honeywell-via-Hubitat zone circuit, krida panel, DFRobot outputs;
+   `old_gen_beech.py` is the legacy spec to mine, not to port)
+   and `maple_gen.py` follows on the same config class. Oak, fir and elm
    are the sieg-less family and wait for `gw.house0.no.sieg`;
    `oak_gen.py`, a House0-shaped config for a no-sieg house that
    raises at the stub, is not a House0 driver and retires into that
@@ -213,10 +217,15 @@ the conformance test.
 
 ## Do this next
 
-Rung 3: the family-neutral base generator and `src/tlayouts/hardware/`
-modules, specs beside their realizers; move only, then regenerate
-spruce, spruce-sim, spruce-async1, honeysuckle and house0-sim and
-confirm byte-identical output before anything else changes.
+Rung 4: `beech_gen.py`, the real House0 fixture from the gen. Start
+from `sema validate` on `tests/config/gw.house0.layout.json` (944
+errors) and `old_gen_beech.py` as the spec to mine; the driver declares
+beech's krida panel, DFRobot outputs, TSnap ADS channels, Reed flow
+meters, real tanks, eGauge channels, LG nameplate parts and the
+Honeywell-via-Hubitat zone circuits on `House0SemaGenConfig`, the
+sieg surface being the open question (no emitter yet). Done when
+`sema validate` is OK on its output and every id in the hand-kept
+fixture is preserved.
 
 ## Open
 
