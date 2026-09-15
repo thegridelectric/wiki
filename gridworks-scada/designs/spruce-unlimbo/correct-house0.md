@@ -1,6 +1,6 @@
 # Correct House0 (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-09-14 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-09-14 · Linear: OPS-539
 
 > What this is: House0 made right — the House0 layout correct across three
 > representations that close only together: the **sema word** carries the right
@@ -119,7 +119,11 @@ gens, the fixtures and the code together.
    stub, retires into that family's generator when its word exists.
 
    Shared-gen work this rung needs (Nolan+sim regen byte-identical; oak flips
-   Reed→Hall):
+   Reed→Hall) — ✅ ALL BUILT for beech (`7c2db53`), each byte-verified against
+   spruce+sim; maple reuses them. As-built notes vs the spec below: the second
+   dist meter is the **`dist2` position** (not a `node` override), the Hall meter
+   type is **`SaierFlowSensor`** (not `SaierSenhzg1Wa`), and `TankSpec` gained
+   asymmetric depth-1/3 calibration + `sensor_order`:
    - `emit_flow` hardcodes Reed — a bug: fleet flow picos are **Hall** (Saier,
      `ConstantGallonsPerTick` 0.0009), and it mis-generates oak. Give `FlowSpec`
      a `kind` axis (`hall` default / `reed`), an optional explicit `node` for a

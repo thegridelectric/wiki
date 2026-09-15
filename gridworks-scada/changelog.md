@@ -10,6 +10,18 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-15 — sieg-send-flow: hydronic name + `difference` derived strategy (`<!-- pending commit -->`)
+
+`sieg-send` becomes the hydronic-tier name `sieg-send-flow` (node and
+channel), fitting the `<position>-flow` grammar every other flow meter
+follows; the bare constant had no readers. The derived generator gains a
+`difference` strategy (`InputChannelNames[0] - InputChannelNames[1]`,
+the same one-shared-unit contract as `sum`, exactly two inputs), with its
+first tests — and `sum`'s first. A sieg-loop house that measures
+primary-flow (beech) derives `sieg-send-flow = primary-flow - sieg-flow`;
+one that derives primary (maple) sums `sieg-send-flow + sieg-flow`. Rung 4
+of correct-house0 (OPS-539).
+
 ## 2026-09-14 — House0 fixture becomes a generated simulated layout (`<!-- pending commit -->`)
 
 `tests/config/gw.house0.layout.json` was a hand-authored hodge-podge of real

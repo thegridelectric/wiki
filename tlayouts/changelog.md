@@ -10,6 +10,29 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-15 — sieg-send-flow and the derived sieg flows; maple gen (`<!-- pending commit -->`)
+
+The sieg send line's flow meter takes the `<position>-flow` grammar every
+other flow meter follows: position `sieg-send` → `sieg-send-flow` /
+`sieg-send-flow-hz`, replacing the deployed bare `sieg-send`; a `RENAMED`
+table (new → old) lets a regenerated layout inherit the deployed UUIDs, the
+way the relay-idx rename does. `FlowSpec.position` opens from a closed
+`Literal` to a `SpaceheatName` — a position is any name the grammar
+composes, not a closed set — and `primary_flow_source` is typed as the sema
+enum `House0PrimaryFlowSource` instead of a bare string.
+
+`emit_primary_flow` now carries the sieg-loop flow identity
+`primary-flow = sieg-send-flow + sieg-flow`: a house that measures
+primary-flow and has a sieg-flow channel derives `sieg-send-flow` by
+`difference` (beech); a house on `DerivedSiegSum` derives `primary-flow` by
+`sum` (maple). The difference branch keys on the sieg-flow channel's
+presence, so non-sieg families regenerate unchanged.
+
+`maple_gen.py` authors the real Keene Maple `gw.house0.layout` (Mitsubishi
+Ecodan WUZ-SA48NMZ + ERSF-NM6E hydrobox, sieg-btu and store-btu, dist and
+sieg-send Hall picos, an outdoor air temp on the ADS) as a deployment
+artifact, mined from `old_gen_maple.py`. Rung 4 of correct-house0 (OPS-539).
+
 ## 2026-09-14 — beech real deployment layout from the sema House0 gen (`7c2db53` on jm/spruce)
 
 `beech_gen.py` authors the real Keene Beech `gw.house0.layout` — a sieg-loop
