@@ -24,5 +24,7 @@ gridworks-weather-forecast:gridworks-weather-forecast
 gridworks-scada:gridworks-scada
 gridworks-fleet-index-service:gridworks-fleet-index-service
 gridworks-ear:ear
+gridworks-alerter:gridworks-alerter
+gridworks-alerts:gridworks-alerter
 tlayouts:tlayouts
 "

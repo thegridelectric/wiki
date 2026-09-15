@@ -190,7 +190,13 @@ this cured: the relay actor once carried `turn_on_HP`, the thermistor reader
   one file per layout family — `house0.py`, `nolan.py`): the two strata share
   domain, consumers and lifecycle, so they share a file until one outgrows a
   single concern. The name matches the artifact side (`Hydronic`, `gw.hydronic`,
-  `HydronicLayout`).
+  `HydronicLayout`). Plant judgment reads whatever temperature it can get:
+  `is_buffer_full` judges from `buffer-depth3` when it is present and
+  otherwise falls through to a proxy (`buffer-cold-pipe`, then
+  `store-cold-pipe` while discharging the store, then `hp-ewt` while the heat
+  pump feeds the house), sending an info glitch that names the proxy channel.
+  The fall-through is deliberate: a house with a dead depth3 sensor keeps
+  cycling on the nearest cold-side reading rather than stalling.
 - **E — zone/TOU pieces** (`get_zone_setpoints`, `is_onpeak`, `is_system_cold`):
   family-neutral, reading ops words.
 

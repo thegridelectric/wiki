@@ -7,7 +7,7 @@ gwalert on the alerts box against the live hw1 broker, and each detector
 reaches Verified only when a week of shadow output matches or beats gwalert's.
 
 > What this is: the design for replacing gwalert's journal-DB polling with a
-> gwbase actor on the hw1 broker that owns its inputs (a durable queue), its
+> gwbase actor on the hw1 broker that owns its inputs (its own queue), its
 > state (sqlite), and its outputs (sema-typed alert events). Written at
 > handoff on 2026-09-15 from the triage that motivated it; the next session
 > starts at "Do this next".
@@ -38,11 +38,19 @@ the box; this design draws it at the data path.
 - **A gwbase actor** (`ActorBase`, a service, not a GNode) on the alerts box,
   connected to the hw1 broker over AMQP as `hw1.alerts`, a service under the
   universe root. Whether it earns a GNode alias is a question for the design,
-  not a default.
-- **One durable named queue** on `hw1__1`, bound to the scada topics
-  JournalKeeper already journals: `report.event`, `snapshot.spaceheat`,
-  `glitch`, `layout.lite`, plus the liveness signals of OPS-317 when they
-  exist. Durable so that a restart replays the gap instead of starting blind.
+  not a default. It lives in its own repo, `gridworks-alerter` (package
+  `gwalerter`), named like the other gwbase services; `gridworks-alerts`
+  stays gwalert's home until gwalert is retired, and
+  `gridworks-alert-manager` is untouched. Two repos because the two run
+  side by side on the box for the shadow week and share nothing but
+  thresholds.
+- **The standard gwbase queue**, `<alias>-F<3-hex>`, auto-delete, as every
+  actor declares, bound to the scada topics JournalKeeper already
+  journals: `report.event`, `snapshot.spaceheat`, `glitch`, `layout.lite`,
+  plus the liveness signals of OPS-317 when they exist. Nothing durable on
+  the broker: the journal is the durable record, and a queue that fills
+  while the alerter is down is a second outage. Restart is handled in the
+  store, not the broker.
 - **Sema at the boundary.** Every message is decoded through the vendored
   snapshot classes; a channel's unit and role come from the layout the scada
   sent, never from a lookup table someone else populates. The `units.py`
@@ -50,7 +58,10 @@ the box; this design draws it at the data path.
 - **A sqlite store**, as the LTNs keep: the latest `layout.lite` per house,
   a rolling window of readings (a few hours covers every detector; all but
   the glitch window read 5–15 minutes), and alert state (open, cleared,
-  when, evidence). Restart-safe by construction.
+  when, evidence). Across a restart the layouts and alert state survive;
+  the readings window refills from live traffic and "last heard" restarts
+  from boot time, so a detector that needs a window waits one window
+  before it can fire.
 - **Sema-typed outputs.** The alerter emits an alert event and a cleared
   event on the broker. The manager consumes them to page; JournalKeeper
   journals them like anything else, so the web page's alerts history reads
@@ -73,9 +84,14 @@ the box; this design draws it at the data path.
 - **Dead-man's switch.** Alerting and the houses share one broker, so a
   broker outage is silent. The manager pages if the alerter's heartbeat
   stops, over a path that is not the broker (loopback on the box is enough).
-- **Which houses are expected.** Today a house with no rows is silently
-  absent from every check (elm, off for the summer). Expected-to-report
-  belongs with the Standby signal in `layout.lite`, not with a row count.
+- **Which houses are expected is answered by the liveness projection
+  (OPS-546), not a rule in the alerter.** Today a house with no
+  rows is silently absent from every check (elm, off for the summer). The
+  projection is its own design, worked in parallel; until its word is
+  published the alerter seeds its expected-house set from the `layout.lite`
+  messages in its store, and swapping that seed for the projection is one
+  lookup. Standby and MonitorOnly are fields of the record, not exceptions
+  in a detector.
 - **Setpoints that report only on change** (spruce, last between July and
   September) need latest-known values, not a window; the store gives that
   for free but the detector must ask for it.
@@ -87,19 +103,26 @@ the box; this design draws it at the data path.
 
 Strangler, not rewrite. gwalert keeps running throughout.
 
-1. Vocabulary discussion and the sema words (alert, cleared, kind).
-2. Actor skeleton on the alerts box: queue bound, sqlite store, layout
-   persisted, heartbeat to the manager, alert events emitted but the manager
-   only logs them. No-data is the first detector.
-3. Shadow run for a week beside gwalert; compare event for event.
-4. Port one detector at a time with its tests; the manager pages from the
+1. The actor: `gridworks-alerter` on gwbase, its queue on the dev broker
+   bound to `report.event` and `layout.lite`, the sema snapshot
+   vendored before the first consumer line, a sqlite store holding the
+   latest `layout.lite` per house and a rolling readings window, pyright in
+   `ci.sh`. Stands on its own with no detector.
+2. No-data as the first detector: "no `report.event` from a house in ten
+   minutes" read off the queue, the house set seeded from stored
+   `layout.lite`, the manager only logging what it receives. Needs the
+   alert vocabulary (alert, cleared, kind), which is a spec discussion.
+3. Shadow run for a week beside gwalert on the alerts box against hw1;
+   compare event for event.
+4. Adopt the liveness projection (OPS-546) as the house set
+   when its word is published; the seed from step 2 goes.
+5. Port one detector at a time with its tests; the manager pages from the
    new source for each detector as it reaches Verified.
-5. Retire gwalert's DB connection when the last detector moves; drop the
+6. Retire gwalert's DB connection when the last detector moves; drop the
    `gw_alerts` role and the façade.
 
-Rough cost: one session for the design proper, two to three days to a
-shadow-running actor with no-data, one to two weeks for the full port with
-tests.
+Rough cost: two to three days to a shadow-running actor with no-data, one
+to two weeks for the full port with tests.
 
 ## Pointers for the next session
 
@@ -114,11 +137,21 @@ tests.
 - Broker conventions: GridWorks_CLAUDE "GNode aliases carry their universe
   as segment 0" and the gwbase executor on service deployment; the LTN's
   sqlite pattern in `gridworks-scada` ltn.
-- Related issues: OPS-449 (manager interface, absorbed), OPS-317 (liveness
-  signals, consumed), OPS-438 (leave Opsgenie).
+- Related issues: OPS-449 (manager interface, absorbed), OPS-546
+  (liveness projection, adopted at step 4), OPS-317 (liveness signals,
+  consumed through the projection), OPS-438 (leave Opsgenie).
 
 ## Do this next
 
-Run `/grill-me` on the "Shape" and "Settle" sections with Jessica, then take
-the vocabulary question to the sema spec discussion. Nothing in
-`gridworks-alerts` changes until the words exist.
+Create `gridworks-alerter` from the gwbase service pattern (the gwbase
+executor on service deployment; `gridworks-weather-forecast` is the
+smallest running example of a non-GNode service) with its own `.env`
+prefix, `ci.sh` with pyright, and the sema snapshot vendored first. Bring
+it up against the local `gw-dev-rabbit`: the actor's own queue bound to
+`report.event` and `layout.lite`, every message decoded through the
+snapshot classes, the latest `layout.lite` per house and the readings
+window in sqlite. Prove it with a sim scada (or replayed journal messages)
+filling the store, and a restart that keeps the layouts and alert state
+and refills the window.
+No detector yet; the alert vocabulary is the next spec discussion once the
+store is real.

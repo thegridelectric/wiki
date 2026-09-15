@@ -1,12 +1,15 @@
-# gridworks-alerts — spec (primary)
+# gridworks-alerter — spec (primary)
 
 Status: Draft · Pass 0 · Updated 2026-09-15
 
-> What this is: the house alerting service pair — the **gwalert** detector
-> (`thegridelectric/gridworks-alerts`, package `gwalert`) and the
+> What this is: house alerting — the **gwalert** detector
+> (`thegridelectric/gridworks-alerts`, package `gwalert`), its gwbase
+> successor **gwalerter** (`thegridelectric/gridworks-alerter`), and the
 > **alert-manager** Telegram dispatcher (`thegridelectric/gridworks-alert-manager`)
-> — as they run on the `alerts` box. Most detector depth is Open; the code is
-> the authority for detail.
+> — as they run on the `alerts` box. gwalerter is being built beside gwalert
+> and takes over one detector at a time (OPS-545); until then this spec
+> describes gwalert. Most detector depth is Open; the code is the authority
+> for detail.
 
 ## What it is
 

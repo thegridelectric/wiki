@@ -1,10 +1,27 @@
-# gridworks-alerts changelog
+# gridworks-alerter changelog
 
-One entry per commit in `thegridelectric/gridworks-alerts` and
-`thegridelectric/gridworks-alert-manager` (git = the what, this = the why).
+One entry per commit in `thegridelectric/gridworks-alerter`,
+`thegridelectric/gridworks-alerts` and `thegridelectric/gridworks-alert-manager`
+(git = the what, this = the why).
 
-<!-- pending commit -->
-## 2026-09-15 — gridworks-alerts: Zone detectors convert temperatures by the channel's unit
+## 2026-09-15 — gridworks-alerter: scaffold the broker alerter (OPS-545, `f569fde`)
+
+New repo `gridworks-alerter` (package `gwalerter`), the gwbase successor
+to gwalert that will strangle it one detector at a time. This first
+commit is the actor and its store, no detector: an `ActorBase` tap that
+binds the audit exchange the way JournalKeeper does and keeps
+`report.event` and `layout.lite` off the parsed envelope, a vendored
+sema snapshot (every published `report.event`, `layout.lite` 011 and
+012; the sema CLI refuses staging words by default and the alerter is
+a prod service, so 013 waits for promotion), and a sqlite store holding
+the latest layout per house, a rolling readings window, and last-heard
+per house. No durable queue: the journal is the durable record, and a
+queue that fills while the alerter is down is a second outage. The
+store's `HouseRecord` is the interim for the liveness record word of
+OPS-546. `ci.sh` runs ruff, pyright and pytest; the live-broker test
+self-skips without `gw-dev-rabbit`.
+
+## 2026-09-15 — gridworks-alerts: Zone detectors convert temperatures by the channel's unit (`1eda244`)
 
 After every gwalert restart spruce paged "zoneN is below 40F" for three
 zones in the mid-60s F. The freezing and setpoint detectors chose a

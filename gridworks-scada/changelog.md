@@ -10,6 +10,41 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-15 — is_buffer_full: the proxy glitch names its channel <!-- pending commit -->
+
+The info glitch `is_buffer_full` sends when it infers "full" from a proxy
+temperature printed the boolean `used_proxy` ("using True") instead of the
+channel; it now names `buffer-depth3` as missing and the proxy channel used.
+Behavior unchanged: the fall-through to `buffer-cold-pipe`, `store-cold-pipe`
+and `hp-ewt` stays, by decision (recorded in the executor's node-actor
+partition section). Rung 5 of correct-house0 (OPS-392).
+
+## 2026-09-15 — hydronic house0: first tests on both sim pairs; store-flow predicates survive a missing relay state (`5243b0a0`)
+
+`actors/hydronic/house0.py`, the House0 plant surface, gets its first tests
+(`tests/actors/test_hydronic_house0.py`), run on both generated House0 sim
+pairs: all twenty plant commands land on the right relay with the right
+event from their boss (the loop pair from sieg-loop) and nothing is sent
+from a non-boss; the sieg-loop node gate; the energy, power and defrost
+readers; the store-flow predicates; and the temperature pass with the
+stratified fill and its plausibility scrub. The tests caught
+`discharging_store` and `flowing_from_hp_to_house` raising on `None.State`
+before the charge/discharge relay had reported; both now answer False
+until it has. Rung 5 of correct-house0 (OPS-392), the `house0.py` review.
+
+## 2026-09-15 — hydronic shared: first tests on both sim pairs; stat_ops_relay raises DcError (`bdd1b55c`)
+
+`actors/hydronic/shared.py`, the family-neutral hydronic surface, gets its
+first tests (`tests/actors/test_hydronic_shared.py`), run on both generated
+House0 sim pairs: zone-relay lookup by zone name, the four zone-relay
+commands from the boss (and nothing sent from a non-boss or for an unknown
+zone), the vdc pair from pico-cycler, `get_zone_setpoints`, the
+`is_system_cold` lower-of-two-setpoints rule, and the TOU clock. The tests
+caught `stat_ops_relay` raising a bare `Exception` with a copy-pasted
+message naming `stat_failsafe_relay` where the docstring promised
+`DcError`; it now raises `DcError` naming itself. Rung 5 of correct-house0
+(OPS-392), the `shared.py` review.
+
 ## 2026-09-15 — sieg-send-flow: hydronic name + `difference` derived strategy (`e398dc57`)
 
 `sieg-send` becomes the hydronic-tier name `sieg-send-flow` (node and

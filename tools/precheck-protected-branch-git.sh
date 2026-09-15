@@ -22,8 +22,10 @@ tool_name=$(echo "$input" | jq -r '.tool_name // ""')
 command=$(echo "$input" | jq -r '.tool_input.command // ""')
 
 # Only history-mutating git verbs. Narrow on purpose: read-only git is allowed.
+# The verb must end at whitespace or end-of-string: a word boundary after the
+# verb also matched the read-only merge-base (2026-09-15).
 if ! echo "$command" | grep -Eq \
-  'git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+(commit|merge|rebase|cherry-pick|revert)\b|git[[:space:]].*(reset[[:space:]]+--hard|branch[[:space:]]+-(f|-force)|push[[:space:]].*--force)'; then
+  'git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+(commit|merge|rebase|cherry-pick|revert)([[:space:]]|$)|git[[:space:]].*(reset[[:space:]]+--hard|branch[[:space:]]+-(f|-force)|push[[:space:]].*--force)'; then
   exit 0
 fi
 

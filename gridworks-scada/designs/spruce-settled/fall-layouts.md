@@ -51,3 +51,10 @@ the per-install physical detail below.
 - Everything above marked *(details to fill)*.
 - Which of the six name-tier / hydronic-tier structures each new family
   reuses vs owns.
+- `ShortCycleBuffer` both ways in a House0 sim. The flag changes the
+  leaf ally's buffer band (`is_buffer_empty` reads depth3 against
+  RSWT minus delta-T, `is_storage_colder_than_buffer` compares the buffer
+  bottom to the tank top) and zeroes the LTN's buffer-available kWh; local
+  control ignores it. The sim pairs run it false and the field houses now
+  run it true, so the leaf ally's true path has no test. Run a House0 sim
+  pair with each value and pin both bands.

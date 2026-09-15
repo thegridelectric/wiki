@@ -17,9 +17,7 @@ Every name decision changes the word, the gens, the fixtures and the code at
 once, so the strands close together, not in isolation.
 
 1. **The sema word carries the requirements.** `gw.house0.layout/000` (staging,
-   so edited in place under the word-gate ritual: read `sema/spec/primary.md`
-   and the registry/authoring spokes, post the summary, wait) is brought to the
-   shape the Nolan word already has. Every House0 layout — simulated or real —
+   so edited in place) is brought to the shape the Nolan word already has. Every House0 layout — simulated or real —
    validates against it. It carries fourteen live axioms;
    [rung 6](#rungs) lists the gaps against Nolan.
 
@@ -167,13 +165,31 @@ gens, the fixtures and the code together.
    each review its own commit; the gens and fixtures move with each rename;
    first-ever tests per file. Names no reviewed file holds get one end-of-review
    sweep.
-   - `actors/hydronic/shared.py` (~250 L): zone-circuit relay helpers, the vdc
-     pair, onpeak/setpoint judgment, `latest_temps_f`. The shared bar is "every
-     layout we can imagine has this" — a helper that assumes a buffer tank, an
-     iso valve or store tanks is House0's, not shared.
-   - `actors/hydronic/house0.py` (~990 L): choreography and judgment; the
-     judgment methods (`is_buffer_*`, `is_storage_*`) are the thinnest coverage
-     in the repo and each needs a functionality conversation, not just a test.
+   - `actors/hydronic/shared.py` (~270 L): zone-circuit relay helpers, the vdc
+     pair, onpeak/setpoint judgment, `latest_temps_f`. The bar for a name or
+     helper staying in the hydronic tier is NOT "every layout has it": most
+     layouts have store tanks (all but the slab house) and two have a buffer.
+     A thing leaves hydronic only when it is potentially confusing across
+     families — the core example is the iso valve and the charge/discharge
+     relay, wired differently in `gw.house0` and `gw.house0.no.sieg`. (Bar to
+     confirm; stated 2026-09-15.)
+     First tests: `tests/actors/test_hydronic_shared.py`, both sim pairs
+     (relay lookup, the four zone-relay commands from the boss and from a
+     non-boss, the vdc pair, setpoints, `is_system_cold`, the TOU clock).
+     Found and fixed: `stat_ops_relay` raised a bare `Exception` naming the
+     wrong method where its docstring promised `DcError`. What the review
+     left in the file is rung 8.
+   - `actors/hydronic/house0.py` (~890 L): choreography and judgment.
+     First tests: `tests/actors/test_hydronic_house0.py`, both sim pairs —
+     all twenty plant commands from their boss and from a non-boss, the
+     sieg-loop node gate, the energy/power/defrost readers, the store-flow
+     predicates, and the temperature pass. Found and fixed:
+     `discharging_store` / `flowing_from_hp_to_house` crashed
+     (`None.State`) before the charge/discharge relay had reported a state;
+     they now answer False. Untested and waiting on a functionality
+     conversation each: `is_buffer_empty`, `is_buffer_full`,
+     `is_buffer_charge_limited`, `is_storage_colder_than_buffer` (rung 8
+     lists what the read surfaced).
 
    The live inventory: **423 `H0N.` and 105 `H0CN.` references remain**; three
    members retired so far (`store_pump_failsafe`, `thermistor_common_relay`,
@@ -187,7 +203,7 @@ gens, the fixtures and the code together.
      buffer-names docstring still claims "every hydronic plant" — false once the
      bufferless fall families arrive.
    - `tank1-elt` execution (its own commit): the per-tank element rename +
-     `gw.nolan.layout` in-place edit (staging; word-gate ritual) + tlayouts
+     `gw.nolan.layout` in-place edit (staging) + tlayouts
      sim-pair regen + gwsproto literals + code repoints.
    - `ZoneNodes` ≡ `HydronicSpaceheatZoneNodeNames` duplication (`relay.py`
      still builds `ZoneNodes` in `initialize_fsm`).
@@ -207,11 +223,11 @@ gens, the fixtures and the code together.
      difference fires only on sieg-flow readings. The sim sensor's rule (forward
      when a DerivedChannel consumes one of your channels) is the name-free
      replacement.
-   - Do this next: `actors/hydronic/shared.py` review, both sim pairs in its
-     first tests.
+   - Do this next: the four buffer/storage judgment conversations (rung 8's
+     house0 items), then tests for each on both sim pairs.
 
-6. **The sema word sitting** (word-gate ritual): bring the House0 word's axioms
-   to the Nolan shape —
+6. **Sema work.** Bring the House0 word's axioms to the Nolan shape, and
+   rename the buffer flag —
    - `RequiredSensing` — add the missing `dist-flow` and `store-flow` channels.
    - `RequiredActuators` — carry the per-output ComponentIds the 0-10V shift
      created (today it pins the three `*-010v` nodes by Name + ActorClass only).
@@ -223,6 +239,26 @@ gens, the fixtures and the code together.
      it to the Nolan shape.
    - Re-read every axiom statement against the post-rename fixtures so none pins
      a retired name.
+   - **`ShortCycleBuffer` → `KeepBufferFull`**, in place (all three carriers
+     are staging): `gw.house0.operational.params` 000,
+     `gw.nolan.operational.params` 000, and `layout.lite` 013 (its
+     `BufferShortCycling`, the copy the scada sends the LTN). With it the
+     gwsproto twins, the `_gen.py` config field and every gen call site, the
+     sim fixtures, the scada read site and the LTN attribute, then regen. The
+     field's description, both ops words:
+
+     > When true, the buffer is kept near full rather than used as storage.
+     > The leaf ally cycles it on its bottom sensor, charging when depth3 is
+     > below the required return-water temperature and stopping when it is
+     > above, so only a small slice of the tank swings between heat pump
+     > runs, and the LTN reports zero buffer-available kWh. The FLO then
+     > plans on the store alone, at the cost of the buffer's volume and more
+     > frequent heat pump cycling. When false, the buffer drains from its top
+     > sensor before a recharge and its energy counts toward what the FLO can
+     > use. Local control does not read this flag.
+
+     `layout.lite` carries the one-line form: "The running scada's
+     `KeepBufferFull` setting; the LTN counts no buffer energy when true."
 
    The mirror is gwsproto's `check_axiom_<n>` validators, regenerated, plus the
    conformance test. Sequenced after the fixtures validate (rungs 4-5), because
@@ -249,6 +285,67 @@ gens, the fixtures and the code together.
      `house_0_names.py`, the channel-name constant + its H0N alias, and
      `HydronicLayout.boiler_scada_ops`. Returns with a generator row and a caller
      if a fall house gets a direct boiler-call relay.
+
+8. **Hydronic shared cleanup, with tests.** What the `shared.py` review
+   (rung 5) found and did not touch; each item extends
+   `tests/actors/test_hydronic_shared.py` on both sim pairs.
+   - `get_zone_setpoints` scrapes `latest_channel_values` by substring
+     (`'zone' in x and 'set' in x`) and `is_system_cold` builds
+     `zone + '-set'` / `'-temp'` by hand. Both are the zone channel-names
+     class's job (`ZoneChannelNames`: the `-set` and `-temp` channels by
+     zone), the hand-map tell. Repoint, no scrape.
+   - `is_onpeak` / `just_before_onpeak` hardcode the Versant peak hours and
+     weekdays. A tariff fact, not actor logic: it belongs in the ops word or a
+     `names` constant the actor reads. Decide the home, then move it.
+   - `heatcall_ctrl_to_scada` carries a dead `command_node is None` branch
+     after the default; delete it.
+   - `get_zone_setpoints` writes `zone_setpoints` as a side effect that
+     `is_system_cold` then reads; the pair's "setpoint at start of on-peak"
+     memory is implicit in when the refresh is skipped. Make that state
+     explicit when the repoint touches it.
+
+   From the `house0.py` review, the judgment half:
+   - ✅ `is_buffer_full` keeps its proxy fall-through (decided 2026-09-15,
+     recorded in `control-hierarchy.md` "The node-actor partition"); the info
+     glitch now names the proxy channel.
+   - **The plausibility scrub is gated on a missing layer, and its floor
+     is wrong for a summer tank.** `get_temperatures` converts every tank
+     and pipe channel, then calls `fill_missing_store_temps` only when some
+     tank layer is absent; the 70–200 F range check is the first loop of
+     that fill, so with every layer reporting a 250 F reading stands (pinned
+     by `test_implausible_store_temp_survives_when_every_layer_reports`).
+     Worse, 70 F is both the validity floor and the fill baseline. Oak on
+     2026-09-15 reads 60–65 F in every layer of all three tanks (30-day
+     range 60–65 F, journal DB); the moment one of its layers drops out,
+     every layer is popped as "below 70" and the whole store is rewritten
+     to 70 F, phantom energy the FLO then plans on. The LTN carries its own
+     copy (`ltn.py` `fill_missing_store_temps`, same 70/200, baseline 0
+     without a store-cold-pipe). Proposal: scrub unconditionally; validity
+     range 35–200 F (below freezing point plus margin is a sensor fault,
+     not water); fill baseline = store-cold-pipe, else the coldest
+     reporting layer, never a constant; one implementation the LTN and the
+     scada share.
+   - **`hp_model` is a scada setting, not a layout fact** (`config.py`,
+     default Samsung 5T, "TODO: move to layout"); `hp_in_defrost` reads its
+     thresholds from it. The HP device type in the layout is where a house
+     says which heat pump it has.
+   - **Two readers for the same power channels.** `odu_pwr` / `idu_pwr`
+     (assert `PowerW`) and `hp_odu_pwr_w` / `hp_idu_pwr_w` (no assert) read
+     the same two channels; `hp_in_defrost` uses one pair, sieg-loop's
+     `total_hp_pwr_w` the other. Keep one pair.
+   - **Buffer judgment on a bufferless House0.** `is_buffer_*` and
+     `is_storage_colder_than_buffer` pick their channel by `in
+     latest_temps_f` and fall through to pipe proxies, so a house with no
+     buffer silently judges from `dist-swt` / `hp-ewt`. The fall installs
+     with no buffer need an explicit "no buffer" answer, not a proxy.
+   - **Magic thresholds in the judgment:** the 3-hour forecast window, the
+     `MaxEwtF - 10` cap, `min_delta_f = 5.4`, `usable_kwh < 0.2`, the 4 kW /
+     8.4 kW defrost lines. Each is a control decision; name it (an ops-word
+     field or a `names` constant) or leave it with a sentence saying why.
+   - `set_010_defaults` sends nothing on the sim pairs: the three 0-10V
+     outputs hang under `auto` (`auto.dist-010v`), not under `n`, so they
+     are neither `n`'s direct reports nor in `lc`'s actuator set. Check the
+     deployed spruce layout puts them where the code expects.
 
 ## Open / what we learned
 

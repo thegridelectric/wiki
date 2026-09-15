@@ -10,6 +10,29 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-15 — read report.event 004 (`c833dc4`)
+
+Branch `jm/report-event-004`. The seed adds `report.event` `004` (published
+in sema 2026-05-06) and the snapshot is regenerated: `ReportEvent` is now
+004 with the three raising propagation axioms, 003 moves to
+`old_versions/report_event_003.py`, and 002's `upgrade()` retargets it.
+`ReportEventPersistor` gains `persist_v004`; `persist_v003` is typed on
+`ReportEvent003` and the `ReportEventType` union carries both. Readings
+project through the same `persist_readings` path as 003, unchanged.
+`tests/test_report_event_004.py` covers strict decode, rejection of a
+wrapper whose `MessageId`, `TimeCreatedMs` or `Src` disagrees with its
+Report, dispatch to `persist_v004`, the messages-row key, and the channel
+and pico-state projection. The fixture is the newest real spruce 003
+payload in the journal DB that day with the wrapper fields propagated,
+because the deployed spruce scada still emitted 003.
+
+**Why:** OPS-329 fixes the scada emitter so `report.event` satisfies the
+identity, time and source axioms 003 had dropped; the wire version becomes
+004 when that scada deploys. A word the snapshot lacks fails decode and
+lands in the rejects log, so the journal must read 004 before the emitter
+ships. With the axioms enforced, the messages row's id and timestamp are the
+report's own by construction rather than a wrapper's freshly minted pair.
+
 ## 2026-09-10 — read single.pico.state (`3a8bc57`)
 
 Branch `jm/single-pico-state-snapshot`. The seed gains the enum

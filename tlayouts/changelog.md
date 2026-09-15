@@ -10,6 +10,16 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-15 — beech, maple, oak gens: ShortCycleBuffer true <!-- pending commit -->
+
+The three House0 field houses run the leaf ally with `ShortCycleBuffer`
+true, as the control design intends: the buffer cycles on its bottom
+sensor and the LTN counts none of it as storage, so the FLO plans on the
+store alone. The sim pairs and the Nolan houses stay false. Oak's gen
+still raises at the `gw.house0.no.sieg` stub, so its stale output keeps
+false until that word exists; beech and maple regenerated (ops params
+only, one field). The box copies need republishing.
+
 ## 2026-09-15 — willow: the second simulated House0 pair, derived primary-flow (`26401c5` on jm/spruce)
 
 The scada suite gets a House0 fixture per sieg-flow pattern. `orange_sim_gen.py`

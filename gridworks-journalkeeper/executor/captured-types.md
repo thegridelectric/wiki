@@ -35,7 +35,7 @@ back-fill (see [`s3-backfill.md`](s3-backfill.md)):
 
 | `message_type_name` | persistor | versions (custom) | id source | created_at source |
 |---|---|---|---|---|
-| `report.event` | custom | v000, v002, v003 | `message_id` | `time_created_ms` |
+| `report.event` | custom | v000, v002, v003, v004 | `message_id` | `time_created_ms` |
 | `layout.lite` | custom | v001–v012 (published set; 013+ staging) | `message_id` | `message_created_ms` |
 | `flo.params.house0` | custom | v000–v007 | `default_message_id` | `params_generated_s` |
 | `weather.forecast` | custom | v000 | `default_message_id` | `forecast_created_s` |
