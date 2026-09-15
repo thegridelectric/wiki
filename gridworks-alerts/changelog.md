@@ -3,6 +3,37 @@
 One entry per commit in `thegridelectric/gridworks-alerts` and
 `thegridelectric/gridworks-alert-manager` (git = the what, this = the why).
 
+## 2026-09-15 — gridworks-alerts: Constructing AlertGenerator no longer starts the loop (`c257966`)
+
+`AlertGenerator.__init__` called `main()`, so building the object ran
+the polling loop against the database with the real send path: the
+class could not be constructed in a test or a shell. The entrypoint now
+calls `main()` explicitly; the no-data tests construct the object
+normally (binding the session factory makes no connection). (OPS-543)
+
+## 2026-09-15 — gridworks-alerts: reduce freshness check time from 10s to .77s with an aggregate query (`4a5dc67`)
+
+The freshness check gets its own query, `fetch_latest_data`: one
+aggregate row per house (newest alert-channel reading in the window,
+0.77 s and five rows measured from the laptop, against the 40k-row full
+fetch), run first in the loop and measured against its own window end.
+The full fetch still feeds every other detector but can no longer delay
+or distort the no-data verdict. A house with no reading in the window
+stays absent from the check, as it was from the full fetch. Unit tests
+cover the race, alert-once, and clearing. (OPS-543)
+
+## 2026-09-15 — gridworks-alerts: Judge data freshness against the fetch window end, not the clock after the fetch (`9dac6ad`)
+
+On 2026-09-15 13:55 UTC the no-data check paged on-call for oak, beech
+and spruce while every 5-minute report was in the journal on schedule.
+The fetch fixes its query window's end at fetch start and drops rows
+stamped after it, but freshness was measured against the wall clock
+after the fetch returned. Fetches had grown from ~10 s to 165–322 s
+(heavy `gw_visualizer` reads on the same database), and data is
+naturally up to 5 min old at fetch start, so a fetch over ~5 min always
+crossed the 10-minute threshold. The fetch now records its window end
+and the check measures against that. (OPS-543)
+
 ## 2026-08-31 — gridworks-alert-manager: Caddy read: TLS for the GET routes only (`d9176af`, merged `57318cf`)
 
 `service/Caddyfile`: TLS at `https://alerts.electricity.works` for the

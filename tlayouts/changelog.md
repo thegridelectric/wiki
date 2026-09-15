@@ -10,7 +10,23 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-15 — sieg-send-flow and the derived sieg flows; maple gen (`<!-- pending commit -->`)
+## 2026-09-15 — willow: the second simulated House0 pair, derived primary-flow (`<!-- pending commit -->`)
+
+The scada suite gets a House0 fixture per sieg-flow pattern. `orange_sim_gen.py`
+(was `house0_sim_gen.py`; the little orange house) measures `primary-flow` and
+derives `sieg-send-flow` by difference, beech's pattern. New `willow_sim_gen.py`
+is the same all-simulated skeleton with `DerivedSiegSum`: a sim flow sensor on
+the sieg send line, `primary-flow` derived as the sum, maple's pattern. Willow
+is a second little house with its own GNode identity, and its ids are minted
+from an empty reference on the first run so none collide with orange's; each
+driver's stable-id reference is its scada fixture copy, since `output/` is not
+committed. `emit_sim_plant_sensors` places the sim sensor on the identity's
+measured addend (primary when Measured, sieg-send when DerivedSiegSum). Fixed
+on the way: `emit_sim_power_meter` minted its component id twice, which held
+only while a reference layout already carried the id and failed
+ComponentBinding on a first run. Rung 4 of correct-house0 (OPS-539).
+
+## 2026-09-15 — sieg-send-flow and the derived sieg flows; maple gen (`155d4e0` on jm/spruce)
 
 The sieg send line's flow meter takes the `<position>-flow` grammar every
 other flow meter follows: position `sieg-send` → `sieg-send-flow` /
@@ -31,7 +47,10 @@ presence, so non-sieg families regenerate unchanged.
 `maple_gen.py` authors the real Keene Maple `gw.house0.layout` (Mitsubishi
 Ecodan WUZ-SA48NMZ + ERSF-NM6E hydrobox, sieg-btu and store-btu, dist and
 sieg-send Hall picos, an outdoor air temp on the ADS) as a deployment
-artifact, mined from `old_gen_maple.py`. Rung 4 of correct-house0 (OPS-539).
+artifact, mined from `old_gen_maple.py`; `sema validate` green, id-preserving
+against the deployed layout. The vendored snapshot regenerates on sema
+`8e56c4e` (House0 axiom 8 no longer requires `sieg-flow-hz`, which maple's
+BTU-sourced sieg-flow cannot produce). Rung 4 of correct-house0 (OPS-392).
 
 ## 2026-09-14 — beech real deployment layout from the sema House0 gen (`7c2db53` on jm/spruce)
 

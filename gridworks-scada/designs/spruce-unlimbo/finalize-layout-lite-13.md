@@ -1,11 +1,33 @@
 # Finalize `layout.lite/013` (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-392
 
 > What this is: the spoke that takes `layout.lite/013` from staging to
 > published with its closure, so the spruce scada can send it on the
 > production broker. This is a before-merge item for the branch: spruce
 > stays off rmqbot until the word it sends on link-up is published.
+> Two segments: the first publishes the word the box sends today, enough
+> for the fleet to run under local control; the second, once the maple
+> and spruce LTNs run, is the spruce-settled `ltns-ready.md` spoke.
+
+## Two segments
+
+**Segment 1, basic functioning under local control.** The publish
+checklist below, on 013 as it is (or 014 without the Krida pair, the
+first Open item). The LTN's needs are not designed here: the word keeps
+carrying what the LTN reads today (`SeasonalStorageMode`,
+`BufferShortCycling`, `TotalStoreTanks`, `Ha1Params`) and the fix is
+only that a Nolan layout no longer crashes the builder.
+
+**Segment 2, after the LTNs work.** Lives in
+`../spruce-settled/ltns-ready.md`: what each LTN takes from the scada,
+the `flo.params` versions, and whether `layout.lite` is reshaped or
+replaced. **When segment 1 closes:** distill the publish outcome into
+the executor, then move anything still open in this spoke (the closure
+decision's leftovers, the `gw.nolan.layout` promote note) into
+`ltns-ready.md` "What the LTN takes from the scada", and delete this
+file. The scoreboard row covers segment 1; ltns-ready is estimated when
+it opens.
 
 ## Where it stands
 
@@ -18,10 +40,11 @@ Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
   `pico.tank.module.component.gt/012`, `sim.pico.tank.module.component.gt/001`,
   `pico.flow.module.component.gt/001`, and the Krida pair
   `i2c.multichannel.dt.relay.component.gt/004` + `relay.actor.config/003`.
-- The longer-term intent (`operational-params-cleanup.md` "Retire
-  `layout.lite`'s field-projection") is to stop sending a third shape
-  and send the raw layout + ops words instead. That is after-merge
-  work; this spoke only finalizes the word the box sends today.
+- The longer-term intent is to stop sending a third shape and send the
+  raw layout + ops words instead
+  (`../spruce-settled/publish-layouts-and-operational-params.md`). That
+  is segment 2's question; segment 1 only finalizes the word the box
+  sends today.
 
 ## The first wire case
 
@@ -44,7 +67,7 @@ and keeps sending `layout.lite`, because the journal on hw1-1 reads the
 layout to interpret the data channels; publishing 013 with its closure
 is the gate to connecting.
 
-## Do this next: the publish checklist
+## Do this next: the publish checklist (segment 1)
 
 1. Read what JournalKeeper and the data repos take from `layout.lite`
    today (which fields, which nested words), so 013 carries exactly

@@ -110,9 +110,19 @@ gens, the fixtures and the code together.
      (real Krida panel, LG Multi V split HP, Honeywell-via-Hubitat zones, DFRobot
      outputs). `sema validate` green, id-preserving against the deployed layout.
      A box artifact, not a scada fixture.
-   - **▶ `maple_gen.py` → the real maple deployment layout**, same config class —
-     the next gen. Like beech but DERIVES primary-flow (`DerivedSiegSum`) rather
-     than measuring it.
+   - ✅ DONE (2026-09-15; tlayouts `155d4e0`, scada `e398dc57`, sema `8e56c4e`)
+     **`maple_gen.py` → the real maple deployment layout** (Mitsubishi Ecodan
+     WUZ-SA48NMZ + ERSF-NM6E hydrobox, sieg-btu + store-btu, dist and sieg-send
+     Hall picos, `oat` on the ADS). `sema validate` green, id-preserving. Maple is
+     the first house to DERIVE primary-flow, which settled the sieg flow identity
+     `primary-flow = sieg-send-flow + sieg-flow`: the send-line meter takes the
+     `<position>-flow` grammar (`sieg-send-flow`, replacing bare `sieg-send`; the
+     gwsproto constant had no readers), `FlowSpec.position` is an open
+     `SpaceheatName`, and the derived generator gains a `difference` strategy so
+     beech (measures primary) derives `sieg-send-flow` while maple sums. House0
+     axiom 8 no longer requires `sieg-flow-hz` — a BTU-sourced or derived flow has
+     none. For the sieg-requirements spoke: `sieg-send-flow` is required as a
+     DataChannel OR DerivedChannel, node not required, no `-hz`.
 
    Oak, fir and elm are the sieg-less family and wait for `gw.house0.no.sieg`;
    `oak_gen.py`, a House0-shaped config for a no-sieg house that raises at the

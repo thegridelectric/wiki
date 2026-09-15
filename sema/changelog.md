@@ -10,6 +10,16 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-15 — House0 layout word: axiom 8 no longer requires `sieg-flow-hz` (`8e56c4e` on jm/house0-sieg-flow-hz)
+
+`SiegManifoldChannels` required `sieg-flow-hz`, which only a standalone Hall
+pico produces; maple's sieg-flow comes from its sieg-btu, which reports gpm
+with no raw hz channel, so the real layout failed the word. The `-hz`
+channel is never a requirement — a BTU-sourced or derived flow has none —
+so the axiom keeps `sieg-cold`, `sieg-flow` and the two hp-loop relay
+channels. Staging, edited in place; the axiom template and rendered runtime
+follow. Rung 4 of correct-house0 (OPS-392).
+
 ## 2026-09-13 — House0 layout word: axiom 10 binds each 0-10V output to a DAC output component; axiom 15 ComponentBinding (`8c21017`, titled "improvements to house0 layout")
 
 `gw.house0.layout/000` (staging, edited in place) catches up to the Nolan

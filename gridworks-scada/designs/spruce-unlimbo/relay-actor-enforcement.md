@@ -1,6 +1,6 @@
 # Relay-actor enforcement (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-392
 
 > What this is: the relay actor keeps every relay reliable on the new code —
 > assert-then-verify enforcement with I2C self-heal, confirmed state from
@@ -8,6 +8,25 @@ Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
 > this behavior today on the 0x21 cooling actuators; deploying new code
 > without it is a field-reliability regression. One relay actor body serves
 > all relays (zone, plant, cooling), so this is not zone-specific.
+
+## Where it stands
+
+Built on the branch, with in-process tests (`tests/actors/test_relay_i2c.py`):
+the `I2cCommand` enforcement target with `_attempt_command` /
+`_verify_and_report`, `_boot_adopt` off the pin on readback boards,
+`SupportsPinReadback` on the board record, the bus actor's config-register
+reset check and the `ExpanderReinitialized` poke, glitches once per
+failure streak. Covered: power-on boot adopts de-energized, warm takeover
+inherits an energized hold, actuation confirms then reports, a transient
+EIO heals on the verify pass, a permanent one glitches once per streak,
+a reset is detected, repaired and re-asserted, the repair pokes an
+immediate re-assert, a garbled read does not false-positive.
+
+What is left: the MonitorOnly gate (below, unbuilt), the two test slices
+the in-process set still misses (a readback that disagrees with the
+write, and a command arriving before boot adoption being deferred), and
+the design's own bar: the self-heal witnessed against a real I2C fault
+on the bench or box, not only the sim rig.
 
 ## Assert-then-verify enforcement (the self-heal)
 
@@ -59,6 +78,28 @@ repairs in the same pass, and so must we.
   serialized bus round-trip; command and readback ride the same op.
   In-betweens belong to the circuit FSM.
 
+## MonitorOnly: no physical write of any kind
+
+`ActuationAuthority.MonitorOnly` on the ops word means the scada performs
+no physical write, board initialization included: the bus actor does not
+initialize expanders (no adopt-or-init, no power-on-reset clear-then-
+configure), relay actors do not boot-assert no-readback boards, the
+enforcement loop does not re-assert, reset repair does not re-drive pins,
+and admin actuation is refused. Read-only telemetry continues: gw108 pin
+adoption is a read, so a readback board still reports confirmed state.
+
+Nothing enforces this today. Only `scada.py`'s `layout.lite` builder and
+the two strategy loaders read `ActuationAuthority`; `relay.py` and
+`i2c_bus.py` never do. The actuator and bus actors read the authority at
+boot and gate every write path on it. The default of the word is
+MonitorOnly, so an ops artifact that fails to say otherwise degrades to
+non-actuation, which is the direction a decode mistake should fall.
+
+Test: boot the sim pair with `ActuationAuthority: MonitorOnly` and assert
+no bus write is issued through boot, an enforcement pass, and an admin
+command (refused with a glitch); then `Active` and assert the same paths
+write.
+
 ## Testing (the EDD bar)
 
 Confidence here comes from an experiment that drives a real (or sim) I2C fault
@@ -83,8 +124,6 @@ distill into scoped Verified claims.
 
 ## Open
 
-- Whether the `ExpanderReinitialized` poke is wired to the OPS-452 all-1s
-  reset signature on the branch today, or is new work here.
 - hp-boss consuming the `FsmFullReport` to alert on a relay-reported failure
   (OPS-532 relay-test gap 5): the enforcement loop self-heals whether or not
   the boss listens, so the alert path is a separate layer — in scope only if

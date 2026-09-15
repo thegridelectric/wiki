@@ -1,6 +1,6 @@
 # refactor-sieg
 
-Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-392
 
 > What this is: a spoke of [`primary.md`](primary.md). Maple and beech
 > keep the sieg loop, so the branch cannot go onto them until the loop
@@ -15,7 +15,7 @@ Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
 
 - **Uncomment the House0 pairs in
   `gridworks-scada/tests/actors/test_hp_boss_live.py`** (`PAIRS`:
-  `house0`, `house0-sim`). They are off because admin's TurnOn on a
+  `house0-willow`, `house0-orange`). They are off because admin's TurnOn on a
   sieg layout parks hp-boss in `PreparingToTurnOn` until the sieg-loop
   actor sends `SiegLoopReady`, or `TURN_ON_ANYWAY_S` (120 s) passes.
   Restoring them means deciding what the live test does on that leg:

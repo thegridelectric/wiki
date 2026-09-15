@@ -1,6 +1,6 @@
 # House0 no-sieg layout (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-392
 
 > What this is: authoring the `gw.house0.no.sieg` layout word and its three
 > generators (oak, fir, elm) so the sieg-less House0 family can be deployed
@@ -18,10 +18,11 @@ They need their own word, `gw.house0.no.sieg`, before they can be
 sema-authored.
 
 A sieg loop is a topology change (family), not a variant. Whether the loop
-is *used* is an operational param (`UseSiegLoop`, migrating layout → ops);
-having the loop at all is the family split. Today's `gw.house0` test fixture
-carries `UseSiegLoop: false`, so it has been quietly modeling this family and
-likely becomes its fixture when the word is authored.
+is *used* is an operational param (`UseSiegLoop`, on
+`gw.house0.operational.params`); having the loop at all is the family
+split. The House0 fixture pairs (`tests/config/gw.house0.willow.*`,
+`gw.house0.orange.*`) both set `UseSiegLoop: true`, so this family has no
+fixture until the word is authored; the sim pair ships with the word.
 
 ## The sema word
 
@@ -30,8 +31,8 @@ every field is spelled out): take the `gw.house0.layout` schema and remove
 the sieg surface. Concretely, relative to House0:
 
 - Drop the sieg-loop actor node and its command-tree membership.
-- Drop `sieg-cold`, `sieg-flow`, `sieg-flow-hz` from `RequiredSensing`
-  (and any `DerivedSiegSum`).
+- Drop `sieg-cold`, `sieg-flow` and `sieg-send-flow` from `RequiredSensing`
+  (and any `DerivedSiegSum`); the House0 word carries no `-hz` channel.
 - Drop the hp-loop valve relays from `RequiredActuators`.
 - Keep everything else House0 has — including `store-pump-relay`, which is
   an every-hydronic-plant name, not per-family.
@@ -67,13 +68,12 @@ build on it. Each gen's output validates via `sema validate` and loads a
 scada suite green against the emitted instance; a sim pair ships in the same
 wave as the word (the standing rule).
 
-The two simplified-manifold installs in this family remove the iso valve and
-buffer tank; the third is a cement store-under-floor with no water tanks.
-Nothing above the family tier may assume a buffer tank, an iso valve, or
-`total_store_tanks ≥ 1` — the physical-detail gathering for each install
-(heat pump model, manifold, slab charge/sense) continues in the
-spruce-settled fall-layouts work (OPS-532); this spoke owns the word and the
-generators.
+Oak, fir and elm keep the rest of the House0 plant: buffer tank, iso valve,
+store tanks. The three fall installs (two simplified manifolds with no iso
+valve and no buffer tank, one cement store-under-floor with no water tanks)
+are further layouts beyond this family, owned by the spruce-settled
+fall-layouts work (OPS-532); this spoke owns only `gw.house0.no.sieg` and its
+three generators.
 
 ## Done when
 

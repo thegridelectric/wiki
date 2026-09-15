@@ -43,6 +43,9 @@ them exercises it (`experiments/`).
   binds its hp-odu/hp-idu to nameplate facts, not a bare DeviceType string
 - `hp-twin.md` — the heat pump's digital twin under hp-boss: sema
   command events in, modbus out; waits on the modbus work
+- `ltns-ready.md` — a maple LTN and a spruce LTN running on the new
+  code, each with its FLO and parameters; then what the LTN takes from
+  the scada, transferred from spruce-unlimbo's `layout.lite/013` work
 - `sieg-command-tree.md` — the Siegenthaler loop's tier and command
   surface (admin included); `SiegLoop` sits on `House0Hydronic` until
   then; opens with the fall layouts

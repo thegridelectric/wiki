@@ -1,6 +1,6 @@
 # Layout-word axioms sitting (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-12 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-392
 
 > What this is: the agreed reshape of `gw.house0.layout/000` and
 > `gw.nolan.layout/000` axioms (both staging — in-place edits), plus the
@@ -190,6 +190,78 @@ gets its footing: bus actors pair with layout BusList entries. Every
 relay is now a thin component against a board record on both families,
 so "which board" is one config axis and the hardware realization
 interface in "Hardware decoupling" can converge here.
+
+## Extra pico channels on the Nolan word: required or tracked
+
+Which readings from spruce's three free-standing pico tank modules
+(fancoil, floor1, pipes1) `gw.nolan.layout` REQUIRES and which are
+optional things the house tracks. The layout that ships must state the
+requirement; the cycler reports those picos by name so a missing one is
+visible in the journal.
+
+### The three picos
+
+Re-energized on site 2026-09 after being disconnected 2026-08-10; the
+scada on spruce (`actual-spruce` `69d5d6ec`) reports each in its pico
+roster. Each is a `GridworksTankModule3` reading three thermistor
+depths under its own actor name (`tlayouts/spruce_gen.py`,
+`extra_tank_modules`; generator `nolan_sema_gen.py`
+`emit_extra_tank_modules`):
+
+| Actor | Pico | Depth channels (each `-device` WaterTempCTimes1000 and `-micro-v` MicroVolts) |
+| --- | --- | --- |
+| `fancoil` | pico_239531 | `fancoil-depth1..3` |
+| `floor1` | pico_71156b | `floor1-depth1..3` |
+| `pipes1` | pico_672531 | `pipes1-depth1..3` |
+
+The seven identity derived channels built on them
+(`extra_identity_deriveds`):
+
+| Derived | Source | Meaning |
+| --- | --- | --- |
+| `fancoil-swt` | `fancoil-depth1-device` | fancoil circuit supply |
+| `fancoil-rwt` | `fancoil-depth2-device` | fancoil circuit return |
+| `floor-swt` | `pipes1-depth1-device` | floor circuit supply |
+| `floor-rwt` | `pipes1-depth2-device` | floor circuit return |
+| `zone1-bedrooms-floor-temp` | `floor1-depth1-device` | slab temperature, zone 1 |
+| `zone2-living-rm-floor-temp` | `floor1-depth2-device` | slab temperature, zone 2 |
+| `zone4-garage-floor-temp` | `floor1-depth3-device` | slab temperature, zone 4 |
+
+`fancoil-depth3` and `pipes1-depth3` feed no derived channel.
+
+### The question
+
+`gw.nolan.layout` lists what a Nolan house must have in
+`RequiredSensing` and `HydronicChannelExistence` (heat-pump and pump
+power, the BTU and tank channels). None of the channels above is in
+either list today: the word treats all three picos and their deriveds
+as optional. Decide, per row:
+
+- **Required by the layout word**: local control or the settlement
+  path reads it, so a Nolan house without it is not a Nolan house. A
+  required channel is named in the word (a new version if the latest
+  is published; in place if staging) and the scada's coverage check
+  fails without it.
+- **Tracked**: spruce carries it because the sensor is on the wall;
+  another Nolan house may not. It stays a per-home entry in the
+  generator config and nothing depends on it.
+
+The likely split: the circuit supply and return pairs (`fancoil-swt`
+and `-rwt`, `floor-swt` and `-rwt`) are what a per-circuit control
+loop and the zone/circuit model would read, so they are candidates
+for required, keyed to the circuit rather than to the pico name. The
+slab temperatures are tracked. That is a proposal to grill, not a
+decision.
+
+### Done when
+
+- Each of the sixteen rows above has a decision recorded here.
+- The required ones are named in the Nolan layout word, and
+  `spruce_gen.py` emits them under the required names.
+- The scada's coverage check refuses a Nolan layout missing a
+  required one, with a test.
+- Snapshot on spruce shows every pico posting after the deployed
+  layout regenerates (`starter-scripts/snap_watch.py`).
 
 ## Sequencing (each its own commit)
 

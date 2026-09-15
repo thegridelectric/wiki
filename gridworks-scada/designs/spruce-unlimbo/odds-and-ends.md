@@ -1,6 +1,6 @@
 # Odds and ends (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-392
 
 > What this is: a spoke of [`primary.md`](primary.md) holding the small
 > launch items that do not earn a file each: one problem, one change,
@@ -40,9 +40,11 @@ Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
 - **Change.** Boot state HpOff and a `report_state()` in `start()`, the
   rule every machine follows (`control-strategy-selection.md`
   "Decisions": each machine announces its state in `start()`). Rides
-  the relay's boot pin-adoption for the real answer.
-- **Test.** hp-boss on both fixtures reports `HpOff` at start before any
-  command; `tests/actors/test_machine_state_announce.py` gains the row.
+  the relay's boot pin-adoption for the real answer. On the branch
+  (`hp_boss.py` boots `HpOff` and reports in `start()`).
+- **Test.** Still owed: hp-boss on both fixtures reports `HpOff` at start
+  before any command; `tests/actors/test_machine_state_announce.py`
+  gains the row.
 
 ## Dst-routing test for the LTN gw-wrap (OPS-387 interim)
 
