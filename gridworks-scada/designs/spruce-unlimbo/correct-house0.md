@@ -223,8 +223,12 @@ gens, the fixtures and the code together.
      difference fires only on sieg-flow readings. The sim sensor's rule (forward
      when a DerivedChannel consumes one of your channels) is the name-free
      replacement.
-   - Do this next: the four buffer/storage judgment conversations (rung 8's
-     house0 items), then tests for each on both sim pairs.
+   - Do this next: the three open rung 8 house0 items — buffer judgment on a
+     bufferless House0, the magic thresholds, the 0-10V outputs under `auto`
+     on the sim pairs — then tests for `is_buffer_empty`, `is_buffer_full`,
+     `is_buffer_charge_limited` and `is_storage_colder_than_buffer` on both
+     sim pairs. The scada tree holds one uncommitted cluster (the pending
+     changelog entry names it); commit it before the next move.
 
 6. **Sema work.** Bring the House0 word's axioms to the Nolan shape, and
    rename the buffer flag —
@@ -308,31 +312,25 @@ gens, the fixtures and the code together.
    - ✅ `is_buffer_full` keeps its proxy fall-through (decided 2026-09-15,
      recorded in `control-hierarchy.md` "The node-actor partition"); the info
      glitch now names the proxy channel.
-   - **The plausibility scrub is gated on a missing layer, and its floor
-     is wrong for a summer tank.** `get_temperatures` converts every tank
-     and pipe channel, then calls `fill_missing_store_temps` only when some
-     tank layer is absent; the 70–200 F range check is the first loop of
-     that fill, so with every layer reporting a 250 F reading stands (pinned
-     by `test_implausible_store_temp_survives_when_every_layer_reports`).
-     Worse, 70 F is both the validity floor and the fill baseline. Oak on
-     2026-09-15 reads 60–65 F in every layer of all three tanks (30-day
-     range 60–65 F, journal DB); the moment one of its layers drops out,
-     every layer is popped as "below 70" and the whole store is rewritten
-     to 70 F, phantom energy the FLO then plans on. The LTN carries its own
-     copy (`ltn.py` `fill_missing_store_temps`, same 70/200, baseline 0
-     without a store-cold-pipe). Proposal: scrub unconditionally; validity
-     range 35–200 F (below freezing point plus margin is a sensor fault,
-     not water); fill baseline = store-cold-pipe, else the coldest
-     reporting layer, never a constant; one implementation the LTN and the
-     scada share.
-   - **`hp_model` is a scada setting, not a layout fact** (`config.py`,
-     default Samsung 5T, "TODO: move to layout"); `hp_in_defrost` reads its
-     thresholds from it. The HP device type in the layout is where a house
-     says which heat pump it has.
-   - **Two readers for the same power channels.** `odu_pwr` / `idu_pwr`
-     (assert `PowerW`) and `hp_odu_pwr_w` / `hp_idu_pwr_w` (no assert) read
-     the same two channels; `hp_in_defrost` uses one pair, sieg-loop's
-     `total_hp_pwr_w` the other. Keep one pair.
+   - ✅ Store temperature pass (agreed 2026-09-15): one shared function
+     (`actors/hydronic/store_temps.py`) the scada and the LTN both run on
+     every pass; 35–200 F valid range; fill baseline the store cold pipe,
+     else the coldest reporting layer, never a constant; nothing filled when
+     no layer reports. Oak's summer store (60–65 F every layer, 30 days) was
+     the evidence against the old 70 F floor-and-baseline.
+   - ✅ `hp_in_defrost` keys on the hp-odu component's `DeviceType`
+     (decided 2026-09-15): a hand-kept table in `house0.py`
+     (`DEFROST_SIGNATURES`: which draw, idu or idu+odu, and the watt line;
+     LG Multi V: total under 8.4 kW; an unlisted unit is never judged in
+     defrost) until `hp.device.type.gt` carries the signature (noted in the
+     records spoke). `settings.hp_model`, the LTN copy, hp-boss's dead
+     assignment, the `HpModel` enum and its allowlist row are gone.
+     Fir's Samsung hydro kit is the same `SamsungAE055FCYDCG` odu spruce
+     names, so its row (idu under 4 kW) is in. Requiring the record by axiom
+     stays sequenced with the fleet records (OPS-532).
+   - ✅ One reader pair for the power channels: `odu_pwr` / `idu_pwr`
+     deleted with the defrost change; `hp_odu_pwr_w` / `hp_idu_pwr_w` and
+     `total_hp_pwr_w` remain.
    - **Buffer judgment on a bufferless House0.** `is_buffer_*` and
      `is_storage_colder_than_buffer` pick their channel by `in
      latest_temps_f` and fall through to pipe proxies, so a house with no

@@ -58,7 +58,30 @@ the box; this design draws it at the data path.
 - **A sqlite store**, as the LTNs keep: the latest `layout.lite` per house,
   a rolling window of readings (a few hours covers every detector; all but
   the glitch window read 5–15 minutes), and alert state (open, cleared,
-  when, evidence). Across a restart the layouts and alert state survive;
+  when, evidence). Readings are rows shaped like the journal's readings
+  table (house, channel, value, read time), not stored `report.event`
+  messages: a detector asks for a channel's latest value or its last
+  N minutes, never for a report, and the journal already keeps the
+  messages. No hourly aggregates: nothing a detector reads is hourly, and
+  aggregates are the journal's business. SQLAlchemy in front of sqlite
+  and alembic for the schema, as the weather service does with its
+  Postgres, so every schema change is a tracked migration and the tests
+  run the real migration chain rather than `create_all`. The scaffold
+  commit used bare `sqlite3`; the swap is the next code step. One table
+  per sema word, nothing invented: `g_nodes` (`g.node.gt` rows upserted by
+  id from the registry's forest broadcasts: which scadas exist),
+  `layouts` (one row per scada holding whichever hardware layout word the
+  scada has, by type name and version: `layout.lite` off the broker
+  today, the registry's record later, same row shape), `readings`
+  (`channel.readings` unrolled to house, channel, value, read time; the
+  window), and `alerts` (the alert word plus its cleared time; the
+  alerter's open-alert state). Last-heard is a query over readings and
+  layouts, not a column; when the liveness word of OPS-546 exists it gets
+  its own table and `NoData` reads it there. The scaffold's `houses`
+  table goes with the SQLAlchemy move. Channel unit and role are read off
+  the stored layout through one accessor that dispatches on the layout
+  word with `isinstance`; a new layout family is a new branch there and
+  nothing else. Across a restart the layouts and alert state survive;
   the readings window refills from live traffic and "last heard" restarts
   from boot time, so a detector that needs a window waits one window
   before it can fire.
@@ -92,6 +115,26 @@ the box; this design draws it at the data path.
   messages in its store, and swapping that seed for the projection is one
   lookup. Standby and MonitorOnly are fields of the record, not exceptions
   in a detector.
+- **The house list comes from the registry, as a projection.** The set of
+  GNodes the alerter watches is the registry's, consumed the way the gnr
+  executor says every copy is: `g.node.forest` broadcasts plus
+  `g.node.forest.request` on the hw1 broker, idempotent upserts keyed on
+  id, healed by the snapshot broadcast, never gnr's Postgres. This is the
+  same seam JournalKeeper's `gw_data.g_nodes` rows use. Registry
+  membership says which scadas exist; the liveness projection (OPS-546)
+  says which are live; a house in the registry that is not live is what
+  `NoData` means. Until the forest broadcast is consumed, the seed is the
+  stored `layout.lite` set.
+- **Layouts come from their authority, after the spruce merge.** The
+  terminal-asset registry (the layout and operational-params sibling of
+  the grid-node registry, still a Draft design with no issue) is the
+  durable source of every hardware layout, and it will egress like GNR: a
+  broadcast on commit plus a request, consumed here as a projection into
+  `layouts`. Not before the spruce merge: the layout words
+  (`gw.house0.layout` and the families arriving this fall) settle on that
+  branch, and the alerter needs nothing from the authority to strangle
+  no-data, since `layout.lite` on the wire carries the unit and role it
+  reads today.
 - **Setpoints that report only on change** (spruce, last between July and
   September) need latest-known values, not a window; the store gives that
   for free but the detector must ask for it.
@@ -103,11 +146,11 @@ the box; this design draws it at the data path.
 
 Strangler, not rewrite. gwalert keeps running throughout.
 
-1. The actor: `gridworks-alerter` on gwbase, its queue on the dev broker
-   bound to `report.event` and `layout.lite`, the sema snapshot
-   vendored before the first consumer line, a sqlite store holding the
-   latest `layout.lite` per house and a rolling readings window, pyright in
-   `ci.sh`. Stands on its own with no detector.
+1. ✅ The actor: `gridworks-alerter` on gwbase, its queue on the dev broker
+   bound to `report.event` and `layout.lite`, the sema snapshot vendored
+   first, a sqlite store holding the latest `layout.lite` per house and a
+   rolling readings window, pyright in `ci.sh`. Stands on its own with no
+   detector (`f569fde`; the live-broker test is the proof).
 2. No-data as the first detector: "no `report.event` from a house in ten
    minutes" read off the queue, the house set seeded from stored
    `layout.lite`, the manager only logging what it receives. Needs the
@@ -141,17 +184,144 @@ to two weeks for the full port with tests.
   (liveness projection, adopted at step 4), OPS-317 (liveness signals,
   consumed through the projection), OPS-438 (leave Opsgenie).
 
+## Raising, repeating, clearing
+
+Detection and notification are two jobs, and the split is the standard
+one: a detector evaluates a rule continuously and an alert is *firing*
+for as long as the condition holds; a separate notifier owns everything
+about people — grouping, deduplication, repeat cadence, escalation,
+acknowledgement, silences. Prometheus and Alertmanager are that split
+exactly (a rule is firing or resolved; Alertmanager's `repeat_interval`
+decides when a still-firing alert is re-sent, 4 h by default, and a
+resolved notification closes it); PagerDuty and Opsgenie deduplicate on
+an alert key and escalate by policy. Nobody puts "notify me again" in
+the detector.
+
+So the alerter emits **transitions only**: one alert word when a
+condition starts to hold, one cleared word when it stops, both carrying
+the same `AlertId`. Nothing repeats from the alerter. The manager
+(`gridworks-alert-manager`, which already tracks count, sends, state and
+acknowledgement) owns the repeat cadence and escalation; if it is ever
+replaced by a bought service, the alerter does not change. The alerter's
+own state (which alerts are open) lives in its sqlite store so a restart
+neither re-raises nor forgets an open alert.
+
+Two consequences to settle with the manager's owner:
+
+- **Repeat cadence** is the manager's setting per kind, not the
+  alerter's. A starting point in the industry's range: re-notify an
+  unacknowledged alert at 30 min, then hourly, then every 4 h; an
+  acknowledged one never; a cleared one once, as "cleared".
+- **A missing cleared word** must not leave an alert open forever. The
+  dead-man's switch covers the alerter dying; the manager should also
+  expire an open alert it has not heard about for a long window (the
+  Alertmanager `resolve_timeout` idea) and say so.
+
+**`NoData` under this pattern.** Raise when a registered, live house has
+sent nothing for 10 min (the threshold stays where gwalert has it); clear
+on the first message from that house, with the message's arrival as the
+evidence. The manager re-notifies on its cadence while it stays open and
+sends the cleared notice when data resumes. A house the registry marks
+as not expected to report (Standby, decommissioned) is not a `NoData`
+case; that is a field on the liveness record, not a rule here.
+
+## Findings from reading gwalert (2026-09-15)
+
+Recorded here so the port does not carry them over; the kinds table
+below cites them by row.
+
+- **No-data skips the house that most deserves it.** The house list is
+  the rows the 2 h query returned, so a house with no reading in the
+  window is never checked. The new rule reads last-heard from the store.
+- **The on-peak check scans the whole 2 h window**, so it can fire on
+  samples from earlier in the window rather than on what is happening now,
+  and the per-house flag means only the first offending hour alerts. The
+  port fires on live readings only.
+- **Pump power never gates the pump alerts**; it only words the message.
+  The kinds are named for the flow condition for that reason.
+- **`no_more_oil` is dead code**: the method returns before any check.
+- **`not_in_atn` is disabled** in gwalert's main loop and handles only
+  two boss aliases.
+- **`hp_on` means the opposite of its name** (commanded on, drawing
+  nothing).
+
+## Proposal: the alert vocabulary
+
+Written before the sema spec was read this session, so it is a starting
+point for the spec discussion, not a draft word. The next session checks
+each line against the registry and authoring rules for types and enums
+and corrects it there.
+
+What gwalert sends the manager today is four fields over HTTP: a free-text
+message, the house alias, an alert alias, and a time. The alert alias is
+one of eleven snake_case strings (`no_data`, `zone_setpoint`,
+`zone_freezing`, `dist_pump`, `store_pump`, `hp_on`, `hp_onpeak`,
+`not_in_atn`, `rebooting`, `no_more_oil`, `critical_glitch`), sometimes
+with a zone or an hour appended to make it unique per instance. The
+nearest published word is `glitch/000` (FromGNodeAlias, Node, Type as a
+`log.level`, Summary, Details, CreatedMs), which is a scada reporting on
+itself; an alert is a service reporting on a house, and its evidence is
+readings.
+
+Three words, all flat, composing by `$ref` only:
+
+- **An alert-kind enum**, PascalCase like every registry enum value, one
+  value per detector, each named for the condition a human acts on rather
+  than the detector's mechanism. The zone or hour that gwalert appends to
+  the alias is evidence, not kind. Names and descriptions are proposed in
+  "Alert kinds, named by what they mean" below; the descriptions are the
+  enum's per-value descriptions.
+- **An alert word** (`gw.alert` or the name the registry convention
+  gives it): the alerter's alias as `Src`; the house as `AboutGNodeAlias`;
+  the kind; an `AlertId` (uuid4) that the cleared word repeats; `RaisedMs`;
+  a one-line human `Summary`; and `Evidence` as a list of channel readings
+  in the `channel.readings` word the report already uses, so the page and
+  the history can show the values that fired it without a second lookup.
+  A zone or hour rides in the evidence's channel names.
+- **A cleared word**: `AlertId`, `Src`, `AboutGNodeAlias`, the kind,
+  `ClearedMs`, and the same evidence shape for the readings that cleared
+  it. Separate from the alert word because the manager and the history
+  treat them differently and neither needs the other's fields.
+
+Open for the discussion: whether `glitch` should instead grow to cover
+this (it should not; the subject differs), whether the manager's routing
+needs a severity field beyond the kind, and whether the alert carries the
+detector's threshold so the summary is reproducible from the record.
+
+## Alert kinds, named by what they mean
+
+Read from gwalert's detectors on 2026-09-15. Each row: the proposed value,
+what it means (the enum description), the current alias, and what the
+read found about the detector. Every threshold stays out of the name and
+in the description, so a tuned threshold does not rename a kind.
+
+| Proposed | Means | Today | Note from the read |
+| --- | --- | --- | --- |
+| `NoData` | A registered, live house has sent no readings for longer than the silence threshold (10 min). | `no_data` | See Findings. Alternatives considered: `HouseSilent`, `ScadaSilent`; `NoData` is what the on-call already says. |
+| `ScadaRebootLoop` | The scada has booted repeatedly in a short span (more than 5 `layout.lite` in 5 min). | `rebooting` | Reads off the store's layout arrivals directly. |
+| `CriticalGlitch` | The scada reported a glitch at Critical level; the summary is the evidence. | `critical_glitch` | A scada reporting on itself; the alert relays it to a human. |
+| `ZoneBelowSetpoint` | A critical zone's temperature is more than the tolerance (2 F) below its setpoint, and the setpoint was not just raised. | `zone_setpoint` | Suppressed in Standby. Zone name rides in the evidence. |
+| `ZoneFreezeRisk` | A zone's temperature is below the freeze-risk threshold (40 F). | `zone_freezing` | 40 F is not freezing; the name says risk, the description carries the number. |
+| `NoDistFlow` | A sustained heat call ended and no distribution flow was seen since before it started, on three cycles running. | `dist_pump` | Pump power never gates the alert today, only the message wording; the name follows the condition (flow), not the suspect (pump). |
+| `NoStoreFlow` | The store pump has been commanded on for more than 10 min with no store flow. | `store_pump` | Same shape as `NoDistFlow`; assumes a store pump exists, which the fall layouts do not all have. |
+| `HpNotResponding` | The heat pump has been commanded on for more than 15 min and draws no power. | `hp_on` | The current alias reads as the opposite of what it means. |
+| `HpRunningOnpeak` | The heat pump drew power during a weekday on-peak hour. | `hp_onpeak` | See Findings. |
+| `LocalControlActive` | The house has fallen back to local control; the LTN is not dispatching it. | `not_in_atn` | Disabled in gwalert today. "Atn" is the legacy name for the LTN. |
+| (dropped) | | `no_more_oil` | Dead code: the method returns before any check, and the condition below it never tested the buffer. Not ported until someone defines it. |
+
 ## Do this next
 
-Create `gridworks-alerter` from the gwbase service pattern (the gwbase
-executor on service deployment; `gridworks-weather-forecast` is the
-smallest running example of a non-GNode service) with its own `.env`
-prefix, `ci.sh` with pyright, and the sema snapshot vendored first. Bring
-it up against the local `gw-dev-rabbit`: the actor's own queue bound to
-`report.event` and `layout.lite`, every message decoded through the
-snapshot classes, the latest `layout.lite` per house and the readings
-window in sqlite. Prove it with a sim scada (or replayed journal messages)
-filling the store, and a restart that keeps the layouts and alert state
-and refills the window.
-No detector yet; the alert vocabulary is the next spec discussion once the
-store is real.
+
+Step 2 of the sequence, and the sema spec gate comes first: read
+`sema/spec/primary.md`, then the `sema/spec/registry/` and
+`sema/spec/authoring/` spokes for types and enums, and post the summary of
+that kind's registry, authoring, dependency and axiom rules before any
+word is drafted. Then take "Proposal: the alert vocabulary" above through
+that discussion, correct it in place, and only after the words are agreed
+add them to the registry. In parallel and not gated on the words, in
+`gridworks-alerter`: first move the store onto SQLAlchemy models with an
+alembic migration chain (the weather service's `alembic/` and
+`tests/conftest.py` are the pattern), then the no-data rule, reading
+last-heard off the store against the ten-minute threshold and emitting
+transitions only, with the manager only logging, and a test that drives
+it from stored `report.event` messages through a restart.

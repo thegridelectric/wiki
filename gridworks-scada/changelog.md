@@ -10,14 +10,41 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-15 — is_buffer_full: the proxy glitch names its channel <!-- pending commit -->
+## 2026-09-15 — house0 review: buffer-full glitch, shared store-temps pass, defrost by hp-odu device type <!-- pending commit -->
 
+Two findings of the `house0.py` review (rung 5 of correct-house0, OPS-392).
 The info glitch `is_buffer_full` sends when it infers "full" from a proxy
-temperature printed the boolean `used_proxy` ("using True") instead of the
-channel; it now names `buffer-depth3` as missing and the proxy channel used.
-Behavior unchanged: the fall-through to `buffer-cold-pipe`, `store-cold-pipe`
-and `hp-ewt` stays, by decision (recorded in the executor's node-actor
-partition section). Rung 5 of correct-house0 (OPS-392).
+printed the boolean `used_proxy` ("using True"); it now names
+`buffer-depth3` as missing and the proxy channel used. Behavior unchanged:
+the fall-through to `buffer-cold-pipe`, `store-cold-pipe` and `hp-ewt`
+stays, by decision (recorded in the executor's node-actor partition
+section).
+
+The store temperature pass becomes one function both the scada and the
+LTN run (`actors/hydronic/store_temps.py`): scrub layers outside 35–200 F,
+fill each missing layer from the layer below, baseline the bottom-most
+gap on the store cold pipe when it reports, else the coldest reporting
+layer; with no layer reporting, fill nothing. Before, the scrub lived
+inside the fill and ran only when a layer was missing (an all-reporting
+250 F stood), the floor was 70 F while a summer store sits at 60–65 F
+(oak, 2026-09-15), and that same 70 F was the fill baseline, so one
+dropped layer rewrote a whole cold store to 70 F; the LTN carried its own
+copy with a 0 F baseline. `MIN_USED_TANK_TEMP_F` / `MAX_VALID_TANK_TEMP_F`
+leave `sh_node_actor.py` for the module. First tests for the pass
+(`test_store_temps.py`) and the house0 temperature pass updated. Also the
+four standing ruff findings in `ltn.py` and `sh_node_actor.py`: a bare
+`except` narrowed to `Exception`, two unused locals dropped, one
+semicolon split.
+
+`hp_in_defrost` keys on the hp-odu component's `DeviceType` instead of
+`settings.hp_model`: a hand-kept table (`DEFROST_SIGNATURES`: which draw,
+idu or idu+odu, and the watt line; LG Multi V under 8.4 kW total, the
+Samsung AE055 hydro-kit pairing at fir under 4 kW idu; an unlisted unit
+is never judged in defrost) until `hp.device.type.gt` carries the
+signature. With that the
+setting, its LTN copy, hp-boss's never-read assignment, the `HpModel`
+enum (gwsproto-only, removed from the conformance allowlist) and the
+duplicate asserting power readers `odu_pwr` / `idu_pwr` go.
 
 ## 2026-09-15 — hydronic house0: first tests on both sim pairs; store-flow predicates survive a missing relay state (`5243b0a0`)
 

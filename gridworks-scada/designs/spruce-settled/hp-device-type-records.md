@@ -58,6 +58,37 @@ record.
 
 ## Open
 
+- **Defrost power signature.** The record carries no way to tell the
+  compressor is defrosting. The scada judges it from power (LG Multi V:
+  idu+odu under 8.4 kW; the retired Samsung hydro-kit rule was idu under
+  4 kW), hand-kept in `house0.py` by the hp-odu `DeviceType` until the
+  record carries the signature: which draw to watch (idu, or idu+odu) and
+  the watt line. Add it here, then the table in `house0.py` retires.
+- **Fir runs the Samsung AE055 as a split** (Hydro Unit + backup heater;
+  the Drive folder "Samsung EHS Split A2W" names ODU AE055FCYDCG and IDU
+  AE055FEYMCG), the same two device-type values spruce uses for its
+  monobloc + control box. The enum descriptions call them "mono"; one
+  pair of values serves both pairings, or the split earns its own. The
+  defrost table keys the Samsung idu rule on the odu value either way.
+- **Elm's Arctic high-temp monobloc is the MAHRW030ZA (BEH2)-R32**
+  (installing 2026-09; the Drive folder "Arctic High Temp"). An R32 +
+  R515b cascade, two compressors, leaving water to 95 C; the folder's
+  060ZA(BE)-R32 sheet is the single-compressor EVI sibling, not elm's.
+  It has no `gw1.device.type` value, no record, and no defrost signature.
+  Proposed value `ArcticHighTempMAHRW030ZA` (maker + "HighTemp" + the
+  designation, the enum's maker-plus-nameplate shape), with the gwsproto
+  twin. A monobloc has one power draw, so its signature is `total`
+  against a line learned from its first defrost season; a cascade's dip
+  may be shallow if the high stage keeps drawing while the low stage
+  reverses. Until then it is never judged in defrost.
+- **Mitsubishi defrost signature, from maple's April 2026 data.** No rule
+  exists for the Ecodan. The journal DB holds maple's `hp-idu-pwr`,
+  `hp-odu-pwr`, `hp-lwt`, `hp-ewt` and `primary-flow` for all of April
+  2026 (8k / 16k / 55k / 55k / 151k rows): pull them (`experiments/
+  pull_readings.py`), find the defrost episodes (a leaving-water dip with
+  the compressor still drawing, or the reversed-cycle draw pattern), and
+  read the draw and line off them. Then the row goes into the control
+  loop's table and, once the record carries the field, into the record.
 - The "assembly" question: whether the odu+idu pair earns a single
   name/record on top of the per-part records (Jonathan Woolley to name
   the assembly). Per-part records stand regardless.
