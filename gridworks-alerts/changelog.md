@@ -3,6 +3,21 @@
 One entry per commit in `thegridelectric/gridworks-alerts` and
 `thegridelectric/gridworks-alert-manager` (git = the what, this = the why).
 
+<!-- pending commit -->
+## 2026-09-15 — gridworks-alerts: Zone detectors convert temperatures by the channel's unit
+
+After every gwalert restart spruce paged "zoneN is below 40F" for three
+zones in the mid-60s F. The freezing and setpoint detectors chose a
+zone's temperature channel by substring ("temp" without "gw") and
+divided by 1000 as if every such channel were a smart-thermostat
+`AirTempFTimes1000` reading; spruce's floor-temp and set channels are
+`FahrenheitX100`, so 6566 read as 6.6 F. The ingest now keeps each
+channel's `unit` beside its readings, temperatures are converted to F
+by unit through one table covering every unit the journal carries, and
+zone channels are chosen by role suffix (`-set`, `-temp`, `-floor-temp`,
+`-gw-temp`) rather than substring. Unit tests per unit and per role. The
+freshness query's duration is logged beside the full fetch's. (OPS-544)
+
 ## 2026-09-15 — gridworks-alerts: Constructing AlertGenerator no longer starts the loop (`c257966`)
 
 `AlertGenerator.__init__` called `main()`, so building the object ran

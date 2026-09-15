@@ -24,16 +24,31 @@ gwsproto `House0Layout.check_axiom_8` mirror drops `sieg-flow-hz` with the
 word (sema `8e56c4e`) and the vendored closure registry refreshes from the
 tlayouts snapshot. Rung 4 of correct-house0 (OPS-392).
 
-## 2026-09-14 — House0 fixture becomes a generated simulated layout (`<!-- pending commit -->`)
+## 2026-09-15 — Two generated simulated House0 fixtures, one per sieg-flow pattern (`61022bc6`)
 
-`tests/config/gw.house0.layout.json` was a hand-authored hodge-podge of real
-and simulated devices assembled to run a test (944 `sema validate` errors). It
-is replaced by the output of the tlayouts sim House0 gen — a House0-shaped
-layout with every component simulated — so `sema validate` is green and the
-scada suite boots it in-process. The real beech and maple layouts move to their
-own house gens as deployment artifacts, out of the scada test config. Rung 4 of
-correct-house0 (OPS-539). (Placeholder started by another session to unblock
-the changelog gate; refine to match the actual commit.)
+The scada suite's House0 fixtures are two generated all-simulated pairs from
+the tlayouts sim gens, `sema validate` green, one per sieg-flow pattern:
+**orange** (`gw.house0.orange.*`, was `gw.house0.sim.*`) measures
+`primary-flow` and derives `sieg-send-flow` by difference (beech's pattern);
+**willow** (`gw.house0.willow.*`, a second little house with its own GNode
+identity, no id shared with orange) measures `sieg-send-flow` and derives
+`primary-flow` by sum (maple's pattern). The hand-kept `gw.house0.layout.json`
+pair, a hodge-podge of real and simulated devices with 944 validate errors,
+is deleted; every test that read it as its "house0" case now runs on
+`house0-orange` and `house0-willow`. The GP8403 wire-byte test (the 10 V →
+0 V regression from beech) keeps its arm by loading a `tmp_path` copy of the
+willow layout whose board record's DACs are declared GP8403, the one field
+the chip arm turns on. The gwsproto layout loader gains the `difference`
+DerivedChannel case (exactly two inputs, OnTrigger) that `e398dc57` gave the
+actor but not the loader; the first layout carrying one (orange's regen)
+could not load without it. The sim sensor actor posts to the derived
+generator as well as the scada whenever a DerivedChannel consumes one of its
+channels (a pico-fed device actor's rule, name-free) and carries standing
+flow values (`GpmTimes100`, `MicroHz`) instead of idle zeros; a new test
+posts every sim flow sensor's readings through the real routing on both
+fixtures and checks each house emits exactly the one sieg flow it does not
+measure, with the value the readings imply. Rung 4 of correct-house0
+(OPS-539).
 
 ## 2026-09-14 — command_reply docstring: bossable nodes, not "command nodes" (`ade7bed2`)
 

@@ -10,7 +10,7 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-15 — willow: the second simulated House0 pair, derived primary-flow (`<!-- pending commit -->`)
+## 2026-09-15 — willow: the second simulated House0 pair, derived primary-flow (`26401c5` on jm/spruce)
 
 The scada suite gets a House0 fixture per sieg-flow pattern. `orange_sim_gen.py`
 (was `house0_sim_gen.py`; the little orange house) measures `primary-flow` and

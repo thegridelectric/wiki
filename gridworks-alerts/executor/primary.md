@@ -58,6 +58,17 @@ box facts, access profile and operating aliases live in
   duration; on 2026-09-15 a fetch that took five minutes paged three
   houses whose data was on schedule. The check has its own cheap query so
   the full-window fetch cannot delay it.
+- **Temperatures are read by the channel's unit, never by name.** A
+  journal channel names its unit twice: `unit_type` is the sema word the
+  spelling belongs to (`gw1.unit`, `spaceheat.telemetry.name`) and `unit`
+  the member. The ingest keeps both beside the readings and every
+  temperature threshold converts through one table (`gwalert/units.py`).
+  Zone channels are chosen by role suffix (`-set`, `-temp`, `-floor-temp`,
+  `-gw-temp`); freezing prefers air, then floor, then gw; setpoint uses
+  air, then floor. The fleet today mixes `AirTempFTimes1000` (smart
+  thermostats) with `FahrenheitX100` and `CelsiusTimes100` (spruce, no
+  thermostats); a detector that guessed the scale from the name paged
+  spruce at every restart.
 - **Building the detector does not run it.** `AlertGenerator()` binds
   settings and the session factory only; the entrypoint calls `main()`.
   Tests construct the object without a database.
@@ -70,8 +81,15 @@ while is Open (check the bill). Email code exists but has no live call site.
 
 ## Known gaps / Open
 
-- **Near-zero test coverage** on the detector logic; only the no-data check
-  has unit tests. For the thing we trust at 3 a.m., this is the priority.
+- **Thin test coverage** on the detector logic; the no-data and zone
+  temperature checks have unit tests, the pump and heat-pump detectors
+  (`/100`, `/1000` literals on flow and power) do not. For the thing we
+  trust at 3 a.m., this is the priority.
+- **Setpoints that report only on change never reach the 2-hour window.**
+  Spruce's `zoneN-…-set` channels last reported between July and early
+  September, so the setpoint check logs "Missing setpoint channel" for
+  spruce every cycle. The check needs each channel's latest reading
+  regardless of window, the way the freshness query already works.
 - **A house with no reading in the window is silently absent** from every
   check, the no-data check included: the house list is derived from the
   rows returned, not from the registered channels. A house that goes dark

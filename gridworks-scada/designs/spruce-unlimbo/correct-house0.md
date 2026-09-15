@@ -1,6 +1,6 @@
 # Correct House0 (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-09-14 · Linear: OPS-539
+Status: Accepted · Pass 1 · Updated 2026-09-15 · Linear: OPS-539
 
 > What this is: House0 made right — the House0 layout correct across three
 > representations that close only together: the **sema word** carries the right
@@ -97,15 +97,21 @@ gens, the fixtures and the code together.
    `<house>_gen.py`; the six commented legacy generators are `old_gen_<house>.py`
    (after tlayouts `400e858`).
 
-4. **▶ The three gens emit their layouts.** All from the shared family-gen
-   machinery (`layout_gen.py` + `src/tlayouts/hardware/`), in this rung:
-   - **`sim_house0_gen` → `gw.house0.layout.json`** — the scada suite's House0
-     fixture: a House0-shaped layout (sieg loop, buffer, store tanks) with every
-     component `SimDeviceType`, `sema validate` green, booted in-process. Today
-     this file is a hand-authored hodge-podge of real and simulated devices
-     assembled to run a test, and fails validate with 944 errors — the symptom of
-     an ad-hoc fixture where a cleanly generated simulated layout belongs, not a
-     worklist; this rung replaces it with generated sim output.
+4. ✅ DONE (2026-09-15) **The three gens emit their layouts.** All from the shared
+   family-gen machinery (`layout_gen.py` + `src/tlayouts/hardware/`):
+   - ✅ DONE (2026-09-15; tlayouts `26401c5`, scada `61022bc6`) **two sim pairs
+     from the gens** — the scada suite's House0 fixtures, one per sieg-flow
+     pattern: `orange_sim_gen.py` → `gw.house0.orange.*` (Measured primary,
+     `sieg-send-flow` by difference) and `willow_sim_gen.py` →
+     `gw.house0.willow.*` (DerivedSiegSum: `sieg-send-flow` measured,
+     `primary-flow` by sum), a second little house with its own GNode identity.
+     Both all-`SimDeviceType`, `sema validate` green, booted in-process; the
+     hand-kept hodge-podge fixture (944 validate errors) deleted. The sim sensor
+     actor now feeds the derived generator whenever a DerivedChannel consumes one
+     of its channels, and the suite's first end-to-end derived-flow test runs on
+     both pairs. Fixed on the way: `emit_sim_power_meter` minted its component id
+     twice (held only while a reference carried the id); the scada layout loader
+     lacked the `difference` case the actor had.
    - ✅ DONE (`7c2db53`) **`beech_gen.py` → the real beech deployment layout**
      (real Krida panel, LG Multi V split HP, Honeywell-via-Hubitat zones, DFRobot
      outputs). `sema validate` green, id-preserving against the deployed layout.
@@ -154,11 +160,10 @@ gens, the fixtures and the code together.
      a Hall flow pico (`FlowSpec` position `sieg`); no `DerivedSiegSum` (beech
      measures `primary-flow`).
 
-   Done when `sema validate` is OK on all three outputs and the scada suite is
-   green against `gw.house0.layout.json`. Known already: the real beech Krida
-   record carries an older DisplayName than the vendored record.
+   Known: the real beech Krida record carries an older DisplayName than the
+   vendored record.
 
-5. **The hydronic reviews + the H0N/H0CN names retirement.** One file at a time,
+5. **▶ The hydronic reviews + the H0N/H0CN names retirement.** One file at a time,
    each review its own commit; the gens and fixtures move with each rename;
    first-ever tests per file. Names no reviewed file holds get one end-of-review
    sweep.
@@ -197,6 +202,13 @@ gens, the fixtures and the code together.
      `buffer_top_elt` in HSNN — renames in the coordinated regen.
    - Un-audited corners: the `simple_sim` tier, `House0ChannelNames.__init__`,
      `names/*/helpers.py`.
+   - `api_flow_module.py` forwards readings to the derived generator only when
+     `self.node.name == "sieg-flow"` (two sites), so on a real house the sum or
+     difference fires only on sieg-flow readings. The sim sensor's rule (forward
+     when a DerivedChannel consumes one of your channels) is the name-free
+     replacement.
+   - Do this next: `actors/hydronic/shared.py` review, both sim pairs in its
+     first tests.
 
 6. **The sema word sitting** (word-gate ritual): bring the House0 word's axioms
    to the Nolan shape —
@@ -240,12 +252,11 @@ gens, the fixtures and the code together.
 
 ## Open / what we learned
 
-- **The scada repo holds only simulated layouts.** The real beech/maple layouts
-  are deployment artifacts (real hardware), generated per-house and deployed to
-  the box — never scada test fixtures. `gw.house0.layout.json` is the *simulated*
-  House0 fixture; the 944 validate errors under the current file were the symptom
-  of a hand-authored hodge-podge of real and simulated devices sitting where a
-  cleanly generated simulated layout belongs, cleared by rung 4, not a worklist.
+- **The scada repo holds only simulated layouts**: two House0 pairs (orange,
+  measured primary; willow, derived primary) plus Nolan. The real beech/maple
+  layouts are deployment artifacts, generated per house and deployed to the
+  box. A test that needs a real-record detail (the GP8403 DAC arm) edits a
+  `tmp_path` copy of a sim layout at the wire boundary, never a real layout.
 - `H0N.tank` / `H0N.zones` instantiated machinery: home undecided.
 - Whether `HydronicLayout`'s essential-nodes check should name five-v-boss and
   the cycler, or stay a minimal list with the layout words as the requirement.
@@ -262,7 +273,7 @@ gens, the fixtures and the code together.
 
 ## Open naming question
 
-The real beech/maple deployment layouts need instance filenames distinct from
-the simulated `gw.house0.layout.json` (they share the `gw.house0.layout`
-TypeName but are different instances). Not yet decided — flagged here rather
-than guessed.
+Fixtures are named per little house, `gw.house0.<plant>.layout.json`. The real
+beech/maple deployment layouts still need instance filenames distinct from the
+fixtures (they share the `gw.house0.layout` TypeName but are different
+instances). Not yet decided; flagged here rather than guessed.

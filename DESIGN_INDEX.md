@@ -13,6 +13,7 @@
 
 _(every file under a `designs/` folder, anywhere in the wiki)_
 
+- (gridworks-alerts) [`gridworks-alerts/designs/broker-alerter.md`](gridworks-alerts/designs/broker-alerter.md) (rebuild the house alerter as a gwbase actor on the hw1 broker — durable queue, sqlite store, sema-typed inputs and alert events — so paging stops sharing the journal DB with observability; absorbs OPS-449; Linear OPS-545)
 - (cross-cutting) [`designs/substrate-fit.md`](designs/substrate-fit.md) (parked brainstorm: blockchain/substrate fit for crypto / validation / market-running layers; focus AFTER the launch; Linear OPS-391)
 - (cross-cutting) [`designs/mtls-fis-auth.md`](designs/mtls-fis-auth.md) (password → cert-based mutual TLS with FIS as the auth authority; spans rmqbot + FIS + provisioning; 2026-summer; Linear OPS-420)
 - (cross-cutting) [`designs/proactor-makeover.md`](designs/proactor-makeover.md) (replace the gridworks-proactor link mechanism + gwproto types with a gwbase/Sema-native scada transport — AllyLink + the `gw` envelope + standard Sema codegen; retires the proactor and gwproto packages; Linear OPS-428)
