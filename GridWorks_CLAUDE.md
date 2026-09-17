@@ -357,6 +357,18 @@ on the box; those files are the tlayouts spruce gen's output
 and must stay byte-identical to it, with a dated `*.pre-<change>.json`
 copy left beside each edit.
 
+**Read the diff for context-dependent prose before suggesting a scada
+commit.** Docstrings, comments, gwsproto field descriptions and sema word
+prose SHALL state what is, now. Sweep every changed file for: transition
+narrative ("used to", "was X, now Y", "changed because", "no longer",
+"retired", dated asides); rationale that only makes sense against the
+old code; and enumerations of things that will move (the actors that read
+a field, the consumers of a message, the layouts that have a thing).
+Rewrite each to present tense and to the thing's own meaning; the why
+goes in the changelog entry, the list goes nowhere (the code is the
+list). A description that names the actor classes a flag switches on is
+the tell: it describes today's implementation, not the flag.
+
 **Periodic mypy sweep of scada `actors/` (no gate).** After any
 change that moves methods between actor base classes, and at each
 milestone, run `venv/bin/mypy --ignore-missing-imports

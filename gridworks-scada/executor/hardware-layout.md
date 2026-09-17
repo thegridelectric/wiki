@@ -95,66 +95,80 @@ and `required-energy` derived channels by exact name. These run at construction
 — a layout that violates them fails to load (this is the class of failure
 behind this morning's `AsyncCaptureDelta` greening, one layer up).
 
-## Generation — two layers, the lower one hacky
+## Generation — the tlayouts gens
 
-- **In-repo `layout_gen/`** is the programmatic builder. `LayoutDb`
-  (`layout_db.py`) accumulates bucket-keyed lists; per-device generators
-  (`relay.py`, `multi.py` TSnap, `simulated_tanks.py`, `derived_channels.py`,
-  `flow.py`, `egauge.py`, `dfr.py`, `tank3.py`, `gw108_nolan_zones.py`) each
-  append nodes/components/cacs/channels — **the caller passes the bucket
-  name** (no type-based dispatch). `fixture_layouts.py` assembles the
-  house0 and nolan *test* fixtures; `genlayout.py` is the `mktest` CLI.
-  `simulated_tanks.py` already emits `SimPicoTankModuleComponentGt` — the
-  seed the dashboard experiment builds on.
-- **The `tlayouts` sibling** (`/Users/jessica/GridWorks/tlayouts/`) is the
-  real-house generator: one `gen_<house>.py` per house (oak, beech, elm,
-  fir, maple, orange, almond, spruce, beachrose), each calling the same
-  `layout_gen` device builders with house-specific config (zones, tank
-  calibrations, hardware UIDs). Its own README says "hacky and temporary."
-  It **runs in the scada venv** (imports `gw_spaceheat`/`layout_gen`
-  directly, no packaging). The hackiness is concrete: 9 near-identical
-  copy-paste gen scripts with no shared base, and per-house divergence in
-  code rather than data — e.g. `gen_spruce.py` drops `add_relays()`
-  entirely, uses one tank + BTU meters, default (zero) tank calibrations.
-  `oak` is the full House0 (20 relays on the Krida panel, 4 Pico tank
-  modules, power meter, HpBoss) — the layout the dashboard experiment uses.
-  Each `gen_<house>.py` gets stable ids from a prior layout —
-  `LayoutIDMap.from_path(output/<house>.generated.json)`, or
-  `from_rclone("<house>")` to pull the deployed layout off the house's pi — then
-  `db.write`s `output/<house>.generated.json`, which is copied into
-  `gridworks-scada/tests/config/<house>.json` as a runtime test fixture.
-  **Branch pairing:** `tlayouts@main` matches `gridworks-scada@dev` (the working
-  pre-migration pair); the `tlayouts@jm/spruce` gen scripts were ported to the
-  current post-cac-migration scada API (`MakeModel`→`Gw1DeviceType`,
-  `add_relays`→`add_house0_relays`, `from_rclone`→`from_path`,
-  `tmap`→`LayoutDb(tmap=)`). When re-sourcing real-house values, **dev/main is
-  the trustworthy source** — a hand-shift on jm/spruce had corrupted some tank
-  calibrations.
+No layout is hand-kept. Every layout — sim fixture or real deployment — is
+emitted by the `tlayouts` sibling (`/Users/jessica/GridWorks/tlayouts/`,
+run from the scada venv) from the layout family's sema word, id-preserving
+against the prior output (`layout_id_map.py`), and validated with
+`sema validate` before it ships. The generators regenerate again for every
+new install, so the gens, not any output file, are the thing to get right.
 
-> **OFI — where tlayouts is going.** The copy-paste "scripts repo" is the
-> fragile part (9 near-identical per-house Python files, per-house divergence in
-> *code* not *data*). The durable direction is a single generator that consumes
-> **sema-typed inputs** — a site/topology spec + a `gw1.tank.temp.calibration.map`
-> + hardware UIDs — instead of bespoke scripts, so each house collapses to sema
-> data + one shared generator. The natural sema seam is **calibration discovery →
-> generation**: George's hand-fit M/B (today a DB + spreadsheet) becomes a
-> `gw1.tank.temp.calibration.map` fed to the generator, rather than hand-edited
-> into Python. (See the layout round-trip + dc→sema adapter for the layout-side
-> seam: `gw.house0.layout` is the sema word scada emits and gwta decodes.)
+- **`src/tlayouts/layout_gen.py` is the base generator** (id map,
+  accumulators, emit helpers). The family gens are siblings on it:
+  `house0_sema_gen.py` and `nolan_sema_gen.py`; a family gen owns only the
+  plant roster its word requires. Drivers are `<house>_gen.py` at the repo
+  root, one per house (`beech_gen.py`, `maple_gen.py`, `spruce_gen.py`) and
+  per sim pair (`orange_sim_gen.py`, `willow_sim_gen.py`, `spruce_sim_gen.py`).
+  `oak_gen.py` is a House0-shaped config for a no-sieg house that raises at
+  the `gw.house0.no.sieg` stub; it retires into that family's generator when
+  the word exists (oak, fir and elm are the sieg-less family). The six
+  commented legacy generators are `old_gen_<house>.py`.
+- **`src/tlayouts/hardware/` realizes one hardware kind per module** against
+  the board record — board, i2c relay, DAC output, thermistor channel, tank
+  module, power meter, gpio relay, gpio sensor, BTU meter, hubitat zone —
+  with the spec beside its realizer.
+- **The board is a config axis.** A gen takes its board from config (node
+  name, record file, simulated twin, bus addresses) and its 0-10V outputs as
+  specs against that board; the board record's relays and outputs are
+  emitted as per-relay and per-output components against the record, the
+  power-on levels in the ops word. gw108 rev B is the default (every install
+  from here on); beech, maple and the sim pairs declare krida plus DFRobot
+  explicitly. The sim board record is vendored as
+  `device_types/sim.krida-…json`. Which board is a one-axis swap.
+- **`FlowSpec`** — one standalone flow meter at a `position`, an open
+  `SpaceheatName` the `<position>-flow` / `-hz` grammar composes
+  (`FlowNodeNames` / `FlowChannelNames`): `dist2` → `dist2-flow`, `sieg-send`
+  → `sieg-send-flow`. `kind` picks the pico family: `hall` (the fleet
+  default, Saier, `ConstantGallonsPerTick` 0.0009, sets
+  `PublishEmptyTicklistAfterS` / `PublishTicklistPeriodS`) or `reed` (keeps
+  `PublishAnyTicklistAfterS` / `PublishTicklistLength`); `flow_meter_type`
+  overrides the meter type (`SaierFlowSensor` for Hall;
+  `OmegaFtb8010FlowMeter` for a second dist meter). `btus` lives on the base
+  config and `emit_btu_meters` runs before the standalone flows, so a
+  position a BTU pico already measures (beech's `primary-flow`,
+  `dist-flow`) skips its bare-flow emit.
+- **`TankSpec`** carries asymmetric depth-1/3 calibration and
+  `sensor_order`, the pico's physical-sensor → depth mapping.
+- **`AdsChannelSpec`** carries a thermistor make-model axis (default Tewa;
+  beech's zone air-temps are Amphenol).
+- **Zone temp truth** is `zone{i}-{zone}-gw-temp` (`CelsiusTimes100`, about
+  the zone node, captured by `analog-temp`), the accurate ADS sensor; the
+  Honeywell stays the setpoint / state read.
+- **Sim pairs**: the scada suite's House0 fixtures are two little houses with
+  their own GNode identities, one per sieg-flow pattern (`gw.house0.orange.*`
+  measures primary, `gw.house0.willow.*` derives it); all `SimDeviceType`,
+  booted in-process by the suite. The sim sensor actor feeds the derived
+  generator whenever a DerivedChannel consumes one of its channels. The real
+  beech and maple layouts are box artifacts, not scada fixtures.
+
+Known: the real beech Krida record carries an older DisplayName than the
+vendored record.
+
+> **OFI — tlayouts shouldn't need the scada venv.** The gens import
+> `gw_spaceheat` directly and run inside scada's venv. Once scada becomes a
+> proper `uv` package, tlayouts could depend on it as a package.
 >
-> **OFI — tlayouts shouldn't need the scada venv.** Today the gen scripts import
-> `gw_spaceheat`/`layout_gen` directly and must run inside scada's venv. Once the
-> proactor functionality lift lands and scada can become a proper `uv` package,
-> tlayouts could depend on it as a package rather than borrowing its venv.
+> **OFI — calibration discovery → generation.** The hand-fit tank M/B
+> (today a DB + spreadsheet) becomes a `gw1.tank.temp.calibration.map` fed
+> to the generator rather than hand-edited into `TankSpec`.
 >
-> **OFI — where is the authority for a hardware layout?** Right now it is
-> implicitly "whatever is running on each pi" (the `from_rclone` pull). We may
-> choose to keep that, but it deserves a dedicated session evaluating the right
-> home in light of the "where meaning lives" approach. Hard constraint: the
-> **gridworks-data *analytics* database** (a subset of gridworks-data, not all of
-> it) MUST NOT become the de-facto / implicit home for layout changes we intend to
-> make — layout authority should be a deliberate choice, not a side effect of
-> where analytics data happens to live.
+> **OFI — where is the authority for a hardware layout?** Today it is the
+> gen's config plus the id map of the prior output. It deserves a dedicated
+> session in light of "where meaning lives". Hard constraint: the
+> **gridworks-data *analytics* database** MUST NOT become the de-facto home
+> for layout changes we intend to make — layout authority is a deliberate
+> choice, not a side effect of where analytics data happens to live.
 
 ## Names — `gwsproto/names/`
 
@@ -241,6 +255,21 @@ breaks leaked House0 assumptions — and each becomes a **Sema layout type**:
 
 The `gw`/`gw1` prefix is deliberate vocabulary namespacing (`gw1.actor.class`,
 `gw1.unit`, `gw.nolan.layout` leave room for other orgs' own words).
+
+### The sieg flow identity — `primary-flow = sieg-send-flow + sieg-flow`
+
+The Siegenthaler loop splits the primary flow: `sieg-flow` recirculates
+through the loop, `sieg-send-flow` is the send line to the house. A house
+measures two of the three and derives the third through a DerivedChannel:
+beech measures `primary-flow` (a BTU pico) and `sieg-flow`, so its
+`sieg-send-flow` is the **`difference`** strategy; maple measures
+`sieg-send-flow` and `sieg-flow` (Hall picos) and its `primary-flow` is the
+**`sum`** strategy (`DerivedSiegSum`). Both strategies live in the derived
+generator and the scada layout loader. `sieg-send-flow` is therefore required
+as a DataChannel OR a DerivedChannel, its node is not required, and a
+BTU-sourced or derived flow has no `-hz` channel (House0 axiom 8 does not
+require `sieg-flow-hz`). The sim pairs cover one pattern each (orange
+measures primary, willow sums).
 
 ### The zone invariant — temp, set, heat-call exist in every layout
 

@@ -1,6 +1,6 @@
 # stand-up-price-forecast
 
-Status: Draft · Pass 0 · Updated 2026-08-13 · Linear: OPS-437
+Status: Draft · Pass 0 · Updated 2026-09-16 · Linear: OPS-437
 
 **EDD: yes** the bar is real-broker price-forecast delivery in
 production, consumed by a real LTN FLO and/or the MarketMaker —
@@ -69,7 +69,9 @@ broker, same bar as the weather standup.
   and the create-command round's authority story?
 - **The vocabulary.** No `gw.price.*` words exist. Quantities, units,
   cadence, forecast horizon/slice shape, source (ISO-NE day-ahead?
-  real-time? both?) — all open.
+  real-time? both?) — all open. The tariff side, and the first small
+  word wanted before this design starts, is in
+  [`tariff-vocabulary.md`](tariff-vocabulary.md).
 - **Source posture.** Unlike weather (NWS is free, public,
   well-understood), ISO-NE market data access terms, cost, and
   latency are unresearched.
@@ -81,7 +83,10 @@ broker, same bar as the weather standup.
 
 ## Spokes
 
-None written yet. When this design actually starts: `/grill-me` first
+- [`tariff-vocabulary.md`](tariff-vocabulary.md) — the tariff and price
+  brainstorm plus the `gw.tou.tariff` first-word proposal (Draft).
+
+When this design actually starts: `/grill-me` first
 (per the design-loop convention), then draft `vocabulary.md` and
 `delivery.md` before any code, mirroring the weather standup's own
 sequencing (word-gate closes before `build.md` starts).

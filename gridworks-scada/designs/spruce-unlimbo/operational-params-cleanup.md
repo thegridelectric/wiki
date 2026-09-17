@@ -48,7 +48,9 @@ reached through `isinstance` guards (`sema_to_dc.py` `use_sieg_loop`).
    the closure mirror, and `sema validate` both fixture pairs. Sema
    word-gate before the edit. `CopCurve` / `HeatingCurve` stay: Nolan
    heating-season control will want them.
-2. **`whitewire_threshold_watts` leaves scada settings.** A heat call is
+2. ✅ **`whitewire_threshold_watts` leaves scada settings.** (Done: the
+   reader moved to the derived heat-call channel and the setting is
+   deleted.) A heat call is
    sensed by opto (Nolan) or by metering the call wire (House0); which, is
    a wiring fact the layout already binds through the heat-call
    `derived.channel.gt` and its `Parameters["Threshold"]`. The settings

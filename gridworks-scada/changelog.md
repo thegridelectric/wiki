@@ -10,7 +10,199 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-15 — house0 review: buffer-full glitch, shared store-temps pass, defrost by hp-odu device type <!-- pending commit -->
+<!-- pending commit -->
+## 2026-09-15 — A layout answers its own store tanks; H0N/H0CN retired; on-peak from the ops word
+
+`LayoutLiteDc.h0cn` still built `H0CN(total_store_tanks=…, zone_list=…)`
+after the zone rosters left that constructor, so every LayoutLite tank
+read raised `TypeError` (the LTN's store-tank temperature channels) and
+no test held it. Behind it, `H0N`, `H0CN` and `helpers.Tanks` re-spelt
+the store-tank names from a count, the assumption a slab house with no
+water tanks breaks. One lookup replaces them: `store_tanks(node_names)`
+in the hydronic-tier `helpers.py` reads the tank reader nodes
+(`tank1 .. tank6`) a layout carries and returns the per-tank
+`TankChannelNames`; `HydronicLayout` and `LayoutLiteDc` expose it as
+`store_tanks` / `has_store_tanks`, and every reader (sh node actor,
+derived generator, House0 hydronic, all-tanks leaf ally, LTN) goes
+through the layout. The hottest / coldest store readers answer None
+without tanks instead of raising. `house_0_names.py` is deleted, the
+`House0ChannelNames` instance part with it (the class is constants
+only), and `LtnData.h0cn`, an uncalled pass-through, goes. Tests: the
+LayoutLite data class on all three fixture pairs through the scada's
+own `layout_lite`, the same layouts with their tank readers stripped,
+the helper on bare node names, and the store readers with tanks emptied.
+
+`ApiFlowModule` and `ApiBtuMeter` forwarded readings to the derived
+generator only when the node was named `sieg-flow` / `sieg-btu` and the
+sieg-loop flag was on, while the sim sensor, GPIO sensor and I2C
+thermistor reader each carried their own copy of the layout rule. One
+method, `HydronicLayout.feeds_derived(channel_names)` (true when a
+DerivedChannel consumes one of them), now decides it for all five, with
+a test on both sim pairs.
+
+`shared.py` (rung 8 of the House0 correction): `get_zone_setpoints` and
+`is_system_cold` read the zone `-set` / `-temp` channels through
+`HydronicSpaceheatZoneChannelNames` instead of a substring scrape and
+hand-built names; `is_onpeak` / `just_before_onpeak` read the ops word's
+`OnPeakWindows` (the Versant hours were a table in the actor, and the
+"just before" test fired at 16:58, inside the evening peak, instead of
+15:58 before it); the dead `command_node is None` branch in
+`heatcall_ctrl_to_scada` is gone; the all-tanks TOU impl's copy of the
+clock line calls `just_before_onpeak`. Tests swap the windows to prove
+the word is read and pin the corrected clock.
+
+## 2026-09-15 — Dist pump monitor reads the derived heat-call; zone rosters retired (`dc40bacf` on jm/spruce-unlimbo)
+
+`DistPumpMonitor._any_zones_calling` read each zone's `whitewire-pwr`
+against `settings.whitewire_threshold_watts`, so on an opto-sourced
+layout (spruce) it saw no zone calling at all, and on a power-sourced
+one it kept a second threshold beside the 10 W the derived channel
+already carries. It now reads `zone{i}-{label}-heat-call`, the derived
+channel every layout computes from whichever raw source it has, through
+the hydronic-tier zone channel names; first tests on both sim pairs,
+including whitewire power run through the derived generator into the
+shared scada data (no signal, low power, high power).
+That was the last reader of `H0CN.zone` and of the setting, so both go,
+with the `ZoneChannelNames` class behind the roster, the unread
+`HydronicSpaceheatZones` helper, and the `zones` instance part of
+`House0ChannelNames` (`House0ZoneChannelNames` with it). `ProceduralHost`
+no longer promises `h0cn`. The Nolan and simple-sim names modules import
+the zone classes from their own modules rather than through `helpers`.
+
+## 2026-09-15 — Zone failsafe relays speak ZoneCallSource; heat-call enums retired (`4e792481` on jm/spruce-unlimbo)
+
+The two House0 sim fixtures pinned the zone failsafe relays to the
+`heatcall.source` / `change.heatcall.source` pair while the Nolan
+fixture and the I2C relay path already spoke `zone.call.source` /
+`change.zone.call.source`, so the GPIO relay FSM, the hydronic
+`heatcall_ctrl_*` senders and the relay-actor-config axiom tables each
+kept two names for one meaning. The fixtures regenerate from the House0
+gen with the zone-call pair, `relay.py`, `hydronic/shared.py` and
+`relay_actor_config.py` read only that pair, and `HeatcallSource` /
+`ChangeHeatcallSource` are deleted from gwsproto with their exports.
+The words stay in the sema registry; nothing in this repo pins them
+any more. Same behaviour on the wire: both pairs carry the same values.
+`channel_names.py` takes the repo-wide `HSNN` alias in place of its lone
+`HNN`.
+
+## 2026-09-15 — ZoneNodes retired; zone relay names come from the hydronic tier (`fedfc863` on jm/spruce-unlimbo)
+
+`ZoneNodes` in `house_0_names.py` spelled the same five zone node names
+as the hydronic-tier `HydronicSpaceheatZoneNodeNames`; two classes for
+one spelling is the duplication the names retirement removes. `relay.py`
+(`initialize_fsm`) and `tou_base.py` (the dist-pump recovery gate) now
+build the zone's failsafe and ops relay names through the hydronic-tier
+class, as `hydronic/shared.py` already did, and `H0N` drops its zone
+roster along with the `zone_list` argument: the tank roster is all it
+still carries. No runtime behaviour changes; the suite is green.
+
+## 2026-09-15 — ScadaWeb to the core tier; hubitat to the hydronic tier (`65262e85` on jm/spruce-unlimbo)
+
+`ScadaWeb.DEFAULT_SERVER_NAME` is the proactor web-server key every
+house's pico and Hubitat actors post through, not a House0 name, so the
+class moves from `house_0_names.py` to `names/core/node_names.py`.
+`hubitat` serves more than one layout family, so it leaves
+`House0NodeNames` for `HydronicSpaceheatNodeNames`, under a comment
+marking the rarely used older names. No runtime behaviour changes.
+
+## 2026-09-15 — H0N/H0CN class-level rosters retired to the names tiers (`0693fcd3` on jm/spruce-unlimbo)
+
+The plant-node members of `H0N` (heat pump, pumps, pipes, flows, 0-10V
+outputs, BTU meters, sieg, oat, the buffer) and every class-level
+channel alias of `H0CN` (pipe, flow, power and energy channels, the
+buffer, the relay-state channels) are deleted and each reader repointed
+to the hydronic tier, or the House0 channel tier for the House0-only
+relay states. Instance-path reads of a class member (`self.h0cn.buffer`,
+`self.h0cn.hp_ewt`) are repointed the same way. What is left of `H0N`
+and `H0CN` is the per-layout tank and zone naming built in `__init__`,
+which retires when readers ask the layout instead.
+
+Two tier corrections ride along: `hp-scada-ops-relay`'s relay-state
+channel moves from the House0 channel tier to the hydronic one, matching
+its node; and `sieg-flow` gains its channel alias in the hydronic tier
+beside `sieg-send-flow`. `H0CN.channel_stubs()` and the `ChannelStub`
+model, never called, are deleted; the concept (a channel required by
+name, about-node and unit) returns as layout-word axioms, and the last
+version is at `a721dc3b`. No runtime behaviour changes.
+
+## 2026-09-15 — H0N relay roster retired to its tiers (`7a5ebc8e` on jm/spruce-unlimbo)
+
+The eleven relay members of `H0N` are deleted and every reader repointed
+to the tier the names package assigns: `vdc-relay` and
+`hp-scada-ops-relay` to `HydronicSpaceheatNodeNames`, the other nine to
+`House0NodeNames`. `H0CN`'s relay-state channel aliases, which spelled
+their names through `H0N`, read the tier classes directly. The `Literal`
+types the relay members carried were read nowhere. No runtime behaviour
+changes.
+
+## 2026-09-15 — H0N system-actor names retired to their tiers, a few more tests added (`a721dc3b` on jm/spruce-unlimbo)
+
+Every House0 has a buffer tank; what varies is which of its temperature
+channels report. The four buffer predicates (`is_buffer_empty`,
+`is_buffer_full`, `is_buffer_charge_limited`,
+`is_storage_colder_than_buffer`) walk a fixed channel preference list,
+fall through to pipe proxies, and answer False when nothing on the list
+reports. That behaviour is unchanged; it is now recorded in the executor
+(`control-hierarchy.md` "The node-actor partition") and pinned by tests
+in `tests/actors/test_hydronic_house0.py` so the names retirement cannot
+move it silently.
+
+The fifteen system-actor members of `H0N` (`primary_scada`, `ltn`,
+`admin`, `five_v_boss`, `pico_cycler`, `hp_boss`, ...) are deleted and
+every reader repointed to the tier the names package already assigns:
+`CoreNodeNames` for the ten actors every plant has, `House0NodeNames`
+for the two House0 local-control states, `HydronicSpaceheatNodeNames`
+for the three hydronic bosses. The one spelling change is the power
+meter, which the core tier calls `asset_power_meter`. A name a layout
+family does not have can no longer be reached through the House0 roster;
+no runtime behaviour changes.
+
+## 2026-09-15 — Nolan sim fixture refreshed from spruce_sim_gen; secondary-pump named (`1887f1a4` on jm/spruce-unlimbo)
+
+The committed Nolan sim pair had fallen a week behind the spruce sim gen:
+no fancoil, floor1 or pipes1 tank modules, and `dist-pump` /
+`dist-pump-pwr` where spruce has metered the secondary pump on its own
+eGauge port since 2026-09-09. The fixture is the gen's output again
+(the gen fixed on the way: its extra tank modules came out as real
+`pico.tank.module` components under a sim config; now
+`sim.pico.tank.module`, which the sim pico tests require). The pump gets
+its names, `HydronicSpaceheatNodeNames.secondary_pump` and
+`HydronicSpaceheatChannelNames.secondary_pump_pwr` (the hydronic tier, beside
+`dist_pump`: a pump name is vocabulary any layout may use), and the power-meter and scada
+tests read it through them where they had used the House0 alias
+`H0CN.dist_pump_pwr` against a Nolan layout. Handles in the fixture are
+flat under `auto` as of the previous commit.
+
+## 2026-09-15 — pump doctors restore the 0-10V defaults from the command node; layouts declare actuators flat under auto (`4a7dcc06` on jm/spruce-unlimbo)
+
+The dist and store pump doctors ended with `set_010_defaults()` with no
+command node, which defaults to the host's own node. Under local control
+that node is `lc` while the outputs report to `n`, so the restore found no
+direct reports and sent nothing: after a doctor run the pump stayed at the
+doctor's level. Both doctors now pass `command_node=h.command_node`, the
+node they dispatched from (the heat-call restore on the next line already
+did). The leaf ally's two no-argument copies of `set_010_defaults`
+(`all_tanks.py`, `buffer_only.py`) go; the hydronic method with its
+default covers the ally, whose own node is the boss. First tests
+(`test_pump_doctors.py`, both House0 pairs): each doctor's run ends with
+the three power-on levels sent from `auto.lc.n`, and the no-argument
+call from local control sends nothing.
+
+The boot-time tree is now pinned by a test on all three pairs
+(`test_command_tree_prefix_closed.py`): `Scada.__init__` runs
+`set_command_tree(n)`, which hangs every relay and 0-10V output under
+`auto.lc.n` except the ones an interior node owns (hp-scada-ops-relay
+under hp-boss, vdc-relay in the five-v-boss subtree, the sieg pair under
+sieg-loop). With that pinned, the layout's declared handles are a
+placeholder the scada overwrites, and the gens declare every actuator
+flat under `auto` (the shape the deployed beech and fir layouts and the
+dev fixture already had for the 0-10V outputs); the orange and willow
+fixture copies regenerated, handle lines only. The Nolan fixture was not
+refreshed: the committed `gw.nolan.*` pair has drifted from
+`spruce_sim_gen.py`'s output well beyond handles (the secondary-pump
+rename among it), a separate reconciliation.
+
+## 2026-09-15 — store temps: one scrub-and-fill pass for scada and LTN, no invented 70 F; defrost keyed on the layout's hp-odu, HpModel setting gone (`c29673a1` on jm/spruce-unlimbo)
 
 Two findings of the `house0.py` review (rung 5 of correct-house0, OPS-392).
 The info glitch `is_buffer_full` sends when it infers "full" from a proxy

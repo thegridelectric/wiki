@@ -1,6 +1,6 @@
 # Scada health diagnostics
 
-Status: Draft · Pass 0 · Updated 2026-06-26 · Linear: OPS-317
+Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-317
 
 **EDD: yes** verified by a real-broker outage experiment: kill a peer and observe
 the live `ally.inactive` signal published + journaled immediately, and the
@@ -40,10 +40,16 @@ back-office reflect the down state well inside the current ~10-minute lag.
    audiences). Carrying: who noticed, who went dark, the triggering mechanism
    (mqtt-disconnect / response-timeout / future causes), and when. New types — not
    extensions of the persisted `gridworks.event.comm.*` family.
-2. **Fire-and-forget, never persisted** — a new delivery class in the proactor
-   (everything event-like today is stored-until-acked): publish immediately, no
-   ack, no reupload. Small seam — `generate_event` already branches on event kind;
-   this class skips the persister.
+2. **Fire-and-forget, never persisted** — no proactor change. Only `Event`
+   payloads ride the persister (`generate_event`); any other sema type sent
+   through the actor's `_send_to` / the LTN's `send` is a plain publish, the
+   way `glitch` goes today. The announcement words are ordinary types, not
+   event subclasses. The peer-down moment is already delivered to the scada:
+   the proactor calls the app's `recv_deactivated` on both the ack-timeout
+   and the MQTT-disconnect transitions and `recv_activated` on peer-up
+   (`gridworks-proactor/src/gwproactor/proactor_implementation.py:435`,
+   `:749`; the scada implements `recv_activated` at
+   `gw_spaceheat/actors/scada.py:1202`). Emit from those callbacks.
 3. **Emit on whatever still works:**
    - Peer dead, broker alive (LTN process dies; response-timeout): announce on the
      *same* broker — a JK with a catch-all binding sees it instantly. Works because
@@ -74,6 +80,11 @@ will churn):
 The **how** (JK's seed → snapshot-regen → persistor recipe) is JournalKeeper's own
 mechanism, documented JournalKeeper-side. This design owns the *what + why*.
 
+## Effort
+
+Point 4 h, 90% interval 2 to 8 h: the two words, the two callbacks with
+tests, the JournalKeeper persist, and the outage experiment.
+
 ## Acceptance
 
 - Kill the LTN process while both sit on the dev rabbit: an `ally.inactive` from
@@ -86,8 +97,14 @@ mechanism, documented JournalKeeper-side. This design owns the *what + why*.
 
 ## Open
 
-- Back-office surface: where/how the up/down state shows (admin panel? a derived
-  channel?).
+- Back-office surface: a per-scada view read off the journal, with no word
+  of its own. Membership is the gnr forest (which scadas exist); live state
+  is the last journaled signal of the set above (last heard, at which layer,
+  live since); the mode from the last `layout.lite` is a field of the view,
+  so Standby and MonitorOnly are fields, not exceptions in a detector.
+  Every consumer (alerter, web page, LTN) reads this view; a tracking
+  heuristic inside any one consumer is the antipattern. Where the view is
+  rendered (admin panel, derived channel) stays open.
 - Sequencing gate: the **persist** half is blocked on a clean `sema` + `wiki/sema`
   release (the `ally.inactive` word needs a JK snapshot regen from sema dev). The
   **emit** half lands independently — it does not wait on the proactor overhaul.

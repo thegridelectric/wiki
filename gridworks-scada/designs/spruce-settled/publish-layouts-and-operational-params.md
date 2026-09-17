@@ -65,3 +65,7 @@ restart today.
   (`scada.py:334`).
 - Whether the layout and ops words publish as one wave or the ops pair
   first (it changes more often).
+- Instance filenames for the real beech/maple deployment layouts: the sim
+  fixtures are named per little house (`gw.house0.<plant>.layout.json`); the
+  deployment layouts share the `gw.house0.layout` TypeName but are different
+  instances and still need names distinct from the fixtures. Not decided.

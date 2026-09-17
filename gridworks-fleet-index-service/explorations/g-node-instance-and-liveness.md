@@ -1,6 +1,6 @@
 # GNodeInstance, liveness, and registration-before-actor (open question)
 
-Status: Draft · Pass 0 · Updated 2026-06-29
+Status: Draft · Pass 0 · Updated 2026-09-15
 
 > What this is: an **open architectural question** for a `/grill-me` / plan pass —
 > not a decision. It is the cluster of questions about *when a GNode has an actor
@@ -8,7 +8,7 @@ Status: Draft · Pass 0 · Updated 2026-06-29
 > with topology registration. Homed in **FIS** because FIS owns `GNodeInstance` and
 > the single-writer lease — the grid-node-registry (gnr) deliberately does **not**
 > carry the `g.node.instance` type; gnr is the identity/topology system-of-record,
-> FIS is the authority on liveness. The driving desire: **clean and simple, aligned
+> FIS is the authority on the authorized instance. The driving desire: **clean and simple, aligned
 > with the reactive manifesto** (`legacy/old_words`) and our own design decisions.
 
 ## Where the boundary sits today
@@ -17,7 +17,9 @@ Status: Draft · Pass 0 · Updated 2026-06-29
   Its class hierarchy is enforced (a TerminalAsset under a LeafTransactiveNode, the
   CopperNode backbone, etc.). It has no notion of "is an actor running."
 - **FIS** — enforces a single authorized `GNodeInstanceId` per `GNodeId` (lease-based
-  single-writer). It is the natural owner of *liveness*.
+  single-writer). It is the natural owner of *which instance is authorized*; whether
+  that instance is currently reporting is observed on the broker and journaled
+  (OPS-317), not held by FIS.
 
 ## The open questions
 
@@ -38,7 +40,7 @@ Status: Draft · Pass 0 · Updated 2026-06-29
 
 3. **Decision rights over the `GNodeInstance`.** Taken to be **FIS** (it already
    authorizes runtime instances and holds the lease). gnr stays the system-of-record
-   for identity/topology; FIS is the authority on liveness.
+   for identity/topology; FIS is the authority on the authorized instance.
 
 4. **Liveness states.** Do we want explicit states — has there **ever** been a
    `GNodeInstance`, is there **one now**, is it **currently available** — and they
@@ -47,9 +49,9 @@ Status: Draft · Pass 0 · Updated 2026-06-29
 
 ## Why parked
 
-Deep and cross-cutting (gnr identity/topology ↔ FIS liveness), and the bar is
+Deep and cross-cutting (gnr identity/topology ↔ FIS authorized instance), and the bar is
 *clean + simple + manifesto-aligned* — which deserves a convergence pass, not ad-hoc
 code. It blocks nothing now: gnr's class hierarchy is enforced and TA-under-LTN holds
 for the whole deployed fleet. Resolve via `/grill-me`, then fold the outcome into FIS's
-`executor/` (the liveness half) and gnr's `executor/` (whether the class hierarchy
+`executor/` (the authorized-instance half) and gnr's `executor/` (whether the class hierarchy
 relaxes for register-before-actor — current lean: it doesn't).

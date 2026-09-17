@@ -13,8 +13,8 @@
 
 _(every file under a `designs/` folder, anywhere in the wiki)_
 
+- (gridworks-alerter) [`gridworks-alerter/designs/alertmanager.md`](gridworks-alerter/designs/alertmanager.md) (Prometheus Alertmanager as the notifier on the alerts box, retiring the hand-written Telegram dispatcher; one `gw.alert` word with Category/Kind/State mapping onto its intake; Linear OPS-547)
 - (gridworks-alerter) [`gridworks-alerter/designs/broker-alerter.md`](gridworks-alerter/designs/broker-alerter.md) (rebuild the house alerter as a gwbase actor on the hw1 broker — durable queue, sqlite store, sema-typed inputs and alert events — so paging stops sharing the journal DB with observability; absorbs OPS-449; Linear OPS-545)
-- (cross-cutting) [`designs/liveness-projection.md`](designs/liveness-projection.md) (one sema-typed record per scada saying whether it is live, maintained from the broker stream; shared dependency of the broker alerter, scada-health diagnostics and the umpire; settles who the authority on liveness is; Draft, Linear OPS-546)
 - (cross-cutting) [`designs/substrate-fit.md`](designs/substrate-fit.md) (parked brainstorm: blockchain/substrate fit for crypto / validation / market-running layers; focus AFTER the launch; Linear OPS-391)
 - (cross-cutting) [`designs/mtls-fis-auth.md`](designs/mtls-fis-auth.md) (password → cert-based mutual TLS with FIS as the auth authority; spans rmqbot + FIS + provisioning; 2026-summer; Linear OPS-420)
 - (cross-cutting) [`designs/proactor-makeover.md`](designs/proactor-makeover.md) (replace the gridworks-proactor link mechanism + gwproto types with a gwbase/Sema-native scada transport — AllyLink + the `gw` envelope + standard Sema codegen; retires the proactor and gwproto packages; Linear OPS-428)

@@ -10,7 +10,62 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-15 — beech, maple, oak gens: ShortCycleBuffer true <!-- pending commit -->
+<!-- pending commit -->
+## 2026-09-15 — Tank name helpers by index; House0ChannelNames is constants only
+
+The scada retired `helpers.Tanks` and the `House0ChannelNames` instance
+part (a layout now answers its own tanks). The tank-module and
+calibration emitters build `TankNodeNames(i)` / `TankChannelNames(i)`
+for `1 .. total_store_tanks` directly, and the base gen's `cn` is the
+class. Both sim pairs regenerate byte-identical.
+
+## 2026-09-15 — House0ChannelNames takes the tank count only (`584121b` on jm/spruce)
+
+The gwsproto `House0ChannelNames` lost its `zones` instance part with
+the scada's zone-roster retirement; the base gen's `cn` property passes
+the tank count alone. No output changes.
+
+## 2026-09-15 — House0 zone failsafe relays emit ZoneCallSource; hubitat node from the hydronic tier (`634c159` on jm/spruce)
+
+The House0 gen realized each zone's failsafe relay with the
+`heatcall.source` pair while the Nolan gen used `zone.call.source`; one
+relay kind now serves both families and the heat-call kind is deleted.
+The hubitat emitter read `hubitat` off the family names class, which
+broke `beech_gen` and `maple_gen` once the scada moved that name to the
+hydronic tier (`65262e85`); it reads the hydronic tier now. All four
+House0 layouts regenerate; the sim pair is copied into the scada
+fixtures, the beech and maple outputs are box artifacts. The import
+alias for `HydronicSpaceheatNodeNames` / `HydronicSpaceheatChannelNames`
+is `HSNN` / `HCN` throughout, matching the scada repo (`Hyd` / `HydC`
+retired); no output changes.
+
+## 2026-09-15 — sim gens emit sim extra tank modules; secondary pump through its names (`6126a44` on jm/spruce)
+
+`emit_extra_tank_modules` ignored `tank_kind` and emitted real
+`pico.tank.module` components for fancoil, floor1 and pipes1 even in the
+spruce sim gen, so the scada's sim pico tests could not take the fresh
+fixture. It now branches like the buffer and tank emitter: sim config,
+`sim.pico.tank.module` with a `sim-<name>-pico` uid. The real spruce
+output is unchanged. `spruce_gen.py` names the secondary pump's power
+channel through `HydronicSpaceheatChannelNames.secondary_pump_pwr` and
+its node through `HydronicSpaceheatNodeNames.secondary_pump`, both new in
+gwsproto, instead
+of bare strings.
+
+## 2026-09-15 — gens declare every actuator flat under auto (`c1772e6` on jm/spruce)
+
+The scada rewrites the command tree at boot (`set_command_tree(n)` in
+`Scada.__init__`) and reparents every actuator under the live boss, so a
+layout's declared actuator handle is a placeholder. The House0 gen declared
+relays under `auto.lc.n` and 0-10V outputs under `auto`; the Nolan gen
+declared both under `auto.lc.n`. Both now declare every relay and output
+flat under `auto` (`i2c_relay.declared_handle`), the shape the deployed
+beech and fir layouts already had for their outputs; vdc-relay keeps its
+place in the five-v-boss subtree. Every output regenerated, handle lines
+only; the spruce and honeysuckle box copies need republishing to stay
+byte-identical to the gen.
+
+## 2026-09-15 — beech, maple, oak gens: ShortCycleBuffer true (`684d956` on jm/spruce)
 
 The three House0 field houses run the leaf ally with `ShortCycleBuffer`
 true, as the control design intends: the buffer cycles on its bottom

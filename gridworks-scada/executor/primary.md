@@ -154,6 +154,7 @@ Normative across the domain — full statements in
 | SCADA↔LTN link state machine (proactor linking) | [`scada-ltn-link-state.md`](scada-ltn-link-state.md) | Draft |
 | Testing LTN↔SCADA (in-process harness) | [`testing.md`](testing.md) | Draft |
 | Experimentation rig (real-broker experiments) | [`experimentation-rig.md`](experimentation-rig.md) | Draft |
+| Magic thresholds (numbers decided in code; per-row disposition) | [`magic-thresholds.md`](magic-thresholds.md) | Draft |
 
 ## Open (top-level)
 

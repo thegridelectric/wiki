@@ -1,6 +1,6 @@
 # Control hierarchy — HSMs, the command tree, and the capability cover
 
-Status: Draft · Pass 0 · Updated 2026-09-14
+Status: Draft · Pass 0 · Updated 2026-09-15
 
 > What this is: how the SCADA's hierarchical state machines (HSMs) and the command tree work **together**
 > — the piece the executor lacked. The HSM decides *who is in control*; the command tree *enforces* it via
@@ -190,13 +190,27 @@ this cured: the relay actor once carried `turn_on_HP`, the thermistor reader
   one file per layout family — `house0.py`, `nolan.py`): the two strata share
   domain, consumers and lifecycle, so they share a file until one outgrows a
   single concern. The name matches the artifact side (`Hydronic`, `gw.hydronic`,
-  `HydronicLayout`). Plant judgment reads whatever temperature it can get:
-  `is_buffer_full` judges from `buffer-depth3` when it is present and
-  otherwise falls through to a proxy (`buffer-cold-pipe`, then
-  `store-cold-pipe` while discharging the store, then `hp-ewt` while the heat
-  pump feeds the house), sending an info glitch that names the proxy channel.
-  The fall-through is deliberate: a house with a dead depth3 sensor keeps
-  cycling on the nearest cold-side reading rather than stalling.
+  `HydronicLayout`). Plant judgment reads whatever temperature it can get.
+  Every House0 has a buffer tank; what varies is which of its temperature
+  channels report. Each buffer predicate walks a fixed preference list,
+  answers from the first channel present, and returns False when nothing on
+  its list reports, so a missing reading never asserts a state:
+  - `is_buffer_empty`: `buffer-depth1`, then `dist-swt` (`buffer-depth3`
+    first for an all-tanks leaf ally with `ShortCycleBuffer`). Also False
+    with no heating forecast.
+  - `is_buffer_full`: `buffer-depth3`, then `buffer-cold-pipe`, then
+    `store-cold-pipe` while discharging the store, then `hp-ewt` while the
+    heat pump feeds the house; a proxy sends an info glitch naming the
+    channel.
+  - `is_buffer_charge_limited`: `hp-ewt` while the heat pump feeds the
+    house, then `buffer-cold-pipe`, then `buffer-depth3`.
+  - `is_storage_colder_than_buffer`: buffer top from `buffer-depth1`,
+    `depth2`, `depth3`, `buffer-cold-pipe`; storage top from
+    `tank1-depth1`, `store-hot-pipe`, `buffer-hot-pipe`. An all-tanks leaf
+    ally with `ShortCycleBuffer` instead compares the buffer bottom
+    (`depth3`, `depth2`, `depth1`) to the storage top with no margin.
+  The fall-through is deliberate: a house with a dead depth sensor keeps
+  cycling on the nearest reading rather than stalling.
 - **E — zone/TOU pieces** (`get_zone_setpoints`, `is_onpeak`, `is_system_cold`):
   family-neutral, reading ops words.
 

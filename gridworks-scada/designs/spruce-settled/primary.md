@@ -33,6 +33,9 @@ them exercises it (`experiments/`).
   the operational-params pair from staging to published once the fleet
   runs them, and the wire words that still have no sema word minted
 - `misc-tests.md` — small tests that fixes have earned and not yet got
+- `pump-doctors-functional.md` — the dist and store pump doctors end to
+  end on a plant that answers; the in-process suite pins the monitors
+  and the attempt bookkeeping until the simulated houses run
 - `relay-tests.md` — what the hp-boss witness left unexercised, ten
   gaps each with its test; gap 1 (the sieg leg) is owned before the
   launch by spruce-unlimbo's refactor-sieg spoke

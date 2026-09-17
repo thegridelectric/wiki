@@ -10,6 +10,68 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-15 — publish the alerter words; enum default is the decode fallback; a oneOf over enums is discriminated (OPS-547, `3de1363` on dev)
+
+One squashed commit (the earlier publish commit and three follow-ups
+were rewritten before sema's launch). What it holds:
+
+- `gw.house.alert.kind` goes staging to published, and is the House
+  branch of the new word.
+- `gw.alert` (staging) carries every subject and both transitions, so a
+  notifier decodes one type and a journal keeps one table: a `Category`
+  (`gw.alert.category`: House, Fleet, PlatformService) that selects
+  which kind enum `Kind` belongs to (a `oneOf` over
+  `gw.house.alert.kind`, the new `gw.fleet.alert.kind` and
+  `gw.platform.alert.kind`; axiom 1), a `State` (`gw.alert.state`,
+  literal: Firing, Resolved) in place of a raised/cleared pair (axiom 3
+  ties `ResolvedMs` to Resolved), and an optional `AboutGNodeAlias` that
+  House requires and that must name a terminal asset (axiom 2). The
+  category and kind enums open `Unknown`-first.
+- `gw.house.alert` and `gw.house.alert.cleared`, never served or used
+  beyond the alerter's own snapshot, are removed outright (definitions,
+  registry, hash pins, runtime, templates, indexes). A pre-launch
+  exception to published immutability, not a precedent.
+- The axiom template decodes `Kind` with the enum `Category` selects:
+  the runtime's string enums fall back to their default on an unknown
+  value, so a plain union let the first branch swallow every value
+  (`AllHousesSilent` decoded as house `Unknown`). The dispatch rejects a
+  value that belongs to another category's enum and keeps the
+  newer-version fallback for the selected one.
+- The spec states both facts it was missing: `authoring/enums.md`
+  "Required Fields" says at `default` that an unknown value decodes to
+  it; `authoring/types.md` "Composition Rule" requires a `oneOf` over
+  enums to be discriminated by a sibling enum property, stated by axiom
+  and decoded by that discriminator.
+
+## 2026-09-15 — minor (`4d7d2ea` on jm/nolan-stash-elt-names)
+
+Stashed Nolan axioms: store elements spelled per tank.
+
+The stashed `x-gridworks.axioms` for `gw.nolan.layout/000` still named
+the store-tank elements `store-top-elt` / `store-bottom-elt` and their
+power channels, spellings the word, the gens and the fixtures retired
+for `tank1-top-elt` / `tank1-bottom-elt` (`e625ff6`). Brought to the
+per-tank spelling so dropping the block back into `000.yaml` pins no
+retired name. Doc-only: the stash is markdown the sema tooling skips.
+Made without the `sema/spec` read, on the human's instruction.
+
+## 2026-09-15 — Add gw.house.alert, gw.house.alert.cleared, gw.house.alert.kind (staging) (`411d947`)
+
+The vocabulary the broker alerter (OPS-545) emits: a service reporting on
+a house, with the readings that fired it as `channel.readings` evidence.
+`glitch` was not grown because its subject differs (a node reporting on
+itself). `gw.house.alert.kind` is a versioned enum, one value per
+detector, named for the condition a human acts on rather than the
+detector's mechanism; thresholds live in the value descriptions so a
+tuned threshold does not rename a kind. Its first value and default is
+`Unknown`, so a decoder on an older enum version that meets a later kind
+falls back to something a manager drops rather than to a no-data page.
+Axiom 1 on both types, TerminalAssetAliasConstraint as
+`synced.readings.bundle` states it: `AboutGNodeAlias` names the house's
+terminal asset (suffix `.ta`), never its scada, so a house whose scada
+is replaced keeps its alert history. Staging for the dev-broker phase; the three words are
+promoted before the alerter's shadow run against hw1.
+
 ## 2026-09-15 — House0 layout word: axiom 8 no longer requires `sieg-flow-hz` (`8e56c4e` on jm/house0-sieg-flow-hz)
 
 `SiegManifoldChannels` required `sieg-flow-hz`, which only a standalone Hall

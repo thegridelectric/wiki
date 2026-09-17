@@ -1,6 +1,6 @@
 # broker-alerter — the house alerter as a broker citizen
 
-Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-545
+Status: Draft · Pass 0 · Updated 2026-09-16 · Linear: OPS-545
 
 **EDD: yes** the shadow run *is* the verification: the new alerter runs beside
 gwalert on the alerts box against the live hw1 broker, and each detector
@@ -75,9 +75,30 @@ the box; this design draws it at the data path.
   today, the registry's record later, same row shape), `readings`
   (`channel.readings` unrolled to house, channel, value, read time; the
   window), and `alerts` (the alert word plus its cleared time; the
-  alerter's open-alert state). Last-heard is a query over readings and
-  layouts, not a column; when the liveness word of OPS-546 exists it gets
-  its own table and `NoData` reads it there. The scaffold's `houses`
+  alerter's open-alert state). Which houses the alerter pages for is
+  a registry subtree, not a table of its own: the one fleet setting is
+  a root-set (`GWALERTER_FLEET_ROOTS`, no default, in the service's
+  `.env`; `hw1.isone.me.versant.keene` for the Millinocket fleet), and
+  the alerter tracks every Pending or Active TerminalAsset in the forest
+  under those roots (the Millinocket houses are Pending until the
+  registry settles their positions, and they page all the same). A house that must not page (a bench house, a side
+  project) lives outside the roots. Membership is then a registry fact,
+  edited where the registry is edited, and the alerter holds no
+  hand-kept roster. `g_nodes` is the registry's projection rule applied
+  here: upsert by `GNodeId` from `g.node.forest` broadcasts (already
+  reaching the queue through the `#` binding) and bootstrap or resync
+  at boot with a `g.node.forest.request` for the roots to the
+  registry's HTTP read, never the registry's Postgres. The alert
+  word's `AboutGNodeAlias` is read off `g_nodes` at raise time, so a
+  rename never strands an alert. A scada's house is found in `g_nodes`
+  by its parent alias plus `.ta`, the aliasing the registry states; a
+  scada heard from whose terminal asset is not under the roots is
+  logged once and not tracked, so a forgotten install is visible. The
+  journaled liveness signals of OPS-317 say who is live; the roots say
+  who this alerter is responsible for.
+  Last-heard is a query over readings and layouts, not a column; once
+  the `ally.inactive` / `ally.active` signals of OPS-317 are journaled,
+  live state is read off them and `NoData` reads it there. The scaffold's `houses`
   table goes with the SQLAlchemy move. Channel unit and role are read off
   the stored layout through one accessor that dispatches on the layout
   word with `isinstance`; a new layout family is a new branch there and
@@ -97,41 +118,26 @@ the box; this design draws it at the data path.
 
 ## Settle in the design, not by default
 
-- **Vocabulary.** An alert word, a cleared word, and an alert-kind enum are
-  new sema words and the spec is change-controlled: discuss before authoring.
-  Decide what evidence an alert carries (channels, values, window) so the
-  page and the history are self-explaining.
+Settled points live in `executor/gwalerter.md`; what remains open:
+
 - **Layout bootstrap.** `layout.lite` arrives only on scada boot. The store
-  persists the latest per house, but the first boot needs a seed: a one-time
+  persists the latest per scada, but the first boot needs a seed: a one-time
   pull from the journal, or a layout request the scadas do not yet answer.
 - **Dead-man's switch.** Alerting and the houses share one broker, so a
   broker outage is silent. The manager pages if the alerter's heartbeat
   stops, over a path that is not the broker (loopback on the box is enough).
-- **Which houses are expected is answered by the liveness projection
-  (OPS-546), not a rule in the alerter.** Today a house with no
-  rows is silently absent from every check (elm, off for the summer). The
-  projection is its own design, worked in parallel; until its word is
-  published the alerter seeds its expected-house set from the `layout.lite`
-  messages in its store, and swapping that seed for the projection is one
-  lookup. Standby and MonitorOnly are fields of the record, not exceptions
-  in a detector.
-- **The house list comes from the registry, as a projection.** The set of
-  GNodes the alerter watches is the registry's, consumed the way the gnr
-  executor says every copy is: `g.node.forest` broadcasts plus
-  `g.node.forest.request` on the hw1 broker, idempotent upserts keyed on
-  id, healed by the snapshot broadcast, never gnr's Postgres. This is the
-  same seam JournalKeeper's `gw_data.g_nodes` rows use. Registry
-  membership says which scadas exist; the liveness projection (OPS-546)
-  says which are live; a house in the registry that is not live is what
-  `NoData` means. Until the forest broadcast is consumed, the seed is the
-  stored `layout.lite` set.
+- **Live is read off the OPS-317 liveness signals.** The fleet roots say
+  who the alerter is responsible for; the journaled signal set (startup,
+  shutdown, peer.active, `ally.inactive` / `ally.active`) says who is
+  live, and the mode from the last `layout.lite` is a field of that view,
+  so Standby and MonitorOnly are fields, not exceptions in a detector.
+  Until those signals are journaled last-heard is the store's own query.
 - **Layouts come from their authority, after the spruce merge.** The
   terminal-asset registry (the layout and operational-params sibling of
   the grid-node registry, still a Draft design with no issue) is the
   durable source of every hardware layout, and it will egress like GNR: a
   broadcast on commit plus a request, consumed here as a projection into
-  `layouts`. Not before the spruce merge: the layout words
-  (`gw.house0.layout` and the families arriving this fall) settle on that
+  `layouts`. Not before the spruce merge: the layout words settle on that
   branch, and the alerter needs nothing from the authority to strangle
   no-data, since `layout.lite` on the wire carries the unit and role it
   reads today.
@@ -151,14 +157,16 @@ Strangler, not rewrite. gwalert keeps running throughout.
    first, a sqlite store holding the latest `layout.lite` per house and a
    rolling readings window, pyright in `ci.sh`. Stands on its own with no
    detector (`f569fde`; the live-broker test is the proof).
-2. No-data as the first detector: "no `report.event` from a house in ten
-   minutes" read off the queue, the house set seeded from stored
-   `layout.lite`, the manager only logging what it receives. Needs the
-   alert vocabulary (alert, cleared, kind), which is a spec discussion.
+2. ✅ The store on SQLAlchemy and alembic with `g_nodes`, `layouts`,
+   `readings` and `alerts`; the forest projection and the fleet roots
+   setting (`2a1d706`); the Orchestrator tier and the Alerter transport
+   class (`d5b8387`); no-data as the first detector (`410d52e`,
+   witnessed in `experiments/2026-09-15-alerter-no-data/`); the alert
+   words published (sema `74393a7`).
 3. Shadow run for a week beside gwalert on the alerts box against hw1;
    compare event for event.
-4. Adopt the liveness projection (OPS-546) as the house set
-   when its word is published; the seed from step 2 goes.
+4. Read "live" off the OPS-317 liveness signals once they are journaled;
+   the roster stays the house set.
 5. Port one detector at a time with its tests; the manager pages from the
    new source for each detector as it reaches Verified.
 6. Retire gwalert's DB connection when the last detector moves; drop the
@@ -180,9 +188,9 @@ to two weeks for the full port with tests.
 - Broker conventions: GridWorks_CLAUDE "GNode aliases carry their universe
   as segment 0" and the gwbase executor on service deployment; the LTN's
   sqlite pattern in `gridworks-scada` ltn.
-- Related issues: OPS-449 (manager interface, absorbed), OPS-546
-  (liveness projection, adopted at step 4), OPS-317 (liveness signals,
-  consumed through the projection), OPS-438 (leave Opsgenie).
+- Related issues: OPS-449 (manager interface, absorbed), OPS-317
+  (liveness signals, read for "live" at step 4), OPS-438 (leave
+  Opsgenie).
 
 ## Raising, repeating, clearing
 
@@ -199,10 +207,11 @@ the detector.
 
 So the alerter emits **transitions only**: one alert word when a
 condition starts to hold, one cleared word when it stops, both carrying
-the same `AlertId`. Nothing repeats from the alerter. The manager
-(`gridworks-alert-manager`, which already tracks count, sends, state and
-acknowledgement) owns the repeat cadence and escalation; if it is ever
-replaced by a bought service, the alerter does not change. The alerter's
+the same `AlertId`. Nothing repeats from the alerter. The notifier owns
+the repeat cadence and escalation: today the manager
+(`gridworks-alert-manager`); OPS-547 replaces it with Prometheus
+Alertmanager and folds the pair into one `gw.alert` word with a `State`,
+and the alerter does not otherwise change. The alerter's
 own state (which alerts are open) lives in its sqlite store so a restart
 neither re-raises nor forgets an open alert.
 
@@ -225,103 +234,101 @@ sends the cleared notice when data resumes. A house the registry marks
 as not expected to report (Standby, decommissioned) is not a `NoData`
 case; that is a field on the liveness record, not a rule here.
 
-## Findings from reading gwalert (2026-09-15)
+## The alert vocabulary and kinds
 
-Recorded here so the port does not carry them over; the kinds table
-below cites them by row.
-
-- **No-data skips the house that most deserves it.** The house list is
-  the rows the 2 h query returned, so a house with no reading in the
-  window is never checked. The new rule reads last-heard from the store.
-- **The on-peak check scans the whole 2 h window**, so it can fire on
-  samples from earlier in the window rather than on what is happening now,
-  and the per-house flag means only the first offending hour alerts. The
-  port fires on live readings only.
-- **Pump power never gates the pump alerts**; it only words the message.
-  The kinds are named for the flow condition for that reason.
-- **`no_more_oil` is dead code**: the method returns before any check.
-- **`not_in_atn` is disabled** in gwalert's main loop and handles only
-  two boss aliases.
-- **`hp_on` means the opposite of its name** (commanded on, drawing
-  nothing).
-
-## Proposal: the alert vocabulary
-
-Written before the sema spec was read this session, so it is a starting
-point for the spec discussion, not a draft word. The next session checks
-each line against the registry and authoring rules for types and enums
-and corrects it there.
-
-What gwalert sends the manager today is four fields over HTTP: a free-text
-message, the house alias, an alert alias, and a time. The alert alias is
-one of eleven snake_case strings (`no_data`, `zone_setpoint`,
-`zone_freezing`, `dist_pump`, `store_pump`, `hp_on`, `hp_onpeak`,
-`not_in_atn`, `rebooting`, `no_more_oil`, `critical_glitch`), sometimes
-with a zone or an hour appended to make it unique per instance. The
-nearest published word is `glitch/000` (FromGNodeAlias, Node, Type as a
-`log.level`, Summary, Details, CreatedMs), which is a scada reporting on
-itself; an alert is a service reporting on a house, and its evidence is
-readings.
-
-Three words, all flat, composing by `$ref` only:
-
-- **An alert-kind enum**, PascalCase like every registry enum value, one
-  value per detector, each named for the condition a human acts on rather
-  than the detector's mechanism. The zone or hour that gwalert appends to
-  the alias is evidence, not kind. Names and descriptions are proposed in
-  "Alert kinds, named by what they mean" below; the descriptions are the
-  enum's per-value descriptions.
-- **An alert word** (`gw.alert` or the name the registry convention
-  gives it): the alerter's alias as `Src`; the house as `AboutGNodeAlias`;
-  the kind; an `AlertId` (uuid4) that the cleared word repeats; `RaisedMs`;
-  a one-line human `Summary`; and `Evidence` as a list of channel readings
-  in the `channel.readings` word the report already uses, so the page and
-  the history can show the values that fired it without a second lookup.
-  A zone or hour rides in the evidence's channel names.
-- **A cleared word**: `AlertId`, `Src`, `AboutGNodeAlias`, the kind,
-  `ClearedMs`, and the same evidence shape for the readings that cleared
-  it. Separate from the alert word because the manager and the history
-  treat them differently and neither needs the other's fields.
-
-Open for the discussion: whether `glitch` should instead grow to cover
-this (it should not; the subject differs), whether the manager's routing
-needs a severity field beyond the kind, and whether the alert carries the
-detector's threshold so the summary is reproducible from the record.
-
-## Alert kinds, named by what they mean
-
-Read from gwalert's detectors on 2026-09-15. Each row: the proposed value,
-what it means (the enum description), the current alias, and what the
-read found about the detector. Every threshold stays out of the name and
-in the description, so a tuned threshold does not rename a kind.
-
-| Proposed | Means | Today | Note from the read |
-| --- | --- | --- | --- |
-| `NoData` | A registered, live house has sent no readings for longer than the silence threshold (10 min). | `no_data` | See Findings. Alternatives considered: `HouseSilent`, `ScadaSilent`; `NoData` is what the on-call already says. |
-| `ScadaRebootLoop` | The scada has booted repeatedly in a short span (more than 5 `layout.lite` in 5 min). | `rebooting` | Reads off the store's layout arrivals directly. |
-| `CriticalGlitch` | The scada reported a glitch at Critical level; the summary is the evidence. | `critical_glitch` | A scada reporting on itself; the alert relays it to a human. |
-| `ZoneBelowSetpoint` | A critical zone's temperature is more than the tolerance (2 F) below its setpoint, and the setpoint was not just raised. | `zone_setpoint` | Suppressed in Standby. Zone name rides in the evidence. |
-| `ZoneFreezeRisk` | A zone's temperature is below the freeze-risk threshold (40 F). | `zone_freezing` | 40 F is not freezing; the name says risk, the description carries the number. |
-| `NoDistFlow` | A sustained heat call ended and no distribution flow was seen since before it started, on three cycles running. | `dist_pump` | Pump power never gates the alert today, only the message wording; the name follows the condition (flow), not the suspect (pump). |
-| `NoStoreFlow` | The store pump has been commanded on for more than 10 min with no store flow. | `store_pump` | Same shape as `NoDistFlow`; assumes a store pump exists, which the fall layouts do not all have. |
-| `HpNotResponding` | The heat pump has been commanded on for more than 15 min and draws no power. | `hp_on` | The current alias reads as the opposite of what it means. |
-| `HpRunningOnpeak` | The heat pump drew power during a weekday on-peak hour. | `hp_onpeak` | See Findings. |
-| `LocalControlActive` | The house has fallen back to local control; the LTN is not dispatching it. | `not_in_atn` | Disabled in gwalert today. "Atn" is the legacy name for the LTN. |
-| (dropped) | | `no_more_oil` | Dead code: the method returns before any check, and the condition below it never tested the buffer. Not ported until someone defines it. |
+Published 2026-09-15 and described in `executor/gwalerter.md` "Alert
+words" and "Alert kinds". The gwalert detector findings that shaped the
+kinds are there too.
 
 ## Do this next
 
+Settled and built, in `executor/gwalerter.md`: the store, the registry
+projection, the fleet roots, the alert words, the output transport
+(`TransportClass.Alerter`, gridworks-base 0.5.13 on `main`), the actor
+on the Orchestrator tier (`d5b8387`), and the `NoData` rule with its
+detector thread, witnessed PASS on the dev broker
+(`experiments/2026-09-15-alerter-no-data/`, restart-with-alert-open
+included). A dev registry runs from `grid-node-registry` with `gnr api`
+and `gnr rabbit` against the seeded `d1` universe.
 
-Step 2 of the sequence, and the sema spec gate comes first: read
-`sema/spec/primary.md`, then the `sema/spec/registry/` and
-`sema/spec/authoring/` spokes for types and enums, and post the summary of
-that kind's registry, authoring, dependency and axiom rules before any
-word is drafted. Then take "Proposal: the alert vocabulary" above through
-that discussion, correct it in place, and only after the words are agreed
-add them to the registry. In parallel and not gated on the words, in
-`gridworks-alerter`: first move the store onto SQLAlchemy models with an
-alembic migration chain (the weather service's `alembic/` and
-`tests/conftest.py` are the pattern), then the no-data rule, reading
-last-heard off the store against the ten-minute threshold and emitting
-transitions only, with the manager only logging, and a test that drives
-it from stored `report.event` messages through a restart.
+The three alert words are published and both snapshots (the alerter's
+and the experiments repo's) are regenerated from the published set.
+
+**DO THIS NEXT: the shadow deployment**, on the alerts box beside
+gwalert, per the gwbase box pattern (gwbase executor
+`service-deployment.md`) and `gridworks-infra/box-access.md`: its own
+login, its own unit, its own aliases, gwbase's file log plus journald.
+
+Before the box:
+
+1. Push sema `dev` (the words and their publication, `74393a7`) and land
+   the alerter's `jm/scaffold` on `main`: the box clones `main` at a
+   pushed SHA and nothing else.
+2. Broker: the hw1 broker (`rmqbot`, vhost `hw1__1`, AMQPS `hw1-1:5671`)
+   takes gwbase 0.5.13's `hybrid_definitions.json` by the rmqbot
+   instance-README "Reload the rabbit definitions" recipe (`docker
+   restart`, never compose up), then `list_exchanges -p hw1__1` shows
+   `alerts_tx` and `alertsmic_tx`. A runtime user for the alerter,
+   `hw1.alerts`, by the `rmq-docker/README.md` user recipe (root on
+   rmqbot; password to 1Password only).
+3. Registry read: `fetch_forest("https://gnr.electricity.works",
+   ["hw1.isone.me.versant.keene"])` from the laptop returns the six
+   houses (all Pending); that URL is `GWALERTER_GNR_URL`.
+
+On the box (root steps are Jessica's; the exact commands are the gnr
+box's "Build a gnr box from nothing", steps for the login, keys, sudoers
+and unit install, with `alerter` for `gnr`):
+
+4. Login `alerter` (`adduser --disabled-password`), per-person keys only
+   (`alerter-{jessica,thomas,joe}`), `/etc/sudoers.d/alerter` granting
+   exactly `systemctl start|stop|restart|status|enable|disable
+   alerter-rabbit`, NOPASSWD. The GridWorks CA
+   (`gridworks-infra/authority/ca.crt`) into the system trust if the
+   alerts box lacks it (gwalert never spoke to the broker; the gnr box
+   recipe step installs it).
+5. As `alerter`: `uv` user-local; `git clone
+   https://github.com/thegridelectric/gridworks-alerter.git` (https, full
+   clone, `main`); `uv sync --frozen`; `.env` mode 600 from
+   `template.env`: `GWALERTER_SERVICE_ALIAS=hw1.alerts`,
+   `GWALERTER_RABBIT__URL` (amqps, `hw1-1.electricity.works:5671`, vhost
+   `hw1__1`, the `hw1.alerts` credential),
+   `GWALERTER_FLEET_ROOTS=hw1.isone.me.versant.keene`,
+   `GWALERTER_GNR_URL=https://gnr.electricity.works`,
+   `GWALERTER_SUPER_ALIAS=hw1.super`,
+   `GWALERTER_TIME_COORDINATOR_ALIAS=hw1.time` (the aliases the hw1
+   registry answers to), thresholds at their defaults. `.bashrc` gets
+   `. ~/gridworks-alerter/service/bash_aliases` (`alstart` / `alstop` /
+   `alrestart` / `alstatus` / `allog` / `aljournal`).
+6. Root: `cp ~alerter/gridworks-alerter/service/alerter-rabbit.service
+   /etc/systemd/system/ && systemctl daemon-reload && systemctl enable
+   --now alerter-rabbit`. A unit change is re-copy plus daemon-reload.
+7. Logs, two places by the pattern: the actor's rotating file
+   `~alerter/.local/state/gridworks/alerter/log/hw1.alerts.log` (bind
+   line, every raise and clear, every dropped body) and `journalctl -u
+   alerter-rabbit` for the CLI's boot lines (forest request, "Tracking
+   [...]" naming the six houses) and any crash. First-start check: the
+   journal shows the six houses, the file shows the `ear_tx` bind, the
+   management UI shows queue `hw1.alerts-F…` consuming, and ten minutes
+   later no NoData word for any reporting house.
+8. `gridworks-infra/alerts/instance-README.md` gains the third unit, the
+   second login, and the hand-placed state (keys, sudoers, `.env`, the
+   aliases line, the CA cert); `platform-inventory.md` gains `hw1.alerts`
+   on the alerts row.
+
+The shadow week:
+
+9. Notification for `NoData` goes through Alertmanager from day one
+   and gwalert's `no_data` check is switched off the same day (OPS-547);
+   the week compares detection, not notifiers. Each NoData raise and
+   clear in the alerter's `alerts` table (sqlite at
+   `~alerter/.local/share/gridworks/alerter/alerter.sqlite`) and file
+   log against gwalert's no-data alerts in the manager's history and
+   Opsgenie, event for event; a raise the alerter makes that gwalert
+   does not is examined, not assumed wrong (elm's summer silence is the
+   known case gwalert misses). JournalKeeper does not journal the alert
+   words until its seed carries them, so the week's record is the
+   alerter's own store; adding the words to gjk's seed comes when the
+   web Alerts page moves to the journal.
+10. `NoData` reaches Verified when the week matches or beats gwalert;
+    then the manager consumes the alerter's words for that kind and the
+    next detector starts.

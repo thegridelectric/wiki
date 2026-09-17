@@ -6,10 +6,10 @@ Status: Draft · Pass 0 · Updated 2026-09-15
 > (`thegridelectric/gridworks-alerts`, package `gwalert`), its gwbase
 > successor **gwalerter** (`thegridelectric/gridworks-alerter`), and the
 > **alert-manager** Telegram dispatcher (`thegridelectric/gridworks-alert-manager`)
-> — as they run on the `alerts` box. gwalerter is being built beside gwalert
-> and takes over one detector at a time (OPS-545); until then this spec
-> describes gwalert. Most detector depth is Open; the code is the authority
-> for detail.
+> — as they run on the `alerts` box. This hub describes gwalert and the
+> manager; gwalerter, built beside gwalert and taking over one detector at
+> a time (OPS-545), is [`gwalerter.md`](gwalerter.md). Most detector depth
+> is Open; the code is the authority for detail.
 
 ## What it is
 
@@ -123,10 +123,15 @@ while is Open (check the bill). Email code exists but has no live call site.
   specified here; the manager's owner defines them with the people who
   answer the pages.
 
+## Sub-specs
+
+- [`gwalerter.md`](gwalerter.md) — the broker alerter: inputs, store,
+  fleet roots, alert words and kinds, operating notes.
+
 ## Relationships
 
-- [OPS-449](https://linear.app/gridworks/issue/OPS-449) — alerts as
-  sema-typed broker events; the next step on this box.
+- [OPS-545](https://linear.app/gridworks/issue/OPS-545) — the broker
+  alerter, absorbing OPS-449 (alerts as sema-typed broker events).
 - [OPS-438](https://linear.app/gridworks/issue/OPS-438) — leave Opsgenie.
 - [OPS-317](https://linear.app/gridworks/issue/OPS-317) — the scada-health
   liveness signals a future alerter would consume instead of re-deriving

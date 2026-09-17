@@ -12,6 +12,17 @@ Newest at the top.
 
 ---
 
+## 2026-09-15 — Add the Alerter transport class; 0.5.13 (`a727867`, merged `6416d3f`)
+
+`TransportClass.Alerter` / `RoutingClass.Alerter` (`alerts`), an AMQP
+actor class with its own `alerts_tx` / `alertsmic_tx` pair and no direct
+routing edges: the house alerter (OPS-545) broadcasts its alert words on
+its mic exchange, which fans into the ear exchange like every class, so
+JournalKeeper and the alert manager hear them as taps. A bare ear tap can
+send only wrapped messages, which need a destination class; a broadcast
+with no addressee needs a class of its own. The broker definition
+artifacts are regenerated with the new exchanges.
+
 ## 2026-08-14 — demo smoke test + pyright gate (`409e36b`)
 
 Branch `jm/pyright-gate` — the two guards the hello_rabbit break showed were
