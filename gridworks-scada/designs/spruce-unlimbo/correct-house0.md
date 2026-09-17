@@ -284,9 +284,33 @@ gens, the fixtures and the code together.
      word is read.
    - ✅ The dead `command_node is None` branch in `heatcall_ctrl_to_scada`
      is deleted.
-   - ✅ `zone_setpoints` keeps its name (five readers) and its docstring now
-     states what it is: the setpoint memory `is_system_cold` judges against
-     through an on-peak window, refreshed off-peak and just before on-peak.
+   - ✅ The setpoint memory is named for what it is:
+     `setpoints_at_onpeak_start`, refreshed by
+     `refresh_setpoints_at_onpeak_start` off-peak and just before on-peak,
+     held through on-peak. The leaf ally's two impls refreshed it
+     unconditionally on every pass before judging cold, which made the
+     memory the current setpoint and defeated the on-peak protection; those
+     calls are gone (`is_system_cold` refreshes off-peak itself).
+   - **Setpoint and zone temperature units are assumed, not read.**
+     `is_system_cold` compares raw channel values and subtracts a literal
+     1000 "1F in millidegrees"; the layout carries the unit
+     (`AirTempFTimes1000` on House0 zone channels) and the store-temp
+     readers already convert through `channel_registry.unit` (sixteen
+     call sites of `convert_temp_to_f`, each remembering the unit itself).
+     The fix is a value that carries its unit: a `Temperature` record in
+     `gwsproto/conversions/temperature.py` (raw plus the channel's
+     `TelemetryName` or `Unit`, with `.f`), built by
+     `ChannelRegistry.temperature(name, raw)`; F is the code's natural
+     unit (thresholds, `Ha1Params`, `latest_temperatures_f` are all F), so
+     memories and comparisons hold F floats named `_f`:
+     `setpoints_f_at_onpeak_start` / `refresh_setpoints_f_at_onpeak_start`,
+     threshold `1.0`. Doing that honestly exposes two fixture gaps: neither sim pair
+     emits a zone `-set` channel (the tests inject one that no channel
+     backs), and the spruce layout has no `-set` and reads zone temperature
+     as `-gw-temp` in `CelsiusTimes100`, so the cold judgment is inert
+     there. The sim gens emit `-set` through the sim sensor and the
+     fixtures regenerate; what the Nolan cold-house rule reads is a rung 7
+     question.
 
    From the `house0.py` review, the judgment half:
    - ✅ `is_buffer_full` keeps its proxy fall-through (`control-hierarchy.md`

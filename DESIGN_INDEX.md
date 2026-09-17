@@ -13,7 +13,7 @@
 
 _(every file under a `designs/` folder, anywhere in the wiki)_
 
-- (gridworks-alerter) [`gridworks-alerter/designs/alertmanager.md`](gridworks-alerter/designs/alertmanager.md) (Prometheus Alertmanager as the notifier on the alerts box, retiring the hand-written Telegram dispatcher; one `gw.alert` word with Category/Kind/State mapping onto its intake; Linear OPS-547)
+- (gridworks-alerter) [`gridworks-alerter/designs/alertmanager/primary.md`](gridworks-alerter/designs/alertmanager/primary.md) (hub: Prometheus Alertmanager as the notifier, one `gw.alert` word; spokes `alerter-and-tap.md` and `alertmanager-on-the-box.md`; Linear OPS-547)
 - (gridworks-alerter) [`gridworks-alerter/designs/broker-alerter.md`](gridworks-alerter/designs/broker-alerter.md) (rebuild the house alerter as a gwbase actor on the hw1 broker — durable queue, sqlite store, sema-typed inputs and alert events — so paging stops sharing the journal DB with observability; absorbs OPS-449; Linear OPS-545)
 - (cross-cutting) [`designs/substrate-fit.md`](designs/substrate-fit.md) (parked brainstorm: blockchain/substrate fit for crypto / validation / market-running layers; focus AFTER the launch; Linear OPS-391)
 - (cross-cutting) [`designs/mtls-fis-auth.md`](designs/mtls-fis-auth.md) (password → cert-based mutual TLS with FIS as the auth authority; spans rmqbot + FIS + provisioning; 2026-summer; Linear OPS-420)

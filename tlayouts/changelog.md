@@ -10,8 +10,7 @@ repo's git history.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-09-15 — Tank name helpers by index; House0ChannelNames is constants only
+## 2026-09-17 — Tank name helpers by index; House0ChannelNames is constants only (`99b6f4d` on jm/spruce)
 
 The scada retired `helpers.Tanks` and the `House0ChannelNames` instance
 part (a layout now answers its own tanks). The tank-module and

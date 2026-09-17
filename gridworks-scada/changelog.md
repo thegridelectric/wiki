@@ -10,8 +10,7 @@ repo's git history.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-09-15 — A layout answers its own store tanks; H0N/H0CN retired; on-peak from the ops word
+## 2026-09-17 — A layout answers its own store tanks; H0N/H0CN retired; on-peak from the ops word (`51534eb7` on jm/spruce-unlimbo)
 
 `LayoutLiteDc.h0cn` still built `H0CN(total_store_tanks=…, zone_list=…)`
 after the zone rosters left that constructor, so every LayoutLite tank
@@ -48,8 +47,13 @@ hand-built names; `is_onpeak` / `just_before_onpeak` read the ops word's
 "just before" test fired at 16:58, inside the evening peak, instead of
 15:58 before it); the dead `command_node is None` branch in
 `heatcall_ctrl_to_scada` is gone; the all-tanks TOU impl's copy of the
-clock line calls `just_before_onpeak`. Tests swap the windows to prove
-the word is read and pin the corrected clock.
+clock line calls `just_before_onpeak`. The setpoint memory is
+`setpoints_at_onpeak_start` (was `zone_setpoints`), refreshed by
+`refresh_setpoints_at_onpeak_start`; the leaf ally's all-tanks and
+buffer-only impls refreshed it on every pass before judging cold, so
+the memory was always the current setpoint and a thermostat raised
+on-peak read as a cold house; those calls are gone. Tests swap the
+windows to prove the word is read and pin the corrected clock.
 
 ## 2026-09-15 — Dist pump monitor reads the derived heat-call; zone rosters retired (`dc40bacf` on jm/spruce-unlimbo)
 

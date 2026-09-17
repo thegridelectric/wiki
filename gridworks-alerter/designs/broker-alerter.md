@@ -177,7 +177,7 @@ to two weeks for the full port with tests.
 
 ## Pointers for the next session
 
-- Spec and gaps: `wiki/gridworks-alerts/executor/primary.md` "Invariants"
+- Spec and gaps: `wiki/gridworks-alerter/legacy/gwalert.md` "Invariants"
   and "Known gaps / Open" (the 2026-09-15 additions are the case for this).
 - The triage record: OPS-543 and OPS-544 comments, and
   `wiki/gridworks-alerts/changelog.md` entries dated 2026-09-15.

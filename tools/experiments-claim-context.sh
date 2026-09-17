@@ -3,10 +3,11 @@
 # includes an experiments path (`experiments/` or `experiments/<rung>/`),
 # inject the experiments conventions pointer — ONCE per session.
 #
-# Why: experiments kept starting without a proper README (Why / Setup /
-# Protocol written before the first run) and kept leaving files on pi home
-# dirs. Keying off the claim catches the session at the moment it takes an
-# experiment folder, before any file is written. Mirrors scada-claim-context.sh.
+# Why: experiments kept leaving no record and kept leaving files on pi
+# home dirs. Keying off the claim catches the session when it takes an
+# experiment folder; precheck-experiment-start.sh catches the act itself
+# (a service stopped over ssh) and stop-experiment-record.sh holds the
+# turn end until the record exists. Mirrors scada-claim-context.sh.
 #
 # Self-locating: lives at <umbrella>/wiki/tools/<this-file>.
 # GW_ACTIVE_CLAIMS overrides the active-claims path (tests).
@@ -35,7 +36,7 @@ echo "$scope" | grep -Eq '(^|[^a-z-])experiments/' || exit 0
 
 mkdir -p "$HOME/.claude" && : > "$marker"
 
-CTX="Your active-claims Scope includes experiments/. Before creating or editing an experiment folder you MUST read \`experiments/README.md\` (\"Layout\" and \"Conventions\") and \`experiments/experiment-README-template.md\`, and start the folder's README from the template with Why, Setup and Protocol written BEFORE the first run.
+CTX="Your active-claims Scope includes experiments/. Before creating or editing an experiment folder you MUST read \`experiments/README.md\` (\"Layout\" and \"Conventions\") and \`experiments/experiment-README-template.md\`. Run first, quickly and natively; the record (README from the template, runbook, evidence, instances/, logbook line, executor claim) follows in the same session before anything else.
 
 Anchor rules (the README is authoritative):
   - One folder per experiment, \`<first-run-date>-<slug>/\`; queued work lives in \`future/<slug>/\` and moves on first run; the logbook gets one line.
