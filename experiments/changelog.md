@@ -8,6 +8,41 @@ Newest at the top.
 
 ---
 
+## 2026-09-19 — capture_broker.py records the dev broker; house_window.sh takes dev, --debug and --ltn <!-- pending commit -->
+
+Round one of the beta field windows had no broker-side record: a hand-run
+`mosquitto_sub` was refused and the window's events were copied off the
+boxes afterwards. `capture_broker.py` rides the broker's firehose
+(`amq.rabbitmq.trace`, `publish.#`), so one queue sees the scada's MQTT
+traffic and every gwbase actor exchange, including exchanges declared after
+it started. Before it reports ready it publishes a probe and requires it
+back through the firehose, so a capture that says `capturing` is proven to
+be recording. Tracing is a per-vhost switch, so a pidfile holds it to one
+capture at a time. The broker URL is `GWEXP_RABBIT__URL` in the repo's
+`.env`; `pika` joins the dependencies.
+
+`house_window.sh` starts that capture at every `on` and refuses to open a
+window without one, so a round cannot again end with no broker-side
+record; the capture is shared by the open windows and stopped by hand
+(`capture off`). `dev` joins spruce and beech as a target: the same
+`window_boot.py`, which now takes the scada checkout as an argument, runs
+the laptop's checkout on its sim pair, so a round is rehearsed before a
+house gives up its plant control. `--debug` sets the scada's log levels
+through the process environment (the base level is an integer setting);
+`--ltn` runs the LTN on the laptop against the target's own layout pair,
+which is where the LTN takes its identity and its peer from, with the ops
+params path given explicitly because the LTN's default name for it matches
+no generated pair.
+
+## 2026-09-19 — the house windows folder becomes beta-field-windows <!-- pending commit -->
+
+The spruce and beech windows of 2026-09-18 were the first round of
+something that recurs: after roughly each spruce-unlimbo spoke the new
+scada code runs in a bounded window on one house per layout family. The
+folder takes the name of that practice, `2026-09-18-beta-field-windows/`,
+so later rounds add to it; the `ExperimentSlug` in its instances and the
+logbook line move with it.
+
 ## 2026-09-18 — the spruce window names the winter hack alone; correct-house0 windows record (`3013412`)
 
 The winter hack is spruce's one plant-control service beside the scada, so

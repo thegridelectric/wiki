@@ -1,11 +1,33 @@
 # Odds and ends (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-18 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-19 · Linear: OPS-392
 
 > What this is: a spoke of [`primary.md`](primary.md) holding the small
 > launch items that do not earn a file each: one problem, one change,
 > one test apiece. An item leaves when its commit lands and the executor
 > says the new behavior.
+
+## Debug glitch: a pico identity check that passes says so
+
+- **Problem.** A pico actor warns when a params post's `PicoBoardVariant`
+  or `MicropythonVersion` differs from the layout
+  (`actors/pico_identity.py` `PicoIdentity.differences`) and says nothing
+  otherwise. In a field window a quiet capture cannot tell "checked and
+  matched" from "never checked": a pico that never posted params, a sim
+  component that holds no identity, and a matching pico all look the same.
+- **Change.** `SHNodeActor.send_debug(summary, details)` beside
+  `send_warning`: a `Glitch` with `Type=LogLevel.Debug`, sent only when
+  the scada's logger is enabled for DEBUG, so a deployed scada at its
+  default level sends none. Each pico actor's `check_pico_identity` sends
+  `pico-identity-matches` once per pico per run when a post matches
+  (`PicoIdentity.first_match` holds the once).
+- **Test.** `tests/actors/test_pico_identity.py`: at DEBUG a matching post
+  yields one `pico-identity-matches` glitch and a second post none; above
+  DEBUG none; a differing post yields only the warning. Shown red with the
+  tank call site reverted.
+- **Witness.** A `--debug` beta field window on spruce: the broker capture
+  holds one `pico-identity-matches` per provisioned pico.
+- **Built.** ✅ code and tests; ◐ the spruce witness remains.
 
 ## Unobserved row offers every command (decided 2026-09-14)
 

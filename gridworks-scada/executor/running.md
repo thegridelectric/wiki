@@ -147,7 +147,7 @@ root. Command senders run on the box itself from its `~/experiments` clone
 at a pushed SHA against `localhost:1883`; a window must not depend on a
 laptop tunnel, which can die silently. Stopping services, placing env
 files and restarting are the human's to run; a session preps the commands
-and the watch-list. `experiments/2026-09-18-correct-house0-windows/` is the
+and the watch-list. `experiments/2026-09-18-beta-field-windows/` is the
 run that exercised `house_window.sh` on both spruce and beech.
 
 ## Open

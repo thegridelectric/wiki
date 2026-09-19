@@ -10,6 +10,17 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-19 — a matching pico identity says so at DEBUG (OPS-392) <!-- pending commit -->
+
+The pico identity check warned on a difference and was silent otherwise, so
+in a field window a pico that matched, a pico that never posted params and
+a sim component with no identity all looked the same in the capture.
+`SHNodeActor.send_debug` sends a `Glitch` of `LogLevel.Debug` only while
+the scada's logger is enabled for DEBUG, so a deployed scada at its default
+level sends none. Each pico actor's `check_pico_identity` sends
+`pico-identity-matches` once per scada run when a post matches the layout;
+`PicoIdentity.first_match` holds the once.
+
 ## 2026-09-18 — layout twins check every circuit's whitewire channel and heat call (OPS-539, `cd34f5ef` on jm/spruce-unlimbo)
 
 A layout could lose a circuit's heat call, or name a whitewire channel
