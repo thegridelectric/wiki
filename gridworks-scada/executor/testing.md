@@ -32,8 +32,8 @@ rung of `experiments/2026-09-10-beech-krida-witness/`.
 - **Where sim-ness comes from:** the fixture. Its board record (`SimGw108`)
   makes the board-resident actors run against `SimI2c` and no GPIO
   (`executor/components.md` "Hardware backend selection is the layout's
-  job"); its sim pico tank modules run a scripted pico inside the tank actor
-  (below); `SimSensor` (`actors/sim_sensor.py`) stands behind every other
+  job"); its sim pico tank modules and BTU meters run a scripted pico inside
+  the tank and BTU actors (below); `SimSensor` (`actors/sim_sensor.py`) stands behind every other
   pushed-reading position. The House0 DFR multiplexer still reads the
   layout's `has_simulated_component` for its backend.
 - **The universe guardrail runs at boot** (`universe.py`,
@@ -80,10 +80,12 @@ layout, so a test scada may take LTN contracts by default;
 (`scada-ltn-link-state.md` "The trading gate"). Only the deed's
 `ValidationState` is read, so one deed serves both fixture pairs.
 
-**Pico liveness in-process.** The sim pico (`sim.pico.tank.module.component.gt`)
-is the liveness source for the cycler and admin tests: `ApiTankModule` runs
-the source inside the actor, posting `microvolts` to itself at the channel's
-capture period, with no HTTP ingress. `SimLifeS` scripts the death and
+**Pico liveness in-process.** The sim pico (`sim.pico.tank.module.component.gt`,
+`sim.pico.btu.meter.component.gt`) is the liveness source for the cycler and
+admin tests: `ApiTankModule` and `ApiBtuMeter` each run a `SimPicoSource`
+(`actors/sim_pico_source.py`) inside the actor, posting `microvolts` or a
+`multichannel.snapshot` to themselves at the channel's capture period, with
+no HTTP ingress, so the real actor's reading path runs on a sim house. `SimLifeS` scripts the death and
 `SimRebootS` the reboot after a vdc-relay close; a reboot always succeeds,
 so a sim house never produces a Zombie. The sim configs set 120 s / 20 s so a
 flatline and a cycle fit inside a five-minute broker rung; the real-house

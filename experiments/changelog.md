@@ -8,6 +8,54 @@ Newest at the top.
 
 ---
 
+## 2026-09-18 — the spruce window names the winter hack alone <!-- pending commit -->
+
+The winter hack is spruce's one plant-control service beside the scada, so
+`house_window.sh` and the `window_boot.py` docstring name it alone. `on`
+also opens without the tunnel when the laptop's dev broker is not there:
+the tunnel carries the upstream link for observation, commands ride the
+box's own mosquitto, and a missing tunnel costs data, not the window.
+
+## 2026-09-18 — update scada scripts (`7bf9aa3`)
+
+`spruce_window.sh` stopped the summer hack by name, so with the winter
+hack running the plant it would have booted a window scada beside a
+controller still enforcing the zone, valve and pump relays, and `off`
+would have left the house with no plant controller. Beech had only the
+per-rung `beech_window.sh` copies, whose `on` writes that rung's layout
+pair over whatever `put_layout.sh` put. `house_window.sh <house>` carries
+the window for both houses. `on` refuses unless the box's pair is
+byte-identical to the tlayouts gen output and the box's unlimbo checkout
+is at the laptop's pushed scada head; it records which of the house's
+services were running, stops them, and the box restarts exactly those when
+the window scada exits for any reason (the bound, a crash, or `off`), so a
+closed laptop does not leave a house without its controller.
+`spruce_window.sh` and a top-level `beech_window.sh` call it with their
+house.
+
+## 2026-09-18 — put_layout.sh names the previous file only when one was kept (OPS-539, `5c30b84`)
+
+On a box with no window files yet (maple's first put) the script printed
+the name of a previous-file copy it had not made. It now reports the copy
+the box made, or that there was none.
+
+---
+
+## 2026-09-18 — put_layout.sh: the tlayouts gen output onto a house's experiment-window dir (OPS-539, `216813d`)
+
+The window scada reads its layout and ops params from
+`~/.config/gridworks/scada-experiment/` on the box, and those files were
+refreshed by hand, so they drifted from `tlayouts/output/<house>/`
+without anyone seeing it. `put_layout.sh <house> check` reports whether
+the two box files are byte-identical (sha256) to the gen output;
+`put_layout.sh <house> <change>` leaves a dated
+`<file>.<date>-pre-<change>.json` copy beside each file that differs,
+copies the gen output over it and verifies the hash. It refuses while a
+window scada is running. Spruce, beech and maple share the one script;
+the per-house part is the gen's two output filenames.
+
+---
+
 ## 2026-09-10 — pico-state-reported: journalkeeper reads the cycler's per-pico roster on the dev broker <!-- pending commit -->
 
 New folder. The actual-spruce sim scada (`69d5d6ec`, nolan layout,

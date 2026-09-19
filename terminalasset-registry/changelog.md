@@ -1,8 +1,8 @@
 # Changelog
 
 A reverse-chronological log of WHY we made each commit in the **`tlayouts`** code repo
-(the precursor to the terminalasset-registry — see the stand-up-terminalasset-registry
-design in this domain's `designs/`).
+(the precursor to the terminal-asset registry,
+[OPS-471](https://linear.app/gridworks/issue/OPS-471)).
 The matching git commit (in `tlayouts`) holds the WHAT (the diff). Each entry's date and
 one-line title mirror the corresponding code-repo commit.
 

@@ -124,3 +124,16 @@ channel-existence axiom already sits at: require the *semantic* channel (about-n
 on the hardware that produces it, until the capability layer lands. This is the more-nuanced sibling of
 the `G/H` topology axioms above — both are "what must a real layout's nodes/components be" questions that
 only become tractable once `H0N` is gone and the layout families are knit.
+
+## Timezone names — no format yet (2026-09-17)
+
+Two words carry a zone name as a bare string: `flo.params.house0`
+(`TimezoneStr`) and `gw.tou.tariff` (`TimezoneStr`, the clock the on-peak
+windows are read in, which retires the scada's `timezone_str` setting).
+A format would only check shape (`Region/City`), not membership, since a
+format may not consult a list; and the name space itself is the tz
+database, which every runtime resolves (Python `zoneinfo` and `pytz`, Java,
+JavaScript `Intl`, Postgres), so the format should not be named for one
+language's library. Deferred until a third carrier appears or a consumer
+is bitten by a bad name; the field name `TimezoneStr` is the agreed
+spelling across words meanwhile.

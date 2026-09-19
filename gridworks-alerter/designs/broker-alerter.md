@@ -1,6 +1,6 @@
 # broker-alerter — the house alerter as a broker citizen
 
-Status: Draft · Pass 0 · Updated 2026-09-16 · Linear: OPS-545
+Status: Draft · Pass 0 · Updated 2026-09-17 · Linear: OPS-545
 
 **EDD: yes** the shadow run *is* the verification: the new alerter runs beside
 gwalert on the alerts box against the live hw1 broker, and each detector
@@ -236,9 +236,26 @@ case; that is a field on the liveness record, not a rule here.
 
 ## The alert vocabulary and kinds
 
-Published 2026-09-15 and described in `executor/gwalerter.md` "Alert
-words" and "Alert kinds". The gwalert detector findings that shaped the
-kinds are there too.
+Two states of the vocabulary exist at once, and this design tracks both:
+
+- **What the alerter runs on today:** the three house words
+  (`gw.house.alert`, `gw.house.alert.cleared`, `gw.house.alert.kind`),
+  published 2026-09-15, vendored in the alerter's snapshot at `5c8afb2`
+  and described in `executor/gwalerter.md` "Alert words" and "Alert
+  kinds" (the gwalert detector findings that shaped the kinds are there
+  too).
+- **What sema `dev` holds now:** the two house type words are deleted;
+  one `gw.alert` with `State` and its enums (`gw.alert.category`,
+  `gw.alert.state`, `gw.fleet.alert.kind`, `gw.platform.alert.kind`) sit
+  at `staging` (`3de1363`); `gw.house.alert.kind` stays published. That
+  reshaping is OPS-547's, and its spoke 1 moves the alerter onto it.
+
+A snapshot built with `--allow-staged` is marked dev-only by the sema CLI
+(`indexes/staging.yaml` plus a README warning) and MUST NOT run against
+hw1. So the order is fixed: OPS-547 spoke 1 on the dev broker with the
+staged snapshot, then the five words promoted, then a published regen,
+and only then the box deployment below. The box never sees the house
+words.
 
 ## Do this next
 
@@ -251,8 +268,10 @@ detector thread, witnessed PASS on the dev broker
 included). A dev registry runs from `grid-node-registry` with `gnr api`
 and `gnr rabbit` against the seeded `d1` universe.
 
-The three alert words are published and both snapshots (the alerter's
-and the experiments repo's) are regenerated from the published set.
+The three house alert words are published and both snapshots (the
+alerter's and the experiments repo's) are regenerated from that set;
+the vocabulary is being reshaped under OPS-547 before the box sees it
+("The alert vocabulary and kinds" above).
 
 **DO THIS NEXT: the shadow deployment**, on the alerts box beside
 gwalert, per the gwbase box pattern (gwbase executor
@@ -264,13 +283,28 @@ Before the box:
 1. Push sema `dev` (the words and their publication, `74393a7`) and land
    the alerter's `jm/scaffold` on `main`: the box clones `main` at a
    pushed SHA and nothing else.
-2. Broker: the hw1 broker (`rmqbot`, vhost `hw1__1`, AMQPS `hw1-1:5671`)
-   takes gwbase 0.5.13's `hybrid_definitions.json` by the rmqbot
-   instance-README "Reload the rabbit definitions" recipe (`docker
-   restart`, never compose up), then `list_exchanges -p hw1__1` shows
-   `alerts_tx` and `alertsmic_tx`. A runtime user for the alerter,
-   `hw1.alerts`, by the `rmq-docker/README.md` user recipe (root on
-   rmqbot; password to 1Password only).
+2. Broker. ✅ Definitions: the hw1 broker (`rmqbot`, vhost `hw1__1`,
+   AMQPS `hw1-1:5671`) took gwbase 0.5.13's `hybrid_definitions.json`
+   on 2026-09-17 by the rmqbot instance-README "Reload the rabbit
+   definitions" recipe; the diff against the previous file was exactly
+   the two exchanges and the `alertsmic_tx → ear_tx` binding, and
+   `list_exchanges -p hw1__1` shows 20 including `alerts_tx` and
+   `alertsmic_tx`; every AMQP and MQTT client reconnected. ◐ Runtime
+   user `hw1.alerts` by the `rmq-docker/README.md` user recipe (root on
+   rmqbot; password to 1Password only), the first scoped service user
+   on hw1 (every other service connects as `smqPublic`). The actor
+   declares its consume exchange and its own queue on connect, binds the
+   queue to `alerts_tx` and `ear_tx`, consumes it, and publishes on
+   `alertsmic_tx`; binding needs write on the queue and read on the
+   exchange, so the three regexes are:
+
+   ```shell
+   sudo docker exec rmq1 rabbitmqctl set_permissions -p hw1__1 hw1.alerts \
+       '^(hw1\.alerts-.*|alerts_tx)$' '^(hw1\.alerts-.*|alertsmic_tx)$' \
+       '^(hw1\.alerts-.*|alerts_tx|ear_tx)$'
+   ```
+
+   Run after the ✅ above, before step 5's `.env`.
 3. Registry read: `fetch_forest("https://gnr.electricity.works",
    ["hw1.isone.me.versant.keene"])` from the laptop returns the six
    houses (all Pending); that URL is `GWALERTER_GNR_URL`.

@@ -166,6 +166,10 @@ distributed-trust principle it served — that principle is core vision.
   staging word? Refuse and edit in place. (Bootstrap allowance, sanctioned
   per case and NOT in `sema/spec`: a version published before June 2026 MAY
   be corrected in place when shipped wire data proves the schema wrong.)
+- **Every layout-word edit asks: did this expose a missing layout axiom?**
+  After each sema item on a layout or ops word, ask the human whether the
+  change surfaced an invariant the word does not yet state; capture it as
+  an axiom candidate before moving to the next item.
 - **Timestamps are real wall-clock, rounded to 5 minutes** — sema registry
   `created` / `metadata.last_updated` use actual current UTC (`date -u`)
   rounded to the nearest 5 min, never a placeholder. Same-sitting versions MAY

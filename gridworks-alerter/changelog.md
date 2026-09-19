@@ -4,6 +4,20 @@ One entry per commit in `thegridelectric/gridworks-alerter`,
 `thegridelectric/gridworks-alerts` and `thegridelectric/gridworks-alert-manager`
 (git = the what, this = the why).
 
+<!-- pending commit -->
+## 2026-09-17 — gridworks-alerter: One gw.alert word with State (OPS-547)
+
+Sema `dev` reshaped the alert vocabulary (`3de1363`): the two house
+type words are gone and one `gw.alert` carries both transitions with
+`State` Firing/Resolved, a `Category` that selects the `Kind` enum, and
+the full GNode alias as identity. The alerter's snapshot is regenerated
+from a clean worktree at that commit with `--allow-staged` (dev-only
+until the five words promote); the store's `alerts` table, the NoData
+rule, the actor's emit and the tests move to the one word. A record
+with no house (Fleet, PlatformService) keys its broadcast on the
+alerter's own alias. The initial migration is edited in place: no box
+holds this store yet.
+
 ## 2026-09-16 — gridworks-alerts: improve logging (`e3e9b47`)
 
 The `[ALERT]` line printed the message without the house, and each

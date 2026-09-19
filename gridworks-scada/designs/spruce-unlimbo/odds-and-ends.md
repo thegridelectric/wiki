@@ -1,6 +1,6 @@
 # Odds and ends (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-18 · Linear: OPS-392
 
 > What this is: a spoke of [`primary.md`](primary.md) holding the small
 > launch items that do not earn a file each: one problem, one change,
@@ -79,3 +79,90 @@ Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-392
   edge with its reason logged, no re-queued connect on the closing socket.
 - **Test.** Against a password-gated mosquitto, a wrong password surfaces the
   refusal instead of a false "connected".
+
+## Sema prose review of the House0 words
+
+Two lenses, on every word the Correct House0 work (OPS-539) added or
+edited. First, a word names another sema word only in its `extended_description`; `description` and field descriptions say
+what the word and the field mean by themselves, and the `$ref` carries
+the relation. Second, no over-explained context: what a consumer does
+with a value, which actor reads a flag, how artifacts pair at load, and
+where a fact lives elsewhere are not the field's meaning. Each finding
+is an in-place edit of a staging word, discussed before it is made
+(the spec is change-controlled), then the tlayouts snapshot and the
+closure mirror refresh in the same wave.
+
+Start with `gw.operational.params` 000. Read 2026-09-18:
+- `ScadaAlias`: "The layout is the registry of record for the full
+  GNode; the consumer checks this alias names the paired layout's
+  Scada." Consumer behavior and a fact about another word; the field is
+  the alias of the Scada these params tune. (The scada loader does make
+  this check; that is the loader's business and its test's.)
+- The type `description`: "The third SCADA artifact alongside deployment
+  config and the static hardware layout", the paragraph on how the
+  consumer decodes `FamilyParams` through the paired layout's family,
+  and the authority-dominates sentence, which the `ActuationAuthority`
+  and `ServiceMode` field descriptions each say again.
+- `FamilyParams`, `Tariff` and the curve fields are worth the same read.
+
+Then, in this order: `gw.house0.family.params` and
+`gw.nolan.family.params` (both descriptions name `gw.operational.params`
+and a layout word; `KeepBufferFull` narrates the leaf ally, the LTN, the
+FLO and local control), `gw.tou.tariff`, `gw.primary.flow.source`
+(value descriptions name beech and maple), the two sim pico words,
+`PicoBoardVariant` / `MicropythonVersion` on the three pico component
+words, `flow.hall.params` 200, `flow.reed.params` 101, House0 axioms 16
+and 17 (17 carries a parenthetical on where the invariant lives), Nolan
+axiom 2, `layout.lite` 013 `KeepBufferFull`.
+
+The spec states the first lens before the review starts. Approved
+wording (2026-09-18), for `sema/spec/authoring/types.md` "Schema Header
+Requirements", after "`description` MUST describe structural meaning":
+
+> A type's `description` and its property descriptions SHALL NOT name
+> other vocabulary words; a `$ref` carries the relation.
+> `extended_description` is the only prose that MAY name other words.
+
+The enum and format authoring spokes take the same sentence for their
+descriptions, and `authoring/type-semantics.md` "`extended_description`"
+gains one line saying it is where other words are named. The edit goes
+on a `jm/` branch off sema `dev`, alone, never folded into a word edit.
+
+## Whitewire heat-call threshold: measure before pinning
+
+The House0 gen pins 10 W in each zone's heat-call derived channel and
+the retiring scada setting says 20 W; neither has been checked against real
+readings. Analyse the `zone{i}-{label}-whitewire-pwr` history for every
+house that has one (journal DB; beech, maple, oak, fir, elm, the older
+spruce data) to see what a calling and an idle zone actually draw, then
+decide whether one uniform threshold serves every house or the value
+belongs per zone in the hardware layout. Until then the 10 W pin stands
+as an assumption.
+
+## Pico params words and flow picos outside the checks
+
+- The four pico params words (`tank.module.params`,
+  `async.btu.params`, `flow.hall.params`, `flow.reed.params`) are in no
+  vendored closure, so the conformance test does not see their gwsproto
+  twins; a hand-run `sema validate` is their only check. Whether they
+  join a closure is undecided.
+- `flow.reed.params` 101 (published) has no gwsproto twin;
+  `actors/api_flow_module.py:38` holds local `FlowHallParams101` and
+  `FlowReedParams` models with bare `str` fields.
+- No gen emits a flow pico into a sim fixture (the sim pairs read flow
+  through `SimSensorActor`), and `ApiFlowModule` does not run over
+  `sim.pico.flow.module.component.gt`; its only tests patch a House0
+  pair in the test.
+- `PicoBtuMeterComponentGt` is `use_enum_values=True`, alone among the
+  pico component twins, so its enum fields are strings at runtime.
+- The BTU actor's params answer sets every layout-held field except
+  `GallonsPerPulse`, which goes back as the pico posted it; to confirm
+  that is intended.
+
+## What `data.latest_temperatures_f` values are
+
+`data.latest_temperatures_f` is a different thing from a channel
+reading (rounded, implausible store layers scrubbed, missing ones
+filled from below, about seventy readers in the House0 control
+code); whether its values become `Temperature` is a decision to take
+before touching it.

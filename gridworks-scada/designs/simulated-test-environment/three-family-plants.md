@@ -17,8 +17,7 @@ Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-40
    contract tests. Proves the layout loads, the actors construct, the
    command tree closes, capture tuning covers every channel. Every family
    has one: the Nolan pair is the sim-spruce gen's output, the House0
-   pair is the generated simulated layout (`../spruce-unlimbo/correct-house0.md`
-   rung 4), the no-sieg pair ships with its word
+   pair is the tlayouts sim gens' output (orange-sim, willow-sim), the no-sieg pair ships with its word
    (`../spruce-unlimbo/house0-no-sieg-layout.md`).
 2. **The family plant** (this spoke). A `gridworks-terminalasset` GNode
    per family that reads the same layout file, emits `sim.plant.flux` for

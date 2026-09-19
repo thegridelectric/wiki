@@ -10,6 +10,323 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-18 — layout twins check every circuit's whitewire channel and heat call (OPS-539, `cd34f5ef` on jm/spruce-unlimbo)
+
+A layout could lose a circuit's heat call, or name a whitewire channel
+that does not exist, and still decode: the House0 twin checked heat calls
+per zone by constructed name, and the Nolan twin did not check them at all.
+Both twins now mirror the sema words' `CircuitWhitewireChannelResolution`
+(Nolan 14, House0 19) and `CircuitHeatCallChannel` (Nolan 15; House0 4,
+replacing `ZoneHeatCallChannel`) through one shared axiom body each, with a
+test per axiom that a broken layout fails to decode. The vendored closure
+refreshes with the tlayouts snapshot.
+
+## 2026-09-18 — DeviceType is the enum on the gwsproto twins (OPS-539, `b9b57467` on jm/spruce-unlimbo)
+
+The sema words leave `DeviceType` an open `pascal.case` string so other
+organizations can use the schemas. Inside this repo every value comes from
+the two closed lists we own (`gw1.device.type`, `gw1.sim.device.type`), and
+the only checks were at authoring points and string equality at bind time,
+so a stale name bound to nothing and failed late in the loader.
+`DeviceComponentBase` and the five device-type record twins now type the
+field `AnyDeviceType` (`DeviceType | SimDeviceType`), so a stale name raises
+at construction. The two enums lose their `default()` override: with it,
+`GwStrEnum._missing_` turned an unknown name into `EgaugePowerMeter` instead
+of raising. The union keeps the two sema words apart, as the conformance
+test's value-drift check requires. Wire output is unchanged.
+`SimDeviceType` gains `SimDac` with sema's `gw1.sim.device.type`, and the
+vendored closure refreshes with the tlayouts snapshot.
+
+## 2026-09-18 — pico twins enforce every sema axiom (OPS-539, `2bdbd681` on jm/spruce-unlimbo)
+
+Two gaps between the pico component twins and their words. The tank-module
+twins (`PicoTankModuleComponentGt`, `SimPicoTankModuleComponentGt`) carried
+`check_axiom_3` (SensorOrderPermutation) without the `@model_validator`
+decorator, so it never ran and a layout with a non-permutation
+`SensorOrder` loaded. The BTU twins follow the words' new axioms: axiom 1
+`ReadCtVoltageIffCtVoltsDelta` (the real twin's former `check_axiom_2`) and
+axiom 2 `ReadCtVoltageIffCtChannelName`, on the real and the sim twin alike.
+The vendored layout closure refreshes with the tlayouts snapshot. Each
+validator has a test.
+
+## 2026-09-18 — Delete the boiler-scada-ops-relay name (OPS-539, `cf39238b` on jm/spruce-unlimbo)
+
+A reserved-slot name from the 2024 House0 design (Krida position 10) that
+never got a relay wired, a node, a generator row or a caller; the fleet's
+boiler is on relay 8 alone. `House0NodeNames.boiler_scada_ops`,
+`House0ChannelNames.boiler_scada_ops_relay_state` and
+`HydronicLayout.boiler_scada_ops` go together. The name returns with a
+generator row and a caller if a house gets a direct boiler-call relay.
+
+## 2026-09-18 — The LTN snapshot log and the dashboard read temperatures through Temperature (OPS-539, `7abe964c` on jm/spruce-unlimbo)
+
+Every temperature DataChannel is `CelsiusTimes100` since `9a8372e2`, and two
+LTN displays still recognised temperatures by hand-kept lists of the
+`x1000` encodings, so they showed raw integers.
+
+- `Ltn.snapshot_str` converted `WaterTempCTimes1000` alone, with its own
+  arithmetic. It builds a `Temperature` through the channel registry and
+  prints `.f` or `.c` by the `c_to_f` setting; a channel whose encoding is
+  not a temperature prints raw, as before.
+- The dashboard's `OddsAndEnds` kept a list that lacked `CelsiusTimes100`.
+  It constructs a `Temperature` and falls back to the raw display when the
+  encoding is not one. `Temperature`'s own construction is the one test of
+  "is this encoding a temperature", so the next encoding needs no display
+  edit. `channels/channel.py` keeps its list: it raises on a channel
+  configured as a temperature that is not one, which is a different job.
+- `Temperature.c` beside `.f`, for the Celsius log line.
+- First tests of both displays (`tests/actors/test_ltn_temperature_display.py`):
+  the snapshot line on all three sim pairs in both settings, the table in
+  four encodings, and a non-temperature reading staying raw.
+
+## 2026-09-18 — Pico actors hold a params post's board and MicroPython version against the layout (OPS-539, `73a26728` on jm/spruce-unlimbo)
+
+The tank and BTU params posts carry `PicoBoardVariant` and
+`MicropythonVersion`, and the actors echoed them back unread, so a wrong
+board in a layout was never noticed. The layout value is what the house
+was provisioned with; the scada reports a difference and never writes it.
+
+- `actors/pico_identity.py`: `PicoIdentity` holds the component's two
+  values and returns each difference from a post once per scada run (picos
+  re-post params at every boot and the pico-cycler reboots them). A layout
+  that states no `MicropythonVersion` holds the post to none, which is
+  every gen today. Pure, like `PicoLiveness`.
+- The tank, BTU and flow actors queue an accepted params post to
+  themselves (`send_threadsafe`, as readings already travel) and
+  `process_message` sends a Warning `Glitch` per difference
+  (`ShNodeActor.send_warning`). The web handler runs off the proactor
+  thread, so nothing is sent from it. The pico gets its params answer
+  either way; identity is still the `HwUid`. A sim pico component carries
+  no board and is held to nothing.
+- The BTU component twin is `use_enum_values=True`, so the actor restates
+  its board value as the enum before comparing.
+- `FlowHallParams` is a gwsproto twin of `flow.hall.params` 200 (`sema
+  validate` OK). The flow actor answers a 200 post in 200 and checks its
+  identity; a 101 post, which is what deployed flow firmware sends, is
+  answered in 101 through the actor's local `FlowHallParams101` and
+  checked for nothing. `flow.reed.params` has no version that carries
+  identity.
+- `ApiFlowModule` read `component.gt.ConfigList` at construction, which
+  the flow component word and twin do not carry, so it raised on every
+  House0 deployment layout; no fixture booted the actor, so the suite
+  never saw it. The two channel checks that used it are deleted: the gpm
+  channel's tuning and the hz channel are both already looked up earlier
+  in construction, and the actor reads no hz tuning.
+- First tests of the three params handlers and the flow actor's boot
+  (`tests/actors/test_pico_identity.py`): sim layouts with one component
+  restated as the word it simulates, and a House0 pair with `dist-flow`
+  read by a hall flow pico.
+
+## 2026-09-18 — HVAC zones require TempChannelName; ZoneTempChannelResolution on both layout twins (OPS-539, `9a8372e2` on jm/spruce-unlimbo)
+
+The tlayouts snapshot regenerated at sema `8bc9fc4`, and the vendored
+closure copy moves with it in the same wave.
+
+- `sema_closure/registry.yaml` is the regenerated snapshot registry.
+- `HvacZone.TempChannelName` is required (`Optional` dropped); `house0_layout.py`
+  and `nolan_layout.py` each gain `ZoneTempChannelResolution`
+  (`check_axiom_18` / `check_axiom_13`) over one shared body
+  (`type_helpers/zone_temp_channel_resolution.py`); `hydronic.py` drops its
+  now-subsumed axiom 3 (`LearnedNeedsTempChannel`). `is_system_cold` loses
+  its "names no temperature channel" branch — every zone names one now.
+- The three sim pairs in `tests/config` are the regenerated gen output:
+  temperature DataChannels in `CelsiusTimes100` with capture deltas scaled
+  to match, and the Nolan pair carrying a `-set` DerivedChannel per zone in
+  `FahrenheitX100`. `test_hydronic_shared.py` states degrees F through the
+  registry so the cold-judgment tests hold in any encoding, and the Nolan
+  test asserts the `-set` channel where it used to assert its absence.
+
+## 2026-09-18 — ApiBtuMeter runs over a sim pico BTU component (OPS-539, `43a5ece9` on jm/spruce-unlimbo)
+
+The sim pairs ran the real tank actor over a sim pico but stood a generic
+`SimSensorActor` in for every BTU meter, so `ApiBtuMeter`'s own code path
+had no fixture that booted it.
+
+- `SimPicoSource` moves to `actors/sim_pico_source.py` and holds the one
+  fixed reading its actor built it with (`MicroVolts` or
+  `MultichannelSnapshot`); the schedule (capture period, `SimLifeS`,
+  `SimRebootS`, the vdc relay) is unchanged and the tank actor builds its
+  microvolt profile as before.
+- `ApiBtuMeter` accepts `SimPicoBtuMeterComponent` (new data class; device
+  type `SimSensor`) and runs the source the way the tank actor does,
+  posting a standing snapshot to itself: 4 gpm, both pipes 50 C, the values
+  the sim sensor gave those channels, plus zero CT volts when the meter
+  reads a CT.
+- The pico cycler tracks a sim BTU pico by its `HwUid`.
+- `tests/config/gw.nolan.layout.json` is the regenerated spruce-sim output:
+  its four BTU meters are the sim word under `ApiBtuMeter`. The BTU
+  producer test boots that fixture and drops its swapped-in component.
+
+## 2026-09-18 — Temperature producers emit by their channel's declared encoding (OPS-539, `5a30da67` on jm/spruce-unlimbo)
+
+A channel's `TelemetryName` declares what its producer emits, and most
+producers never read it: each hard-codes a scale. A gen that declares
+`CelsiusTimes100` over such a producer puts values ten times off on the
+wire with nothing failing, so the producers move before any gen does.
+
+- `Temperature.from_c` / `from_f` and `ChannelRegistry.temperature_from_c`
+  / `temperature_from_f` are the write-side twin of the `Temperature`
+  reader: a measurement in degrees, rounded into the channel's encoding.
+  Rounding, where the producers truncated, because a whole-degree F
+  setpoint has to survive `CelsiusTimes100` (69 F is 2056, not 2055).
+- `api_tank_module` and `api_btu_meter` encode through the registry; the
+  BTU meter no longer scales the pico's `CelsiusTimes100` up by ten.
+- The tsnap driver accepts `CelsiusTimes100` on its device-type record and
+  its channels and encodes through `Temperature.from_c`. `voltage_to_f`
+  is deleted: it did arithmetic on a `Result` and would have raised on its
+  first call, and no layout declares a Fahrenheit tsnap channel.
+- The derived generator's affine check asks `convert_temp_to_f` whether the
+  input is a temperature, the way the identity check does, in place of a
+  hand-kept list that lacked `CelsiusTimes100`.
+- The Hubitat poller converts an attribute whose `Unit` is Fahrenheit or
+  Celcius through the registry, so a Fahrenheit thermostat can feed a
+  `CelsiusTimes100` channel; the attribute's `Exponent` scales only
+  non-temperature numbers. A temperature attribute over a channel that is
+  not a temperature is refused when the converter is made.
+- `tests/actors/test_temperature_producers.py` holds one test per
+  producer, each run under today's encoding and `CelsiusTimes100`. No sim
+  pair boots an `ApiBtuMeter`, a tsnap or a Hubitat, so those tests swap a
+  component in or stub the hardware libraries.
+
+## 2026-09-18 — Temperature readers return Temperature; the cold judgment reads each zone's TempChannelName (OPS-539, `2663b944` on jm/spruce-unlimbo)
+
+The `ShNodeActor` temperature readers each fetched a raw value, asked the
+registry for its unit and called `convert_temp_to_f`, the same five lines
+eight times, and returned bare F floats whose unit lived in a `_f` suffix.
+`is_system_cold` built the zone temperature channel's name by convention
+(`zone{i}-{label}-temp`) while every layout zone already names its own
+`TempChannelName`, so a Nolan house, whose zones read `-gw-temp`, could
+never be judged.
+
+- `channel_temperature` moves from `HydronicNode` up to `ShNodeActor`,
+  where the readers live.
+- `lwt()`, `ewt()`, `hottest_store_temp()`, `coldest_store_temp()` return
+  `Temperature | None` through it. `lift_f` keeps its name and its float:
+  a lift is a difference, not a temperature.
+- `sieg_cold_f`, `hottest_buffer_temp_f` and `coldest_buffer_temp_f` had
+  no callers anywhere and are deleted.
+- `SiegLoop.hp_loop_is_getting_hot` tests the pairs for `None` (a bare
+  `not lwt` also read 0 F as missing) and takes `.f` against the
+  `MaxEwtF` threshold.
+- `is_system_cold` walks `layout.hydronic.Zones` and reads each critical
+  zone's `TempChannelName`; a zone that names none is logged and skipped.
+- The House0 temperature pass reads each channel through
+  `channel_temperature`; no actor pairs `channel_registry.unit` with
+  `convert_temp_to_f` by hand any more.
+- `HydronicNode.latest_temps_f`, a second name for
+  `data.latest_temperatures_f`, is deleted and its 39 readers name the
+  data attribute. The LTN's own `latest_temps_f` attribute is untouched.
+- Tests: the Nolan sim pair judged cold and not cold from `-gw-temp` in
+  `CelsiusTimes100` against a setpoint in `FahrenheitX100`.
+
+## 2026-09-18 — Temperatures carry their unit: the Temperature record, the cold judgment on Temperature pairs (OPS-539, `a3e8e6a6` on jm/spruce-unlimbo)
+
+`is_system_cold` compared raw channel integers and subtracted a literal
+1000 as "1F in millidegrees", which is right only while the zone
+temperature and setpoint channels both happen to be F x 1000. The layout
+already states each channel's encoding; the comparison did not read it.
+
+- `Temperature` (`gwsproto/conversions/temperature.py`): a channel's raw
+  value with its declared `TelemetryName` or `Unit`. It refuses a
+  non-temperature encoding at construction, answers `.f`, and orders
+  across encodings so `min` works on a Celsius and a Fahrenheit value.
+- `ChannelRegistry.temperature(name, raw)` builds it; the registry's
+  `get`, `unit` and `temperature` take a `SpaceheatName`.
+- `HydronicNode.channel_temperature(name)` is the one reader;
+  `setpoints_at_onpeak_start` holds `Temperature` per zone and
+  `is_system_cold` compares the pairs, with `.f` only at the 1.0 F
+  margin, which is a difference and not a temperature.
+- Tests: every encoding through the record, a whole-degree F setpoint
+  through `CelsiusTimes100` within a hundredth, ordering across
+  encodings; the cold judgment on both House0 sim pairs with a setpoint
+  held in Celsius against a zone read in Fahrenheit; the Nolan sim pair's
+  `-gw-temp` read in `CelsiusTimes100` and its cold judgment finding no
+  setpoint.
+
+## 2026-09-18 — Scada timezone and rwt_f's on-peak hours come from the ops tariff; the timezone setting retired (OPS-539, `2902b3bf` on jm/spruce-unlimbo)
+
+The timezone was a `ScadaSettings` default while the ops word already
+carries `Tariff.TimezoneStr`, the zone the on-peak windows are written in:
+two sources for one fact, and the settings one silently wins on a house
+outside Eastern time.
+
+- `ShNodeActor` and `Scada` build `self.timezone` from
+  `ops.Tariff.TimezoneStr`; `DerivedGenerator` and `NolanLocalControl`
+  drop their duplicate assignments and inherit it.
+- The scada `ContractHandler` takes `timezone` as a required argument
+  from its owner.
+- `ScadaSettings.timezone_str` deleted (settings load with
+  `extra="ignore"`, so a leftover `SCADA_TIMEZONE_STR` on a box is inert).
+- The LTN's own `timezone_str` and its readers are untouched: the LTN does
+  not hold the ops word.
+- `in_onpeak_window` moves from `HydronicNode` to `ShNodeActor`: it reads
+  only `self.ops`, and `DerivedGenerator` is not a hydronic node.
+- `DerivedGenerator.rwt_f` asks `in_onpeak_window` which forecast hours
+  count, in place of two hour lists; a weekend forecast hour no longer
+  counts. Its two clock-hour tests stay. `compute_required_energy_wh` is
+  unchanged. Both carry a docstring note that their hours assume the
+  weekday 07:00-12:00 + 16:00-20:00 tariff and can clash with the word;
+  settling that is OPS-551.
+- Tests: `rwt_f` on both House0 sim pairs (weekday, weekend, midday, a
+  changed window); the existing main-loop test now runs on both pairs.
+
+## 2026-09-18 — The multichannel relay, dfr and generic sim relay components leave the layout unions; dfr and sim relay twins deleted (OPS-539, `aca2617f` on jm/spruce-unlimbo)
+
+The sema layout words dropped these three component types (House0 axiom
+16, the Nolan word's union), and no fixture carries one, but the gwsproto
+unions still admitted them, so gwsproto accepted layouts sema rejects.
+
+- `House0Component` and `NolanComponent` lose
+  `I2cMultichannelDtRelayComponentGt` and `SimRelayComponentGt`;
+  `House0Component` also loses `DfrComponentGt`.
+- Deleted with nothing left reading them: `DfrComponentGt`, the
+  `DfrComponent` dataclass, `SimRelayComponentGt`, their exports, and
+  their two `KNOWN_UNTESTED_AXIOMS` entries.
+- `I2cMultichannelDtRelayComponentGt`, its dataclass and
+  `RelayActorConfig` stay: `LayoutLite.I2cRelayComponent` still carries
+  the type, mirroring `layout.lite/013`. They go when that word drops the
+  field.
+
+## 2026-09-18 — One ops word with a family block and a tariff; pico identity on the component twins; House0 axioms 16 and 17; loader checks ScadaAlias (OPS-539, `ebc52612` on jm/spruce-unlimbo)
+
+The sema side moved to one `gw.operational.params` with a `FamilyParams`
+block and a `Tariff`, and the tlayouts gens already emit it, so the scada
+could not load its own fixtures until gwsproto and the loader followed.
+
+- `tests/config`: the orange, willow and nolan operational-params
+  fixtures regenerated by the tlayouts gens as `gw.operational.params`
+  (family block + `Tariff`); the two House0 sim layouts gain each zone's
+  `-set` channel on the zone's sim sensor.
+- `sema_closure/registry.yaml` refreshed from the tlayouts snapshot.
+- gwsproto twins, new: `OperationalParams`, `House0FamilyParams`,
+  `NolanFamilyParams` (`FamilyParams` is discriminated on `TypeName`),
+  `TouTariff` (the per-day window axiom moved onto it as axiom 1),
+  `SimPicoFlowModuleComponentGt`, `SimPicoBtuMeterComponentGt` (both in
+  the two layout words' component unions), the `IanaTimezoneStr` format.
+  `House0PrimaryFlowSource` is `PrimaryFlowSource`
+  (`gw.primary.flow.source`). `House0OperationalParams` and
+  `NolanOperationalParams` are deleted.
+- The three pico component twins carry `PicoBoardVariant` (required) and
+  `MicropythonVersion`: what the house was provisioned with.
+- `LayoutLite.BufferShortCycling` is `KeepBufferFull` (layout.lite 013);
+  the LTN attribute follows.
+- Axioms: House0 16 (BoardResolution) and 17 (BufferTank); Nolan 2 covers
+  every component carrying a `BoardComponentId`, i2c relays and DAC
+  outputs included; both run one shared body,
+  `type_helpers/board_resolution.py`. `Hydronic` axiom 1a keeps only the
+  upper bound, so `TotalStoreTanks` may be zero (a slab house), and
+  `ZoneCallCircuits` is required.
+- Loader (`sema_to_dc.py`): the approved pairing is layout word to
+  family-params word, read off `FamilyParams.TypeName`; a new check
+  refuses a pair whose ops `ScadaAlias` is not the alias of the layout's
+  Scada GNode, so one home's tuning cannot boot another home's plant.
+- Readers: `SeasonalStorageMode` and `KeepBufferFull` through
+  `ops.FamilyParams`; on-peak windows through `ops.Tariff`.
+- Tests: the pairing (crossed families, another Scada's alias, a retired
+  ops TypeName), both new House0 axioms, hydronic axiom 1 on zero and
+  seven tanks, the tariff axiom, the family discriminator, the sim flow
+  word.
+
 ## 2026-09-17 — A layout answers its own store tanks; H0N/H0CN retired; on-peak from the ops word (`51534eb7` on jm/spruce-unlimbo)
 
 `LayoutLiteDc.h0cn` still built `H0CN(total_store_tanks=…, zone_list=…)`

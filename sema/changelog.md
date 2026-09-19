@@ -10,6 +10,211 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-18 — layout words: every circuit's whitewire channel resolves and has one heat call (OPS-539, `73d6eb6` on dev)
+
+A zone-call circuit is the chain with the thermostat and the whitewire,
+and a zone may have two (spruce's living room: floor and fancoil). No
+word required a circuit's call to become a heat-call channel:
+`gw.nolan.layout` said nothing, and `gw.house0.layout` axiom 4
+`ZoneHeatCallChannel` stated it per zone by name pattern, which is right
+only where circuits are one to a zone. A generated spruce layout lost
+the fancoil's heat call with every validator green. Both staging words,
+edited in place, gain `CircuitWhitewireChannelResolution` (Nolan 14,
+House0 19; the `ZoneTempChannelResolution` shape, DataChannels only
+since a whitewire is a sensed wire) and `CircuitHeatCallChannel` (Nolan
+15; House0 4, replacing the per-zone statement, which it implies). The
+heat-call channel's name is not constrained: the circuit record carries
+no label to derive it from, so the binding is the input channel.
+
+## 2026-09-18 — gw1.sim.device.type gains SimDac (OPS-539, `1c9c523` on dev)
+
+The `sim.dac.writer.component.gt` 000 example carried `DeviceType`
+`GridworksSimDac`, a member of neither device-type enum, so a consumer that
+holds `DeviceType` to the two closed lists would reject the word's own
+example. `gw1.sim.device.type` 000 (staging, edited in place) gains `SimDac`,
+named like its eight siblings, and the example takes it.
+
+## 2026-09-18 — pico BTU component words take their CT axioms (OPS-539, `853fc5c` on dev)
+
+The scada's hand-written twin held a rule the word did not: a BTU meter that
+reads CT voltage carries the capture delta for it, and one that does not
+carries none. The same pairing holds for `CtChannelName`, which
+`async.btu.params` already states as its axiom 1. Both are invariants of the
+component, so `pico.btu.meter.component.gt` 000 and
+`sim.pico.btu.meter.component.gt` 000 (staging, edited in place) declare
+them: axiom 1 `ReadCtVoltageIffCtVoltsDelta`, axiom 2
+`ReadCtVoltageIffCtChannelName`. A sim BTU component is held to the same
+rules as a real one. Axiom templates, regenerated runtime, and the first
+runtime tests and fixtures for the two words.
+
+## 2026-09-18 — Layout words: ZoneTempChannelResolution; gw.hydronic drops LearnedNeedsTempChannel (OPS-539, `8bc9fc4` on dev)
+
+A zone's `TempChannelName` is required, but nothing held the name to a
+channel the layout has, or to a channel that carries temperature; the
+scada's cold-house judgment reads through it and would find nothing.
+
+- `gw.house0.layout` 000 axiom 18 and `gw.nolan.layout` 000 axiom 13,
+  identical wording: a. the name resolves to a DataChannel or
+  DerivedChannel; b. that channel's `Quantity` / `OutputQuantity` is
+  Temperature. The clause reads the channel's declared quantity, which
+  `data.channel.gt` 003 axiom 1 already ties to the `TelemetryName`, so
+  the projection is not restated here. `gw1.quantity:001` joins both
+  words' axiom dependencies.
+- `gw.hydronic` 000 axiom 3 `LearnedNeedsTempChannel` deleted: with
+  `TempChannelName` required it restated a structural constraint.
+- All three words are staging and take the change in place. Checked by
+  decoding four generated layouts (spruce, spruce-sim, orange-sim, elm)
+  through the regenerated runtime and confirming each clause rejects a
+  mutated copy; the repo holds no counterexample fixtures for the layout
+  words.
+- The `gw.house0.layout` registry summary drops "never a partial layout",
+  a flourish repeating "every collection and Hydronic required".
+
+## 2026-09-18 — HVAC zones require temperature channels (OPS-539, `ed46a9b` on dev)
+
+The scada's cold-house judgment reads each zone's temperature through
+`TempChannelName`, and a zone without one cannot be judged. Every
+generated layout already names one for every zone, so the optional field
+described no house we have; `gw1.hvac.zone` 000 is staging and takes the
+change in place. The `gw.hydronic` 000 example (staging) had a zone with
+no `TempChannelName` and gains one.
+
+## 2026-09-17 — sema adjustments for new scada code (OPS-539, `39ea506` on dev)
+
+The squash onto `dev` of the three `jm/keep-buffer-full` commits below
+(`4d82943`, `58c65b6`, `7928618`); its tree is identical to `7928618`, and
+those entries carry the what and why.
+
+## 2026-09-17 — a few more sema changes (OPS-539, `7928618`)
+
+Pico identity in the layout: `PicoBoardVariant` + `MicropythonVersion` on
+the three pico component words; `flow.hall.params` and `flow.reed.params`
+registered; field prose trimmed on the two published params words.
+
+- `pico.tank.module.component.gt` 012, `pico.btu.meter.component.gt` 000
+  and `pico.flow.module.component.gt` 001 (all staging, edited in place)
+  gain `PicoBoardVariant` (required, `$ref` `pico.board.variant` 000) and
+  `MicropythonVersion` (optional string). Both are what the house was
+  provisioned with, authored in the layout gen like `PicoHwUid`. The
+  litmus for "layout fact" is a trip to the house: picos take no remote
+  code download, so a reflash costs what a board swap costs. The scada
+  holds the pico's params post against these and reports a mismatch; it
+  never rewrites the layout (the layout is generated, a box runs
+  committed content only, and the post is an unauthenticated LAN request).
+  The two family layout words pick the fields up through the component
+  union.
+- `flow.hall.params` 101 (published, as the archived `flow_hall_main.py`
+  and the scada's hand-built `FlowHallParams` ship it) and 200 (staging,
+  adds the same pair, required; upgrade refuses without context, as
+  `tank.module.params` 110→200 does). `flow.reed.params` 101 (published,
+  as shipped). Neither word was in the registry; the scada carried both
+  as bare pydantic classes.
+- Registry `created` re-stamped to the sitting on the three component
+  words and their staging referrers (`gw.house0.layout` 000,
+  `gw.nolan.layout` 000, `layout.lite` 013): a version's stamp may not
+  precede its dependencies', and `pico.board.variant` is newer than all
+  three. Hash pins added for the two new published versions.
+- Field prose trimmed to the field's own meaning on `tank.module.params`
+  200 and `async.btu.params` 100 (published; clarifying prose only, pins
+  rewritten) and on the new component and `flow.hall.params` fields:
+  `PicoBoardVariant` and `MicropythonVersion` no longer say what the
+  scada or the layout does with them. A description states the field;
+  cross-word narrative belongs in `extended_description` or the wiki.
+
+## 2026-09-17 — One operational-params word with a family block; Nolan BoardResolution keys off BoardComponentId; sim pico triple; gw.primary.flow.source; iana.timezone.str (OPS-539, `58c65b6`)
+
+- `gw.operational.params` 000 (new, staging) replaces
+  `gw.house0.operational.params` and `gw.nolan.operational.params` (both
+  staging, deleted). The two words carried identical field sets but one
+  (`UseSiegLoop`) and bound to their layout family only by name, and the
+  fall layouts (no buffer, no water tanks) would have meant two more full
+  copies. The shared word carries the fields every family tunes; a required
+  `FamilyParams` field is a `oneOf` over `gw.house0.family.params` 000
+  (`UseSiegLoop`, `KeepBufferFull`, `SeasonalStorageMode`) and
+  `gw.nolan.family.params` 000 (`KeepBufferFull`, `SeasonalStorageMode`),
+  discriminated by `TypeName` — the knobs that presume a layout feature
+  live in the block whose `TypeName` is the family, so a mismatched
+  ops/layout pair still fails at decode, one level down. Sema words are
+  flat, so this is composition, not a subtype.
+- `gw.primary.flow.source` 000 (new enum, staging) replaces
+  `gw.house0.primary.flow.source` (staging, deleted): the field it types,
+  `gw.hydronic.PrimaryFlowSource`, is family-neutral, and the enum was the
+  one family-named thing in the shared hydronic word. Same two values.
+- `gw.hydronic` 000 (staging, in place): `ZoneCallCircuits` is required.
+  Both layout words already require it non-empty (House0 axiom 10b, Nolan
+  axiom 5b); the shared word was looser than every consumer.
+- `iana.timezone.str` (new format, published): shape-only regex for an IANA
+  tz-database identifier (`^[A-Za-z_]+(/[A-Za-z0-9_+-]+){0,2}$`), no tzdata
+  dependency so it's trivial across languages. Retires the bare-string
+  `TimezoneStr` on `gw.tou.tariff`.
+- `gw.tou.tariff` 000 (staging, in place): `TimezoneStr` now `$ref`s
+  `iana.timezone.str` instead of a bare string.
+- `gw.nolan.layout` 000 (staging, in place): axiom 2 `BoardResolution`
+  now keys off the `BoardComponentId` field ("board-resident by that fact
+  alone, whatever its TypeName") instead of naming kinds, and its name-field
+  table gains `i2c.relay.component.gt` and `i2c.dac.output.component.gt` —
+  Nolan layouts carry board-resident i2c relays and DAC outputs that were
+  never board-resolved. The runtime check raises on a kind that carries
+  the field but has no table entry, so a future kind cannot be skipped
+  silently.
+- Registry `created` stamps: `gw.hydronic` (new enum dependency), and
+  `gw.house0.layout` / `gw.nolan.layout` (hydronic moved) carry a fresh
+  stamp, since a version's stamp may not precede its dependencies'. `Components` union:
+  `i2c.multichannel.dt.relay.component.gt` and `sim.relay.component.gt`
+  leave (unused by `nolan_sema_gen.py`, which already emits per-relay
+  components); `sim.pico.flow.module.component.gt` and
+  `sim.pico.btu.meter.component.gt` join, completing the sim pico triple
+  alongside `sim.pico.tank.module.component.gt`.
+- Follow-up opened as a design rather than done here: `gw.weather.location.gt`
+  is `published`, so retiring its own hand-validated-string note for
+  `Timezone` needs a new version — OPS-548,
+  `wiki/gridworks-weather-forecast/designs/iana-timezone-format.md`.
+
+## 2026-09-17 — House0 rung 6: KeepBufferFull, gw.tou.tariff, sim pico flow and BTU words, House0 board and buffer axioms (OPS-539, `4d82943`)
+
+Rung 6 of correct-house0, the sema side in one commit. Every edit is in
+place on a staging word except the three new words.
+
+- `gw.house0.operational.params` 000 and `gw.nolan.operational.params`
+  000: `ShortCycleBuffer` becomes `KeepBufferFull`, named for what the
+  flag does; the old description claimed a short-cycle guard the code
+  never had. `UseSiegLoop` (house0) no longer lists the actor classes it
+  switches on. `OnPeakWindows` becomes `Tariff`, a `gw.tou.tariff`, and
+  the per-day non-overlap axiom goes with the windows.
+- `gw.tou.tariff` 000 (new, staging): `Alias` (left.right.dot),
+  `DisplayName`, `TimezoneStr` (a tz-database zone name, a bare string as
+  on `flo.params.house0`), `OnPeakWindows`. On-peak and off-peak only; no prices,
+  holidays or shoulder. The tariff carries its own clock so the scada's
+  timezone setting can retire.
+- `layout.lite` 013: `BufferShortCycling` becomes `KeepBufferFull`, the
+  copy the scada sends the LTN; the 012 to 013 upgrade docstring and the
+  registry summary carry the rename.
+- `gw.hydronic` 000: `TotalStoreTanks` may be zero (a store that is not
+  water tanks); axiom 1a keeps only the upper bound of 6. The word is
+  staging, so in place.
+- `gw.house0.layout` 000: the multichannel relay component and the
+  generic sim relay leave the `Components` union (the scada builds House0
+  relays on per-relay components against the Krida board record); axiom
+  16 `BoardResolution` resolves every i2c relay and DAC output through
+  its board component to a name in the board's device-type record; axiom
+  17 `BufferTank` states the family invariant (the `buffer` node and
+  its three depth channels) in the word so scada code can ask the layout
+  and assume nothing. `sim.pico.flow.module.component.gt` and
+  `sim.pico.btu.meter.component.gt` join the union.
+- `sim.pico.flow.module.component.gt` 000 and
+  `sim.pico.btu.meter.component.gt` 000 (new, staging), on the sim tank
+  pattern: the real word's field set plus `SimLifeS` / `SimRebootS`, with
+  `SimulatesTypeName` / `SimulatesVersion` pinning the mirrored word, so a
+  simulated layout can drive `ApiFlowModule` and `ApiBtuMeter`.
+- Registry: `gw.house0.layout` 000 and both ops words carry a fresh
+  `created` (a version's stamp may not precede its dependencies'); the
+  three words are staging.
+
+Runtime regenerated; suite green; `sema validate` passes the House0 sim
+pair, beech and maple against the edited layout word. The ops fixtures
+in tlayouts fail until the gens regenerate them (the two renamed fields),
+which is the downstream wave with scada and the vendored snapshots.
+
 ## 2026-09-15 — publish the alerter words; enum default is the decode fallback; a oneOf over enums is discriminated (OPS-547, `3de1363` on dev)
 
 One squashed commit (the earlier publish commit and three follow-ups

@@ -17,6 +17,15 @@ runs).
 > one for one. It sequences after the alerter's shadow deployment
 > (OPS-545) and changes that design's notification path: not an A/B of
 > two notifiers, but the new path from the first live detector.
+>
+> **Written to hand off.** The alerter's owner takes this design over
+> once spoke 1's laptop experiment has PASSED: a first-pass alerter that
+> has provably delivered a `gw.alert` into a notifier's intake and had
+> it page. Everything from there, the box stand-up, the routing tree,
+> the receivers, the templates, the retirement of the manager, and the
+> detector port, is theirs to shape, and this document is the brief,
+> not the instruction. "Handoff" below says what is proven, what is
+> decided, and what is open on purpose.
 
 **▶ Active spoke: [`alerter-and-tap.md`](alerter-and-tap.md)**
 
@@ -109,6 +118,47 @@ Two principles the word and its detectors hold to:
   headline, with the full alias and the registry's display name in the
   body so two houses with one short name are told apart where a reader
   acts.
+
+## Handoff
+
+The line between what this design settles and what its next owner
+decides.
+
+**Proven when the handoff happens** (spoke 1 PASS on the laptop, the
+harness in the experiment folder):
+
+- The alerter raises and resolves `NoData` as `gw.alert` records, keeps
+  its open-alert state across a restart, and broadcasts each transition
+  on `alertsmic_tx`.
+- The tap turns each record into an Alertmanager alert and the
+  `Resolved` record closes it; a Telegram test group gets both.
+
+**Decided, and why** (change them with a reason, not by default):
+
+- Transitions only from the alerter; repeat cadence, escalation,
+  silences and acknowledgement live in the notifier ("Why"). The
+  manager's 5-minute reminder and 3-send escalation were the right
+  instincts for the job; on Alertmanager they are `repeat_interval` and
+  a routing tree, not code.
+- One `gw.alert` word with `State`, full GNode alias as identity, no
+  channel-name strings in a detector ("The word"). The vocabulary is
+  sema's, and a new category or kind is a sema change first.
+- Alertmanager's intake on loopback; the tap is the only writer.
+
+**Open on purpose** (the next owner's, with the manager's history as
+the guide to what people actually need):
+
+- The routing tree and receivers: who is paged for which category, at
+  what hours, with what text. The manager's Google-Sheet rotation is
+  the record of how the team wants this to work.
+- Whether `Subject` becomes a `gw.platform.service` enum once a router
+  needs to match on it.
+- Which detector ports next after `NoData`, in what order, and each
+  one's layout-word lookups (`executor/gwalerter.md` "Alert kinds" is
+  the list, with the gwalert findings that shaped it).
+- The Alerts web page's move from the manager's history to the journal,
+  which is what lets the manager retire.
+- The prober (spoke 3).
 
 ## Notes
 

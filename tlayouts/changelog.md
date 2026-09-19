@@ -10,6 +10,150 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-18 — snapshot takes the two circuit channel axioms (OPS-539, `fab0b52` on jm/spruce)
+
+Sema `73d6eb6` gives both layout words `CircuitWhitewireChannelResolution`
+and `CircuitHeatCallChannel`, the House0 word's per-zone
+`ZoneHeatCallChannel` giving way to the per-circuit statement. The snapshot
+regenerates so every gen's validation gate runs them, and the gens rerun
+against it.
+
+## 2026-09-18 — a Nolan layout derives one heat call per zone-call circuit (OPS-539, `89db516` on jm/spruce)
+
+The heat-call derived channels were emitted per zone. Spruce's living
+room is one zone served by two circuits, each with its own thermostat
+and whitewire, so the fancoil circuit's call
+(`zone5-living-rm-fancoil-heat-call`, which the pi derives today) had no
+derived channel in the generated layout; only its raw opto input was
+reported. The Nolan gen names its heat calls from the circuit list. The
+other four spruce heat calls and every House0 heat call keep their names
+and ids, since those circuits are one to a zone. No word changes:
+`gw.house0.layout` states its heat-call axiom per zone and
+`gw.nolan.layout` states none.
+
+The same commit sets beech's ops params to Standby. The beech house runs in Standby, and its gen emitted `ActuationAuthority`
+`Active` with `SeasonalStorageMode` `AllTanks`, so a scada booted on the
+generated pair would have loaded the all-tanks TOU control and actuated.
+The gen states what the house runs; the move to local control is a
+deliberate ops change, made in the gen when that run happens.
+
+## 2026-09-18 — a house declares its renames; a renamed object keeps the pi's id (OPS-539, `56448a9` on jm/spruce)
+
+The names retirement renamed objects the pis still hold under their old
+names, and the gen finds a pi id by name, so each renamed object was
+minted a new id: the four spruce heating elements and their power
+channels (`elt-buffer-top` to `buffer-top-elt`, `elt-store-top` to
+`tank1-top-elt`; the store elements sit in tank 1), spruce
+`vdc-relay-gpio-23` to `vdc-relay`, and beech's second dist meter
+(`dist-flow2` to `dist2-flow`, with its `-hz`). A channel that changes id
+splits its journal history. `LayoutGenConfig.renames` carries a house's
+(new name, deployed name) pairs; with the fleet-wide `RENAMED` they now
+apply to node ids and node-bound component ids as well as channel ids,
+which also moved maple's `sieg-send-flow` component onto the pi's id.
+
+## 2026-09-18 — deployed gens take ids from the pi, then their own previous output (OPS-539, `3cb3f5a` on jm/spruce)
+
+A deployed house's layout carries names the pi's running layout lacks
+(spruce's unlimbo nodes, channels and components; the House0 names the
+retirement changed), and a name absent from the single reference was
+minted with a fresh uuid on every run. A box file checked byte-identical
+to the gen output then stopped matching at the next regen. `LayoutGen`
+takes a second map, the gen's own previous output, consulted after the
+reference and its rename index and before minting; a previous-output id
+the reference already assigns to another name is skipped. The spruce,
+beech and maple gens fetch the pi's layout over rclone (agent key use
+off per call, so the fetch does not depend on the ssh-agent holding the
+fleet key) and fall back to the last fetched copy. The test runs a gen
+twice against a reference that lacks names and requires identical ids.
+
+## 2026-09-18 — snapshot takes SimDac; SimDeviceType lists every sim value (OPS-539, `0c3a7cd` on jm/spruce)
+
+The snapshot regenerated from sema with `gw1.sim.device.type` carrying
+`SimDac`. The generators' own `SimDeviceType` value list
+(`device_types/__init__.py`) lacked `SimRelayBank` and gains it with
+`SimDac`, so it names every value of the enum.
+
+## 2026-09-18 — snapshot takes the pico BTU component axioms (OPS-539, `146ef3f` on jm/spruce)
+
+The snapshot regenerated from sema with `pico.btu.meter.component.gt` and
+`sim.pico.btu.meter.component.gt` carrying `ReadCtVoltageIffCtVoltsDelta`
+and `ReadCtVoltageIffCtChannelName`, so every BTU component a gen emits is
+checked against them at the driver's decode.
+
+## 2026-09-18 — temperature DataChannels in CelsiusTimes100; Nolan zones carry a derived setpoint (OPS-539, `26badee6` on jm/spruce)
+
+Sema requires `TempChannelName` on every HVAC zone and resolves it in both
+layout words (`ZoneTempChannelResolution`), and a temperature DataChannel is
+what a sensor measured, encoded `CelsiusTimes100`. Every gen — sim and house
+alike — carries the same encoding now; the ADS board's per-channel telemetry
+override is gone (`AdsChannelSpec.telemetry` deleted), so there is no lever
+left to leave one channel on the old encoding.
+
+- The snapshot regenerated at sema `8bc9fc4`: `gw1.hvac.zone` with
+  `TempChannelName` required, `ZoneTempChannelResolution` as
+  `gw.house0.layout` axiom 18 and `gw.nolan.layout` axiom 13, `gw.hydronic`
+  without its axiom 3.
+- Capture deltas scale with the encoding: tank device temperatures 2000 to
+  200 (`tank_module.py`, the extra tank modules included), ADS channels 500
+  to 50 (`hardware/thermistor.py`), sieg-cold 2000 to 200
+  (`house0_sema_gen.py`). The ADS device-type record's `TelemetryNameList`
+  is `CelsiusTimes100` alone, which the scada's tsnap driver checks its
+  channels against.
+- `hydronic_zones()` returns a `ZoneCore` record (`layout_gen.py`) and each
+  family gen builds its own `HvacZone` from it, so each names its zone's
+  temperature channel. A Nolan zone with no thermistor raises.
+- `nolan_sema_gen.py` `emit_zone_setpoints` writes one DerivedChannel per
+  zone (`zone{i}-{label}-set`, strategy `simple-falling-edge-setpoint` over
+  the zone's gw-temp and heat-call, `FahrenheitX100`). Spruce has no
+  thermostat the scada can read, so the setpoint the cold-house judgment
+  compares against is inferred from where the temperature stands when a
+  heat call ends.
+
+## 2026-09-18 — Simulated BTU meters emit the sim pico BTU word (OPS-539, `6b3d8c5` on jm/spruce)
+
+A simulated home's BTU meters were the generic sim sensor, so no sim pair
+booted the scada's `ApiBtuMeter`. The emitter now gives a simulated home
+`sim.pico.btu.meter.component.gt` under an `ApiBtuMeter` node, with the
+home's `SimLifeS` / `SimRebootS` and a `sim-<node>-pico` HwUid, the way the
+tank emitter does; the component fields are shared between the two words.
+
+## 2026-09-17 — Snapshot regen: one ops word with a family block and a tariff; pico boards authored; oak, fir and elm as House0 fixtures (OPS-539, `472fee6` on jm/spruce)
+
+- Snapshot regenerated from sema `7928618`: `gw.operational.params` with
+  `FamilyParams` replaces the two family ops words (the seed now targets
+  it; the orphaned `dfr.component.gt` leaves the seed, no gen builds it);
+  `gw.tou.tariff`, `iana.timezone.str`, `gw.primary.flow.source`,
+  `pico.board.variant`, the two sim pico words, and the three pico
+  component words with `PicoBoardVariant` + `MicropythonVersion`.
+- `OpsSpec` carries `keep_buffer_full` and a `TariffSpec` (alias, display
+  name, tz zone, on-peak windows); `build_ops_kwargs` emits the shared
+  block and each family gen adds its `FamilyParams`
+  (`UseSiegLoop`/`KeepBufferFull`/`SeasonalStorageMode` for House0,
+  the latter two for Nolan). Every gen names the Versant TOU rate from
+  the tariff word's example; the alias is a guess to confirm.
+- `TankSpec`, `ExtraTankSpec`, `BtuSpec`, `FlowSpec` take a required
+  keyword `board` (`PicoBoardVariant`), authored per pico like the
+  HwUid. First pass: beech and maple tank modules are Wiznet Pico 2
+  boards on the `gridworks-pico/firmware` build, their other picos Pico
+  W; spruce is all Pico W until the window says which tank module is the
+  Wiznet; oak, fir, elm and the bench sims are `Unknown`.
+  `MicropythonVersion` is left absent everywhere: not yet known.
+- `ZoneCallCircuits` is required on `gw.hydronic`, so the base gen
+  returns the zones (`hydronic_zones`) and each family builds `Hydronic`
+  with its circuits; a gen with none declared raises.
+- Oak, fir and elm are sema-authored as House0 fixtures on purpose
+  (no sieg loop in the houses; the word requires the sieg surface, so
+  each carries a pretend sieg flow pico `pico_000000` and a `sieg-cold`
+  ADS channel, marked PRETEND). They run with no reference layout
+  (`reference=None` mints ids; g-nodes authored in the gen) and beech's
+  LG pair standing in for unrecorded heat-pump make/model. The commented
+  `old_gen_{oak,fir,elm}.py` specs and the `house0_no_sieg_sema_gen.py`
+  stub are deleted: translated, nothing imports them.
+- A House0 sim zone's sim sensor emits the zone's `-set` channel beside
+  `-temp` (`AirTempFTimes1000`), so the hydronic actors' setpoint memory
+  has a channel behind it on the orange and willow pairs. The Nolan sim
+  pair emits none: what the Nolan cold-house rule reads is undecided.
+
 ## 2026-09-17 — Tank name helpers by index; House0ChannelNames is constants only (`99b6f4d` on jm/spruce)
 
 The scada retired `helpers.Tanks` and the `House0ChannelNames` instance
@@ -369,6 +513,16 @@ six words the gens use); `build_tlayouts_snapshot.sh` with the root seed is
 what reproduces the committed tree.
 
 ---
+
+## 2026-09-18 — drop hubitat zone state (OPS-539, `905eb5e` on jm/spruce)
+
+The Hubitat `thermostatOperatingState` reading has unstable values, no names
+class carries it, and nothing reads it for heat call or control; a zone's
+heat call is its derived `heat-call` channel. `hardware/hubitat_zone.py`
+emits temp and setpoint only, so beech, maple, oak, fir and elm lose one
+`zone{i}-{label}-state` channel, poller attribute and capture tuning per
+zone. A deployed house takes the regenerated layout only after the web
+frontend's thermostat table stops reading `-state`.
 
 ## 2026-09-06 — patch linear.one.dimensional.calibration snafu (`0a051f9`)
 

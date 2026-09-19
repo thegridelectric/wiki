@@ -1,6 +1,6 @@
 # Fleet deployment (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-18 · Linear: OPS-392
 
 > What this is: the actual rollout of `jm/spruce-unlimbo` onto the six
 > production boxes as `main` before the heating season — the ordered box
@@ -13,7 +13,7 @@ Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-392
 
 The branch does not become `main` until:
 
-- Every launch spoke is green: the layout gens (`correct-house0.md`,
+- Every launch spoke is green: the layout gens (OPS-539, done;
   `house0-no-sieg-layout.md`), the layout-word axioms
   (`layout-word-axioms.md`), the ops-word cleanup
   (`operational-params-cleanup.md`), the sieg loop proven on new code
@@ -74,6 +74,70 @@ restart, confirm it returns to the known-good posture, and leave the fleet
 partially rolled rather than forcing a bad line onto the rest. A single
 misbehaving family does not block rolling back just that family.
 
+## tlayouts on GitHub is the interim record
+
+Until the terminal-asset registry exists
+(Stand up TAR, [OPS-471](https://linear.app/gridworks/issue/OPS-471);
+this section is step 1 of that design's path to the registry), the record of
+every house's layout and operational params is the tlayouts repo on GitHub:
+the generators and the JSON they emit, committed together. A generator and
+its JSON cannot be two authorities if a check holds them equal. Today
+neither half holds: `output/` is gitignored, so no deployed layout is in
+git at all, and `jm/spruce` has run many commits ahead of its remote, so
+the generators behind the deployed files have lived on one laptop.
+
+The cleanup, before the fleet swap:
+
+1. **The JSON is committed.** `output/<house>/` for the six houses and the
+   sim pairs comes out of `.gitignore`. The strays in `output/`
+   (`*.generated.json`, `*.uploaded.json`, one-off experiments) are deleted
+   or stay ignored; only the per-house directories are the record.
+2. **A drift test holds JSON to generator.** tlayouts gets a `ci.sh` and a
+   GitHub Action that re-run every gen and fail unless the output is
+   byte-identical to the committed JSON and decodes through the vendored
+   snapshot. The gens import `gwsproto.names`, so the job installs the scada
+   protocol package at a pinned SHA; that dependency goes away when names
+   live in sema.
+3. **A box takes its files only from GitHub.** Each box holds a full tlayouts
+   clone. One script on the box pulls, checks that the checkout is clean
+   and on a pushed SHA, validates the pair, leaves the dated
+   `*.pre-<change>.json` copies, installs the two files, and prints the
+   SHA. Nothing is copied to a box from a laptop, which is the enforcement:
+   a change that was never pushed cannot reach a house. This is the
+   prod-boxes-run-committed-code rule applied to layouts.
+4. **The scada reports what it runs.** The tlayouts SHA (or a checksum of
+   each file) rides the scada's link-up report, so what a house runs is
+   read from the house and compared with the repo, not inferred.
+
+**Until step 3, `experiments/put_layout.sh` is the path onto a box**, and
+only for the experiment-window files
+(`~/.config/gridworks/scada-experiment/hardware-layout.json` and
+`operational-params.json`): it copies the laptop's `output/<house>/` pair
+over them, keeps the dated previous copy, verifies sha256 and refuses
+while a window runs. spruce, beech and maple hold the 2026-09-18 output
+this way. spruce and beech have the rest of a window setup
+(`~/gridworks-scada-unlimbo`, `~/envs/dev.env`); maple has neither, so
+its pair waits for a checkout and an env. It is a laptop copy of ungitted JSON, which steps 1 and 3
+retire; the box's pull script takes over its checks.
+
+**Committing the JSON also gives minted ids their home.** The spruce,
+beech and maple gens take ids from the pi's deployed layout, then from
+their own previous output, then mint
+(`wiki/tlayouts/executor/primary.md` "Invariants"). With `output/`
+ignored, an id minted for a name the pi lacks lives on one laptop and on
+the box it was put to; a gen run from a fresh clone would mint it again.
+Step 1 closes that. elm, fir and oak take the same reference before
+their layouts go to a box.
+
+**The LTN parameter API is the first step past this.** Operational params
+change far more often than layouts, and the LTN API for adjusting house
+parameters is needed anyway
+([OPS-531](https://linear.app/gridworks/issue/OPS-531): one acceptance
+path, an in-force set with its id, reconciliation on scada boot). Ops move
+onto that path first, reading their starting instance from this repo;
+layouts follow on the same exchange ("The next design" below); the
+registry then replaces the repo as the store behind the LTN.
+
 ## Post-launch: updating a deployed layout or ops params
 
 After launch, a layout or ops change is not a hand-edit on the box. It goes
@@ -89,9 +153,10 @@ through tlayouts, regenerating from the currently-deployed shape:
    and run the conformance test if the layout closure moved.
 4. For a word that changed status, promote bottom-up with `sema promote` and
    record it in the sema changelog.
-5. Land in git, push, pull on the box, restart. The box's layout and ops
-   files under `~/.config/gridworks/scada-experiment/` stay byte-identical to
-   the tlayouts gen output.
+5. Commit the gen and its JSON together, push, run the box's pull script,
+   restart. The box's layout and ops files under
+   `~/.config/gridworks/scada-experiment/` stay byte-identical to the
+   committed tlayouts output.
 
 The staging → published promotion of the full layout closure and the
 operational-params pair, once the fleet runs them, is the spruce-settled
@@ -172,6 +237,10 @@ rebuilding it:
 - Whether the swap is one fleet-wide window or staged over several days.
 - Who runs each box's pull — the box-runs-a-pushed-SHA guarantee holds either
   way, but the sequencing owner is unset.
+- The tlayouts cleanup's details: whether the box script installs copies or
+  symlinks into the clone; whether tlayouts `main` or `jm/spruce` is what
+  boxes track; whether the drift test also runs as a pre-push hook on dev
+  machines.
 - Whether the layout artifact joins OPS-408's scope as written, or the LTN
   update surface becomes its own cross-cutting design that OPS-408's
   param-update rides on.

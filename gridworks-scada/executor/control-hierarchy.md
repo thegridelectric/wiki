@@ -1,6 +1,6 @@
 # Control hierarchy — HSMs, the command tree, and the capability cover
 
-Status: Draft · Pass 0 · Updated 2026-09-15
+Status: Draft · Pass 0 · Updated 2026-09-18
 
 > What this is: how the SCADA's hierarchical state machines (HSMs) and the command tree work **together**
 > — the piece the executor lacked. The HSM decides *who is in control*; the command tree *enforces* it via
@@ -73,7 +73,9 @@ send) apart; the pattern and its current strain are in
 
 ## Fixed sub-trees vs floating actuators
 
-Most actuators **float** — re-parented under the current authority. Some sub-bosses own **fixed** relays
+Most actuators **float** — re-parented under the current authority. The layout
+declares them flat under `auto` (their `Handle`), and the scada's boot rewrite
+owns the live tree. Some sub-bosses own **fixed** relays
 regardless of who is on top: `pico-cycler` always owns the vdc relay (pico-reboot is cross-cutting),
 `hp-boss` owns `hp-scada-ops-relay`, `sieg-loop` owns the loop relays. An interior node keeps its
 subtree: a tree rewrite reparents the interior node and never reaches through it to its relays.
@@ -212,7 +214,13 @@ this cured: the relay actor once carried `turn_on_HP`, the thermistor reader
   The fall-through is deliberate: a house with a dead depth sensor keeps
   cycling on the nearest reading rather than stalling.
 - **E — zone/TOU pieces** (`get_zone_setpoints`, `is_onpeak`, `is_system_cold`):
-  family-neutral, reading ops words.
+  family-neutral, reading ops words. `setpoints_at_onpeak_start` is each zone's
+  setpoint as on-peak began, and `is_system_cold` judges against the lower of it
+  and the current setpoint, so a thermostat raised during on-peak does not read
+  as a cold house. The memory is refreshed off-peak (`is_system_cold` does that
+  itself) and in the two minutes before a window opens, and held through
+  on-peak; that hold is the protection. A strategy that refreshes it on every
+  pass makes it the current setpoint and defeats it.
 
 Directory shape is role first, then family:
 
@@ -228,11 +236,14 @@ actors/                        sh_node_actor.py (A) · command_node.py (B)
 
 There is no cross-family sharing inside a role dir (`all_tanks` / `buffer_only`
 are House0's, since Nolan homes are store-under-floor). `hydronic/shared.py`
-holds only family-neutral material — zone-circuit relay helpers, the vdc pair,
-onpeak/setpoint judgment, `latest_temps_f`. Its bar is **"every layout we can
-imagine has this,"** not "both current families use it": a helper that assumes a
-buffer tank, an iso valve or store tanks belongs in the family file, since the
-fall roadmap has bufferless, iso-valve-less layouts.
+holds zone-circuit relay helpers, the vdc pair and the onpeak/setpoint
+judgment. The bar for a name or helper staying in the hydronic tier is not
+"every layout has it": most layouts have store tanks and two have a buffer, and
+a layout without the thing simply answers that it has none. A thing leaves the
+hydronic tier when it would be confusing across families. The core cases are the
+iso valve and the charge/discharge relay, which are wired differently in
+`gw.house0` and `gw.house0.no.sieg`. `hubitat` serves more than one family, so it
+is a hydronic-tier name.
 
 **Each interior node owns the command tree at and under it and publishes it.**
 Publication is the full-tree `new.command.tree` snapshot — the wire contract is

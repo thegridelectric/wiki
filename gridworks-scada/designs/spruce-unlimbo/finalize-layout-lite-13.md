@@ -1,6 +1,6 @@
 # Finalize `layout.lite/013` (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-18 · Linear: OPS-392
 
 > What this is: the spoke that takes `layout.lite/013` from staging to
 > published with its closure, so the spruce scada can send it on the
@@ -46,6 +46,41 @@ it opens.
   is segment 2's question; segment 1 only finalizes the word the box
   sends today.
 
+## What `layout.lite` is standing in for
+
+`layout.lite` serves two temporary roles, and finalizing it is the moment
+to prepare for what replaces each.
+
+1. **Proof of liveness.** The scada's answer to `SendLayout` on link-up is
+   how the LTN knows the scada is there. That role is changing out very
+   shortly and should not shape the word.
+2. **A stand-in for the actual layout and operational params.** The LTN
+   learns scada parameters only through this word (`KeepBufferFull` at
+   `actors/ltn/ltn.py:774`), because it holds neither the layout word nor
+   the ops word. The direction is the other way round: the LTN provides
+   the scada with both its operational params and its layout, drawn from
+   their authority, the terminal-asset registry (the layout and
+   operational-params sibling of the grid-node registry,
+   [OPS-471](https://linear.app/gridworks/issue/OPS-471)). What the scada sends up is then likely a
+   confirmation that the layout and ops it runs are the correct ones,
+   checked against that authority, not the source of them.
+
+So segment 1 carries design work as well as the publish: what the
+authority holds, how the LTN hands a scada its layout and ops, and what
+the scada sends up so the two can be checked against each other. The
+adoption question (whole instance or partial update, restart or not) is
+in `../spruce-settled/publish-layouts-and-operational-params.md`
+"Parameters coming down from the LTN".
+
+**The LTN's timezone and on-peak hours are the first case.** The scada
+side reads its timezone from `ops.Tariff.TimezoneStr`. The LTN cannot: its
+three readers (`actors/ltn/ltn.py:474`, `actors/ltn/contract_handler.py:58`,
+and the LTN settings default `actors/ltn/config.py:44`) and its inline
+on-peak table (`actors/ltn/contract_handler.py:275`, weekdays 7 to 11 and
+16 to 19) stay on LTN settings until the LTN holds the ops word. A
+`Tariff` field on `layout.lite` is not the fix; it would extend the
+stand-in role this section retires.
+
 ## The first wire case
 
 The LTN requests the layout with `SendLayout`; the scada answers with a
@@ -74,7 +109,7 @@ is the gate to connecting.
    that and nothing that forces a further reshape before publishing.
 2. Decide the closure: publish 013 with the Krida pair in it, or cut a
    014 without them once the sema wave drops them from the House0 word
-   (`correct-house0.md` "Open"; scada stopped reading them 2026-09-10).
+   (scada stopped reading them 2026-09-10).
 3. Fix the builder for the Nolan layout; boot on the bench and on the
    box and confirm the emitted instance validates (`sema validate`).
 4. Publishing is immutability: confirm every word in the closure is
@@ -91,6 +126,15 @@ is the gate to connecting.
 ## Open
 
 - Whether `014` goes first (no Krida pair) or `013` publishes as is.
+- Delete the unused Krida pair from gwsproto when the word stops carrying
+  it. `layout.lite`'s `I2cRelayComponent` field is the last reader of
+  `I2cMultichannelDtRelayComponentGt` and `RelayActorConfig`
+  (`named_types/layout_lite.py:44`); no scada code fills the field and
+  both layout words' component unions have dropped the type. When the
+  field goes (or is retyped), delete the two twins, the
+  `I2cMultichannelDtRelayComponent` dataclass, their exports, and
+  `tests/named_types/test_i2c_multichannel_dt_relay_component_gt.py` and
+  `test_relay_actor_config.py` in the same change.
 - `gw.nolan.layout` closes with the same epic-end promote: registry
   status finalized, regenerate, validate against the real layouts. The
   promote holds until the House0 word runs on all the House0 homes

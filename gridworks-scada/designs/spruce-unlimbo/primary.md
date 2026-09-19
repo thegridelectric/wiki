@@ -1,12 +1,12 @@
 # Spruce un-limbo (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-09-14 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-09-18 · Linear: OPS-392
 
 **EDD: yes** bench (honeysuckle) and box harness runs are the verification;
 spokes reach Verified only when an experiment runs against the real bus or a
 real broker.
 
-**▶ Active spoke: [`correct-house0.md`](correct-house0.md)**
+**▶ Active spoke: [`cold-house-derived-setpoint.md`](cold-house-derived-setpoint.md)**
 
 > What this is: the hub for getting `jm/spruce-unlimbo`, the branch that
 > runs the Nolan layout at spruce, onto the whole fleet as `main` before
@@ -48,49 +48,58 @@ go without.
    five-strata split of the god base class (A infra · B command-tree · C+D
    hydronic per family · E zone-TOU) and the role-first directory shape; in
    `executor/control-hierarchy.md` "The node-actor partition". The
-   hydronic-file reviews and H0N/H0CN retirement it surfaced carry on in
-   `correct-house0.md` rung 5
-6. `correct-house0.md` (OPS-539, per-rung) — House0 made right: the fixture
-   pair from the sema-native gen and `sema validate` green, the H0N/H0CN
-   retirement carried through the hydronic file reviews, the House0 word's
-   requirement axioms to the Nolan shape
-7. `operational-params-cleanup.md` (est 6.5h) — the Nolan ops word sheds
+   hydronic-file reviews and H0N/H0CN retirement it surfaced are done
+   (OPS-539).
+6. ✅ DONE correct-house0 (OPS-539) — House0 made right across the sema
+   word, the tlayouts gens and the scada code: the House0 and Nolan words'
+   requirement and circuit axioms mirrored in gwsproto, every layout
+   emitted by a gen with the pi's ids, the H0N/H0CN aliases retired; the
+   generated pairs booted in windows on spruce and beech 2026-09-18
+   (`experiments/2026-09-18-correct-house0-windows/`); in
+   `executor/hardware-layout.md` "Names — `gwsproto/names/`" and
+   "Generation — the tlayouts gens", `tlayouts/executor/primary.md`
+7. **`cold-house-derived-setpoint.md`** — the cold-house judgment at a house
+   whose zone setpoints the scada derives: what stands in when the derived
+   generator holds no setpoint, and the glitch scenarios that test it
+8. `operational-params-cleanup.md` (est 6.5h) — the Nolan ops word sheds
    the House0 store knobs once the strategy selectors land; the tunables
    still in scada settings move to the ops surface
-8. `control-strategy-selection.md` (est 4h) — the LTN and the scada
+9. `control-strategy-selection.md` (est 4h) — the LTN and the scada
    select the correct control strategy per house; ops chooses the machine,
    the machine owns its state; the LTN side still to design
-9. `nolan-local-control.md` — the loop that runs a Nolan house through a
+10. `nolan-local-control.md` — the loop that runs a Nolan house through a
    heating season; opens after the partition rope
-10. `layout-word-axioms.md` — the staging axiom reshape of both layout
+11. `layout-word-axioms.md` — the staging axiom reshape of both layout
     words + fixture/generator moves; which of spruce's extra pico
     channels the Nolan word requires
-11. `house0-no-sieg-layout.md` (est 3h) — the `gw.house0.no.sieg` word (House0 with
+12. `house0-no-sieg-layout.md` (est 3h) — the `gw.house0.no.sieg` word (House0 with
     the sieg surface deleted) and the oak / fir / elm generators; three of
     the six boxes are this family
-12. `relay-actor-enforcement.md` (est 3h) — the relay actor keeps every relay reliable
+13. `relay-actor-enforcement.md` (est 3h) — the relay actor keeps every relay reliable
     on the new code: assert-then-verify with I2C self-heal, confirmed state
     from pin-readback, honest boot; the two relay-test gaps that witness it
     pulled forward to launch. The zone-call / thermostat control model on top
     is post-launch (OPS-532)
-13. `refactor-sieg.md` (est 4h) — the sieg loop's first exercise on the new code;
+14. `refactor-sieg.md` (est 4h) — the sieg loop's first exercise on the new code;
     the House0 rows of the hp-boss live test uncommented; before maple
     and beech take the branch
-14. `command-tree-matrix.md` (est 3h) — the sender rule for five nodes (built),
+15. `command-tree-matrix.md` (est 3h) — the sender rule for five nodes (built),
     the state-transition tree matrix on `command_node.py`, the relay's full
     report to the journal
-15. `odds-and-ends.md` (est 3h) — small launch items, one problem / change / test
+16. `odds-and-ends.md` (est 3h) — small launch items, one problem / change / test
     each (the panel's unobserved row offers every command; hp-boss
     reports its state at start; the LTN Dst-routing test)
-16. `main-changes.md` (est 1.5h) — the commits `main` took after the branch point,
+17. `main-changes.md` (est 1.5h) — the commits `main` took after the branch point,
     each carried or dismissed before the branch becomes `main`
-17. `finalize-layout-lite-13.md` (est 4h, segment 1) — `layout.lite/013` and its closure from
+18. `finalize-layout-lite-13.md` (est 4h, segment 1) — `layout.lite/013` and its closure from
     staging to published so spruce can send it on the production broker;
     `gw.nolan.layout` closes with the same promote
-18. `deployment.md` (est 5h) — the fleet rollout to all six boxes as `main`:
+19. `deployment.md` (est 5h) — the fleet rollout to all six boxes as `main`:
     precondition gates, per-family order and verification, rollback to the
     prior SHA, and the post-launch tlayouts loop for updating a deployed
     layout or ops
+
+`gleanings.md` holds parked notes off the build path.
 
 Every family ships a sim pair (layout ⊕ ops, all sim device types) that
 the suite boots; the next level, a simulated terminal asset per family on

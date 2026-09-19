@@ -95,7 +95,7 @@ This design generalizes existing scada seams rather than starting fresh. The
 **durable as-is facts live in `executor/`** (they outlive this design):
 
 - **The sim DeviceType seam + component model** — `executor/components.md`
-  ("DeviceType — and the retirement of MakeModel" / "Sim is just another DeviceType").
+  ("DeviceType — and the retirement of MakeModel" / "Sim is a disjoint vocabulary").
 - **Sim layout components + the `TerminalAsset` GNode role** —
   `executor/hardware-layout.md` (`simulated_tanks.py` →
   `SimPicoTankModuleComponentGt`; the terminal asset is a GNode *role*, not a

@@ -103,10 +103,10 @@ Items this spoke once queued and that other spokes now carry:
 - `SeasonalStorageMode` retirement and per-role strategy selectors:
   `control-strategy-selection.md`.
 - Nolan-wrong direct name reads, actor ↔ layout duplicate properties,
-  the `H0N` / `H0CN` retirement, the hydronic file reviews:
-  `correct-house0.md` rung 5.
+  the `H0N` / `H0CN` retirement, the hydronic file reviews: done under
+  OPS-539.
 - The House0 fixture pair regenerated from tlayouts, the suite green
-  against both families: `correct-house0.md` rungs 1 to 4.
+  against both families: done under OPS-539.
 - Axiom counterexample fixtures per layout word: `layout-word-axioms.md`.
 - Heat-pump components and device-type records replacing
   `ScadaSettings.hp_model`; hp-boss as modbus owner: the spruce-settled

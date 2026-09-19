@@ -129,7 +129,15 @@ the production broker through three layers, and a window holds all three.
 
 Window protocol on top of the layers: stop everything on the bus
 (`gwspaceheat-restart.timer`, `gwspaceheat`, any hack service; the transient
-timer restores them). Before restarting the deployed scada, remember its
+timer restores them). `experiments/house_window.sh <house> on|off|status`
+(called by `spruce_window.sh` and `beech_window.sh`) is that protocol for
+spruce and beech. It writes no layout: `on` refuses unless the box's
+window pair is byte-identical to the tlayouts gen output
+(`experiments/put_layout.sh <house> check`) and the box's unlimbo checkout
+is at the laptop's pushed scada head. It records which of the house's
+plant services were running, stops those, and the box starts exactly
+those again when the window scada exits, whether by the minutes bound, a
+crash or `off`. Before restarting the deployed scada, remember its
 persister replays every un-acked event in its event dir to whatever broker
 it connects to (`start_reupload` on link-up): verify the deployed event dir
 (`~/.local/share/gridworks/scada/event/`) holds nothing window-born and
@@ -139,7 +147,8 @@ root. Command senders run on the box itself from its `~/experiments` clone
 at a pushed SHA against `localhost:1883`; a window must not depend on a
 laptop tunnel, which can die silently. Stopping services, placing env
 files and restarting are the human's to run; a session preps the commands
-and the watch-list.
+and the watch-list. `experiments/2026-09-18-correct-house0-windows/` is the
+run that exercised `house_window.sh` on both spruce and beech.
 
 ## Open
 

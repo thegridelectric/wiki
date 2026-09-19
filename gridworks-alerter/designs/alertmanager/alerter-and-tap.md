@@ -66,9 +66,62 @@ group):
 PASS is all five, logged to the experiment folder with the harness
 script and the Alertmanager config used.
 
+## Settled for the swap
+
+1. **The radio channel of a non-house record** is `AboutGNodeAlias`
+   when present, else `Src`: a `House` record keys on the house, so a
+   manager binding by house on the tail still works; a `Fleet` or
+   `PlatformService` record keys on the alerter's own alias
+   (`hw1.alerts` on hw1), the one LeftRightDot the record is sure to
+   carry (`Subject` is free text and cannot be a key).
+2. **The `alerts` table**: `about_g_node_alias` nullable; `category` and
+   `subject` columns join `kind`; the open-alert index becomes
+   `(category, about_g_node_alias, subject, kind, resolved_ms)`;
+   `cleared_ms` / `cleared_payload` become `resolved_ms` /
+   `resolved_payload`. No box holds this store, so the initial migration
+   is edited in place; the chain starts growing at the first deployed
+   store.
+3. **The regen runs from a clean sema worktree** at `origin/dev`
+   (`git worktree add <scratch>/sema-dev origin/dev`, then
+   `SEMA_REPO=<scratch>/sema-dev scripts/regen_sema_snapshot.sh
+   --allow-staged`), never from the sibling checkout, which sits on
+   whatever branch another session left it on. The snapshot README
+   records the sema commit. This is the practice for every consumer
+   regen.
+4. **Promotion comes after the dev round.** The five staged words move
+   to published only once this spoke's laptop experiment has PASSED;
+   the published regen and the box follow.
+
 ## Do this next
 
-Regenerate the alerter's snapshot with staged words allowed, swap the
-store and the NoData rule to one `gw.alert` with `State` (full alias as
-identity), get the suite green, and re-run the OPS-545 no-data
-experiment on the dev broker. Then the tap.
+The swap, on a `jm/gw-alert` branch of `gridworks-alerter` (branch is
+`main`, tree clean at `5c8afb2`).
+
+1. Seed: `src/gwalerter/sema_seed_request.yaml` drops `gw.house.alert`
+   and `gw.house.alert.cleared` for `gw.alert: ["000"]`, and its
+   "published words only" line moves to say the box rule and the dev
+   round differ. `scripts/regen_sema_snapshot.sh` passes its arguments
+   through to `sema snapshot prepare` (it takes none today); regen from
+   the `origin/dev` worktree with `--allow-staged`; expect `indexes/staging.yaml` naming the five
+   staged words and `Alert`, `AlertCategory`, `AlertState`,
+   `FleetAlertKind`, `PlatformAlertKind` beside `HouseAlertKind` in the
+   generated package.
+2. `db_models.py` `AlertSql` and `migrations/versions/0001_initial_schema.py`
+   per point 2.
+3. `store.py` (`open_alert` / `raise_alert` / `clear_alert` / `alerts`,
+   lines 308–358): one word in and out, `expect=Alert`; `open_alert`
+   keyed by category plus the subject the category names; a `Resolved`
+   record closes the row with its `AlertId`.
+4. `no_data.py` (96 lines): `evaluate` builds `Firing` records with
+   `Category.House`, `Kind=HouseAlertKind.NoData`, the full alias;
+   `clear` builds the `Resolved` record with the same `AlertId` and
+   `ResolvedMs`, and the codec's axiom 3 check is the test that it did.
+5. `alerter_actor.py` `emit` (line 124): one type in, radio channel per
+   settled point 1; `TRACKED_TYPES` gains `gw.alert`, loses the two.
+6. `tests/test_no_data.py`: same three tests on the one word, plus one
+   round-trip of a `Firing` and its `Resolved` through the codec that
+   exercises axioms 1 and 3.
+7. `./ci.sh` green (pyright included), then the OPS-545 no-data
+   experiment re-run on the dev broker
+   (`experiments/2026-09-15-alerter-no-data/`) with `gw.alert` records
+   in the log and the store. Then the tap.

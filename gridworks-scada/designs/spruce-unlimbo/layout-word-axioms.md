@@ -1,6 +1,6 @@
 # Layout-word axioms sitting (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-18 · Linear: OPS-392
 
 > What this is: the agreed reshape of `gw.house0.layout/000` and
 > `gw.nolan.layout/000` axioms (both staging — in-place edits), plus the
@@ -89,6 +89,15 @@ Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-392
    command nodes — is code+matrix territory, not wire-checkable.) Full
    rationale + the twin architecture and the single `HpTwin`
    ActorClass: `../spruce-settled/hp-twin.md`.
+9. **Candidate: `HeatCallChannelBelongsToCircuit`** (both words) — the
+   converse of `CircuitHeatCallChannel`. Every channel in DerivedChannels
+   with Strategy "heat-call" SHALL have InputChannelNames equal to [the
+   WhitewireChannelName of exactly one circuit in
+   Hydronic.ZoneCallCircuits]. `CircuitHeatCallChannel` keeps a circuit
+   from lacking its heat call; a heat-call channel whose input is no
+   circuit's whitewire still decodes. With both directions the heat-call
+   channels and the circuits are one to one. To settle: whether a layout
+   may derive a heat call for something that is not a zone-call circuit.
 
 ## Simulated devices are a vocabulary (settled 2026-09-02)
 
@@ -262,6 +271,12 @@ decision.
   required one, with a test.
 - Snapshot on spruce shows every pico posting after the deployed
   layout regenerates (`starter-scripts/snap_watch.py`).
+
+## Declared actuator shape
+
+The layout declares actuators flat under `auto` and the scada's
+boot rewrite owns the live tree. Still to do: an axiom that keeps the
+declared shape flat, and ActorHierarchyName closure.
 
 ## Sequencing (each its own commit)
 

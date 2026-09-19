@@ -1,6 +1,6 @@
 # pico-overhaul (design)
 
-Status: Draft · Pass 0 · Updated 2026-09-08 · Linear: OPS-402
+Status: Draft · Pass 0 · Updated 2026-09-17 · Linear: OPS-402
 
 **EDD: yes** the verification is a bench pico on the real broker: it survives
 repeated power-cycles-during-flash-write (no FS corruption) and re-joins wifi on
@@ -295,19 +295,21 @@ without a version bump.
 - **Local storage / provisioning:** the provisioner writes it to
   `comms_config.json` at provisioning time (operator picks one of the three,
   or the provisioner reads `os.uname().machine` — which differs by board
-  firmware build — to prefill/verify the pick). Optionally echoed in the
-  params POST so scada can flag a mismatch against what the layout claims —
-  catches an undocumented field swap without waiting for the next layout
-  regen.
+  firmware build — to prefill/verify the pick). Echoed in the params POST
+  (`tank.module.params` 200, `async.btu.params` 100) so the scada flags a
+  mismatch against what the layout claims and asks for a regenerated
+  layout; the scada never writes the layout itself.
 
-**`MicropythonVersion`** — the opposite side of the rewiring test: reflashing
-a board's firmware needs no rewiring, so per that same discriminator this is
-explicitly **not** a layout fact. It doesn't fit
-operational-params either (not a tuning knob) — it's runtime telemetry, full
-stop. Read live each report (`sys.implementation.version` /
-`os.uname().version`) and carried in the params POST; never persisted to
-flash, never authored into any of the three artifacts (deployment config /
-hardware layout / operational params). One wrinkle for whoever fills this in:
+**`MicropythonVersion`** — a layout fact, on a wider test than rewiring:
+a fact belongs in the hardware layout when changing it is a trip to the
+house. Picos take no remote code download (the code-download path goes at
+scale, see above), so a reflash costs what a board swap costs. The layout
+carries the release the pico was provisioned with, authored in the gen like
+`PicoHwUid`; the firmware reads its own live (`os.uname().release`) and
+carries it in the params POST; the scada holds the two against each other
+and reports a mismatch as "the layout is stale", never writing the layout.
+Same field on the three pico component words, optional (a layout may not
+have it recorded yet). One wrinkle for whoever fills this in:
 the Wiznet Ethernet build was a **hand-compiled custom firmware**
 (`gridworks-pico/firmware/W5500-EVB-Pico2/`, `Wiz-Pico2_2aaf30.uf2`) because
 stock MicroPython had no working Ethernet stack for that chip at build time —

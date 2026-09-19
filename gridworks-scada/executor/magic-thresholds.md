@@ -1,6 +1,6 @@
 # Magic thresholds
 
-Status: Draft · Pass 0 · Updated 2026-09-15
+Status: Draft · Pass 0 · Updated 2026-09-18
 
 > What this is: the inventory of numbers the scada and LTN decide with that
 > live in code rather than in an ops word, a `names` constant, or a device
@@ -44,9 +44,10 @@ it exists. The candidate homes:
 
 | Threshold | Where | What it decides | Candidate home | Disposition |
 |---|---|---|---|---|
-| Peak hours 7–11 and 16–19, weekdays | `shared.py:46-47` | `is_onpeak`; the whole TOU strategy keys on it | ops word or a `names` tariff constant (Versant's clock, not actor logic) | open (rung 8 of the House0 design) |
-| "Just before on-peak" = minute > 57 of hour 6 or 16 | `shared.py:41` | `just_before_onpeak`, the pre-peak charge cue | moves with the peak clock | open |
-| 2-minute look-ahead into peak | `shared.py:45` | `is_onpeak` turns true two minutes early | moves with the peak clock | open |
+| On-peak windows | `sh_node_actor.py` `in_onpeak_window` | `is_onpeak`; the whole TOU strategy keys on it | read from the ops word: `Tariff.OnPeakWindows` (`gw.tou.window`: Start inclusive, End exclusive, over the listed days) | settled |
+| "Just before on-peak" = the 2 minutes before a window opens, on a day that has one | `shared.py` `just_before_onpeak` | the pre-peak charge cue and the last setpoint-memory refresh | stays in code with a sentence | open |
+| 2-minute look-ahead into peak | `shared.py` `is_onpeak` | `is_onpeak` turns true two minutes early | stays in code with a sentence | open |
+| Whitewire heat-call threshold, 10 W | tlayouts House0 gen, each zone's `heat-call` DerivedChannel parameter | whether a zone is calling; the only whitewire threshold (the scada carries none) | per zone in the layout, or one fleet value, once measured against real readings | open (an assumption until measured) |
 
 ## Strategy timers (leaf ally and local control)
 
@@ -60,6 +61,10 @@ it exists. The candidate homes:
 | `SYSTEM_COLD_MINUTES = 5` | `tou_base.py:44` | How long house and tanks stay cold before switching to non-electric backup | ops word | open |
 
 ## Procedural doctors and monitors (`actors/procedural/`)
+
+A doctor restoring a pump's 0-10V defaults names the command node
+(`set_010_defaults(command_node=...)`). With no argument the call is a silent
+no-op under local control, where the host node is `lc` and the boss is `n`.
 
 | Threshold | Where | What it decides | Candidate home | Disposition |
 |---|---|---|---|---|

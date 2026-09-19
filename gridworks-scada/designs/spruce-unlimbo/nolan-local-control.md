@@ -24,7 +24,7 @@ Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
   machine owns its state).
 - Names: `backup` and `scada-blind` are House0 names for now; they
   return to a shared tier only if this rework needs them
-  (`correct-house0.md` "The three strands").
+  (`../../executor/hardware-layout.md` "Names — `gwsproto/names/`").
 
 ## What the actor does today
 
@@ -84,7 +84,7 @@ schedule lives (ops artifact, settled by the ops-params work).
 
 ## ▶ Do this next
 
-Nothing yet: the node-actor partition is complete and the House0 hydronic
-reviews continue under `correct-house0.md` rung 5. First move: grill the Nolan
+Nothing yet: the node-actor partition and the House0 hydronic reviews are
+complete. First move: grill the Nolan
 state machine (states, what each refuses, how predicted setpoints enter)
 against the defect list above, and record the result here.

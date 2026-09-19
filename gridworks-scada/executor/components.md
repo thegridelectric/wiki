@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-14
+Status: Draft · Pass 0 · Updated 2026-09-18
 
 # Components, device types, and the config list
 
@@ -59,15 +59,17 @@ types carry their own `*.cac.gt` (DB-backed) TypeName —
 
 ## DeviceType — and the retirement of MakeModel (summer 2026)
 
-A component's device category is an open `pascal.case` **`DeviceType`** — a value of
-the `gw1.device.type` enum — carried **directly on the component** (no `cac_id`). It
-**replaced `MakeModel`**, which is being **retired across summer 2026** (the
-`jm/delete-cac-id` work) along with its machinery: the per-device `cac.MakeModel` access
-and the `CACS_BY_MAKE_MODEL` (`MakeModel → UUID`) bijection. The `spaceheat.make.model`
-enum stays in sema as **frozen base vocabulary**, but it no longer carries device
-identity — `DeviceType` does. (Parts of the intro + zoo below still describe the
-pre-retirement Cac/`MakeModel` loader as it finishes deleting; read them as the
-*as-is mid-migration* mechanics, with `DeviceType` the target.)
+A component's device category is its **`DeviceType`**, carried directly on the
+component. The sema words leave the field an open `pascal.case` string so other
+organizations can use the schemas. Inside gwsproto every value comes from the two closed
+lists we own, `gw1.device.type` (real) and `gw1.sim.device.type` (simulated), and the
+twins type the field `AnyDeviceType` (`DeviceType | SimDeviceType`,
+`gwsproto/enums/__init__.py`): `DeviceComponentBase` for every component twin, and the
+five device-type record twins. A name in neither list raises at construction, not at
+bind time in the loader; the two enums carry no `default()`, so an unknown name is never
+coerced to a member. The enums are `StrEnum`s whose value is the name, so readers compare
+and key on them as strings and the wire form is unchanged. The `spaceheat.make.model`
+enum stays in sema as frozen base vocabulary and carries no device identity.
 
 **DeviceType is a code class, not a manufacturer model number.** We intentionally do
 **not** replicate the model numbers manufacturers use; we name the **class the code
@@ -77,12 +79,11 @@ regardless of the manufacturer's per-unit model variations. A new `DeviceType` v
 minted only when a category carries information the code must handle differently (the
 same bar that earns a specialized `*.device.type.gt` record — see below).
 
-**Sim is just another DeviceType.** A simulated device carries a `Sim*` `DeviceType`
-(`GridworksSimSensor`, `GridworksSimRelayBank`, `GridworksSimPowerMeter`, … — the
-successors to the legacy `GRIDWORKS__SIM*` make/models), so the layout reads "sim" at
-the device boundary, legible in the artifact. This is the seam the simulated-actors
-design builds on, minus the legacy driver-class indirection that sat beneath it
-(`drivers/power_meter/`, the "Russian dolls" anti-pattern).
+**Sim is a disjoint vocabulary.** A simulated device carries a `gw1.sim.device.type`
+value (`SimSensor`, `SimRelayBank`, `SimPowerMeter`, `SimGw108`, …), and the two enums
+share no values, so a consumer tells simulated from real by which vocabulary the value
+belongs to, never by inspecting the name. The layout reads "sim" at the device boundary,
+legible in the artifact.
 
 **Hardware backend selection is the layout's job.** Whether an actor drives real
 silicon or a fake is a per-device fact the layout states, never a runtime flag. A
@@ -117,9 +118,9 @@ decode each via a union decoder, then pair component↔cac via
 
 | TypeName | device | own Cac? | per-device config |
 |---|---|---|---|
-| `pico.tank.module.component.gt` | Pico tank temp reader | no (generic) | ConfigList; `extra=allow` |
-| `pico.flow.module.component.gt` | Pico flow meter | no | none |
-| `pico.btu.meter.component.gt` | Pico BTU (flow+temp) | no | none |
+| `pico.tank.module.component.gt` | Pico tank temp reader | no (generic) | none; `PicoBoardVariant`, optional `MicropythonVersion`; `extra=allow` |
+| `pico.flow.module.component.gt` | Pico flow meter | no | none; `PicoBoardVariant`, optional `MicropythonVersion` |
+| `pico.btu.meter.component.gt` | Pico BTU (flow+temp) | no | none; `PicoBoardVariant`, optional `MicropythonVersion`; `use_enum_values=True`, so its enum fields are strings at runtime |
 | `electric.meter.component.gt` | power meter | **yes** | ElectricMeterChannelConfig |
 | `ads111x.based.component.gt` | ADS1115 ADC sensor | **yes** | AdsChannelConfig |
 | `i2c.thermistor.reader.component.gt` | I2C thermistor reader | no | I2cThermistorChannelConfig |
@@ -133,11 +134,13 @@ decode each via a union decoder, then pair component↔cac via
 | `fibaro.smart.implant.component.gt` | Fibaro Z-Wave | no | none |
 | `resistive.heater.component.gt` | resistive element | **yes** | none |
 | `sim.pico.tank.module.component.gt` | **sim** Pico tank | no | `SimulatesTypeName`/`Version`; `SimLifeS`/`SimRebootS` liveness script (the actor runs the pico in-process, no HTTP ingress; absent = no scripted death / a dead pico stays dead; reboots always succeed); `extra=allow` |
+| `sim.pico.btu.meter.component.gt` | **sim** Pico BTU | no | `SimulatesTypeName`/`Version`; `SimLifeS`/`SimRebootS`; runs under `ApiBtuMeter` the way the sim tank runs under `ApiTankModule` |
+| `sim.pico.flow.module.component.gt` | **sim** Pico flow | no | `SimulatesTypeName`/`Version`; `SimLifeS`/`SimRebootS`; no actor runs it (`ApiFlowModule` takes the real word only) |
 
 ## Irregularities (the warts, surfaced on purpose)
 
 1. **The per-family buckets are intentional, the loader's list is the wart.**
-   Intent (Jessica, 2026-06-11): a family gets its own bucket exactly when
+   The intent: a family gets its own bucket exactly when
    its device type carries information the code needs — a specialized
    `*.cac.gt`. So the three buckets are the three specialized device types,
    and everything on the generic Cac lands in `Other*` by design — not an
@@ -159,7 +162,7 @@ decode each via a union decoder, then pair component↔cac via
    (`GridworksSimSensor`, …) on a generic component (sim is a device-type
    value, legible at the boundary; successor to the legacy `GRIDWORKS__SIM*`
    make/models). Or: a dedicated `sim.*.component.gt` TypeName with
-   `SimulatesTypeName`/`SimulatesVersion` (only `sim.pico.tank` so far) when
+   `SimulatesTypeName`/`SimulatesVersion` (the three `sim.pico.*` words) when
    the sim device needs extra config. The simulated-actors / self-faking-actors
    spokes build both out.
 5. **`extra="allow"` on three types** (`pico.tank.module`,
@@ -202,7 +205,40 @@ re-spelled on each. The old family of config words that carried
 (`channel.config`, `relay.actor.config`, the pico module configs) is
 what this rule replaces. `dfr.component.gt` and `dfr.config` are orphaned
 (`replaced_by` the DAC output pair) and out of both layout words' unions;
-their gwsproto twins stay until the House0 gen stops emitting them.
+the component twin is gone and the `dfr.config` twin remains.
+
+## The pico params handshake
+
+A pico posts its params word at every boot (`tank.module.params`,
+`async.btu.params`, `flow.hall.params`, `flow.reed.params`) to its actor's
+web route, and the actor answers with the same word carrying the values the
+layout says the pico should run with. The exchange settles three things.
+
+- **Which pico this is.** Identity is the `HwUid`. A post whose `HwUid`
+  matches the component's is answered; a component with no `HwUid` yet
+  accepts the first pico that names its node and logs the id for the layout
+  to take; any other pico gets an empty answer and its readings are ignored.
+- **What board it is.** The tank, BTU and hall-flow words carry the pico's
+  `PicoBoardVariant` and `MicropythonVersion`. The component's values are
+  what the house was provisioned with, and the scada never writes them. The
+  actor holds an accepted post against them (`actors/pico_identity.py`) and
+  sends a Warning `Glitch` to the LTN for each difference, once per scada
+  run, because picos re-post at every boot and the pico-cycler reboots them.
+  A component with no `MicropythonVersion` holds the post to none. The pico
+  is answered either way.
+- **Which version it speaks.** The answer goes back in the version the pico
+  posted. The tank and BTU actors accept their identity-carrying version
+  only. The flow actor accepts `flow.hall.params` 200 and 101, since
+  deployed flow firmware posts 101, and checks identity on 200 alone;
+  `flow.reed.params` has no version that carries identity.
+
+The web handlers run off the proactor thread. A handler answers the pico
+and queues the accepted post to its own actor (`send_threadsafe`);
+everything that sends a message happens in `process_message`.
+
+The params words are in no vendored closure, so the gwsproto conformance
+test does not see their twins; `sema validate` on a serialized instance is
+their check.
 
 ## What belongs in the hardware layout — and what doesn't
 
@@ -239,6 +275,12 @@ natural input to the AllyLink/redo work, which is already pulling
 realization out of actor code and into the layout.
 
 ## Open
+
+- **The component zoo table is behind the twins.** It lists types with no
+  gwsproto twin today (`fibaro.smart.implant`, `resistive.heater`,
+  `rest.poller`, the `gw108.gpio.*` names) and lacks `i2c.relay`,
+  `i2c.dac.output`, `gpio.relay`, `gpio.sensor`, `scada.board`,
+  `device.component` and `sim.sensor`; the "18 types" count goes with it.
 
 - The Cac → `device.type.gt` rename (taxonomy + the DB-table bijection it
   implies for which families get their own table).

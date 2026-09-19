@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-14
+Status: Draft · Pass 0 · Updated 2026-09-18
 
 # The hardware layout
 
@@ -32,10 +32,13 @@ A layout is the node→component→device-type→channel graph for one house,
 plus house-level facts. On disk it is one authored sema artifact per home,
 a layout word (`gw.house0.layout` or `gw.nolan.layout`) whose `Hydronic`
 block (`gw.hydronic`) carries the plant facts: `Zones`, `ZoneCallCircuits`,
-`TotalStoreTanks` (1–6), `PrimaryFlowSource`, `Strategy`; the GNodes ride
+`TotalStoreTanks` (0–6), `PrimaryFlowSource`, `Strategy`; the GNodes ride
 in `GNodes`. What changes without rewiring lives in the paired
-operational-params word (`gw.house0.operational.params` /
-`gw.nolan.operational.params`), `UseSiegLoop` among it. The runtime
+`gw.operational.params` word, whose `FamilyParams` block is the family's
+own word (`gw.house0.family.params` / `gw.nolan.family.params`),
+`UseSiegLoop` among it. The loader pairs a layout word with its
+family-params word and refuses an ops word whose `ScadaAlias` is not the
+layout's Scada GNode alias (`sema_to_dc.py`). The runtime
 `HydronicLayout` (`data_classes/hydronic_layout.py`) is built from the two
 (`sema_to_dc.load_layout`); whether the plant has a Siegenthaler loop is
 read off the layout's SiegLoop-classed node, not a field.
@@ -88,60 +91,23 @@ types; the only residual wart is that the loader's bucket list is hardcoded
 rather than derived from which device types are specialized.
 
 **Load-time validations that bite (House0Layout `__init__`):** tank count
-1–6; each tank depth has a well-formed `identity`/`affine` calibrated derived
+0–6; each tank depth has a well-formed `identity`/`affine` calibrated derived
 channel (see "In-field tank-temp calibration"; the legacy `TankTempCalibrationMap`
 cross-check is retired with the map); the system model requires `usable-energy`
 and `required-energy` derived channels by exact name. These run at construction
-— a layout that violates them fails to load (this is the class of failure
-behind this morning's `AsyncCaptureDelta` greening, one layer up).
+— a layout that violates them fails to load.
 
 ## Generation — the tlayouts gens
 
-No layout is hand-kept. Every layout — sim fixture or real deployment — is
-emitted by the `tlayouts` sibling (`/Users/jessica/GridWorks/tlayouts/`,
-run from the scada venv) from the layout family's sema word, id-preserving
-against the prior output (`layout_id_map.py`), and validated with
-`sema validate` before it ships. The generators regenerate again for every
-new install, so the gens, not any output file, are the thing to get right.
+No layout is hand-kept. Every layout, sim fixture or real deployment, is
+emitted by the `tlayouts` sibling from the layout family's sema word,
+id-preserving against the prior output and decoded through the word's
+axioms before it is written. The generators, their invariants and the
+config specs are in [`../../tlayouts/executor/primary.md`](../../tlayouts/executor/primary.md);
+what the scada relies on is below.
 
-- **`src/tlayouts/layout_gen.py` is the base generator** (id map,
-  accumulators, emit helpers). The family gens are siblings on it:
-  `house0_sema_gen.py` and `nolan_sema_gen.py`; a family gen owns only the
-  plant roster its word requires. Drivers are `<house>_gen.py` at the repo
-  root, one per house (`beech_gen.py`, `maple_gen.py`, `spruce_gen.py`) and
-  per sim pair (`orange_sim_gen.py`, `willow_sim_gen.py`, `spruce_sim_gen.py`).
-  `oak_gen.py` is a House0-shaped config for a no-sieg house that raises at
-  the `gw.house0.no.sieg` stub; it retires into that family's generator when
-  the word exists (oak, fir and elm are the sieg-less family). The six
-  commented legacy generators are `old_gen_<house>.py`.
-- **`src/tlayouts/hardware/` realizes one hardware kind per module** against
-  the board record — board, i2c relay, DAC output, thermistor channel, tank
-  module, power meter, gpio relay, gpio sensor, BTU meter, hubitat zone —
-  with the spec beside its realizer.
-- **The board is a config axis.** A gen takes its board from config (node
-  name, record file, simulated twin, bus addresses) and its 0-10V outputs as
-  specs against that board; the board record's relays and outputs are
-  emitted as per-relay and per-output components against the record, the
-  power-on levels in the ops word. gw108 rev B is the default (every install
-  from here on); beech, maple and the sim pairs declare krida plus DFRobot
-  explicitly. The sim board record is vendored as
-  `device_types/sim.krida-…json`. Which board is a one-axis swap.
-- **`FlowSpec`** — one standalone flow meter at a `position`, an open
-  `SpaceheatName` the `<position>-flow` / `-hz` grammar composes
-  (`FlowNodeNames` / `FlowChannelNames`): `dist2` → `dist2-flow`, `sieg-send`
-  → `sieg-send-flow`. `kind` picks the pico family: `hall` (the fleet
-  default, Saier, `ConstantGallonsPerTick` 0.0009, sets
-  `PublishEmptyTicklistAfterS` / `PublishTicklistPeriodS`) or `reed` (keeps
-  `PublishAnyTicklistAfterS` / `PublishTicklistLength`); `flow_meter_type`
-  overrides the meter type (`SaierFlowSensor` for Hall;
-  `OmegaFtb8010FlowMeter` for a second dist meter). `btus` lives on the base
-  config and `emit_btu_meters` runs before the standalone flows, so a
-  position a BTU pico already measures (beech's `primary-flow`,
-  `dist-flow`) skips its bare-flow emit.
-- **`TankSpec`** carries asymmetric depth-1/3 calibration and
-  `sensor_order`, the pico's physical-sensor → depth mapping.
-- **`AdsChannelSpec`** carries a thermistor make-model axis (default Tewa;
-  beech's zone air-temps are Amphenol).
+- **The scada boots only gen output.** `tests/config` fixtures and a box's
+  layout and ops files are byte-identical to a driver's `output/<house>/`.
 - **Zone temp truth** is `zone{i}-{zone}-gw-temp` (`CelsiusTimes100`, about
   the zone node, captured by `analog-temp`), the accurate ADS sensor; the
   Honeywell stays the setpoint / state read.
@@ -151,18 +117,10 @@ new install, so the gens, not any output file, are the thing to get right.
   booted in-process by the suite. The sim sensor actor feeds the derived
   generator whenever a DerivedChannel consumes one of its channels. The real
   beech and maple layouts are box artifacts, not scada fixtures.
+- **The board's relays and 0-10 V outputs** arrive as per-relay and
+  per-output components against the board record, the power-on levels in
+  the ops word.
 
-Known: the real beech Krida record carries an older DisplayName than the
-vendored record.
-
-> **OFI — tlayouts shouldn't need the scada venv.** The gens import
-> `gw_spaceheat` directly and run inside scada's venv. Once scada becomes a
-> proper `uv` package, tlayouts could depend on it as a package.
->
-> **OFI — calibration discovery → generation.** The hand-fit tank M/B
-> (today a DB + spreadsheet) becomes a `gw1.tank.temp.calibration.map` fed
-> to the generator rather than hand-edited into `TankSpec`.
->
 > **OFI — where is the authority for a hardware layout?** Today it is the
 > gen's config plus the id map of the prior output. It deserves a dedicated
 > session in light of "where meaning lives". Hard constraint: the
@@ -220,20 +178,106 @@ channels. So a name falls into one of three kinds, and the authority differs:
 The discriminator between a known-optional and an extra is simply **"is it in
 `names/`?"** — `buffer-cold-pipe` (a `names/` member, absent on some homes for
 plumbing reasons, used if present) is known-optional; a bench-wired
-`random-temp-sensor` is an extra. **Required and trustworthy are independent
-axes** — a channel can be required yet not to be trusted:
+`random-temp-sensor` is an extra.
 
-- **`zone-state`** (the Hubitat `thermostatOperatingState`) is **currently
-  required** — still in `ZoneChannelNames.all` — yet its values are **sick /
-  unstable** and must not be trusted for heat-call or control (the trustworthy
-  heat-call is the whitewire-derived `-heat-call` channel). It is held required
-  only because removing it risks breaking existing dashboard consumers; the
-  direction is to **retire it** to known-optional once whitewire-derived heat-call
-  is the relied-on signal everywhere. So "required" (the layout's contract) says
-  nothing about whether a channel's *readings* can be believed.
+**No gen emits a `zone-state` channel.** The Hubitat
+`thermostatOperatingState` reading has unstable values and no names class
+carries it; a zone's heat call is its derived `heat-call` channel. The
+deployed beech and maple layouts still carry one `-state` channel per zone,
+and the web frontend's thermostat table
+(`gridworks-web-frontend/src/real-time/RealTimeStatusThermostatTable.tsx:119`)
+reads it by name and shows "idle" when it is absent, so a deployed house
+takes a regenerated layout only once that table reads `heat-call`. The LTN
+dashboard (`actors/ltn/dashboard/channels/containers.py:141`) shows its
+missing string.
+
+**A layout answers its own store tanks.** `store_tanks(node_names)`
+(`names/hydronic_spaceheat/helpers.py`) reads the tank reader nodes
+(`tank1` to `tank6`) a layout carries and returns the per-tank
+`TankChannelNames`. `HydronicLayout.store_tanks` / `has_store_tanks`, and the
+same pair on `LayoutLiteDc`, are the lookup every reader goes through. A
+layout with no tanks answers none, and the hottest and coldest store readers
+answer None.
+
+**A zone's `heat-call` channel is source-neutral.** Consumers read each
+zone's derived `heat-call`; whether it came from an opto input or from
+whitewire power is the derived generator's business.
+
+**One rule for whether a device actor posts to the derived generator:**
+`HydronicLayout.feeds_derived(channel_names)`, true when a DerivedChannel
+consumes one of them. Pinning a node name or the sieg-loop flag in the
+actor is what it replaces.
+
+**Names classes are bare assignments, with no `Literal` annotation.** The
+annotation narrows nothing a signature demands and doubles every rename.
+
+**Store-tank element names are per tank; buffer and store-loop names are
+not.** A store tank's elements are `tank{i}-top-elt` and `tank{i}-bottom-elt`
+with their `-pwr` and `-relay` names (`TankNodeNames` / `TankChannelNames`).
+The buffer's elements stay flat hydronic-tier names (`buffer-top-elt`).
+`store-flow`, `store-btu`, `store-pump-relay` and the store pipes name the
+store circuit, not a tank, and keep `store-*`.
+
+**`backup` and `scada-blind` are House0 names.** They are House0 local
+control states; a shared tier takes them only once the Nolan state machine
+and its local control are worked through.
+
+**`hp-odu` is the heat pump at a monobloc house.** Which device that is
+belongs to the layout's device-type records (node → component →
+DeviceType), not to the name.
+
+`ScadaWeb.DEFAULT_SERVER_NAME` (`names/core/node_names.py`) is the proactor
+web-server key every house uses, not a node name.
 
 This composed, layout-governed names system is half of the "multiple house types,
 done right" rework.
+
+## Temperature encodings
+
+A temperature DataChannel is what a sensor measured and is encoded
+`CelsiusTimes100`. A temperature DerivedChannel is what the scada computes,
+in the unit control code and people reason in, and is encoded
+`FahrenheitX100`. A setpoint the scada derives is a DerivedChannel and
+takes the Fahrenheit rule.
+
+One hundredth of a degree is one digit finer than the sensors are
+accurate, and we carry one digit past accuracy and no more. A
+wall-thermostat setpoint reported in whole degrees Fahrenheit does not
+land exactly on `CelsiusTimes100` (69 °F reads back as 69.008 °F); the
+rounding is accepted, because the alternative is a Fahrenheit value in
+`spaceheat.telemetry.name`, an enum that is closed to growth.
+
+Scada code never reads a temperature's encoding itself:
+`ChannelRegistry.temperature(name, raw)` pairs the raw value with the
+channel's `TelemetryName` or `OutputUnit` and the resulting `Temperature`
+answers in F. Producers write the same way:
+`ChannelRegistry.temperature_from_c(name, c)` and `temperature_from_f`
+round a measurement into the channel's declared encoding, so a producer
+emits whatever its channel declares
+(`tests/actors/test_temperature_producers.py`).
+
+Code passes and stores the `Temperature` itself
+(`channel_temperature(name)`, `setpoints_at_onpeak_start:
+dict[SpaceheatName, Temperature]`). Temperatures order across encodings,
+and `.f` or `.c` appears only where a number chosen in degrees meets one
+(the 1.0 °F cold margin, a display). Nothing that holds a `Temperature`
+carries `_f` in its name. "Is this encoding a temperature" is answered by
+constructing one, which raises `ValueError` otherwise; displays that show
+degrees for temperatures and raw values for the rest rely on that and keep
+no list of encodings.
+
+A gen that moves temperature channels moves the device-type record's
+`TelemetryNameList` with them: the tsnap driver accepts a record only when
+its list is within the driver's supported set.
+
+Every gen emits `CelsiusTimes100`. Open: whether the upstream data repos
+convert by each channel's `TelemetryName` or assume a scale is unchecked,
+and a deployed house takes the new encoding only after that is known
+([OPS-542](https://linear.app/gridworks/issue/OPS-542)).
+`data.latest_temperatures_f` in the House0 control code is not a channel
+reading (rounded, implausible store layers scrubbed, missing layers filled
+from below, about seventy readers); whether its values become
+`Temperature` is undecided.
 
 ## The three layout families — the rework, encoded
 
@@ -710,6 +754,13 @@ the level, 4 W at 2 V to 48 W at 10 V, up and down).
   a sema type. The overhaul: a single sema-typed `channel.config` shape, with
   `TelemetryName → gw1.unit`, and identity separated from capture policy.
   Detail in `components.md` ("The config list — when a component carries one").
+- **The ops fixture filenames carry a retired word.** `tests/config`
+  names them (`gw.house0.orange.operational.params.json`,
+  `gw.nolan.operational.params.json`). The naming rule for a one-word
+  ops file is undecided and the rename waits for it; the sema-typed
+  JSON filename convention would give
+  `<subject>-gw.operational.params-000.json`, which puts the same
+  question to the layout files.
 - **Strategy-name semantics need a sema home** (also noted in the hacky-bits
   above) — a versioned `strategy` enum/type so a rename is a lookup, not an
   inference.

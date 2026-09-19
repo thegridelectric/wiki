@@ -1,6 +1,6 @@
-# Stand up the terminalasset-registry
+# Stand up TAR (the terminal-asset registry)
 
-Status: Draft · Pass 0 · Updated 2026-07-03
+Status: Draft · Pass 0 · Updated 2026-09-18 · Linear: [OPS-471](https://linear.app/gridworks/issue/OPS-471)
 
 **EDD: no** build-out — verified by the suite plus a deployed seed that round-trips
 layout + operational-params I/O and provisions a real SCADA from its record; not a
@@ -10,7 +10,7 @@ standalone experiment.
 > holds every terminal asset's **hardware layout** and **operational-params**, and is
 > the durable source of truth that provisioning, the LTN, the web frontend, and
 > analytics consume. It is the layout/params sibling of the grid-node-registry — same
-> *seed* pattern (see [`../../vision/where-meaning-lives-in-gridworks.md`](../../vision/where-meaning-lives-in-gridworks.md)),
+> *seed* pattern (see [`../vision/where-meaning-lives-in-gridworks.md`](../vision/where-meaning-lives-in-gridworks.md)),
 > deliberately **without** GNR's decentralizable / on-chain requirement. The Sema
 > words and the authoring gen come from hardware-layout-pass-one
 > ([OPS-407](https://linear.app/gridworks/issue/OPS-407)); this is where the asserted
@@ -111,6 +111,38 @@ durable record.** The SCADA owns *what runs*; the seed owns *what is true across
 and the fleet*; the LTN owns *the write path*. (Open: whether params could instead be
 edge-authoritative with the upstream as a published projection — see Open.)
 
+## The scada confirms, the registry provides
+
+The LTN provides a scada with both its layout and its operational params,
+drawn from this registry. What a scada sends up is a confirmation that the
+layout and ops it runs are the correct ones, checked against the registry;
+it is not their source. `layout.lite` stands in for that exchange today
+([OPS-392](https://linear.app/gridworks/issue/OPS-392)): the LTN learns
+scada parameters only through it, which is why the LTN's timezone and
+on-peak hours still sit in LTN settings while the scada reads them from
+the ops word's `Tariff`. Open: what the confirmation carries (a checksum of
+each instance, or the instances themselves) and what each side does on a
+mismatch.
+
+## The path here: the repo, then the LTN API, then the registry
+
+The per-house generators hold install facts, ops, and hand-copied GNode
+identity as Python, so a registry loaded from their output would be a copy
+of them and not the record. Three steps close that:
+
+1. **tlayouts on GitHub is the interim record**: the JSON committed beside
+   its generator, a drift test holding the two equal, boxes taking their
+   files only from GitHub, the scada reporting what it runs (built under
+   [OPS-392](https://linear.app/gridworks/issue/OPS-392)).
+2. **The LTN parameter API**
+   ([OPS-531](https://linear.app/gridworks/issue/OPS-531)): one acceptance
+   path and an in-force artifact with its id between LTN and scada,
+   reconciled on boot. Ops ride it first, then layouts.
+3. **This registry** becomes the durable store behind the LTN. From then a
+   real house's generator runs at commissioning or a rewiring and its
+   output is committed here; it is never re-run over a live record, ids
+   come from the record, and GNode identity is read from GNR.
+
 ## What we reuse from the GNR template (and what we drop)
 
 Reuse (from the grid-node-registry standup,
@@ -188,5 +220,3 @@ Drop (GNR-specific, not needed here):
   layout references GNR identities either way.
 - **Repo name.** `terminalasset-registry` chosen provisionally; revisit before the repo
   is real.
-- **Linear.** Not yet an issue (Draft sits in Backlog); create the `design`-labeled Ops
-  issue when this reaches Accepted (or sooner if useful).
