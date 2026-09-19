@@ -8,13 +8,17 @@ Newest at the top.
 
 ---
 
-## 2026-09-18 — the spruce window names the winter hack alone <!-- pending commit -->
+## 2026-09-18 — the spruce window names the winter hack alone; correct-house0 windows record (`3013412`)
 
 The winter hack is spruce's one plant-control service beside the scada, so
 `house_window.sh` and the `window_boot.py` docstring name it alone. `on`
 also opens without the tunnel when the laptop's dev broker is not there:
 the tunnel carries the upstream link for observation, commands ride the
 box's own mosquitto, and a missing tunnel costs data, not the window.
+
+The same commit holds the record of the first run of the script on both
+houses, `2026-09-18-correct-house0-windows/`: the generated layout pairs
+booted on spruce and beech, with what each window's log and data showed.
 
 ## 2026-09-18 — update scada scripts (`7bf9aa3`)
 

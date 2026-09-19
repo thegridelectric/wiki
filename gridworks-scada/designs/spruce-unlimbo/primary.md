@@ -50,8 +50,8 @@ go without.
    `executor/control-hierarchy.md` "The node-actor partition". The
    hydronic-file reviews and H0N/H0CN retirement it surfaced are done
    (OPS-539).
-6. ✅ DONE correct-house0 (OPS-539) — House0 made right across the sema
-   word, the tlayouts gens and the scada code: the House0 and Nolan words'
+6. ✅ DONE correct-house0 (OPS-539; est ≈29h → 26.5h) — House0 made right
+   across the sema word, the tlayouts gens and the scada code: the House0 and Nolan words'
    requirement and circuit axioms mirrored in gwsproto, every layout
    emitted by a gen with the pi's ids, the H0N/H0CN aliases retired; the
    generated pairs booted in windows on spruce and beech 2026-09-18
