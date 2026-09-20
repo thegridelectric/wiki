@@ -125,9 +125,7 @@ the fixes are written and tested and have not run on a house.
    words with sema runtime tests, the tlayouts snapshot and the gwsproto
    mirrors, and the three loader checks they replace are out of
    `hydronic_layout.py`, each behind a load-path test
-   (`tests/test_misc/test_layout_word_guards_the_loader.py`). One loose
-   end: that file's last test (a derived channel naming no creating node)
-   is written and green but uncommitted; commit it first.
+   (`tests/test_misc/test_layout_word_guards_the_loader.py`).
 4. **Port the older layout axioms to sema-side tests**, on sema
    `jm/layout-axiom-tests`: Nolan 1-15 and House0 1-19 have scada tests
    only, and the generated runtime is the authority. Same shape as the

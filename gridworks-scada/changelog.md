@@ -10,7 +10,7 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-20 — load-path test: a derived channel naming no creating node (OPS-392) <!-- pending commit -->
+## 2026-09-20 — minor (OPS-392, `8f76cf68` on jm/spruce-unlimbo)
 
 The test that goes with `631233c0`, which carried the removal alone:
 `test_layout_word_guards_the_loader.py` gives `ops_and_sema_to_dc` a layout
