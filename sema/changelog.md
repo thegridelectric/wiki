@@ -10,6 +10,39 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-20 — Adding tests for nolan and house0 (OPS-392, `8e6e773` on jm/layout-axiom-tests)
+
+Neither layout word had a sema-side test: the hand-written scada mirrors
+were the only place their axioms were exercised, and the generated runtime
+is the authority. `tests/runtime/gw_nolan_layout/` and
+`tests/runtime/gw_house0_layout/` each hold one vanilla layout (the
+tlayouts `spruce-sim` and `willow-sim` outputs) and tests that copy it,
+break one thing, and expect the codec to refuse it. The match is anchored
+on the axiom number and the clause label, so a mutation that trips a
+different axiom fails the test. Covers the four channel axioms (Nolan
+16-19, House0 20-23), one test per clause, plus an accepted
+derived-input chain.
+
+## 2026-09-20 — layout words: channel names resolve, do not cycle, and are unique (OPS-392, `2f7c0d1` on dev)
+
+Channels are how people and applications read the field, and the layout
+words said little about their integrity: the scada data classes checked
+input existence and the data-channel node lookup after the word had
+already decoded, and nothing checked the rest. Both staging words, edited
+in place, gain four axioms (Nolan 16-19, House0 20-23):
+`DerivedChannelCreatorResolution` (`CreatedByNodeName` names a ShNode,
+and that node is not NoActor),
+`DataChannelNodeResolution` (`AboutNodeName` and `CapturedByNodeName`
+name ShNodes, and the capturing node is not NoActor),
+`DerivedChannelInputsAcyclic` (every input name is a channel, and no
+derived channel reaches itself through its inputs) and
+`ChannelNameUniqueness` (names are distinct across DataChannels and
+DerivedChannels together, which following an input name relies on). No
+dependency change: the fields are structural and `gw1.actor.class:014`
+was already an axiom dependency of both words. The two axiom templates
+carry the implementations and the runtime is regenerated. Every generated
+layout in tlayouts already satisfies all four.
+
 ## 2026-09-18 — layout words: every circuit's whitewire channel resolves and has one heat call (OPS-539, `73d6eb6` on dev)
 
 A zone-call circuit is the chain with the thermostat and the whitewire,

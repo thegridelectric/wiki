@@ -1,6 +1,6 @@
 # Odds and ends (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-19 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-20 · Linear: OPS-392
 
 > What this is: a spoke of [`primary.md`](primary.md) holding the small
 > launch items that do not earn a file each: one problem, one change,
@@ -188,3 +188,30 @@ reading (rounded, implausible store layers scrubbed, missing ones
 filled from below, about seventy readers in the House0 control
 code); whether its values become `Temperature` is a decision to take
 before touching it.
+
+## Once-daily glitch naming a disabled component's silent channels
+
+- **Problem.** `test_pico_disabled.py` (round three) confirms the current,
+  correct behavior: a disabled component's channels stay in the layout,
+  its actor never reports it missing, and its channels never flatline —
+  right for spruce's three floor-temp identity deriveds, which want the
+  channel set whole and the values absent. But nothing distinguishes
+  "known and accepted absence" from a component that went missing on a
+  later layout regen, or a future derived channel authored against a
+  disabled component's input without anyone noticing (the open question
+  in `beta-field-windows.md` "Open" — disabled-component channels as
+  control input, deferred until a house0-no-sieg or slab layout exists).
+  A window or a journal read has no record that the silence is expected.
+- **Change.** Once per day (not per boot, not per report cycle — the set
+  is static for a run and a field window is short), the scada enumerates
+  every disabled component's DataChannels together with any
+  DerivedChannels whose `InputChannelNames` names one, and sends a single
+  Warning `Glitch` listing them (component names, channel names), the
+  `no-ta-deed` pattern (`scada.py` `send_startup_announcements`) but on a
+  daily timer instead of once per run. Named so a reader can tell a
+  reported gap (this glitch) from an unreported one.
+- **Test.** A fixture with `floor1` disabled (`test_pico_disabled.py`'s
+  `boot`): with the clock advanced past a day boundary, one Glitch lists
+  `floor1-depth1..3-device` and `zone1-bedrooms-floor-temp` /
+  `zone2-living-rm-floor-temp` / `zone4-garage-floor-temp`; before the
+  boundary, none.

@@ -1,11 +1,16 @@
 # Layout-word axioms sitting (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-18 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-20 · Linear: OPS-392
 
 > What this is: the agreed reshape of `gw.house0.layout/000` and
 > `gw.nolan.layout/000` axioms (both staging — in-place edits), plus the
 > fixture/generator moves that let them land. Decisions with Jessica
 > 2026-09-01; word-gate summary posted and confirmed this session.
+
+## Principle: a field bug gets its local test first
+
+A bug the field finds gets a failing local test before its fix; the full
+statement is in `GridWorks_CLAUDE.md` "Experiment-Driven Design (EDD)".
 
 ## Axiom architecture (per word, mirroring the names tiers)
 
@@ -98,6 +103,45 @@ Status: Draft · Pass 0 · Updated 2026-09-18 · Linear: OPS-392
    circuit's whitewire still decodes. With both directions the heat-call
    channels and the circuits are one to one. To settle: whether a layout
    may derive a heat call for something that is not a zone-call circuit.
+10. **Channel integrity, four axioms** (both words; appended as Nolan
+    16-19, House0 20-23; ✅ sema `2f7c0d1` with runtime tests `8e6e773`,
+    tlayouts snapshot `35000c4`, gwsproto mirrors and tests in scada
+    `3b0412ae`; ◐ the two loader guardrails still in). None of them says
+    which node computes which Strategy.
+    - `DerivedChannelCreatorResolution`: a. every channel's
+      `CreatedByNodeName` in DerivedChannels SHALL equal the Name of a
+      ShNode in ShNodes; b. the creating node SHALL NOT have ActorClass
+      NoActor.
+    - `DataChannelNodeResolution`: a. every channel's `AboutNodeName` in
+      DataChannels SHALL equal the Name of a ShNode in ShNodes; b. so
+      SHALL its `CapturedByNodeName`; c. the capturing node SHALL NOT
+      have ActorClass NoActor. The clause reads ActorClass only: a
+      capturer whose component is disabled (spruce's floor1) passes.
+    - `DerivedChannelInputsAcyclic`: a. every name in a channel's
+      `InputChannelNames` in DerivedChannels SHALL equal the Name of a
+      channel in DataChannels or in DerivedChannels; b. no channel in
+      DerivedChannels SHALL be reachable from itself by following
+      `InputChannelNames` (a channel naming itself is the shortest
+      cycle).
+    - `ChannelNameUniqueness`: the Names of the channels in DataChannels
+      and DerivedChannels, taken together, SHALL be pairwise distinct.
+      The acyclic axiom depends on it: following a name needs the name
+      to pick out one channel.
+
+    The scada data classes check three of these after the word has
+    already decoded: input existence in `validate_derived_channels`
+    (✅ removed, scada `e6a27678`), the node lookup in `make_channel`
+    (✅ removed, scada `faa4b138`), and
+    the creator lookup in `make_derived_channel` (✅ removed, scada
+    `631233c0`; all in `hydronic_layout.py`).
+    Each check
+    comes out one at a time, in the scada change that adds the gwsproto
+    mirror, with a test showing the same bad layout is refused at
+    `model_validate`. The strategy-specific checks in
+    `validate_derived_channels` are in no word and stay.
+    Axiom tests mutate the one vanilla fixture in the test
+    (`mutated` / `reject` in `tests/named_types/test_gw_nolan_layout.py`
+    and its House0 twin); no JSON file per axiom.
 
 ## Simulated devices are a vocabulary (settled 2026-09-02)
 
@@ -287,3 +331,15 @@ declared shape flat, and ActorHierarchyName closure.
 3. UseSiegLoop layout→ops move (word + code + fixtures together).
 4. HpCommandNodeName + CommandableHeatPump (no fixture impact; mirrors
    only) — elm's Arctic (installing now) is the first consumer.
+
+## Axiom order (after the sitting)
+
+The axiom list is also how a human or an LLM first meets a layout word,
+so its order should run from what matters most. Channels are how people,
+applications and LLMs make meaning from what happens in the field, and
+their axioms belong near the top: `ChannelNameUniqueness` is an example
+of one that should be among the first, and it was appended as the last.
+New axioms are appended during the sitting so the gwsproto
+`check_axiom_<n>` mirrors and the tests hold still. Renumber both words
+once, while they are still staging, with the mirrors and tests moving in
+the same change.

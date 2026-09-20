@@ -1,6 +1,6 @@
 # GridWorks — working conventions for Claude
 
-Status: Accepted · Pass 2 · Updated 2026-09-18
+Status: Accepted · Pass 2 · Updated 2026-09-20
 
 > Canonical at `wiki/GridWorks_CLAUDE.md`; symlink setup in
 > [`README.md`](README.md#setup). Paths are relative to the umbrella dir
@@ -272,6 +272,9 @@ distributed-trust principle it served — that principle is core vision.
   force.
   Non-repo box state (a sudoers drop-in, a `.bashrc` line) is fine to place
   directly but MUST be recorded in the box's instance-README.
+- **In-field pico firmware upgrades are allowed this year and will be
+  retired before scaling.** Build nothing durable on the upgrade path (the
+  `code-update` post): no sema word, spec or scada feature depends on it.
 
 ## Experiment-Driven Design (EDD) — the verification bar
 
@@ -296,6 +299,14 @@ no separator hyphen:
 `yes` when confidence comes from an experiment; `no` for build-out work
 (migration, integration, refactor), verified by the suite + the key test —
 only the verification bar differs.
+
+**A field bug gets its local test first.** Every bug in the code unearthed
+in the process of running live in the field SHALL result in local tests
+that catch the same bug first, before applying the fix: test-driven design
+as part of EDD. The field window finds the bug; a local test reproduces it
+and fails; only then does the fix go in and turn the test green. Where no
+local test can reach the bug, the missing simulation is the first change (a
+settable sim pin, a sim driver value).
 
 ## Commit suggestions
 

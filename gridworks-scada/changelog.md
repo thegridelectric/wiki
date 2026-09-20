@@ -10,7 +10,125 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-19 — a matching pico identity says so at DEBUG (OPS-392) <!-- pending commit -->
+## 2026-09-20 — load-path test: a derived channel naming no creating node (OPS-392) <!-- pending commit -->
+
+The test that goes with `631233c0`, which carried the removal alone:
+`test_layout_word_guards_the_loader.py` gives `ops_and_sema_to_dc` a layout
+whose identity channel names no creating node, on the Nolan and House0
+pairs, and sees `DerivedChannelCreatorResolution` clause a refuse it.
+
+## 2026-09-20 — the loader leaves derived-channel creator existence to the layout word (OPS-392, `631233c0` on jm/spruce-unlimbo)
+
+`HydronicLayout.make_derived_channel` raised when a DerivedChannel's
+`CreatedByNodeName` named no node, after the layout word had already
+decoded. The words state it (`DerivedChannelCreatorResolution` clause a)
+and every load path decodes through the word first, so the raise could
+never fire and is removed; the lookup indexes the node map directly. A
+load-path test gives `ops_and_sema_to_dc` a layout whose derived channel
+names no creating node and sees the word's axiom refuse it; the test is
+the entry above, its own commit.
+
+## 2026-09-20 — the loader leaves data-channel node existence to the layout word (OPS-392, `faa4b138` on jm/spruce-unlimbo)
+
+`HydronicLayout.make_channel` raised when a DataChannel's `AboutNodeName`
+or `CapturedByNodeName` named no node, after the layout word had already
+decoded. The words state it (`DataChannelNodeResolution` clauses a and b)
+and every load path decodes through the word first, so the raise could
+never fire and is removed; the lookups index the node map directly.
+Load-path tests give `ops_and_sema_to_dc` a layout with each field naming
+no node and see the word's axiom refuse it.
+
+## 2026-09-20 — a simulated GPIO pin a test can set (OPS-392, `5842c0a9` on jm/spruce-unlimbo)
+
+On a simulated board `GpioSensor.read_pin` returned a constant 1, so no
+sim house ever saw an opto input change and the path from pin to derived
+`-heat-call` ran only on a real box; the first-reading bug the 2026-09-19
+spruce window found could not have been caught locally. `GpioSensor` takes
+`sim_pin_value`, read where the constant was and starting at 1, so a sim
+house behaves as before until a test or the plant sets it. Live tests on
+the Nolan pair drive a zone's pin to calling and back and watch
+`zone1-bedrooms-heat-call` follow, and boot a scada with the pin already
+calling and see the heat call at boot.
+
+## 2026-09-20 — the loader leaves derived-input existence to the layout word (OPS-392, `e6a27678` on jm/spruce-unlimbo)
+
+`HydronicLayout.validate_derived_channels` checked that every
+DerivedChannel input names a channel, after the layout word had already
+decoded. The words now state it (`DerivedChannelInputsAcyclic` clause a),
+every load path decodes through the word before a data class is built, so
+the loop could never fire and is removed. A load-path test gives
+`ops_and_sema_to_dc` a layout whose derived input names no channel and
+sees the word's axiom refuse it. The strategy-specific checks in the same
+method are in no word and stay.
+
+## 2026-09-20 — layout types mirror the four channel axioms (OPS-392, in `3b0412ae` on jm/spruce-unlimbo)
+
+Sema `2f7c0d1` gives both layout words `DerivedChannelCreatorResolution`,
+`DataChannelNodeResolution`, `DerivedChannelInputsAcyclic` and
+`ChannelNameUniqueness`. `NolanLayout` (16-19) and `House0Layout` (20-23)
+take the `check_axiom_<n>` twins, their bodies shared in
+`type_helpers/channel_integrity_axioms.py`, and `sema_closure/registry.yaml`
+is refreshed from the tlayouts snapshot. One rejecting test per clause in
+both layout test files, each mutating the vanilla fixture and matching on
+the axiom number anchored at its opening parenthesis, so `Axiom 2` cannot
+be satisfied by `Axiom 20`.
+
+## 2026-09-20 — field-window fixes: whitewire heat calls, GPIO first reading, open thermistor glitch, a pico out of service (OPS-392, `3b0412ae` on jm/spruce-unlimbo)
+
+Five things the 2026-09-19 field windows on beech and spruce showed.
+`GpioSensor` started `latest_value` at 0 and published on change or at the
+300 s capture boundary; the spruce optos are `DigitalZeroIsActive`, so a
+zone already calling at boot read 0, matched the initial value, and sent no
+`-opto-input` and no derived `-heat-call` for up to five minutes. The values
+now start at None and the first reading always publishes, to the scada and
+to the derived generator. An open thermistor sits at the pico's 3.3 V rail
+and `simple_beta` divided by zero there, raising a `gridworks.event.problem`
+on every microvolts post; `ApiTankModule` now sends no temperature for a
+depth at or above the rail and one `open-thermistor` Warning glitch per
+depth per day (a thermistor left open keeps saying so, a flapping one does
+not flood), and the remaining volts-to-temp failure is a
+`volts-to-temp-problem` Warning glitch, because glitches are the preferred
+report and the error channel should stay quiet. The `no-ta-deed` Warning
+went to the LTN without a box-log line, since `Scada` is not a
+`ShNodeActor` and builds the glitch itself; it now logs `Warning Glitch:
+no-ta-deed` as the actor senders do. A House0 zone's `heat-call` is derived from its `-whitewire-pwr`
+channel, which the power meter captures, and the power meter sent its
+readings to the scada only, so no whitewire house ever derived a heat call
+and `dist_pump_monitor` read nothing; the sim pairs have the same shape and
+no test asserted the heat call. The meter thread now also posts a
+`SyncedReadings` of the channels that feed the derived generator, from
+`report_sampled_telemetry_values`, above the driver, so any meter device
+gets it. `HydronicLayout.feeds_derived` counts only DerivedChannels the
+derived generator creates: the `transactive-power` channel is the power
+meter's own, the generator has no handler for it, and its inputs must not
+be sent there. A live test on the willow pair steps the sim meter to 50 W
+and back and watches `zone1-main-heat-call` follow.
+A pico component's `Enabled` gated only the web routes, so a dead pico
+(spruce floor1, bricked by a remote firmware download) was still listed by
+the pico-cycler and still reported missing, and the cycler cut the VDC rail
+for the whole bank about every 65 s on its account. `Enabled` false now
+means out of service: the three pico actors gate their missing report on
+it and the cycler leaves the pico out of its list, while the layout keeps
+the nodes and channels (`test_pico_disabled.py`, new; executor
+`components.md` "A pico out of service").
+Tests: `test_gpio_sensor.py` (new),
+and additions to `test_power_meter.py`, `test_feeds_derived.py`,
+`test_temperature_producers.py` and `test_startup_announcements.py`.
+
+## 2026-09-19 — a scada announces its layout and deed once per run (OPS-392, `dfc35644` on jm/spruce-unlimbo)
+
+A scada's deed state was read only when a contract offer arrived, so a
+house with no `ta-deed.json` looked like a validated one until then, and
+`layout.lite` went up only when an LTN activated the link, so a window with
+no LTN recorded neither. `Scada.announce_at_first_broker_link` waits until
+the upstream link can carry a publish (`active` or `awaiting_peer`) and
+then calls `send_startup_announcements` once for the run: `layout.lite`,
+and the home's `ta.deed` as its own message or a `no-ta-deed` Warning
+glitch when there is none. `ScadaAppInterface.ta_deed` is the one read of
+the deed file and `validation_state` derives from it;
+`upstream_is_send_capable` is the app's typed view of the link state.
+
+## 2026-09-19 — a matching pico identity says so at DEBUG (OPS-392, `7e8c53e2` on jm/spruce-unlimbo)
 
 The pico identity check warned on a difference and was silent otherwise, so
 in a field window a pico that matched, a pico that never posted params and

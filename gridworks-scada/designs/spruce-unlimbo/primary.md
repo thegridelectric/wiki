@@ -6,7 +6,7 @@ Status: Accepted · Pass 1 · Updated 2026-09-19 · Linear: OPS-392
 spokes reach Verified only when an experiment runs against the real bus or a
 real broker.
 
-**▶ Active spoke: [`cold-house-derived-setpoint.md`](cold-house-derived-setpoint.md)**
+**▶ Active spoke: [`startup-announcements.md`](startup-announcements.md)**
 
 > What this is: the hub for getting `jm/spruce-unlimbo`, the branch that
 > runs the Nolan layout at spruce, onto the whole fleet as `main` before
@@ -65,12 +65,13 @@ code. How a round runs and what the rounds have taught is
    (`experiments/2026-09-18-beta-field-windows/`); in
    `executor/hardware-layout.md` "Names — `gwsproto/names/`" and
    "Generation — the tlayouts gens", `tlayouts/executor/primary.md`
-7. **`cold-house-derived-setpoint.md`** — the cold-house judgment at a house
+7. **`startup-announcements.md`** (est 0.75h) — what a scada says once per
+   run when the broker link can first carry a publish: the home's `ta.deed`
+   as its own word, a warning when there is none, and the method that sends
+   them
+8. `cold-house-derived-setpoint.md` — the cold-house judgment at a house
    whose zone setpoints the scada derives: what stands in when the derived
    generator holds no setpoint, and the glitch scenarios that test it
-8. `startup-announcements.md` — what a scada says once per run when the
-   broker link can first carry a publish: the home's `ta.deed` as its own
-   word, a warning when there is none, and the method that sends them
 9. `operational-params-cleanup.md` (est 6.5h) — the Nolan ops word sheds
    the House0 store knobs once the strategy selectors land; the tunables
    still in scada settings move to the ops surface

@@ -10,6 +10,25 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-20 — improved layout testing (OPS-392, `35000c4` on jm/spruce)
+
+Sema `2f7c0d1` gives both layout words `DerivedChannelCreatorResolution`,
+`DataChannelNodeResolution`, `DerivedChannelInputsAcyclic` and
+`ChannelNameUniqueness`. The snapshot regenerates so every gen's
+validation gate runs them. Every house's output already satisfied all
+four, so no layout changes.
+
+## 2026-09-20 — spruce floor1 is out of service (OPS-392, `7118622` on jm/spruce)
+
+The spruce floor1 pico was bricked by a remote firmware download and sends
+nothing, and the scada rebooted the whole pico bank every ~65 s on its
+account. `ExtraTankSpec` takes a required `enabled`, emitted as the
+component's `Enabled`; spruce declares floor1 `enabled=False`. The module's
+nodes, its six channels and the three zone floor-temp identity deriveds stay
+in the layout, so the channel set matches what the Nolan word's axioms will
+ask for, and the scada neither watches the pico nor cycles for it. The note
+in the gen says the pico needs resuscitating or removing.
+
 ## 2026-09-18 — snapshot takes the two circuit channel axioms (OPS-539, `fab0b52` on jm/spruce)
 
 Sema `73d6eb6` gives both layout words `CircuitWhitewireChannelResolution`

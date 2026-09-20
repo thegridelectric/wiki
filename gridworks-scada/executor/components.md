@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-18
+Status: Draft · Pass 0 · Updated 2026-09-19
 
 # Components, device types, and the config list
 
@@ -99,6 +99,12 @@ answers a different question, whether the layout carries any simulated
 device (`HydronicLayout.has_simulated_component`), and gates only the
 sim-time bridge; whether the scada may trade is the deed's
 `validation_state` (`scada-ltn-link-state.md` "The trading gate").
+
+A `GpioSensor` on a simulated board reads `sim_pin_value` in place of the
+pin. It starts at 1, the idle level of a `DigitalZeroIsActive` opto, and a
+test or the simulated plant sets it, which is how a sim zone's heat call is
+driven from pin to derived channel (`actors/gpio_sensor.py`,
+`tests/actors/test_gpio_sensor.py`).
 
 ## Node → component, and the per-family buckets
 
@@ -235,6 +241,11 @@ layout says the pico should run with. The exchange settles three things.
   deployed flow firmware posts 101, and checks identity on 200 alone;
   `flow.reed.params` has no version that carries identity.
 
+A pico does not always make the boot post. On a power cycle some picos
+resume readings with no params post, a different set on each boot, so a
+pico can run unchecked, on its own capture settings, until its next boot
+(`experiments/2026-09-19-spruce-pico-params/`).
+
 The web handlers run off the proactor thread. A handler answers the pico
 and queues the accepted post to its own actor (`send_threadsafe`);
 everything that sends a message happens in `process_message`.
@@ -242,6 +253,27 @@ everything that sends a message happens in `process_message`.
 The params words are in no vendored closure, so the gwsproto conformance
 test does not see their twins; `sema validate` on a serialized instance is
 their check.
+
+## A pico out of service
+
+The three pico components (tank module, BTU meter, flow module, and their
+sim twins) carry `Enabled`. False means the pico is installed and the layout
+still names it (its `HwUid`, its nodes, its channels and any derived channel
+they feed), but it is out of service: dead, unplugged, or waiting on a
+firmware repair. The scada then
+
+- serves the pico no web routes, so nothing it posts is taken;
+- never reports it missing or its channels flatlined (the actor's liveness
+  loop is gated on `Enabled`);
+- leaves it out of the pico-cycler's list (`actors/pico_cycler.py`), so it
+  has no `single.pico.state` row and its silence never cuts the VDC rail.
+
+The channels exist and carry no readings, and consumers see an absent value
+exactly as they do for any channel that has not reported. This is how a
+house keeps the channel set its layout word asks for while one pico is
+down, and why one dead pico does not cost every healthy pico on the rail a
+reboot each missing-report period. The sema words give `Enabled` no prose;
+this section is its meaning.
 
 ## What belongs in the hardware layout — and what doesn't
 

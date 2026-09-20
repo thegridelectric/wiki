@@ -20,6 +20,9 @@ them exercises it (`experiments/`).
 - `report-all-machine-states.md` — every command node's machine state
   becomes a journal channel by one rule; which state and channel
   changes earn an asynchronous report
+- `scada-startup-report.md` — a `scada.startup.report` word sent once per
+  run: when the run started, when the report was sent, the commit the box
+  runs
 - `admin-tests-house0.md` — admin coverage on the House0 fixture pair,
   the twin of the Nolan admin tests
 - `five-v-restore-liveness.md` — the extra 5 V cycle on TurnOn: the

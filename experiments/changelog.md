@@ -8,20 +8,9 @@ Newest at the top.
 
 ---
 
-## 2026-09-19 — capture_broker.py records the dev broker; house_window.sh takes dev, --debug and --ltn <!-- pending commit -->
+## 2026-09-19 — improving scripts for beta field windows (`c1205b4`)
 
-Round one of the beta field windows had no broker-side record: a hand-run
-`mosquitto_sub` was refused and the window's events were copied off the
-boxes afterwards. `capture_broker.py` rides the broker's firehose
-(`amq.rabbitmq.trace`, `publish.#`), so one queue sees the scada's MQTT
-traffic and every gwbase actor exchange, including exchanges declared after
-it started. Before it reports ready it publishes a probe and requires it
-back through the firehose, so a capture that says `capturing` is proven to
-be recording. Tracing is a per-vhost switch, so a pidfile holds it to one
-capture at a time. The broker URL is `GWEXP_RABBIT__URL` in the repo's
-`.env`; `pika` joins the dependencies.
-
-`house_window.sh` starts that capture at every `on` and refuses to open a
+`house_window.sh` starts `capture_broker.py` at every `on` and refuses to open a
 window without one, so a round cannot again end with no broker-side
 record; the capture is shared by the open windows and stopped by hand
 (`capture off`). `dev` joins spruce and beech as a target: the same
@@ -33,8 +22,9 @@ through the process environment (the base level is an integer setting);
 which is where the LTN takes its identity and its peer from, with the ops
 params path given explicitly because the LTN's default name for it matches
 no generated pair.
+The round README's Process steps follow the new usage.
 
-## 2026-09-19 — the house windows folder becomes beta-field-windows <!-- pending commit -->
+## 2026-09-19 — refactoring the beta-field-windows (`8c6bb10`)
 
 The spruce and beech windows of 2026-09-18 were the first round of
 something that recurs: after roughly each spruce-unlimbo spoke the new
@@ -42,6 +32,20 @@ scada code runs in a bounded window on one house per layout family. The
 folder takes the name of that practice, `2026-09-18-beta-field-windows/`,
 so later rounds add to it; the `ExperimentSlug` in its instances and the
 logbook line move with it.
+Its README becomes a statement of what the rounds have established and
+what is still a mystery, rewritten each round, with a temporary Process
+section; the per-round narrative stays in git history and the logbook.
+
+Round one of the beta field windows had no broker-side record: a hand-run
+`mosquitto_sub` was refused and the window's events were copied off the
+boxes afterwards. `capture_broker.py` rides the broker's firehose
+(`amq.rabbitmq.trace`, `publish.#`), so one queue sees the scada's MQTT
+traffic and every gwbase actor exchange, including exchanges declared after
+it started. Before it reports ready it publishes a probe and requires it
+back through the firehose, so a capture that says `capturing` is proven to
+be recording. Tracing is a per-vhost switch, so a pidfile holds it to one
+capture at a time. The broker URL is `GWEXP_RABBIT__URL` in the repo's
+`.env`; `pika` joins the dependencies.
 
 ## 2026-09-18 — the spruce window names the winter hack alone; correct-house0 windows record (`3013412`)
 
