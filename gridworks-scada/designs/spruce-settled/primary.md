@@ -52,9 +52,6 @@ them exercises it (`experiments/`).
 - `ltns-ready.md` — a maple LTN and a spruce LTN running on the new
   code, each with its FLO and parameters; then what the LTN takes from
   the scada, transferred from spruce-unlimbo's `layout.lite/013` work
-- `sieg-command-tree.md` — the Siegenthaler loop's tier and command
-  surface (admin included); `SiegLoop` sits on `House0Hydronic` until
-  then; opens with the fall layouts
 - `thermostat-and-zone-control.md` — the zone / circuit / thermostat
   control model deferred out of the launch: the circuit FSM, the
   governance machine, setpoint belief, and the thermostat chunk (sim

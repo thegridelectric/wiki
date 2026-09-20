@@ -1,6 +1,6 @@
 # Spruce un-limbo (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-09-19 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-09-20 · Linear: OPS-392
 
 **EDD: yes** bench (honeysuckle) and box harness runs are the verification;
 spokes reach Verified only when an experiment runs against the real bus or a
@@ -91,21 +91,25 @@ code. How a round runs and what the rounds have taught is
     from pin-readback, honest boot; the two relay-test gaps that witness it
     pulled forward to launch. The zone-call / thermostat control model on top
     is post-launch (OPS-532)
-15. `refactor-sieg.md` (est 4h) — the sieg loop's first exercise on the new code;
+15. `basic-sieg.md` — the least the sieg loop has to do before maple and
+    beech take the branch: the loop closes whenever the heat pump is
+    measured off, state names mean what they say, a restart reaches full
+    keep, and the admin panel moves the valve
+16. `refactor-sieg.md` (est 4h) — the sieg loop's first exercise on the new code;
     the House0 rows of the hp-boss live test uncommented; before maple
     and beech take the branch
-16. `command-tree-matrix.md` (est 3h) — the sender rule for five nodes (built),
+17. `command-tree-matrix.md` (est 3h) — the sender rule for five nodes (built),
     the state-transition tree matrix on `command_node.py`, the relay's full
     report to the journal
-17. `odds-and-ends.md` (est 3h) — small launch items, one problem / change / test
+18. `odds-and-ends.md` (est 3h) — small launch items, one problem / change / test
     each (the panel's unobserved row offers every command; hp-boss
     reports its state at start; the LTN Dst-routing test)
-18. `main-changes.md` (est 1.5h) — the commits `main` took after the branch point,
+19. `main-changes.md` (est 1.5h) — the commits `main` took after the branch point,
     each carried or dismissed before the branch becomes `main`
-19. `finalize-layout-lite-13.md` (est 4h, segment 1) — `layout.lite/013` and its closure from
+20. `finalize-layout-lite-13.md` (est 4h, segment 1) — `layout.lite/013` and its closure from
     staging to published so spruce can send it on the production broker;
     `gw.nolan.layout` closes with the same promote
-20. `deployment.md` (est 5h) — the fleet rollout to all six boxes as `main`:
+21. `deployment.md` (est 5h) — the fleet rollout to all six boxes as `main`:
     precondition gates, per-family order and verification, rollback to the
     prior SHA, and the post-launch tlayouts loop for updating a deployed
     layout or ops

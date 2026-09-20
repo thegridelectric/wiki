@@ -68,6 +68,51 @@ Status: Draft · Pass 0 · Updated 2026-09-20 · Linear: OPS-392
   before any command; `tests/actors/test_machine_state_announce.py`
   gains the row.
 
+## Local-control state says what the heat pump is doing under backup
+
+- **Problem.** At a house with no oil boiler (`OilBoilerBackup` false),
+  SystemCold sends the normal machine from `HpOn` to `Dormant`
+  (`local_control/house0/tou_base.py:379` `trigger_system_cold_event`)
+  and then `backup_actuator_actions` (`:436`) turns the heat pump on from
+  the backup node. The reported state reads `UsingNonElectricBackup` /
+  `Dormant` while the heat pump runs on electricity. Seen at maple
+  2026-09-20 12:46:25 on `main`
+  (`experiments/2026-09-20-maple-starts-heating/`, finding 11): relay 6
+  closed and `hp-odu-pwr` climbing to 5 kW for forty minutes under a
+  dormant machine. A cold start with an empty buffer always reaches the
+  SystemCold mark, since no heat pump lifts a 61 F buffer in five
+  minutes, so every such house spends its first charge in this state.
+- **Change.** Open, to settle with the human: SystemCold holds off while
+  the heat pump is on and the buffer is rising, or the no-boiler case
+  gets a state whose name says the heat pump is running. Either way the
+  reported states match the plant.
+- **Test.** First, and failing: simulated House0 in BufferOnly, buffer at
+  61 F, one critical zone 2 F under setpoint, `OilBoilerBackup` false,
+  time advanced past the SystemCold hold; assert the reported states do
+  not say dormant or non-electric while relay 6 is closed. Needs a
+  settable simulated zone temperature and setpoint, and a way past the
+  hold, which reads the wall clock (`tou_base.py:249`).
+
+## A stopped hall flow reports zero
+
+- **Problem.** `ApiFlowModule` publishes zero on an empty tick list only
+  when the last gpm is above the async capture threshold
+  (`api_flow_module.py:646`, `latest_gpm >
+  AsyncCaptureThresholdGpmTimes100/100`, 0.2 gpm for a hall meter). A flow
+  that decays under the threshold before it stops never reaches zero: at
+  maple `sieg-send` ended a valve closure at 0.02 gpm and the five-minute
+  synced report kept re-sending 0.02
+  (`experiments/2026-09-20-maple-starts-heating/`, finding 16). The pico
+  is not at fault; it posts an empty tick list every 7 s. Anything that
+  tests a flow against zero, or sums flows, reads a pump that is not
+  running.
+- **Change.** A step to exactly zero is a change of state, not a delta:
+  on an empty tick list publish zero whenever the last gpm is above zero.
+  The threshold keeps gating jitter between nonzero values. The reed
+  branch (`:608`) uses a no-flow timeout and gets the same check.
+- **Test.** First, and failing: feed the actor a decaying hall tick list
+  that ends under 0.2 gpm, then an empty one; assert a zero is published.
+
 ## Dst-routing test for the LTN gw-wrap (OPS-387 interim)
 
 - **Problem.** The LTN addresses its outbound messages instead of

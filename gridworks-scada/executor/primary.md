@@ -156,6 +156,7 @@ Normative across the domain — full statements in
 | Experimentation rig (real-broker experiments) | [`experimentation-rig.md`](experimentation-rig.md) | Draft |
 | Required and usable energy (how the House0 store is judged ready for on-peak) | [`required-energy.md`](required-energy.md) | Draft |
 | Magic thresholds (numbers decided in code; per-row disposition) | [`magic-thresholds.md`](magic-thresholds.md) | Draft |
+| Defrost signatures (what a defrost looks like in the scada's channels, per heat pump model) | [`defrost-signatures.md`](defrost-signatures.md) | Draft |
 
 ## Open (top-level)
 
