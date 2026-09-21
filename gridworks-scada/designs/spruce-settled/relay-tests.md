@@ -17,7 +17,7 @@ Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linea
    delivered by hand (`tests/actors/test_hp_boss.py`). Test: the
    House0 rows of `tests/actors/test_hp_boss_live.py` uncommented, with
    the sieg-loop actor on the sim plant actually sending `SiegLoopReady`
-   (carried in `../spruce-unlimbo/refactor-sieg.md`, which owns this
+   (carried in `../spruce-unlimbo/basic-sieg.md`, which owns this
    gap before the launch). A second case: no ready message
    arrives and `TURN_ON_ANYWAY_S` closes the relay anyway, with the
    constant shortened through settings rather than the clock.
@@ -77,7 +77,7 @@ Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linea
     journal, like the cycler) and moved to
     `../spruce-unlimbo/command-tree-matrix.md` item 7 as a launch item.
 
-Gap 1 is a launch item and lives with `../spruce-unlimbo/refactor-sieg.md`;
+Gap 1 is a launch item and lives with `../spruce-unlimbo/basic-sieg.md`;
 gaps 2 and 4 are launch items pulled forward under OPS-392's relay-actor
 enforcement; the rest wait for the deployed line. Items 2, 3, 4 and 9 are in-process on the sim board and belong beside
 `tests/actors/test_hp_boss.py` as a relay test file of their own. Items

@@ -1,6 +1,6 @@
 # pico-bench-harness (design)
 
-Status: Draft · Pass 0 · Updated 2026-09-21
+Status: Draft · Pass 0 · Updated 2026-09-21 · Linear: OPS-554
 
 **EDD: yes** the harness is itself the experiment: it is trusted once its
 late-link scenario goes red on firmware known to skip the params post
@@ -76,8 +76,3 @@ written after the fact.
    finding against the code, fold what holds, record `sol-r2.md` and
    `fable-r2-response.md`; at most four rounds. The human holds the Pass
    increment.
-
-## Open
-
-- The Linear issue for this design, and whether it is its own issue or
-  part of OPS-402.

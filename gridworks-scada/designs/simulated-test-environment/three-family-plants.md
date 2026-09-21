@@ -36,7 +36,7 @@ realization (`../spruce-unlimbo/primary.md` "The invariant"):
 
 - **House0** — the sieg loop: `sieg-flow`, `sieg-cold`, the hp-loop
   valve relays and the sieg-loop actor's `SiegLoopReady` handshake, so
-  `refactor-sieg.md`'s field question has a rehearsal rig; buffer, iso
+  `basic-sieg.md`'s field question has a rehearsal rig; buffer, iso
   valve, store tanks.
 - **House0 no-sieg** — the same plant with the sieg surface absent; the
   one that proves nothing above the family tier reaches for a sieg

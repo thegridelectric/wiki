@@ -94,18 +94,12 @@ Most consequential first.
 3. **`HpStartingUp` has no bounded way out.** A heat pump that runs and
    never satisfies the trigger leaves the valve parked. At keep the small
    loop heats as nearly one mass, the heat pump reaches its upper limit
-   and stops itself, and it does so again on each restart. Beech's
-   journal, spring 2025, loop closed (`sieg-flow` 3–4 gpm): LWT rose
-   13–18 °F a minute from the compressor reaching 2 kW, the LG tripped at
-   182–188 °F LWT about six minutes in, and again every ten to twelve
-   minutes. On 2025-04-21 and 2025-05-01 it tripped seven times and then
-   made no power for 15 and 45 hours, through later on commands: the
-   lockout that takes a visit to the basement to clear (the journal
-   carries no LG fault code, so the lockout is read from the shape).
-   Repeated limit trips are a worse outcome than a destratified tank.
-   Through the 2025–26 winter beech's valve rested at full send and these
-   did not recur; the limit trips that winter were against a hot buffer,
-   about 25 minutes into a run.
+   and stops itself, and it does so again on each restart. At beech the
+   LG reaches its limit about six minutes into a loop-closed start, and
+   twice in spring 2025 seven such trips in a row ended in a lockout
+   cleared by hand ([`startup-signatures.md`](startup-signatures.md) "The
+   LG at its upper limit"). Repeated limit trips are a worse outcome than
+   a destratified tank.
 4. **`Blind` mixes two meanings and fails open for both:** missing data,
    and a heat pump thought to be ignoring its command. It is a peer state
    with six transitions out. A restart into it at maple stalled four
@@ -151,6 +145,8 @@ Most consequential first.
 
 ## Related
 
+- A start, as the heat pump shows it, loop open and closed:
+  [`startup-signatures.md`](startup-signatures.md).
 - Defrost, as the heat pump shows it: [`defrost-signatures.md`](defrost-signatures.md).
 - Command nodes and replies: [`control-hierarchy.md`](control-hierarchy.md)
   "Command interfaces and replies".

@@ -17,7 +17,7 @@ The branch does not become `main` until:
   `house0-no-sieg-layout.md`), the layout-word axioms
   (`layout-word-axioms.md`), the ops-word cleanup
   (`operational-params-cleanup.md`), the sieg loop proven on new code
-  (`refactor-sieg.md`), the Nolan control loop (`nolan-local-control.md`),
+  (`basic-sieg.md`), the Nolan control loop (`nolan-local-control.md`),
   strategy selection (`control-strategy-selection.md`), and the small items
   (`odds-and-ends.md`).
 - `layout.lite/013` is published with its closure (`finalize-layout-lite-13.md`)
@@ -48,7 +48,7 @@ are not:
    experiment window; it becomes the standing deployed line. Verify the Nolan
    control loop carries a real heating-season cycle, not the summer hack.
 2. **maple, beech** (`gw.house0.layout`, sieg) — the sieg loop must have run
-   on the new code first (`refactor-sieg.md`). Verify per box: heat call →
+   on the new code first (`basic-sieg.md`). Verify per box: heat call →
    dist flow + pump power, the sieg leg reaching ready.
 3. **oak, fir, elm** (`gw.house0.no.sieg`) — the last family authored; verify
    each with no assumption of a buffer tank, iso valve, or water store tanks.

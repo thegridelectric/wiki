@@ -41,7 +41,7 @@ them exercises it (`experiments/`).
   and the attempt bookkeeping until the simulated houses run
 - `relay-tests.md` — what the hp-boss witness left unexercised, ten
   gaps each with its test; gap 1 (the sieg leg) is owned before the
-  launch by spruce-unlimbo's refactor-sieg spoke
+  launch by spruce-unlimbo's basic-sieg spoke
 - `pump-device-type.md` — a device-type word per pump model (control
   kind, curve, stop machine); carries the measured Grundfos UPMS 20-78 F
 - `hp-device-type-records.md` — a vendored `hp.device.type.gt` record for

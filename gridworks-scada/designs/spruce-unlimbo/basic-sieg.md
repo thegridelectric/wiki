@@ -9,9 +9,7 @@ Status: Draft · Pass 0 · Updated 2026-09-21 · Linear: OPS-392
 > critique"; its defect numbers are used below). The loop is chipped here,
 > not rebuilt: its two state machines stay, and the larger reshaping is
 > [`../../explorations/sieg-loop-next.md`](../../explorations/sieg-loop-next.md),
-> work for after launch. A launch item, ahead of
-> [`refactor-sieg.md`](refactor-sieg.md), which exercises what this spoke
-> leaves on the branch.
+> work for after launch. A launch item.
 
 ## What decides the list
 
@@ -64,7 +62,8 @@ to the house.
   the tank. How fast a closed loop reaches the limit depends on the heat
   pump, which is why the trigger is the stop itself and not a time. A
   backup timer, `SIEG_OPEN_ANYWAY_S` = 900 s of drawing power without the
-  test passing, does the same. "Stops itself" is read from power with two
+  test passing, does the same (the timer becomes per heat pump model; see
+  "Do this next"). "Stops itself" is read from power with two
   thresholds, since power wobbles as a heat pump comes on: it has been
   over a high one, where the compressor is unmistakably running, and then
   falls under a low one, where it has unmistakably stopped, while HpBoss
@@ -203,7 +202,13 @@ are proposals until then.
    command.
 10. Restart with the heat pump off: motor dormant, then keep within one
     travel.
-11. The capability cover lists `sieg-loop` with its two events; the panel
+11. The House0 pairs of `tests/actors/test_hp_boss_live.py` (`PAIRS`:
+    `house0-willow`, `house0-orange`) uncommented: admin's TurnOn parks
+    hp-boss in `PreparingToTurnOn` until the loop on the sim plant sends
+    `SiegLoopReady`. With it, gap 1 of `../spruce-settled/relay-tests.md`:
+    no ready message arrives and `TURN_ON_ANYWAY_S`, shortened through
+    settings, closes the relay anyway.
+12. The capability cover lists `sieg-loop` with its two events; the panel
     offers both while the valve moves.
 
 ## Verification (EDD)
@@ -256,43 +261,35 @@ Rewrite change 1 in one pass, then take it to review.
    until the valve has opened: the predictive open; inputs missing or
    stale (power, LWT, EWT, or the destination temperature the hydronic
    tier hands over) opens at compressor start; the first self-stop by the
-   two-threshold rule; the backup timer (900 s stands; about 240 s from
-   the compressor crossing the high threshold would come before the LG's
-   first trip, undecided); `Standby`, scada dead, power lost. One fact
-   bears on the timer: in beech's loop-closed starts the LG backs off
-   (3.9 kW at two minutes, 2.4 kW by ten, against 6.7 kW open) and the
-   LWT rise falls to zero about five minutes in, at a median 164 °F. A
-   target above that plateau meets a flat slope, which the predictive
-   test reads as "wait", so only the trip or the timer opens the valve.
-3. The destination temperatures are required inputs: say so under "Not
+   two-threshold rule; the backup timer; `Standby`, scada dead, power
+   lost. The backup timer is per heat pump model, a fifth number beside
+   the four thresholds in the House0 family params, counted from the
+   compressor crossing the high threshold: the LG reaches its limit about
+   six minutes into a loop-closed start, so about 240 s there; the
+   Ecodan's closed-loop limit has not been seen, so its value waits for
+   the first maple window and starts cautious.
+3. Dig into one number before relying on it. The loop-closed median trace
+   at beech (19 starts, spring 2025) shows the LWT rise falling to zero
+   about five minutes in, at a median 164 °F, below the 182–188 °F trip.
+   That may be an artifact: six of the 19 tripped inside the window and
+   were censored from the median at that point, the rest may have had
+   the valve nudged open, and LWT there is quantised at 0.9 °F. Plot the
+   19 individually (`scratch/basic-sieg/closed-vs-open/`, `starts2_*.json`
+   and `report.txt`) with `sieg-flow` and relay 14 beside LWT. It matters
+   because a target above a real plateau would meet a flat slope, which
+   the predictive test reads as "wait". The figure is left out of
+   `executor/startup-signatures.md` until settled.
+4. The destination temperatures are required inputs: say so under "Not
    assumed" and in the tests, and check that the House0 word's required
    sensing names the buffer top and store top sensors.
-4. Split `is_blind` into its two meanings: `inputs_missing()`, and the
+5. Split `is_blind` into its two meanings: `inputs_missing()`, and the
    heat pump drawing power more than 120 s after an off command, which
    gets its own glitch. One state still serves both, since both want full
    send. Its name is undecided: renamed for what the valve is doing
    (`FailedOpen` is the placeholder), or left as `Blind` for launch.
    Nothing outside `sieg_loop.py` reads it and the control states have no
    sema enum.
-5. `refactor-sieg.md` holds no refactor and can be deleted once agreed:
-   its one real item (re-enable the House0 pairs in
-   `test_hp_boss_live.py`, off because `PreparingToTurnOn` waits on
-   `SiegLoopReady`) moves into "Tests" here; its other two items are
-   pointers to `../spruce-settled/relay-tests.md` gap 1 and
-   `../spruce-settled/hp-twin.md`. The hub's spoke entry, the link at the
-   top of this spoke and the estimates row go with it.
-6. Write `executor/startup-signatures.md` from the three field analyses in
-   `scratch/basic-sieg/` (`ecodan-start/`, `lg-start/`,
-   `closed-vs-open/report.txt` and `disc.txt`): per heat pump, the turn-on
-   sequence, the wobble, the two thresholds, loop-closed against loop-open
-   power and lift (the two are alike on power for three minutes; EWT
-   rising more than 6 °F in the first two minutes is the loop-closed
-   mark, 21 of 22 at beech with 6 % false fires, where lift alone does
-   not separate them), the 11–20 °F LWT dip about a minute after the
-   valve opens, the LG's 182–188 °F trip and the seven-trip lockout
-   pattern. Maple's loop-closed evidence is eight starts and indicative
-   only; its first clean one is the field window. Then point defect 3 of the critique at it.
-7. Write `scratch/basic-sieg/fable-r1-response.md` (each round-1 finding
+6. Write `scratch/basic-sieg/fable-r1-response.md` (each round-1 finding
    folded here, moved to the explorations doc, or rejected with its
    reason; note the correction that `hp-lwt` and `hp-ewt` are in maple's
    and beech's `CaptureTuningList` and missing only from the simulated
