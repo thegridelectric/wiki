@@ -33,7 +33,13 @@ statement is in `GridWorks_CLAUDE.md` "Experiment-Driven Design (EDD)".
    pattern). Known gaps to fix: **House0 is missing `dist-flow` and
    `store-flow`; Nolan is missing the four resistive-element power
    channels** (post-rename: `buffer-top-elt-pwr`, `buffer-bottom-elt-pwr`,
-   `tank1-top-elt-pwr`, `tank1-bottom-elt-pwr`).
+   `tank1-top-elt-pwr`, `tank1-bottom-elt-pwr`). **House0 is also missing
+   `hp-lwt` and `hp-ewt`:** the word does not require them, and the
+   simulated House0 layouts (`tests/config/gw.house0.orange.layout.json`
+   and willow, 43 channels each) carry neither, while maple and beech
+   both have them and `SiegLoop` reads them. Add both to the word's
+   required sensing and to the simulated layouts, with the sim plant
+   driving them, before any sieg-loop test that reads LWT or EWT.
 4. **`SiegManifoldChannels`** (House0 only) — UNCONDITIONAL, grown to
    the beech-observed surface: `sieg-cold`, `sieg-flow`, `sieg-flow-hz`
    + the valve-observation relay channels `hp-loop-on-off-relay`,
@@ -315,6 +321,46 @@ decision.
   required one, with a test.
 - Snapshot on spruce shows every pico posting after the deployed
   layout regenerates (`starter-scripts/snap_watch.py`).
+
+## Temperature async capture: default 0.1 °C
+
+Every temperature channel reports asynchronously on change, and the
+default delta is 0.1 °C (`AsyncCaptureDelta` 10 on a `CelsiusTimes100`
+channel), whatever reads the sensor. A house gen departs from the default
+only with a stated reason.
+
+What the houses carry today is the dev-era `layout_gen` defaults, split by
+reader and never chosen as a rule (`multi.py` 500 on a ×1000 channel,
+`btu.py` `AsyncCaptureDeltaCelsiusX100 = 20`). All are `AsyncCapture`
+true, `CapturePeriodS` 300 unless noted.
+
+| Reader | Channels | Delta today |
+| --- | --- | --- |
+| TSnap1 ADS (`MultipurposeSensor`) | maple `hp-lwt`, `hp-ewt`, `dist-swt`, `dist-rwt`, `buffer-hot-pipe`, `buffer-cold-pipe`, `oat`, `zone1-living-rm-gw-temp`; beech `store-hot-pipe`, `buffer-hot-pipe`, `sieg-cold`, `buffer-well`, zone gw-temps | 50 = 0.5 °C |
+| BTU pico (`ApiBtuMeter`) | beech `hp-lwt`, `hp-ewt`, `dist-swt`, `dist-rwt`; maple `sieg-hot`, `sieg-cold`, `store-hot-pipe`, `store-cold-pipe` | 20 = 0.2 °C |
+| Tank module pico | tank and buffer `*-depth*-device` (`CapturePeriodS` 60) | 200 = 2.0 °C |
+
+On a pico the delta that acts is the component's firmware field
+(`AsyncCaptureDeltaCelsiusX100`), which `ApiBtuMeter` pushes to the pico;
+the ops `AsyncCaptureDelta` for those channels is read by nothing. The
+default has to reach both places, or the pico path has to take its delta
+from ops.
+
+Measured noise, the one run there is
+(`experiments/2026-08-06-ads-noise/README.md`, gw108 on the spruce pi,
+ADS1115, four zone thermistors):
+
+> baseline 128 SPS @ 1 Hz raw: sd 344–390 µV ≈ **0.011–0.012 °C**,
+> p2p ≤ 1875 µV (≈ 0.06 °C)
+
+0.1 °C is about 8 times that sd and 1.6 times that peak to peak. The
+TSnap1 has the same ADS1115 but its own wiring and thermistors, and the
+picos were not measured at all, so the same run on the MultiTemp sensor
+and on the tank module comes before the default goes onto a house; the
+peak-to-peak margin is the number to watch.
+
+`multipurpose_sensor.py:225-247` reports on a change strictly greater
+than the delta, where `capture.tuning` says greater than or equal.
 
 ## Declared actuator shape
 

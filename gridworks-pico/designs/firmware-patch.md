@@ -1,31 +1,148 @@
 # firmware-patch (design)
 
-Status: Draft · Pass 0 · Updated 2026-09-20 · Linear: OPS-553
+Status: Draft · Pass 0 · Updated 2026-09-21 · Linear: OPS-553
 
-**EDD: yes** a power cycle of a real pico rail with a listener in the
-scada's place is the verification: every live pico posts its params on
-every boot (`experiments/2026-09-19-spruce-pico-params/` is the harness and
-the before picture).
+**EDD: yes** a power cycle of a real pico rail is the verification: every
+live pico posts its params after every boot
+(`experiments/2026-09-19-spruce-pico-params/` is the before picture).
 
-> What this is: the findings from the 2026-09-19 spruce pico params
-> experiment, captured as they stand, for a patch to the pico firmware's
-> boot sequence, and the plan for that patch.
+> What this is: a small patch to the pico firmware on `td/pico-easy-fixes`
+> so a pico always sends its params to the scada, then the analysis from
+> the 2026-09-19 spruce experiment that found the problem.
 
 ## The problem
 
-A pico makes two posts at the top of `start()`, before its reading loop:
-the `code-update` check and its params word (`tank.module.params`,
-`async.btu.params`). It makes each once. When WiFi has not associated by
-the connect timeout, both are skipped without a trace and the pico goes on
-to post readings normally.
+The firmware on `td/pico-easy-fixes` often does not send its params to the
+scada after a boot.
 
-The scada checks a pico's identity (board variant, MicroPython version
-against the layout) and answers with the capture settings the layout wants
-only inside the params post. A pico that loses the race therefore runs
-unchecked, on whatever capture settings it booted with, until its next
-boot, and it never sees a pending code update either.
+1. `start()` tries to connect for 10 s (`CONNECT_TIMEOUT_S`). When the
+   link is not up by then it gives up, sets `needs_reconnect`, and carries
+   on. That timeout is right and stays: it cured a real hang.
+2. The next thing `start()` does is call `update_app_config()`, once. With
+   no link the post fails, and `update_app_config()` returns without a
+   word.
+3. `main_loop()` reconnects a few seconds later and readings flow
+   normally. Nothing calls `update_app_config()` again.
 
-## What was seen
+So on any boot where the link takes longer than 10 s, the scada never
+gets that pico's params. The params post is the only place the scada
+checks the pico's identity (board variant, MicroPython version) and sends
+back the capture settings the layout wants, so the pico runs unchecked on
+whatever settings it booted with until its next boot. At spruce this
+happens on about half of all boots.
+
+## The change: `update_app_config()` is retried from `main_loop()`
+
+**`update_app_config()` needs to change**, with a few lines in `start()`
+and `main_loop()` to call it again until the scada has answered. The same
+change goes in four files (line numbers at `0ca8a2f`):
+
+| file | `update_app_config` | `main_loop` | `start` |
+|---|---|---|---|
+| `tank_module/tank_module_3_main_no_net.py` | 331 | 462 | 484 |
+| `tank_module/tank_module_3_main.py` | 200 | 331 | 353 |
+| `btu_meter/async_btu_main_no_net.py` | 384 | 844 | 866 |
+| `btu_meter/async_btu_main.py` | 253 | 713 | 735 |
+
+**1. `update_app_config()` returns whether the scada answered, and takes a
+`late` flag.** Everything not shown stays as it is.
+
+```python
+def update_app_config(self, late=False):
+    current = self.current_tank_module_params()   # BTU: current_async_btu_params()
+    status, updated_config = self.http.post(...)  # unchanged
+    if status is None:                            # BTU has this line; add it to tank
+        self.needs_reconnect = True
+    if status != 200 or not updated_config:
+        return False                              # was: return
+
+    changed = any(...)                            # unchanged, PARAM_KEYS only
+    if not changed:
+        return True                               # was: return
+
+    new_config = {...}                            # unchanged
+    self.save_app_config(new_config)              # unchanged
+    if late:
+        machine.reset()                           # new: boot again on the saved config
+    self.load_app_config(new_config)              # unchanged
+    ...                                           # unchanged (CaptureOffsetS)
+    return True
+```
+
+**2. `start()` remembers the result.**
+
+```python
+self.update_code()                                # unchanged, once per boot
+self.params_answered = self.update_app_config()   # was: self.update_app_config()
+self.last_params_try = utime.time()
+```
+
+**3. `main_loop()` asks again until answered.** Once per pass, directly
+after the existing `needs_reconnect` block. In the BTU loop it goes after
+the `pending_async_check` block, so a report that is due goes first.
+
+```python
+if (not self.params_answered
+        and self.link_is_up()
+        and utime.time() - self.last_params_try > PARAMS_RETRY_S):
+    self.last_params_try = utime.time()
+    self.params_answered = self.update_app_config(late=True)
+```
+
+**4. One constant and one helper.**
+
+```python
+PARAMS_RETRY_S = 30
+
+def link_is_up(self):
+    if self.wifi_or_ethernet == 'wifi':
+        return is_wifi_connected()                # net.is_wifi_connected() in the files that import net
+    return is_ethernet_connected()
+```
+
+Why it is shaped this way:
+
+- **A late answer that changes settings resets the pico.** Names, capture
+  period and timers are set once, at boot (`set_names()` and the timer
+  starts come after `update_app_config()` in `start()`). Saving the new
+  config and resetting sets them the one way they are set today. After the
+  reset the saved config matches the scada's answer, so one late answer
+  costs at most one reset. A late answer with no changes writes nothing
+  and resets nothing.
+- **`changed` stays on `PARAM_KEYS` only.** `CaptureOffsetS` is never
+  saved, so comparing it on the late path would reset the pico on every
+  slow boot.
+- **`update_code()` is not retried.** The update listener takes a pico's
+  second `code-update` request as proof the update installed.
+- **The retry is an ordinary post between readings**, through the same
+  client a reading uses, only while the link reports up, and never from a
+  timer callback. It adds no new way for the loop to stall.
+
+## Test in the field
+
+At spruce, with the patched firmware on the picos: cycle the 5 V pico
+rail three times, the starter-scripts API listener in the scada's place
+(the 2026-09-19 protocol). PASS: every live pico posts params after every
+boot, the slow ones within about `PARAMS_RETRY_S` of their first reading,
+and readings keep their cadence throughout.
+
+## Do this next
+
+1. Make the change above on `td/pico-easy-fixes`, in the four files.
+2. Regenerate the provisioner: run `python provisioner_generator.py` and
+   commit the new `provisioner.py` with the four files. The generator
+   stitches `net.py`, `tank_module/tank_module_3_main.py` and
+   `btu_meter/async_btu_main.py` into the one `provisioner.py`. Check:
+   `grep -c params_answered provisioner.py` is not 0.
+3. Merge `td/pico-easy-fixes` to `main`.
+4. Get the patched files onto the spruce picos (see Open).
+5. Run "Test in the field" with someone at the rail.
+6. While on site: floor1's USB serial REPL and `os.listdir()` ("Other
+   findings" 1).
+
+## How we figured this out
+
+### What was seen
 
 Spruce, 2026-09-19, two power cycles of the 5 V pico rail with the
 starter-scripts API listener on the scada's port. Eight live picos
@@ -57,13 +174,14 @@ starter-scripts API listener on the scada's port. Eight live picos
 - Tank picos post `tank.module.params` Version `200`; BTU picos post
   `async.btu.params` Version `100`.
 
-## Where the behaviour comes from
+### Where the behaviour comes from
 
 Every live spruce pico runs firmware from `td/pico-easy-fixes`, the branch
 of the open pull request 15 against `dev` in `gridworks-pico`, put there by
-two in-field updates (2026-09-09 and 2026-09-15, table under "To solve" 2).
-Two facts show it: `async.btu.params` Version `100` is sent on that branch and on no
-other, and the skipped boot posts are possible only from `dc8f1d7` on.
+two in-field updates (2026-09-09 and 2026-09-15, table under "Other
+findings" 1). Two facts show it: `async.btu.params` Version `100` is sent
+on that branch and on no other, and the skipped boot posts are possible
+only from `dc8f1d7` on.
 
 - On `main`, `connect_to_wifi()` loops until the link is up, with no
   timeout, so `start()` cannot reach the boot posts without WiFi. A slow
@@ -76,9 +194,8 @@ other, and the skipped boot posts are possible only from `dc8f1d7` on.
   path later restores the link for readings and never re-runs the boot
   posts.
 
-The timeout fixes a real hang and stays. The mechanism is read from the
-code and fits the timing above; no pico serial output was captured, so it
-is not yet observed directly.
+The mechanism is read from the code and fits the timing above; no pico
+serial output was captured, so it is not yet observed directly.
 
 Which code a pico runs can be told two ways. A pico that posts params shows
 it in the word: tank `110` against `200` (which adds `PicoBoardVariant` and
@@ -88,11 +205,13 @@ both boot posts while the listener was answering 200 runs `dc8f1d7` or
 later. Across the three boots of 2026-09-19 every pico but buffer skipped
 at least once.
 
-## To solve
+## Other findings from the same experiment
 
-1. **The boot posts.** A pico makes its params post on every boot, however
-   late WiFi comes up, without holding up readings.
-2. **Why floor1 went away.** Leading cause, not yet confirmed: floor1
+Not part of this patch. What a pico reports about the code it runs, the
+safety of the in-field code download, and bounding a stuck HTTP post
+belong to OPS-402.
+
+1. **Why floor1 went away.** Leading cause, not yet confirmed: floor1
    fetched the update with the old firmware's `update_code`, a short or
    interrupted body was written to `main_update.py`, and `boot.py` swapped
    it in as a `main.py` that fails at import on every boot. What supports
@@ -126,16 +245,18 @@ at least once.
    - A picos-rail power cycle is the only way to make a pico check for
      its update, and it cuts every pico at once, so a cycle made for one
      pico can land inside another's download or write. Whether that
-     happened to floor1 is not known.
+     happened to floor1 is not known; nor is how the rail was cycled
+     around 16:36 on 2026-09-15, or whether the listener was restarted
+     then.
    - What settles it: floor1's USB serial REPL and `os.listdir()`. A short
      or broken `main.py` beside an intact `main_previous.py` confirms it;
      a board that does not answer is hardware.
    - buffer and the two picos updated only on 09-09 (tank1 and fancoil by
      elimination) run the 09-09 build, not `0ca8a2f`.
-3. **A pico says what code it runs.** OPS-402. In-field firmware upgrade
+2. **A pico says what code it runs.** OPS-402. In-field firmware upgrade
    is allowed this year and retired before scaling, so the identifier
    belongs in the params words and not in `code-update`.
-4. **When the flash happened.** ✅ 2026-09-15, inside a scada-down window
+3. **When the flash happened.** ✅ 2026-09-15, inside a scada-down window
    from 16:09:30 to 17:21:47 ET (journal DB). floor1's last reading is
    16:09:24 ET on all six of its channels, steady and in family to the
    end. Every other spruce pico stops within seconds of it and returns
@@ -149,151 +270,3 @@ at least once.
    `code-update` before params, as the picos do, so these two files at
    `0ca8a2f` are the flashed code.
 
-The patch is made on `td/pico-easy-fixes`.
-
-## Do this next
-
-The plan below is in its adversarial cycle at the Design scale
-(`adversarial-cycle.md`). Round 1 is done and returned NOT APPROVED on a
-wider plan; the plan was then cut to the params retry and the harness
-start. The record is `scratch/firmware-patch/`: `plan-r1.md`, `sol-r1.md`
-(12 blocking findings), `fable-r1-response.md` (each finding checked, and
-the direction of the fold), `start-commit.txt`.
-
-1. Read `adversarial-cycle.md`; check the pin in `~/.codex/config.toml`
-   (`gpt-5.6-sol`, high).
-2. Copy this file to `scratch/firmware-patch/plan-r2.md` and open round 2
-   with Sol through the Codex plugin: a fresh thread, high effort, since
-   the plan was rewritten and not just folded. The focus text names the
-   code as the contract (`gridworks-pico` on `td/pico-easy-fixes`:
-   `tank_module/tank_module_3_main_no_net.py`,
-   `btu_meter/async_btu_main_no_net.py`, `net.py`; and
-   `starter-scripts/api/common.py` `update_pico_code`), states the
-   Design-scale materiality bar, asks for every finding above it, carries
-   the secrets clause, and says what round 1 found and what was cut, so
-   Sol attacks the new plan: the reset on a late changed answer (reset
-   loops, a reset landing in a flash write, the BTU flow count across a
-   reset), the retry's place in each loop, `link_is_up()` on ethernet, and
-   whether the four harness scenarios can fail for the right reason.
-3. Check each finding against the code, fold what holds, record
-   `sol-r2.md` and `fable-r2-response.md`; at most four rounds. Report to
-   the human, who holds the Pass increment.
-4. Once Accepted: build the harness start in
-   `experiments/future/pico-bench-harness/` on the bench (one PicoW, one
-   Wiznet pico, a relay on their rail, the scripted listener), show
-   scenario 1 red on `0ca8a2f`, then make the firmware change and turn the
-   four scenarios green.
-
-Carried, outside the cycle: floor1's USB console and `os.listdir()` on
-site; how the rail was cycled around 16:36 on 2026-09-15, and whether the
-listener was restarted then.
-
-## Plan
-
-One change to the firmware on `td/pico-easy-fixes`, tank and BTU, WiFi and
-ethernet: the params post is retried until answered. The 10 s connect
-timeout and the reconnect loop stay. What a pico reports about the code it
-runs, the safety of the in-field code download, and bounding a stuck HTTP
-post belong to OPS-402.
-
-### The bench harness comes first
-
-`gridworks-pico` has no tests, and this bug was found in the field, so it
-gets a test that fails before the fix goes in. Pico code cannot be tested
-off the board in a way that means anything: the behaviour that matters is
-the WiFi chip's join timing and the WIZNET5K driver, which a stand-in does
-not have. The test is a bench harness, and firmware passes it on one PicoW
-and one Wiznet pico before it goes to a house.
-
-The harness starts here with what this fix needs, in
-`experiments/future/pico-bench-harness/`, and grows under OPS-402:
-
-- the two bench picos on a rail the bench pi cuts with a relay;
-- a listener in the scada's place that follows a script per scenario:
-  answer at once, stay silent for t seconds and then answer, answer params
-  with changed settings;
-- a run is rail off, rail on, watch for a bounded time, then one line per
-  scenario and board: PASS or FAIL, with the request log as evidence.
-
-Scenarios for this fix, each on both boards:
-
-1. **Late link.** The listener refuses connections for 15 s after rail on
-   (longer than the connect timeout), then answers. PASS: the params post
-   arrives. Red on `0ca8a2f`.
-2. **Late answer with changes.** As 1, and the params answer changes
-   `CapturePeriodS`. PASS: the pico resets once, posts params again, and
-   reports on the new period; no second reset.
-3. **Prompt link.** The listener answers from the start. PASS: one params
-   post, no retry, no reset. Guards the normal boot.
-4. **Never answered.** The listener answers readings and never answers
-   params. PASS: readings keep their cadence for 10 minutes and a params
-   attempt arrives about every 30 s.
-
-### Params retry
-
-Invariants:
-
-- The first reading goes out as it does today; a params retry is made
-  between readings, never in a timer callback.
-- The retry makes the same kind of post a reading makes, through the same
-  client, and only while the link reports connected
-  (`is_wifi_connected()` or `is_ethernet_connected()`, by
-  `wifi_or_ethernet`). It adds no new way for the loop to stall; bounding a
-  stuck post is OPS-402's.
-- Params is answered on a 200 with a body. Until then the pico asks again
-  no faster than once per `PARAMS_RETRY_S` (30), for as long as it runs.
-- `code-update` is asked once per boot, as today, and is never retried:
-  the listener takes a pico's second `code-update` request as proof the
-  update installed.
-- A late answer is never applied in place. When it differs from the saved
-  config it is saved (the existing write-on-change path) and the pico
-  resets, so names, period, offset and timers are set the one way they are
-  set today, at boot. When it does not differ nothing is written and
-  nothing resets. After a reset the saved config matches the answer, so
-  one late answer costs at most one reset.
-
-```
-update_app_config(late=False) -> bool:        # tank and BTU
-    status, answer = post params
-    if status is None: needs_reconnect = True
-    if status != 200 or not answer: return False
-    changed = <existing comparison, extended to CaptureOffsetS>
-    if changed:
-        save_app_config(new_config)           # existing atomic write
-        if late: machine.reset()              # after the write has returned
-        <existing in-place apply, boot path only>
-    return True
-
-start():                                      # tank and BTU
-    try connect                               # unchanged
-    update_code()                             # unchanged, once
-    self.params_answered = self.update_app_config()
-    self.last_params_try = utime.time()
-    ...                                       # unchanged
-
-main_loop(), once per pass, after the reconnect check:
-    if not self.params_answered
-       and link_is_up()
-       and utime.time() - self.last_params_try > PARAMS_RETRY_S:
-        self.last_params_try = utime.time()
-        self.params_answered = self.update_app_config(late=True)
-```
-
-In the BTU loop the retry sits after the `pending_async_check` block, so a
-report that is due goes first. `link_is_up()` is the one new helper. The
-change is made in `tank_module_3_main.py` and `async_btu_main.py` and in
-their `_no_net` copies until OPS-402 replaces the copies with a build step.
-
-### Verification
-
-Harness scenarios 1 to 4 green on both bench boards. Then spruce: the
-2026-09-19 protocol, three rail cycles with the listener in the scada's
-place, and every live pico posts params after every boot, the late ones
-within `PARAMS_RETRY_S` of their first reading.
-
-## Open
-
-- How the patched firmware reaches the spruce picos: one more in-field
-  update, or USB. floor1 needs USB either way.
-- Whether the scada accepts the bodies the picos send. The listener in the
-  experiment takes any path, so its 200 is not the scada's.

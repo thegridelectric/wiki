@@ -1,6 +1,6 @@
 # Beta field windows
 
-Status: Draft · Pass 0 · Updated 2026-09-20 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-21 · Linear: OPS-392
 
 > What this is: the recurring field test of the `jm/spruce-unlimbo` code.
 > After roughly each spoke the branch runs in a bounded window on one house
@@ -24,7 +24,11 @@ One house per layout family per round:
 - **spruce** for `gw.nolan.layout`, `ActuationAuthority` Active. In the
   heating season the winter hack is the plant controller and
   `NolanLocalControl` holds zones off and turns the heat pump off, so a
-  spruce window is short and always bounded.
+  spruce *test* window is short and always bounded. Field support is the
+  exception: there the window scada is what lets heat calls reach the heat
+  pump while someone works on it, so the window is deliberately long
+  (hours) — still bounded, so the winter hack auto-restores if the session
+  ends.
 - **beech** for `gw.house0.layout`, `ActuationAuthority` Standby. Beech
   carries the siegenthaler loop; a loop left fully closed while the heat
   pump runs trips the heat pump, so relay positions are checked against

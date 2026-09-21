@@ -1,6 +1,6 @@
 # GridWorks — working conventions for Claude
 
-Status: Accepted · Pass 2 · Updated 2026-09-20
+Status: Accepted · Pass 2 · Updated 2026-09-21
 
 > Canonical at `wiki/GridWorks_CLAUDE.md`; symlink setup in
 > [`README.md`](README.md#setup). Paths are relative to the umbrella dir
@@ -376,8 +376,14 @@ from the scada venv) and reaches the box only through
 `experiments/put_layout.sh <house> <change>`, which leaves a dated
 `*.<date>-pre-<change>.json` copy beside each file it replaces. At
 spruce in the heating season the winter hack is the plant controller:
-`NolanLocalControl` holds zones off and turns the heat pump off, so keep
-a spruce window short and bounded.
+`NolanLocalControl` holds zones off and turns the heat pump off. An
+*experiment* window there is kept short and bounded — the short-window
+rule is about running experiments. A *field-support* window is the
+opposite case: the window scada is what lets heat calls reach the heat
+pump while someone works on it, and a cold house is the reason for the
+work, so a field-support window is deliberately long (hours). Bound it
+anyway (e.g. `on 360` for six hours) so the winter hack auto-restores if
+the session ends; extend with a fresh `off`/`on` as the work runs on.
 
 **Read the diff for context-dependent prose before suggesting a scada
 commit.** Docstrings, comments, gwsproto field descriptions and sema word

@@ -75,6 +75,7 @@ hand-copies).
 | `spruce_status.py` | no | every expander register, optos, mux channel; "all healthy" line — the SessionStart hook runs it |
 | `hp_state.py` | no | named relays: commanded vs pin level |
 | `snap_watch.py` | no | snapshot channel ages — watch picos come back |
+| `spruce_snap.py` | no | a line every 30s or on power change: hp-ewt/hp-lwt/store-hot-pipe/store-cold-pipe/buffer-depth1/buffer-depth3 (F) and secondary-flow (GPM) from the snapshot, secondary-pump/hp-odu/hp-ctrl-box power (W) straight off the eGauge — field support while the heat pump is worked on |
 | `sick_spruce.py` | 0x20/0x21 | restore cooling posture by hand (hack stopped) |
 | `charge_valve_test.py` | 0x21 | 2026-08-16 charge-valve leg test (superseded by on-site result, below) |
 | `program_dac_eeprom.py` | DAC EEPROM | one-time power-on defaults |

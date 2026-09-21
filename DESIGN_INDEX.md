@@ -109,6 +109,7 @@ _(every file under an `explorations/` folder, anywhere in the wiki)_
 - **gridworks-scada** — [`explorations/metering.md`](gridworks-scada/explorations/metering.md) (how the transactive measurement is defined in a layout + how its veracity is established; cryptographic-veracity / distributed-trust)
 - **gridworks-scada** — [`explorations/non-gnode-interfaces.md`](gridworks-scada/explorations/non-gnode-interfaces.md)
 - **gridworks-scada** — [`explorations/sema-style.md`](gridworks-scada/explorations/sema-style.md)
+- **gridworks-scada** — [`explorations/sieg-loop-next.md`](gridworks-scada/explorations/sieg-loop-next.md) (the sieg loop after launch: proposals, and a reading of the 2025–26 loop and the unmerged PID branch)
 - **rmqbot** — [`explorations/granular-permissions-and-web-admin.md`](rmqbot/explorations/granular-permissions-and-web-admin.md)
 - **sema** — [`explorations/dashboard-vocabulary-modeling.md`](sema/explorations/dashboard-vocabulary-modeling.md)
 - **sema** — [`explorations/rulebook-source-drift.md`](sema/explorations/rulebook-source-drift.md)

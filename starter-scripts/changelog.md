@@ -3,6 +3,24 @@
 One entry per `starter-scripts` commit (git = the what, this = the why).
 Entries before 2026-08-23 live in git history only.
 
+## 2026-09-21 — add `spruce_snap.py` field-support watcher <!-- pending commit -->
+
+A line for someone working the heat pump: hp-ewt / hp-lwt /
+store-hot-pipe / store-cold-pipe / buffer-depth1 / buffer-depth3 in F and
+secondary-flow in GPM from the scada snapshot (the admin
+`snapshot-spaceheat` on the box's local mosquitto, cached from a
+background MQTT thread), and secondary-pump / hp-odu / hp-ctrl-box power
+in W read straight off the eGauge over Modbus — the same registers and
+F32 decode the winter hack uses. Power is read at the meter, not from the
+snapshot, because it moves fast and the ~30 s snapshot is too slow for it.
+The eGauge is polled every 2 s but a line prints only on a 30 s heartbeat
+or the moment a power channel moves >=5 W (idle jitter stays quiet); the
+column header reprints every 5 min. The temp/flow channels report
+async-on-change, so the line is flagged only when the snapshot feed itself
+stalls, never for a steady value that is simply minutes old. Why: field
+support to get the Samsung responding to heat calls — the values you watch
+while doing it, in one place at meter speed.
+
 ## 2026-08-25 — remove `provoke_gw108.py` (`69d1f69`)
 
 Stale on two counts: it targets `dac3`, dead since 2026-07-30 (secondary
