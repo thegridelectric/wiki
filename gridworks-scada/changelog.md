@@ -754,6 +754,18 @@ fixtures and checks each house emits exactly the one sieg flow it does not
 measure, with the value the readings imply. Rung 4 of correct-house0
 (OPS-539).
 
+## 2026-09-14 — Updates for new Pico codes (#575, `f83a0b77` on dev)
+
+The scada side of the pico firmware that reports its board and
+micropython version. `async.btu.params` goes to version 100 and gains
+`PicoBoardVariant` and `MicropythonVersion`; `baseurl.failure.alert` goes
+to version 100; both gwsproto types carry the `Sema:` docstring.
+`ApiTankModule` moves from `ShNodeActor` to `PicoActorBase`, the base the
+other pico actors share. `test_async_btu_params.py` is rewritten for the
+new version. `test_tank_module_params.py` loses
+`test_conforms_to_sema_runtime`, which shelled out to `sema validate`;
+scada tests do not call sema.
+
 ## 2026-09-14 — command_reply docstring: bossable nodes, not "command nodes" (`ade7bed2`)
 
 The `command_reply.py` docstring called the DispatchAck/Nack repliers "the

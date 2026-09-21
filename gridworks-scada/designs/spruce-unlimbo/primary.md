@@ -6,7 +6,7 @@ Status: Accepted · Pass 1 · Updated 2026-09-20 · Linear: OPS-392
 spokes reach Verified only when an experiment runs against the real bus or a
 real broker.
 
-**▶ Active spoke: [`startup-announcements.md`](startup-announcements.md)**
+**▶ Active spoke: [`basic-sieg.md`](basic-sieg.md)**
 
 > What this is: the hub for getting `jm/spruce-unlimbo`, the branch that
 > runs the Nolan layout at spruce, onto the whole fleet as `main` before
