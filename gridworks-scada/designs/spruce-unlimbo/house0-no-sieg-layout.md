@@ -3,15 +3,15 @@
 Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-392
 
 > What this is: authoring the `gw.house0.no.sieg` layout word and its three
-> generators (oak, fir, elm) so the sieg-less House0 family can be deployed
-> this fall. A launch item: three of the six boxes are this family, and the
-> branch cannot go onto them without the word.
+> generators (oak, fir) so the sieg-less House0 family can be deployed this
+> fall. A launch item: two of the six boxes are this family, and the branch
+> cannot go onto them without the word.
 
 ## The family
 
 There are three in-field layout families, not two. `gw.house0.layout` now
 MEANS has-a-siegenthaler-loop (maple, beech); `gw.nolan.layout` is spruce;
-and **oak, fir, and elm** are the sieg-less House0 topology — the same core
+and **oak and fir** are the sieg-less House0 topology — the same core
 plant as House0 with no siegenthaler loop: no sieg-loop actor, no
 `sieg-cold` / `sieg-flow` / `sieg-flow-hz` sensing, no hp-loop valve relays.
 They need their own word, `gw.house0.no.sieg`, before they can be
@@ -58,17 +58,17 @@ family:
 - `oak_gen.py` — **already exists** and must be repointed to
   `gw.house0.no.sieg` (it cannot emit `gw.house0.layout`, which now means
   has-a-sieg-loop).
-- `fir_gen.py`, `elm_gen.py` — to be written, from `old_gen_fir.py` /
-  `old_gen_elm.py` as the sources to translate.
+- `fir_gen.py` — to be written, from `old_gen_fir.py` as the source to
+  translate.
 
 The stub `tlayouts/house0_no_sieg_sema_gen.py` (raises `NotImplementedError`)
 marks the seam: it becomes the real family generator following the
-`oak_gen.py` / `spruce_gen.py` worked pattern, and the three per-home gens
-build on it. Each gen's output validates via `sema validate` and loads a
+`oak_gen.py` / `spruce_gen.py` worked pattern, and the per-home gens build
+on it. Each gen's output validates via `sema validate` and loads a
 scada suite green against the emitted instance; a sim pair ships in the same
 wave as the word (the standing rule).
 
-Oak, fir and elm keep the rest of the House0 plant: buffer tank, iso valve,
+Oak and fir keep the rest of the House0 plant: buffer tank, iso valve,
 store tanks. The three fall installs (two simplified manifolds with no iso
 valve and no buffer tank, one cement store-under-floor with no water tanks)
 are further layouts beyond this family, owned by the spruce-settled
@@ -79,8 +79,8 @@ three generators.
 
 - `gw.house0.no.sieg` is authored (staging), axioms mirrored, `sema validate`
   green on a fixture.
-- `oak_gen.py`, `fir_gen.py`, `elm_gen.py` emit their layouts; each output
-  validates and loads a scada suite green.
+- `oak_gen.py` and `fir_gen.py` emit their layouts; each output validates
+  and loads a scada suite green.
 - The no-sieg sim pair exists and both contract tests pass on it.
 - The `gw.house0` sieg-unconditional tightening lands on top.
 
@@ -88,4 +88,4 @@ three generators.
 
 - The simulated fourth layout of the fall set — whether it is this family or
   `gw1.simple.sim.layout` — stays with OPS-532.
-- Real oak/fir/elm instance filenames (distinct from the fixture).
+- Real oak/fir instance filenames (distinct from the fixture).

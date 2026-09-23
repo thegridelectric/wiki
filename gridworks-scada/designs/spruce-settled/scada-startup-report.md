@@ -53,9 +53,9 @@ and not a bare string with a length axiom.
 - Sema: the format word, then `scada.startup.report/000`, flat, with the
   gwsproto twin written by hand and checked with `sema validate`.
 - Scada: the report is one more send in `Scada.send_startup_announcements`,
-  the once-per-run method that spruce-unlimbo's startup-announcements
-  spoke (OPS-392) builds. `StartedAt` is taken once when the scada app
-  starts; `SentAt` when the method runs.
+  the once-per-run method (`executor/scada-ltn-link-state.md` "The startup
+  announcements"). `StartedAt` is taken once when the scada app starts;
+  `SentAt` when the method runs.
 - The LTN decodes the report and drops it, as it does the deed. The
   journal is the reader.
 

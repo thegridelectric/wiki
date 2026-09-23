@@ -11,10 +11,17 @@ Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linea
 
 There are three in-field layout families, not two: `gw.house0.layout`
 (has a siegenthaler loop — maple, beech), `gw.nolan.layout`, and the
-sieg-less house0 topology that **oak, fir, and elm** actually are,
-authored as `gw.house0.no.sieg`. Authoring that word and its oak / fir /
-elm generators is a launch item and moved to OPS-392; this spoke keeps
-the per-install physical detail below.
+sieg-less house0 topology that **oak and fir** actually are, authored as
+`gw.house0.no.sieg`. Authoring that word and its oak / fir generators is a
+launch item and moved to OPS-392; this spoke keeps the per-install physical
+detail below.
+
+Elm leaves the House0 family when its Arctic high-temperature heat pump
+goes in. The Arctic is a monobloc (all refrigerant outside) with two
+compressors, and a House0 house is a split system. Elm's plant gets a heat
+exchanger, a secondary pump and a field-supplied primary pump, and keeps a
+buffer tank. Its layout word is not authored, and elm running the new code
+is not a condition of the merge to `main`.
 
 ## The four
 
@@ -48,6 +55,10 @@ the per-install physical detail below.
 
 ## Open
 
+- Elm's word: a Nolan plant is monobloc, exchanger and secondary pump with
+  one store tank and no buffer; elm has the first three and a buffer tank.
+  Whether elm is `gw.nolan.layout` with the buffer made a Hydronic fact, or
+  a word of its own.
 - Everything above marked *(details to fill)*.
 - Which of the six name-tier / hydronic-tier structures each new family
   reuses vs owns.

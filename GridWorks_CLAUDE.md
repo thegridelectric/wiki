@@ -186,7 +186,11 @@ distributed-trust principle it served — that principle is core vision.
   JournalKeeper does not journal, and windows beyond its retention.
   Consult it by hand for those; keep no S3 fallback code in pull paths
   until a consumer concretely needs an S3-only type. Session access to the
-  journal DB: `GJK_DB_URL` in `experiments/.env`.
+  journal DB: `GJK_DB_URL` in `experiments/.env`. How to pull data — for
+  experiments and for quick spot-checks alike — is in
+  `experiments/spot-check-recipe.md` (report.event carries both state
+  machines and numeric channels; a spot-check reports back and leaves
+  nothing in the repo).
 - **HTTP surfaces follow the house API pattern** — writes ride rabbit, reads
   ride a public read-only façade; the party segment is the hyphenated
   GNodeAlias for GNode services (the service name for non-GNodes); bodies
@@ -357,33 +361,20 @@ a buffer tank, an iso valve, or water store tanks exist; "shared" means
 every layout we can imagine has it, not both current families.
 
 **Bring up unlimbo on spruce or beech = `experiments/spruce_window.sh` /
-`beech_window.sh`** (both call `house_window.sh <house>`). Run from the
-laptop. `on [minutes]` refuses unless the box's window pair in
-`~/.config/gridworks/scada-experiment/` is byte-identical to
-`tlayouts/output/<house>/` and the box's `~/gridworks-scada-unlimbo`
-checkout is at the laptop's pushed scada head. It then opens the
-`ssh -R 1885` tunnel to the laptop's `gw-dev-rabbit` (the upstream link,
-observation only; the window opens without it, and commands ride the
-box's own mosquitto on 1883), records which plant services are running
-(`gwspaceheat`, its restart timer, and at spruce `spruce-winter-hack`),
-stops them, and boots the window scada from `~/envs/dev.env`. No minutes
-is a standing window until `off`. The box starts the recorded services
-again when the window scada exits for any reason: the bound, a crash or
-`off`. `off` also copies the log to `scratch/`; `status` shows services,
-window, tunnel and the relay bits. Watch with `gwa watch <house>`. The
-window pair is the house gen's output (`tlayouts/<house>_gen.py` run
-from the scada venv) and reaches the box only through
-`experiments/put_layout.sh <house> <change>`, which leaves a dated
-`*.<date>-pre-<change>.json` copy beside each file it replaces. At
-spruce in the heating season the winter hack is the plant controller:
-`NolanLocalControl` holds zones off and turns the heat pump off. An
-*experiment* window there is kept short and bounded — the short-window
-rule is about running experiments. A *field-support* window is the
-opposite case: the window scada is what lets heat calls reach the heat
-pump while someone works on it, and a cold house is the reason for the
-work, so a field-support window is deliberately long (hours). Bound it
-anyway (e.g. `on 360` for six hours) so the winter hack auto-restores if
-the session ends; extend with a fresh `off`/`on` as the work runs on.
+`beech_window.sh`** (both call `house_window.sh <house>`), run from the
+laptop; the window pair reaches the box only through
+`experiments/put_layout.sh`. The full operational how-to — the two box
+layouts, the byte-identity gate, the tunnel, the spruce branch exception,
+and running a round — is `experiments/field-window-recipe.md`. Two rules hold
+at every window. Spruce runs production off `actual-spruce` (scada and layout
+both) while the window runs `jm/spruce-unlimbo` against the `jm/spruce`
+layout, so its two layouts are reasoned about separately. And the window kind
+sets its length: an *experiment* window at spruce displaces the winter hack
+(`NolanLocalControl` holding zones and the heat pump off), so keep it short
+and bounded; a *field-support* window runs long (hours, e.g. `on 360`)
+because it is what lets heat calls reach the heat pump while someone works on
+the equipment, bounded anyway so the winter hack auto-restores if the session
+ends.
 
 **Read the diff for context-dependent prose before suggesting a scada
 commit.** Docstrings, comments, gwsproto field descriptions and sema word

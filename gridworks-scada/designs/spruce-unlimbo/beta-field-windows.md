@@ -33,7 +33,7 @@ One house per layout family per round:
   carries the siegenthaler loop; a loop left fully closed while the heat
   pump runs trips the heat pump, so relay positions are checked against
   the bus, not only against the log.
-- **one of fir / elm / oak** for `gw.house0.no.sieg`, from the round after
+- **one of fir / oak** for `gw.house0.no.sieg`, from the round after
   `house0-no-sieg-layout.md` ships its word and gens.
 
 A round MAY skip a family the spoke could not have touched; the round's
@@ -125,7 +125,8 @@ the fixes are written and tested and have not run on a house.
    - both: the capture's provenance sidecar carries its `Probe:` line and
      an `Opened:` line per window with the scada SHA.
 3. **Channel integrity is in.** The four channel axioms
-   (`layout-word-axioms.md` "Axiom architecture" item 10) are in both
+   (`DerivedChannelCreatorResolution`, `DataChannelNodeResolution`,
+   `DerivedChannelInputsAcyclic`, `ChannelNameUniqueness`) are in both
    words with sema runtime tests, the tlayouts snapshot and the gwsproto
    mirrors, and the three loader checks they replace are out of
    `hydronic_layout.py`, each behind a load-path test

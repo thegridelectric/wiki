@@ -10,6 +10,76 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-23 — patch small bug in layout gen (GRI-6, `ce05fcd5` on dev)
+
+`layout_gen/flow.py` looked up a flow module's ComponentId under the bound
+method `component_display_name` instead of its result, so the alias never
+matched the reference layout and every regen minted three fresh ids for the
+flow-module components (the BTU meter code calls the method). Found
+regenerating beech's production layout on 2026-09-22: sieg-flow, store-flow
+and dist-flow2 came back with new ComponentIds while every other id held.
+The three call sites now call the method; a test pins a flow module to the
+id its reference layout carries. On `jm/flow-component-id-alias` off `dev`,
+the branch the boxes run.
+
+## 2026-09-21 — remove some debug glitches (OPS-392, `61919085` on jm/spruce-unlimbo)
+
+The Debug `pico-identity-matches` glitch is gone. A pico posting params that
+match the layout now sends nothing; a mismatch still sends a Warning
+`Glitch` per differing field, once per scada run (`PicoIdentity.differences`
+is unchanged). The match glitch was DEBUG-gated, so a deployed scada never
+sent it — in a `--debug` field window it was noise on the upstream stream.
+The three `send_debug("pico-identity-matches")` calls go, in
+`api_tank_module`, `api_btu_meter` and `api_flow_module`; that orphans the
+match helpers `PicoIdentity.first_match`, `matches` and the `match_reported`
+state, which go too. `send_debug` stays as a method. Tests updated.
+
+## 2026-09-21 — heat pump accessors and pico channels go unknown when their sensor stops (OPS-392, `b86da812` on jm/spruce-unlimbo)
+
+The rest of the sensor-freshness work after `6e0efaac`.
+
+`lwt()`, `ewt()`, `hp_odu_pwr_w()` and `hp_idu_pwr_w()` returned the last
+value whatever its age. They return `None` for a channel the layout lacks
+or that `ScadaData.flatlined` calls stale (`ShNodeActor.channel_is_live`),
+so `lift_f()` and `total_hp_pwr_w()` do too. This backstops every capturing
+actor that sends no `ChannelFlatlined`. `hp_in_defrost()` is the exception:
+`False` lets local control and the leaf ally valve the heat pump onto the
+store, so a meter lost mid-defrost must not end the defrost. It answers
+from `ScadaData.last_real_value`, the latest value or the one a flush
+cleared (`last_real_channel_values`); the callers' 20-minute defrost
+timeout bounds it. `channel_temperature` is untouched, so zone and tank
+readers behave as before.
+
+`ApiBtuMeter` and `ApiTankModule` judged liveness per pico, so a BTU pico
+that kept posting flow and dropped a thermistor channel was never noticed
+(spruce store pipes, 2026-09-21). Each keeps a `PicoLiveness` per captured
+channel, fed by the posts that carry the channel; a channel quiet for 2.5
+capture periods gets a `ChannelFlatlined` and no `PicoMissing`, and a
+missing pico is not also reported channel by channel. `check_liveness` is
+`main`'s check made callable. `SimPicoSource` takes a `without` function
+and an `omitted_names` set so a test can drop one channel from the sim
+post.
+
+## 2026-09-21 — a lost power meter channel reads as unknown (OPS-392, `6e0efaac` on jm/spruce-unlimbo)
+
+Control code treats `None` from `total_hp_pwr_w()`, `lwt()`, `ewt()` and
+`lift_f()` as "unknown", and none of them went to `None` when the sensor
+behind it stopped. This commit is the power meter's part. The driver
+thread re-sent its last good watts with a fresh read time every capture
+period when the eGauge could not be reached, so a meter lost mid-run read
+as steady power. It now keeps the monotonic time of each channel's last
+read that returned a value; past `power_meter_lost_after_s` (10 s) the
+channel's values go to `None`, aggregate power is re-armed if the channel
+is transactive, and the scada gets one `ChannelFlatlined`. The first good
+read reports on that poll. The sim meter driver gains
+`no_value_channel_names` so the loss can be staged; four live tests on
+the willow sim cover loss, a short gap, recovery to the scada and the
+derived generator, and aggregate power after recovery at the same watts.
+
+For the field check, `SCADA_UNKNOWN_CHANNEL_LOGGING=true` has the scada
+log every 15 s which channels have no value and which have one older than
+the flatline bound (`ScadaData.unknown_channels`).
+
 ## 2026-09-20 — minor (OPS-392, `8f76cf68` on jm/spruce-unlimbo)
 
 The test that goes with `631233c0`, which carried the removal alone:

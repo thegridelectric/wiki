@@ -10,6 +10,63 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-23 — layout words state their required names; circuits carry an emitter type (OPS-392) <!-- pending commit -->
+
+The two staging layout words carried a partial required-name surface, so a
+layout could omit a channel or node the scada reads and still validate.
+`gw.house0.layout/000` widens `RequiredSensing` to the heat-pump and pump
+power channels and the plant pipe temperatures, adds `sieg-hot` and
+`sieg-send-flow` to `SiegManifoldChannels`, drops the `buffer` node from
+`BufferTank` (the three depth readings are what the code reads), and
+gains `StoreTankTemps` and `WebServerNode`. `gw.nolan.layout/000`
+requires the bare depth names in place of the `-device` form, gains the
+pump power channels, `buffer-hot-pipe` and the four circuit supply and
+return pairs, gains `backup` and `scada-blind` as command nodes, and
+gains `BufferTank`, `StoreTankTemps`, `SystemModelEnergyChannels` and
+`WebServerNode`. Both words are staging, so these are in-place edits.
+
+A zone-call circuit names the emitter it drives. `gw1.zone.call.circuit/000`
+carries `EmitterType` over the new `zone.emitter.type` enum (`Unknown`
+as the default, then fin tube, cast iron baseboard and radiator, fan
+coil, radiant slab, store under floor). `Role` is removed for now. The
+optional `FloorTempChannelName` binds a slab circuit to the channel
+sensing its floor, and the new axiom `FloorLoopCircuitTemp` in both
+layout words requires it on every `RadiantSlab` or `StoreUnderFloor`
+circuit and resolves it to a temperature channel. Circuit axiom 1 becomes
+`OnlyFanCoilsCool`: only a fan coil may cool. `zone.actuator.kind` and
+`zone.circuit.role` are deleted: staging ideas that did not make it out
+of the gate, referenced only by this word.
+
+Both layout words get their first sema runtime tests, one vanilla
+fixture per family patched from the maple and spruce pairs and a
+rejecting test per axiom touched. The circuit word gets its own.
+
+The four staging words in the cluster (the circuit word, `gw.hydronic`
+and the two layouts) take this sitting's `created` stamp with the new
+enum: a dependency's `created` cannot postdate its dependent's, and
+backdating the enum would be a false stamp.
+
+## 2026-09-21 — pico words carry FirmwareCommit (OPS-402, `11c09b5` on jm/firmware-commit)
+
+Nothing a pico posted said which `gridworks-pico` code it ran; on
+2026-09-19 it took a field experiment to learn that spruce ran two
+different unmerged builds. The provisioner generator stamps the commit
+into the code it writes, and the pico posts it beside
+`MicropythonVersion`. New format `firmware.commit`: the full 40-hex
+commit, `-dirty` when the generator ran on a modified tree, or the
+literal `unstamped` for a file that did not come through the generator.
+The field is required on the params words (`tank.module.params` 210 and
+`async.btu.params` 110 as new staging versions, since 200 and 100 are
+published; `flow.hall.params` 200 in place) and optional on the three
+staging pico component words, in place, so the Nolan and House0 layout
+words take it through composition with no schema edit of their own. No
+axioms. The registry's dependency-order check wants a dependent's
+`created` no earlier than its dependency's, so the seven staging entries
+that now reach the new format (`flow.hall.params` 200, the three pico
+component words, `layout.lite` 013, `gw.nolan.layout` 000,
+`gw.house0.layout` 000) take the format's `created` stamp, as the
+`mac.address` introduction did.
+
 ## 2026-09-20 — Adding tests for nolan and house0 (OPS-392, `8e6e773` on jm/layout-axiom-tests)
 
 Neither layout word had a sema-side test: the hand-written scada mirrors

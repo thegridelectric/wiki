@@ -33,37 +33,60 @@ to the house.
   "drawing power long after an off command" means that again and an
   ordinary run no longer goes blind.
 - **Waiting to open** replaces `hp_loop_is_getting_hot`. In `HpStartingUp`
-  the valve parks at `t2` as it does now. The loop keeps recent LWT
-  readings and a slope (the newest reading against one at least 10 s old,
-  °F/s), and starts to open when
+  the valve parks at `t2` as it does now, and the loop opens it to full
+  send when
 
   ```
-  (target - lwt) / slope  -  seconds of travel left to full send  <  3
+  lwt + slope × seconds of travel left  ≥  target
   ```
 
-  so the valve arrives at send about as LWT reaches the target. A flat or
-  falling slope waits. The slope helpers and the test are lifted from the
-  start-up hover on `origin/td/sieg-pid` (`sieg_loop/pid.py:263-400`), the
-  2025–26 loop's logic against the 100 s range, with the computed blend
-  position replaced by full send, so the flow-against-time table and
-  `calc_eq_flow_percent` do not come along.
+  so the valve arrives at send about as LWT reaches the target. Travel
+  left is the loop's own `keep_seconds`, 82 s from the park. The slope is
+  the newest LWT reading against one at least 30 s old, °F/s, floored at
+  zero, so a flat or falling LWT reduces the test to `lwt ≥ target`. That
+  is the whole mechanism: a short history of LWT readings, a slope helper
+  and one comparison. No blend position, flow table or target-LWT message
+  comes with it. The look-ahead is what makes store charging safe: at
+  beech's closed-loop rise of about 15 °F a minute a plain `lwt ≥ target`
+  overshoots by about 20 °F across the travel, which reaches the LG's
+  182 °F limit when the target is a hot store.
 - **The target** is the temperature of where the water is going: the store
   top when the plant is charging the store, the buffer top otherwise.
   `House0Hydronic` answers that from its own charge/discharge state
   (`charge_discharge_relay_state`), as one accessor the loop calls, so the
-  loop names no tank. `MaxEwtF` leaves the loop.
-- **Open anyway.** With the valve at keep the small loop heats fast, and a
-  heat pump that reaches its upper limit stops itself. That is the worse
+  loop names no tank. `MaxEwtF` leaves the loop. The target is capped per
+  heat pump model at what the heat pump can reach with slope to spare:
+  140 °F for the Ecodan, whose one long closed start flattened near
+  146 °F. A sixth number in the House0 family params.
+- **It fails open.** With the valve at keep the small loop heats fast, and
+  a heat pump that reaches its upper limit stops itself. That is the worse
   risk, not destratifying: at beech the LG, after several quick trips to
   its limit, locked out with an error that took a visit to the basement to
-  clear. So the first time the heat pump stops itself in `HpStartingUp`,
-  the loop goes to full send at once, with one warning glitch, and
-  stays there for the run; the next compressor start sends its water to
-  the tank. How fast a closed loop reaches the limit depends on the heat
-  pump, which is why the trigger is the stop itself and not a time. A
-  backup timer, `SIEG_OPEN_ANYWAY_S` = 900 s of drawing power without the
-  test passing, does the same (the timer becomes per heat pump model; see
-  "Do this next"). "Stops itself" is read from power with two
+  clear. So five layers stand behind one another, and every one resolves
+  to full send, held for the rest of the run:
+
+  1. The predictive open above.
+  2. An input missing: power, LWT, EWT or the destination temperature has
+     no value. [`sensor-freshness.md`](sensor-freshness.md) is what makes
+     a sensor that stops reporting read as no value; without it a sensor
+     that dies mid-start looks like a flat LWT, which the predictive test
+     reads as "wait". The valve opens as soon as an
+     input is missing, before the compressor starts if that is when it
+     happens, with one warning glitch naming the channel.
+  3. The first time the heat pump stops itself in `HpStartingUp`: full
+     send at once, one warning glitch; the next compressor start sends its
+     water to the tank. How fast a closed loop reaches the limit depends
+     on the heat pump, which is why the trigger is the stop itself.
+  4. A backup timer, per heat pump model, counted from power crossing the
+     high threshold: a fifth number beside the four below in the House0
+     family params. The LG reaches its limit about six minutes into a
+     loop-closed start, so about 240 s there. The Ecodan's closed-loop
+     limit has not been seen; its value waits for the first maple window
+     and starts cautious.
+  5. `Standby`, a dead scada or lost power: the power-less posture is full
+     send.
+
+  "Stops itself" is read from power with two
   thresholds, since power wobbles as a heat pump comes on: it has been
   over a high one, where the compressor is unmistakably running, and then
   falls under a low one, where it has unmistakably stopped, while HpBoss
@@ -94,9 +117,12 @@ to the house.
   lockout, since the journal carries no LG fault code. Four other
   episodes of three to six trips recovered when the valve opened. The
   waiting-to-open test should open the valve some minutes before the
-  first trip at that rise rate; the open-anyway rule is what stands
+  first trip at that rise rate; the self-stop layer is what stands
   between a missed test and the second trip.
-- `Blind` otherwise stays as it is, full send.
+- **`is_blind` splits into its two meanings**: `inputs_missing()`, layer 2
+  above, and the heat pump drawing power more than 120 s after an off
+  command, which gets its own glitch. One control state still serves both,
+  since both want full send.
 
 ### 2. One owner for relays 14 and 15 (defect 5)
 
@@ -152,9 +178,49 @@ four-minute stall at maple (finding 15) goes with it.
 ### 6. The simulated House0 can see the heat pump (defect 13)
 
 `hp-lwt` and `hp-ewt` go into the orange and willow layouts with the sim
-plant driving them, and into the House0 word's required sensing
-([`layout-word-axioms.md`](layout-word-axioms.md) axiom 3). This comes
-first in build order, since 1 cannot be tested without it.
+plant driving them. The matching word edit is
+[`layout-word-axioms.md`](layout-word-axioms.md) "The required lists",
+and the sim side comes first in build order — that word edit refuses a
+House0 layout without them, and 1 cannot be tested without them either.
+
+### 7. The sieg loop logs what it sees
+
+The loop reads `hp-lwt` and `hp-ewt` through `channel_temperature` and
+the two power channels through `total_hp_pwr_w`, and is blind when the
+lift or the power is `None` (`sieg_loop.py:222`, `:283`); beyond those
+four it asks for nothing. When it does something surprising the log
+shows the decision and not the picture it was made from. In the 2025
+season temperatures were seen to come and go from the plant's
+`latest_temperatures_f` with no record of which or why; the loop has the
+same exposure and no record at all.
+
+This change adds the picture, and nothing else. On every control pass,
+and on every control and valve state transition, the loop logs one line
+carrying every channel of the loop's neighbourhood that the layout
+names, present or not: `hp-lwt`, `hp-ewt`, `sieg-hot`, `sieg-cold`,
+`sieg-flow`, `sieg-send`, `primary-flow`, `hp-odu-pwr`, `hp-idu-pwr`,
+`buffer-hot-pipe`, `buffer-cold-pipe`, `store-hot-pipe`, `dist-swt`,
+`dist-rwt`, derived channels included: maple measures `sieg-send` and
+`sieg-flow` and derives `primary-flow`, beech measures `primary-flow`
+and `sieg-flow` and derives `sieg-send-flow`, so the three flows are on
+the line at both houses with the derived one marked as derived. For
+each: the value in the house's units, or `--` when the latest value is
+`None`, and the age of the reading in seconds. The line ends with the
+quantities the loop acts on, lift and total power, and with `blind` and
+its reason when `is_blind` is true. A channel the layout does not name
+is left off the line, not written as missing.
+
+Once per pass is a line every few seconds while the heat pump runs,
+which is the point: the record of a start is read as a strip, not
+reconstructed from state changes. `ShNodeActor.log` writes at one level
+(`sh_node_actor.py:289`), so the strip rides the proactor log; the line
+is prefixed `sieg-view` so a grep pulls it out. Nothing is switchable
+for launch.
+
+Tests on the House0 sim, in `test_sieg_loop.py`: the line names every
+channel the sim layout carries and no other; a channel flushed by a
+`ChannelFlatlined` shows `--` on the next line and its value again once
+a reading arrives; the blind reason on the line matches `is_blind`.
 
 ## Sema work
 
@@ -179,17 +245,22 @@ are proposals until then.
   running scada reports 145. That is a heating-curve change riding along
   unasked. `tlayouts` takes the field value for maple, and beech's is
   checked the same way.
+- Beech gets a `sieg-hot` sensor; its layout names the channel before the
+  window, so the strip and the kept-fraction `r` have it.
 
 ## Tests (`tests/actors/test_sieg_loop.py`)
 
 1. A second run after a stop does not go blind (the timer).
 2. Power up with a cold loop: the valve stays parked. LWT rising toward
-   the target: the move to send starts within 3 s of the reckoned moment,
-   for a buffer target and for a store target.
+   the target: the move to send starts on the tick where
+   `lwt + slope × travel left` first reaches the target, for a buffer
+   target and for a store target. Flat LWT under the target: no move; flat
+   LWT over it: the move.
 3. Power over the high threshold, then under the low one with HpBoss
-   still on: full send at once, one glitch, and the valve stays at send through the next rise in
-   power. Power wobbling between the two thresholds on the way up: no
-   move. Flat LWT with steady power for `SIEG_OPEN_ANYWAY_S`: full send.
+   still on: full send at once, one glitch, and the valve stays at send
+   through the next rise in power. Power wobbling between the two
+   thresholds on the way up: no move. Flat LWT with steady power for the
+   model's backup time: full send.
 4. A stop: full keep.
 5. No sender but the loop addresses relay 14 or 15.
 6. Admin `MoveToFullSend` while the loop wants keep: acked, moved, held
@@ -210,6 +281,11 @@ are proposals until then.
     settings, closes the relay anyway.
 12. The capability cover lists `sieg-loop` with its two events; the panel
     offers both while the valve moves.
+13. Each of power, LWT, EWT and the destination temperature in turn stops
+    reporting during `HpStartingUp` (the sim driver goes silent, the last
+    value stays in `latest_channel_values`): full send once the channel
+    flatlines, one glitch naming it. The same with the channel absent from
+    the start.
 
 ## Verification (EDD)
 
@@ -220,6 +296,42 @@ and back from the panel; on a heat pump start the control state passes
 through `HpStartingUp` to `HpHasLift`, never `Blind`, and LWT at the move
 to send is near the target, not 70 F; a stop closes the loop within one
 travel.
+
+Then, at maple, with the panel's valve commands working: an admin run of a
+fully closed loop, the valve held at keep from the panel through a start,
+to see the Ecodan's closed-loop limit and set its backup time and target
+cap from it.
+
+Two things are tracked through that run and through every maple window,
+from channels maple already reports:
+
+- `sieg-hot` minus `hp-lwt`. `sieg-hot` is the same water as LWT further
+  down the pipe, with no branch between. During a fast rise the difference
+  is the transit lag (at 7 °F a minute, 30 s of pipe is about 3.5 °F); in
+  steady running it is pipe loss plus the offset between two measurement
+  chains, the ADS for `hp-lwt` and the `sieg-btu` pico for `sieg-hot`.
+- The kept fraction from temperature. `sieg-hot` and `sieg-cold` are the
+  two inlets of the merging tee and `hp-ewt` is its outlet one pipe run
+  later, so `r = (ewt - sieg_cold) / (sieg_hot - sieg_cold)` is the share
+  of the heat pump's flow that the valve keeps. It is set beside
+  `sieg-flow / primary-flow`. The flow ratio reads 0.83–0.94 at beech with
+  the valve at keep, and a `sieg-flow` reading 399 s old once passed for a
+  full keep at maple; `r` says whether a keep that reads under 1 is a real
+  bypass or two meters disagreeing. It means something only while the
+  inlets differ by more than a few degrees, which a start provides.
+
+**The strip, at maple and at beech.** Each heat pump start in the windows
+above is read back from the `sieg-view` lines, so the number of runs is
+the number of starts the windows give: at least three at each house,
+cold and warm. For each start the strip is checked for readings that
+vanish or return mid-run, for readings whose age climbs past a capture
+period while the pico or meter is otherwise alive, and for a `blind`
+that has no cause on the same line. Every such event is traced in the
+same log and the report events: a `PicoMissing`, a channel absent from a
+live pico's posts, or a value that stopped without either. The result is
+a short table per house of channel, event, cause, kept beside the
+full-keep traces in `scratch/basic-sieg/`; an event with no cause is the
+open question this record exists to raise.
 
 ## Left as it is for launch
 
@@ -237,7 +349,9 @@ accepted.
 A fall layout has a Siegenthaler loop with no buffer tank and no iso
 valve. The loop reads heat pump power, LWT, EWT, its two relays and the
 one destination temperature its hydronic tier hands it; it names no
-buffer, iso valve or store tank.
+buffer, iso valve or store tank. All of these are required inputs, and any
+of them may stop reporting: the loop then opens the valve (change 1,
+layer 2) and does not guess.
 
 ## Open
 
@@ -247,49 +361,21 @@ buffer, iso valve or store tank.
 
 ## Do this next
 
-Rewrite change 1 in one pass, then take it to review.
-
-1. Change 1 as the lean predictive open, replacing the lifted hover block
-   described above: in `HpStartingUp`, parked at `t2`, open when
-   `lwt + slope × seconds of travel left ≥ target` (a slope helper and one
-   comparison; no flow table, no `calc_eq_flow_percent`, no target LWT
-   message). At beech's closed-loop rise of about 15 °F a minute a plain
-   "LWT over target" test overshoots by about 22 °F across the 90 s of
-   travel, which reaches the LG's 182 °F limit when the target is a hot
-   store; the look-ahead is what makes store charging safe.
-2. State the failsafe as five layers, every one resolving to full send
-   until the valve has opened: the predictive open; inputs missing or
-   stale (power, LWT, EWT, or the destination temperature the hydronic
-   tier hands over) opens at compressor start; the first self-stop by the
-   two-threshold rule; the backup timer; `Standby`, scada dead, power
-   lost. The backup timer is per heat pump model, a fifth number beside
-   the four thresholds in the House0 family params, counted from the
-   compressor crossing the high threshold: the LG reaches its limit about
-   six minutes into a loop-closed start, so about 240 s there; the
-   Ecodan's closed-loop limit has not been seen, so its value waits for
-   the first maple window and starts cautious.
-3. Dig into one number before relying on it. The loop-closed median trace
-   at beech (19 starts, spring 2025) shows the LWT rise falling to zero
-   about five minutes in, at a median 164 °F, below the 182–188 °F trip.
-   That may be an artifact: six of the 19 tripped inside the window and
-   were censored from the median at that point, the rest may have had
-   the valve nudged open, and LWT there is quantised at 0.9 °F. Plot the
-   19 individually (`scratch/basic-sieg/closed-vs-open/`, `starts2_*.json`
-   and `report.txt`) with `sieg-flow` and relay 14 beside LWT. It matters
-   because a target above a real plateau would meet a flat slope, which
-   the predictive test reads as "wait". The figure is left out of
-   `executor/startup-signatures.md` until settled.
-4. The destination temperatures are required inputs: say so under "Not
-   assumed" and in the tests, and check that the House0 word's required
-   sensing names the buffer top and store top sensors.
-5. Split `is_blind` into its two meanings: `inputs_missing()`, and the
-   heat pump drawing power more than 120 s after an off command, which
-   gets its own glitch. One state still serves both, since both want full
-   send. Its name is undecided: renamed for what the valve is doing
-   (`FailedOpen` is the placeholder), or left as `Blind` for launch.
-   Nothing outside `sieg_loop.py` reads it and the control states have no
-   sema enum.
-6. Write `scratch/basic-sieg/fable-r1-response.md` (each round-1 finding
+1. Set the numbers of change 1 against the full-keep traces
+   (`scratch/basic-sieg/full-keep-traces/`, in
+   `../../executor/startup-signatures.md` "Loop closed against loop open").
+   The LG climbs to its limit at 12–19 °F a minute with no plateau, so the
+   predictive test meets a rising slope all the way; from a loop already
+   at 125 °F the limit is under four minutes off, so the LG's backup time
+   is checked against warm starts as well as cold ones. The Ecodan's one
+   long closed start flattened near 146 °F before it stopped itself: a
+   maple target near that meets a flat slope, and the self-stop layer is
+   what opens the valve there.
+2. Decide the control state's name now that `is_blind` is split: renamed
+   for what the valve is doing (`FailedOpen` is the placeholder), or left
+   as `Blind` for launch. Nothing outside `sieg_loop.py` reads it and the
+   control states have no sema enum.
+3. Write `scratch/basic-sieg/fable-r1-response.md` (each round-1 finding
    folded here, moved to the explorations doc, or rejected with its
    reason; note the correction that `hp-lwt` and `hp-ewt` are in maple's
    and beech's `CaptureTuningList` and missing only from the simulated
@@ -297,3 +383,5 @@ Rewrite change 1 in one pass, then take it to review.
    the executor critique as a contract to read and the maple and beech
    journal facts in the focus. The human pass follows approval or the
    four-round cap.
+4. Change 7 goes on the branch before the first maple window, so every
+   start the windows produce is on the record.

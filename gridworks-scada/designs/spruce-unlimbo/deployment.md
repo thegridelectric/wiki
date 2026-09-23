@@ -50,8 +50,10 @@ are not:
 2. **maple, beech** (`gw.house0.layout`, sieg) — the sieg loop must have run
    on the new code first (`basic-sieg.md`). Verify per box: heat call →
    dist flow + pump power, the sieg leg reaching ready.
-3. **oak, fir, elm** (`gw.house0.no.sieg`) — the last family authored; verify
+3. **oak, fir** (`gw.house0.no.sieg`) — the last family authored; verify
    each with no assumption of a buffer tank, iso valve, or water store tanks.
+   Elm is not in this rollout: it leaves the House0 family with its Arctic
+   heat pump and stays on its current code until its own word exists.
 
 Per box: pull to the pushed SHA, restart the scada service, then watch
 (`gwa watch <house>`) for a clean boot, layout+ops decode without crash, and
@@ -126,8 +128,8 @@ their own previous output, then mint
 (`wiki/tlayouts/executor/primary.md` "Invariants"). With `output/`
 ignored, an id minted for a name the pi lacks lives on one laptop and on
 the box it was put to; a gen run from a fresh clone would mint it again.
-Step 1 closes that. elm, fir and oak take the same reference before
-their layouts go to a box.
+Step 1 closes that. fir and oak take the same reference before their
+layouts go to a box.
 
 **The LTN parameter API is the first step past this.** Operational params
 change far more often than layouts, and the LTN API for adjusting house

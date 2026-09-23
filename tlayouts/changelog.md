@@ -10,6 +10,61 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-23 — minor: spruce floor and fancoil derived channels return (`c434529` on actual-spruce)
+
+`gen_spruce.py` (actual-spruce) emits the seven identity derived channels
+again: fancoil-swt, fancoil-rwt, floor-swt, floor-rwt and the three
+zone floor temps, each passing its `*-device` capture through unchanged.
+They were commented out on 2026-08-10 when the pipes1 and floor1 picos
+were unplugged; the 2026-09-09 commit that brought the picos back
+(`9c75b40`) left the list commented, and `spruce.json` carried the seven
+as stale content until `91cc434` (2026-09-21) regenerated it and they
+vanished from the wire. The comment block naming the floor1 pico says
+`pico_27432a`, the WiFi pico fitted on 2026-09-21. Ids come from the
+loaded `spruce.json`, so the seven keep their ids.
+
+## 2026-09-23 — patch egauge delta (GRI-6, `be8f37a` on main)
+
+`gen_beech.py` (main) states `AsyncCaptureDelta=1` on dist-pump, primary-pump,
+store-pump, oil-boiler and the two whitewire eGauge channels. The box has run
+with 1 W since the layout was last placed; the scada `layout_gen` default is
+2 W, so a regen silently moved them. Declared, the regen reproduces the
+deployed file. Found while regenerating beech's production layout to drop
+the dead dist-btu (GRI-6); that regen also exposed the flow-module
+ComponentId re-mint fixed in scada `layout_gen/flow.py`.
+
+## 2026-09-22 — beech tank1 is pico_81a436; dist-btu out of service (GRI-6, `f143d02` on jm/spruce, `f1fa3fd` on jm/beech-pico-uids)
+
+On both gens: `beech_gen.py` (jm/spruce, the window gen) and
+`gen_beech.py` (main, the production gen, on branch `jm/beech-pico-uids`).
+
+tank1 is `pico_81a436`, not `pico_0efd3c`. The pico was swapped in the
+field on 2026-02-14 and the box's production `hardware-layout.json` was
+hand-edited that day; `3b7be19` (2026-02-17) carried the swap into
+`gen_beech.py` on jm/spruce but never reached main, and the 2026-09-14
+rewrite of the window gen (`7c2db53`) started from the old UID again. A
+window scada booted from that pair would refuse tank1's posts.
+
+dist-btu (Gw101 Rev B, `pico_47352a`) is dead: 5 V at J1, 0 V at the
+protection chip's output after repeated input cycles. A Gw101 Rev C
+replacement is on order. `beech_gen.py` keeps the meter with its pico UID
+and sets `enabled=False`, so the layout keeps the dist-flow / dist-swt /
+dist-rwt channels and the scada neither polls the pico nor cycles for it;
+`BtuSpec` gains the `enabled` flag (default True) that `ExtraTankSpec`
+already has, and `emit_btu_meters` writes it to the component. The
+production gen `gen_beech.py` drops the dist-btu block outright.
+
+## 2026-09-21 — Update the spruce floor1 pico (`e9818b0` on jm/spruce)
+
+floor1's tank-module pico was an ethernet (Wiznet) board, `pico_71156b`,
+whose MicroPython firmware was lost (a bench check in Thonny showed no OS) —
+it flatlined in the field and sent nothing. It is replaced with a WiFi pico
+that registered as `pico_27432a`. Both spruce gens set floor1 to the new UID
+and re-enable it: `gen_spruce.py` (the actual-spruce production layout, shipped
+in `cd92920`) and `spruce_gen.py` (the jm/spruce beta-field-window gen). The
+"out of service / bricked" comment on the window gen is removed — floor1 is
+back in service.
+
 ## 2026-09-20 — improved layout testing (OPS-392, `35000c4` on jm/spruce)
 
 Sema `2f7c0d1` gives both layout words `DerivedChannelCreatorResolution`,

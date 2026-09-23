@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-12
+Status: Draft · Pass 0 · Updated 2026-09-21
 
 # SCADA ↔ LTN link state (the proactor linking mechanism)
 
@@ -127,6 +127,37 @@ and the path is the same on either transport.
 `is_simulated` is a different question with a different answer: the
 layout carries a simulated device (`HydronicLayout.has_simulated_component`),
 and its one job is the sim-time bridge.
+
+## The startup announcements: layout and deed, once per run
+
+Status: Verified · Pass 0 · Updated 2026-09-21 · Reviewed 2026-09-19@dfc35644
+
+A scada says two things about itself once per run that do not wait on an LTN:
+the layout it booted on, and the deed it holds — or that it holds none. Both
+go up the moment the upstream link can first carry a publish, which is
+send-capability (`active` or `awaiting_peer`), not peer-active, so a window
+with no LTN on the broker still records them. `announce_at_first_broker_link`
+(`actors/scada.py`) polls `ScadaAppInterface.upstream_is_send_capable()` once
+a second, calls `send_startup_announcements` once, and returns.
+
+The announcement is `layout.lite`, then either the `ta.deed` the scada holds
+or, when it holds none, a Warning `Glitch` with Summary `no-ta-deed` naming
+the path it looked at (`settings.paths.tadeed`). None of the three asks for
+or demands an ack.
+
+Invariants: at most one send per scada run; nothing sent before the link is
+send-capable; a link flap after the send causes no resend (the task has
+already returned); the wait has no bound, so a scada whose broker returns an
+hour into the run still announces itself, once.
+
+The deed goes up as its own word, kept whole. It is a TaValidator's
+attestation, not a field of the layout or of `layout.lite`: the layout and
+the deed change on different clocks — a gen rerun replaces one, a
+re-attestation the other — and neither should drop or stale the other, and
+kept whole the deed is checked as the bytes that were issued. It is the same
+deed "The trading gate" reads for `validation_state`. The LTN decodes the
+deed and drops it today (`actors/ltn/ltn.py` `process_mqtt_message`); an LTN
+that acts on it is later work.
 
 ## What belongs on the upstream stream (principle, 2026-06-11)
 

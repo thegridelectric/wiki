@@ -96,6 +96,44 @@ delete it when that hub closes.
   coerces silently to the default at decode, and a coerced authority is
   a lie with actuation consequences.
 
+## Temperature async capture: default 0.1 °C
+
+Every temperature channel reports asynchronously on change, and the
+default delta is 0.1 °C, whatever reads the sensor. A house gen departs
+from the default only with a stated reason.
+
+What the gens emit today, per reader (`AsyncCapture` true,
+`CapturePeriodS` 300 unless noted):
+
+| Reader | Delta today | Where |
+| --- | --- | --- |
+| Thermistor on an ADS (`MultipurposeSensor`), Nolan | 0.5 °C | `nolan_sema_gen.py:110` `thermistor_temp_async_delta = 50`, a config field |
+| Thermistor on an ADS, House0 | 0.5 °C | `hardware/thermistor.py:87`, a literal 50 with no config axis |
+| BTU pico (`ApiBtuMeter`) | 0.2 °C | `hardware/btu_meter.py:72` `AsyncCaptureDeltaCelsiusX100=20` |
+| Tank module pico (`CapturePeriodS` 60) | 2.0 °C | `hardware/tank_module.py:202` |
+
+On a pico the delta that acts is the component's firmware field
+(`AsyncCaptureDeltaCelsiusX100`), which `ApiBtuMeter` pushes to the pico;
+the ops `AsyncCaptureDelta` for those channels is read by nothing. The
+default has to reach both places, or the pico path has to take its delta
+from ops.
+
+Against the one measured noise floor (`executor/hardware-layout.md`,
+under "The ADC noise floor": gw108 on the spruce pi, sd ≈ 0.011–0.012 °C, peak to
+peak ≈ 0.06 °C), 0.1 °C is about 8 times the sd and 1.6 times the peak
+to peak. The TSnap1 has the same ADS1115 but its own wiring and
+thermistors, and the picos were not measured at all, so the same run on
+the TSnap1 and on the tank module comes before the default goes onto a
+house; the peak-to-peak margin is the number to watch.
+
+`multipurpose_sensor.py:240` reports on a change strictly greater than
+the delta, where `capture.tuning/000` says greater than or equal.
+
+Done when: the noise run exists for the TSnap1 and the tank module, the
+gens emit 0.1 °C from one config default, and a window on spruce and on
+beech shows temperature channels reporting at that delta without
+chatter.
+
 ## Owned elsewhere
 
 Items this spoke once queued and that other spokes now carry:
@@ -107,7 +145,8 @@ Items this spoke once queued and that other spokes now carry:
   OPS-539.
 - The House0 fixture pair regenerated from tlayouts, the suite green
   against both families: done under OPS-539.
-- Axiom counterexample fixtures per layout word: `layout-word-axioms.md`.
+- Axiom counterexample fixtures per layout word: `layout-word-axioms.md`
+  "How the sitting works".
 - Heat-pump components and device-type records replacing
   `ScadaSettings.hp_model`; hp-boss as modbus owner: the spruce-settled
   `hp-device-type-records` and `hp-twin` spokes.

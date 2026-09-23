@@ -34,10 +34,9 @@ Each item is what the tank module and BTU meter already have.
 1. **Un-archive into a module folder.** `flow_module/flow_hall_main.py`
    beside `tank_module/` and `btu_meter/`, with its `comms_config.json`
    and `app_config.json` templates, and `provisioner_generator.py`
-   covering it. Whether flow becomes a mode of the BTU meter instead is
-   the pico-overhaul design's open question; this design keeps it a
-   module of its own so the field units can be updated without waiting
-   on that call.
+   covering it. Flow stays a module of its own and does not become a
+   mode of the BTU meter, so the field units can be updated on their
+   own.
 2. **Shared `net.py`.** Replace the file's own `connect_to_wifi` /
    `connect_to_ethernet` with the `net` module and its `HttpClient`;
    posts go through `post` / `post_fire_and_forget`.

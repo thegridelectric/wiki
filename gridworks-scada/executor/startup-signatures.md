@@ -87,14 +87,14 @@ closed starts against 316 open in the same months, starting LWT near
 | | Closed | Open |
 | --- | --- | --- |
 | Power, first three minutes | 2.1 to 3.7 kW | the same |
-| Power at ten minutes | about 2.4 kW | 6.7 kW |
+| Power, three to five minutes | 3.4 to 3.9 kW | climbing toward 6.7 kW at ten minutes |
 | LWT rise, first three minutes | 9 to 19 °F a minute | 3 to 4 °F a minute |
 | EWT rise, first two minutes | 18.6 °F | 0.9 °F |
 | Lift at two and at ten minutes | 10.5 °F, 8.2 °F | 11.3 °F, 29.4 °F |
-| Reaches the upper limit inside ten minutes | 6 of 19 | 20 of 316 |
+| Reaches the upper limit inside ten minutes | 6 of 19; every start held closed five minutes | 20 of 316 |
 
 On power the two are alike for three minutes, after which the closed
-start backs off and the open one keeps climbing. Lift does not separate
+start holds near 3.8 kW and the open one keeps climbing. Lift does not separate
 them early at beech: in the closed loop EWT trails LWT by the loop's
 transit time while LWT climbs fast, so closed lift is not small. EWT does:
 a rise of more than 6 °F in the first two minutes marks a closed loop, 21
@@ -102,8 +102,23 @@ of 22 closed starts caught against 6 % of open ones. Beech's closed starts
 show `sieg-flow` at 83–94 % of `primary-flow`, either a real bypass of
 about 0.5 gpm or two flow meters disagreeing.
 
-Maple has eight loop-closed starts, three of them classified from the
-relays alone, so its numbers are indicative: power lower when closed
+Held at full keep, the LG's LWT climbs to the limit without slowing. Of the
+19 closed starts the valve was opened in nine, 70 to 310 s after the
+compressor reached 2 kW; four were commanded off; six tripped, two of them
+restarts into a loop still at 171 °F that tripped in about 100 s. All six
+starts that stayed closed for five minutes reached 178–188 °F. The rise
+rate, full keep only, is a median 12 °F a minute at 90–99 °F LWT, 19 at
+140–159 °F and 14 at 180–189 °F; cut at the instant each valve leaves keep,
+median LWT is 173 °F at 300 s and 181 °F at 360 s. No closed start lasts
+ten minutes. A median trace that is not cut there shows a false plateau
+near 164 °F, made of opened valves and censored trips. Traces and the
+per-start table: `scratch/basic-sieg/full-keep-traces/`.
+
+Maple has eight loop-closed starts, three of them doubtful (flow readings
+minutes old, relay travel before the start), so its numbers are
+indicative. The longest, 600 s closed on 2026-04-19, reached 146 °F with
+the rise down to under 1 °F a minute, and the Ecodan then stopped itself.
+Otherwise: power lower when closed
 (1.9–3.0 kW through ten minutes against 2.6 to 4.3 kW open), lift near
 zero (1.3 °F at two minutes against 10.5 °F), LWT rising about 7 °F a
 minute, EWT up 13.3 °F in two minutes against 0.9 °F. EWT tracks LWT with

@@ -3,7 +3,36 @@
 One entry per `starter-scripts` commit (git = the what, this = the why).
 Entries before 2026-08-23 live in git history only.
 
-## 2026-09-21 — add `spruce_snap.py` field-support watcher <!-- pending commit -->
+## 2026-09-22 — debug spruce hack (`e531e18`)
+
+The first deploy read the buffer channels as CelsiusTimes100, the
+telemetry name the tlayouts spruce layout gives them; the scada running
+at spruce reports them CelsiusTimes1000 (live snapshot: 57100 = 57.1 C),
+so the band saw ~1000 F, latched full and could never clear. Decode is
+now /1000 with the live reading cited beside it. `spruce_snap.py` keeps
+/100: which encoding is right depends on which scada is running (the
+field `gwspaceheat` vs the `jm/spruce-unlimbo` window scada).
+
+## 2026-09-22 — winter hack: HP call gated by a buffer band (`0860c97`)
+
+`spruce_winter_hack.py` opens the heat-pump call when buffer-depth3 (the
+bottom of the buffer) reaches `BUFFER_FULL_F` and lets it close again, on
+the off-peak schedule as before, once buffer-depth1 (the top) drops below
+`BUFFER_CHARGE_F`; between the two the latch holds. Defaults 130 F / 90 F
+at the top of the script, overridable from `~/starter-scripts/.env` as
+`WINTER_HACK_BUFFER_FULL_F` / `WINTER_HACK_BUFFER_CHARGE_F` (pydantic
+settings, same file as the MQTT creds) so George can retune without
+touching source; the script refuses to start with the band inverted. The
+temps come off the scada snapshot the listener already subscribes to for
+the flow check (`buffer-depth1-device` / `buffer-depth3-device`). A stale or missing reading holds the latch and logs it
+once; with no reading ever seen the call is schedule-only, i.e. the
+previous behavior. Every HP-call change logs its reason (peak state +
+both temps) and the enforce heartbeat logs the band status. Why: with
+the TOU contact closed all night the Samsung would cycle on a full
+buffer; the band lets the store fill once and rest until the house has
+drawn it down.
+
+## 2026-09-21 — add `spruce_snap.py` field-support watcher (`c3047e4`)
 
 A line for someone working the heat pump: hp-ewt / hp-lwt /
 store-hot-pipe / store-cold-pipe / buffer-depth1 / buffer-depth3 in F and

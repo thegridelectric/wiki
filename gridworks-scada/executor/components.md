@@ -231,10 +231,7 @@ layout says the pico should run with. The exchange settles three things.
   sends a Warning `Glitch` to the LTN for each difference, once per scada
   run, because picos re-post at every boot and the pico-cycler reboots them.
   A component with no `MicropythonVersion` holds the post to none. The pico
-  is answered either way. While the scada's logger is at DEBUG the first
-  post that matches sends a Debug `Glitch`, `pico-identity-matches`, once
-  per scada run (`SHNodeActor.send_debug` sends nothing above DEBUG), so a
-  field window can tell a pico that matched from one that never posted.
+  is answered either way. A post that matches the layout sends nothing.
 - **Which version it speaks.** The answer goes back in the version the pico
   posted. The tank and BTU actors accept their identity-carrying version
   only. The flow actor accepts `flow.hall.params` 200 and 101, since

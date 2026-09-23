@@ -8,6 +8,46 @@ Newest at the top.
 
 ---
 
+## 2026-09-23 — beta-field-windows becomes a lean practice folder <!-- pending commit -->
+
+The dated `2026-09-18-beta-field-windows/` folder becomes the non-dated
+`beta-field-windows/`: the field-window test is an ongoing practice, not a
+one-shot experiment, and it keeps only the last run — a new window deletes the
+prior run's data (git history and the logbook keep what a round taught). The
+folder now holds `emit_instances.py`, the last run (round three, 2026-09-19),
+and a lean README whose top states the delete rule. `field-window-recipe.md`
+gains the keep-only-the-last-run rule and the On Tap list; `README.md` (the
+experiments index) records this as the one exception to
+one-folder-per-experiment and to the evidence-stays-untouched rule, and the
+logbook links repoint to the renamed folder.
+
+## 2026-09-23 — field-window recipe as a top-level doc; spot-check spruce branch exception (`d164646`)
+
+The operational how-to for running a bounded window of the unlimbo scada on a
+house — the two window kinds, the two box layouts (production vs the
+`scada-experiment` window pair), the `put_layout.sh` byte-identity gate, the
+tunnel, and running a round — becomes `field-window-recipe.md` at the repo
+root, a sibling to `spot-check-recipe.md`. The two are the live and the
+after-the-fact paths for working with the production machines, and a subfolder
+README was a poor home for the live one. `spot-check-recipe.md` gains a
+"Spruce is special" section: spruce runs production off `actual-spruce` in both
+scada and tlayouts — a different branch in both repos than the rest of the
+fleet, which the window branches (`jm/spruce-unlimbo`, tlayouts `jm/spruce`)
+sit beside.
+
+## 2026-09-23 — refactor beta field windows (`2c185da`)
+
+`spot_check.py` and `spot-check-recipe.md` arrive: a spot-check answers a
+quick question about a house straight from the journal DB and leaves
+nothing in the repo, which is the line between it and an experiment. The
+tool reads `report.event`, because the state machines (sieg control, HP
+boss, relays) are not a journaled message type of their own and ride
+inside that payload beside the numeric channels; `pull_readings.py` sees
+only the numerics. The beta-field-windows README is cut down: "Why" and
+"Known" fold into "Systems with beta windows" and "Left to check or figure
+out", the round is written as bring up, collect, close, and the resolved
+mysteries leave the file for the logbook and git history.
+
 ## 2026-09-19 — improving scripts for beta field windows (`c1205b4`)
 
 `house_window.sh` starts `capture_broker.py` at every `on` and refuses to open a
