@@ -88,6 +88,7 @@ design area.
 | [`gridworks-scada/`](gridworks-scada/) | The residential heat-pump SCADA — legacy cleanup in discovery (see its `PROCESS.md`) |
 | [`sema/`](sema/) | Sema — boundary-infrastructure vocabulary (authority over meaning). **Minimal pointer domain**; canonical spec lives in the `sema` repo. |
 | [`heating-system-design/`](heating-system-design/) | Store-under-floor + heating-system engineering & economics |
+| [`awhp-launch/`](awhp-launch/) | Roadmap for launching transactive air-to-water heat pumps in the US: education, installers, manufacturers, the muni business model |
 | [`world/`](world/) | Standing up a GridWorks World — running the ecosystem at any scale/fidelity (laptop → hundreds of actors; real / simulated / hybrid) |
 
 ## Cross-cutting
