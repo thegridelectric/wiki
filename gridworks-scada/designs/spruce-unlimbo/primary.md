@@ -1,12 +1,12 @@
 # Spruce un-limbo (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-09-22 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-09-24 · Linear: OPS-392
 
 **EDD: yes** bench (honeysuckle) and box harness runs are the verification;
 spokes reach Verified only when an experiment runs against the real bus or a
 real broker.
 
-**▶ Active spoke: [`layout-word-axioms.md`](layout-word-axioms.md)**
+**▶ Active spoke: [`basic-sieg.md`](basic-sieg.md)**
 
 > What this is: the hub for getting `jm/spruce-unlimbo`, the branch that
 > runs the Nolan layout at spruce, onto the whole fleet as `main` before
@@ -104,7 +104,7 @@ code. How a round runs and what the rounds have taught is
     and tells the scada the channel is lost; the heat pump accessors return
     `None` for a flatlined channel; the pico actors flatline one quiet
     channel
-16. `basic-sieg.md` (est 4h) — the least the sieg loop has to change before
+16. **`basic-sieg.md`** (est 4h) — the least the sieg loop has to change before
     maple and beech take the branch, chipped not rebuilt: a start that waits
     to open and fails open, one owner for the valve relays, the valve
     commandable from the admin panel, `MonitorOnly` honoured, a restart that

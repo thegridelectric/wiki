@@ -1,6 +1,6 @@
 # basic-sieg
 
-Status: Draft · Pass 0 · Updated 2026-09-21 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-24 · Linear: OPS-392
 
 > What this is: a spoke of [`primary.md`](primary.md). The least that has
 > to change in the Siegenthaler loop for maple and beech to take the
@@ -19,11 +19,143 @@ house is heated, the start-up job is done (no cold water into a hot
 tank), and an operator can see and move the valve from the admin panel
 without breaking the tree. Everything else in the critique waits.
 
-## The changes, most wanted first
+## The changes, in build order
 
-Each gets its test first, failing, on the simulated House0.
+Each gets its test first, failing, on the simulated House0. The single
+owner and the command surface come first so that an operator can hold and
+move the valve; what the loop does at a start is watched by hand before
+it is changed.
 
-### 1. The start: stop opening through `Blind`, and wait to open (defects 1–3)
+### 1. One owner for relays 14 and 15 (defect 5) ✅ built
+
+`sieg-loop` is the immediate boss of relays 14 and 15 in every tree: the
+two tree builders (`command_node.py:98`, `scada.py:1270`) hang the loop
+under whichever node holds the tree and the relays under the loop, and
+`fsm.event` axiom 2 refuses a command from any node but the relay's
+immediate boss, so the ownership holds without a check in the loop. The
+`sieg_valve_hold` calls at initialization in local control and both leaf
+allies are gone; standby's relay 14 energize runs only when the ops word
+does not use the loop and stays. Tests (`test_sieg_loop.py`): the relays
+hang under the loop in the auto, admin and rebuilt trees; a boss-side
+event to a loop relay fails the axiom; local control and the leaf ally
+call none of the four loop methods at initialization.
+
+### 2. The command surface, so admin works (defect 6)
+
+`sieg-loop` joins hp-boss and five-v-boss as a command node
+(`../../executor/control-hierarchy.md` "Command interfaces and replies"),
+copying `five_v_boss.py`, not `hp_boss.py`:
+
+- `ActorClass.SiegLoop` in `Scada.COMMAND_NODE_CLASSES`, one vocabulary in
+  `Scada.COMMAND_NODE_INTERFACES`: `MoveToFullSend` → `FullySend`,
+  `MoveToFullKeep` → `FullyKeep`.
+- `process_fsm_event`: the two authority checks; `EventType` and
+  `EventName` both validated, else nack `UnknownEvent`; ack; the
+  commander's `TriggerId` kept and the loop's `fsm.full.report` sent to the
+  scada under it when the move ends.
+- A command takes the loop out of automatic control until the tree changes
+  hands. The loop remembers the boss part of its handle at the command and
+  resumes when that changes, noticed on its 30 s tick. No release message.
+- A command to the stop the valve is already on runs the full travel
+  again; that is how an operator re-homes the valve.
+- The valve machine's report is switched back on, on change only, through
+  `single.machine.state`.
+- The tree needs no change: `sieg-loop` already sits under the boss, admin
+  included, with its relays beneath it. The panel commands `sieg-loop` and
+  has no business addressing relays 14 and 15.
+- The panel offers one command per vocabulary, the first whose resulting
+  state differs from the observed one
+  (`packages/gridworks-admin/src/gwadmin/watch/widgets/relay_widget_info.py:80-88`),
+  so with the valve moving it offers the wrong one. For a vocabulary where
+  the observed state is no command's resulting state, the panel offers
+  every command.
+
+### 3. The simulated House0 can see the heat pump (defect 13)
+
+`hp-lwt` and `hp-ewt` go into the orange and willow layouts with the sim
+plant driving them. The matching word edit is
+[`layout-word-axioms.md`](layout-word-axioms.md) "The required lists",
+and the sim side comes first in build order — that word edit refuses a
+House0 layout without them, and changes 4 and 6 cannot be tested without
+them either.
+
+### 4. The sieg loop logs what it sees (DEBUG, out after the maple test-drives)
+
+The loop reads `hp-lwt` and `hp-ewt` through `channel_temperature` and
+the two power channels through `total_hp_pwr_w`, and is blind when the
+lift or the power is `None` (`sieg_loop.py:222`, `:283`); beyond those
+four it asks for nothing. When it does something surprising the log
+shows the decision and not the picture it was made from. In the 2025
+season temperatures were seen to come and go from the plant's
+`latest_temperatures_f` with no record of which or why; the loop has the
+same exposure and no record at all.
+
+This change adds the picture, and nothing else. On every control pass,
+and on every control and valve state transition, the loop logs one line
+carrying every channel of the loop's neighbourhood that the layout
+names, present or not: `hp-lwt`, `hp-ewt`, `sieg-hot`, `sieg-cold`,
+`sieg-flow`, `sieg-send`, `primary-flow`, `hp-odu-pwr`, `hp-idu-pwr`,
+`buffer-hot-pipe`, `buffer-cold-pipe`, `store-hot-pipe`, `dist-swt`,
+`dist-rwt`, derived channels included: maple measures `sieg-send` and
+`sieg-flow` and derives `primary-flow`, beech measures `primary-flow`
+and `sieg-flow` and derives `sieg-send-flow`, so the three flows are on
+the line at both houses with the derived one marked as derived. For
+each: the value in the house's units, or `--` when the latest value is
+`None`, and the age of the reading in seconds. The line ends with the
+quantities the loop acts on, lift and total power, and with `blind` and
+its reason when `is_blind` is true. A channel the layout does not name
+is left off the line, not written as missing.
+
+Once per pass is a line every few seconds while the heat pump runs,
+which is the point: the record of a start is read as a strip, not
+reconstructed from state changes. `ShNodeActor.log` writes at one level
+(`sh_node_actor.py:289`), so the strip rides the proactor log; the line
+is prefixed `sieg-view` so a grep pulls it out.
+
+This is debug output for the spot checks, deliberately overly verbose,
+and it is removed, tests included, once the maple test-drives of change
+5 are done. It exists because of a memory from the first test-drives of
+the loop: channel values vanished from the plant's latest values in a
+way the picos did not explain, since they were plainly alive afterwards.
+The strip is what catches that if it happens again; nothing is
+switchable, and nothing is built on it.
+
+Tests on the House0 sim, in `test_sieg_loop.py`: the line names every
+channel the sim layout carries and no other; a channel flushed by a
+`ChannelFlatlined` shows `--` on the next line and its value again once
+a reading arrives; the blind reason on the line matches `is_blind`.
+
+### 5. Watch the current loop open early, then open it by hand at maple
+
+Before the start is changed, two looks at how the loop opens now, with
+changes 1 to 4 on the branch.
+
+- **The record of the early open.** The running loop opens at one line,
+  `MaxEwtF` minus 20 against the hotter of LWT and EWT
+  (`sieg_loop.py:229`), with no reference to where the water is going,
+  and it also opens through `Blind` when the timer misfires (defects
+  1 to 3). At maple's field `MaxEwtF` of 145 the line is 125 °F, so a
+  buffer top above that gets cooler water at the open. The maple journal
+  is read for starts where the open came under the destination top, and
+  the destratification is measured as the buffer depth readings across
+  the open. The result is a short table in `scratch/basic-sieg/`.
+- **The admin experiment.** In a maple window, the loop held at keep from
+  the panel through a start (change 2's `MoveToFullKeep`), the valve
+  opened from the panel by hand when LWT reaches the destination top
+  less 10 °F: at maple's closed-loop rise of about 7 °F a minute that is
+  the 82 s of travel from park to send, the look-ahead change 6 encodes.
+  LWT is not to pass 135 °F closed; the Ecodan stopped itself near
+  146 °F. Read back from the `sieg-view` strip (change 4): the EWT rise
+  in the first two minutes, which marks a closed loop at beech (more than
+  6 °F, `startup-signatures.md` "Loop closed against loop open"); LWT at
+  the open against the destination top; the dip and the lift jump as the
+  cold water arrives; buffer depth readings across the open. One start
+  held closed to the Ecodan's own stop, last and only if the window
+  allows, gives the backup time and target cap of change 6.
+
+The numbers of change 6 are set from this, not before it.
+
+### 6. The start: stop opening through `Blind`, and wait to open (defects 1–3)
 
 These go in together. Fixing the blind timer alone, with `MaxEwtF` at the
 170 in the branch's ops params, leaves maple's valve at keep with no heat
@@ -120,107 +252,25 @@ to the house.
   first trip at that rise rate; the self-stop layer is what stands
   between a missed test and the second trip.
 - **`is_blind` splits into its two meanings**: `inputs_missing()`, layer 2
-  above, and the heat pump drawing power more than 120 s after an off
-  command, which gets its own glitch. One control state still serves both,
-  since both want full send.
+  above, and the heat pump over its high power threshold more than 120 s
+  after an off command, which gets its own glitch. The line is the high
+  threshold and not any power because a heat pump draws power while idle:
+  the Samsung at spruce pulses to 318 W every five minutes with the
+  compressor off (`../../executor/heat-pump-signatures/idle-signatures.md`),
+  and the Ecodan and the LG have not been measured idle beyond standby.
+  One control state still serves both, since both want full send.
 
-### 2. One owner for relays 14 and 15 (defect 5)
-
-The `sieg_valve_hold` and relay 14 sends in local control
-(`local_control/house0/tou_base.py:366`), both leaf allies
-(`leaf_ally/house0/all_tanks.py:509`, `buffer_only.py:397`) and standby
-(`local_control/house0/standby.py:122`) go; the loop parks its own motor
-relay on `ActuatorsReady`. A test runs a simulated day and asserts no
-`fsm.event` to relay 14 or 15 has a `FromHandle` other than the loop's.
-
-### 3. The command surface, so admin works (defect 6)
-
-`sieg-loop` joins hp-boss and five-v-boss as a command node
-(`../../executor/control-hierarchy.md` "Command interfaces and replies"),
-copying `five_v_boss.py`, not `hp_boss.py`:
-
-- `ActorClass.SiegLoop` in `Scada.COMMAND_NODE_CLASSES`, one vocabulary in
-  `Scada.COMMAND_NODE_INTERFACES`: `MoveToFullSend` → `FullySend`,
-  `MoveToFullKeep` → `FullyKeep`.
-- `process_fsm_event`: the two authority checks; `EventType` and
-  `EventName` both validated, else nack `UnknownEvent`; ack; the
-  commander's `TriggerId` kept and the loop's `fsm.full.report` sent to the
-  scada under it when the move ends.
-- A command takes the loop out of automatic control until the tree changes
-  hands. The loop remembers the boss part of its handle at the command and
-  resumes when that changes, noticed on its 30 s tick. No release message.
-- A command to the stop the valve is already on runs the full travel
-  again; that is how an operator re-homes the valve.
-- The valve machine's report is switched back on, on change only, through
-  `single.machine.state`.
-- The tree needs no change: `sieg-loop` already sits under the boss, admin
-  included, with its relays beneath it. The panel commands `sieg-loop` and
-  has no business addressing relays 14 and 15.
-- The panel offers one command per vocabulary, the first whose resulting
-  state differs from the observed one
-  (`packages/gridworks-admin/src/gwadmin/watch/widgets/relay_widget_info.py:80-88`),
-  so with the valve moving it offers the wrong one. For a vocabulary where
-  the observed state is no command's resulting state, the panel offers
-  every command.
-
-### 4. `MonitorOnly` never actuates (defect 7)
+### 7. `MonitorOnly` never actuates (defect 7)
 
 The loop sends nothing to its relays while the authority is `MonitorOnly`,
 commands included (nack). `Standby` keeps its full send.
 
-### 5. A restart finds the valve (defects 4 and 6, the restart part)
+### 8. A restart finds the valve (defects 4 and 6, the restart part)
 
 The first act after `ActuatorsReady` is motor dormant, then a full-travel
 move to the stop the control state wants, instead of assuming `FullyKeep`.
 A restart with the heat pump off reaches keep within one travel; the
 four-minute stall at maple (finding 15) goes with it.
-
-### 6. The simulated House0 can see the heat pump (defect 13)
-
-`hp-lwt` and `hp-ewt` go into the orange and willow layouts with the sim
-plant driving them. The matching word edit is
-[`layout-word-axioms.md`](layout-word-axioms.md) "The required lists",
-and the sim side comes first in build order — that word edit refuses a
-House0 layout without them, and 1 cannot be tested without them either.
-
-### 7. The sieg loop logs what it sees
-
-The loop reads `hp-lwt` and `hp-ewt` through `channel_temperature` and
-the two power channels through `total_hp_pwr_w`, and is blind when the
-lift or the power is `None` (`sieg_loop.py:222`, `:283`); beyond those
-four it asks for nothing. When it does something surprising the log
-shows the decision and not the picture it was made from. In the 2025
-season temperatures were seen to come and go from the plant's
-`latest_temperatures_f` with no record of which or why; the loop has the
-same exposure and no record at all.
-
-This change adds the picture, and nothing else. On every control pass,
-and on every control and valve state transition, the loop logs one line
-carrying every channel of the loop's neighbourhood that the layout
-names, present or not: `hp-lwt`, `hp-ewt`, `sieg-hot`, `sieg-cold`,
-`sieg-flow`, `sieg-send`, `primary-flow`, `hp-odu-pwr`, `hp-idu-pwr`,
-`buffer-hot-pipe`, `buffer-cold-pipe`, `store-hot-pipe`, `dist-swt`,
-`dist-rwt`, derived channels included: maple measures `sieg-send` and
-`sieg-flow` and derives `primary-flow`, beech measures `primary-flow`
-and `sieg-flow` and derives `sieg-send-flow`, so the three flows are on
-the line at both houses with the derived one marked as derived. For
-each: the value in the house's units, or `--` when the latest value is
-`None`, and the age of the reading in seconds. The line ends with the
-quantities the loop acts on, lift and total power, and with `blind` and
-its reason when `is_blind` is true. A channel the layout does not name
-is left off the line, not written as missing.
-
-Once per pass is a line every few seconds while the heat pump runs,
-which is the point: the record of a start is read as a strip, not
-reconstructed from state changes. `ShNodeActor.log` writes at one level
-(`sh_node_actor.py:289`), so the strip rides the proactor log; the line
-is prefixed `sieg-view` so a grep pulls it out. Nothing is switchable
-for launch.
-
-Tests on the House0 sim, in `test_sieg_loop.py`: the line names every
-channel the sim layout carries and no other; a channel flushed by a
-`ChannelFlatlined` shows `--` on the next line and its value again once
-a reading arrives; the blind reason on the line matches `is_blind`.
 
 ## Sema work
 
@@ -297,12 +347,9 @@ through `HpStartingUp` to `HpHasLift`, never `Blind`, and LWT at the move
 to send is near the target, not 70 F; a stop closes the loop within one
 travel.
 
-Then, at maple, with the panel's valve commands working: an admin run of a
-fully closed loop, the valve held at keep from the panel through a start,
-to see the Ecodan's closed-loop limit and set its backup time and target
-cap from it.
+Before that, the maple window of change 5.
 
-Two things are tracked through that run and through every maple window,
+Two things are tracked through that window and through every maple window,
 from channels maple already reports:
 
 - `sieg-hot` minus `hp-lwt`. `sieg-hot` is the same water as LWT further
@@ -350,38 +397,42 @@ A fall layout has a Siegenthaler loop with no buffer tank and no iso
 valve. The loop reads heat pump power, LWT, EWT, its two relays and the
 one destination temperature its hydronic tier hands it; it names no
 buffer, iso valve or store tank. All of these are required inputs, and any
-of them may stop reporting: the loop then opens the valve (change 1,
+of them may stop reporting: the loop then opens the valve (change 6,
 layer 2) and does not guess.
 
 ## Open
 
+- What the Ecodan and the LG do idle beyond standby draw. The Samsung
+  pulses to 318 W and runs its water pump with the compressor off; the
+  "drawing power after an off command" line of change 6 and the `HpHasLift`
+  entry both rest on the House0 heat pumps not doing the same at a level
+  the thresholds see.
 - Whether the target carries a margin, and whether the move to send is one
   travel or paced: a first part to the reckoned moment and a gradual
   finish over about 30 s more is the other sketch.
 
 ## Do this next
 
-1. Set the numbers of change 1 against the full-keep traces
-   (`scratch/basic-sieg/full-keep-traces/`, in
-   `../../executor/heat-pump-signatures/startup-signatures.md` "Loop closed against loop open").
-   The LG climbs to its limit at 12–19 °F a minute with no plateau, so the
-   predictive test meets a rising slope all the way; from a loop already
-   at 125 °F the limit is under four minutes off, so the LG's backup time
-   is checked against warm starts as well as cold ones. The Ecodan's one
-   long closed start flattened near 146 °F before it stopped itself: a
-   maple target near that meets a flat slope, and the self-stop layer is
-   what opens the valve there.
-2. Decide the control state's name now that `is_blind` is split: renamed
-   for what the valve is doing (`FailedOpen` is the placeholder), or left
-   as `Blind` for launch. Nothing outside `sieg_loop.py` reads it and the
-   control states have no sema enum.
-3. Write `scratch/basic-sieg/fable-r1-response.md` (each round-1 finding
-   folded here, moved to the explorations doc, or rejected with its
-   reason; note the correction that `hp-lwt` and `hp-ewt` are in maple's
-   and beech's `CaptureTuningList` and missing only from the simulated
-   layouts), and run round 2 on a fresh thread against this spoke, with
-   the executor critique as a contract to read and the maple and beech
-   journal facts in the focus. The human pass follows approval or the
-   four-round cap.
-4. Change 7 goes on the branch before the first maple window, so every
-   start the windows produce is on the record.
+1. Change 2, the actor. The words are published (`move.sieg.valve`,
+   `sieg.valve.state`) and their gwsproto twins are on the branch.
+   `sieg-loop` reports the valve state only through
+   `single.machine.state` (settled): the scada keys latest state by node
+   name, so the control state (`gw1.sieg.control.state`, not a word)
+   moves to the log strip. Then
+   `process_fsm_event` copied from five-v-boss, a live command
+   remembered as the boss part of the handle and cleared on the 30 s
+   tick when it changes, moves ending at a stop firing the existing
+   reset triggers, the full report under the commander's `TriggerId`,
+   `ActorClass.SiegLoop` in the command-node table. First test: an admin
+   `MoveToFullKeep` acked, moved and held across ticks (tests 6 and 7).
+2. Changes 3 and 4, so the first maple window is on the record.
+3. The early-open table and the maple window of change 5.
+4. Then the round-1 response (`scratch/basic-sieg/fable-r1-response.md`,
+   each round-1 finding folded here, moved to the explorations doc, or
+   rejected with its reason; note the correction that `hp-lwt` and
+   `hp-ewt` are in maple's and beech's `CaptureTuningList` and missing
+   only from the simulated layouts) and round 2 on a fresh thread, before
+   change 6 is built. The control state's name once `is_blind` is split
+   (`FailedOpen` the placeholder, or `Blind` kept for launch) is decided
+   in that pass; nothing outside `sieg_loop.py` reads it and the control
+   states have no sema enum.

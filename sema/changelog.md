@@ -10,6 +10,22 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-24 — sieg-loop command and valve-state words (OPS-392, on jm/sieg-loop-words) <!-- pending commit -->
+
+**What.** Two published enums: `move.sieg.valve` (`MoveToFullSend`,
+`MoveToFullKeep`, default `MoveToFullSend`) and `sieg.valve.state`
+(`FullySend`, `FullyKeep`, `KeepingMore`, `KeepingLess`, `SteadyBlend`,
+default `FullySend`). Registry entries, hash pins, indexes and the
+generated runtime.
+
+**Why.** basic-sieg change 2: `sieg-loop` joins hp-boss and five-v-boss as
+a command node so the admin panel can move the valve, and a command node
+needs its event vocabulary and its state enum as words. The default of
+each is the open valve, the loop's fail-safe posture. The state values are
+the loop's valve machine as it ran in the 2025 season, when they reached
+the broker, so both words are published as they stand; any reshaping in
+the rebuild is a new version.
+
 ## 2026-09-24 — heat-pump facts on gw.hydronic: primary-pump owner and refrigerant cycle (OPS-392, `e54adcd` on jm/hp-facts-hydronic)
 
 New enums `gw.primary.pump.owner/000` (HeatPump, Scada) and

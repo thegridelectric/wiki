@@ -10,6 +10,50 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-24 — sieg-loop takes commands from the panel (OPS-392, on jm/spruce-unlimbo) <!-- pending commit -->
+
+**What.** gwsproto twins of the two new sema enums, `MoveSiegValve` and
+`SiegValveState`. (Cluster in progress: the sieg-loop command surface,
+basic-sieg change 2.)
+
+**Why.** basic-sieg change 2: `sieg-loop` joins hp-boss and five-v-boss as
+a command node so an operator can move the valve from the admin panel
+and see where it is.
+
+## 2026-09-24 — 13d5cebe sieg-loop is the one owner of relays 14 and 15
+
+**What.** The `sieg_valve_hold` calls at initialization in local control
+(`tou_base.py`) and both leaf allies (`all_tanks.py`, `buffer_only.py`) go.
+`test_sieg_loop.py` gains three tests: the loop relays hang under
+`sieg-loop` in the auto, admin and rebuilt trees; a boss-side `fsm.event`
+to a loop relay fails axiom 2; local control and the leaf ally call none
+of the four loop methods at initialization on either sim pair.
+
+**Why.** basic-sieg change 1. Those calls never reached the relays: the
+tree hangs relays 14 and 15 under `sieg-loop`, and `fsm.event` axiom 2
+rejects a sender that is not the relay's immediate boss, so each call
+raised a `ValidationError` the plant swallowed with a "didn't have the
+rights" line. Dead by construction, live the day a tree change put the
+relays back under the boss. Standby's relay 14 energize stays: it runs
+only when the ops word does not use the loop, where no loop owns the
+relay.
+
+## 2026-09-24 — 7f629931 Layout disabled lists reach the actors; component Enabled retired
+
+**What.** `HydronicLayout` exposes `DisabledNodeNames` / `DisabledChannelNames`
+as typed sets; every sensing actor filters its channels at discovery, a
+disabled node's actor is built but idle, the derived generator skips
+disabled DerivedChannels, `unreported_channels` and the UnknownChannels
+line leave them out; the pico actors and the cycler stop reading
+`component.gt.Enabled`. Tests convert `test_pico_disabled.py` to the lists
+and pin the sim-pico and zero-flow leaks.
+
+**Why.** Round four showed declared-disabled channels producing
+`ChannelFlatlined` every minute, daily quiet-channel warnings and
+UnknownChannels lines. The layout word is the one home for "the house
+cannot serve this"; the component flag was the same idea one level down
+and never stopped the actor being built.
+
 ## 2026-09-24 — gwsproto mirrors the heat-pump facts on gw.hydronic (OPS-392, `aca3a111` on jm/spruce-unlimbo)
 
 Closure copy at sema `e54adcd`. `Hydronic` gains `PrimaryPumpOwner`

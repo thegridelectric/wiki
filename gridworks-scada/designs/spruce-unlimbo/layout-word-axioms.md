@@ -51,8 +51,17 @@ honeysuckle is the Stoneman microgrid scada, not a house.
    design question. The tank module keeps its own once-a-day dict for
    the same gate (`open_thermistor_reported_s`); moving it onto
    `GlitchLimit` is a separate small change.
-4. Then the runtime-test port in "Owned elsewhere" and, last of all,
-   "Axiom order" (the one renumbering).
+4. **Next: the sema wave in "Required but disabled" step 2**, on
+   `jm/disabled-lists-wave` in sema and tlayouts: the six pico words,
+   the web-server rename, the two restated axioms, then the snapshot,
+   the gens, the closure copy and the gwsproto twins and mirrors with
+   reject tests. The sitting that takes it reads `registry/structure.md`
+   "Status Field" and `authoring/type-semantics.md` "Axioms" and posts
+   the read-receipt.
+5. Then `HeatCallChannelBelongsToCircuit` (add it: the gen derives heat
+   calls per zone-call circuit only, and the derived generator's
+   falling-edge setpoint checks only the Strategy), the runtime-test port
+   in "Owned elsewhere" and, last of all, "Axiom order".
 
 ## How the sitting works
 
@@ -136,13 +145,18 @@ Decided 2026-09-24, in this order:
      `odds-and-ends.md` "Once-daily glitch naming a disabled component's
      silent channels", extended from disabled components to the two
      lists.
-   - **Tests first.** `tests/actors/test_pico_disabled.py` converts from
-     the component flag to the lists (`floor1`, its six channels and the
-     three identity floor temps, to satisfy the axioms); new tests pin
-     the sim-pico and zero-flow leaks, a disabled BTU pipe channel (no
-     flatline, no daily Warning), a disabled power-meter channel, and a
-     disabled derived channel. No test layout under `tests/config` has an
-     ApiFlowModule; one is needed.
+   - ✅ In the scada tree (2026-09-24, suite green, 1149 passed):
+     `HydronicLayout.disabled_node_names` / `disabled_channel_names`
+     with `node_disabled`, `channel_disabled`, `enabled_channel_names`;
+     every sensing actor filters at discovery; the scada sends a
+     `disabled-roster` Warning at start and daily; `test_pico_disabled.py`
+     runs on the lists (`floor1` as a node, plus the layout's own
+     disabled channels) and pins the sim-pico read, the BTU pipes, the
+     power meter, the derived generator, UnknownChannels, the roster and
+     the half-disabled thermistor pair. Not pinned: the flow module's
+     zero-flow leak, because no test layout under `tests/config` carries
+     an ApiFlowModule; adding one is a tlayouts sim-gen change (orange or
+     willow) and rides the next snapshot regen.
    - Open, found by the review: `LayoutLite` carries no disabled lists
      (`named_types/layout_lite.py:39-40`), so the LTN cannot tell
      disabled from missing.
@@ -166,12 +180,16 @@ Decided 2026-09-24, in this order:
      excludes actuators: `ActuatorChannels` gives every relay and 0-10V
      output a DataChannel captured by itself, so today an actuator passes
      the axiom as written (`house0_layout.py:866-872`). Disabling is a
-     sensing concept; an actuator is wired or absent. Candidate: no name
-     in `DisabledNodeNames` SHALL be an ShNode whose ActorClass is
-     `Relay`, `ZeroTenOutputer`, `SimRelayActor`, `I2cRelayMultiplexer`,
-     `I2cZeroTenMultiplexer`, `I2cRelayBoard` or `I2cDacWriter`, and no
-     name in `DisabledChannelNames` SHALL be a DataChannel captured by
-     such a node.
+     sensing concept; an actuator is wired or absent. Statement (agreed
+     2026-09-24): no name in `DisabledNodeNames` SHALL be the Name of an
+     ShNode whose ActorClass is `Relay` or `ZeroTenOutputer`, and no name
+     in `DisabledChannelNames` SHALL be the Name of a DataChannel whose
+     CapturedByNodeName is such an ShNode. Those two are the actuator
+     classes any generated layout carries, the same two `ActuatorChannels`
+     names. `I2cRelayMultiplexer` and `I2cZeroTenMultiplexer` survive
+     only in the `gw1.actor.class` enum (`014`, staging, so an in-place
+     removal), gwsproto's hand-written `enums/actor_class.py` and the
+     tlayouts snapshot copy: remove them from all three in this wave.
    - `TransactivePowerChannel` (House0 6) gains a clause: no name in the
      transactive-power channel's InputChannelNames SHALL be in
      `DisabledChannelNames`. The metered boundary is the resistive
@@ -203,38 +221,51 @@ six house pairs and the sim pairs decode under it.
 
 ## Declared actuator shape and the command tree
 
-Not settled. The layout declares actuators flat under `auto` and the
-scada's boot rewrite owns the live tree
-(`executor/control-hierarchy.md` "Fixed sub-trees vs floating
-actuators"). No axiom states it: the nearest are `PrefixClosedHandles`
-and `ActuatorLeaves`, which constrain handles, not the declared shape.
-Candidates, in both words: an axiom that keeps the declared shape flat,
-and ActorHierarchyName closure.
+Settled 2026-09-24: the fixed relays are declared under the node that
+owns them, and axioms pin the fixed sub-tree. Today the layout declares
+every relay flat under `auto` except the vdc relay, and the scada's boot
+rewrite owns the live tree (`executor/control-hierarchy.md` "Fixed
+sub-trees vs floating actuators"). The executor names three relays as
+fixed, owned by an interior node whoever holds the tree: the vdc relay
+under the pico-cycler, `hp-scada-ops-relay` under hp-boss, and the two
+loop relays under sieg-loop. Only the first is declared that way; the
+other three read `auto.<relay>` in every generated layout while their
+live handles are `<boss>.hp-boss.hp-scada-ops-relay` and
+`<boss>.sieg-loop.<relay>`. The authored handles are the initial command
+tree, so the tree the LTN and the panel see before the scada's first
+rewrite disagrees with the one they see after it.
 
-The command nodes are the other half of the declared shape. Both words
-require them by Name and ActorClass (House0 axiom 3, Nolan axiom 4) and
-pin one handle, `n` at `auto.lc.n`. Every layout declares the rest of the
-fixed sub-tree the same way, and no axiom says so:
+The axioms, in both words unless noted:
 
-| Node | Declared handle | Words |
-| --- | --- | --- |
-| `five-v-boss` | `auto.five-v-boss` | both |
-| `pico-cycler` | `auto.five-v-boss.pico-cycler` | both |
-| `lc` | `auto.lc` | both |
-| `hp-boss` | `auto.lc.n.hp-boss` | both |
-| `backup` | `auto.lc.backup` | both |
-| `scada-blind` | `auto.lc.scada-blind` | both |
-| `sieg-loop` | `auto.lc.n.sieg-loop` | House0 (sieg word) |
+- `CommandNodeHandles`: the command-node axiom (House0 3, Nolan 4) pins
+  every handle in its list as it does for `n`:
 
-Candidate: the command-node axiom pins every handle in its list, as it
-does for `n`. Whether the word should pin handles at all, or only the
-node set and leave the tree to the scada, is the question to settle
-before either axiom is written.
+  | Node | Declared handle | Words |
+  | --- | --- | --- |
+  | `five-v-boss` | `auto.five-v-boss` | both |
+  | `pico-cycler` | `auto.five-v-boss.pico-cycler` | both |
+  | `lc` | `auto.lc` | both |
+  | `hp-boss` | `auto.lc.n.hp-boss` | both |
+  | `backup` | `auto.lc.backup` | both |
+  | `scada-blind` | `auto.lc.scada-blind` | both |
+  | `sieg-loop` | `auto.lc.n.sieg-loop` | House0 (sieg word) |
 
-Done when: the question is settled here and, for any axiom that goes in,
-reject tests exist, every generated pair decodes, and a window on spruce
-and on beech boots the pair with the live tree unchanged from before the
-edit.
+- `FixedRelayHandles`: the vdc relay's handle is
+  `auto.five-v-boss.pico-cycler.vdc-relay`; `hp-scada-ops-relay` is
+  `auto.lc.n.hp-boss.hp-scada-ops-relay`; in the sieg word the two loop
+  relays are `auto.lc.n.sieg-loop.hp-loop-on-off-relay` and
+  `auto.lc.n.sieg-loop.hp-loop-keep-send-relay`. Every other actuator
+  stays flat under `auto`, which is what floating means.
+
+Build order: the tlayouts gens (`house0_sema_gen.py`, `nolan_sema_gen.py`)
+declare the three relays nested and every pair regenerates; the two
+axioms go into both words with reject tests; the scada mirrors follow
+with the closure copy. The scada's two tree builders already produce
+this shape, so no scada control code changes.
+
+Done when: both axioms are in, reject tests exist, every generated pair
+decodes, and a window on spruce and on beech boots the pair with the
+live tree unchanged from before the edit.
 
 ## Sim 0-10V output has no sim vocabulary
 
