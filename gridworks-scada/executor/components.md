@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-19
+Status: Draft · Pass 0 · Updated 2026-09-24
 
 # Components, device types, and the config list
 
@@ -251,26 +251,48 @@ The params words are in no vendored closure, so the gwsproto conformance
 test does not see their twins; `sema validate` on a serialized instance is
 their check.
 
-## A pico out of service
+## A sensor out of service
 
-The three pico components (tank module, BTU meter, flow module, and their
-sim twins) carry `Enabled`. False means the pico is installed and the layout
-still names it (its `HwUid`, its nodes, its channels and any derived channel
-they feed), but it is out of service: dead, unplugged, or waiting on a
-firmware repair. The scada then
+A house carries a required sensing node or channel it cannot serve as
+present and disabled, in preference to a sim stand-in. Disabled means
+required by the layout word, declared in the layout, currently
+unavailable, and pending a field visit. The layout words carry
+`DisabledNodeNames` (whole sensing actors) and `DisabledChannelNames`
+(single channels), with axioms that every name resolves, that no
+disabled node or channel is an actuator's (an actuator is wired or
+absent; `Relay` and `ZeroTenOutputer` are the two actuator classes), that
+a derived channel with a disabled input is itself disabled, and that no
+input of the transactive-power channel is disabled. The layout's lists
+are the one place a missing sensor is declared; no component word carries
+an `Enabled` flag. The web server's `Serve` is a different idea, whether
+the scada runs its HTTP server. The why and the plan behind each disabled
+name are the service-record word.
 
-- serves the pico no web routes, so nothing it posts is taken;
-- never reports it missing or its channels flatlined (the actor's liveness
-  loop is gated on `Enabled`);
-- leaves it out of the pico-cycler's list (`actors/pico_cycler.py`), so it
-  has no `single.pico.state` row and its silence never cuts the VDC rail.
+The scada (`HydronicLayout.node_disabled` / `channel_disabled`):
 
-The channels exist and carry no readings, and consumers see an absent value
-exactly as they do for any channel that has not reported. This is how a
-house keeps the channel set its layout word asks for while one pico is
-down, and why one dead pico does not cost every healthy pico on the rail a
-reboot each missing-report period. The sema words give `Enabled` no prose;
-this section is its meaning.
+- builds a disabled node's actor and leaves it idle: gwproactor builds
+  every child unconditionally, so the actor exists, keeps its web routes
+  and its place in the pico-cycler's roster, and neither reads, reports
+  nor alerts;
+- filters a disabled channel at its actor's channel-discovery step, before
+  the liveness and warning state is built, so there is no read, no
+  `ChannelFlatlined`, no quiet-channel or open-thermistor Warning and no
+  i2c broken-input latch; a sim pico does not post to itself and a
+  slow-turner flow module publishes no made-up zero flow;
+- skips a disabled DerivedChannel in the derived generator and stops device
+  actors posting its inputs;
+- reports nothing for it: `unreported_channels` returns the disabled set
+  and the UnknownChannels line leaves it out;
+- names the disabled set once at start and once a day in a
+  `disabled-roster` Warning glitch, so a person sees what the house is not
+  measuring.
+
+The channels exist and carry no readings, and consumers see an absent
+value exactly as they do for any channel that has not reported. This is
+how a house keeps the channel set its layout word asks for while one
+sensor is down, and why one dead pico does not cost every healthy pico on
+the rail a reboot each missing-report period. Pinned by
+`tests/actors/test_pico_disabled.py`.
 
 ## What belongs in the hardware layout — and what doesn't
 

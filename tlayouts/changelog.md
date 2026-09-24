@@ -10,6 +10,19 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-24 — every gen declares the authored tree with no one in charge (OPS-392, on jm/handles-wave) <!-- pending commit -->
+
+Snapshot regenerated from sema `jm/handles-wave`: House0 axiom 33 and
+Nolan 30 `CommandNodeHandles`. Both family gens declare `hp-boss` (and
+`sieg-loop` in House0) directly under `auto`, and the fixed relays under
+the interior node that owns them: `hp-scada-ops-relay` under hp-boss,
+the two loop relays under sieg-loop, the vdc relay under the cycler as
+before. Every other actuator stays `auto.<Name>`. Why: the authored
+handles are the initial command tree, and until now they were half
+claimed by local control (`auto.lc.n.hp-boss`) with two of the three
+fixed sub-trees missing; the scada's first rewrite hands the plant to
+`lc` and the published tree stays the run-time authority.
+
 ## 2026-09-24 — every gen declares the primary-pump owner and refrigerant cycle; maple's primary-pump actuators leave (OPS-392, `d38bf49` on jm/spruce)
 
 Snapshot regenerated from sema `e54adcd` (`jm/hp-facts-hydronic`):

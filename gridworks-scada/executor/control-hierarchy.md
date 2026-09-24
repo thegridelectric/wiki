@@ -1,6 +1,6 @@
 # Control hierarchy — HSMs, the command tree, and the capability cover
 
-Status: Draft · Pass 0 · Updated 2026-09-18
+Status: Draft · Pass 0 · Updated 2026-09-24
 
 > What this is: how the SCADA's hierarchical state machines (HSMs) and the command tree work **together**
 > — the piece the executor lacked. The HSM decides *who is in control*; the command tree *enforces* it via
@@ -29,11 +29,11 @@ checks `FromHandle`/`ToHandle` against the node's handle — so the handle prefi
 command.
 
 `set_command_tree(boss)` re-parents the actuators under whichever authority the HSM just put in charge:
-- **`Scada.set_command_tree`** (`scada.py:1235`) re-roots the **whole** actuator set on a top-level
-  control change.
-- **`ShNodeActor.set_command_tree`** (`sh_node_actor.py:1220`) re-roots a sub-actor's **own** sub-tree
-  (`my_actuators()`, `:245`) on its own state change; `set_hierarchical_fsm_handles` (`:1192`) wires the
-  fixed FSM sub-tree.
+- **`Scada.set_command_tree`** (`actors/scada.py:1232`) re-roots the **whole** actuator set on a
+  top-level control change.
+- **`CommandNode.set_command_tree`** (`actors/command_node.py:72`) re-roots a sub-actor's **own**
+  sub-tree (`my_actuators()`, `:47`) on its own state change; `shape_five_v_subtree`
+  (`actors/five_v_boss.py`) is the one funnel for the fixed five-v-boss sub-tree.
 
 The published `new.command.tree` is the authority on where a node sits.
 A snapshot's `LatestStateList` shows each node under the handle its last
@@ -74,9 +74,32 @@ send) apart; the pattern and its current strain are in
 ## Fixed sub-trees vs floating actuators
 
 Most actuators **float** — re-parented under the current authority. The layout
-declares them flat under `auto` (their `Handle`), and the scada's boot rewrite
-owns the live tree. Some sub-bosses own **fixed** relays
-regardless of who is on top: `pico-cycler` always owns the vdc relay (pico-reboot is cross-cutting),
+declares the authored tree as the plant with no one in charge: `auto` is the
+root, the command nodes and every floating actuator hang directly under it,
+and local control's own nodes (`n`, `backup`, `scada-blind`) hang under `lc`
+(both layout words' `CommandNodeHandles` axiom). The scada's first rewrite
+hands the actuators to `lc` and owns the live tree from then on; the live
+tree reads `auto.lc.n.<node>` where the layout reads `auto.<node>`, and that
+difference is what floating means. The axiom pins these handles; every
+other actuator's is `auto.<Name>`:
+
+| Node | Declared handle | Words |
+| --- | --- | --- |
+| `five-v-boss` | `auto.five-v-boss` | both |
+| `pico-cycler` | `auto.five-v-boss.pico-cycler` | both |
+| `vdc-relay` | `auto.five-v-boss.pico-cycler.vdc-relay` | both |
+| `lc` | `auto.lc` | both |
+| `n` | `auto.lc.n` | both |
+| `backup` | `auto.lc.backup` | both |
+| `scada-blind` | `auto.lc.scada-blind` | both |
+| `hp-boss` | `auto.hp-boss` | both |
+| `hp-scada-ops-relay` | `auto.hp-boss.hp-scada-ops-relay` | both |
+| `sieg-loop` | `auto.sieg-loop` | House0 (sieg word) |
+| `hp-loop-on-off-relay` | `auto.sieg-loop.hp-loop-on-off-relay` | House0 (sieg word) |
+| `hp-loop-keep-send-relay` | `auto.sieg-loop.hp-loop-keep-send-relay` | House0 (sieg word) |
+
+Some
+sub-bosses own **fixed** relays regardless of who is on top: `pico-cycler` always owns the vdc relay (pico-reboot is cross-cutting),
 `hp-boss` owns `hp-scada-ops-relay`, `sieg-loop` owns the loop relays. An interior node keeps its
 subtree: a tree rewrite reparents the interior node and never reaches through it to its relays.
 The pico-cycler hangs under **five-v-boss**, which hangs under the tree's root:
@@ -153,8 +176,8 @@ assembly, hardcoded to `H0N.*`. The pass-two direction (hardware-layout-pass-one
 
 ## The two `set_command_tree` locations
 
-`Scada(PrimeActor, ScadaInterface)` and `ShNodeActor(Actor, ABC)` have **no shared ancestor**, yet both
-carry a `set_command_tree`, so the House0 special-casing is **copy-pasted** across the two. The intended
+`Scada(PrimeActor, ScadaInterface)` and `CommandNode` (`actors/command_node.py`) have **no shared
+ancestor**, yet both carry a `set_command_tree`, so the House0 special-casing is **copy-pasted** across the two. The intended
 refactor: the **handle-assignment** (pure topology structure) moves onto the layout dc — `HardwareLayout`
 base holds the shared sub-methods; each subclass's top-level assembly composes them over its present nodes
 (the per-layout partition). Both actors **delegate** to the layout (`self.layout.assign_command_tree(boss,

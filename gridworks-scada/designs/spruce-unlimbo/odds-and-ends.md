@@ -1,6 +1,6 @@
 # Odds and ends (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-21 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-24 · Linear: OPS-392
 
 > What this is: a spoke of [`primary.md`](primary.md) holding the small
 > launch items that do not earn a file each: one problem, one change,
@@ -258,3 +258,31 @@ it carries. Open: whether the 0-10V channel should be a readback (a DAC
 that can be read, or an ADC on the output), or whether the word should
 state that it is the commanded value.
 
+
+## One command-tree writer, and boot roots under lc
+
+- **Problem.** The hp-boss and sieg-loop block of the tree rewrite is
+  copy-pasted between `Scada.set_command_tree` (`actors/scada.py:1232`)
+  and `CommandNode.set_command_tree` (`actors/command_node.py:72`), and
+  tou_base carries a third writer for its limited tree; a shape change
+  is made three times or missed. Boot is also the one rewrite where the
+  scada reaches through `lc` into its interior: `actors/scada.py:156`
+  roots every actuator under `n`, then local control's constructor
+  re-roots under `n` itself and the tree publishes twice. Every later
+  transition roots under `lc` (`executor/control-hierarchy.md` "The two
+  `set_command_tree` locations").
+- **Change.** One funnel on the pattern of `shape_five_v_subtree`:
+  `assign_command_tree(layout, boss, scope, use_sieg_loop)` writes the
+  handles for the actuators in `scope` under `boss` with the fixed
+  sub-trees kept; the scada passes all actuators, a command node passes
+  `my_actuators()`, and each keeps only when to re-root and the publish.
+  Boot calls it with `lc`, the boss AutoWakesUp uses, and local control
+  claims `n` in its constructor as it does today. Separately, the
+  `n`-to-`lc` communicator redirect in `sh_node_actor.py:267` is derived
+  from the handle (a NoActor node's communicator is its nearest ancestor
+  with an actor) instead of a name dict. After the handles axiom wave;
+  no change to the tree the LTN and the panel see.
+- **Test.** `test_boot_puts_every_actuator_under_local_control_normal`
+  still holds; a new test asserts the scada and a command node produce
+  the same handles for the same boss and scope on both sim pairs, and
+  one asserts a single `new.command.tree` publication at boot.

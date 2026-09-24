@@ -10,11 +10,27 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-24 — sieg-loop takes commands from the panel (OPS-392, on jm/spruce-unlimbo) <!-- pending commit -->
+## 2026-09-24 — gwsproto mirrors CommandNodeHandles; sim fixtures declare the authored tree (OPS-392, on jm/spruce-unlimbo) <!-- pending commit -->
 
-**What.** gwsproto twins of the two new sema enums, `MoveSiegValve` and
-`SiegValveState`. (Cluster in progress: the sieg-loop command surface,
-basic-sieg change 2.)
+**What.** `House0Layout.check_axiom_33` and `NolanLayout.check_axiom_30`
+mirror the new sema axiom `CommandNodeHandles`; the `n` handle check
+leaves `check_axiom_3` / `check_axiom_4`. `sema_closure/registry.yaml`
+follows the tlayouts snapshot. The three sim pairs in `tests/config` are
+the regenerated gen output with `hp-boss` (and `sieg-loop`) under `auto`
+and the fixed relays under their owners. Named-type tests: three reject
+tests per word for the new axiom; the twin and stray-leaf mutations
+declare their nodes under `auto.hp-boss`.
+
+**Why.** The authored handles are the initial command tree, and until now
+they were half claimed by local control (`auto.lc.n.hp-boss`) with two of
+the three fixed sub-trees missing. The tree builders already produce the
+live shape, so no actor code changes; the live tree the LTN and the panel
+see is unchanged.
+
+## 2026-09-24 — 5b7b6d9f update sieg enums (OPS-392, on jm/spruce-unlimbo)
+
+**What.** gwsproto twins of the two published sema enums, `MoveSiegValve`
+and `SiegValveState`, exported from `gwsproto/enums`.
 
 **Why.** basic-sieg change 2: `sieg-loop` joins hp-boss and five-v-boss as
 a command node so an operator can move the valve from the admin panel

@@ -10,7 +10,72 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-24 — sieg-loop command and valve-state words (OPS-392, on jm/sieg-loop-words) <!-- pending commit -->
+## 2026-09-24 — staging enum versions: in-place edits keep the published predecessor's values (OPS-392, on jm/handles-wave) <!-- pending commit -->
+
+**What.** `spec/authoring/enums.md` "Evolution Rules" gains one clause:
+a staging version is edited in place, may drop or reorder values it
+appended itself, and keeps every value of its predecessor in place.
+`gw1.actor.class/014` marks `I2cRelayMultiplexer` and
+`I2cZeroTenMultiplexer` defunct in `value_descriptions`, as
+`I2cRelayBoard` already is; no value moves.
+
+**Why.** The two multiplexer classes have no actor and no layout, and the
+question was whether the staging 014 could shed them. It cannot: they are
+in published 013, and a consumer may hold enum states as positions, so a
+published value is never removed. The clause states what in-place
+staging edits may do to an enum so the question does not come back.
+
+## 2026-09-24 — disabled lists reach the words; heat calls are one to one with circuits (OPS-392, `542acba` on jm/handles-wave)
+
+**What.** On `gw.house0.layout/000` and `gw.nolan.layout/000`, in place:
+`HeatCallChannelBelongsToCircuit` appended (House0 34, Nolan 31);
+`DisabledNodesAreSensors` (28 / 26) restated to exclude actuators, node
+and channel side; `TransactivePowerChannel` (6 / 1) gains the clause that
+no metered input is in `DisabledChannelNames`. `Enabled` leaves the six
+pico component words (`pico.btu.meter.component.gt/000`,
+`pico.flow.module.component.gt/001`, `pico.tank.module.component.gt/012`
+and their `sim.pico.*` twins). `web.server.component.gt/001` renames
+`WebServer.Enabled` to `Serve`. `maker.api.attribute.gt/001` and
+`hubitat.poller.gt/001` (staging) drop `Enabled`, with upgrade
+templates; `hubitat.poller.component.gt/000` references the new poller
+in place, and it and `gw.house0.layout/000` carry a fresh `created` so
+the dependency stamps stay ordered. Templates, fixtures and reject
+tests follow. `gw1.actor.class/014` is unchanged: the registry suite
+holds every enum version append-only against its predecessor, so the
+two multiplexer values stay until a later decision retires them.
+
+**Why.** Heat calls are all for zone-call circuits, so the heat-call
+channels and the circuits are one to one; the converse of
+`CircuitHeatCallChannel` closes the gap where a heat call for no circuit
+still decoded. Disabling is a sensing concept: an actuator is wired or
+absent, and `ActuatorChannels` had let an actuator pass the sensor axiom
+as written. The metered boundary is never disabled. The layout's disabled
+lists are the one place a missing sensor is declared, so the per-component
+`Enabled` flags that said the same thing go; the web server's flag is a
+different idea (whether the scada serves HTTP) and takes its own name.
+
+## 2026-09-24 — b3c6c54 CommandNodeHandles on both layout words; summaries drop the axiom list (OPS-392, on jm/handles-wave)
+
+**What.** Axiom `CommandNodeHandles` appended to `gw.house0.layout/000`
+(33) and `gw.nolan.layout/000` (30): the authored handles of every
+command node and fixed relay, and `auto.<Name>` for every other Relay or
+ZeroTenOutputer node. The `n` handle sentence leaves the command-node
+axiom (House0 3, Nolan 4), which now states existence and actor class
+only. Runtime templates, fixtures (hp-boss, sieg-loop and their relays
+at the declared handles) and reject tests follow. Both words' registry
+summaries drop their axiom enumeration.
+
+**Why.** The authored tree is the plant with no one in charge: `auto` is
+the root, command nodes and actuators hang directly under it, and a fixed
+relay hangs under the interior node that owns it. Until now the gens
+declared `hp-boss` and `sieg-loop` under `auto.lc.n` and their relays flat,
+so the authored tree was half claimed by local control and two of the
+three fixed sub-trees were missing from it. The published
+`new.command.tree` stays the authority on where a node sits at run time.
+The summaries listed every axiom, a copy of the word that went stale on
+every edit; the word is the list.
+
+## 2026-09-24 — b3d725c sieg-loop command and valve-state words, published (OPS-392, on jm/sieg-loop-words)
 
 **What.** Two published enums: `move.sieg.valve` (`MoveToFullSend`,
 `MoveToFullKeep`, default `MoveToFullSend`) and `sieg.valve.state`
