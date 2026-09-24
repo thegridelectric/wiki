@@ -1,6 +1,6 @@
 # Heat Geek (UK): corporate, funding, business model and content research
 
-What this is: desk research on Heat Geek (heatgeek.com) as a model for a US open educational/reference presence for GridWorks.
+What this is: desk research on Heat Geek (heatgeek.com) as a model for a US open educational/reference presence for GridWorks. Prices, performance and the FY2025 accounts are in [`price-and-accounts.md`](price-and-accounts.md).
 
 Status: Draft · Pass 0 · Updated 2026-09-23
 

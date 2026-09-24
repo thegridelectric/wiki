@@ -10,6 +10,75 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-24 — every gen declares the primary-pump owner and refrigerant cycle; maple's primary-pump actuators leave (OPS-392, `d38bf49` on jm/spruce)
+
+Snapshot regenerated from sema `e54adcd` (`jm/hp-facts-hydronic`):
+`gw.hydronic` requires `PrimaryPumpOwner` and `RefrigerantCycle`, House0
+axioms 31 `PrimaryPumpActuators` and 32 `PrimaryPumpRecordAgreement`,
+Nolan 29. `LayoutGenConfig` takes `primary_pump_owner` and
+`refrigerant_cycle` with no default; the House0 gen emits the
+primary-pump relay pair only when the scada owns the pump. Beech, oak,
+fir, elm, orange and willow: Scada / Cascade; spruce, honeysuckle: HeatPump
+/ Single. Maple: HeatPump / Single, `primary-010v` and the relay pair
+gone, `primary-pump-pwr` disabled. Why: maple's heat pump is now a
+single-compressor Ecodan whose hydrobox runs the primary pump, so the
+scada has nothing to drive there and its CT is off the pump until the next
+visit; the facts are declared per home because both scada control paths
+and the optimizer's COP model branch on them.
+
+## 2026-09-24 — snapshot carries ActuatorChannels (OPS-392, `8c01ce7` on jm/spruce)
+
+Snapshot regenerated from sema `02490b9` (`jm/actuator-channels`): House0 axiom 30
+and Nolan axiom 28, and the trimmed `SiegManifoldChannels`. No gen
+changes; every generated pair already carried each actuator's channel.
+
+## 2026-09-24 — snapshot follows sema `0cf5f28` (OPS-392, `01464b1` on jm/spruce)
+
+Snapshot regenerated from sema `0cf5f28` (`jm/flow-hall-params-210`):
+the registry `last_updated` stamp and `seed_expanded` generation time
+only, since `flow.hall.params` is not in the layout closure. Why: the
+scada closure copy is a byte-for-byte copy of this registry, and the
+stamp records which sema the snapshot was built from.
+
+## 2026-09-24 — spruce disables its dead thermistors; beech drops the prototype dist2 meter; FlowSpec gains enabled (`f99011d`)
+
+Spruce disables `store-hot-pipe`, `store-cold-pipe` and
+`fancoil-depth3-device`: the `store-btu` and `fancoil` picos are live
+(2026-09-24 pico census through the starter-scripts API) and post nothing
+for these; the store thermistors sit at the 3.3 V rail and at 0 V, fancoil
+depth 3 at the rail. Beech loses the `dist2` flow pico (`pico_2a7e22`, the
+Omega reed meter on a breadboard with no protection board): it was an
+in-series meter on a prototype, it pulled the 5 V bus down on 2026-09-22
+and was disconnected, and it never posted in the census. Its node, its two
+channels and the `dist-flow2` renames go with it; `dist-btu` stays disabled
+awaiting the Rev C board. Beech's ADS pipe channels and Hubitat zone
+channels stay enabled: the journal shows the production scada reading every
+one of them all day. `FlowSpec` gains `enabled` (default True), carried to the flow component's
+`Enabled` the way `BtuSpec` already does, so a fitted-but-dead flow pico can
+be taken out of service without leaving the layout; no gen sets it yet. Why:
+a layout states what the house can serve today; a prototype meter that is
+gone is removed, and a sensor that is fitted but dead is disabled so the
+field visit has its list.
+
+## 2026-09-23 — layout words at the axiom tables: snapshot, emitter types, disabled lists (`e37a2bc` on jm/spruce)
+
+Snapshot regenerated from sema `9326dde` (`jm/layout-word-axioms`, off
+`jm/spruce`). The gens follow the words: `ZoneCircuitSpec` /
+`ZoneCallCircuitSpec` carry `emitter_type` (`Other` everywhere; spruce
+1/2/4 `RadiantSlab` with their `floor_temp_channel_name`, 3 and 5
+`FanCoil`); `LayoutGenConfig` carries `disabled_node_names` /
+`disabled_channel_names` (beech: `dist-btu` and its three channels plus
+`sieg-hot` on ADS terminal 9; oak: `store-cold-pipe` on terminal 6;
+spruce: the three pump powers at eGauge 9012/9020/9022 out of the
+transactive set, and `buffer-cold-pipe` derived from
+`pipes1-depth3-device`, both disabled); the Nolan gen emits `backup` and
+`scada-blind`; the House0 sims emit sim sensors for the whole pipe
+surface and the sim meter carries the pump powers. Honeysuckle is noted
+as the Stoneman microgrid scada, not a house layout. Elm, fir and oak
+still fail `SiegManifoldChannels` until the no-sieg word takes them.
+Why: the word now states what the code reads, so a layout that lacks a
+required name is refused at gen time instead of failing in the field.
+
 ## 2026-09-23 — minor: spruce floor and fancoil derived channels return (`c434529` on actual-spruce)
 
 `gen_spruce.py` (actual-spruce) emits the seven identity derived channels

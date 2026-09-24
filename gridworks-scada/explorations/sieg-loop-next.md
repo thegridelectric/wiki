@@ -167,7 +167,7 @@ long enough to exclude defrosts, over 250 s, loses most real stops).
 Defrost proper: the valve wants to be at keep for as much of a defrost as
 the 100 s travel allows. Noticing one is HpBoss's job or the heat pump
 twin's, reported as a state in a new `hp.boss.state` version (000 is
-published); `../executor/defrost-signatures.md` is the data. While
+published); `../executor/heat-pump-signatures/defrost-signatures.md` is the data. While
 confidence builds, a glitch says whether the heat pump still completes its
 defrost with the loop closed.
 

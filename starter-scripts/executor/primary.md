@@ -81,6 +81,25 @@ hand-copies).
 | `program_dac_eeprom.py` | DAC EEPROM | one-time power-on defaults |
 | `watchdog_power_cycle.py` | GPIO (watchdog pi) | full power removal of the primary pi |
 | `gw108_test_code.py` | clears both expanders on import | the authored board map; interactive use only, hack stopped |
+| `turn_off_5v.py` / `turn_on_5v.py` | spruce: GPIO 23; else Krida board 1 relays 1, 5, 6, 8 | drop / restore this house's 5V DC bus, keyed on hostname (`five_v_bus.py`); a House0 off also holds the heat pump and oil boiler off via relays 5, 6, 8, and on releases them unless `--keep-hp-off`; Krida writes are read-modify-write of the live port, never through `adafruit_pcf8575` (its write buffer starts all-zero) |
+| `start_api.sh` | no | the starter-scripts pico API on port 8000, the port the scada's web server uses; with the scada stopped, every pico POST prints here |
+
+**Confirming a missing pico.** A channel with no value whose capturing
+node is a pico (a tank module, a BTU meter, a flow meter) is confirmed
+missing by watching the pico bank re-post with the scada out of the way:
+
+    sudo systemctl stop gwspaceheat gwspaceheat-restart.timer   # spruce: also spruce-winter-hack
+    cd ~/starter-scripts && ./start_api.sh                       # terminal 1
+    venv/bin/python turn_off_5v.py                                # terminal 2
+    sleep 5 && venv/bin/python turn_on_5v.py
+
+Every pico that has power and network POSTs its params and then its
+readings to the API within a minute of the bus coming back; a pico that
+never appears is the missing one, and the printed BTU snapshot shows each
+temperature as the pico converted it, so a channel at the rail or at 0 V
+is told apart here (the scada only sees the converted CelsiusTimes100).
+This proves the pico is live, not that its sensors are good. Restart the services the same way the window scripts
+do (`sudo systemctl start` of what was stopped) when done.
 
 ## Field state (what is known, 2026-08-23)
 

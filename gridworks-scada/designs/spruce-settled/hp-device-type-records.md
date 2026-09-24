@@ -24,9 +24,11 @@ only Samsung has vendored records:
   (Hydro Kit indoor) — enum members exist, **no record**. beech's gen
   references the `DeviceType` strings with no `record_file`; this spoke
   fills them.
-- **Mitsubishi**: `MitsubishiWUZSA48NMZ` (odu) + `MitsubishiERSFNM6E` —
-  enum members exist, **no record**; wire to whichever fleet house runs
-  it.
+- **Mitsubishi Ecodan** (maple): `MitsubishiWUZSA48NMZ` (odu) +
+  `MitsubishiERSFNM6E` (hydrobox, no compressor) — enum members exist,
+  **no record**. Only the odu gets an `hp.device.type.gt`; the hydrobox
+  holds the primary pump, so the odu record says the package's pump is
+  factory-installed.
 
 ## What a record carries
 

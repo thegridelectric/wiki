@@ -21,8 +21,10 @@ resolve_session_scope "$SESSION_ID"
 if [ -n "${SESSION_NAME:-}" ] && [ -f "$HOME/.claude/.bulk-stop-override.$SESSION_NAME" ]; then exit 0; fi
 [ -f "$HOME/.claude/.bulk-stop-override" ] && exit 0
 
-# A README in a dated experiment folder, written after the run started.
-newer=$(find "$UMBRELLA/experiments" -maxdepth 2 -path '*/20[0-9][0-9]-*' -name README.md -newer "$marker" 2>/dev/null | head -1)
+# A README in a dated experiment folder, written after the run started —
+# or the field-window record, which experiments/field-window-recipe.md keeps
+# in the undated beta-field-windows/ folder (only the last run is kept).
+newer=$(find "$UMBRELLA/experiments" -maxdepth 2 \( -path '*/20[0-9][0-9]-*' -o -path '*/beta-field-windows/*' \) -name README.md -newer "$marker" 2>/dev/null | head -1)
 if [ -n "$newer" ]; then
   rm -f "$marker"
   exit 0

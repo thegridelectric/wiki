@@ -10,7 +10,75 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-23 — layout words state their required names; circuits carry an emitter type (OPS-392) <!-- pending commit -->
+## 2026-09-24 — heat-pump facts on gw.hydronic: primary-pump owner and refrigerant cycle (OPS-392, `e54adcd` on jm/hp-facts-hydronic)
+
+New enums `gw.primary.pump.owner/000` (HeatPump, Scada) and
+`gw.refrigerant.cycle/000` (Single, Cascade), both staging.
+`gw.hydronic/000` gains required `PrimaryPumpOwner` and
+`RefrigerantCycle`. `gw.house0.layout/000`: `RequiredActuators` sheds
+`primary-pump-failsafe-relay`, `primary-pump-scada-ops-relay` and
+`primary-010v`; axiom 31 `PrimaryPumpActuators` requires all three nodes
+and channels when control is Scada and forbids them when it is HeatPump;
+axiom 32 `PrimaryPumpRecordAgreement` ties the fact to the
+`hp.device.type.gt` records joined to `hp-odu` / `hp-idu` where one
+exists. `gw.nolan.layout/000` gains the agreement axiom as 29.
+`RequiredHeatpumpEquipment` prose drops the refrigerant-boundary claim.
+Why: the scada branches on whether it drives the primary pump, and the
+optimizer branches on the refrigerant cycle (two-compressor cascades show
+a flatter COP curve); both are install facts of the house, stated once on
+the layout. Maple's heat pump changed to a single-compressor Ecodan with
+its own pump, so its primary-pump actuators leave the layout.
+
+## 2026-09-24 — actuators have channels axiom (OPS-392, `02490b9` on jm/actuator-channels)
+
+`gw.house0.layout/000` axiom 30 and `gw.nolan.layout/000` axiom 28,
+`ActuatorChannels`: every ShNode `RequiredActuators` names (the listed
+relays and 0-10V outputs, each circuit's FailsafeRelayNode and
+OpsRelayNode) has a DataChannel of the same Name, about and captured by
+that node (a.), with TelemetryName `RelayState` for a Relay and
+`VoltsTimesTen` for a ZeroTenOutputer (b.). House0 `SiegManifoldChannels`
+drops `hp-loop-on-off-relay` and `hp-loop-keep-send-relay`, now covered.
+Runtime templates and reject tests for both clauses per word. Why: the
+scada's relay and 0-10V actors report on the channel of their own name,
+and every current layout carries that channel in that shape; a layout
+that renames or drops one decoded until an actor failed at boot.
+
+## 2026-09-24 — flow.hall.params/200 is what the flow picos post; FirmwareCommit moves to 210 (OPS-392, `0cf5f28` on jm/flow-hall-params-210)
+
+`flow.hall.params/200` carries `PicoBoardVariant` and `MicropythonVersion`
+only, and is promoted to published (`sema promote flow.hall.params 200`,
+pin recorded). `flow.hall.params/210` (staging) adds required
+`FirmwareCommit`, with its upgrade template raising
+`upgrade_requires_context`, as the tank and BTU params 210/110 do. Indexes
+and runtime regenerated (`flow_hall_params.py` is 210,
+`old_versions/flow_hall_params_200.py` added). Why: `11c09b5` added
+`FirmwareCommit` to 200 in place while the flow-module firmware already
+posts 200 without it, so sema's 200 and the wire's 200 disagreed and the
+scada conformance test read gwsproto's matching 200 as drift. A version in
+the field is published, and the firmware-side field takes the next number.
+
+## 2026-09-23 — circuit axiom compares the emitter type as a string (OPS-392, `9326dde` on jm/emitter-type-need-to-know)
+
+`gw1.zone.call.circuit` axiom 1 compares `EmitterType` to the string
+"FanCoil" instead of the runtime enum class. Why: a snapshot renders the
+enum under its local name (`ZoneEmitterType` in tlayouts, where the `gw.`
+prefix is stripped), so a template that names `GwZoneEmitterType` fails to
+build the snapshot; the layout words' axioms already compare as strings
+for the same reason.
+
+## 2026-09-23 — emitter type is need-to-know; Nolan requires buffer-cold-pipe (OPS-392, `555e3ca` on jm/emitter-type-need-to-know)
+
+`zone.emitter.type` becomes `gw.zone.emitter.type` with three values,
+`Other` (default), `RadiantSlab`, `FanCoil`: GridWorks needs to know
+whether a circuit can cool (FanCoil) and whether it needs a floor
+temperature sensor (RadiantSlab); every other emitter is Other. The
+layout words' `FloorLoopCircuitTemp` axiom binds RadiantSlab alone.
+`gw.nolan.layout` `RequiredSensing` names `buffer-cold-pipe` in place
+of `buffer-hot-pipe` (the Nolan manifold senses the buffer's cold side).
+All four words are staging and edited in place; their `created` stamps
+move to this sitting so the dependency order holds.
+
+## 2026-09-23 — adding axioms to the layouts (OPS-392, `2aabe87` on jm/layout-word-axioms)
 
 The two staging layout words carried a partial required-name surface, so a
 layout could omit a channel or node the scada reads and still validate.
@@ -36,6 +104,14 @@ circuit and resolves it to a temperature channel. Circuit axiom 1 becomes
 `OnlyFanCoilsCool`: only a fan coil may cool. `zone.actuator.kind` and
 `zone.circuit.role` are deleted: staging ideas that did not make it out
 of the gate, referenced only by this word.
+
+Both layout words carry two required top-level lists, `DisabledNodeNames`
+and `DisabledChannelNames`: names the word requires and the layout
+declares whose readings are currently unavailable, pending a field visit.
+Three axioms follow: every name resolves; a disabled node captures
+DataChannels and every channel it captures is disabled; an enabled
+derived channel has no disabled input. The layout carries the fact; the
+why and the plan are a service-record word of their own (OPS-558).
 
 Both layout words get their first sema runtime tests, one vanilla
 fixture per family patched from the maple and spruce pairs and a

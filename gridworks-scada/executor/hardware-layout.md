@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-18
+Status: Draft · Pass 0 · Updated 2026-09-24
 
 # The hardware layout
 
@@ -32,8 +32,32 @@ A layout is the node→component→device-type→channel graph for one house,
 plus house-level facts. On disk it is one authored sema artifact per home,
 a layout word (`gw.house0.layout` or `gw.nolan.layout`) whose `Hydronic`
 block (`gw.hydronic`) carries the plant facts: `Zones`, `ZoneCallCircuits`,
-`TotalStoreTanks` (0–6), `PrimaryFlowSource`, `Strategy`; the GNodes ride
-in `GNodes`. What changes without rewiring lives in the paired
+`TotalStoreTanks` (0–6), `PrimaryFlowSource`, `PrimaryPumpOwner`,
+`RefrigerantCycle`, `HpCommandNodeName`; the GNodes ride in `GNodes`.
+The control family is the layout word's own TypeName, not a field.
+
+Two of those are heat-pump facts of the installed house, stated once on
+the layout because code branches on them and never inferred from channel
+presence or device records. `PrimaryPumpOwner` (`HeatPump` or `Scada`)
+says who runs the primary pump; the House0 `PrimaryPumpActuators` axiom
+makes the primary-pump relay pair and `primary-010v` exist exactly when
+the scada owns it, and a home whose heat pump owns its pump carries none
+of them. It is distinct from the relay state `primary.pump.control`,
+which says which side has the pump at this moment. `RefrigerantCycle`
+(`Single` or `Cascade`) exists for the optimizer: two-compressor cascades
+show a markedly flatter COP curve across outdoor temperature. The
+refrigerant boundary (monobloc or split) is not a layout fact; each
+family word's node roster already says what parts a home has.
+
+The device records (`hp.device.type.gt`, `hp.control.box.device.type.gt`)
+are the nameplate, true of every unit of a model, and keep the three
+primary-pump booleans (factory-installed, overridable, always-on); the
+layout states the install decision. The `PrimaryPumpRecordAgreement`
+axiom ties them one way only: under `Scada` ownership no record joined to
+the heat-pump nodes may ship its pump inside the unit with no override.
+`HeatPump` ownership implies nothing about the record, because a heat
+pump can drive a field-supplied pump from its own terminals, as spruce's
+Samsung does. What changes without rewiring lives in the paired
 `gw.operational.params` word, whose `FamilyParams` block is the family's
 own word (`gw.house0.family.params` / `gw.nolan.family.params`),
 `UseSiegLoop` among it. The loader pairs a layout word with its
@@ -153,7 +177,12 @@ are pure vocabulary — they neither know nor declare what a given plant must ha
 `gw.nolan.layout` / `gw1.simple.sim.layout`) that declares, via its `required`
 lists and axioms, which channels and ShNodes are mandatory for that plant and
 which are optional. The same name can be required in one layout and optional in
-another; the layout — not `names/` — is the authority.
+another; the layout — not `names/` — is the authority. A required list
+names what every layout of the family must serve, never what a house merely
+tracks; nodes are not required unless code binds to them (the heat-pump
+units are named outright because a required channel met by a
+DerivedChannel has no about-node, and the component binding needs the
+nodes whatever form the channels take).
 
 The canonical example is **`-gw-temp`**:
 - In **nolan** it is **required** — the gw108 thermistor reading is *the* zone

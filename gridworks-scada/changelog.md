@@ -10,6 +10,119 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-24 — gwsproto mirrors the heat-pump facts on gw.hydronic (OPS-392, `aca3a111` on jm/spruce-unlimbo)
+
+Closure copy at sema `e54adcd`. `Hydronic` gains `PrimaryPumpOwner`
+(`gw.primary.pump.owner`: HeatPump, Scada) and `RefrigerantCycle`
+(`gw.refrigerant.cycle`: Single, Cascade), both new gwsproto enums.
+House0 `check_axiom_10` and `check_axiom_30` drop the primary-pump relay
+pair and `primary-010v`; `check_axiom_31` PrimaryPumpActuators requires
+the three nodes and channels under Scada and forbids them under HeatPump;
+`check_axiom_32` and Nolan `check_axiom_29` PrimaryPumpRecordAgreement
+refuse Scada ownership against a joined record whose pump ships inside
+the unit with no override. Rejecting tests for each. The sim fixture
+pairs (orange, willow, spruce) regenerated with the two facts; the
+`hp_idu` node-name comment states what the indoor unit is without a
+compressor claim. Why: the layout now states who owns the primary pump
+and what refrigerant cycle the heat pump runs, and a House0 home without
+scada-driven primary-pump actuators (maple) must validate.
+
+## 2026-09-24 — gwsproto mirrors ActuatorChannels (OPS-392, `75d67805` on jm/spruce-unlimbo)
+
+`House0Layout.check_axiom_30` and `NolanLayout.check_axiom_28` mirror
+sema `ActuatorChannels` (each `RequiredActuators` node has a DataChannel
+of its own Name, about and captured by it, with `RelayState` /
+`VoltsTimesTen` by actor class), with a rejecting test per clause in
+`tests/named_types/`; `check_axiom_8` drops the two hp-loop relays.
+Closure copy follows the tlayouts snapshot. Why: the layout is decoded
+through gwsproto, so a word edit gwsproto does not mirror is a layout
+the field accepts and sema refuses.
+
+## 2026-09-24 — minor: conformance test records the pico params words staged ahead of the firmware; closure copy follows sema `0cf5f28` (OPS-392, `e61089d3` on jm/spruce-unlimbo)
+
+`sema_closure/registry.yaml` is the tlayouts snapshot registry rebuilt
+from sema `0cf5f28` (stamp only; `flow.hall.params` is not in the
+closure). `KNOWN_TYPE_VERSION_DRIFT` names `async.btu.params`, `flow.hall.params`
+and `tank.module.params`: sema stages 110 / 210 / 210 with
+`FirmwareCommit` while every pico in the field posts 100 / 200 / 200 and no
+firmware stamps a commit; gwsproto tracks the wire and moves up with the
+firmware. Why: the test read gwsproto's field-matching versions as drift
+to burn down, when the record is sema ahead of hardware.
+
+## 2026-09-24 — add a glitch limit, AND btu meter reports an impluasible or quiet channel as a daily Warning glitch (OPS-392, `208b2769` on jm/spruce-unlimbo)
+
+One commit, two concerns.
+
+**BTU meter.** 
+`ApiBtuMeter` drops a `CelsiusTimes100` reading outside
+`IMPLAUSIBLE_BELOW_C`..`IMPLAUSIBLE_ABOVE_C` (-40..130 C) from the
+`SyncedReadings` it sends, reporting `open-thermistor` naming the
+channel, and reports `quiet-channel` when a channel stops arriving while
+the pico posts its other channels, beside the `ChannelFlatlined` the
+scada already gets each minute; each at most once per channel per day
+through `GlitchLimit`. A snapshot with every temperature dropped sends no
+readings. Test: `tests/actors/test_btu_open_thermistor.py`. Why: the pico
+drops a thermistor at either rail before it posts (`celsius_from_volts`
+returns None at ≤0.001 V or ≥3.299 V), so a dead pipe sensor at spruce's
+`store-btu` reached the scada as an absent channel and was never named;
+one near a rail gets past that guard as an impossible temperature. The
+tank module has had the same catch on its rail volts; the BTU meter only
+sees converted temperatures.
+
+**Power meter and Hubitat actors.** The power meter's driver thread, the Hubitat web listener and the Hubitat
+poller send glitches to the primary scada, which forwards them upstream,
+each at most once per key per day (`actors/glitch_limit.py`,
+`REPEAT_GLITCH_S`). Warning: the meter's start warnings and start
+error (the actor still asks for shutdown), a meter HwUid that differs
+from the layout's, meter read warnings (keyed per channel and warning
+type), an unreadable or undecodable Hubitat post, a missing or
+unconvertible Hubitat attribute (keyed per node, attribute and kind),
+and a Hubitat reply that does not decode. Error: a failure building the
+meter's `SyncedReadings`, the one site where the scada's own code fails.
+The poller reports attribute warnings before it returns the readings, so
+a missing attribute is reported even when another converts; it was
+dropped whenever any value converted. `HWUidMismatch` and the thread's
+`_report_problems` are gone. Tests: `tests/actors/test_field_glitches.py`.
+Why: scada reports conditions as glitches, and the meter's read warnings
+and the poller's attribute warnings repeat on every read or poll, so as
+problem events they were acked and persisted once per read.
+
+## 2026-09-24 — pico actors report a refused, unreadable or unknown-pico post as a daily Warning glitch (OPS-392, `89d3463f` on jm/spruce-unlimbo)
+
+The tank, BTU and flow actors report a post they refuse through
+`actors/pico_post_refusal.py`: a Warning glitch whose Summary is the
+condition (`params-version`, `refused-post`, `unreadable-post`,
+`unknown-pico`) and whose Details name the pico and the cause, at most
+once per pico and condition per day (`REFUSED_POST_REPORT_S`). The web
+handler runs on the IO loop, so the glitch reaches the actor through
+`send_threadsafe` and the actor sends it upstream. Each actor's
+`_report_post_error` and the problem event in `_get_text` are gone; the
+unknown-pico branches (tank, BTU, both flow params) report instead of only
+logging; a BTU snapshot that does not decode reports instead of only
+logging; a params handler whose body could not be read stops there instead
+of also reporting it as malformed. Tests: `tests/actors/test_pico_post_refusal.py`.
+Why: problem events are acked and persisted, and a 110 tank pico's refused
+params came once per boot per pico, so beech's pico-cycler reboots turned
+into four problem events a minute. A refused post is a field condition,
+which the scada reports as a Warning glitch.
+
+## 2026-09-23 — layout words at the axiom tables: closure copy, gwsproto mirrors, sieg names (OPS-392, `847d9ca9` on jm/spruce-unlimbo)
+
+The vendored closure copy follows the tlayouts snapshot built from sema
+`9326dde`. `ZoneCallCircuit` carries `EmitterType` (`GwZoneEmitterType`:
+`Other`/`RadiantSlab`/`FanCoil`) and an optional `FloorTempChannelName`
+in place of `ActuatorKind` and `Role`, whose enums are deleted.
+`House0Layout` and `NolanLayout` carry `DisabledNodeNames` and
+`DisabledChannelNames`; `RequiredSensing`, `RequiredActuators`,
+`CommandNodes` and `BufferTank` match the words' lists, and the new
+axioms are mirrored as `check_axiom_<n>` (House0 24–29, Nolan 20–27),
+each with a rejecting test. The sieg names live in `House0NodeNames` /
+`House0ChannelNames` (with `sieg-hot`), and `backup` / `scada-blind` in
+`CoreNodeNames`, since both words require them. The sim fixture pairs
+in `tests/config` are regenerated. Why: the scada decodes the layout
+through gwsproto, so a word edit that gwsproto does not mirror is a
+layout the field accepts and the sema runtime refuses.
+
 ## 2026-09-23 — patch small bug in layout gen (GRI-6, `ce05fcd5` on dev)
 
 `layout_gen/flow.py` looked up a flow module's ComponentId under the bound

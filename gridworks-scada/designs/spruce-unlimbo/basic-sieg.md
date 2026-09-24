@@ -363,7 +363,7 @@ layer 2) and does not guess.
 
 1. Set the numbers of change 1 against the full-keep traces
    (`scratch/basic-sieg/full-keep-traces/`, in
-   `../../executor/startup-signatures.md` "Loop closed against loop open").
+   `../../executor/heat-pump-signatures/startup-signatures.md` "Loop closed against loop open").
    The LG climbs to its limit at 12–19 °F a minute with no plateau, so the
    predictive test meets a rising slope all the way; from a loop already
    at 125 °F the limit is under four minutes off, so the LG's backup time

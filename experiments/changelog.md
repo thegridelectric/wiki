@@ -6,9 +6,58 @@ the *why*.
 
 Newest at the top.
 
+## 2026-09-24 — beta-field-windows: beech's refused params came from pico-cycler reboots
+
+Round four's README and the recipe's "Picos on the 110 firmware" section
+said a 110 tank pico posts refused params once a minute. It posts once
+per boot (`gridworks-pico` `7a80933` has no retry). The per-minute
+refusals at beech came from the pico cycler power-cycling the 5 V bus
+about every 65 s over one flatlined pico (`dist2-flow pico_2a7e22`).
+Both docs now say so, and the recipe treats a run of cycler reboots as a
+finding while a single refusal is not. Why: the wrong cause would have
+sent the next round after the firmware rather than the cycler.
+
 ---
 
-## 2026-09-23 — beta-field-windows becomes a lean practice folder <!-- pending commit -->
+## 2026-09-24 — house_window: windows save a full-slot report and pull their persisted events
+
+A bounded window is now at least 11 minutes (`on` refuses shorter), so it
+crosses two 300 s report boundaries and saves the first full-slot report.
+`on` stamps the window's UTC start on the box; `off` pulls every
+persisted event stamped since then into `../scratch/<house>-events-<stamp>/`
+and prints the `report.event` count, warning when there is none. Round
+four's persisted events join the last-run record in
+`beta-field-windows/` (`spruce-events/`, `beech-events/`, with
+provenance), and its README corrects the boot-to-first-snapshot reading
+(9 s, not 80 s: the 80 s compared the box clock with the laptop's). The
+recipe says every round reads the reports as well as the snapshots. Why:
+with no LTN the upstream link never goes active, so round four's reports
+persisted on the boxes and never reached the capture. The 5-minute
+windows also closed before the second boundary, so the reporting cadence
+the round meant to check went unread.
+
+---
+
+## 2026-09-24 — cleaning up the beta-field-windows
+
+Round four replaces round three in `beta-field-windows/` (two 5-minute
+windows on scada `847d9ca9`, spruce and beech, no LTN, no `--debug`);
+`emit_instances.py` finds each house's `<house>-window-*.log` in the
+folder instead of naming the round's logs by hand. The field-window
+recipe's Houses table carries `ServiceMode` and `ActuationAuthority` per
+house so beech's Standby is an expected reading, not a finding; the
+round reads the gen's ops params against it before `on`. The recipe also
+says to check for a capture left running (`on` reuses it), gives the box
+pull command and the live log path, notes the UTC ISO event filenames,
+and points at the missing-pico method in `starter-scripts`. A section
+records that the fleet's picos post `tank.module.params` 110 for several
+weeks (spruce excepted), so the per-minute problem events on a House0
+window are not a finding. Why: the next session should open the recipe
+and run a round without rediscovering any of these.
+
+---
+
+## 2026-09-23 — beta-field-windows: lean non-dated practice folder, last run only; recipe gains On Tap + keep-last-run rule
 
 The dated `2026-09-18-beta-field-windows/` folder becomes the non-dated
 `beta-field-windows/`: the field-window test is an ongoing practice, not a

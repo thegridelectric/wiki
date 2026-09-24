@@ -245,3 +245,16 @@ Carried over from the startup-announcements work, now closed: `ta.deed/000`
 and `ta.validation.state/000` are `staging`. Open: whether the deed word
 joins the `layout.lite/013` promote before a house sends its deed on the
 production broker, or promotes on its own line.
+
+## Actuator readback: relays are read, 0-10V outputs are not
+
+Every relay has a channel of its own name that reports the relay's
+actual state (`RelayState`, read back from the board). Every
+`ZeroTenOutputer` has a channel of its own name too, but its
+`VoltsTimesTen` value is the voltage the scada commanded, not a reading
+of what the DAC put on the wire. The layout words pin the channel shape
+for both (`ActuatorChannels`) and say nothing about which kind of value
+it carries. Open: whether the 0-10V channel should be a readback (a DAC
+that can be read, or an ADC on the output), or whether the word should
+state that it is the commanded value.
+

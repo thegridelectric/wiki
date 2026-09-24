@@ -135,6 +135,20 @@ Normative across the domain — full statements in
   (homeowner→aggregator, with clawback; required by both MarketMaker and
   SCADA from the LTN), are open:
   [`../explorations/deeds-and-trading-rights.md`](../explorations/deeds-and-trading-rights.md).
+- The SCADA reports conditions as **glitches**. A glitch is fire and
+  forget: published directly upstream, never acked or persisted, so one
+  raised while the upstream link is down is lost. A problem event rides the
+  acked, persisted event path and is kept for a report that must reach the
+  cloud. The glitch level says whose fault it is. **Warning** is a field condition the scada
+  sees and works around: a pico on older firmware, an open thermistor, a
+  flatlined or unknown pico, a garbled post. **Error** is the scada's own
+  failure: an exception in a handler, a state machine in an impossible
+  state, a layout/code mismatch found at runtime. Both show on the Morning
+  reports page. **Critical** pages the person on call through the alerter
+  (`gridworks-alerter` executor `CriticalGlitch`), so a condition that
+  does not need a person now is never Critical. Each glitch is
+  rate-limited per key (the pico's `HwUid` or the channel, plus the
+  condition), at an interval its call site sets.
 
 ## Map of the spec
 
@@ -156,8 +170,7 @@ Normative across the domain — full statements in
 | Experimentation rig (real-broker experiments) | [`experimentation-rig.md`](experimentation-rig.md) | Draft |
 | Required and usable energy (how the House0 store is judged ready for on-peak) | [`required-energy.md`](required-energy.md) | Draft |
 | Magic thresholds (numbers decided in code; per-row disposition) | [`magic-thresholds.md`](magic-thresholds.md) | Draft |
-| Defrost signatures (what a defrost looks like in the scada's channels, per heat pump model) | [`defrost-signatures.md`](defrost-signatures.md) | Draft |
-| Start-up signatures (a heat pump start in the scada's channels, per model, loop open and closed; running/stopped thresholds; the LG at its limit) | [`startup-signatures.md`](startup-signatures.md) | Draft |
+| Heat pump signatures (start-up, running, idle and defrost in the scada's channels, per heat pump model) | [`heat-pump-signatures/primary.md`](heat-pump-signatures/primary.md) | Draft |
 | The Siegenthaler loop actor as it runs (what it does, what maple shows, where it falls short) | [`sieg-loop.md`](sieg-loop.md) | Draft |
 
 ## Open (top-level)

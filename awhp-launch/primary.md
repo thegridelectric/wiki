@@ -57,6 +57,13 @@ here is the whole of it.
 - [`research/heat-geek/business-model.md`](research/heat-geek/business-model.md)
   — Heat Geek's corporate history, funding, revenue lines, scale and
   content strategy, with sources.
+- [`research/heat-geek/price-and-accounts.md`](research/heat-geek/price-and-accounts.md)
+  — install prices against the BUS median, monitored SCOP, and the
+  FY2025 accounts: the contracting entity earns the spread, the
+  platform burns it.
+- [`research/fleet-peak-avoidance.md`](research/fleet-peak-avoidance.md)
+  — two Maine seasons of fleet data against high-price hours and ISO-NE
+  monthly peaks, the caveats, and pseudo-code for the experiment.
 - `research/heat-geek/` also holds Heat Geek's own articles, saved by
   hand from a browser as "Webpage, Complete" (the site blocks automated
   fetches). Each is a matched set named by the article's own byline date:

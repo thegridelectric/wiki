@@ -1,22 +1,58 @@
 # Layout-word axioms (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-09-22 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-09-24 · Linear: OPS-392
 
 > What this is: the axiom work still open on `gw.house0.layout/000` and
-> `gw.nolan.layout/000` before they are promoted. First the required
-> channels and nodes for both families, one table each, so the test
-> layouts, the sim pairs and the gens carry what the code reads; then
-> the heat-pump facts, two structural axioms, the bus list and its
-> bus-actor bijection, the sim and nameplate vocabulary gaps, and one
+> `gw.nolan.layout/000` before they are promoted. The required channel
+> and node tables, the circuit's emitter type, the store-tank depths,
+> the `web-server` node, the disabled lists and the actuator channels
+> are in both words, with runtime and gwsproto tests, and every current
+> gen generates against them, and `gw.hydronic` states who owns the
+> primary pump and the refrigerant cycle. Open: a maple-shaped sim
+> pair, the declared command tree, the bus list, the sim
+> and nameplate vocabulary gaps, disabled-config behaviour, and one
 > renumbering. Both words are staging, so every edit is in place.
 
 ## Do this next
 
-The required lists come first. "Required channels" and "Required nodes"
-are settled and are the first wave: bring both words to the tables,
-with reject tests, the regenerated pairs and the mirrors, before any
-section below them. The sema word gate (read `sema/spec/primary.md` and
-the type spokes, post the summary, wait) comes before the first edit.
+The tables are in: sema `2aabe87`, `555e3ca`, `9326dde` (snapshot and
+closure copy now at `0cf5f28`; both words at
+axioms House0 24–29, Nolan 20–27, `gw1.zone.call.circuit` with
+`EmitterType` and `FloorTempChannelName`, `gw.zone.emitter.type`);
+tlayouts `e37a2bc` / `f99011d` (snapshot, every gen at the tables,
+disabled lists); scada `847d9ca` (closure copy, gwsproto mirrors with a
+rejecting test each, sieg and core names). Beta round four (2026-09-23,
+`experiments/beta-field-windows/`) booted spruce and beech on the
+axiom-table pairs. Not at the tables by design: elm, fir and oak fail
+`SiegManifoldChannels` (`sieg-hot`) and wait for `house0-no-sieg-layout.md`;
+honeysuckle is the Stoneman microgrid scada, not a house.
+
+1. ✅ `ActuatorChannels` (House0 30, Nolan 28): every `RequiredActuators`
+   node has a DataChannel of its own Name, about and captured by it,
+   `RelayState` / `VoltsTimesTen` by actor class; `SiegManifoldChannels`
+   sheds its two relays. Surfaced one gap for `odds-and-ends.md`: the
+   0-10V channel is the commanded voltage, not a readback.
+2. ✅ `PrimaryPumpOwner`, `RefrigerantCycle` and the
+   `PrimaryPumpRecordAgreement` axiom on `gw.hydronic`: sema `e54adcd`,
+   the tlayouts snapshot and every gen, the scada mirrors
+   (`executor/hardware-layout.md` "What a layout is"). Left: a
+   maple-shaped sim pair in the scada suite (`HeatPump` owner, no
+   primary-pump actuators; the willow pair is maple's flow pattern but
+   backs the 0-10V tests over all three outputs, so it stays). Maple's
+   first window is `beta-field-windows.md`.
+3. ✅ `ApiBtuMeter` reports an implausible temperature
+   (`open-thermistor`) and a channel that stops arriving while the pico
+   posts its siblings (`quiet-channel`), one Warning a day per channel
+   (`tests/actors/test_btu_open_thermistor.py`). Spruce's `store-btu`
+   pipe thermistors are the case: the pico drops a rail reading before
+   the post, so the scada saw an absent channel and never named it. The
+   layout's disabled lists do not reach the actors yet, so a disabled
+   channel is named the same way; that is the "Required but disabled"
+   design question. The tank module keeps its own once-a-day dict for
+   the same gate (`open_thermistor_reported_s`); moving it onto
+   `GlitchLimit` is a separate small change.
+4. Then the runtime-test port in "Owned elsewhere" and, last of all,
+   "Axiom order" (the one renumbering).
 
 ## How the sitting works
 
@@ -31,238 +67,124 @@ the type spokes, post the summary, wait) comes before the first edit.
   tlayouts snapshot and regenerated pairs, the vendored closure copy in
   scada, the gwsproto mirror and its test.
 
-## Required channels
-
-One table for both families. ✓ means the word requires the Name,
-kind-agnostic: it SHALL exist in DataChannels or in DerivedChannels.
-— means the word says nothing about it; a house may carry the channel
-and nothing depends on it. The word does not name what a house merely
-tracks. "Today" names the axiom that already covers the row, so each
-edit is a diff against the word rather than a rewrite. The House0 per-row
-reasoning is in `scratch/house0-required-guesses.md`.
-
-| Name | House0 | Nolan | Today |
-| --- | --- | --- | --- |
-| **Power** | | | |
-| `hp-odu-pwr` | ✓ | ✓ | House0 via `TransactivePowerChannel` inputs only; Nolan `RequiredSensing` |
-| `hp-idu-pwr` | ✓ | — | House0 via `TransactivePowerChannel` inputs only |
-| `hp-ctrl-box-pwr` | — | ✓ | Nolan `RequiredSensing` |
-| `primary-pump-pwr`, `store-pump-pwr`, `dist-pump-pwr` | ✓ | ✓ | none |
-| `secondary-pump-pwr` | — | ✓ | none |
-| `buffer-top-elt-pwr`, `buffer-bottom-elt-pwr`, `tank1-top-elt-pwr`, `tank1-bottom-elt-pwr` | — | ✓ | Nolan `RequiredSensing` |
-| **Pipe temperatures** | | | |
-| `hp-lwt`, `hp-ewt`, `dist-swt`, `dist-rwt`, `store-hot-pipe`, `store-cold-pipe` | ✓ | ✓ | Nolan `RequiredSensing`; House0 none |
-| `buffer-hot-pipe` | ✓ | ✓ | none |
-| `secondary-lwt`, `secondary-ewt` | — | ✓ | Nolan `RequiredSensing` |
-| `fancoil-swt`, `fancoil-rwt`, `floor-swt`, `floor-rwt` | — | ✓ | none; the per-circuit supply and return pairs |
-| **Flows** | | | |
-| `dist-flow`, `store-flow` | ✓ | ✓ | House0 `RequiredSensing`; Nolan `RequiredSensing` |
-| `primary-flow` | ✓ | ✓ | House0 `PrimaryFlowSourceChannelAgreement` (either form); Nolan `RequiredSensing` |
-| `secondary-flow` | — | ✓ | Nolan `RequiredSensing` |
-| **Sieg surface** | | | |
-| `sieg-cold`, `sieg-flow` | ✓ | — | House0 `SiegManifoldChannels` |
-| `sieg-hot`, `sieg-send-flow` | ✓ | — | none |
-| **Store temperatures** | | | |
-| `buffer-depth1..3` | ✓ | ✓ | House0 `BufferTank`; Nolan `RequiredSensing` names the `-device` form |
-| `tank{N}-depth1..3`, N in 1..`Hydronic.TotalStoreTanks` | ✓ | ✓ | none; Nolan `RequiredSensing` names `tank1-depth{i}-device` (one tank, `SingleStoreTank`) |
-| **Actuator channels** | | | |
-| every name `RequiredActuators` lists | ✓ | ✓ | House0 `SiegManifoldChannels` has the two hp-loop relays; the actuator-channel axiom below |
-| **Energy and settlement** | | | |
-| `transactive-power` | ✓ | ✓ | `TransactivePowerChannel` in both |
-| `usable-energy`, `required-energy` | ✓ | ✓ | House0 `SystemModelEnergyChannels`; Nolan none (spruce emits both) |
-
-Nolan drops the six `-device` names from `RequiredSensing` in favour of
-the depth names: requiring the `-device` form is what House0 decided
-against, and spruce already derives the depth names from it. Where a
-depth is derived, `DerivedChannelInputsAcyclic` already requires its
-`-device` input to exist.
-
-Not required in either word: `primary-010v`, `buffer-cold-pipe` (handy
-where it exists, could not be installed everywhere), `buffer-well`,
-`oat`, `oil-boiler-pwr`, the zone `-gw-temp` channels, `dist2-flow`,
-every `-hz` channel, every `-device` and `-micro-v` channel, and the
-slab temperatures and third depths of spruce's extra picos.
-
-The four Nolan circuit pairs are derived on spruce from its
-free-standing tank-module picos: `fancoil-swt` / `-rwt` from
-`fancoil-depth1` / `-depth2`, `floor-swt` / `-rwt` from `pipes1-depth1`
-/ `-depth2` (`spruce_gen.py` `extra_identity_deriveds`). The word
-requires the circuit names, not the pico names; how another Nolan house
-meets them is its generator's business. `spruce_gen.py` emits the four
-under the required names already.
-
-Done when: both words state the table, a reject test per family shows
-the word refusing a layout that lacks a required name, every generated
-pair decodes, and the beta round after it boots spruce and beech.
-
-## Required nodes
-
-Same reading as the channel table. Equipment and sensing nodes are not
-named: `DataChannelNodeResolution` already requires every DataChannel's
-AboutNodeName to be an ShNode, so requiring `store-pump-pwr` brings a
-`store-pump` node with it. That clause covers DataChannels only: a
-required name met by a DerivedChannel has a creating node
-(`DerivedChannelCreatorResolution`) but no about-node, which is why the
-heat-pump units are named outright, since the component binding needs
-them whatever form the channels take. `buffer` is not required in either
-word: House0 `BufferTank` sheds the node and keeps its three depths,
-which the channel table carries.
-
-| Node | House0 | Nolan | Today |
-| --- | --- | --- | --- |
-| **Core** | | | |
-| `s`, `s2`, `power-meter`, `ltn`, `admin`, `auto`, `la`, `lc`, `derived-generator` | ✓ | ✓ | `CoreShNodesExistenceAndActorClass` in both |
-| `web-server` | ✓ | ✓ | none; the registry key every pico and Hubitat actor posts through |
-| **Command** | | | |
-| `n`, `five-v-boss`, `pico-cycler`, `hp-boss` | ✓ | ✓ | `CommandNodesExistenceAndActorClass` in both |
-| `backup`, `scada-blind` | ✓ | ✓ | House0 `CommandNodesExistenceAndActorClass`; Nolan none |
-| `sieg-loop` | ✓ | — | House0 `CommandNodesExistenceAndActorClass` |
-| **Actuators** (relays with ActorClass `Relay`, 0-10V outputs with ActorClass `ZeroTenOutputer`, in both words) | | | |
-| `vdc-relay`, `hp-scada-ops-relay`, `store-pump-relay` | ✓ | ✓ | `RequiredActuators` in both; Nolan lacks `vdc-relay` |
-| `tstat-common-relay`, `charge-discharge-relay`, `hp-failsafe-relay`, `aquastat-ctrl-relay`, `hp-loop-on-off-relay`, `hp-loop-keep-send-relay` | ✓ | — | House0 `RequiredActuators` |
-| `dist-010v`, `store-010v` | ✓ | — | House0 `RequiredActuators` |
-| `primary-010v`, `primary-pump-failsafe-relay`, `primary-pump-scada-ops-relay` | by the primary-pump fact | — | House0 `RequiredActuators` names them; shed, see "Heat-pump facts" |
-| `iso-valve-relay`, `secondary-pump-relay`, `charge-valve-relay`, `buffer-top-elt-relay`, `buffer-bottom-elt-relay`, `tank1-top-elt-relay`, `tank1-bottom-elt-relay` | — | ✓ | Nolan `RequiredActuators` |
-| `secondary-010v` | — | ✓ | Nolan `RequiredActuators` |
-| each circuit's `FailsafeRelayNode` and `OpsRelayNode` | ✓ | ✓ | `RequiredActuators` b in both |
-| **Equipment** | | | |
-| `hp-odu` | ✓ | ✓ | `RequiredHeatpumpEquipment` in both |
-| `hp-idu` | ✓ | — | House0 `RequiredHeatpumpEquipment`; by the boundary fact once "Heat-pump facts" is in |
-| `hp-ctrl-box` | — | ✓ | Nolan `RequiredHeatpumpEquipment`; by the boundary fact once "Heat-pump facts" is in |
-
-Done when: both words state the table, a reject test per family for
-`web-server` and for the Nolan additions, every generated pair decodes,
-and the beta round after it boots spruce and beech.
-
-## Circuit emitter type and floor temperature
-
-The zone-call circuit says what it heats with, and a radiant circuit
-names its floor temperature. On `gw1.zone.call.circuit/000` (staging,
-edited in place):
-
-- **`ActuatorKind` becomes `EmitterType`**, the enum `zone.emitter.type`
-  with the values `Unknown`, `FinTube`, `CastIronBaseboard`,
-  `CastIronRadiator`, `FanCoil`, `RadiantSlab`, `StoreUnderFloor`.
-  `Unknown` is the default so a later value decodes on old code as
-  "drop, do not act", never as fin tube. The circuit's cooling axiom
-  becomes `OnlyFanCoilsCool`: if `EmitterType` is not `FanCoil`,
-  `CanCool` SHALL be false.
-- **`Role` is removed** for now. No scada actor reads it.
-- `zone.actuator.kind` and `zone.circuit.role` are deleted from the
-  registry: staging ideas that did not make it out of the gate.
-- **`FloorTempChannelName`** (spaceheat.name, optional) names the
-  circuit's floor temperature channel.
-
-Both words, axiom `FloorLoopCircuitTemp`: every circuit whose `EmitterType` is
-`RadiantSlab` or `StoreUnderFloor` SHALL carry `FloorTempChannelName`,
-and it SHALL resolve to a channel in DataChannels or DerivedChannels
-whose quantity is Temperature. Spruce meets it on zones 1, 2 and 4
-(`zone1-bedrooms-floor-temp`, `zone2-living-rm-floor-temp`,
-`zone4-garage-floor-temp`); its upstairs zone is a `FanCoil`, not a
-floor loop, which the gen states once the enum exists.
-
-Done when: the three word edits are in, a reject test per family shows
-the word refusing a radiant circuit without its floor temperature, and every
-generated pair decodes with its circuits' emitter types stated.
-
-## Names that no longer match
-
-`gwsproto/names/` states the family tiers, and two claims in it are now
-wrong. Both travel with the word edits, not before them.
-
-- `HydronicSpaceheatNodeNames` holds `sieg-flow`, `sieg-cold`,
-  `sieg-loop` and `sieg-send-flow` as names every hydronic plant has.
-  They are House0's: a House0 house always has the sieg loop, and a Nolan
-  house never does. They move to `House0NodeNames`.
-- The `hp_idu` comment reads "when it carries its own refrigerant
-  cycle/compressor stage". An indoor unit always exchanges refrigerant
-  with water and may or may not have a compressor; maple's Ecodan indoor
-  unit has none. House0 axiom 11's parenthetical needs the same wording.
-
-## Heat-pump facts on `gw.hydronic`
-
-The layout states what kind of heat pump the house has, and each family
-word constrains it. Three facts, on the shared `gw.hydronic/000`
-(staging, edited in place):
-
-- **Refrigerant boundary**: `Monobloc` (all refrigerant outside) or
-  `Split` (refrigerant comes inside).
-- **Refrigerant cycle**: `Single` (one compressor) or `Cascade` (two
-  compressors on two refrigerant circuits in series). To confirm with
-  the installer before the enum is named: whether the fact wanted is the
-  series topology or only the compressor count.
-- **Primary pump**: internal to the heat pump, or field-supplied and
-  under scada relays.
-
-| House | Boundary | Cycle | Primary pump |
-| --- | --- | --- | --- |
-| spruce (Samsung) | Monobloc | Single | internal |
-| maple (Mitsubishi Ecodan) | Split | Single | internal |
-| beech, oak, fir (LG) | Split | Cascade | field-supplied |
-| elm (Arctic high temp; not a House0 house, its own fall layout) | Monobloc | Cascade | field-supplied |
-
-Axioms that follow:
-
-- `gw.nolan.layout`: boundary SHALL be `Monobloc`. `gw.house0.layout`
-  and `gw.house0.no.sieg`: boundary SHALL be `Split`.
-- `RequiredHeatpumpEquipment` reads the boundary instead of hard-coding
-  the parts: `Split` ⇒ `hp-odu` and `hp-idu`; `Monobloc` ⇒ `hp-odu` and
-  `hp-ctrl-box`, no `hp-idu`.
-- House0: `primary-010v`, `primary-pump-failsafe-relay` and
-  `primary-pump-scada-ops-relay` (nodes and channels) SHALL all exist
-  when the primary pump is field-supplied and SHALL all be absent when it
-  is internal. `RequiredActuators` sheds the three names.
-
-Open:
-
-- `hp.device.type.gt/000` already carries `PrimaryPumpFactoryInstalled`,
-  `PrimaryPumpOverridable` and `PrimaryPumpAlwaysOn`, per unit record.
-  The record covers units with their own refrigerant cycle, so maple's
-  Ecodan indoor unit, a plain exchanger where the internal pump lives,
-  has none. Decide whether the layout fact restates the record, or an
-  agreement axiom ties the two wherever a record exists.
-- Boundary and cycle are model facts too. A cascade split is two unit
-  records (outdoor and indoor, a compressor each); the system-level fact
-  is stated once on the layout.
-
-Done when: the facts are on `gw.hydronic`, every gen emits them, reject
-tests cover each family rule and the primary-pump agreement, a
-maple-shaped sim layout with no primary-pump relays boots in the suite,
-and maple boots its regenerated pair in a window.
-
-## Every required actuator has its channel
-
-Both words. For every node `RequiredActuators` names (relay or 0-10V
-output), a channel with the same Name SHALL exist in DataChannels. House0
-`SiegManifoldChannels` then drops its two relay names. With it go the
-tank depths: for each N in 1..`Hydronic.TotalStoreTanks` and each depth
-i in 1..3, a channel named `tank{N}-depth{i}` SHALL exist in DataChannels
-or DerivedChannels.
-
-Done when: both clauses have reject tests in sema and scada and every
-generated pair decodes.
-
-## Required but disabled, per channel
+## Required but disabled
 
 A house carries a required node or channel it cannot serve as present
-and disabled, in preference to a sim stand-in: `sieg-hot` at beech until
-its sensor is installed, `store-cold-pipe` at oak, `primary-pump-pwr` at
-maple and at spruce until the CT is fitted (an internal primary pump's
-power is as measurable as a field-supplied one's), `store-pump-pwr`,
-`dist-pump-pwr` and `buffer-hot-pipe` at spruce. The only switch today
-is `Enabled` on a component (a disabled component keeps its node and
-channels, the resolution axioms pass, nothing reports).
-`store-cold-pipe` is one channel config on the shared ADS component and
-`primary-pump-pwr` one config on the electric meter, so the switch has
-to reach the channel. To design: where it sits (the channel
-config words are the candidate), what the capturing actor does with a
-disabled config (no read, no report, no alert), and how a disabled
-required channel shows downstream so a consumer can tell "house cannot
-serve this" from "sensor is down".
+and disabled, in preference to a sim stand-in. Disabled means required
+by the word, declared in the layout, currently unavailable, and pending
+a field visit. Both words carry `DisabledNodeNames` (whole sensing
+actors) and `DisabledChannelNames` (single channels) with three axioms
+(`DisabledNamesResolve`, `DisabledNodesAreSensors`,
+`EnabledDerivedChannelsHaveLiveInputs`), so a consumer reads the channel
+list alone and a gen keeps a disabled power channel out of the
+transactive-power input set. The gens emit them: beech (`dist-btu`;
+`dist-flow`, `dist-swt`, `dist-rwt`, `sieg-hot`), oak
+(`store-cold-pipe`), spruce (the three pump powers with no CTs, the
+store pipes, `buffer-cold-pipe` and its `pipes1-depth3-device` input,
+`fancoil-depth3-device`). Maple's gen disables nothing yet; its
+`primary-pump-pwr` has no CT either. Sims disable nothing; tests of
+disabled behaviour make their own layouts. The why and the plan behind
+each name are the service-record word, OPS-558.
 
-Done when: the cases above are emitted disabled by their gens, the
-suite boots a sim layout with a disabled required channel and shows
-nothing reported for it, and oak or beech boots its pair in a window.
+The scada does not read the lists yet. Round four showed the shape of
+the gap: the store pipe channels at both houses and beech's buffer pipe
+and well never read a value, the BTU actor named a declared-disabled
+channel with a quiet-channel Warning, and the UnknownChannels logger
+listed beech's declared-disabled channels. The pico components carry an
+older per-component `Enabled` boolean that the BTU, tank and flow actors
+and the pico cycler read; it is the same idea one level down and it goes.
+
+Decided 2026-09-24, in this order:
+
+1. **Scada first, against the lists already in every gen.** `HydronicLayout`
+   keeps the whole word (`data_classes/hydronic_layout.py:623`), so the
+   two lists are already at hand; no loader change. The actors stop
+   reading `component.gt.Enabled`.
+   - **Built but idle.** gwproactor builds every child node with an actor
+     unconditionally (`gwproactor/app.py:259-285`); the component flag
+     never stopped that, whatever the tlayouts comment says. A disabled
+     node's actor is constructed, keeps its web routes and its place in
+     the pico cycler's roster, and neither reads, reports nor alerts.
+   - **A disabled channel is filtered at its actor's channel-discovery
+     step**, before the liveness and warning dicts are built: the tank's
+     name list (`api_tank_module.py:130-141`), the BTU's component fields
+     (`api_btu_meter.py:118-135`), `ConfigList` for the thermistor reader
+     (`i2c_thermistor_reader.py:112-179`, pairing must tolerate one
+     disabled half), the power meter (`power_meter.py:153-179`) and the
+     multipurpose sensor (`multipurpose_sensor.py:117-122`),
+     `CapturedByNodeName` for gpio (`gpio_sensor.py:46-50`) and sim
+     (`sim_sensor.py:57-61`), the attribute list for the Hubitat poller
+     (`hubitat_poller.py:212-233`). Filtering there closes every leak at
+     the source: no read, no `ChannelFlatlined` (never sent for a
+     disabled channel), no quiet-channel or open-thermistor Warning, no
+     i2c broken-input latch. Two leaks the flag never closed close too: a
+     disabled sim pico still posts readings to itself
+     (`api_tank_module.py:338-356`, `api_btu_meter.py:361-379`) and a
+     disabled slow-turner flow module publishes a made-up zero flow every
+     capture period (`api_flow_module.py:226-228, 494-523`).
+   - **A disabled DerivedChannel** is skipped by the derived generator at
+     `init_derived_channels` (`derived_generator.py:108-124, 204-208`),
+     and `feeds_derived` (`hydronic_layout.py:1005-1010`) ignores it so
+     device actors stop posting its inputs.
+   - **Reporting.** `unreported_channels` (`hydronic_layout.py:1283`,
+     returns `set()` today; `ScadaData.my_reported_channels` already
+     filters on it) returns the disabled set, and the UnknownChannels
+     line (`scada_data.py:231-240`) leaves disabled channels out. The
+     rest of the scada reads a disabled channel as None and stays quiet
+     (`hydronic/house0.py:804-836`, `store_temps.py:17-40`).
+   - **Downstream visibility** is the once-daily Warning glitch in
+     `odds-and-ends.md` "Once-daily glitch naming a disabled component's
+     silent channels", extended from disabled components to the two
+     lists.
+   - **Tests first.** `tests/actors/test_pico_disabled.py` converts from
+     the component flag to the lists (`floor1`, its six channels and the
+     three identity floor temps, to satisfy the axioms); new tests pin
+     the sim-pico and zero-flow leaks, a disabled BTU pipe channel (no
+     flatline, no daily Warning), a disabled power-meter channel, and a
+     disabled derived channel. No test layout under `tests/config` has an
+     ApiFlowModule; one is needed.
+   - Open, found by the review: `LayoutLite` carries no disabled lists
+     (`named_types/layout_lite.py:39-40`), so the LTN cannot tell
+     disabled from missing.
+2. **Then the next sema wave**, all in place on staging words unless
+   noted.
+   - `Enabled` comes off the six pico component words
+     (`pico.btu.meter.component.gt/000`, `pico.flow.module.component.gt/001`,
+     `pico.tank.module.component.gt/012` and their three `sim.pico.*`
+     twins), with the tlayouts gens (`FlowSpec.enabled`,
+     `ExtraTankSpec.enabled`, `btu_meter.py:47`; `spruce_sim_gen.py:69`
+     becomes dead) and snapshot, the closure copy and the gwsproto twins.
+   - `hubitat.poller.gt` `Enabled` and `maker.api.attribute.gt` `Enabled`
+     are the same two ideas under other names (a node disable and a
+     channel disable), so they go too; both words are published, so each
+     takes a new version, after the six. `WebPollEnabled` and
+     `WebListenEnabled` stay: they name the transport path.
+   - `web.server.component.gt/001` `Enabled` is a different thing
+     (whether the scada runs its HTTP server) and is renamed, `Serve`,
+     so `Enabled` appears nowhere in the vocabulary.
+   - `DisabledNodesAreSensors` is restated on both words so that it
+     excludes actuators: `ActuatorChannels` gives every relay and 0-10V
+     output a DataChannel captured by itself, so today an actuator passes
+     the axiom as written (`house0_layout.py:866-872`). Disabling is a
+     sensing concept; an actuator is wired or absent. Candidate: no name
+     in `DisabledNodeNames` SHALL be an ShNode whose ActorClass is
+     `Relay`, `ZeroTenOutputer`, `SimRelayActor`, `I2cRelayMultiplexer`,
+     `I2cZeroTenMultiplexer`, `I2cRelayBoard` or `I2cDacWriter`, and no
+     name in `DisabledChannelNames` SHALL be a DataChannel captured by
+     such a node.
+   - `TransactivePowerChannel` (House0 6) gains a clause: no name in the
+     transactive-power channel's InputChannelNames SHALL be in
+     `DisabledChannelNames`. The metered boundary is the resistive
+     elements, `hp-odu` and `hp-idu` / `hp-ctrl-box`; pump power is never
+     in it. The word cannot say "pump" (no node role), so that part is
+     gen discipline: spruce's gen lists `secondary-pump-pwr` in the set
+     today (`spruce_gen.py:281`) and drops it in this wave; beech, maple
+     and oak already meter `hp-odu-pwr` and `hp-idu-pwr` only.
+
+Done when: the suite boots a sim layout with a disabled required channel
+and a disabled node and shows nothing reported for either, no actor
+reads `component.gt.Enabled`, and oak or beech boots its pair in a
+window.
 
 ## Candidate: `HeatCallChannelBelongsToCircuit`
 
@@ -279,14 +201,15 @@ heat call for something that is not a zone-call circuit.
 Done when: the question is settled here and, if the axiom goes in, all
 six house pairs and the sim pairs decode under it.
 
-## Declared actuator shape
+## Declared actuator shape and the command tree
 
-The layout declares actuators flat under `auto` and the scada's boot
-rewrite owns the live tree (`executor/control-hierarchy.md` "Fixed
-sub-trees vs floating actuators"). No axiom states it: the nearest are
-`PrefixClosedHandles` and `ActuatorLeaves`, which constrain handles, not
-the declared shape. Still to write, in both words: an axiom that keeps
-the declared shape flat, and ActorHierarchyName closure.
+Not settled. The layout declares actuators flat under `auto` and the
+scada's boot rewrite owns the live tree
+(`executor/control-hierarchy.md` "Fixed sub-trees vs floating
+actuators"). No axiom states it: the nearest are `PrefixClosedHandles`
+and `ActuatorLeaves`, which constrain handles, not the declared shape.
+Candidates, in both words: an axiom that keeps the declared shape flat,
+and ActorHierarchyName closure.
 
 The command nodes are the other half of the declared shape. Both words
 require them by Name and ActorClass (House0 axiom 3, Nolan axiom 4) and
@@ -299,16 +222,19 @@ fixed sub-tree the same way, and no axiom says so:
 | `pico-cycler` | `auto.five-v-boss.pico-cycler` | both |
 | `lc` | `auto.lc` | both |
 | `hp-boss` | `auto.lc.n.hp-boss` | both |
-| `backup` | `auto.lc.backup` | House0 |
-| `scada-blind` | `auto.lc.scada-blind` | House0 |
+| `backup` | `auto.lc.backup` | both |
+| `scada-blind` | `auto.lc.scada-blind` | both |
 | `sieg-loop` | `auto.lc.n.sieg-loop` | House0 (sieg word) |
 
 Candidate: the command-node axiom pins every handle in its list, as it
-does for `n`.
+does for `n`. Whether the word should pin handles at all, or only the
+node set and leave the tree to the scada, is the question to settle
+before either axiom is written.
 
-Done when: both axioms have reject tests, every generated pair decodes,
-and a window on spruce and on beech boots the pair with the live tree
-unchanged from before the edit.
+Done when: the question is settled here and, for any axiom that goes in,
+reject tests exist, every generated pair decodes, and a window on spruce
+and on beech boots the pair with the live tree unchanged from before the
+edit.
 
 ## Sim 0-10V output has no sim vocabulary
 
@@ -317,8 +243,10 @@ with `i2c.dac.output.component.gt` and no DeviceType, so a simulated
 output is indistinguishable from a real one under the rule that scada
 tells sim from real by `gw1.sim.device.type` membership
 (`executor/components.md` "DeviceType — and the retirement of
-MakeModel"). No `sim.dac.output.component.gt` exists. To settle: a sim
-component word, or a sim DeviceType on the real word.
+MakeModel"). No `sim.dac.output.component.gt` exists; the earlier
+`sim.dac.writer.component.gt/000` (staging) is marked `replaced_by:
+i2c.dac.output.component.gt` in the registry and is in no snapshot. To
+settle: a sim component word, or a sim DeviceType on the real word.
 
 Done when: the sim pairs regenerate with the chosen form and the suite
 boots them with the sim output actor selected by membership.
@@ -326,9 +254,13 @@ boots them with the sim output actor selected by membership.
 ## Heat-pump nameplate records for beech and maple
 
 `tlayouts/src/tlayouts/device_types/` holds `hp.device.type.gt` records
-for the Samsung at spruce only. Beech (LG) and maple (Mitsubishi) need
-theirs, authored from the Drive nameplate photos, so that House0
-`RequiredHeatpumpEquipment` components resolve to a real record.
+for the Samsung at spruce only (`samsung.ae055.odu`, and its control
+box as `hp.control.box.device.type.gt`). Beech (LG) and maple
+(Mitsubishi) need theirs, authored from the Drive nameplate photos, so
+that House0 `RequiredHeatpumpEquipment` components resolve to a real
+record. Maple's Ecodan hydrobox has no compressor, so it gets no
+`hp.device.type.gt`; the outdoor unit's record carries the package's
+primary-pump facts.
 
 Done when: both records validate under `sema validate` and the beech and
 maple gens reference them.
@@ -351,13 +283,53 @@ Done when: the field rename, the layout `BusList` and the bijection axiom
 regenerate through every gen with reject tests for each, and a window on
 one house per family boots the pair.
 
+## Owned elsewhere
+
+- The `gw.house0.no.sieg` word and the oak / fir gens:
+  `house0-no-sieg-layout.md`.
+- Porting the older axioms to sema runtime tests:
+  `beta-field-windows.md` "Do this next".
+- The pico params words with `FirmwareCommit` (`async.btu.params/110`,
+  `tank.module.params/210`, `flow.hall.params/210`) are staged ahead of
+  the firmware; gwsproto stays at the field's 100 / 200 / 200 and the
+  scada conformance test records the three as known drift until the
+  firmware posts them: OPS-556.
+
+## Generator follow-up: enum class names in axiom templates
+
+Sema axiom templates name enum classes literally
+(`ZoneSetpointSource.FromThermostat` in
+`gw1_zone_call_circuit_000.py.jinja2`), but a snapshot renders enums
+under the seed's local names (tlayouts strips `gw.`/`gw1.`, so
+`GwZoneEmitterType` is `ZoneEmitterType` there) and the snapshot build
+fails with `NameError`. The circuit's axiom 1 and the layout words'
+`FloorLoopCircuitTemp` compare as strings (`str(x) == "FanCoil"`) to get
+past this; `ZoneSetpointSource` survives only because it has no prefix
+to strip. The right fix is in the sema generator
+(`sema/src/sema/tools/runtime_generation/`): expose each field enum's
+local class name to the template, as `{{ <type>_class_name }}` already
+does for the type itself, and put the enum comparisons back.
+
+## Beech's Hubitat
+
+Not yet looked into. Round four (2026-09-23) ended with beech's two
+Hubitat zone channels never populated: `zone1-down-temp`,
+`zone1-down-set`, `zone2-up-temp` and `zone2-up-set` had no value for
+the whole window while the heat-call channels carried values from the
+power meter. Look into the beech Hubitat: whether the hub is reachable
+from the box, whether its Maker API still posts to the scada's web
+server on port 8000, and whether the window layout's Hubitat component
+carries the hub's current address and token. Not a layout-word
+question, so it waits for the items above.
+
 ## Axiom order
 
 The axiom list is also how a human or an LLM first meets a layout word,
 so its order should run from what matters most. Channels are how people,
 applications and LLMs make meaning from what happens in the field, and
 their axioms belong near the top: `ChannelNameUniqueness` should be among
-the first and sits last (House0 23, Nolan 19).
+the first and sits at House0 23, Nolan 19, with the table axioms
+appended after it.
 
 Renumber both words once, after every axiom above is in and while the
 words are still staging, with the gwsproto mirrors and the sema and scada
@@ -368,10 +340,3 @@ word's axiom numbers are immutable.
 Done when: both words are renumbered, `sema validate` passes every
 generated pair, the scada suite is green, and the beta round after it
 boots spruce and beech.
-
-## Owned elsewhere
-
-- The `gw.house0.no.sieg` word and the oak / fir gens:
-  `house0-no-sieg-layout.md`.
-- Porting the older axioms to sema runtime tests:
-  `beta-field-windows.md` "Do this next".

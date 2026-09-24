@@ -3,6 +3,38 @@
 One entry per `starter-scripts` commit (git = the what, this = the why).
 Entries before 2026-08-23 live in git history only.
 
+## 2026-09-24 — winter hack: secondary pump ON above 500 W hp-odu (`ff7650c`)
+
+`spruce_winter_hack.py` turns the secondary pump on above 500 W of
+hp-odu power instead of 120 W; OFF below 80 W is unchanged. With the
+compressor off, the spruce Samsung outdoor unit pulses to 168-318 W for
+about 60 s every 5 minutes on cold early mornings. On 2026-09-24 from
+02:53 to 07:21 each of 45 pulses ran the pump for a minute at 7.7 gpm
+through the heat exchanger and de-stratified the buffer (top 139 F to
+117 F, bottom 103 F to 115 F) with no heat call. Over 33 compressor
+starts (2026-09-21 to -24) power passed 500 W 4-12 s after its first
+reading over 120 W, and lift first showed 15 s or more after the 500 W
+crossing, so the pump still runs before there is lift.
+
+## 2026-09-24 — better 5v toggles on all hosues (`57065f4`)
+
+One pair of scripts keyed on the pi's hostname (`five_v_bus.py`): spruce
+drives gw108 relay 1 on GPIO 23 as the deleted `spruce_turn_off_5v.py` /
+`spruce_turn_on_5v.py` did; every
+other house drives Krida relay 1 on board 1, whose address is read from
+the production layout's Krida component (board 2 sits at 0x23 at oak,
+fir and elm, where a dip switch differs, and is never touched). The
+Krida write is a read-modify-write of the live 16-bit port, so only the
+named relays change; `adafruit_pcf8575` cannot be used for a single
+relay because its write buffer starts all-zero. A House0 off also
+energizes relays 5, 6 and 8 (hp-failsafe, hp-scada-ops, aquastat-ctrl)
+so the heat pump and the oil boiler stay off while the bus is down, as
+the hand procedure does; on de-energizes them again unless
+`--keep-hp-off`. Why: confirming which picos are live at a house means
+dropping the 5V bus with the scada stopped and watching the bank re-post
+into the starter-scripts API; one script per house family kept that a
+per-house rewrite.
+
 ## 2026-09-22 — debug spruce hack (`e531e18`)
 
 The first deploy read the buffer channels as CelsiusTimes100, the

@@ -159,6 +159,11 @@ Items this spoke once queued and that other spokes now carry:
 
 ## Open
 
+- `HpMaxKwEl` is nameplate, not an operating knob: `hp.device.type.gt`
+  already carries it as `MaxKwEl`. The actors should read the record
+  joined through `hp-odu`'s component and the ops word should shed the
+  field. Its own wave (ops word, gwsproto twin, `scada_data`,
+  `derived_generator`, `all_tanks`).
 - Whether `OilBoilerBackup` and `ShortCycleBuffer` are durable House0
   vocabulary or implementation hacks; and whether
   `LoadOverestimationPercent` / `HpTurnOnMinutes` / `HorizonHours` are

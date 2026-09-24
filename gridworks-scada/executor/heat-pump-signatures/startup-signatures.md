@@ -78,6 +78,25 @@ Neither heat pump has winter data taken this way with the loop closed.
 - A self-stop falls to 20–74 W within one reporting interval and stays
   there 92 s to 43 minutes, median 299 s.
 
+## Samsung AE055FEYMCG (spruce)
+
+33 starts, 2026-09-21 to -24, from the journal DB under the spruce
+winter hack (heat call on the TOU schedule; the secondary pump then
+followed `hp-odu-pwr` above 120 W). At spruce `hp-odu-pwr` samples land
+about a second apart during a ramp, in steps well under 300 W.
+
+- Standby and idle behaviour: [`idle-signatures.md`](idle-signatures.md).
+- In the traced 2026-09-23 20:00 start the Samsung's water pump reached
+  11.3 gpm at 20:00:07 and the compressor's first reading over 120 W came
+  at 20:00:23.
+- Power passes 500 W 4–12 s after its first reading over 120 W (median
+  6 s) and 800 W in 7–17 s (median 11 s). The first three minutes peak at
+  1.8–4.7 kW.
+- At the 500 W crossing lift is still the difference the water held
+  before the start, 0–3.3 °F. Lift 2 °F above that comes 15–26 s after
+  the crossing in 20 restarts with a warm loop, and 83–133 s after it in
+  11 first starts of a charge from a cold loop.
+
 ## Loop closed against loop open
 
 Beech, spring 2025, medians, aligned on the compressor reaching 2 kW; 19

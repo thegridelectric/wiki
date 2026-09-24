@@ -97,7 +97,7 @@ Most consequential first.
    and stops itself, and it does so again on each restart. At beech the
    LG reaches its limit about six minutes into a loop-closed start, and
    twice in spring 2025 seven such trips in a row ended in a lockout
-   cleared by hand ([`startup-signatures.md`](startup-signatures.md) "The
+   cleared by hand ([`startup-signatures.md`](heat-pump-signatures/startup-signatures.md) "The
    LG at its upper limit"). Repeated limit trips are a worse outcome than
    a destratified tank.
 4. **`Blind` mixes two meanings and fails open for both:** missing data,
@@ -146,8 +146,8 @@ Most consequential first.
 ## Related
 
 - A start, as the heat pump shows it, loop open and closed:
-  [`startup-signatures.md`](startup-signatures.md).
-- Defrost, as the heat pump shows it: [`defrost-signatures.md`](defrost-signatures.md).
+  [`startup-signatures.md`](heat-pump-signatures/startup-signatures.md).
+- Defrost, as the heat pump shows it: [`defrost-signatures.md`](heat-pump-signatures/defrost-signatures.md).
 - Command nodes and replies: [`control-hierarchy.md`](control-hierarchy.md)
   "Command interfaces and replies".
 - What comes after the launch fixes:

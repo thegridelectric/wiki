@@ -1,6 +1,6 @@
 # Beta field windows
 
-Status: Draft · Pass 0 · Updated 2026-09-21 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-24 · Linear: OPS-392
 
 > What this is: the recurring field test of the `jm/spruce-unlimbo` code.
 > After roughly each spoke the branch runs in a bounded window on one house
@@ -99,31 +99,49 @@ removed when `deployment.md` completes.
 
 ## Do this next
 
-Round three (2026-09-19) found five scada defects and one layout change;
-the fixes are written and tested and have not run on a house.
+Round four (2026-09-23, `847d9ca9`, no `--debug`) ran both houses on
+the first window pairs generated at the layout-word axiom tables; the
+record is `experiments/beta-field-windows/`. Against the round-four list:
+spruce zones publish `-opto-input` and `-heat-call` from the first
+poll, stamped the second the scada started and in the first snapshot 9 s
+later; at spruce one pico-cycler reboot at startup and none after; at
+beech the cycler rebooted the 5 V bus at startup and then every ~65 s
+(`dist2-flow pico_2a7e22 flatlined`, three more times in the window),
+and each reboot brought the four tank picos' refused params posts; `fancoil-depth3` gave one `open-thermistor` Warning and
+`pipes1-depth3` nothing, no problem events; beech's heat calls carry
+values from the power meter; beech now has a deed; beech's four tank
+picos post params and the 110-firmware `TankModuleParams` is refused
+(one problem event per pico per minute, the fleet's state for several
+weeks; reporting change in `layout-word-axioms.md` item 6); both
+sidecars carry `Probe:` and `Opened:`. Not yet seen: beech's Hubitat
+zone channels never populate; the store pipe channels (spruce
+`store-btu`, beech `analog-temp`) and beech's buffer pipe and well never
+read; the UnknownChannels logger lists beech's declared-disabled
+channels. The DEBUG-only checks were not observed. The reports stayed
+on the boxes (no LTN, so the upstream link never went active) and each
+window closed before its second report boundary, so the reporting
+cadence went unread. Open: whether `dist2-flow` should be live at
+beech, and whether one flatlined pico should keep power-cycling every
+pico on the bus.
 
-1. **Put the spruce layout on the box.** Once the scada and tlayouts
-   changes are pushed and the box has pulled the scada head:
-   `experiments/put_layout.sh spruce floor1-out-of-service`. The only
-   change in the window pair is floor1's component `Enabled: false`.
-2. **Run round four: a window of five minutes or more on each house,
-   `--debug`.** Spruce stays bounded at five minutes, since the winter
-   hack is what heats the house. What each window should show:
-   - spruce: zones 1 and 2 publish `-opto-input` and `-heat-call` at boot,
-     not at the 300 s capture boundary;
-   - spruce: the pico bank is no longer power-cycled every ~65 s on
-     floor1's account, and floor1 has no `single.pico.state` row;
-   - spruce: `fancoil-depth3` and `pipes1-depth3` give one
-     `open-thermistor` Warning glitch each and no `gridworks.event.problem`;
-   - beech: `zone1-down-heat-call` and `zone2-up-heat-call` get values
-     from whitewire power through the power meter;
-   - beech: the `no-ta-deed` warning appears in the box log as
-     `Warning Glitch: no-ta-deed`;
-   - beech: a pico-cycler reboot inside the window, to see whether beech's
-     picos post params at all and whether the older-firmware
-     `TankModuleParams` is refused;
-   - both: the capture's provenance sidecar carries its `Probe:` line and
-     an `Opened:` line per window with the scada SHA.
+1. **Run round five with `--debug`** once the params reporting and the
+   disabled-channel logging are changed, at least 11 minutes each so
+   each house saves a full-slot report. Before `on`:
+   confirm the store-btu pico at spruce and the beech ADS pipe channels
+   with the missing-pico method (`starter-scripts` hand tools) so the
+   round distinguishes a dead sensor from a scada gap; read the beech
+   Hubitat item in `layout-word-axioms.md`. What each window should show:
+   the DEBUG items from round four (`pico-identity-matches` on the
+   capture, the UnknownChannels list without the disabled names), one
+   Warning glitch per refused params post and no problem events, and
+   beech `Standby` announced (the Houses table in
+   `experiments/field-window-recipe.md`), and the report events read
+   alongside the snapshots: each zone's `-opto-input` and `-heat-call` at
+   boot, on each change and on each 300 s boundary, and every other
+   channel's slot cadence.
+2. **Beech Standby is expected.** The recipe's Houses table now carries
+   each house's `ServiceMode` and `ActuationAuthority`; a round reads the
+   gen's ops params against it before `on`.
 3. **Channel integrity is in.** The four channel axioms
    (`DerivedChannelCreatorResolution`, `DataChannelNodeResolution`,
    `DerivedChannelInputsAcyclic`, `ChannelNameUniqueness`) are in both
@@ -162,6 +180,11 @@ the fixes are written and tested and have not run on a house.
 
 ## Open
 
+- **Maple's first window.** Its pair is regenerated on the `gw.hydronic`
+  facts (`HeatPump` / `Single`, no primary-pump actuators), the box is
+  provisioned and `maple_window.sh status` answers. Maple's gen says
+  `ActuationAuthority Active`; beech runs its windows on Standby so no
+  dispatch reaches a production house. Decide before maple's first `on`.
 - How rounds are told apart in instance filenames. The window stamp as the
   condition field (`spruce-20260918.192107-gw.experiment.run-000.json`) is
   the candidate; round one's two files carry no condition.
