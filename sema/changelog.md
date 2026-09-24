@@ -10,7 +10,7 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-24 — staging enum versions: in-place edits keep the published predecessor's values (OPS-392, on jm/handles-wave) <!-- pending commit -->
+## 2026-09-24 — staging enum versions: in-place edits keep the published predecessor's values (OPS-392, `c6c23ab` on jm/handles-wave)
 
 **What.** `spec/authoring/enums.md` "Evolution Rules" gains one clause:
 a staging version is edited in place, may drop or reorder values it

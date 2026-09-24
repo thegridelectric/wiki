@@ -10,7 +10,32 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-24 — gwsproto mirrors CommandNodeHandles; sim fixtures declare the authored tree (OPS-392, on jm/spruce-unlimbo) <!-- pending commit -->
+## 2026-09-24 — gwsproto follows sema c6c23ab: no component Enabled, Serve, hubitat words at 001, three axiom mirrors (OPS-392, `41dbb647` on jm/spruce-unlimbo)
+
+**What.** `sema_closure/registry.yaml` follows the tlayouts snapshot and
+the three sim pairs in `tests/config` are the regenerated gen output.
+`Enabled` leaves the six pico component twins; `WebServerGt` is
+gwsproto's own with `Serve` (`scada.py` reads it); `HubitatPollerGt` and
+`MakerAPIAttributeGt` are at `001` without `Enabled`, and the poller's
+`enabled` reads give way to the layout's `node_disabled` /
+`channel_disabled` already beside them. Mirrors: `check_axiom_34` /
+`check_axiom_31` `HeatCallChannelBelongsToCircuit`; `check_axiom_28` /
+`check_axiom_26` gain the actuator clauses; `check_axiom_6` /
+`check_axiom_1` the disabled-input clause. Reject tests for each, and the
+disabled-list tests pick a sensor off the meter so the new clauses do
+not trip first. The two power-meter tests drop `secondary-pump-pwr`
+from the sim-spruce transactive set (six channels, 22350 W nameplate),
+and the async test waits for the metered readings as well as the
+aggregate, which the driver thread queues first.
+`sema validate` OK on `hubitat.poller.gt`, `maker.api.attribute.gt` and
+`web.server.component.gt` instances.
+
+**Why.** The layout's disabled lists are the one place a missing sensor
+is declared, so a per-component flag saying the same thing is two places
+to disagree; the actors already read the lists (`7f629931`). The web
+server's flag is a different idea and takes its own name.
+
+## 2026-09-24 — gwsproto mirrors CommandNodeHandles; sim fixtures declare the authored tree (OPS-392, `45a902c6` on jm/spruce-unlimbo)
 
 **What.** `House0Layout.check_axiom_33` and `NolanLayout.check_axiom_30`
 mirror the new sema axiom `CommandNodeHandles`; the `n` handle check

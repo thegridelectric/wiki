@@ -19,7 +19,7 @@ Three layout families, five houses at launch:
 - **spruce** — `gw.nolan.layout`; runs `jm/spruce-unlimbo` today.
 - **maple, beech** — `gw.house0.layout` (siegenthaler loop).
 - **fir, oak** — House0 with no sieg loop, `gw.house0.no.sieg`; the word
-  and gens are a launch item (`house0-no-sieg-layout.md`).
+  and gens are a launch item (`layout-word-axioms.md` "The `gw.house0.no.sieg` word").
 
 Elm is the sixth box and not a launch house: its Arctic heat pump is a
 monobloc with an exchanger and a secondary pump, so it leaves the House0
@@ -88,39 +88,37 @@ code. How a round runs and what the rounds have taught is
 11. `nolan-local-control.md` — the loop that runs a Nolan house through a
    heating season; opens after the partition rope
 12. `layout-word-axioms.md` — the axiom work still open on both staging
-    layout words: the required channel and node lists, the heat-pump
-    facts, the bus list, and the renumbering before promotion
-13. `house0-no-sieg-layout.md` (est 3h) — the `gw.house0.no.sieg` word (House0 with
-    the sieg surface deleted) and the oak / fir generators; two of the six
-    boxes are this family
-14. `relay-actor-enforcement.md` (est 3h) — the relay actor keeps every relay reliable
+    layout words (the sim and nameplate vocabulary gaps, the bus list,
+    the renumbering before promotion), the `gw.house0.no.sieg` word with
+    the oak / fir / elm generators (est 3h), and the closing windows
+13. `relay-actor-enforcement.md` (est 3h) — the relay actor keeps every relay reliable
     on the new code: assert-then-verify with I2C self-heal, confirmed state
     from pin-readback, honest boot; the two relay-test gaps that witness it
     pulled forward to launch. The zone-call / thermostat control model on top
     is post-launch (OPS-532)
-15. **`sensor-freshness.md`** (est 3h) ◐ built (`6e0efaac`, `b86da812`),
+14. **`sensor-freshness.md`** (est 3h) ◐ built (`6e0efaac`, `b86da812`),
     field verification open — a lost power meter or heat pump water sensor
     reads as unknown: the power meter stops re-sending its last good value
     and tells the scada the channel is lost; the heat pump accessors return
     `None` for a flatlined channel; the pico actors flatline one quiet
     channel
-16. **`basic-sieg.md`** (est 4h) — the least the sieg loop has to change before
+15. **`basic-sieg.md`** (est 4h) — the least the sieg loop has to change before
     maple and beech take the branch, chipped not rebuilt: a start that waits
     to open and fails open, one owner for the valve relays, the valve
     commandable from the admin panel, `MonitorOnly` honoured, a restart that
     finds the valve, and the House0 rows of the hp-boss live test uncommented
-17. `command-tree-matrix.md` (est 3h) — the sender rule for five nodes (built),
+16. `command-tree-matrix.md` (est 3h) — the sender rule for five nodes (built),
     the state-transition tree matrix on `command_node.py`, the relay's full
     report to the journal
-18. `odds-and-ends.md` (est 3h) — small launch items, one problem / change / test
+17. `odds-and-ends.md` (est 3h) — small launch items, one problem / change / test
     each (the panel's unobserved row offers every command; hp-boss
     reports its state at start; the LTN Dst-routing test)
-19. `main-changes.md` (est 1.5h) — the commits `main` took after the branch point,
+18. `main-changes.md` (est 1.5h) — the commits `main` took after the branch point,
     each carried or dismissed before the branch becomes `main`
-20. `finalize-layout-lite-13.md` (est 4h, segment 1) — `layout.lite/013` and its closure from
+19. `finalize-layout-lite-13.md` (est 4h, segment 1) — `layout.lite/013` and its closure from
     staging to published so spruce can send it on the production broker;
     `gw.nolan.layout` closes with the same promote
-21. `deployment.md` (est 5h) — the fleet rollout to all six boxes as `main`:
+20. `deployment.md` (est 5h) — the fleet rollout to all six boxes as `main`:
     precondition gates, per-family order and verification, rollback to the
     prior SHA, and the post-launch tlayouts loop for updating a deployed
     layout or ops

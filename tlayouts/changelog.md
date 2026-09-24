@@ -10,7 +10,23 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-24 — every gen declares the authored tree with no one in charge (OPS-392, on jm/handles-wave) <!-- pending commit -->
+## 2026-09-24 — snapshot follows sema c6c23ab; the gens name no component Enabled (OPS-392, `204aca9` on jm/handles-wave)
+
+Snapshot regenerated from sema `c6c23ab`: House0 axiom 34 and Nolan 31
+`HeatCallChannelBelongsToCircuit`, the restated `DisabledNodesAreSensors`
+and `TransactivePowerChannel`, the six pico component words without
+`Enabled`, `WebServer.Serve`, `hubitat.poller.gt/001` and
+`maker.api.attribute.gt/001`. The gens follow: `Enabled=` leaves the pico
+component and Hubitat constructors, the web server is `Serve=True`, and
+the `enabled` flag on `FlowSpec`, `BtuSpec` and `ExtraTankSpec` goes with
+its only reader (beech's dead `dist-btu` is already in
+`disabled_node_names`; the spruce sim override goes with it). Spruce's
+`secondary-pump-pwr` leaves the transactive-power set. Why: the layout's
+disabled lists are the one place a missing sensor is declared, and the
+metered boundary is the heat pump and the resistive elements, never a
+pump.
+
+## 2026-09-24 — gens declare hp-boss and sieg-loop under auto with their fixed relays nested (OPS-392, `7f0cdc4` on jm/handles-wave)
 
 Snapshot regenerated from sema `jm/handles-wave`: House0 axiom 33 and
 Nolan 30 `CommandNodeHandles`. Both family gens declare `hp-boss` (and

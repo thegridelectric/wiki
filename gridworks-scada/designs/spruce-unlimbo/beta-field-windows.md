@@ -34,7 +34,7 @@ One house per layout family per round:
   pump runs trips the heat pump, so relay positions are checked against
   the bus, not only against the log.
 - **one of fir / oak** for `gw.house0.no.sieg`, from the round after
-  `house0-no-sieg-layout.md` ships its word and gens.
+  `layout-word-axioms.md` "The `gw.house0.no.sieg` word" ships its word and gens.
 
 A round MAY skip a family the spoke could not have touched; the round's
 logbook line says which families ran.

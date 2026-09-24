@@ -14,7 +14,7 @@ Status: Draft · Pass 0 · Updated 2026-09-18 · Linear: OPS-392
 The branch does not become `main` until:
 
 - Every launch spoke is green: the layout gens (OPS-539, done;
-  `house0-no-sieg-layout.md`), the layout-word axioms
+  `layout-word-axioms.md` "The `gw.house0.no.sieg` word"), the layout-word axioms
   (`layout-word-axioms.md`), the ops-word cleanup
   (`operational-params-cleanup.md`), the sieg loop proven on new code
   (`basic-sieg.md`), the Nolan control loop (`nolan-local-control.md`),

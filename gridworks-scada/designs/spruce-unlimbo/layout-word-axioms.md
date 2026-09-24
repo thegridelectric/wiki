@@ -3,78 +3,38 @@
 Status: Accepted · Pass 1 · Updated 2026-09-24 · Linear: OPS-392
 
 > What this is: the axiom work still open on `gw.house0.layout/000` and
-> `gw.nolan.layout/000` before they are promoted. Both words carry the
-> required channel and node tables, the circuit's emitter type, the
-> store-tank depths, the `web-server` node, the disabled lists with
-> their axioms, the actuator channels, the declared command tree and
-> the heat-call–circuit bijection, with runtime and gwsproto tests, and
-> `gw.hydronic` states who owns the primary pump and the refrigerant
-> cycle. Open: carrying the last sema wave through tlayouts and
-> gwsproto, a maple-shaped sim pair, the bus list, the sim and nameplate
-> vocabulary gaps, and one renumbering. Both words are staging, so every
-> edit is in place.
+> `gw.nolan.layout/000` before they are promoted, the `gw.house0.no.sieg`
+> word that completes the family set, and the windows that close the
+> spoke. Both staging words carry the required channel and node tables,
+> the circuit's emitter type, the store-tank depths, the `web-server`
+> node, the disabled lists, the actuator channels, the declared command
+> tree and the heat-call–circuit bijection, with runtime and gwsproto
+> tests, and `gw.hydronic` states who owns the primary pump and the
+> refrigerant cycle. Open: the sim and nameplate vocabulary gaps, the bus
+> list, the sema generator's enum names, the renumbering, the no-sieg
+> word, and the closing windows. Staging words are edited in place.
 
 ## Do this next
 
-Where the three repos stand (2026-09-24 evening):
+Every axiom wave to date is committed: sema `c6c23ab`, tlayouts
+`204aca9`, scada `41dbb647` (all three on their layout branches). The
+four gens that fail are elm, fir and oak on `SiegManifoldChannels`
+(they wait for `gw.house0.no.sieg`, below) and honeysuckle on
+`RequiredSensing` (not a house).
 
-- sema `jm/handles-wave`, clean: `b3c6c54` (`CommandNodeHandles`, House0
-  33 / Nolan 30) and `542acba` (`HeatCallChannelBelongsToCircuit`
-  House0 34 / Nolan 31, `DisabledNodesAreSensors` and
-  `TransactivePowerChannel` restated, `Enabled` off the six pico
-  component words, `WebServer.Serve`, `hubitat.poller.gt/001` and
-  `maker.api.attribute.gt/001` without `Enabled`).
-- tlayouts `jm/handles-wave`, dirty: the snapshot at `b3c6c54` and every
-  gen declaring the authored tree (`CommandNodeHandles`), green, not yet
-  committed; the pending entry is in `wiki/tlayouts/changelog.md`.
-- scada `jm/spruce-unlimbo`, dirty: the `CommandNodeHandles` mirrors,
-  closure copy and sim fixtures, green, not yet committed; the pending
-  entry is in `wiki/gridworks-scada/changelog.md`. The actors already
-  read the disabled lists and no actor reads a pico component's
-  `Enabled` (`7f629931`).
-
-1. **Commit the two dirty trees first** (tlayouts, then scada), so the
-   `CommandNodeHandles` wave and the `542acba` wave stay two commits per
-   repo; both pending changelog entries are written.
-2. **Next: carry `542acba` through tlayouts** on `jm/handles-wave`:
-   `scripts/regen_sema_snapshot.sh --allow-staged` against sema at
-   `542acba`, then the gens follow the words. `Enabled=` leaves the pico
-   component constructors (`hardware/btu_meter.py:63`,
-   `hardware/tank_module.py:93,161`, `layout_gen.py:698`) and the
-   hubitat poller and attribute constructors (`hardware/hubitat_zone.py:81,101`);
-   the web server's `Enabled=True` becomes `Serve=True`
-   (`layout_gen.py:568`). The spec flags (`FlowSpec.enabled`
-   `layout_gen.py:148`, `ExtraTankSpec.enabled` `tank_module.py:65`,
-   `BtuSpec.enabled` `btu_meter.py:47`) have one reader each, the
-   constructor that goes, and `beech_gen.py:180` (`dist-btu`
-   `enabled=False`) and `spruce_sim_gen.py:69` set them: decide whether
-   the flag stays as the gen's way of filling `disabled_node_names`
-   (`layout_gen.py:265`) or the gens name the disabled lists directly and
-   the flag goes with its readers. Spruce's transactive set drops
-   `secondary-pump-pwr` (`spruce_gen.py:285`). Every gen regenerates and
-   `sema validate` passes each pair; the `ApiFlowModule` sim pair for the
-   zero-flow test (orange or willow) rides this regen.
-3. **Then scada** on `jm/spruce-unlimbo`: the closure copy follows the
-   snapshot; gwsproto twins follow the words — `Enabled` off the six
-   pico component twins (`named_types/pico_*_component_gt.py`,
-   `sim_pico_*_component_gt.py`), `WebServerComponentGt.Serve`
-   (`scada.py:222` reads it), `HubitatPollerGt` and `MakerAPIAttributeGt`
-   at `001` without `Enabled` (`named_types/hubitat_poller_gt.py`); the
-   hubitat poller's `Poller.enabled` / `attribute.enabled` reads
-   (`hubitat_poller.py:217,219,244,285,289`) give way to `node_disabled`
-   / `channel_disabled`, which already sit beside them. Mirrors for
-   House0 34 / Nolan 31 and the two restated axioms, each with a reject
-   test; the conformance test's known-drift sets say what the closure
-   still reaches at an older version. Suite green, then the pending
-   changelog entry.
-4. **A window on spruce and on beech** boots the pair from both waves
-   with the live command tree unchanged; oak or beech shows nothing
-   reported for a disabled name (`beta-field-windows.md`).
+1. **Next: "Sim 0-10V output has no sim vocabulary"** — decide the form
+   and regenerate the sim pairs.
+2. "BoardBusList / layout-wide BusList".
+3. "Heat-pump nameplate records for beech and maple".
+4. "Generator follow-up: enum class names in axiom templates" (sema
+   generator), then the runtime-test port in "Owned elsewhere".
 5. A maple-shaped sim pair in the scada suite (`HeatPump` owner, no
-   primary-pump actuators; the willow pair backs the 0-10V tests over
-   all three outputs, so it stays).
-6. Then the runtime-test port in "Owned elsewhere" and, last of all,
-   "Axiom order".
+   primary-pump actuators; the willow pair backs the 0-10V tests over all
+   three outputs, so it stays), and an `ApiFlowModule` sim pair (orange
+   or willow) for the flow module's zero-flow test.
+6. "Axiom order": the one renumbering, both words.
+7. "The `gw.house0.no.sieg` word": the third family, with oak and fir.
+8. **Last: "The closing windows"** on spruce, beech and maple.
 
 ## How the sitting works
 
@@ -89,69 +49,6 @@ Where the three repos stand (2026-09-24 evening):
   tlayouts snapshot and regenerated pairs, the vendored closure copy in
   scada, the gwsproto mirror and its test.
 
-## Required but disabled
-
-A house carries a required node or channel it cannot serve as present
-and disabled, in preference to a sim stand-in. Disabled means required
-by the word, declared in the layout, currently unavailable, and pending
-a field visit. Both words carry `DisabledNodeNames` (whole sensing
-actors) and `DisabledChannelNames` (single channels) with three axioms
-(`DisabledNamesResolve`, `DisabledNodesAreSensors`,
-`EnabledDerivedChannelsHaveLiveInputs`) and the `TransactivePowerChannel`
-clause that no metered input is disabled. Disabling is a sensing concept:
-an actuator is wired or absent, so `DisabledNodesAreSensors` excludes
-`Relay` and `ZeroTenOutputer` nodes and their channels. The layout's
-lists are the one place a missing sensor is declared, so the
-per-component `Enabled` flags are gone from the vocabulary; the web
-server's flag names a different idea (whether the scada serves HTTP) and
-is `Serve`. The why and the plan behind each disabled name are the
-service-record word, OPS-558. Canon: `executor/components.md` "A sensor
-out of service".
-
-In the scada (`7f629931`): a disabled node's actor is built and idle
-(gwproactor builds every child unconditionally, `gwproactor/app.py:259-285`);
-a disabled channel is filtered at its actor's channel-discovery step, so
-there is no read, no `ChannelFlatlined`, no quiet-channel or
-open-thermistor Warning and no i2c broken-input latch; the derived
-generator skips a disabled DerivedChannel and `feeds_derived` ignores
-it; `unreported_channels` returns the disabled set and the
-UnknownChannels line leaves them out; a `disabled-roster` Warning goes
-out at start and daily. `test_pico_disabled.py` pins it. Not pinned: the
-flow module's zero-flow leak, because no test layout under
-`tests/config` carries an `ApiFlowModule` (a sim-gen change, step 2 of
-"Do this next").
-
-`I2cRelayMultiplexer` and `I2cZeroTenMultiplexer` stay in
-`gw1.actor.class/014`, marked defunct like `I2cRelayBoard`: a value in a
-published version is never removed, and a staging version may drop only
-values it appended itself (`sema/spec/authoring/enums.md` "Evolution
-Rules").
-
-Done when: no gen and no gwsproto twin carries a component `Enabled`,
-and oak or beech boots its pair in a window with nothing reported for a
-disabled name.
-
-## Declared actuator shape and the command tree
-
-The authored tree is the plant with no one in charge yet. `auto` is the
-root; the command nodes and every actuator hang directly under it, the
-fixed relays declared under the interior node that owns them; local
-control's own nodes (`n`, `backup`, `scada-blind`) hang under `lc`. The
-scada's first rewrite hands the actuators to `lc` and local control
-hands them to `n`, so the live tree reads `auto.lc.n.<node>` where the
-layout reads `auto.<node>`; that difference is what floating means, and
-the published `new.command.tree` is the authority on where a node sits
-(`executor/control-hierarchy.md` "Fixed sub-trees vs floating
-actuators"). `CommandNodeHandles` (House0 33, Nolan 30) pins the handle
-of every command node and fixed relay; every other actuator's handle is
-`auto.<Name>`.
-
-Built: the word (sema `b3c6c54`), the gens and every pair, the mirrors
-with reject tests (both trees uncommitted, "Do this next" step 1). The
-scada's two tree builders already produce this shape, so no control code
-changed. Left: the window in "Do this next" step 4. The handle table is in
-`executor/control-hierarchy.md` "Fixed sub-trees vs floating actuators".
-
 ## Sim 0-10V output has no sim vocabulary
 
 The orange, willow and spruce sim layouts realize their 0-10V outputs
@@ -161,8 +58,9 @@ tells sim from real by `gw1.sim.device.type` membership
 (`executor/components.md` "DeviceType — and the retirement of
 MakeModel"). No `sim.dac.output.component.gt` exists; the earlier
 `sim.dac.writer.component.gt/000` (staging) is marked `replaced_by:
-i2c.dac.output.component.gt` in the registry and is in no snapshot. To
-settle: a sim component word, or a sim DeviceType on the real word.
+i2c.dac.output.component.gt` in the registry and is in no snapshot, and
+`gw1.sim.device.type/000` names no output device. To settle: a sim
+component word, or a sim DeviceType on the real word.
 
 Done when: the sim pairs regenerate with the chosen form and the suite
 boots them with the sim output actor selected by membership.
@@ -204,8 +102,6 @@ one house per family boots the pair.
 - `LayoutLite` carries no disabled lists
   (`named_types/layout_lite.py:39-40`), so the LTN cannot tell disabled
   from missing: `finalize-layout-lite-13.md`.
-- The `gw.house0.no.sieg` word and the oak / fir gens:
-  `house0-no-sieg-layout.md`.
 - Porting the older axioms to sema runtime tests:
   `beta-field-windows.md` "Do this next".
 - The pico params words with `FirmwareCommit` (`async.btu.params/110`,
@@ -259,3 +155,64 @@ word's axiom numbers are immutable.
 Done when: both words are renumbered, `sema validate` passes every
 generated pair, the scada suite is green, and the beta round after it
 boots spruce and beech.
+
+## The `gw.house0.no.sieg` word
+
+There are three in-field layout families. `gw.house0.layout` means
+has-a-siegenthaler-loop (maple, beech); `gw.nolan.layout` is spruce; oak,
+fir and elm are the sieg-less House0 topology, the same core plant with
+no siegenthaler loop: no sieg-loop actor, no `sieg-cold` / `sieg-flow` /
+`sieg-hot` sensing, no hp-loop valve relays. A sieg loop is a topology
+change, a family, not a variant: whether the loop is used is
+`UseSiegLoop` on `gw.house0.operational.params`; having it at all is the
+family split. Three of the six boxes are this family and cannot take the
+branch without the word.
+
+The word is flat (sema words do not inherit): the `gw.house0.layout`
+schema with the sieg surface removed. Relative to House0:
+
+- the sieg-loop node leaves `RequiredCommandNodes` and `CommandNodeHandles`
+  loses its three sieg rows;
+- `SiegManifoldChannels` goes, and `sieg-cold`, `sieg-flow`, `sieg-hot`
+  and `sieg-send-flow` leave `RequiredSensing`; no `-hz` channel;
+- the two hp-loop relays leave `RequiredActuators`;
+- everything else House0 has stays, `store-pump-relay` included (an
+  every-hydronic-plant name). Oak and fir keep the buffer tank, the iso
+  valve and the store tanks; the three fall installs with no iso valve,
+  no buffer or no water tanks are further layouts (OPS-532).
+
+Every other axiom mirrors House0's by NAME, numbered for this word, so
+the renumbering in "Axiom order" is done first and the new word takes
+the settled order. The sema authoring gate applies: read the registry and
+authoring spokes for types, post the read-receipt, and discuss the
+addition before the registry edit.
+
+Generators: `house0_no_sieg_sema_gen.py` is the family gen (today a
+`NotImplementedError` stub), built from `house0_sema_gen.py` with the
+sieg surface deleted; `oak_gen.py` and `fir_gen.py` repoint to it (they
+emit `gw.house0.layout` today and fail `SiegManifoldChannels`), and
+`elm_gen.py` follows. A sim pair ships in the same wave as the word, so
+the scada suite has a fixture of this family; the tlayouts snapshot, the
+scada closure copy and a gwsproto `House0NoSiegLayout` with its
+`check_axiom_<n>` mirrors and reject tests travel as one wave, as every
+word edit does.
+
+Done when: the word is staging with `sema validate` green on every oak,
+fir and elm pair and the sim pair; the gwsproto twin and its tests are
+in; the scada suite boots the sim pair. Open: real oak / fir / elm
+instance filenames, distinct from the fixture.
+
+## The closing windows
+
+The spoke ends with a window on spruce, beech and maple
+(`beta-field-windows.md`, `experiments/field-window-recipe.md`): each
+boots its regenerated pair with the live command tree unchanged, and
+beech, with `dist-btu` in its disabled lists, shows nothing reported for
+a disabled name and one `disabled-roster` Warning. Spruce's window
+layout comes from `spruce_gen.py` on tlayouts `jm/spruce`, so that
+branch takes the gen edits of every wave above first. Maple's first
+window is also its first boot on the renovation branch. Three clean
+windows close the spoke; the durable content is already in
+`executor/hardware-layout.md`, `executor/components.md` and
+`executor/control-hierarchy.md`, and what remains is deleted with the
+file.

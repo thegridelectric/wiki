@@ -18,7 +18,7 @@ Status: Draft · Pass 0 · Updated 2026-09-15 · Linear: OPS-40
    command tree closes, capture tuning covers every channel. Every family
    has one: the Nolan pair is the sim-spruce gen's output, the House0
    pair is the tlayouts sim gens' output (orange-sim, willow-sim), the no-sieg pair ships with its word
-   (`../spruce-unlimbo/house0-no-sieg-layout.md`).
+   (`../spruce-unlimbo/layout-word-axioms.md` "The `gw.house0.no.sieg` word").
 2. **The family plant** (this spoke). A `gridworks-terminalasset` GNode
    per family that reads the same layout file, emits `sim.plant.flux` for
    the family's sensed surface, and moves its state on the scada's relay
