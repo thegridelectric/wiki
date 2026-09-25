@@ -1,6 +1,6 @@
 # Layout-word axioms (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-09-24 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-09-25 · Linear: OPS-392
 
 > What this is: the axiom work still open on `gw.house0.layout/000` and
 > `gw.nolan.layout/000` before they are promoted, the `gw.house0.no.sieg`
@@ -10,8 +10,7 @@ Status: Accepted · Pass 1 · Updated 2026-09-24 · Linear: OPS-392
 > node, the disabled lists, the actuator channels, the declared command
 > tree and the heat-call–circuit bijection, with runtime and gwsproto
 > tests, and `gw.hydronic` states who owns the primary pump and the
-> refrigerant cycle. Open: the sim and nameplate vocabulary gaps, the bus
-> list, the sema generator's enum names, the renumbering, the no-sieg
+> refrigerant cycle. Open: the nameplate vocabulary gap, the sema generator's enum names, the renumbering, the no-sieg
 > word, and the closing windows. Staging words are edited in place.
 
 ## Do this next
@@ -22,19 +21,16 @@ four gens that fail are elm, fir and oak on `SiegManifoldChannels`
 (they wait for `gw.house0.no.sieg`, below) and honeysuckle on
 `RequiredSensing` (not a house).
 
-1. **Next: "Sim 0-10V output has no sim vocabulary"** — decide the form
-   and regenerate the sim pairs.
-2. "BoardBusList / layout-wide BusList".
-3. "Heat-pump nameplate records for beech and maple".
-4. "Generator follow-up: enum class names in axiom templates" (sema
+1. **Next: "Heat-pump nameplate records for beech and maple".**
+2. "Generator follow-up: enum class names in axiom templates" (sema
    generator), then the runtime-test port in "Owned elsewhere".
-5. A maple-shaped sim pair in the scada suite (`HeatPump` owner, no
+3. A maple-shaped sim pair in the scada suite (`HeatPump` owner, no
    primary-pump actuators; the willow pair backs the 0-10V tests over all
    three outputs, so it stays), and an `ApiFlowModule` sim pair (orange
    or willow) for the flow module's zero-flow test.
-6. "Axiom order": the one renumbering, both words.
-7. "The `gw.house0.no.sieg` word": the third family, with oak and fir.
-8. **Last: "The closing windows"** on spruce, beech and maple.
+4. "Axiom order": the one renumbering, both words.
+5. "The `gw.house0.no.sieg` word": the third family, with oak and fir.
+6. **Last: "The closing windows"** on spruce, beech and maple.
 
 ## How the sitting works
 
@@ -49,22 +45,6 @@ four gens that fail are elm, fir and oak on `SiegManifoldChannels`
   tlayouts snapshot and regenerated pairs, the vendored closure copy in
   scada, the gwsproto mirror and its test.
 
-## Sim 0-10V output has no sim vocabulary
-
-The orange, willow and spruce sim layouts realize their 0-10V outputs
-with `i2c.dac.output.component.gt` and no DeviceType, so a simulated
-output is indistinguishable from a real one under the rule that scada
-tells sim from real by `gw1.sim.device.type` membership
-(`executor/components.md` "DeviceType — and the retirement of
-MakeModel"). No `sim.dac.output.component.gt` exists; the earlier
-`sim.dac.writer.component.gt/000` (staging) is marked `replaced_by:
-i2c.dac.output.component.gt` in the registry and is in no snapshot, and
-`gw1.sim.device.type/000` names no output device. To settle: a sim
-component word, or a sim DeviceType on the real word.
-
-Done when: the sim pairs regenerate with the chosen form and the suite
-boots them with the sim output actor selected by membership.
-
 ## Heat-pump nameplate records for beech and maple
 
 `tlayouts/src/tlayouts/device_types/` holds `hp.device.type.gt` records
@@ -78,24 +58,6 @@ primary-pump facts.
 
 Done when: both records validate under `sema validate` and the beech and
 maple gens reference them.
-
-## BoardBusList / layout-wide BusList
-
-The bus list lives on `gw1.scada.device.type.gt` as `BusList`
-(`000.yaml:28`), a board-scoped fact with a layout-scoped job; its
-`BusMembership` axiom ties expanders, muxes, adcs and dacs to it and says
-nothing about bus actors. Direction: rename the device-type field
-`BoardBusList`, add a `BusList` to the layout words, and an axiom that
-the layout's BusList lines up with the union of its board device-types'
-BoardBusLists. The bus-actor↔board bijection, required in every non-sim
-layout word, pairs bus actors with layout BusList entries and so follows
-this. Every relay is a thin component against a board record on both
-families, so "which board" is one config axis
-(`layout_gen.py:234` `board_node_name`, `board_record_file`).
-
-Done when: the field rename, the layout `BusList` and the bijection axiom
-regenerate through every gen with reject tests for each, and a window on
-one house per family boots the pair.
 
 ## Owned elsewhere
 

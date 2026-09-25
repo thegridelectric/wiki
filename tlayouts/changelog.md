@@ -10,6 +10,28 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-25 — snapshot on sema 5ca82f8; House0 gens declare a sieg_loop_strategy (OPS-392, `50dc0f7`)
+
+The vendored snapshot picks up `sieg.loop.strategy` and the family params
+that carry it. The House0 gen config takes a required keyword-only
+strategy in place of the boolean: beech, maple and both sim houses on
+`StratProtect`, the three no-sieg fixtures on `HoldFullSend`. Elm, fir
+and oak still fail the has-sieg layout word's axiom 8 at generation, as
+before this change; they wait on `gw.house0.no.sieg`.
+
+## 2026-09-25 — snapshot follows sema d11ba68: gw1.scada.device.type.gt axiom 6 SingleBus (OPS-392, `382d7e1` on jm/spruce)
+
+Regenerated snapshot; the record word now holds its `BusList` to one
+entry. All three board records already declare one bus, so no layout
+changes.
+
+## 2026-09-25 — snapshot follows sema ab309a2: no sim.relay / sim.dac.writer words, gw1.sim.device.type without SimRelayBank and SimDac (OPS-392, `65d978a` on jm/spruce)
+
+Regenerated snapshot after sema dropped the two dead sim actuator words
+and their enum values; `device_types` loses the two mirrored names. A
+sim relay or 0-10V output is the real component word under a sim board,
+which the gens already emit, so no layout changes.
+
 ## 2026-09-24 — snapshot follows sema c6c23ab; the gens name no component Enabled (OPS-392, `204aca9` on jm/handles-wave)
 
 Snapshot regenerated from sema `c6c23ab`: House0 axiom 34 and Nolan 31

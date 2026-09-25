@@ -10,6 +10,101 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-25 — sieg-loop is a command node: MoveToFullSend / MoveToFullKeep from the boss (OPS-392, `010ec939` on jm/spruce-unlimbo)
+
+basic-sieg change 2, second half. `sieg-loop` joins the command nodes
+(`Scada.COMMAND_NODE_CLASSES`, one `move.sieg.valve` vocabulary in
+`COMMAND_NODE_INTERFACES`: `MoveToFullSend` → `FullySend`,
+`MoveToFullKeep` → `FullyKeep`). The facade's `process_fsm_event`
+follows five-v-boss: sender and handle checks, `UnknownEvent` for any
+other vocabulary, ack, then a full run of the valve (the whole range
+plus the overshoot whatever keep-seconds says, so a command to the stop
+the valve is already on re-homes it). A command holds the loop: the
+strategies' moves are withheld until the tree changes hands, noticed on
+the tick, when the strategy resumes its posture (`resume()` on the
+strategy interface). The move's end sends `fsm.full.report` under the
+commander's `TriggerId` with one atomic report from the valve state the
+command found to the one it left. A run that ends on a stop fires the
+reset triggers, so the valve machine reaches `FullySend` / `FullyKeep`
+rather than `SteadyBlend`; `valve.py` uses the gwsproto `SiegValveState`
+twin in place of a local copy. The admin panel offers every command of a
+vocabulary when the observed state is no command's result (a valve
+mid-travel; five-v-boss mid-transition now offers both hold commands).
+Tests: the admin move acked, run in full and held across ticks with its
+report; the hold released when the tree changes hands; mis-sendered,
+stale-handle and wrong-type commands moving nothing; the capability
+cover; the panel's sieg-loop row at a stop and mid-travel.
+
+## 2026-09-25 — actors/sieg_loop/: the package, HoldFullSend, StratProtect and the valve on the clock (OPS-392, `151bcfc0` on jm/spruce-unlimbo)
+
+basic-sieg change 2, first half. `actors/sieg_loop/` replaces `sieg_loop.py`:
+the facade picks the strategy from the ops word once (`strategy.py`:
+Standby runs `HoldFullSend` whatever the field says, `LwtControl` is
+refused) and owns the valve, the tick, the watchdog pat and the hp-boss
+subscription; `valve.py` is the only code addressing relays 14 and 15,
+its motor runs timed on `services.clock` with keep-seconds settled from
+`now()` when the motor stops, one sleep per travel (sim-time migration
+step 2); `hold_full_send.py` makes one move to send after
+`ActuatorsReady`; `strat_protect.py` is today's control machine moved
+whole. The sieg-loop handle reports the valve state (`sieg.valve.state`,
+on change) and the control state no longer rides `single.machine.state`.
+`SiegLoopReady` lives in the package (hp-boss imports it; the reverse
+import was a cycle). Every `use_sieg_loop` read goes: the tree builders,
+the subscription and the actuator dependents key on the layout's
+sieg-loop node, HpBoss reads the strategy, standby's relay-14 energize
+goes with the loop owning the relay in every mode, and the loader's
+bridge and `ScadaData.use_sieg_loop` are deleted. The valve machine
+gains the two missing start transitions from a stop (FullyKeep toward
+keep, FullySend toward send), which a re-home needs. Tests: HoldFullSend's
+one move and nothing after, the Standby selection, LwtControl refused,
+a cancelled travel settling from the clock, one valve report per change.
+
+## 2026-09-25 — clock.py: one clock behind services.clock, Wall, Timestep or Manual (OPS-392, `be2a860f` on jm/spruce-unlimbo)
+
+Sim-time migration step 1. `gw_spaceheat/clock.py` holds the abstract
+`Clock` (`now`, `now_ms`, `local_now`, `sleep`) with `WallClock`,
+`TimestepClock` and `ManualClock` behind it; `sim_time.py` goes, its
+paho listener becoming the transport inside `TimestepClock`, whose
+`on_step` callback carries the scada's keepalive ping. `ScadaSettings.clock_source`
+(Wall, Timestep; default Wall) selects on a box; `Timestep` refuses a
+layout with no simulated component. `ScadaAppInterface.clock` is
+abstract and both scada apps implement it; the app takes an optional
+`clock` so a test can inject a `ManualClock`, the only way onto it.
+No actor converts here; the sieg package is the first.
+
+## 2026-09-25 — SiegLoopStrategy replaces UseSiegLoop in gwsproto and the loader (OPS-392, `abfd67e0` on jm/spruce-unlimbo)
+
+The House0 family params twin carries the three-value strategy in place
+of the flag, with the enum twin registered. The loader reads the strategy:
+`StratProtect` is today's loop control and `HoldFullSend` is today's
+no-loop path, so every actor's read is unchanged until the sieg-loop
+package takes the reads out; `LwtControl` is refused at load since it is
+not built. The pairing check between the flag and a SiegLoop node goes:
+the layout word's axiom 3 carries the node unconditionally. The closure
+copy mirrors the tlayouts snapshot regenerated on sema `5ca82f8`, which
+clears the two conformance rejects the flag left; the five remaining
+sweep failures are the pre-existing quantity and unit drifts.
+
+## 2026-09-25 — I2cBus opens the adapter its board record names; gwsproto mirrors axiom 6 SingleBus (OPS-392, `8adfdd00` on jm/spruce-unlimbo)
+
+The bus actor opened `/dev/i2c-1` by literal, so the record's `BusNumber`
+was declared and never read; it now takes the record's one `BusList`
+entry. The record word holds `BusList` to exactly one entry (sema
+`d11ba68`, axiom 6 `SingleBus`), mirrored as `check_axiom_6` with a
+reject test, `BusList` required on the twin as on the word (its `[]`
+default would fail the axiom), and the closure copy follows the tlayouts
+snapshot. One
+scada process drives one bus today, stated where the layout is validated
+rather than found at boot. Multi-bus layouts are the spruce-settled
+`multi-bus-layouts.md` spoke.
+
+## 2026-09-25 — gwsproto SimDeviceType follows sema ab309a2: no SimRelayBank, no SimDac (OPS-392, `7d1723ba` on jm/spruce-unlimbo)
+
+Dropped the two enum values from `SimDeviceType`; both named sim words
+that never had a scada actor (a sim relay or DAC is the real word on a
+sim board, selected in `I2cBus`). The closure copy is unchanged: neither
+word was in the layout closure.
+
 ## 2026-09-24 — gwsproto follows sema c6c23ab: no component Enabled, Serve, hubitat words at 001, three axiom mirrors (OPS-392, `41dbb647` on jm/spruce-unlimbo)
 
 **What.** `sema_closure/registry.yaml` follows the tlayouts snapshot and

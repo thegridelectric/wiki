@@ -27,8 +27,10 @@ is read from relays 14 and 15 and `sieg-flow`.
 ## Running and stopped, from power
 
 A compressor that stopped itself while commanded on is read with two
-thresholds, each held for a dwell: power has been over the high one, then
-falls under the low one.
+thresholds on `hp-odu-pwr`, each held for a dwell: power has been over
+the high one, then falls under the low one. The indoor channel is not
+summed in: at beech `hp-idu-pwr` carries the LG's circulator at 342 W,
+8 W under the low line, and a monobloc has none.
 
 | | High | held | Low | held | Evidence |
 | --- | --- | --- | --- | --- | --- |

@@ -10,6 +10,39 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-25 — sieg.loop.strategy; gw.house0.family.params carries SiegLoopStrategy in place of UseSiegLoop (OPS-392, `5ca82f8`)
+
+The sieg-loop always exists in a House0 plant and always runs a
+strategy, so the on/off flag gives way to a three-value enum:
+`HoldFullSend` (the launch posture and the enum default),
+`StratProtect`, `LwtControl`. Both words are staging and edited in
+place; the layout word's axiom 3 loses "dormant when unused" since
+the loop is never dormant. The two referrers' `created` stamps move
+to now so the dependency ordering the registry test checks holds.
+
+## 2026-09-25 — gw1.scada.device.type.gt gains axiom 6 SingleBus (OPS-392, `d11ba68`)
+
+A board record declares exactly one bus. The scada drives one bus per
+process and the bus actor opens the adapter that entry names, so the
+record states the limit where a layout is validated instead of the
+actor finding it at boot. Staging word, edited in place; the axiom is
+retired by the multi-bus work (spruce-settled), which replaces it with
+per-bus binding.
+
+## 2026-09-25 — drop sim.relay.component.gt and sim.dac.writer.component.gt; gw1.sim.device.type loses SimRelayBank and SimDac (OPS-392, `ab309a2`)
+
+Both staging words named a scada-side sim actor that never existed:
+a simulated relay or 0-10V output is the real component word
+(`i2c.relay.component.gt`, `gpio.relay.component.gt`,
+`i2c.dac.output.component.gt`) under a board whose record carries a
+`gw1.sim.device.type` value, and `I2cBus` selects the sim register
+backend from the board. The sim plant reads those registers on the same
+path, so nothing will consume either word. Removed with their axiom
+templates and generated runtime; the two enum values that existed only
+for them go with them (staging enum, edited in place). No dependents in
+`reverse_dependencies.yaml`; only the stale gwta snapshot still carried
+them.
+
 ## 2026-09-24 — staging enum versions: in-place edits keep the published predecessor's values (OPS-392, `c6c23ab` on jm/handles-wave)
 
 **What.** `spec/authoring/enums.md` "Evolution Rules" gains one clause:

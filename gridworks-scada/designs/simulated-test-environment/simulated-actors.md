@@ -342,10 +342,10 @@ goes away completely; simulated-ness is *derived*, never stored. Two derivation
 sources, in order of arrival:
 
 1. **Any `sim.*` component in the layout ⇒ simulated.** A layout carrying a
-   `sim.sensor.component.gt` / `sim.relay.component.gt` (or any `sim.*`
+   `sim.sensor.component.gt` (or any `sim.*`
    component) is simulated by construction — the sim marker is in the plant
    description itself, not a runtime boolean. This is now *structurally
-   expressible*: `sim.sensor.component.gt` and `sim.relay.component.gt` were
+   expressible*: `sim.sensor.component.gt` (and, then, `sim.relay.component.gt`) were
    added to both layout words' Component unions in sema on 2026-08-15
    (`gw.house0.layout` / `gw.nolan.layout`, staging, in-place), with the
    gwsproto `House0Component` / `NolanComponent` mirrors updated in lockstep.

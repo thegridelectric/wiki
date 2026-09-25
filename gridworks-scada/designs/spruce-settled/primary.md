@@ -1,6 +1,6 @@
 # Spruce settled (hub)
 
-Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
+Status: Draft · Pass 0 · Updated 2026-09-25 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
 
 **EDD: yes** the deployed spruce line and the simulated houses are the
 verification; a spoke reaches Verified only when a run against one of
@@ -10,7 +10,9 @@ them exercises it (`experiments/`).
 > deployed on spruce. Everything a launch needs stays in
 > `../spruce-unlimbo/`; what makes the deployed line good over the
 > season collects here. Opened 2026-09-10 to receive the first such
-> item.
+> item. These spokes are the work to complete BEFORE the layouts and
+> the operational params publish and the fleet goes onto the hw1
+> rmqbot (`publish-layouts-and-operational-params.md` is that step).
 
 **▶ Active spoke:** none until the launch. First in line:
 [`report-all-machine-states.md`](report-all-machine-states.md).
@@ -67,6 +69,9 @@ them exercises it (`experiments/`).
   chain, expander map, DAC/EEPROM (living reference)
 - `simple-sim-n3.md` — `gw1.simple.sim.layout` loadability as the N=3
   stress test of the family tiers
+- `multi-bus-layouts.md` — a board with two I²C buses or a second board
+  expressible in the layout words and driven by the scada: the bus as a
+  board-resident component, the decided shape and build inventory
 
 ## Related work
 

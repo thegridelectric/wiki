@@ -150,6 +150,10 @@ layout and the actuation path, Phase A still needs a small fresh sema mini-sweep
 - Already minted (prior sprint): `sim.plant.flux`, `sim.plant.actuation`,
   `change.relay.pin`, `gw1.actor.class/012` (SimSensorActor / SimRelayActor).
 
+**Superseded** (the settled seam is `simulated-actors.md` "The sim seam — decided": a
+simulated relay is the real relay word on a sim board, driven through `I2cBus`'s
+register backend; `sim.relay.component.gt` and `SimRelayActor` no longer exist).
+
 **Actuation path:** `SimRelayActor` receives the control command the real relay
 actor would, and emits `sim.plant.actuation` (`RelayName` + `change.relay.pin`
 Energize/DeEnergize + sim time + `ActualTimeUtc`) to the plant's broker; the plant
@@ -300,7 +304,7 @@ this is the build's **first sema step**). Both are built with the plant (one tas
   component carries a generic `ConfigList`; `hardware_layout.py:306-320` ties each
   channel to `CapturedByNodeName == the SimSensorActor node` (add it to
   `capturing_classes`).
-- **`SimRelayActor`** (actuation sends). Stands in for the relay actor in a sim
+- **`SimRelayActor`** (actuation sends; superseded, see "Next tasks" above). Stands in for the relay actor in a sim
   layout: receives the control command the normal relay actor would, and instead
   of touching GPIO/i2c **sends `sim.plant.actuation`** — `RelayName` + `Action`
   (**Energize / DeEnergize**, the i2c multiplexer's atomic pin *event* via the new

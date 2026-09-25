@@ -1,57 +1,153 @@
 # Sim time — running the scada on coordinator timesteps
 
-Status: Accepted · Pass 1 · Updated 2026-09-05 · Linear: OPS-40
+Status: Accepted · Pass 1 · Updated 2026-09-25 · Linear: OPS-40
 
 > What this is: simulated-test-environment spoke — what it takes for the
 > scada to run its time from a time coordinator's `sim.timestep`
-> messages instead of the wall clock. Holds the 2026-06-11 code census
-> (investigation against gridworks-scada) and the two-track strategy:
-> a pragmatic bridge for the existing proactor scada/LTN, and the real
-> conversion for the redo. The time source itself is the
-> gridworks-timecoordinator hello-world design (per-domain).
+> messages instead of the wall clock. Holds the clock survey, the one
+> clock the scada gets (three sources behind one interface, decided
+> 2026-09-25), the migration of every raw clock read and every
+> improvised test clock onto it, the bridge that keeps the existing
+> links alive under harness pacing, and the risks of two clocks meeting.
+> The time source itself is the gridworks-timecoordinator hello-world
+> design (per-domain).
 
-## Census (verified 2026-06-11): the scada reads the clock raw, everywhere
+## Survey (2026-09-25): 519 live clock reads and waits, all wall time
 
-**345 clock reads** (317 `time.time()`, 20 `datetime.now()`, 7
-`time.monotonic()`), 94% in `gw_spaceheat/actors/`. **No clock seam
-exists**: no injected time provider, no `now()` helper, nothing on
-`ScadaAppInterface`; tests run on the system clock (freezegun installed
-but unused). Periodic work is 71 `asyncio.sleep` while-loops whose
-sleep durations are computed FROM `time.time()` (e.g.
-`scada.py:1404,1414` report/snapshot cadences). No trace of any time
-coordinator, `sim.timestep`, or simulated-time concept in scada or
-gwsproto. By purpose: ~120 telemetry timestamps · ~95 cadence
-calculations · ~70 timeouts/deadlines (`ltn/ltn.py:495-497`,
-FSM/watchdog timers) · ~60 calendar/TOU logic
-(`datetime.now(tz).hour` peak windows, `buffer_only_tou.py:213-227`,
-contract boundaries `ltn/ltn.py:932-937`) · ~15 perf instrumentation.
+Read against `jm/spruce-unlimbo`; the list behind the counts is
+`scratch/basic-sieg/clock-survey.md`. Every plant-time clock in the
+scada is wall time. `sim_time.py` records the latest timestep and
+nothing reads it; the docstring of `is_simulated`
+(`scada_app_interface.py:36-46`) says the scada reads the timestep
+clock, and nothing does.
 
-## Full conversion: five mechanisms (for the redo, not the bridge)
+| Area | `time.time` | `asyncio.sleep` | `wait_for` | `datetime.now` | `fromtimestamp` | `monotonic` | `time.sleep` | Live |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| actors + app | 261 | 66 | 6 | 30 | 19 | 12 | – | 394 |
+| drivers | 2 | – | – | – | – | 2 | 4 | 8 |
+| gwsproto | 8 | – | – | – | – | – | – | 8 |
+| tests | 47 | 9 | 53 | – | – | – | – | 109 |
 
-1. **Clock seam** — a `Clock` on the app interface; replace ~300 raw
-   reads mechanically. Cheap, and worthless alone (sleeps still wall).
-2. **Timestep-driven advance** — subscribe to `sim.timestep`
-   (`SimTimestep` is already bundled in gwbase 0.5.2), update the
-   clock state on receipt.
-3. **Cadence decoupling** — the 71 sleep-loops become event-driven:
-   on each timestep, fire whatever `next_*_second` has come due. The
-   structural piece.
-4. **Timeout/deadline rewrite** — deadlines computed and checked in
-   sim time; some patterns ride the clock seam, watchdog-adjacent ones
-   do not (below).
-5. **Calendar re-anchoring** — TOU hours, contract windows derived
-   from sim unix-ms + timezone, not `datetime.now()`. ~20 sites.
+Three kinds, mixed inside most files: **stamps** (about 105 sites put
+`int(time.time()*1000)` into a `*Ms` field; eight more are gwsproto
+`default_factory` stamps on `CreatedMs`-style fields), **durations**
+(dwell and timer arithmetic, cadence alignment by `% period`), and
+**waits** (the 66 sleeps). The heavy files: `ltn/ltn.py` 48,
+`scada.py` 28, `leaf_ally/house0/all_tanks.py` 25,
+`derived_generator.py` 22, `hydronic/house0.py` 19 (all stamps),
+`pico_cycler.py` 18, `sieg_loop.py` 17, the two contract handlers 31,
+`local_control/*` 35.
 
-Verdict: full conversion of the EXISTING scada is a rewrite-scale
-intervention (~40-50% of actor files for full fidelity). It lands
-naturally in the AllyLink/comms redo, where the two small machines and
-the new keepalive are being built anyway — not as a retrofit of
-Andy's proactor.
+The tests already improvise clocks five ways: a test-local `Clock`
+monkeypatched over a module's `time`
+(`test_pico_channel_liveness.py:27`, `test_btu_open_thermistor.py:58`),
+the global `time.time` patched (`test_pico_post_refusal.py:108`,
+`test_temperature_producers.py:116`, `test_field_glitches.py:105`,
+which also moves gwproactor's watchdog), and `datetime` patched
+(`test_derived_generator_house0.py:86`, `test_hydronic_shared.py:255`).
+
+gwproactor, upstream and not ours to change, has 33 clock lines, all
+wall time: the watchdog, the io-loop and sync-thread pats, the link ping
+and keepalive timing, persisted-event file names, log stamps. gwproto
+defaults every event's `TimeCreatedMs` to wall time.
+
+## The one clock (decided 2026-09-25)
+
+One clock in the scada, `gw_spaceheat/clock.py`, abstract `Clock` with
+three sources behind one interface; `sim_time` named one source and goes,
+its paho listener becoming the transport inside `TimestepClock`.
+
+- **Interface.** `now()` float unix seconds, the drop-in for `time.time()`;
+  `now_ms()` returning the `UTCMilliseconds` format type, for every stamp;
+  `local_now(tz)` for the TOU and hour-of-day reads; `async sleep(s)`. No
+  `monotonic()`: IO durations are not plant time and stay outside the
+  clock.
+- **`WallClock`**: `time.time`, `asyncio.sleep`. The default and the fleet.
+- **`TimestepClock`**: `now()` is the latest coordinator step and holds
+  until the next; `sleep(s)` waits on a condition the listener thread
+  signals until `now()` reaches the target. No interpolation with wall
+  time between steps. `now()` before the first step raises; no fall-back.
+- **`ManualClock`**: a stored value the test moves with `advance(s)`,
+  waking sleepers whose target has passed. Never touches wall time.
+- **Selection.** `ScadaSettings.clock_source`, an enum `Wall | Timestep`,
+  default `Wall` from a names constant. `Manual` is not a settings value:
+  it is injected only in code, so no env file can put a box on it.
+  `Timestep` refuses to start on a layout with no simulated component;
+  `is_simulated` is a precondition, not the switch. The source is logged
+  at startup.
+- **Hook-up.** An abstract `clock` on `ScadaAppInterface`, implemented by
+  the scada apps and, through a small shared interface, the LTN app.
+  Actors read `self.services.clock`; none keeps a copy. The app takes an
+  optional `clock` for tests: `ManualClock(start_s=…)`, `advance(…)`,
+  then yield to the loop. `ShNodeActor.await_with_watchdog` becomes the
+  one place that waits with pats: the deadline on the clock, the pat
+  interval on wall time.
+- **Stamps.** Every wire and journal stamp goes through `now_ms()` so the
+  journal lines up with the harness. The eight gwsproto `default_factory`
+  stamps stay wall unless the defaults are removed and the fields made
+  required (a gwsproto decision). gwproto's `TimeCreatedMs` and
+  gwproactor's file names stay wall time as transport metadata.
+
+## Migration, in order, whole files at a time
+
+1. ✅ `clock.py`, the interface property, `ManualClock`, `tests/test_clock.py`
+   (from `test_sim_time.py`); the keepalive ping is an `on_step`
+   callback of `TimestepClock`. The LTN app is not on the interface yet.
+2. The sieg package, during its rewrite (spruce-unlimbo `basic-sieg.md`
+   change 2): all 17 sites. Valve travel computes from `now()` at relay
+   transitions, not from one-second sleep slices, which would each wait a
+   full step.
+3. Stamps only, about 105 mechanical sites: `hydronic/house0.py`,
+   `hydronic/shared.py`, `command_node`, `command_reply`, `five_v_boss`,
+   `hp_boss`, `scada_data`, the stamp lines in `relay`, `pico_cycler` and
+   the sensors.
+4. Control dwells: `leaf_ally/*`, `local_control/*`, `derived_generator`.
+   Dwells, TOU and loop sleeps convert together per file.
+5. Scada cadence and contracts: `scada.py`, both contract handlers,
+   `ltn.py`, both processes in one change.
+6. Liveness and freshness last (`api_*_module`, `pico_liveness`,
+   `glitch_limit`, `power_meter`, `scada_data.py:225`), with the stamps
+   that feed them.
+7. The five improvised test clocks replaced by `ManualClock`.
+8. Never: gwproactor; device and bus waits (`relay.py:517,722`,
+   `zero_ten_outputer.py:261,426`, `i2c_thermistor_reader.py:237`,
+   settle sleeps, driver `time.sleep`); read-latency measurements; the
+   LTN's child-process deadline and solve timing; all 53 test `wait_for`
+   timeouts; dashboard formatting.
+9. Then a `ci.sh` check forbidding bare `time.time(` and `datetime.now(`
+   under `actors/`, with the IO files listed as exceptions.
+
+## Where two clocks meet
+
+- **A stamp on one clock against a dwell on the other.** Channel
+  freshness is `time.time() - stamp` (`scada_data.py:225`,
+  `power_meter.py:392`, `multipurpose_sensor.py:265`, the flow module's
+  flatline): with simulated stamps and a wall comparison every channel is
+  stale by the offset, or fresh in the future. Each converts with the
+  stamps that feed it.
+- **Contract times cross processes.** The LTN builds contract ends, the
+  scada compares against them (`contract_handler.py:90,118`,
+  `scada.py:1138`). Both apps on one source, from one setting, in one
+  change.
+- **The watchdog against simulated sleeps.** The watchdog pats on wall
+  time (`gwproactor/watchdog.py:113`). A `clock.sleep(900)` in a paused
+  simulation lasts as long as the pause, so a bare clock sleep in a
+  monitored actor trips the watchdog; `await_with_watchdog` is the only
+  wait a monitored actor makes.
+- **Coarse steps.** Under one-minute steps every sub-minute cadence
+  rounds up to the step: the sieg tick, the sim-pico ticks, the cadence
+  hiccups in `scada.py:1381` and `ltn.py:1614`. Each loop's period is
+  checked against the step.
+- **A half-converted file** (a dwell started on one clock, checked on the
+  other: `all_tanks.py:337/453`, `all_tanks_tou.py:221/293` today) gives a
+  wrong dwell and no error. Whole files, each pinned by a `ManualClock`
+  test that advances past its dwell.
 
 ## The bridge (Jessica, 2026-06-11): existing scada/LTN in the harness
 
-For the existing proactor scada + LTN, do not convert time. Run them
-at wall clock, paced so the links stay happy:
+The links stay on wall clock whatever the plant-time source: gwproactor's
+ping, keepalive and watchdog timing never converts. Under harness pacing
+they are kept happy this way:
 
 - **Snapshot frequency to 1 minute** for the simulation harness, and
 - **1-minute timesteps** from the time coordinator **trigger the
@@ -158,10 +254,13 @@ stay open below.
 - Ready-barrier pacing (actors confirm processing before time
   advances) — gwbase bundles `Ready`; semantics to mine from the
   timecoordinator `legacy` branch.
-- **Give `is_simulated` its one job: the clock.** After the 2026-09-05
-  decompression the property has a single reader (the bridge listener).
-  Its future is to decide whether the scada reads `time.time()` or the
-  coordinator's simulated timestep, everywhere the census above found a
-  raw clock read. Validation and silicon are no longer its business
-  (`ValidationState` and the board record answer those); the docstring in
-  `scada_app_interface.py` says so.
+
+## Do this next
+
+Step 2 of the migration with the sieg package, on the spruce-unlimbo
+branch, since that package is being rewritten now and its tests are the
+first on `ManualClock`. Then the experiment this spoke is
+verified by: the scada on `Timestep` against the time coordinator on the
+dev broker, its journal stamps advancing with the steps and a sieg dwell
+elapsing in coordinator time, kept under `experiments/` as the
+reproducer.

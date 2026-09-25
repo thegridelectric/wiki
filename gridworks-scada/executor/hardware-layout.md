@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-24
+Status: Draft · Pass 0 · Updated 2026-09-25
 
 # The hardware layout
 
@@ -567,10 +567,15 @@ or a list-length bound is an **axiom**, not a primitive constraint —
   `SupportedWiringConfigs`; no two relay components on one board share a
   `RelayName` (⇒ no bit-address collision); a thermistor reader's ADC
   reference resolves in `board.ThermistorAdcs`.
-- **Layout-level bijections** (target): the DataChannel set ↔ the `ChannelName`
-  set across all component `ConfigList`s; each `I2cBus` actor ShNode ↔ a board
-  `BusList` entry, via a defined `pascal.case ↔ spaceheat.name` casing map
-  (`DefaultBus ↔ default-bus`).
+- **One board, one bus, one bus actor per layout.** `HydronicLayout.scada_board()`
+  raises unless the layout holds exactly one `scada.board.component.gt`; the
+  record word holds `BusList` to exactly one entry (axiom 6 `SingleBus`), and
+  the `I2cBus` actor opens the adapter that entry names
+  (`actors/i2c_bus.py`). The one bus
+  node is `i2c-bus` by convention; bus-op messages carry its name. A layout
+  with more buses or boards is future work (spruce-settled design, OPS-532).
+- **Layout-level bijection** (target): the DataChannel set ↔ the `ChannelName`
+  set across all component `ConfigList`s.
 
 ### ADC reads route through `I2cBus` (decided)
 

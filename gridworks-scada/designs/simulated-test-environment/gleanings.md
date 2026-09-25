@@ -221,8 +221,9 @@ Surfaced while evaluating whether to keep `sim.pico.tank.module.component.gt`
 (hardware-layout-pass-one, 2026-06-13). There are **two distinct facets** of
 simulating a device, and they test different layers — keep both:
 
-- **Generic plant-seam traffic generation** — `sim.sensor.component.gt` /
-  `sim.relay.component.gt` (`GridworksSimSensor` / `GridworksSimRelayBank`). The plant
+- **Generic plant-seam traffic generation** — `sim.sensor.component.gt`
+  (`SimSensor`; the relay side of this facet was dropped, a sim relay is the real
+  relay word on a sim board). The plant
   pushes format-correct synthetic channels; the scada's generic `SimSensorActor` /
   `SimRelayActor` consume them. This is the **decided MVP seam** (primary.md "The sim
   seam is decided") and exercises **comms infrastructure** — it deliberately does NOT

@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-24
+Status: Draft · Pass 0 · Updated 2026-09-25
 
 # Heat pump signatures
 
@@ -8,7 +8,12 @@ power, flow and lift can tell those states apart per model. One doc per
 kind of behaviour, one section per model inside it: code asks one
 question across every model ("is the compressor running?", "is this a
 defrost?"), and a threshold is set against every model's evidence at
-once.
+once. Every power threshold here is on `hp-odu-pwr`, the channel of the
+unit that holds the compressor; `hp-idu-pwr` and `hp-ctrl-box-pwr` show
+circulators and are read on their own where a model's behaviour shows
+there. These docs are the evidence; the numbers are acted on in scada
+code per model, keyed on the heat pump `DeviceType` the layout binds to
+`hp-odu`, and no ops or layout word carries them.
 
 | Doc | What it holds |
 | --- | --- |

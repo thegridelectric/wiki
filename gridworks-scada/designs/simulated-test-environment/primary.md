@@ -1,6 +1,6 @@
 # SCADA simulated test environment (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-09-15 · Linear: OPS-40
+Status: Accepted · Pass 1 · Updated 2026-09-25 · Linear: OPS-40
 
 **EDD: yes** The simulated-test-environment harness *is* the verification; spokes reach Verified only when an experiment runs against it (experiments/logbook.md).
 
@@ -44,7 +44,9 @@ Status: Accepted · Pass 1 · Updated 2026-09-15 · Linear: OPS-40
 
 - `build-plant.md` — the simulated message-passing loop (active)
 - `simulated-actors.md` — the plant model and its I/O contract
-- `self-faking-actors.md`, `sim-time.md`, `experimentation-tools.md`
+- `sim-time.md` — the one clock (wall, coordinator timesteps, the
+  suite's manual clock) and the port of every raw clock read onto it
+- `self-faking-actors.md`, `experimentation-tools.md`
 - `three-family-plants.md` — a terminal asset per layout family, the
   next level of testing above each family's sim pair
 - `gleanings.md`, `new-sema-words-to-review.md` — parked notes

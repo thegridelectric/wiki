@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-24
+Status: Draft · Pass 0 · Updated 2026-09-25
 
 # Components, device types, and the config list
 
@@ -80,10 +80,24 @@ minted only when a category carries information the code must handle differently
 same bar that earns a specialized `*.device.type.gt` record — see below).
 
 **Sim is a disjoint vocabulary.** A simulated device carries a `gw1.sim.device.type`
-value (`SimSensor`, `SimRelayBank`, `SimPowerMeter`, `SimGw108`, …), and the two enums
-share no values, so a consumer tells simulated from real by which vocabulary the value
-belongs to, never by inspecting the name. The layout reads "sim" at the device boundary,
-legible in the artifact.
+value (`SimSensor`, `SimPowerMeter`, `SimGw108`, `SimKridaDoubleRelayBoard16`, …), and
+the two enums share no values, so a consumer tells simulated from real by which
+vocabulary the value belongs to, never by inspecting the name. The layout reads "sim"
+at the device boundary, legible in the artifact.
+
+**Sim lives at the board for board-resident devices; only a standalone device gets a
+sim word.** A relay, a 0-10V output or a thermistor reader on a board is the real
+component word (`i2c.relay.component.gt`, `gpio.relay.component.gt`,
+`i2c.dac.output.component.gt`, `i2c.thermistor.reader.component.gt`) with no
+`DeviceType` of its own; the board record's `DeviceType` (`SimGw108`,
+`SimKridaDoubleRelayBoard16`) says sim for everything on it, and the real actors run
+their genuine choreography against the sim register backend. There is no
+`sim.relay.*` or `sim.dac.*` word and no sim relay or sim DAC actor. A device with no
+board (a tank module, a power meter, a plain sensor) carries its own `DeviceType`, and
+a `sim.*.component.gt` word exists only where the simulated device needs config the
+real word cannot hold (`sim.sensor.component.gt`, `sim.pico.tank.module.component.gt`).
+The simulated plant reads the same registers, so this is one mechanism for local tests
+and the plant alike.
 
 **Hardware backend selection is the layout's job.** Whether an actor drives real
 silicon or a fake is a per-device fact the layout states, never a runtime flag. A
@@ -164,13 +178,10 @@ decode each via a union decoder, then pair component↔cac via
    `i2c.thermistor.reader.component.gt` (generic Cac,
    I2cThermistorChannelConfig) model the same physical job two ways —
    duplication from incremental growth.
-4. **Two ways to say "simulated."** Now: a `Sim*` `DeviceType`
-   (`GridworksSimSensor`, …) on a generic component (sim is a device-type
-   value, legible at the boundary; successor to the legacy `GRIDWORKS__SIM*`
-   make/models). Or: a dedicated `sim.*.component.gt` TypeName with
-   `SimulatesTypeName`/`SimulatesVersion` (the three `sim.pico.*` words) when
-   the sim device needs extra config. The simulated-actors / self-faking-actors
-   spokes build both out.
+4. **Two ways to say "simulated."** Settled in "DeviceType — and the
+   retirement of MakeModel": a `Sim*` `DeviceType` on the board (or on a
+   standalone device's own record), and a `sim.*.component.gt` word only
+   where the simulated device needs config the real word cannot hold.
 5. **`extra="allow"` on three types** (`pico.tank.module`,
    `sim.pico.tank.module`, `i2c.multichannel.dt.relay`) with no stated
    rationale — strict elsewhere.

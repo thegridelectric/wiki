@@ -1,6 +1,6 @@
 # sensor-freshness
 
-Status: Accepted · Pass 1 · Updated 2026-09-21 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-09-24 · Linear: OPS-392
 
 > What this is: a spoke of [`primary.md`](primary.md). Three chips that
 > make "the heat pump's power or water temperature is unknown", and "this
@@ -79,7 +79,8 @@ which are guards, and on which sim).
   value.
 - Every channel on the meter is treated alike, the whitewire heat-call
   inputs included.
-- The driver's read warnings keep flowing as problem events, unchanged.
+- The driver's read, start and hardware-ID warnings go to the scada as
+  Warning glitches, at most one a day for each kind and channel.
 
 ### 2. The heat pump accessors return `None` for a flatlined channel
 
@@ -149,6 +150,24 @@ flickering sensor lost and found on each flicker.
 tests (`tests/actors/test_pico_liveness.py`); this change adds instances,
 not bookkeeping.
 
+The BTU meter also raises a `quiet-channel` Warning glitch when a channel's
+`ChannelFlatlined` goes out, at most once a day per channel.
+
+**A channel that keeps reading implausibly is gone.** Both pico actors
+drop a temperature outside the plausible range, which is what a thermistor
+at a pico rail posts. One such reading is noise: it is dropped and the
+channel still counts as heard. Five in a row mean the sensor is not giving
+information and probably needs retiring. From the fifth, the channel stops
+being heard, so its liveness flatlines it 2.5 periods after the last post
+that counted and the rest of the system treats it as gone. The actor
+raises one `open-thermistor` Warning glitch at the fifth, at most once a
+day per channel, so a single spike raises nothing. The first plausible
+reading resets the count and is heard as usual. Today the BTU meter feeds
+`heard` before it filters, so a rail-stuck channel is never flatlined,
+and the tank module filters before `heard`, so one implausible reading
+already counts against the channel. This rule makes the two actors
+alike.
+
 ## Not in this spoke
 
 - `channel_temperature` itself, and so zone setpoints, zone temperatures
@@ -204,8 +223,9 @@ before the change, 2 is a guard:
    `total_hp_pwr_w()` is `None`; the same for `hp-idu-pwr`. On the Nolan
    sim, which carries `hp-lwt` and `hp-ewt`: `lwt()`, `ewt()` and
    `lift_f()` the same way. A reading inside the window: the value.
-6. On the House0 sim, which has no `hp-lwt`: `lwt()` and `lift_f()` return
-   `None` and do not raise.
+6. On the House0 sim, `hp-lwt` never read: `lwt()` and `lift_f()` return
+   `None` and do not raise. Every sim now carries `hp-lwt`, so a layout
+   without the channel has no test.
 7. The sims carry no defrost signature, so this one patches
    `DEFROST_SIGNATURES` for the sim heat pump. Power under the signature's
    `max_w` arrives at the scada and no actor calls `hp_in_defrost()`; the
@@ -242,18 +262,30 @@ Test 9 fails before the change; 10 and 11 are guards:
     `PicoMissing` and the per-pico `ChannelFlatlined` set as today, and
     no second `ChannelFlatlined` per channel from the new check.
 
+Tests 12 and 13, on `store-btu` and `tank1` in the same file; 12 fails
+before the change, 13 is a guard:
+
+12. The sim pico posts a rail value for one channel on five posts running:
+    one `open-thermistor` glitch, at the fifth and not before; one
+    `ChannelFlatlined` for the channel within 2.5 periods of the last post
+    that counted; the scada's `latest_channel_values` for it is `None`.
+    Reverted, the BTU channel is never flatlined.
+13. Four rail values, then a plausible one: no glitch, no
+    `ChannelFlatlined`, and the plausible value is in
+    `latest_channel_values`.
+
 The sim power meter driver gains a settable "no value" mode for test 1,
 and `SimPicoSource` gains a settable set of channels to omit from its
-reading for tests 9 and 10 (today its payload is fixed at construction,
-`sim_pico_source.py`); those are the missing simulations, and each goes
-in before its tests.
+reading for tests 9 and 10, and a settable per-channel rail value for
+tests 12 and 13; those are the missing simulations, and each goes in
+before its tests.
 
 ## Build status
 
 - ✅ Change 1, the power meter: `6e0efaac`. The sim meter's
   `no_value_channel_names`, tests 1–4 on the willow sim, the
   `power_meter_lost_after_s` setting (10 s).
-- ✅ Changes 2 and 3: `b86da812`. `ShNodeActor.channel_is_live`, the four
+- ✅ Changes 2 and 3 as first specified: `b86da812`. `ShNodeActor.channel_is_live`, the four
   accessors, `ScadaData.last_real_value` behind `hp_in_defrost()`; a
   `PicoLiveness` per captured channel in `ApiBtuMeter` and `ApiTankModule`,
   `check_liveness` as `main`'s check made callable, and `SimPicoSource`'s
@@ -262,13 +294,19 @@ in before its tests.
   every 15 s the channels with no value and the channels past the flatline
   bound (`ScadaData.unknown_channels`, in `6e0efaac`).
   `experiments/house_window.sh` sets it for beech and spruce windows.
-- Suite at `b86da812`: 1053 passed, 1 skipped.
+- ✅ Read warnings, `open-thermistor` and `quiet-channel` as Warning
+  glitches with a once-a-day limit: `208b2769`.
+- Not built: the five-in-a-row rule for implausible readings, and tests
+  12 and 13. Today the BTU meter raises `open-thermistor` on the first
+  implausible reading and never flatlines a rail-stuck channel.
+- Suite at `b86da812`: 1053 passed, 1 skipped. The five spoke test files
+  at `45a902c6`: 179 passed.
 - ◐ Verification: the baseline window has run; no loss has been staged.
 
 ## Verification (EDD)
 
-**Baseline, beech, 2026-09-21** (round four of
-`experiments/2026-09-18-beta-field-windows/`): five minutes on `b86da812`
+**Baseline, beech, 2026-09-21** (an earlier round of
+`experiments/beta-field-windows/`): five minutes on `b86da812`
 in Standby, clean, services restored. The meter's channels had values by
 the second log line and kept them. Nothing was unplugged, so the claims
 below are still open.
@@ -293,6 +331,14 @@ the heat pump idle. `hp-odu-pwr` leaves the snapshot within twenty seconds,
 returns on the first read after the cable goes back, and the journal shows
 no `hp-odu-pwr` reading stamped inside the gap.
 
+Round four (2026-09-23) ran five-minute windows at both houses, shorter
+than the 750 s bound, so it could not show change 3. A channel's liveness
+starts with the scada, so a channel never heard is flatlined 750 s in;
+the change 3 window needs at least 15 minutes. Whether the spruce store
+pipes are left out of the post or posted at the rail decides which path
+the window shows: left out, change 3 as built; at the rail, only the
+five-in-a-row rule.
+
 For change 3, the spruce store pipes as they stand: both thermistors
 disconnected, the BTU pico posting flow alone. Within 750 s of the window
 scada starting, one `ChannelFlatlined` each for `store-hot-pipe` and
@@ -315,9 +361,13 @@ is back in the snapshot on the next post.
 
 ## Do this next
 
+Build the five-in-a-row rule: the sim rail value, tests 12 and 13
+failing, then the change in both pico actors.
+
 Stage a meter loss in a bounded beech window: `./beech_window.sh on 10`,
 break the eGauge link for a minute (someone at the meter, or the
 `iptables` rule above), and read the `[UnknownChannels]` lines and the
 journal against the beech claim in "Verification (EDD)". Then the spruce
-store pipes for change 3, in a spruce window with the same log. When both
+store pipes for change 3, in a spruce window of at least
+15 minutes with the same log. When both
 hold, distill into `executor/` and mark the hub line done.

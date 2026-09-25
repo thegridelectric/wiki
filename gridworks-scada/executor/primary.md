@@ -171,6 +171,7 @@ Normative across the domain — full statements in
 | Required and usable energy (how the House0 store is judged ready for on-peak) | [`required-energy.md`](required-energy.md) | Draft |
 | Magic thresholds (numbers decided in code; per-row disposition) | [`magic-thresholds.md`](magic-thresholds.md) | Draft |
 | Heat pump signatures (start-up, running, idle and defrost in the scada's channels, per heat pump model) | [`heat-pump-signatures/primary.md`](heat-pump-signatures/primary.md) | Draft |
+| Heat pump comms (call contact and Modbus from the vendor side, per heat pump model) | [`heat-pump-comms/primary.md`](heat-pump-comms/primary.md) | Draft |
 | The Siegenthaler loop actor as it runs (what it does, what maple shows, where it falls short) | [`sieg-loop.md`](sieg-loop.md) | Draft |
 
 ## Open (top-level)

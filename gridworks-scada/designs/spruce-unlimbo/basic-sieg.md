@@ -1,13 +1,17 @@
 # basic-sieg
 
-Status: Draft · Pass 0 · Updated 2026-09-24 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-09-25 · Linear: OPS-392
 
 > What this is: a spoke of [`primary.md`](primary.md). The least that has
 > to change in the Siegenthaler loop for maple and beech to take the
 > branch. The running loop and its shortfalls are
 > [`../../executor/sieg-loop.md`](../../executor/sieg-loop.md) ("the
-> critique"; its defect numbers are used below). The loop is chipped here,
-> not rebuilt: its two state machines stay, and the larger reshaping is
+> critique"; its defect numbers are used below). The loop runs one of
+> three strategies, chosen by the ops word ("Three modes, one package"
+> below): this spoke builds `HoldFullSend`, the mode with no loop control
+> at all, and `StratProtect`, which is the running loop chipped, not
+> rebuilt: its two state machines stay. `LwtControl` and the larger
+> reshaping are
 > [`../../explorations/sieg-loop-next.md`](../../explorations/sieg-loop-next.md),
 > work for after launch. A launch item.
 
@@ -18,6 +22,51 @@ next person can pick up. Three things have to be true on the branch: the
 house is heated, the start-up job is done (no cold water into a hot
 tank), and an operator can see and move the valve from the admin panel
 without breaking the tree. Everything else in the critique waits.
+
+## Three modes, one package
+
+A House0 layout has a Siegenthaler loop or it is not a House0 layout
+(`gw.house0.no.sieg` is the word for the others), so the `sieg-loop` node
+and its actor are always present and relays 14 and 15 are always the
+loop's. What varies is how the loop is driven, and that is operational:
+one enum in the House0 family params replaces the `UseSiegLoop` boolean.
+
+| `sieg.loop.strategy` | What the loop does | When |
+| --- | --- | --- |
+| `HoldFullSend` | Drives the valve to full send once the actuators are ready and then does nothing but answer commands. No inputs, no control state. The heat pump behaves as if there were no loop. | This spoke, first. The safe baseline, and the mode maple runs while the admin surface is tested. |
+| `StratProtect` | Keeps the valve at keep while the heat pump is off or starting cold, opens it when the loop is hot, fails open. Today's two state machines, chipped by changes 6 to 8. | This spoke. What maple and beech run at launch. |
+| `LwtControl` | Blend control of LWT while the heat pump runs, on top of the protection. Not a short file; the PID's home. | After launch (the explorations doc). The loader refuses it until it is built, and no deployed ops word names it before then. |
+
+`ActuationAuthority.Standby` runs `HoldFullSend` whatever the field says,
+since the power-less posture is full send; `MonitorOnly` runs the selected
+strategy with actuation suppressed (change 7).
+
+The code is one package, `actors/sieg_loop/`, in place of `sieg_loop.py`,
+on the local-control loader pattern (`actors/local_control_loader.py`):
+
+- `__init__.py`: `SiegLoop`, the actor the layout names. A facade that
+  picks the strategy from the ops word once, at construction, and owns
+  what every strategy shares: the command surface (change 2), the valve
+  state report, the watchdog pat and the tick.
+- `valve.py`: the only code that addresses relays 14 and 15. Today's valve
+  state machine and its movement tasks, moved here as they are; the
+  drive-to-a-stop primitive of the explorations doc replaces them after
+  launch.
+- `hold_full_send.py`: one call to the valve at the first tick after
+  `ActuatorsReady`, then nothing.
+- `strat_protect.py`: today's control state machine, `engage_brain` and
+  `is_blind`, chipped as below.
+- `lwt_control.py`: after launch.
+
+`actors/__init__.py` keeps `from actors.sieg_loop import SiegLoop`, so the
+layout's `ActorClass.SiegLoop` resolves as it does now. The
+`use_sieg_loop` reads leave `scada.py`, `command_node.py`, `scada_data.py`,
+`hydronic/house0.py` and `local_control/house0/standby.py`: the sub-tree,
+the actuator-ready dependents and the state-machine subscription are
+unconditional. HpBoss reads the strategy instead of the flag: `HoldFullSend`
+closes relay 6 at once (today's sieg-less branch), `StratProtect` keeps
+`PreparingToTurnOn` and `SiegLoopReady`. Standby's relay 14 energize goes;
+the loop owns the relay in every mode.
 
 ## The changes, in build order
 
@@ -40,7 +89,61 @@ hang under the loop in the auto, admin and rebuilt trees; a boss-side
 event to a loop relay fails the axiom; local control and the leaf ally
 call none of the four loop methods at initialization.
 
-### 2. The command surface, so admin works (defect 6)
+### 2. The package, `HoldFullSend`, and the command surface (defect 6) ◐
+
+In build order:
+
+- ✅ The words (sema `5ca82f8`): `sieg.loop.strategy`, `SiegLoopStrategy`
+  in place of `UseSiegLoop` on the family params, the layout word's
+  `sieg-loop` parenthesis, the tlayouts snapshot and gens, the gwsproto
+  twins; the loader refuses `LwtControl`.
+- ✅ `clock.py` and its hook-up (scada `be2a860f`): `services.clock` on
+  every actor, `ManualClock` injected through the app for tests.
+- ✅ The package (scada `151bcfc0`): `actors/sieg_loop/` with the facade,
+  `valve.py` holding the valve machine with its moves on the clock
+  (keep-seconds settled from `now()` when the motor stops, one sleep per
+  travel), `hold_full_send.py`, today's control logic moved whole into
+  `strat_protect.py`, and `strategy.py` holding the selection (Standby
+  runs `HoldFullSend`, `LwtControl` fails construction) and
+  `SiegLoopReady`. The sieg-loop handle reports the valve state
+  (`sieg.valve.state`, on change only); the control state no longer
+  rides `single.machine.state`. Every `use_sieg_loop` read is gone.
+  The per-model signatures module comes with change 6, not here; until
+  then `strat_protect.py` keeps today's `MaxEwtF` test.
+- ✅ The command surface on the facade (scada `010ec939`):
+  `process_fsm_event` copied from five-v-boss, a live command remembered
+  as the boss part of the handle and cleared on the 30 s tick when it
+  changes, a commanded move a full run, moves ending at a stop firing
+  the reset triggers, the full report under the commander's `TriggerId`,
+  `ActorClass.SiegLoop` in the command-node table, the panel offering
+  both moves mid-travel. Tests 6, 7, 12 and the command half of 13, on
+  the clock seam. The `wallclock` marker and its `ci.sh` deselect come
+  with the first travel test against the sim relays.
+- A maple window on `HoldFullSend`: the valve driven to send at start,
+  moved to keep and back from the panel, the heat pump starting through
+  it with relay 6 closing at once. That is the admin test the hub is
+  waiting on.
+
+The package and the enum come first, with `HoldFullSend` as the first
+strategy: it has no inputs, so the command surface is built and tested
+against it before any control logic is touched, and the first maple
+window runs it. Its whole behaviour: after `ActuatorsReady`, one move to
+full send (today's `moving_to_full_send`: motor dormant, direction toward
+send, motor active for the full range plus ten seconds); the valve state
+reported through `single.machine.state`; then only commands.
+
+The package also takes the clock the tests rest on, and there is one
+clock in the scada: `gw_spaceheat/clock.py`, held by the scada's
+services and reached by every actor through `self.services.clock`, never
+as an attribute of its own, with the wall clock, the time coordinator's
+timesteps and the suite's `ManualClock` as its three sources
+(simulated-test-environment `sim-time.md` "The one clock"). The sieg
+package is that design's migration step 2: all seventeen of the file's
+clock reads and travel sleeps go through the clock, whole file, with the
+valve travel computed from `now()` at relay transitions rather than
+one-second sleep slices. A test moves the manual clock and a transition,
+a dwell, the blind timer and a full travel each run in CI without
+waiting. No other actor converts here.
 
 `sieg-loop` joins hp-boss and five-v-boss as a command node
 (`../../executor/control-hierarchy.md` "Command interfaces and replies"),
@@ -157,6 +260,16 @@ The numbers of change 6 are set from this, not before it.
 
 ### 6. The start: stop opening through `Blind`, and wait to open (defects 1–3)
 
+Before this is built: the round-1 response
+(`scratch/basic-sieg/fable-r1-response.md`, each round-1 finding folded
+here, moved to the explorations doc, or rejected with its reason; note the
+correction that `hp-lwt` and `hp-ewt` are in maple's and beech's
+`CaptureTuningList` and missing only from the simulated layouts) and
+round 2 on a fresh thread. The control state's name once `is_blind` is
+split (`FailedOpen` the placeholder, or `Blind` kept for launch) is
+decided in that pass; nothing outside `strat_protect.py` reads it and the
+control states have no sema enum.
+
 These go in together. Fixing the blind timer alone, with `MaxEwtF` at the
 170 in the branch's ops params, leaves maple's valve at keep with no heat
 to the house.
@@ -189,7 +302,8 @@ to the house.
   loop names no tank. `MaxEwtF` leaves the loop. The target is capped per
   heat pump model at what the heat pump can reach with slope to spare:
   140 °F for the Ecodan, whose one long closed start flattened near
-  146 °F. A sixth number in the House0 family params.
+  146 °F. A fact about the heat pump, in the scada's per-model
+  signatures (below).
 - **It fails open.** With the valve at keep the small loop heats fast, and
   a heat pump that reaches its upper limit stops itself. That is the worse
   risk, not destratifying: at beech the LG, after several quick trips to
@@ -210,8 +324,8 @@ to the house.
      water to the tank. How fast a closed loop reaches the limit depends
      on the heat pump, which is why the trigger is the stop itself.
   4. A backup timer, per heat pump model, counted from power crossing the
-     high threshold: a fifth number beside the four below in the House0
-     family params. The LG reaches its limit about six minutes into a
+     high threshold, in the per-model signatures beside the four
+     thresholds below. The LG reaches its limit about six minutes into a
      loop-closed start, so about 240 s there. The Ecodan's closed-loop
      limit has not been seen; its value waits for the first maple window
      and starts cautious.
@@ -222,9 +336,26 @@ to the house.
   thresholds, since power wobbles as a heat pump comes on: it has been
   over a high one, where the compressor is unmistakably running, and then
   falls under a low one, where it has unmistakably stopped, while HpBoss
-  still says on. Each threshold carries a dwell. The four numbers are per
-  heat pump model and sit in the House0 family params with the other
-  thresholds:
+  still says on. Each threshold carries a dwell. The four numbers are
+  characteristics of the heat pump model, not of how a house is operated,
+  and a signature is behaviour more than it is numbers (the LG's
+  circulator shows on `hp-idu-pwr` 70 s before its compressor; the
+  Samsung pulses to 318 W idle), so they are code, not sema: a per-model
+  signatures module in the scada, one typed record and its readers per
+  model (`compressor_running`, `self_stopped`), written out straight,
+  keyed on the `DeviceType` the layout already binds to `hp-odu`
+  (maple `MitsubishiWUZSA48NMZ`, beech `LGARUM048GSS5`). Each model's
+  record cites its section of
+  [`startup-signatures.md`](../../executor/heat-pump-signatures/startup-signatures.md)
+  "Running and stopped, from power", which stays the evidence; a test
+  pins the code's values to the executor's. A `DeviceType` the module
+  does not know fails `StratProtect` at construction, no default model;
+  `HoldFullSend` needs no signature and still runs. No ops word and no
+  sema word carries a heat pump fact. The thresholds are against
+  `hp-odu-pwr`, the compressor's channel, which is what they were scored
+  on; the loop stops reading the odu-plus-idu sum (`total_hp_pwr_w`),
+  which at beech carries the LG's 342 W circulator and at a monobloc
+  carries nothing.
 
   | | High | held | Low | held | Tested on |
   | --- | --- | --- | --- | --- | --- |
@@ -280,14 +411,29 @@ are proposals until then.
 - Enum `move.sieg.valve`: `MoveToFullSend`, `MoveToFullKeep`.
 - Enum `sieg.valve.state` for the report: the valve machine's five names
   (`FullySend`, `FullyKeep`, `KeepingMore`, `KeepingLess`, `SteadyBlend`),
-  staging, so the rebuild can reshape it in place. Every move ends in
+  published 2026-09-24 with `move.sieg.valve`; a reshape takes a new
+  version. Every move ends in
   `SteadyBlend` today, a stop included: `ResetToFullySend` and
   `ResetToFullyKeep` are defined (`sieg_loop.py:120-121` on the branch) and
   never fired, so the stop states are reached only as the initial state.
   The panel's commands result in `FullySend` and `FullyKeep`, so a move
   that ends on a stop fires the matching reset trigger (`:450`, `:453`).
-- `gw.house0.layout` 000 (staging): `hp-lwt`, `hp-ewt` required.
-- `UseSiegLoop` stays where it is.
+- `gw.house0.layout` 000 (staging): `hp-lwt`, `hp-ewt` required. Done.
+- Enum `sieg.loop.strategy`: `HoldFullSend` (default), `StratProtect`,
+  `LwtControl`. Staging, sema `5ca82f8`.
+- `gw.house0.family.params` 000 (staging, in place): `SiegLoopStrategy`,
+  a `$ref` to the enum, required, in place of `UseSiegLoop`. Done. The
+  layout word carries the sieg-loop node unconditionally (axiom 3), so
+  the loader no longer pairs a flag with the node; it refuses
+  `LwtControl` until that strategy is built.
+- `gw.house0.layout` 000 (staging, in place): axiom 3's parenthesis on
+  `sieg-loop` no longer says "dormant when unused": the loop runs a
+  strategy in every mode. Done.
+- No heat pump fact enters sema: the start thresholds, dwells, backup
+  time and target cap of change 6 are scada code keyed on the layout's
+  heat pump `DeviceType`.
+- gwsproto twins for the enum and the family params; `use_sieg_loop`
+  leaves the scada as "Three modes, one package" says.
 
 ## Before a maple or beech window
 
@@ -299,6 +445,18 @@ are proposals until then.
   window, so the strip and the kept-fraction `r` have it.
 
 ## Tests (`tests/actors/test_sieg_loop.py`)
+
+Two tiers, both in the suite, neither commented out. The transition,
+command and report tests run on the clock seam with readings fed in and
+sends captured, no plant and no wall time, and they run in CI: they
+check that the machine does what this spoke says for a given picture,
+which is necessary and not sufficient. The tests whose point is real
+time against the sim relays (a full travel end to end, a dwell with the
+real tick) carry `@pytest.mark.wallclock`, which `ci.sh` deselects; they
+are the pre-window gate, run by hand before every maple or beech window.
+Nothing closed-loop is claimed by either tier: whether the valve opens
+before the LG trips or the predictive open lands near the target is the
+plant's and the field's to show (Verification below).
 
 1. A second run after a stop does not go blind (the timer).
 2. Power up with a cold loop: the valve stays parked. LWT rising toward
@@ -331,11 +489,21 @@ are proposals until then.
     settings, closes the relay anyway.
 12. The capability cover lists `sieg-loop` with its two events; the panel
     offers both while the valve moves.
-13. Each of power, LWT, EWT and the destination temperature in turn stops
+13. `HoldFullSend`: one move to send after `ActuatorsReady` and no relay
+    command after it through a start, a stop and a defrost; an admin
+    `MoveToFullKeep` acked, moved and held across ticks; `Standby` with
+    `StratProtect` in the params runs `HoldFullSend`; `LwtControl` in the
+    params fails construction.
+14. Each of power, LWT, EWT and the destination temperature in turn stops
     reporting during `HpStartingUp` (the sim driver goes silent, the last
     value stays in `latest_channel_values`): full send once the channel
     flatlines, one glitch naming it. The same with the channel absent from
     the start.
+15. The signatures module: each known model's thresholds equal the values
+    the executor states; a layout whose `hp-odu` carries an unknown
+    `DeviceType` fails `StratProtect` at construction and runs
+    `HoldFullSend`; the loop's power read is `hp-odu-pwr` with `hp-idu-pwr`
+    at 342 W and steady.
 
 ## Verification (EDD)
 
@@ -385,8 +553,9 @@ open question this record exists to raise.
 Defects 8–12 of the critique: the posture split inside `HpOff`, the
 every-tick resend, relay outcomes ignored, moves without an owner, the
 polled handle change, the blend leftovers and the state names. HpBoss's
-`PreparingToTurnOn` and `SiegLoopReady` stay: with the valve resting at
-keep the loop answers at once and the start is not delayed. Off is still
+`PreparingToTurnOn` and `SiegLoopReady` stay for `StratProtect`: with the
+valve resting at keep the loop answers at once and the start is not
+delayed; `HoldFullSend` never enters `PreparingToTurnOn`. Off is still
 what HpBoss reports, so a defrost does not move the valve. The power-less
 posture is full send, and the buffer mixing it allows at maple is
 accepted.
@@ -396,9 +565,10 @@ accepted.
 A fall layout has a Siegenthaler loop with no buffer tank and no iso
 valve. The loop reads heat pump power, LWT, EWT, its two relays and the
 one destination temperature its hydronic tier hands it; it names no
-buffer, iso valve or store tank. All of these are required inputs, and any
-of them may stop reporting: the loop then opens the valve (change 6,
-layer 2) and does not guess.
+buffer, iso valve or store tank. All of these are required inputs of
+`StratProtect`, and any of them may stop reporting: the loop then opens
+the valve (change 6, layer 2) and does not guess. `HoldFullSend` reads
+none of them.
 
 ## Open
 
@@ -413,26 +583,7 @@ layer 2) and does not guess.
 
 ## Do this next
 
-1. Change 2, the actor. The words are published (`move.sieg.valve`,
-   `sieg.valve.state`) and their gwsproto twins are on the branch.
-   `sieg-loop` reports the valve state only through
-   `single.machine.state` (settled): the scada keys latest state by node
-   name, so the control state (`gw1.sieg.control.state`, not a word)
-   moves to the log strip. Then
-   `process_fsm_event` copied from five-v-boss, a live command
-   remembered as the boss part of the handle and cleared on the 30 s
-   tick when it changes, moves ending at a stop firing the existing
-   reset triggers, the full report under the commander's `TriggerId`,
-   `ActorClass.SiegLoop` in the command-node table. First test: an admin
-   `MoveToFullKeep` acked, moved and held across ticks (tests 6 and 7).
-2. Changes 3 and 4, so the first maple window is on the record.
-3. The early-open table and the maple window of change 5.
-4. Then the round-1 response (`scratch/basic-sieg/fable-r1-response.md`,
-   each round-1 finding folded here, moved to the explorations doc, or
-   rejected with its reason; note the correction that `hp-lwt` and
-   `hp-ewt` are in maple's and beech's `CaptureTuningList` and missing
-   only from the simulated layouts) and round 2 on a fresh thread, before
-   change 6 is built. The control state's name once `is_blind` is split
-   (`FailedOpen` the placeholder, or `Blind` kept for launch) is decided
-   in that pass; nothing outside `sieg_loop.py` reads it and the control
-   states have no sema enum.
+The maple window on `HoldFullSend` (change 2's last sub-step): maple's
+ops word set to `HoldFullSend`, the valve driven to send at start, moved
+to keep and back from the panel, the heat pump starting through it with
+relay 6 closing at once. "Before a maple or beech window" first.

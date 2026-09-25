@@ -88,7 +88,7 @@ code. How a round runs and what the rounds have taught is
 11. `nolan-local-control.md` — the loop that runs a Nolan house through a
    heating season; opens after the partition rope
 12. `layout-word-axioms.md` — the axiom work still open on both staging
-    layout words (the sim and nameplate vocabulary gaps, the bus list,
+    layout words (the nameplate vocabulary gap,
     the renumbering before promotion), the `gw.house0.no.sieg` word with
     the oak / fir / elm generators (est 3h), and the closing windows
 13. `relay-actor-enforcement.md` (est 3h) — the relay actor keeps every relay reliable

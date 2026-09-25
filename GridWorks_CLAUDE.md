@@ -67,13 +67,19 @@ the words; try both, take whichever hits:
 - **Per-domain:** first word a `wiki/` domain folder ⇒ remaining words as slug
   in `wiki/<domain>/designs/` ("sema snapshot improvement" →
   `wiki/sema/designs/snapshot-improvement.md`).
+- **Spoke:** the slug as a file inside a hub folder,
+  `wiki/<domain>/designs/<hub>/<slug>.md` ("basic sieg" →
+  `wiki/gridworks-scada/designs/spruce-unlimbo/basic-sieg.md`); the hub's
+  `primary.md` is the anchor.
 
 Don't assume the first word is a domain. Open the match as the session's
-anchor; if both miss, list candidates and ask — don't guess.
+anchor; if all miss, list candidates and ask — don't guess.
 
-**Focus stays the design, never a spoke.** The active-claims Focus cell names
-the design and holds it all session; I SHALL NOT rewrite it to a spoke. The
-design is the altitude; the spoke is only where today's work is.
+**Focus names the active spoke when the design has one, else the design.**
+The active-claims Focus cell names the spoke being worked ("basic-sieg"); a
+design with no spokes is named by its own slug. The hub stays the session's
+anchor and altitude; when the work moves to another spoke, Focus moves with
+it.
 
 **On taking a design (or restructuring a hub): read the loop, summarize it
 back.** First read [`designs-process.md`](designs-process.md) §"The design
