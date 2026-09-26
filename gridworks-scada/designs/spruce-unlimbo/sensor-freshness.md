@@ -185,7 +185,7 @@ alike.
 - Capture tuning: `AsyncCaptureDelta`, a finer delta under 1 kW, shorter
   capture periods. A dead meter produces no deltas, so none of these
   detects one.
-- What the sieg loop does with `None`: `basic-sieg.md` change 1, layer 2.
+- What the sieg loop does with `None`: `basic-sieg.md` change 6, layer 2.
   The loop's present `is_blind` and `hp_loop_is_getting_hot` already treat
   `None` as blind, which is full send.
 - Four things a lost or misbehaving meter still does after this spoke,

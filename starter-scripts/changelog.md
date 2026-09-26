@@ -3,6 +3,16 @@
 One entry per `starter-scripts` commit (git = the what, this = the why).
 Entries before 2026-08-23 live in git history only.
 
+## 2026-09-25 — add maple_snap (`07452c3`)
+
+`spruce_snap.py` with maple's channels and meter: `hp-ewt`, `hp-lwt`,
+`hp-lift`, the buffer depths, the sieg/store/dist flows from the snapshot,
+and the five pump and heat-pump powers from maple's eGauge
+(`egauge16103.local`, registers from the layout's meter component). The
+spruce strip's host and registers are spruce's, so on maple it printed
+`----` for every power column. The lift is right only while both pis hold
+the same layout encoding, which the docstring says.
+
 ## 2026-09-24 — winter hack: secondary pump ON above 500 W hp-odu (`ff7650c`)
 
 `spruce_winter_hack.py` turns the secondary pump on above 500 W of

@@ -6,6 +6,50 @@ the *why*.
 
 Newest at the top.
 
+## 2026-09-25 — house_window: a two-pi window runs on both pis or neither; beech2 joins <!-- pending commit -->
+
+The window stopped `gwspaceheat2` on maple2 but not its restart timer, so
+on the 16:32 maple window the timer brought production scada2 back at
+16:45 beside the branch scada2, and both posted maple2's analog temps to
+maple's broker under different encodings. Behind that sat three ways one
+pi could run the branch beside the other's production scada: the pis
+booted 20 s apart and so ended 20 s apart; a crash on one restored only
+that one; and `on` booted the second pi before learning whether the first
+had come up. Now the timer is among the second pi's window services, both
+pis boot at once, `on` ends the window on both unless both are up, and a
+watcher on the laptop ends it on both when it ends on either. It kills
+and restores itself, because `pkill` takes the box-side job's wrapper and
+its restart with it. Every house but spruce has a second pi, so beech
+gets `beech2` in both scripts; beech's window refused until beech2 was
+kitted with the branch checkout, `~/experiments`, a window env pointing at
+beech's mosquitto (production at beech uses beech2's), and the pair.
+`on` waits on the two boots by pid, since a bare `wait` also waits on the
+broker capture this shell starts and never returns. `off` counted
+`report.event`s with a `grep` whose no-match exit failed the pipeline
+under `pipefail`, so a window with no reports ended `off` before it
+restored the first pi; the count tolerates none, and `off` restores the
+first pi from an EXIT trap whatever fails before it. Witnessed at maple
+2026-09-25: a killed scada2 ended both windows within 10 s and both pis
+came back on production; a 15-minute window ended both at its bound.
+
+## 2026-09-25 — maple_snap.py: the field-support strip for maple (`aa79501`; the title is the starter-scripts commit's, the diff is house_window on both maple pis)
+
+The maple window's strip showed the analog-temp channels ten times hot:
+maple2 posts them by its own layout's encoding (`WaterTempCTimes1000` on
+`main`) into a window scada whose layout declares `CelsiusTimes100`, and
+the wire carries no unit. The branch cannot run in maple2's normal
+checkout between windows (its loader refuses the non-sema production
+layout, and `main` cannot load the sema one), so the second pi gets the
+first pi's window kit: `~/gridworks-scada-unlimbo`, `~/envs/dev.env` with
+only the local link, and the window pair in `scada-experiment/`.
+`put_layout.sh maple` puts and byte-checks the pair on both boxes;
+`window_boot.py` moves to the repo root (it is what every window boots
+through, not the 2026-08-10 rung's own harness) and boots `Scada2App`
+under `WINDOW_SCADA2=1` with the same paths-root isolation; `house_window.sh maple on` checks maple2's head,
+stops `gwspaceheat2`, boots the branch scada2 there and restores it at
+`off` and on exit, with `status` covering it. The field-window recipe's
+"Houses" and the spot-check recipe say why both pis move together.
+
 ## 2026-09-24 — beta-field-windows: beech's refused params came from pico-cycler reboots
 
 Round four's README and the recipe's "Picos on the 110 firmware" section

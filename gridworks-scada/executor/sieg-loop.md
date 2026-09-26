@@ -1,6 +1,6 @@
 # The Siegenthaler loop actor, as it runs
 
-Status: Draft · Pass 0 · Updated 2026-09-21
+Status: Draft · Pass 0 · Updated 2026-09-25
 
 > What this is: what `SiegLoop` does in the field today and where it falls
 > short, read from the code and from maple's journal. The code is
@@ -8,7 +8,9 @@ Status: Draft · Pass 0 · Updated 2026-09-21
 > (620 lines), which maple and beech run. `jm/spruce-unlimbo` @ `8f76cf68`
 > carries the same logic; its diff in this file is mechanical (base class,
 > typed temperatures, `ActuationAuthority` for `SystemMode`). Line numbers
-> below are `main`'s unless marked.
+> below are `main`'s unless marked. The branch's reshaping of the loop
+into a package with a selectable strategy and a command surface is
+"The package on the branch".
 
 ## What the loop is for
 
@@ -142,6 +144,46 @@ Most consequential first.
 13. **The simulated House0 cannot exercise it.** The orange and willow
     layouts have no `hp-lwt` or `hp-ewt`, so no test reaches the start-up
     path.
+
+## The package on the branch
+
+On `jm/spruce-unlimbo` the loop is the package `actors/sieg_loop/`. The
+facade `SiegLoop` (`__init__.py`) owns the valve, the tick and the
+hp-boss subscription, and hands each event to one strategy, which decides
+what the valve does.
+
+**Choosing the strategy.** Once, at construction, from the ops word
+(`selected_strategy`, `strategy.py`): the House0 family params'
+`SiegLoopStrategy` (enum `sieg.loop.strategy`), except that
+`ActuationAuthority.Standby` runs `HoldFullSend` whatever the params say,
+since the power-less posture is full send. `HoldFullSend` and
+`StratProtect` are built; any other value fails construction. HpBoss reads
+the same selection: under `StratProtect` a TurnOn passes through
+`PreparingToTurnOn` and waits for `SiegLoopReady`, otherwise hp-boss
+closes relay 6 at once (`hp_boss.py`).
+
+**`HoldFullSend`** (`hold_full_send.py`) has no inputs and no control
+state. When the actuators are ready it moves the valve to full send, and
+when the loop comes back under automatic control after a command it moves
+it to full send again. Otherwise it does nothing: the heat pump behaves as
+if there were no loop.
+
+`StratProtect` is today's two machines ("How it runs"), moved whole.
+
+**The valve takes commands.** `sieg-loop` is a command node: vocabulary
+`move.sieg.valve` (`MoveToFullSend` → `FullySend`, `MoveToFullKeep` →
+`FullyKeep`) in `Scada.COMMAND_NODE_INTERFACES`, the two authority checks
+of `control-hierarchy.md` "Command interfaces and replies" in
+`process_fsm_event`, and the valve state reported through
+`single.machine.state` as `sieg.valve.state`, on change only. A command
+takes the loop out of automatic control: the loop remembers the boss part
+of its handle, withholds the strategy's moves, and resumes when that boss
+changes, noticed on the 30 s tick. Every commanded move is a full run to
+the commanded stop, taken mid-travel as well, so a command to the stop the
+valve already rests on re-homes it. When the move ends the loop sends
+`fsm.full.report` to the scada under the commander's `TriggerId`.
+Relays 14 and 15 hang under `sieg-loop` in every tree, so the relays
+refuse any other commander by the immediate-boss axiom.
 
 ## Related
 

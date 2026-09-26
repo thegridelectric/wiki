@@ -10,6 +10,16 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-25 — test with Maple at HoldFullSend (OPS-392, `50efea8` on jm/spruce)
+
+The maple beta window drives the sieg valve from the admin panel with
+the loop holding full send (basic-sieg change 2's last sub-step), so
+the gen selects `HoldFullSend`; it goes back to `StratProtect` when the
+StratProtect test-drives begin. `max_ewt_f` was 170 while maple's
+running scada reports 145, a heating-curve change riding along unasked;
+the gen takes the field value. Pair placed on maple with
+`put_layout.sh maple hold-full-send`.
+
 ## 2026-09-25 — snapshot on sema 5ca82f8; House0 gens declare a sieg_loop_strategy (OPS-392, `50dc0f7`)
 
 The vendored snapshot picks up `sieg.loop.strategy` and the family params

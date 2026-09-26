@@ -1,6 +1,6 @@
 # Odds and ends (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-24 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-25 · Linear: OPS-392
 
 > What this is: a spoke of [`primary.md`](primary.md) holding the small
 > launch items that do not earn a file each: one problem, one change,
@@ -286,3 +286,25 @@ state that it is the commanded value.
   still holds; a new test asserts the scada and a command node produce
   the same handles for the same boss and scope on both sim pairs, and
   one asserts a single `new.command.tree` publication at boot.
+
+## The sieg loop never actuates under `MonitorOnly`
+
+- **Problem.** `MonitorOnly` means no physical control action at all, and
+  the sieg loop checks only `Standby` (`executor/sieg-loop.md` "Where it
+  falls short", defect 7).
+- **Change.** The loop sends nothing to relays 14 and 15 while the
+  authority is `MonitorOnly`, and nacks commands. `Standby` keeps its
+  full send.
+- **Test.** No relay command through a start, a stop and an admin
+  command under `MonitorOnly`.
+
+## A sieg-loop restart finds the valve
+
+- **Problem.** At `ActuatorsReady` the valve machine assumes `FullyKeep`
+  (`executor/sieg-loop.md` "Where it falls short", defects 4 and 6); a
+  restart into `Blind` at maple stalled four minutes (finding 15).
+- **Change.** Under `StratProtect`, the first act after `ActuatorsReady`
+  is motor dormant, then a full-travel move to the stop the control state wants. A restart with
+  the heat pump off reaches keep within one travel.
+- **Test.** A restart with the heat pump off goes motor dormant, then
+  keep within one travel.

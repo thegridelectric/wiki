@@ -10,6 +10,35 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-25 — Add some debug logging (OPS-392, `2c2350f6` on jm/spruce-unlimbo)
+
+basic-sieg change 4, debug output for the maple test-drives and removed
+after them. The loop's log showed its decisions and not the picture they
+were made from; in the 2025 season channel values came and went from
+the plant's latest values with no record of which or why. `SiegLoop.view`
+writes one `sieg-view` line: the valve state, every channel of
+`VIEW_CHANNELS` the layout names with its value in the house's units (or
+`--`) and the reading's age, `*` on a derived channel, then lift, total
+power, and `blind=<reason>` when the strategy is blind. Logged from the
+tick and from `report_valve_state`. `blind_reason()` joins the strategy
+interface (None by default) and `StratProtect.is_blind` reads it, so the
+line and the control state agree by construction. Four tests on the
+House0 fixtures. Change 3 (hp-lwt/hp-ewt in the sim layouts) was
+already built; the spoke marks it.
+
+## 2026-09-25 — admin panel: only the sieg row offers both stops mid-transition (OPS-392, `bc426922` on jm/spruce-unlimbo)
+
+The panel's `offered_commands` had generalised to "every command whose
+result differs from the observed state" for the sieg valve mid-travel,
+and five-v-boss, sharing the rule, showed TurnOff and TurnOn together
+for the seconds it was turning. The two nodes differ: the sieg loop
+takes a move mid-travel, five-v-boss nacks Busy. The rule is back to
+the first such command, except for vocabularies in the panel's
+`MID_TRANSITION_VOCABULARIES` (today `move.sieg.valve`), which offer
+every one. The constant is hand-kept until `gw.command.interface`
+carries the fact per vocabulary (basic-sieg "Sema work"). The
+five-v-boss row test asserts one button while turning again.
+
 ## 2026-09-25 — sieg-loop is a command node: MoveToFullSend / MoveToFullKeep from the boss (OPS-392, `010ec939` on jm/spruce-unlimbo)
 
 basic-sieg change 2, second half. `sieg-loop` joins the command nodes

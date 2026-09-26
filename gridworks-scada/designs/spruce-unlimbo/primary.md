@@ -106,7 +106,9 @@ code. How a round runs and what the rounds have taught is
     maple and beech take the branch, chipped not rebuilt: a start that waits
     to open and fails open, one owner for the valve relays, the valve
     commandable from the admin panel, `MonitorOnly` honoured, a restart that
-    finds the valve, and the House0 rows of the hp-boss live test uncommented
+    finds the valve, scada2 re-sending its readings when its link goes
+    active, the relays' energization back as a channel, and the House0
+    rows of the hp-boss live test uncommented
 16. `command-tree-matrix.md` (est 3h) — the sender rule for five nodes (built),
     the state-transition tree matrix on `command_node.py`, the relay's full
     report to the journal

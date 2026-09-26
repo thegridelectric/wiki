@@ -1,6 +1,6 @@
 # Control hierarchy — HSMs, the command tree, and the capability cover
 
-Status: Draft · Pass 0 · Updated 2026-09-24
+Status: Draft · Pass 0 · Updated 2026-09-25
 
 > What this is: how the SCADA's hierarchical state machines (HSMs) and the command tree work **together**
 > — the piece the executor lacked. The HSM decides *who is in control*; the command tree *enforces* it via
@@ -18,7 +18,7 @@ Nested state machines, outermost first:
   UsingNonElectricBackup | ScadaBlind | Monitor | Dormant`. Driven by `actors/local_control/tou_base.py`.
 - **Per-actor FSMs** that are themselves control nodes: `HpBoss` (`actors/hp_boss.py`:
   HpOff/PreparingToTurnOn/HpOn; its states are intent, set when the command is sent, and it does not
-  wait for the relay), `SiegLoop` (`actors/sieg_loop.py`: a control FSM + a valve FSM),
+  wait for the relay), `SiegLoop` (`actors/sieg_loop/`: a valve FSM, and a control FSM under `StratProtect`),
   `PicoCycler` (`actors/pico_cycler.py`), `LeafAlly` (`actors/leaf_ally_loader.py`, storage-mode states).
 
 ## The command tree — control state projected onto handles
@@ -120,10 +120,10 @@ the `hp-boss` node with ActorClass HpBoss, the actor is constructed in every lay
 `hp-scada-ops-relay` under it, so the relay reports to hp-boss in every state and every layout and
 an operator commands the heat pump as `<boss>.hp-boss` with `TurnHpOnOff`, never the relay
 directly (`tests/actors/test_hp_boss.py`, `test_hp_boss_live.py`). Having a sieg loop is topology
-(the layout word); using it is operational: `UseSiegLoop` in the operational params selects
-hp-boss's **strategy**, not its existence. With the loop, TurnOn passes through
-`PreparingToTurnOn` and waits on `SiegLoopReady` (or `TURN_ON_ANYWAY_S`); without it hp-boss
-closes the relay at once. The sieg-loop actor is the one that exists only when the loop is used.
+(the layout word); how it is driven is operational: `SiegLoopStrategy` in the operational params
+selects hp-boss's **strategy**, not its existence. Under `StratProtect` TurnOn passes through
+`PreparingToTurnOn` and waits on `SiegLoopReady` (or `TURN_ON_ANYWAY_S`); under `HoldFullSend`
+hp-boss closes the relay at once.
 "Dormant" is not used for any of this; in scada code it means one thing, an actor whose node is a
 leaf of the current command tree, and hp-boss is never a leaf. A commandable heat pump hangs under
 hp-boss: `Hydronic.HpCommandNodeName` names which node takes commands (`hp-odu` native modbus,
@@ -188,7 +188,7 @@ actuator-scope)` — Scada passes all actuators, a sub-actor passes `my_actuator
 
 - **Generic:** the handle→boss arithmetic (`hardware_layout.py`), the `ActorClass`→actor factory
   (`actors/__init__.py`), message routing, `my_actuators` discovery, the HSM enum definitions.
-- **House0-specific:** all `H0N.*` names; the `use_sieg_loop` sub-tree; the pico-cycler-under-root
+- **House0-specific:** all `H0N.*` names; the `sieg-loop` sub-tree; the pico-cycler-under-root
   re-parenting; `house_0_layout.py` requiring a pico-cycler when pico actors are present. A minimal sim layout
   (`gw1.simple.sim.layout`: no pico-cycler, no sieg, single `hp-relay`) follows the `else` branches —
   except the call to `self.layout.vdc_relay`, which must become "if this layout has a pico-cycler-owned
@@ -276,7 +276,7 @@ replace-in-entirety. The construction sites (`scada.py`, the command-node base,
 
 ## Command interfaces and replies
 
-Status: Accepted · Pass 0 · Updated 2026-09-14 · Reviewed 2026-09-14@293b0215
+Status: Accepted · Pass 0 · Updated 2026-09-25 · Reviewed 2026-09-14@293b0215
 
 These interfaces and replies are the scada's command surface toward
 admin, the first built to the cross-cutting pattern
@@ -291,7 +291,7 @@ state enum reported through `single.machine.state`, plus
 `fsm.full.report` per command for actuators). Both command words carry
 the same authority envelope: `FromHandle`, `ToHandle`, `TriggerId`.
 Relays declare their vocabulary in the layout word
-(`relay.control.config`); hp-boss and five-v-boss carry theirs in
+(`relay.control.config`); hp-boss, five-v-boss and sieg-loop carry theirs in
 `Scada.COMMAND_NODE_INTERFACES` (`gw_spaceheat/actors/scada.py:1672`).
 The pico-cycler has no interface of its own: it is owned by five-v-boss,
 which forwards `RebootPicos` to it. The capability cover (above) is the
@@ -331,13 +331,14 @@ The receiver speaks only when nobody else can. Command nodes holding
 both checks: relay (`actors/relay.py` `_process_event_message`),
 hp-boss (`actors/hp_boss.py` `process_fsm_event`), five-v-boss
 (`actors/five_v_boss.py` `process_fsm_event`), pico-cycler
-(`actors/pico_cycler.py` `process_fsm_event`), 0-10V outputer
+(`actors/pico_cycler.py` `process_fsm_event`), sieg-loop
+(`actors/sieg_loop/__init__.py` `process_fsm_event`), 0-10V outputer
 (`actors/zero_ten_outputer.py` `process_analog_dispatch`). In each the
 message handler resolves the header source to a layout node and hands
 it to the command handler with the payload; a source not in the layout
 is dropped before either check. Every node
-that takes commands joins this list as it is built; sieg-loop under
-admin and the thermostat state machines are next. The check reads only
+that takes commands joins this list as it is built; the thermostat
+state machines are next. The check reads only
 the shared envelope, so it is a candidate for one shared site on the
 command-node base rather than a copy per handler.
 
