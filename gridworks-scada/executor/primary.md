@@ -52,7 +52,11 @@ The `Scada` PrimeActor owns:
   Contract status drives whether actuating commands come from the LTN
   (`RemoteControl`) or local logic (`LocalControl`).
 - Synchronous compressed reports (`ReportEvent`) + async `PowerWatts` upstream
-  when in `RemoteControl`; retention/backfill when out of contact.
+  when in `RemoteControl`; retention/backfill when out of contact. The
+  power meter reads the transactive boundary on its own thread and clock;
+  its aggregate leaves as the `PowerWatts` and, as the layout's
+  `transactive-power` channel (the meter, not the derived generator,
+  creates it), into the snapshot and the report.
 - Routing of `FsmEvent` / `AnalogDispatch` to actors via a command tree built
   from the hardware layout. The HSM ↔ command-tree ↔ capability-cover mechanism
   is specified in [`control-hierarchy.md`](control-hierarchy.md).

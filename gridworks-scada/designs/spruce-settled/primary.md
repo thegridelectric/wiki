@@ -1,6 +1,6 @@
 # Spruce settled (hub)
 
-Status: Draft · Pass 0 · Updated 2026-09-25 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
+Status: Draft · Pass 0 · Updated 2026-09-27 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
 
 **EDD: yes** the deployed spruce line and the simulated houses are the
 verification; a spoke reaches Verified only when a run against one of
@@ -63,6 +63,9 @@ them exercises it (`experiments/`).
   inconsistent meanings across the sema words and code (commander /
   actuator / ack-replier); the Commanding–Commandable–Actuator taxonomy is
   parked until its command-node sitting
+- `five-minute-energy.md` — the scada produces Wh per five-minute
+  interval at the transactive boundary, integrated by the power meter at
+  its clock, so no consumer has to integrate a change-driven power series
 - `fall-layouts.md` — the four layouts arriving fall 2026 (one sim,
   three Millinocket installs); what each removes/adds
 - `gw108-board.md` — schematic-verified board facts: zone signal

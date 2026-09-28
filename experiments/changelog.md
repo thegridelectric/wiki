@@ -6,6 +6,33 @@ the *why*.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-09-28 — maple-ecodan-start-in-full-keep: the Ecodan called at full keep
+
+A 21-minute admin-driven maple window, its own folder because it tests
+one thing: the Ecodan's start with the Siegenthaler loop fully kept and
+69 F water at its inlet. The call became power at 3 min 52 s and 1.5 kW
+at 6 min, both on the startup-signature medians, so the kept cold loop
+does not change the start delay; the kept loop climbed 56 F in 4 min
+with 1.5 to 2.6 F of lift; the compressor ran 1 to 2.5 min past relay 6
+opening, which is what an HpOff panel beside a 1.9 kW meter means. The
+folder carries the window logs, the four persisted reports, the broker
+capture, a parsed sieg-view strip and the run record. The 07:15 report
+was lost to closing on the laptop clock, 70 s ahead of the box.
+
+<!-- pending commit -->
+## 2026-09-27 — beta-field-windows round five: maple, basic-sieg 4d verified
+
+The folder keeps only the last run, so round four's spruce and beech
+artifacts go and maple's 11-minute window of 2026-09-27 takes their
+place: both window logs, the 16 persisted events, the broker capture,
+the subagent's read of them, and a provenance sidecar for each.
+`emit_instances.py` learns maple's alias, creates `instances/` when
+missing, and names the commits it ran against. The recipe's Houses table
+records maple as Active with a window up, and its 110-firmware section
+gains the BTU picos' `async.btu.params` refusal, seen at this round
+beside the tank picos'.
+
 ## 2026-09-25 — house_window: a two-pi window runs on both pis or neither; beech2 joins <!-- pending commit -->
 
 The window stopped `gwspaceheat2` on maple2 but not its restart timer, so

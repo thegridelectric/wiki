@@ -1,6 +1,6 @@
 # The Siegenthaler loop actor, as it runs
 
-Status: Draft · Pass 0 · Updated 2026-09-25
+Status: Draft · Pass 0 · Updated 2026-09-27
 
 > What this is: what `SiegLoop` does in the field today and where it falls
 > short, read from the code and from maple's journal. The code is
@@ -130,7 +130,8 @@ Most consequential first.
    relay command leaves the loop believing the move happened. The relay
    actor does hold a failed I2C write as an enforcement target and
    retries it with a critical glitch, so a transient failure heals below
-   the loop.
+   the loop. The branch answers this: "The package on the branch",
+   "Every move is confirmed and reported".
 10. **A move in flight has no owner.** Moves are tasks that sleep; a new
     move does not await the old one's end, and a scada stop part way
     leaves relay 14 de-energized with the motor running to the send stop.
@@ -180,10 +181,27 @@ takes the loop out of automatic control: the loop remembers the boss part
 of its handle, withholds the strategy's moves, and resumes when that boss
 changes, noticed on the 30 s tick. Every commanded move is a full run to
 the commanded stop, taken mid-travel as well, so a command to the stop the
-valve already rests on re-homes it. When the move ends the loop sends
-`fsm.full.report` to the scada under the commander's `TriggerId`.
-Relays 14 and 15 hang under `sieg-loop` in every tree, so the relays
-refuse any other commander by the immediate-boss axiom.
+valve already rests on re-homes it. Relays 14 and 15 hang under
+`sieg-loop` in every tree, so the relays refuse any other commander by
+the immediate-boss axiom.
+
+**Every move is confirmed and reported.** A move, commanded or the
+strategy's own, is a `Move` (`valve.py`) with one `TriggerId`: the
+commander's, or one the loop mints. The two relay commands ride under it
+(the choreography on `House0Hydronic` takes the id as a required
+argument). The valve machine's start transition sends the commands; the
+motor clock starts only when both relays' `fsm.full.report`s have
+arrived (`SiegLoop.relays_reported`), or after `RELAY_REPORT_WAIT_S`
+(5 s on the scada's clock) with a warning glitch `relay_silent`, since
+the relay's enforcement loop keeps retrying a failed write below the
+loop. A `dispatch.nack` from a loop relay is an error glitch
+`relay_nack` and ends the move without motor time; a `dispatch.ack` is
+taken silently. When the motor stops the loop sends one
+`fsm.full.report` to the scada under the move's id: the relays' atomics
+in arrival order, then its own (`sieg.valve.state` from and to, with the
+`move.sieg.valve` event when commanded). The rule this follows, and its
+open notes, are `control-hierarchy.md` "One full report per command,
+folded at the command nodes".
 
 ## Related
 

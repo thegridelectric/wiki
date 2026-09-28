@@ -1,6 +1,6 @@
 # Control hierarchy — HSMs, the command tree, and the capability cover
 
-Status: Draft · Pass 0 · Updated 2026-09-25
+Status: Draft · Pass 0 · Updated 2026-09-27
 
 > What this is: how the SCADA's hierarchical state machines (HSMs) and the command tree work **together**
 > — the piece the executor lacked. The HSM decides *who is in control*; the command tree *enforces* it via
@@ -297,15 +297,40 @@ The pico-cycler has no interface of its own: it is owned by five-v-boss,
 which forwards `RebootPicos` to it. The capability cover (above) is the
 set of these interfaces read off the live handles.
 
-**The full report is the written record, not the commander's feedback.**
-Every actuator and command node addresses its `fsm.full.report` to
-`primary_scada`, whoever commanded, so the journal holds each transition
-under the command's `TriggerId`. The commander learns take or refusal
-from the ack pair and the outcome from the state rows. The pico-cycler
-and five-v-boss do this; the relay's `boss_by_trigger` addressing, which
-under admin sends the report to the panel and never to the journal, is
-the divergence still to close (a launch item, with its test, in the
-spruce un-limbo design).
+**One full report per command, folded at the command nodes.** The
+`fsm.full.report` is the written record, not the commander's feedback:
+the commander learns take or refusal from the ack pair and the outcome
+from the state rows. A node sends its report under the command's
+`TriggerId` to its commander when the commander is an interior command
+node (`command_reply.COMMAND_NODE_CLASSES`: hp-boss, five-v-boss,
+pico-cycler, sieg-loop), and otherwise to `primary_scada`
+(`command_reply.report_destination`). An interior command node passes
+the command's `TriggerId` to the actuators it commands, keeps its own
+transitions under that id, folds the reports it receives into its own
+in arrival order, and sends the one report on by the same rule. A
+command the node starts itself (the cycler's boot cycle, hp-boss's
+boot open, the loop's automatic move) rides a `TriggerId` the node
+mints. So the scada holds exactly one report per `TriggerId`, every
+atomic names the machine it happened on, and no report goes to the admin
+panel, which follows state rows. The relay routes its report through the
+rule (`actors/relay.py`, both the GPIO and the I2C path); the four
+command nodes fold (`hp_boss.py process_fsm_full_report`,
+`five_v_boss.py process_fsm_full_report`, `pico_cycler.py
+process_fsm_full_report`, `sieg_loop/__init__.py move_ended`).
+
+Open, small opportunities for improvement:
+
+- A silent actuator leaves no trace in the folded report. The sieg-loop
+  waits five seconds for each relay's report, glitches `relay_silent`
+  and goes on; its report then simply lacks that relay's atomics. The
+  IEC 60870 and 61850 control models end the command on a missing
+  termination and re-read the state; at least the report should say a
+  record is missing rather than leave it absent.
+- The forwarded reboot skips the fold. five-v-boss forwards
+  `RebootPicos` to the cycler under the commander's `TriggerId`, and the
+  cycler reports the cycle to the scada under that id; five-v-boss adds
+  no transition of its own to a reboot, so nothing is lost, but it is the
+  one report under a boss-issued id that does not pass through the boss.
 
 **Two authority checks, in order, before a command is read.** A message
 names its sender twice: the transport header's source is who put it on
@@ -354,12 +379,15 @@ five-v-boss sends `RebootPicos` on to the cycler under the commander's
 `TriggerId`, remembers who commanded, and passes the cycler's ack or
 nack back with the handles rewritten to its own and the commander's
 (`actors/five_v_boss.py` `process_cycler_reply`); a reply it did not
-forward is logged and dropped. That is the one interior node consuming
-a reply today: hp-boss and the cycler do not yet act on the acks and
-nacks their own relays send (hp-boss logs its relay's ack as
-unexpected), and the one-glitch-per-stale-tree report on an unexpected
-NotMyBoss rides with that work
-([OPS-537](https://linear.app/gridworks/issue/OPS-537)).
+forward is logged and dropped. Every interior command node takes its
+own actuators' replies the same way: an ack is silent, since the full
+report confirms the actuation, and a nack is an Error glitch
+(`relay_nack`, with the relay, the `TriggerId` and the reason), because
+a node's own actuator refusing it is a scada fault, never a field
+condition. The sieg-loop also ends the move on a nack. The
+one-glitch-per-stale-tree report at a boss whose command was refused
+NotMyBoss by a node outside its tree rides with
+[OPS-537](https://linear.app/gridworks/issue/OPS-537).
 
 ## five-v-boss: the 5 V hold
 

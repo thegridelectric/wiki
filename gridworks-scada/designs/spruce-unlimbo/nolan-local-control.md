@@ -1,6 +1,6 @@
 # Nolan local control (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-26 · Linear: OPS-392
 
 > What this is: the rework of `NolanLocalControl` into the loop that
 > actually runs a Nolan house through a heating season. Today the actor
@@ -62,6 +62,19 @@ are gathered.
   the relay's rights check. Dormant means commands nothing. The
   partition's `command-tree-matrix` asserts this; the rework makes the
   sequence itself transition-aware.
+- **Actuators are not booted.** `initialize_actuators` commands
+  nothing ("actuators left at their adopted states"); every node that
+  is the direct boss of an actuator boots its actuators at start, once
+  they are ready (basic-sieg change 4c states the rule). The test that
+  proves it is one parametrized live test over every test layout and
+  every strategy selection the ops word allows (`ActuationAuthority`,
+  `SeasonalStorageMode`, `SiegLoopStrategy`): boot the scada, wait for
+  local control to initialize, and assert every relay has left Unknown
+  within seconds (`tests/actors/test_relays_boot.py`, with change 4c).
+  Nolan passes that criterion today only because its TCA9555 board
+  reads back and the relays adopt the pins; no boss commands a posture.
+  The rework's test is the stronger one: every relay receives a boot
+  command from its direct boss.
 - **Setpoints by channel-name scraping.** LocalControl finds zone
   setpoints with `'zone' in x and 'set' in x` rather than the circuit's
   Thermostat; nothing consumes `Thermostat.ComponentId` or

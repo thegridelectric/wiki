@@ -10,6 +10,169 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-28 — power meter creates transactive-power; boot holds every derived creator to its claim (OPS-392, `eae6078e` on jm/spruce-unlimbo)
+
+Round five at maple showed `transactive-power` with no value in the
+snapshot and absent from both reports: the layout names `power-meter`
+its creator and the meter computes the aggregate for `PowerWatts`, but
+nothing sent a reading on the channel. `report_aggregated_power_w` now
+sends a `SingleReading` on `transactive-power` to the scada beside each
+`PowerWatts`, and the aggregate reports on the 300 s boundary of the
+transactive inputs' capture period as well as on change, so the channel
+rides the periodic post like the metered inputs. The gap is a class, a
+named creator nothing checks, so `ScadaApp.assert_derived_creators`
+compares each creating actor's `derived_channels_created()` with the
+layout's `CreatedByNodeName`s after the actors load and refuses a layout
+with an unclaimed channel or an undeclared claim; parametrized over the
+orange, willow and nolan fixtures with one negative case. The derived
+generator's init raise on an unknown strategy stays.
+
+## 2026-09-27 — power meter reports on the period boundary (OPS-392, `b9679d4e` on jm/spruce-unlimbo)
+
+The meter's periodic report was due CapturePeriodS after a channel's
+last report, so the 300 s channels posted at a boot-relative moment
+(18:32:56, 18:37:56, 18:42:56 at maple's round-five window) and the
+zone heat-calls, whose periodic emission rides the meter's post, ran 176
+s behind the five-minute boundary. A channel's periodic report is now
+due when the wall clock crosses the next multiple of its CapturePeriodS,
+so every channel on one period posts together at the top of that
+period, in one synced reading to the scada and one to the derived
+generator. Test: with a patched clock, a channel reported 10 s past a
+boundary is not due at 290 s and is due at 301 s, then again at 600 s.
+
+## 2026-09-27 — derived generator takes a flow pico's channel readings; axiom 8 twin requires the four sieg channels (OPS-392, `92b4e5d1` on jm/spruce-unlimbo)
+
+A hall flow pico posts its gpm to the derived generator as
+`channel.readings`, a list per channel, and the generator matched only
+`single.reading` and `synced.readings`, so every hall flow post it was
+sent went nowhere. The simulated houses never showed it: a sim sensor
+posts synced readings. At beech the derived `sieg-send-flow` fired only
+when the primary BTU meter posted, with `sieg-flow` read from the
+scada's cache; at maple the identity over `sieg-send` would never have
+fired and `primary-flow` never summed. The generator now takes each
+reading of a `channel.readings` in order, as a single reading. Test: a
+primary-flow list from the flow pico node fires the difference once per
+reading, on orange.
+
+The sema word `gw.house0.layout` 000 axiom 8 names `sieg-cold`,
+`sieg-hot`, `sieg-flow` and `sieg-send-flow`, each in DataChannels or
+DerivedChannels; the gwsproto twin checked only the first and third, so
+a layout the registry rejects could load on the scada. The twin now
+mirrors the word. Test: a fixture stripped of `sieg-send-flow` from both
+lists is rejected, on willow (measures it) and orange (derives it).
+
+## 2026-09-27 — derived generator feeds its own readings onward; identity passes a flow through (OPS-392, `3f301321` on jm/spruce-unlimbo)
+
+Maple's send-line pico posts as `sieg-send`, so its layout makes
+`sieg-send-flow` an identity DerivedChannel over that channel and
+`primary-flow` a sum over the identity (basic-sieg change 4d). Two
+things stood in the way. `handle_identity` ran every input through the
+temperature converter, which raises on a flow; a reading whose encoding
+is the channel's OutputUnit now passes through unchanged. And the
+generator sent its outputs only to the scada, so a derived channel with
+a derived input never fired; every handler now emits through
+`emit_derived`, which sends to the scada and then dispatches the reading
+to the derived channels that take it, the same per-channel lookup a
+device reading gets. The sum and difference registration checks compare
+encodings through the GpmTimes100 = GpmX100 pairing, since a
+DataChannel's unit is a TelemetryName and a DerivedChannel's a Unit.
+Heat-call keeps its own dispatch. Tests: identity passes a GpmTimes100
+reading through; one primary-flow reading fires an identity and a sum
+over that identity.
+
+## 2026-09-27 — one full report per command, folded at the command nodes (OPS-392, `e4bd4b77` on jm/spruce-unlimbo)
+
+The scada keys its recent full reports by TriggerId, so the
+control-hierarchy rule that every actuator reports straight to the scada
+would have a relay's report and its folding boss's collide under one id,
+and under admin the relay's report went to the panel and never to the
+journal. The rule now (control-hierarchy "One full report per command,
+folded at the command nodes"): a report goes to the commander when the
+commander is an interior command node, which folds it into its own under
+the command's id, else to the scada. `command_reply` carries the class
+set and `report_destination`; the relay routes both its GPIO and I2C
+reports through it; the pico-cycler and five-v-boss fold their relay's
+atomics into the cycle's or hold's report; hp-boss passes the command's
+id to the call relay, keeps its own transitions as atomics, folds the
+relay's report and sends one report to the scada, minting an id for its
+boot open and the start timeout. Every command node now takes its
+relay's ack silently and glitches a nack as an Error (`relay_nack`).
+Tests: a relay under admin reports to the scada; the cycler's, the
+hold's and hp-boss's reports carry the relay's atomics; one nack test
+per node.
+
+## 2026-09-27 — sieg loop confirms its relay moves and reports every move in full (OPS-392, `7c3b5531` on jm/spruce-unlimbo)
+
+basic-sieg change 4c, second item. The loop's two relays answered it
+with a dispatch ack and a full report, and the loop logged both as
+unexpected; a nack was invisible, and an automatic move left no full
+report at all. Now every move carries one TriggerId, the commander's
+when commanded and one the loop mints when automatic; the two relay
+commands ride under it; the loop waits for both relays' full reports
+before the motor clock starts (five seconds on the scada's clock, then a
+warning glitch and the clock starts anyway, since enforcement below the
+loop keeps retrying a failed write); a nack ends the move with an error
+glitch; and when the motor stops one `fsm.full.report` goes to the scada
+with the relays' atomics and the loop's own under that id. The
+choreography on House0Hydronic takes the id as a required argument.
+Tests in `tests/actors/test_sieg_loop.py`: the capture helper answers
+relay commands as a relay would, and new tests cover the shared id, the
+folded report, a nack, a silent relay, and an automatic move's report.
+
+## 2026-09-27 — every direct boss boots its relays: hp-boss opens the call relay, local control discharges the store (OPS-392, `6296ec89` on jm/spruce-unlimbo)
+
+basic-sieg change 4c, first item. On a Krida board a relay actor's boot
+adoption stays Unknown and writes nothing to the bus, so a relay asserts
+a posture only when its boss commands one. At maple on 2026-09-25
+`hp-scada-ops-relay` and `charge-discharge-relay` sent nothing at boot:
+hp-boss started by reporting HpOff without commanding its relay, and
+local control's `initialize_actuators` excluded the store relay in
+AllTanks mode for no recorded reason. `HpBoss.start` now commands
+OpenRelay beside the HpOff report (the relay defers the command until
+its boot adoption completes), and the AllTanks exclusion is gone: local
+control always boots the store relay to DischargeStore, which on House0
+is iso valve open and valved to discharge, the posture every fallback
+commands; AllTanks re-commands ChargeStore at its first state decision.
+Test first, `tests/actors/test_relays_boot.py`: a 1-wise covering of
+the axes (three House0 local-control strategies, both loop strategies,
+both House0 layouts) in three live boots plus Nolan, each asserting
+every relay leaves Unknown within ten seconds; two House0 rows failed
+before the fix on exactly those two relays. The hp-boss boot test now
+expects the OpenRelay command.
+
+## 2026-09-26 — relay actor reports its energization as a channel reading (OPS-392, `c32108bd` on jm/spruce-unlimbo)
+
+basic-sieg change 4b. Since the Krida multiplexer went, the per-relay
+actor sent only `SingleMachineState`, so every relay's `RelayState`
+channel read no value on the strip and in the journal's readings
+tables, the loop's two relays included (maple, 2026-09-25). `send_state`
+in `actors/relay.py` now also sends a `SingleReading` on the relay's
+channel, 1 energized and 0 de-energized, with the same time as the
+state, wherever it sends the state: the boot report after adoption,
+each confirmed command, each verify pass. Unknown still sends neither.
+The scada already forwards relay readings to the admin panel. Tests
+first: the House0 sim rig asserts a reading beside every state after
+each command and none while Unknown
+(`test_house0_relay_reports_its_energization_as_a_reading`); the Nolan
+readback rig asserts the boot reading (`test_por_boot_adopts_deenergized`).
+
+## 2026-09-26 — secondary scada resends its readings when its link to primary scada goes active (OPS-392, `183c3759` on jm/spruce-unlimbo)
+
+basic-sieg change 4a. scada2's readings travel to the scada as
+`SyncedReadings` at QoS 0 with no ack, so a report the scada is not
+ready for is gone, and after a scada restart or a link bounce the scada
+had no `hp-lwt` / `hp-ewt` until the next change past the delta or the
+next capture, up to five minutes (maple, 2026-09-25: first `hp-lwt`
+exactly 300 s after boot). `SecondaryScada.forward_synced_readings` now
+keeps the latest reading of each channel it has forwarded
+(`ForwardedReading`: source node, value, read time), and
+`recv_activated` re-sends them, batched by source and read time, every
+time the local link goes active, with the original read times so the
+scada sees their true age. No ack added: the path flaps. Test first in
+`tests/actors/test_secondary_scada.py`: a reading forwarded, the link
+forced down and back, the scada holds both channels again with the
+original read time within a second; it timed out before the fix.
+
 ## 2026-09-25 — Add some debug logging (OPS-392, `2c2350f6` on jm/spruce-unlimbo)
 
 basic-sieg change 4, debug output for the maple test-drives and removed

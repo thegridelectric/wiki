@@ -3,6 +3,49 @@
 One entry per `starter-scripts` commit (git = the what, this = the why).
 Entries before 2026-08-23 live in git history only.
 
+<!-- pending commit -->
+## 2026-09-28 — maple_snap: a line per snapshot
+
+`maple_snap.py` prints a line on every snapshot the scada sends as well as
+on a 5 W power move, so with the window scada's snapshot at 2 s the water
+temperatures move on the strip at the meter's pace; the 30 s heartbeat
+stays only so a stalled feed still shows its flag.
+
+## 2026-09-28 — tweak maple snapshot (`c1ab3c8`)
+
+`maple_snap.py` shows `primary-flow` in place of `store-flow` and
+`dist-flow`, and drops the `hp-idu-pwr` column: primary flow is the number
+watched beside `hp-odu-pwr` while working on the maple heat pump, and the
+others were noise on the strip. The column header reprints every 20 data
+lines instead of every 5 minutes.
+
+## 2026-09-27 — adding temp_spruce_store_fill (`2f8117b`)
+
+`temp_spruce_store_fill.py` is a one-shot to charge the spruce store with
+the heat pump. It stops `spruce-winter-hack` (which owns the 0x21 relays),
+opens the charge valve, closes iso, runs the secondary pump, and requires
+more than 2.0 gpm of secondary flow after 60 s before it closes the HP call.
+The call is held for up to an hour and released early when the HP stops
+(hp-odu below 80 W after passing 500 W) or never starts within 10 minutes.
+Every exit path opens the call, reopens iso while the charge valve is still
+energized, closes the charge valve and restarts the winter hack. The
+charge valve opens before iso closes so it energizes with two companion
+coils (spruce-relay-stress, 2026-08-23). Temporary: deleted once the fill
+has run.
+
+## 2026-09-27 — winter hack: iso valve closes with the secondary pump (`e059967`)
+
+`spruce_winter_hack.py` closes the iso valve in the same step that turns
+the secondary pump off and opens it in the same step that turns the pump
+on; it was held open. The pipe from the top of the spruce buffer tank
+rises to the ceiling, and the suspicion is that a convection loop through
+it pulls hot water out of the buffer while the pump is off. Closing the
+valve tests that. The valve is slow to travel, so each pump start pushes
+against a closed or partly open valve for the length of the stroke, which
+is accepted. The exit failsafe now opens iso alongside the pump and drops
+the hp call last, so iso energizes with two companion coils when the call
+was closed (spruce-relay-stress, 2026-08-23).
+
 ## 2026-09-25 — add maple_snap (`07452c3`)
 
 `spruce_snap.py` with maple's channels and meter: `hp-ewt`, `hp-lwt`,

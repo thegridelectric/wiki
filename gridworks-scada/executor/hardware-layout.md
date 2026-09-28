@@ -235,7 +235,24 @@ whitewire power is the derived generator's business.
 **One rule for whether a device actor posts to the derived generator:**
 `HydronicLayout.feeds_derived(channel_names)`, true when a DerivedChannel
 consumes one of them. Pinning a node name or the sieg-loop flag in the
-actor is what it replaces.
+actor is what it replaces. A DerivedChannel may take another DerivedChannel
+as input: the generator dispatches each reading it emits through the same
+per-channel lookup a device reading gets (`emit_derived`,
+`derived_generator.py`), and the layout validators reject a cycle. The
+generator takes a device's `single.reading`, `synced.readings` and
+`channel.readings` alike; a hall flow pico posts the last.
+
+**Every derived channel's named creator makes it, checked at boot.** Each
+actor that creates derived channels answers `derived_channels_created()`
+(`DerivedChannelCreator`, `scada_app.py`): the derived generator, the
+layout's derived channels it is named creator of and has a strategy
+handler for; the power meter, the `transactive-power` channel. After the
+actors load, `ScadaApp.assert_derived_creators` refuses a layout that
+names a scada actor creator of a channel it does not claim, or whose
+actor claims a channel the layout does not name it creator of. A named
+creator that never sends on its channel leaves it out of the snapshot
+and the report with no fault in the log; the check turns that into a
+boot refusal. Disabled derived channels are outside it.
 
 **Names classes are bare assignments, with no `Literal` annotation.** The
 annotation narrows nothing a signature demands and doubles every rename.

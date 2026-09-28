@@ -352,6 +352,14 @@ what it reaches, and keep climbing rather than routing around it.
 run in dev):** get a simulated House0 and a simulated spruce working
 against tests with genuinely decent coverage — nothing else. CHALLENGE any
 scada work that does not serve this focus, including work Jessica floats.
+One clear exception: work that **clears out the pipes**, finding hidden
+crud on a path the fleet really runs that we would not otherwise easily
+find (a channel nothing sends on, a creator no actor claims, a reading
+dropped at a boundary). That work serves the focus without needing to be
+named by it, because it finds what tests written from today's
+understanding do not look for. It is not to be challenged, and it matters
+most on the paths that carry the core mission on the electric grid:
+metering, energy, the transactive boundary.
 Once green: run both in dev, then bring the four upstream data repos
 (gjk, gridworks-data, gridworks-web-backend, gridworks-web-frontend) to
 correct layout-sema ingestion IN DEV. No per-house "specials" upstream —

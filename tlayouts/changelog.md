@@ -10,6 +10,25 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-27 — maple's send-line pico keeps its name; the grammar name is an identity over it (OPS-392, `3b3af5e` on jm/spruce)
+
+In the 2026-09-25 maple window `sieg-send-flow` never reported: the pico
+identifies itself as `sieg-send`, the name its production layout gives
+it, and the window layout named the node `sieg-send-flow` through the
+`<position>-flow` grammar, so its posts reached no node and the derived
+`primary-flow` never fired (basic-sieg change 4d). Renaming the pico
+means old firmware of unknown version, so the layout carries the name:
+`FlowSpec` takes an optional `node_name` for a pico that posts outside
+the grammar; its node and flow channel take that name, its Hz channel
+`<node_name>-hz`, and `<position>-flow` is emitted as an identity
+DerivedChannel over the flow channel, so the rest of the layout reads
+the grammar name. Maple's spec sets it; the `RENAMED` table, whose only
+entries mapped `sieg-send-flow` onto the deployed `sieg-send` ids, goes,
+and renames are per house through the config's `renames`. A one-off:
+every new sieg house names its meter `sieg-send-flow`. Test: maple's
+generated layout keeps the deployed node and channel ids under
+`sieg-send`, emits the identity, and sums the grammar name.
+
 ## 2026-09-25 — test with Maple at HoldFullSend (OPS-392, `50efea8` on jm/spruce)
 
 The maple beta window drives the sieg valve from the admin panel with

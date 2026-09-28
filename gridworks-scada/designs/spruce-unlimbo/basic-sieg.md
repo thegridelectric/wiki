@@ -1,6 +1,6 @@
 # basic-sieg
 
-Status: Accepted · Pass 1 · Updated 2026-09-25 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-09-28 · Linear: OPS-392
 
 > What this is: a spoke of [`primary.md`](primary.md). The least that has
 > to change in the Siegenthaler loop for maple and beech to take the
@@ -31,7 +31,7 @@ as a strip, it catches readings that vanish while their picos are
 alive. Debug output, removed with its tests in `test_sieg_loop.py` once
 the maple test-drives of change 5 are done.
 
-### 4a. scada2 re-sends its readings when its link to the scada goes active
+### 4a. scada2 re-sends its readings when its link to the scada goes active ✅ built
 
 The loop reads `hp-lwt` and `hp-ewt` from the second pi. scada2's
 analog-temp actor reports a channel once at its first reading, then on a
@@ -56,13 +56,15 @@ again with their original read times, so the scada sees their true age.
 No ack is added: this path flaps, and a re-send on each activation
 covers what an ack would.
 
-Test first (`tests/`, the scada2 suite): scada2 running with readings
-forwarded, the scada's link dropped and re-established, the scada holds
-every scada2 channel within a second of the link going active, with the
-original read times; without the fix the test waits a capture period
-and fails.
+Built as `SecondaryScada.forward_synced_readings` (keeps a
+`ForwardedReading` per channel: source node, value, read time) and
+`SecondaryScada.recv_activated` (re-sends them, batched by source and
+read time, on the local link). The test is
+`tests/actors/test_secondary_scada.py`: a reading forwarded, the link
+forced down and back, the scada holds both channels again with the
+original read time within a second; before the fix it timed out.
 
-### 4b. The relay actor reports its energization as a channel reading
+### 4b. The relay actor reports its energization as a channel reading ✅ built
 
 On `dev` the Krida multiplexer sent each relay's `RelayState` channel, 1
 energized and 0 de-energized: a `SingleReading` on every actuation and a
@@ -83,20 +85,149 @@ level, 1 energized and 0 de-energized: the boot report after adoption,
 each confirmed command, each 5-minute verify pass. An Unknown state
 sends neither.
 
-Test first (`tests/actors/test_relay_i2c_house0.py`): the primary scada
-receives the `RelayState` reading at boot and after a command, with the
-value matching the pin; it fails on the branch today.
+Built in `send_state` (`actors/relay.py`): the reading goes out beside
+the state, same time. Tests:
+`test_relay_i2c_house0.py::test_house0_relay_reports_its_energization_as_a_reading`
+(a reading beside every state after each command, none while Unknown)
+and `test_relay_i2c.py::test_por_boot_adopts_deenergized` (the boot
+reading on a readback board). Both failed before the fix.
 
-### 4c. TODO: `sieg-send-flow` never reports at maple
+### 4c. TODO: two things the first maple window showed at boot
+
+Both from the 2026-09-25 maple strip; each gets a local test that
+reproduces it before its fix.
+
+**4ci. Every node that is the direct boss of an actuator boots its actuators.** ✅ built
+On a board with no readback (the Krida) a relay actor's boot adoption
+stays Unknown and writes nothing to the bus; the pin holds the board's
+power-on level on a cold boot and whatever it was on a service restart.
+The relay asserts a posture only when its boss commands one, so the
+boss's start is where boot posture is established, and the command tree
+keeps the intermediate bosses in every tree (`set_command_tree`,
+`actors/scada.py`: hp-boss, sieg-loop and five-v-boss sit under the
+boss with their relays under them; the rest sit directly under the
+boss). At maple on 2026-09-25 `hp-scada-ops-relay` and
+`charge-discharge-relay` sent nothing to the bus at boot, and the tree
+says why:
+
+- `hp-boss` starts by reporting HpOff and does not command
+  `hp-scada-ops-relay`; the belief is unenforced. Local control's
+  `initialize_actuators` never reaches the relay (hp-boss is its boss;
+  the exclusion naming it there is redundant).
+- Local control is `charge-discharge-relay`'s boss and its
+  `initialize_actuators` (`actors/local_control/house0/tou_base.py`)
+  excludes the relay in AllTanks mode, so nobody commands it. The
+  exclusion has no recorded reason and goes: local control always
+  commands DischargeStore at boot. On House0 that one relay moves both
+  valves, so DischargeStore is iso valve open and valved to discharge,
+  the posture every fallback path commands; AllTanks re-commands
+  ChargeStore when its first state decision says so.
+- `sieg-loop` does boot its pair, through its strategy's
+  actuators-ready hook.
+- `five-v-boss` starts by reporting its state only; whether the pico
+  cycler commands `vdc-relay` at boot is not yet checked.
+
+The fix is one rule, applied per boss: at start, once the actuators are
+ready, each direct boss commands every actuator it bosses to its boot
+posture. hp-boss commands OpenRelay at start beside the HpOff it
+already reports; local control drops the AllTanks exclusion. Test
+first: one parametrized live test over every test layout and every
+strategy selection the ops word allows; boot the scada, wait for local
+control to initialize, and assert every relay has left Unknown within
+seconds (`tests/actors/test_relays_boot.py`: three hand-picked House0
+rows covering each local-control and loop strategy once, plus Nolan;
+interim until the tree hierarchies are encoded as a graph the tests
+walk, the plan in `command-tree-matrix.md`). The two House0 rows that failed on exactly
+these two relays pass with hp-boss commanding OpenRelay at start and
+the AllTanks exclusion gone. Nolan passes this criterion by readback
+adoption alone; commanding a boot posture there is the Nolan
+local-control rework's (`nolan-local-control.md`).
+
+**4cii. The loop confirms its relay moves and reports every move in full.** ✅ built
+The loop's two relays answered it with a dispatch ack and a full report
+and the loop logged both as unexpected; a nack was invisible, and an
+automatic move wrote no full report. Now every move, commanded or
+automatic, is one `Move` with one TriggerId (the commander's, or one the
+loop mints); the two relay commands ride under it; the motor clock
+starts when both relays have reported, or after five seconds on the
+scada's clock with a warning glitch (`relay_silent`), since enforcement
+below the loop keeps retrying a failed write; a nack skips the motor
+time and glitches an error (`relay_nack`); and when the motor stops one
+`fsm.full.report` goes to the scada with the relays' atomics and the
+loop's own under that id. Tests: the capture helper answers relay
+commands as a relay does, and one test each for the shared id, the
+folded report of an automatic and a commanded move, the clock starting
+on the reports, a silent relay, and a nack.
+
+Two things this leaves for the executor. The control-hierarchy's
+"written record" rule wants every actuator's full report addressed to
+the scada; the scada keys its recent reports by TriggerId alone, so a
+relay reporting straight to the scada under its boss's id would collide
+with the boss's own report. Folding at the boss is the shape that fits:
+the loop does it; the pico-cycler and five-v-boss read their relay's
+report only to confirm and report their own transitions alone. Nothing
+in relay.py or the scada changed here; write the rule up when the relay
+addressing item closes. And the choreography's relay commands from the
+strategy's own tick used to mint an id each; the four loop methods on
+House0Hydronic now take the id as a required argument.
+
+### 4d. `sieg-send-flow` never reports at maple ✅ built
 
 In the 2026-09-25 maple window `sieg-send-flow` had no value for the
 whole run, so `primary-flow`, which maple derives from it and
 `sieg-flow`, was never derived either. Without them the flows cannot
 confirm the valve at keep (`sieg-send-flow` to zero, `sieg-flow` up) or at
-send. Find where the reading stops: the pico or meter that captures it,
-its channel in the window layout, or the derivation.
+send.
 
-### 4d. Minor sema and admin change
+Cause (confirmed with the starter-scripts API): the Hall pico on the
+send line (`pico_481731`) identifies itself as `sieg-send`, the name
+the `main` layout gives its actor (`gen_maple.py`,
+`ActorNodeName='sieg-send'`); production journals a sensible `sieg-send`
+flow from it. The window layout named the node and channel
+`sieg-send-flow` through the FlowSpec grammar (`<position>-flow`), so no
+node answered to `sieg-send` and its posts went nowhere. Renaming on the
+pico means the old flow firmware, version unknown, so the fix is in the
+layout and the derived generator:
+
+- **Layout (tlayouts `jm/spruce`, `maple_gen.py`).** The pico keeps its
+  node and DataChannels as `sieg-send` / `sieg-send-hz`, with their
+  deployed ids, through `FlowSpec.node_name`, a per-meter string for a
+  pico that posts outside the grammar; `emit_flow` then emits an
+  `identity` DerivedChannel `sieg-send-flow` = [`sieg-send`], GpmX100 in
+  and out, created by `derived-generator`, which feeds the `sum` that
+  derives `primary-flow`. The `RENAMED` table is gone; renames are per
+  house. Maple is the one case: every new sieg house names its meter
+  `sieg-send-flow` through the grammar, and the House0 generation assumes
+  nothing of maple's shape. No sema change: `gw.house0.layout` axiom 8
+  "SiegManifoldChannels" takes the channel as Data or Derived and requires
+  no flow-meter node by name.
+- **Identity passes a flow through.** `handle_identity`
+  (`actors/derived_generator.py`) passes a reading through unchanged when
+  its encoding is the channel's `OutputUnit` (GpmTimes100 and GpmX100
+  count as one encoding) and converts temperatures as before.
+- **A derived reading feeds the derived channels that take it.** Every
+  handler emits through `emit_derived`, which sends to the scada and then
+  runs `_dispatch_derived_input`, the same per-channel lookup device
+  readings take. The layout validators reject cycles
+  (`check_derived_channel_inputs_acyclic`), so the generator adds no
+  guard. `layout.feeds_derived` turns on the flow module's forwarding
+  once `sieg-send` is an input, and the generator takes the
+  `channel.readings` list a hall pico posts, reading by reading; before
+  4d it matched only single and synced readings, so no hall flow post
+  reached a derived channel on any house (at beech the difference fired
+  only on the BTU meter's posts).
+
+Tests: identity passing a GpmTimes100 reading through; one reading firing
+an identity and a sum over that identity; a flow pico's channel-readings
+list firing the difference once per reading; maple's generated layout
+keeping the deployed ids under `sieg-send`, emitting the identity and
+summing the grammar name (`tlayouts/tests/test_flow_meter_legacy_name.py`).
+Verified at maple 2026-09-27 (round five, `experiments/beta-field-windows/`):
+`sieg-send-flow` and `primary-flow` reported through an 11-minute window
+with a 110 s move to full send, the sum holding within 0.01 gpm on every
+strip line and every report reading.
+
+### 4e. Minor sema and admin change
 
 - `gw.command.interface` 001 (000 is published): a per-vocabulary flag
   saying the node takes a command while its observed state is no
@@ -260,7 +391,7 @@ to the house.
   between a missed test and the second trip.
 - **`is_blind` splits into its two meanings**: `inputs_missing()`, layer 2
   above, and the heat pump over its high power threshold more than 120 s
-  after an off command, which gets its own glitch. The line is the high
+  after an off command, which gets its own critical glitch. The line is the high
   threshold and not any power because a heat pump draws power while idle:
   the Samsung at spruce pulses to 318 W every five minutes with the
   compressor off (`../../executor/heat-pump-signatures/idle-signatures.md`),
@@ -300,6 +431,27 @@ deselects):
    `HoldFullSend`; the loop's power read is `hp-odu-pwr` with `hp-idu-pwr`
    at 342 W and steady.
 
+## Do this next
+
+The two power-meter changes decided 2026-09-27 are built on
+`jm/spruce-unlimbo` in one cluster after the boundary commit ("power
+meter reports on the period boundary"), tests first: the power meter
+creates `transactive-power` (a SingleReading beside each PowerWatts, on
+change and on the inputs' 300 s boundary), and every declared creator is
+held to its claim at boot (`assert_derived_creators`, parametrized over
+orange, willow and nolan with one negative case). The executor carries
+the invariant (`hardware-layout.md` "Every derived channel's named
+creator makes it, checked at boot") and the meter's ownership of the
+channel.
+
+Next: the maple window that verifies it against reality. In the round
+after this cluster is pushed and pulled on both maple pis, read
+`transactive-power` in the snapshot strip and in the first full-slot
+report: a value at boot, one per change above the nameplate ratio, one
+at each 300 s boundary, and the reported value equal to the sum of the
+six metered inputs at that reading. That window is also the one that
+tracks the two sieg-hot / hp-lwt questions under Verification below.
+
 ## Verification (EDD)
 
 A bounded window at maple, then beech, on the branch: a restart with the
@@ -329,6 +481,13 @@ from channels maple already reports:
   full keep at maple; `r` says whether a keep that reads under 1 is a real
   bypass or two meters disagreeing. It means something only while the
   inlets differ by more than a few degrees, which a start provides.
+- Primary flow depends on the valve posture, not only on the pump. At
+  full keep the pump drives the Siegenthaler loop alone, eight feet of
+  pipe from the heat pump's leaving line back to its entering line, with
+  almost no head; at full send it pushes through the buffer and
+  distribution. Maple 2026-09-27: 4.85 gpm at full keep, 4.13 gpm at
+  full send, same pump command. A flow reading is compared across
+  postures only with this in mind.
 
 **The strip, at maple and at beech.** Each heat pump start in the windows
 above is read back from the `sieg-view` lines, so the number of runs is
@@ -375,38 +534,9 @@ none of them.
 - Whether the target carries a margin, and whether the move to send is one
   travel or paced: a first part to the reckoned moment and a gradual
   finish over about 30 s more is the other sketch.
-
-## Do this next
-
-First, finish cutting this spoke to what change 6 needs: drop change 4
-once the strip has served the maple test-drives, drop "Not assumed" and
-most of this section, and state Verification as: `StratProtect` runs
-correctly, without destratifying the tanks, as the maple and beech heat
-pumps come on.
-
-The first maple window ran 2026-09-25 (seven minutes, HoldFullSend, the
-strip writing, the valve re-homed to send in 110 s). The second-pi swap
-is built for maple and beech: `house_window.sh` moves the second pi with
-the first, its restart timer included, and ends the window on both when
-it ends on either. A 30-minute maple window on both pis followed at
-16:32, before the timer was in the list; the timer restarted production
-scada2 at 16:45, so the analog temps after that are mixed-encoding and
-not evidence. The tie was witnessed at 17:21 (a killed scada2 ended both
-windows within 10 s), and a 15-minute window from 17:22 gave the first
-clean strip: the heat pump stayed at standby (54 W), the analog temps
-read true (LWT 96.0 °F, buffer 95.8 / 95.9 °F), and the valve re-homed
-keep to send. Three things it showed: every relay channel, the loop's
-two included, had no value for the whole window; `sieg-send-flow` never
-reported, so `primary-flow` never derived; and maple2's first `hp-lwt`
-arrived five minutes after boot, then one per 300 s while steady.
-
-Next, changes 4a and 4b, each test first: scada2 re-sends its readings
-when its link to the scada goes active, and the relay actor reports its
-energization as a channel reading. Then the two left from the first
-window, each with a local test first: why `hp-scada-ops-relay` and
-`charge-discharge-relay` sent nothing to the i2c bus at boot; and the
-loop logging its own relays' dispatch acks and full reports as
-unexpected messages. Then the
-window again, this time with the panel driven to keep and back, and the
-heat pump starting through it; `hp-lwt` should be on the strip within
-seconds of boot.
+- The 2026-09-27 maple strip showed the zone heat-call periodic emission
+  running 176 s late, which reads as the derived generator's periodic
+  emission firing only when an input reading arrives. Not sieg-loop; a
+  home outside this spoke once traced. (The strip's other gap,
+  `transactive-power` with no value, is closed: the power meter creates
+  it and boot holds every creator to its claim, "Do this next".)

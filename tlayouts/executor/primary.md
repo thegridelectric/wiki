@@ -84,9 +84,8 @@ live record.
   they bind to, the board binding, or type plus ordinal), never on a
   caption; a caption change SHALL NOT mint a new ComponentId
   (`tests/test_component_id_stability.py`). A renamed node, channel or
-  node-bound component keeps its id when the rename is declared: fleet-wide
-  in `RENAMED` (`layout_gen.py`), per house in the config's `renames`
-  (new name, deployed name). Undeclared, the new name is minted and the
+  node-bound component keeps its id when the rename is declared per house
+  in the config's `renames` (new name, deployed name). Undeclared, the new name is minted and the
   channel's history splits at the id.
 - **A deployed house's ids come from its pi, then from the gen's previous
   output.** The spruce, beech and maple drivers fetch the pi's running
@@ -136,7 +135,11 @@ live record.
 - **`FlowSpec`** — one standalone flow meter at a `position`, an open
   `SpaceheatName` the `<position>-flow` / `-hz` grammar composes
   (`FlowNodeNames` / `FlowChannelNames`): `dist2` → `dist2-flow`, `sieg-send`
-  → `sieg-send-flow`. `kind` picks the pico family: `hall` (the fleet
+  → `sieg-send-flow`. `node_name` is the name a deployed pico posts under
+  when it is not the grammar's: its node and flow channel take that name,
+  its Hz channel `<node_name>-hz`, and `<position>-flow` is an identity
+  DerivedChannel over the flow channel (maple's `sieg-send`; a one-off for
+  a pico that cannot be renamed). `kind` picks the pico family: `hall` (the fleet
   default, Saier, `ConstantGallonsPerTick` 0.0009, sets
   `PublishEmptyTicklistAfterS` / `PublishTicklistPeriodS`) or `reed` (keeps
   `PublishAnyTicklistAfterS` / `PublishTicklistLength`); `flow_meter_type`
