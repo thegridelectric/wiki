@@ -10,6 +10,129 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-04 — Nolan ops author SeasonalStorageMode BufferOnly (jm/spruce, `044d64f`)
+
+`spruce_gen.py` and `honeysuckle_gen.py` author
+`seasonal_storage_mode="BufferOnly"`. **Why:** the scada's loader has a
+Nolan machine only for BufferOnly (`NolanBufferOnlyTou` for Heating,
+`NolanBufferOnlyCoolingTou` for Cooling); a Nolan ops word authoring
+AllTanks selects no machine and the scada raises at boot.
+
+<!-- pending commit -->
+## 2026-10-02 — beech: sieg and dist tank modules commented out (jm/beech-sieg-off, off main)
+
+`gen_beech.py`: the `dist` tank module `pico_37a237` is commented out:
+on scada main `ApiTankModule.__init__` accepts only the buffer and
+tankN names and raises StopIteration for any other, which took
+gwspaceheat down at every start on 2026-10-02 15:47; the unlimbo branch
+carries free-standing modules and the window layout keeps it. Beech
+reports dist-flow and no dist temperatures until that merge. The `sieg`
+tank module `pico_605430` is commented out,
+its depth mapping kept in the comment (depth1 sieg-hot, depth2
+sieg-cold, depth3 hp-lwt2). The beech 5 V supply sits at 4.85 V with
+the rest of the fleet and sags to 4.7 V with this pico added, so it is
+unplugged; a layout that still names it would carry a permanently
+missing pico. Production pair put on beech (`scada/`) and beech2
+(`scada2/`), both scadas left stopped.
+
+<!-- pending commit -->
+## 2026-10-02 — beech window layout: dist and sieg pipe-thermistor modules as identity deriveds (OPS-392, jm/spruce)
+
+`beech_gen.py` mirrors the production change on main: the dead dist-btu
+`pico_47352a` goes; dist is a Hall flow pico `pico_1d3b35` and a tank
+module `pico_37a237` whose depths 1 and 2 feed `dist-swt` / `dist-rwt`;
+sieg-flow stays the Hall pico `pico_4e6e35`; a sieg tank module
+`pico_605430` carries `sieg-hot` (depth 1), `sieg-cold` (depth 2) and
+`hp-lwt2` (depth 3, beside the primary-btu's hp-lwt well), all as
+identity DerivedChannels over the `-device` channels; the ADS board
+loses sieg-hot (9), sieg-cold (11) and buffer-well (12). The sieg
+module is unplugged (the 5 V bus sags from 4.85 V to 4.7 V with it on),
+so `sieg` is in DisabledNodeNames with its nine channels and three
+deriveds in DisabledChannelNames (axiom 28 requires every channel a
+disabled node captures to be listed). To author that, the gen library
+lifts `extra_tank_modules`, `extra_identity_deriveds` and
+`emit_identity_deriveds` from the Nolan gen to the shared
+`LayoutGenConfig` / `LayoutGen`, and the House0 build emits both. The
+production gen (`gen_beech.py` on main, `jm/beech-sieg-off`) comments
+the sieg module out instead, since scada main has no disabled roster.
+Window pair put on beech and beech2 (`scada-experiment/`).
+
+## 2026-10-02 — Add sieg tank module and new dist flow pico and new dist tank module (`f86b447` on main; `cfb1c80` "new dist btu (wifi)" is the intermediate commit)
+
+`gen_beech.py`: the dist-btu gw101 rev C is broken and there are no
+spares, so dist is a tank module "dist" on `pico_37a237` (dist-depth1 =
+supply, dist-depth2 = return) plus a hall flow meter dist-flow on
+`pico_1d3b35`. Beech reports the raw `dist-depth1-device` /
+`dist-depth2-device` channels and no dist-swt / dist-rwt: scada main has
+no way to derive one channel from another (its DerivedChannelGt names no
+input and its derived-generator has no strategy handlers). When beech
+moves to the unlimbo branch the pair comes back as identity deriveds
+over the device channels, the way spruce declares fancoil-swt over
+`fancoil-depth1-device`. sieg-flow stays
+a hall flow module (`pico_4e6e35` until the replacement pico is flashed)
+a sieg btu on `pico_605430` was
+tried on 2026-10-01 while a working gw101 was thought to exist, and the
+pico never posted in the 2026-10-02 census. That pico is reflashed as
+the tank module `sieg` (fw `6a713e1`), three pipe thermistors on the
+sieg loop: depth1 is the heat-pump supply beside the primary-btu well
+(hp-lwt2), depth2 sieg-hot, depth3 sieg-cold. The meaning lives in a
+comment in the gen, since scada main cannot name a derived channel's
+input; the device channels are `sieg-depthN-device`. The multipurpose
+board loses terminals 11 (sieg-cold) and 12 (named `buffer-well`, which
+the buffer tank module's depth 2 reads; on 2026-10-02 it carried the
+hp-lwt comparison Amphenol, which tracked the primary-btu's hp-lwt
+about 3 F high on `snap_ads.py`). That board is a three-year-old i2c
+ADC prototype on solderless breadboards whose contact resistance drifts,
+the same failure the solderless tank modules showed in fall 2025, so its
+remaining channels (store-hot-pipe, store-cold-pipe, buffer-hot-pipe,
+zone1-down-gw-temp, zone2-up-gw-temp) are untrusted; GRI-6 tracks it.
+
+## 2026-10-01 — update the dead primary reed flow meter at fir (`39a4148` on main)
+
+`gen_fir.py`: the primary-flow reed pico is `pico_994b32`, a bare Pico W
+on the breadboard, replacing `pico_1b5636`, found hot with its label tape
+discolored during the fir 5 V bus repair. Main only; `jm/spruce` carries
+the same change once fir is healthy. Regenerated with ids seeded from the
+layout fir ran, so only the HwUid and the three flow ComponentIds differ
+(the flow ids regenerate on every run: `layout_gen/flow.py:94` tests the
+`component_display_name` method without calling it).
+
+## 2026-09-30 — Nolan ops authors the buffer band thresholds (OPS-392, `75e53fb` on jm/spruce)
+
+The vendored snapshot regenerates from sema `dev` (`ebde45d`),
+where `gw.nolan.family.params` 000 carries `BufferFullF` and
+`BufferChargeF`; the Nolan `OpsSpec` gains `buffer_full_f` and
+`buffer_charge_f` and every Nolan generator authors 130 and 90.
+**Why:** the Nolan heating machine gates the heat pump call on the
+buffer band, and the band's thresholds are a tunable of the house, so
+the ops word carries them.
+
+## 2026-09-30 — ops authors Standby, its posture and relays, and AcceptsDispatch in place of actuation authority (OPS-392, `8d06151` on jm/spruce)
+
+`OpsSpec` loses `actuation_authority` and gains `standby`,
+`standby_posture`, `energized_standby_relays`, `accepts_dispatch` and
+`dispatch_refusal_reason` (spelled `None` when accepting); every generator
+authors them. Beech is the one Standby house (refusing with reason Standby);
+House0 houses list `hp-failsafe-relay` and `aquastat-ctrl-relay`, Nolan
+houses list nothing. The vendored snapshot regenerates from sema
+`jm/operating-status`. **Why:** the sema pass retired
+`gw1.actuation.authority`; the scada mirror reads these fields. Elm, fir,
+oak and honeysuckle generators fail on the layout's sieg-hot channel
+(axiom 8) before and after this change.
+
+## 2026-09-28 — maple's hp-lwt and hp-ewt report on 0.05 C; ADS channels carry their own async delta (OPS-392, `8ad61ac` on jm/spruce)
+
+The Siegenthaler loop reads the heat pump's leaving and entering water
+off two ADS thermistor channels, and their capture tuning earned an
+async reading only on a 0.5 C change, so the loop's strip stepped by
+0.9 F while a start was under way. `AdsChannelSpec` gains `async_delta`,
+defaulting to `ADS_ASYNC_DELTA_DEFAULT` (50, named at the top of
+`thermistor.py`); a gen names a delta only where a channel needs a finer
+one, and maple's `hp-lwt` and `hp-ewt` name 5 (0.05 C, five to twelve
+noise standard deviations on the EMA channels per the 2026-08-06
+ads-noise experiment). The default moves down
+once the fleet shows 0.5 C is not the noise floor.
+
 ## 2026-09-27 — maple's send-line pico keeps its name; the grammar name is an identity over it (OPS-392, `3b3af5e` on jm/spruce)
 
 In the 2026-09-25 maple window `sieg-send-flow` never reported: the pico

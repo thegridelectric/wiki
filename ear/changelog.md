@@ -12,6 +12,25 @@ Newest at the top.
 
 ---
 
+## 2026-09-29 — Same-millisecond objects get distinct, ordered names (`98954bb`, merged `b3cd7dd`)
+
+Objects are named by the millisecond the ear stores them, so a burst of
+messages inside one millisecond from one sender of one type collided:
+the later object overwrote the earlier in the eventstore, and a reader
+replaying in capture order (the registry rebuild) lost commands. The
+first object in a millisecond keeps the plain source; each further one
+appends its arrival counter as a trailing dotted segment of the source
+(`hw1.ear.2`). Four dash segments as before, so the journalkeeper
+importer and the registry rebuild parse it unchanged. Unit test pins
+the naming across a burst and the reset on the next millisecond.
+
+## 2026-09-28 — update gwbase to 0.5.14; don't log the broker URL (`6ed34e2`, merged `0e0b3eb`)
+
+Picks up the gwbase release that stops logging the broker password:
+`ActorBase.connect_consumer` logged the full AMQP URL at every connect,
+so this service wrote its broker credential into its file log and
+journald. Floor raised and lock refreshed; nothing else moved.
+
 ## 2026-07-24 — Recovery-only heartbeat probe (`8768ba8`, squash incl. generic aliases)
 
 **What:** the minute probe runs only while `s3_put_works` is False, and

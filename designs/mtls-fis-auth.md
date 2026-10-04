@@ -1,6 +1,6 @@
 # mTLS + FIS auth
 
-Status: Accepted · Pass 2 · Updated 2026-09-08 · Linear: OPS-420
+Status: Accepted · Pass 2 · Updated 2026-09-28 · Linear: OPS-420
 
 **EDD: yes** verified by real handshakes against a broker running the full
 stack: a client proves identity with its cert and claims, FIS allows a valid
@@ -341,8 +341,9 @@ until closed alongside this rollout). Per-house recipe: mint (with consent)
 
    **Do this next:** the prod set-up sequence ("Setting up the CRL on
    the broker" below), the rig leg being done (2026-09-08, 38/38 in
-   `experiments/2026-09-05-fis-gate-battery/`). Tool built and dry-run
-   against weather; ledger bootstrap commands in
+   `experiments/2026-09-05-fis-gate-battery/`). Tool built, dry-run
+   against weather, and on gridworks-infra `main` (merge `0298e35`, not
+   yet pushed); ledger bootstrap commands in
    `scratch/cert-ledger-bootstrap.md` (human runs: step 1). Then the
    rmqbot side on a `jm/` branch: `crl/` mount in `rmq-docker/
    compose.yaml`, `rmq-docker/config/advanced.config` carrying the whole

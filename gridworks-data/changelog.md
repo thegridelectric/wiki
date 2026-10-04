@@ -10,7 +10,7 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-09-14 — README: the database is observability, never a control dependency <!-- pending commit -->
+## 2026-09-14 — README: the database is observability, never a control dependency (`28a144b`; PR #10 merge `1b1d79c`)
 
 **Why:** A design for automated house-parameter fitting was about to
 have the LTN's estimator read the journal DB, which would make
@@ -58,7 +58,7 @@ the five roles non-interactively with password = role name
 script stays the production path. README states the convention and that
 consumers' defaults (gjk, gwalert) assume it.
 
-## 2026-08-06 — registry projection tables: drop position_points, add sent_at (`9eea2cc`)
+## 2026-08-06 — registry projection tables: drop position_points, add sent_at (`cb7f35c`, on `jm/remove-position-point-pii`, rebased onto main 2026-09-28)
 
 One commit on `jm/remove-position-point-pii` (amended to fold both
 changes into the single 0.4.0 migration `c3e8f1a9d2b7`); the sub-entries

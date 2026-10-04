@@ -6,8 +6,77 @@ the *why*.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-09-28 — maple-ecodan-start-in-full-keep: the Ecodan called at full keep
+## 2026-09-30 — alerter-to-alertmanager: the tap witnessed; snapshot from the published alert words (OPS-547, `a598162`)
+
+The new folder records the run: the alerter's `gw.alert` through the
+tap into a local Alertmanager, Firing paged, Resolved closed, alerter
+and tap restarted with the alert open, PASS; evidence, the archived
+store, the two alert-word instances and the run record, with the mock
+scada reused from the September 15 folder. `src/gwexp/sema` regenerates
+from sema `632b58e`: the five alert words leave `indexes/staging.yaml`
+as published; no generated class changed. **Why:** the design's handoff
+bar for OPS-547, and the snapshot has to say the words are published
+before the box run reads instances through it.
+
+## 2026-09-30 — sema snapshot regenerated from jm/operating-status (OPS-392, `65b1fdc`)
+
+`src/gwexp/sema` regenerates: `layout.lite` 013 loses `ActuationAuthority`,
+`ServiceMode` and `SeasonalStorageMode`, so `gw1.actuation.authority` and
+`gw1.service.mode` leave the closure; the regen also carries the sema
+changes since the last one (`gw1.actor.class` 014, the pico component
+words). No gwexp code read the retired enum. **Why:** the posture facts
+ride `gw.house.operating.status` now, and the experiment tooling decodes
+`layout.lite` from this snapshot.
+
+## 2026-09-28 — sieg-keep-ratio-map: the map, run in two windows (`9cca498`)
+
+The 26 stops ran script-driven through the admin path in two maple
+windows, 18:23 to 21:07 ET, and the record is written: keep onset 27 to
+30 s, half point 38 s, keep complete 54 to 57 s from the send stop; a
+stop counted down from the keep end lands 4 s further toward keep than
+its count says; the store relay makes no difference; and the flow
+meters answer about 1 s behind the water in motion, so the 4 s lag the
+morning's traverses implied was that second plus the keep-side offset.
+`keep_ratio.py` now reads only StopValve stops with their direction;
+`emit_instances.py` writes one run record per window; the protocol's
+timing is corrected to five minutes a run from send and seven from
+keep. The driver's window-1 log, committed mid-run, is now complete.
+
+## 2026-09-28 — Add sieg-keep-ratio-map experiment for maple (`9e0d91b`)
+
+Two pieces of basic-sieg work in one commit, plus another session's
+alerter evidence (`2026-09-15-alerter-no-data/`, recorded by that
+session). First, `maple-ecodan-start-in-full-keep` gains finding 6 and
+`loop_volume.py`: the nine closed-start chunks of the day's four windows
+fit the kept loop at about 0.8 gal of water, with the fitted volume
+climbing with temperature, so the model is missing a loss term that the
+holds are to calibrate. Second, `2026-09-28-sieg-keep-ratio-map/`, the
+experiment that replaces the loop's guessed valve constants with maple's
+own: `half_point.py` reads the day's full travels and places keep onset
+at about 26 s, keep complete at about 56 s and the keep stop at about
+94 s from the send stop, all six half crossings agreeing only with a
+4 s answer lag in the flow meters; `drive_keep_ratio.py` sends the
+panel's own admin dispatches from a script and times each StopValve
+from its MoveTo, so a run's position is set by the log, not by hand;
+`keep_ratio.py` reads the settled kept fraction per stop from held
+values with an age cap, since a settled flow posts nothing new. The
+protocol is 26 stops across the span where the split changes, from
+both directions with the store relay alternating, over two windows.
+
+## 2026-09-28 — beta-field-windows keeps every run under `runs/`; a run emits `gw.readings` (`ca6e4ea`)
+
+The basic-sieg change 5 series needs several heat pump starts kept side by
+side, so the "only the last run is kept" rule goes: each window is a folder
+under `beta-field-windows/runs/` (logs, events, capture, provenance
+sidecars, `instances/`), indexed in `runs.md`. `emit_readings.py` folds a
+run's `report.event`s into one `gw.readings` instance through the vendored
+snapshot, so a run's readings are read from a sema instance and not off
+the strip; `emit_instances.py` takes the run folder and the code ref as
+arguments instead of scanning the folder top. First run filed: the
+2026-09-28 12:41 maple window, one Ecodan start held at full keep and
+opened by hand at 120.9 F.
+
+## 2026-09-28 — maple-ecodan-start-in-full-keep: the Ecodan called at full keep (`29369cc`)
 
 A 21-minute admin-driven maple window, its own folder because it tests
 one thing: the Ecodan's start with the Siegenthaler loop fully kept and
@@ -20,8 +89,7 @@ folder carries the window logs, the four persisted reports, the broker
 capture, a parsed sieg-view strip and the run record. The 07:15 report
 was lost to closing on the laptop clock, 70 s ahead of the box.
 
-<!-- pending commit -->
-## 2026-09-27 — beta-field-windows round five: maple, basic-sieg 4d verified
+## 2026-09-27 — beta-field-windows round five: maple, basic-sieg 4d verified (`29369cc`)
 
 The folder keeps only the last run, so round four's spruce and beech
 artifacts go and maple's 11-minute window of 2026-09-27 takes their
@@ -33,7 +101,7 @@ records maple as Active with a window up, and its 110-firmware section
 gains the BTU picos' `async.btu.params` refusal, seen at this round
 beside the tank picos'.
 
-## 2026-09-25 — house_window: a two-pi window runs on both pis or neither; beech2 joins <!-- pending commit -->
+## 2026-09-25 — house_window: a two-pi window runs on both pis or neither; beech2 joins (`65f0a25`)
 
 The window stopped `gwspaceheat2` on maple2 but not its restart timer, so
 on the 16:32 maple window the timer brought production scada2 back at
@@ -259,7 +327,7 @@ the per-house part is the gen's two output filenames.
 
 ---
 
-## 2026-09-10 — pico-state-reported: journalkeeper reads the cycler's per-pico roster on the dev broker <!-- pending commit -->
+## 2026-09-10 — pico-state-reported: journalkeeper reads the cycler's per-pico roster on the dev broker (`90336c0`)
 
 New folder. The actual-spruce sim scada (`69d5d6ec`, nolan layout,
 simulated) with an LTN peer on the dev broker, and journalkeeper
@@ -289,7 +357,7 @@ alone. The folder was renamed from `pico-state-journal-dev-rung` to
 artifacts (captures, harness, decoded instances, readback) were
 dropped; the README keeps its findings.
 
-## 2026-09-10 — gw108-ct-testing: cut to run 3 and the explanation; ci.sh green <!-- pending commit -->
+## 2026-09-10 — gw108-ct-testing: cut to run 3 and the explanation; ci.sh green (`b0738bd`)
 
 The folder now holds one run and why it matters. Run 3 at spruce (a
 voltage CT on the CT4 connector, nothing on CT1) shows P0 reading 94 %
@@ -319,7 +387,7 @@ labelling a missing flow reading instead of dividing None), and the own-version 
 ads-noise reader instance is dropped with a note: that file records the
 pre-regenesis word, which no snapshot carries any more.
 
-## 2026-09-09 — gw108-ct-testing: folder renamed from adc-waveform-bench; spruce runs 1–7 in a dated subfolder; peek.py --channels <!-- pending commit -->
+## 2026-09-09 — gw108-ct-testing: folder renamed from adc-waveform-bench; spruce runs 1–7 in a dated subfolder; peek.py --channels (`e5f4f4f`)
 
 The bench folder now carries the question it answers (which gw108 CT
 inputs read what) rather than the first tool used. Today's seven
@@ -331,7 +399,7 @@ noise source. `peek.py` takes `--channels` so the own channel per phase
 follows the CT placement. The eGauge CT moved to eGauge port 05 for the
 secondary pump (tlayouts changelog has that side).
 
-## 2026-09-08 — gw108-relay-stress: one folder per harness, honeysuckle run 3 (bench board clean) <!-- pending commit -->
+## 2026-09-08 — gw108-relay-stress: one folder per harness, honeysuckle run 3 (bench board clean) (`3942920`)
 
 Third run of the relay-stress harness, on the bench gw108 (honeysuckle,
 nothing on the relay contacts): B3 0/100, F3 0/30, A3 0/30 against
@@ -349,7 +417,7 @@ at emission.
 
 ---
 
-## 2026-09-08 — fis-gate-battery: the revocation group (CRL on the rig broker) <!-- pending commit -->
+## 2026-09-08 — fis-gate-battery: the revocation group (CRL on the rig broker) (`84352c7`)
 
 The replaced-pi case from the mTLS + FIS auth design (OPS-420): a
 predecessor pi holds a still-valid cert with the same CN as its
@@ -370,7 +438,7 @@ REPLACES the conf file's rather than merging, so the whole TLS block
 `advanced.config` and `rabbitmq.conf` carries no `ssl_options.*`; the
 design's prod set-up sequence is corrected to match.
 
-## 2026-09-07 — adc-waveform-bench: capture harness, fold, and the vendored gw.adc.waveform <!-- pending commit -->
+## 2026-09-07 — adc-waveform-bench: capture harness, fold, and the vendored gw.adc.waveform (`193f126`)
 
 Rung `2026-09-07-adc-waveform-bench/` for the CT measurement chain
 (OPS-518). `capture.py` runs on the pi (smbus2, bus 1, ADS1115 at 0x48)
@@ -394,7 +462,7 @@ interactive matplotlib window. Run 1 is honeysuckle with no CT installed, so
 the expected picture is bias noise: it validates the sampling path and
 the fold before a CT exists on spruce.
 
-## 2026-09-06 — fis staging box: dropped <!-- pending commit -->
+## 2026-09-06 — fis staging box: dropped (`2b2d189`)
 
 The staging-box reproducer's timeline records the teardown: server,
 primary IP and firewall deleted on Hetzner, the Route 53 record removed,
@@ -473,7 +541,7 @@ not kept (its charge-valve reading was a confound). The commit also
 carries the 08-16 charge-valve folder's driver + `gw.readings` pull from
 the earlier unsquashed commit.
 
-## 2026-08-11 — README: name .env as the journal-DB access point <!-- pending commit -->
+## 2026-08-11 — README: name .env as the journal-DB access point (`d1f2413`)
 
 **What:** Layout section gains a `.env` bullet (`GJK_DB_URL`, gitignored).
 

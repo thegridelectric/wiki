@@ -1,6 +1,6 @@
 # Magic thresholds
 
-Status: Draft · Pass 0 · Updated 2026-09-18
+Status: Draft · Pass 0 · Updated 2026-10-01
 
 > What this is: the inventory of numbers the scada and LTN decide with that
 > live in code rather than in an ops word, a `names` constant, or a device
@@ -31,8 +31,16 @@ it exists. The candidate homes:
 | `MaxEwtF - 10` | `house0.py:615` | Caps the buffer-empty threshold 10 F under the heat pump's max entering-water temperature | ops word (a margin on a param already there) | open |
 | `min_delta_f = 5.4` | `house0.py:710` | How much colder the store top must be than the buffer top before storage counts as colder (5.4 F = 3 C) | ops word | open |
 | `usable_kwh < 0.2` | `house0.py:756` | Below this the store is "empty" | ops word | open |
-| Defrost lines: LG Multi V total under 8.4 kW, Samsung AE055 idu under 4 kW | `house0.py:42` (`DEFROST_SIGNATURES`) | Whether the heat pump is judged in defrost from its power draw | device record (`hp.device.type.gt`, noted in the records spoke) | decided 2026-09-15: hand-kept table until the record carries it |
+| Defrost lines: LG Multi V total under 8.4 kW, Samsung AE055 idu under 4 kW | `hp_boss/sensing.py` (`DEFROST_SIGNATURES`), read at `house0.py` `hp_in_defrost` | Whether the heat pump is judged in defrost from its power draw | device record (`hp.device.type.gt`, noted in the records spoke) | decided 2026-09-15: hand-kept table until the record carries it |
 | `PUMP_FLOW_GPM_THRESHOLD = 0.1` | `sh_node_actor.py:47` | Flow above which a pump counts as flowing (`store_pump_is_on`, `primary_pump_is_on`) | stays in code with a sentence, or ops word if a meter's noise floor differs by house | open |
+
+## Heat-pump surface (`actors/hp_boss/sensing.py`, `actors/sieg_loop/strat_protect.py`)
+
+| Threshold | Where | What it decides | Candidate home | Disposition |
+|---|---|---|---|---|
+| Compressor running above 500 W, stopped below 80 W (Samsung AE055, `SimHpOdu`) | `hp_boss/sensing.py` (`HP_TRAITS`) | The secondary pump and iso valve posture in the Nolan heating machine; does not handle defrost | device record (`hp.device.type.gt`), read once by the unit's sensed state machine on hp-boss (`control-hierarchy.md` "The heat-pump surface") | hand-kept table until the record carries it |
+| Call-open lead 120 s | `hp_boss/sensing.py` (`HP_TRAITS`) | How long before an on-peak window opens the call opens, so the compressor has stopped drawing by the boundary | device record (the unit's stop lag) | provisional until the spruce call-cycling experiment measures it |
+| `OFF_POWER_W = 500`, `OFF_SETTLE_S = 120` | `strat_protect.py` | Draw above which, this long after hp-boss reports off, the sieg loop is blind to the heat pump; not keyed by device type | the same device record values as the rows above, read from one place | open |
 
 ## Store temperature pass (`actors/hydronic/store_temps.py`)
 

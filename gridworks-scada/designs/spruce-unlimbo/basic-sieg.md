@@ -433,24 +433,22 @@ deselects):
 
 ## Do this next
 
-The two power-meter changes decided 2026-09-27 are built on
-`jm/spruce-unlimbo` in one cluster after the boundary commit ("power
-meter reports on the period boundary"), tests first: the power meter
-creates `transactive-power` (a SingleReading beside each PowerWatts, on
-change and on the inputs' 300 s boundary), and every declared creator is
-held to its claim at boot (`assert_derived_creators`, parametrized over
-orange, willow and nolan with one negative case). The executor carries
-the invariant (`hardware-layout.md` "Every derived channel's named
-creator makes it, checked at boot") and the meter's ownership of the
-channel.
-
-Next: the maple window that verifies it against reality. In the round
-after this cluster is pushed and pulled on both maple pis, read
-`transactive-power` in the snapshot strip and in the first full-slot
-report: a value at boot, one per change above the nameplate ratio, one
-at each 300 s boundary, and the reported value equal to the sum of the
-six metered inputs at that reading. That window is also the one that
-tracks the two sieg-hot / hp-lwt questions under Verification below.
+The valve's positions are measured (Open, "The valve's positions"): keep
+complete at about 56 s and the keep stop at about 94 s, so the two admin
+stops of 2026-09-28 at 81.5 and 81.1 s sat in the fully kept span short
+of the stop. Before the start algorithm (change 6) is rewritten, the loop
+gets a model that the day's data supports:
+`experiments/2026-09-28-maple-ecodan-start-in-full-keep/` finding 6 fits
+the kept loop at about 0.8 gal of water from nine closed-start chunks
+(V x rise = integral of flow x lift), with the fitted volume drifting up
+with temperature. The next move is the model's second term: separate the
+heat pump's own warming from room loss and from the 0.65 F same-water
+sensor offset, using the hold periods (only two exist, 55 W each at 64 F
+and at 105 F, which no loss-to-a-fixed-room line fits, so the next window
+holds the closed loop at three temperatures for ten minutes each with the
+heat pump off). Change 6's "park then one reckoned move" is not the plan
+until that model says what the valve should do; the two-stage sketch in
+Open stays open. Keep the admin lease alive through any start.
 
 ## Verification (EDD)
 
@@ -526,6 +524,68 @@ none of them.
 
 ## Open
 
+- Valve position and how certain the loop is of it. `keep_seconds` is one
+  float assumed 100 (full keep) at boot with no record of how it was
+  obtained; a commanded move re-homes by running the whole range, a
+  strategy move trusts the number plus the 10 s overshoot. At the
+  2026-09-28 13:31 boot the valve stood at send, the model said FullyKeep,
+  and the state was wrong for 108 s of motor. Two facts shape the fix.
+  Homing means a run to FULL send, which is 25 to 30 s of motor beyond the
+  point where the flow stops changing. And the number is reliable only
+  after one continuous move from a hard end stop; once a strategy adjusts
+  in small increments (the PID to come) the reckoned position drifts and
+  must not be trusted as if it were measured. So: two data channels
+  captured by the loop, both integer and written at each motor start and
+  stop. One is the homed position, reported only while the valve has made
+  at most one continuous move since it last ended on a stop, and silent
+  (no value) after the second move until the next stop. The other is the
+  reckoned position, always reported, the strategy's own estimate. The
+  channels are derived (`derived.channel.gt`): their inputs are the two
+  relay energization channels and the loop is the creator, and the unit
+  comes from `gw1.unit` 001, which already has `SecondsX10` and
+  `Milliseconds` under the Time quantity, so no vocabulary changes beyond
+  the two channel words in the layout.
+- The valve's positions, in motor seconds from the send stop, and the
+  names the code uses for them. The motor runs at one speed both ways;
+  the flow split changes only in the middle of the travel.
+
+  | Position | Name in code | Maple, measured 2026-09-28 |
+  | --- | --- | --- |
+  | Send stop | `keep_seconds = 0` | 0 s |
+  | Keep onset: the keep opening appears | `t1` | about 26 s |
+  | Half point: sieg-send-flow is half the total | | about 36 s |
+  | Keep complete: all flow kept from here on | `t2` | about 56 s |
+  | Keep stop: the mechanical end | `FULL_RANGE_S` | about 94 s |
+
+  Between onset and complete the split is a steep, non-linear function
+  of seconds, a ball valve's; the map of it is the queued
+  `experiments/future/sieg-keep-ratio-map/`. The numbers come from the
+  full travels of the four 2026-09-28 windows
+  (`experiments/2026-09-28-maple-ecodan-start-in-full-keep/`, read by
+  `experiments/future/sieg-keep-ratio-map/half_point.py`): toward keep
+  the half crossing came 40 s after every motor start; toward send it
+  came 61.5 s after a start from the keep stop and 48.5 s after a start
+  from the 81 s admin stop, which fixes the keep stop at 94 s. The
+  onsets of change and the settling of the other meter place `t1` and
+  `t2` the same way. They are facts about one valve, tunable by hand on
+  it, so they belong in the layout as parameters of the loop, not in
+  code; the code carries maple's values until the word exists.
+
+  The six crossings agree only if every flow reading answers about 4 s
+  after the motor: without that lag the half point sits at 40 s going
+  toward keep and 32.5 s going toward send, which a valve with no
+  memory of direction cannot do. A 4 s lag between the water and its
+  reading is a concern in its own right, whatever its source (the
+  meter's pulse period, the pico's posting, the scada's stamping), and
+  it is not yet explained; the crossing rows of `half_point.py` are the
+  data. It is dug into with the pico firmware work.
+
+- `sieg-flow` and `sieg-send` post-on-change behaviour against the layout's
+  deltas (sieg-btu `AsyncCaptureDeltaGpmX100` 10, sieg-send
+  `AsyncCaptureThresholdGpmTimes100` 4): whether the picos run the layout's
+  values or their flash defaults, given the BTU picos answer the params
+  exchange with version 000 against the scada's 100. Being read from the
+  2026-09-28 run.
 - What the Ecodan and the LG do idle beyond standby draw. The Samsung
   pulses to 318 W and runs its water pump with the compressor off; the
   "drawing power after an off command" line of change 6 and the `HpHasLift`
@@ -540,3 +600,18 @@ none of them.
   home outside this spoke once traced. (The strip's other gap,
   `transactive-power` with no value, is closed: the power meter creates
   it and boot holds every creator to its claim, "Do this next".)
+- A calibration and heat-loss window, 2026-09-28 from 14:37:10 ET. The
+  third maple window of the day (boot 14:33, `1287911f`) ran hp-lwt and
+  hp-ewt at a 0.05 C async delta for the first time, and after a warm
+  start the valve was stopped at keep_seconds 81.1 (full keep for the
+  flow: sieg-flow 5.0 gpm, sieg-send-flow 0.02 gpm) with the heat pump
+  idle at 54 W. From then on the loop recirculated the same water with
+  no heat added, so the period is two things at once: the loop's heat
+  loss at 0.05 C resolution (lwt 105.0 F and ewt 105.7 F at 14:40,
+  falling together), and a same-water comparison of the two thermistors
+  for calibrating hp-ewt against hp-lwt, since with the heat pump off
+  the two should read the same. The data is the box's persisted reports
+  for the day (`~/.local/share/gridworks/scada-experiment/event/`, the
+  14:35 slot onward) and the laptop capture
+  `scratch/broker-capture-20260928-134934.jsonl`; it earns an experiment
+  folder when the offset and the loss slope are read off it.

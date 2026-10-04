@@ -11,8 +11,7 @@ repo's git history.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-09-08 — mint-client-cert.py: issue, record and revoke client certs; broker CRL
+## 2026-09-08 — mint-client-cert.py: issue, record and revoke client certs; broker CRL (`06f2005`; merge `0298e35`)
 
 `authority/certbot/mint-client-cert.py`, an operator CLI in the shape of
 the scada repo's `getkeys.py`: `mint` resolves the CN (a GNode's registry
@@ -29,6 +28,38 @@ predecessor kept a valid cert with the same CN that the FIS gate cannot
 tell from the new one; the CRL on the broker (the only verifier of client
 certs) refuses it at the handshake on AMQP and MQTT alike. Design:
 mtls-fis-auth "Cert lifecycle".
+
+## 2026-09-07 — FIS on rmqbot: pgdata on the root disk, inventory row (`7394d89`)
+
+`fis/README.md` puts FIS's Postgres data at `/mnt/pgdata/fis` as a plain
+directory on rmqbot's root disk; `platform-inventory.md` names FIS beside
+the broker on rmqbot (loopback :8080, Postgres :5437, gate not yet wired)
+and adds the `fis` login. **Why:** rmqbot has no attached volume, and the
+database holds principal ids, leases and auth verdicts, nothing secret
+(the broker credential lives in `.env`), so it needs no LUKS volume.
+
+## 2026-09-07 — fis staging box: dropped (`ba0f0c1`)
+
+The `hw1-2.electricity.works` row leaves `authority/cert-inventory.md`
+with the box. **Why:** the staging box served the gate rehearsal and is
+torn down; the teardown is recorded in the experiment reproducer.
+
+## 2026-09-06 — Gate overlay runs the broker on the host network (`69e8587`)
+
+`compose.gate.yaml` sets `network_mode: host`; the rmq-docker README
+explains it; `fis/README.md` adds the `fis` login to `systemd-journal`;
+the staging broker's cert gets its inventory row. **Why:** FIS binds the
+box's loopback, and `localhost` inside a bridged container is the
+container itself, witnessed on the staging box as `econnrefused` to 8080
+on every auth call.
+
+## 2026-09-06 — Add fleet index service (`a81bb1c`)
+
+`fis/README.md` and `fis/instance-README.md`: what is on any broker box
+that runs FIS (login, repo clone, systemd unit on loopback :8080, its
+Postgres container, `.env`). **Why:** one FIS runs beside every broker
+that carries the gate, reached over localhost, so its box-level recipe
+lives with the broker's.
 
 ## 2026-09-05 — Gate recipe names FIS's management-API credentials (`4c1fc1e`)
 

@@ -1,6 +1,6 @@
 # Spruce settled (hub)
 
-Status: Draft · Pass 0 · Updated 2026-09-27 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
+Status: Draft · Pass 0 · Updated 2026-09-29 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
 
 **EDD: yes** the deployed spruce line and the simulated houses are the
 verification; a spoke reaches Verified only when a run against one of
@@ -14,14 +14,13 @@ them exercises it (`experiments/`).
 > the operational params publish and the fleet goes onto the hw1
 > rmqbot (`publish-layouts-and-operational-params.md` is that step).
 
-**▶ Active spoke:** none until the launch. First in line:
-[`report-all-machine-states.md`](report-all-machine-states.md).
+**▶ Active spoke:** none until the launch.
 
 ## Spokes
 
-- `report-all-machine-states.md` — every command node's machine state
-  becomes a journal channel by one rule; which state and channel
-  changes earn an asynchronous report
+- `hp-unit-sensor.md` — a first sensed machine of what the heat pump
+  unit is doing, per-unit rules in their own files; practice, heuristic,
+  written to be replaced
 - `scada-startup-report.md` — a `scada.startup.report` word sent once per
   run: when the run started, when the report was sent, the commit the box
   runs

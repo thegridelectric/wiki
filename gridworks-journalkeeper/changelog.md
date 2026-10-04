@@ -10,6 +10,16 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-29 — Move to gwbase 0.5.14 (`cd1cbd6`; conftest vhost `8daf405`; merged to main `5d6329b`)
+
+Picks up the gwbase release that stops logging the broker password:
+`ActorBase.connect_consumer` logged the full AMQP URL at every connect,
+so this service wrote its broker credential into its file log and
+journald. Floor raised and lock refreshed. The live AMQP tests move
+their testcontainers broker to vhost `d1__1`: gwbase validates the URL
+vhost as `universe.run` since 0.5.12, and the container's default `/`
+vhost no longer passes.
+
 ## 2026-09-15 — read report.event 004 (`c833dc4`)
 
 Branch `jm/report-event-004`. The seed adds `report.event` `004` (published

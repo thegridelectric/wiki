@@ -363,7 +363,9 @@ conditions carry the posture:
 capture as eventstore objects — the ear's name grammar
 `<from-alias>-<type-name>-<persisted-ms>-<source>.json` parsed off each key,
 the three replay types selected by name (nothing else is fetched), capture
-order by `persisted-ms` — from either the seed store (`--seedstore --from
+order by `persisted-ms`, then by the ear's same-millisecond arrival counter
+(a bare-digit trailing segment on `<source>`, `hw1.gnr.ear.2`; absent means
+first) — from either the seed store (`--seedstore --from
 YYYYMMDD [--to]`, boto3 through the named profile in `GNR_SEEDSTORE__*`,
 whose `endpoint_url` aims it at B2) or a directory of objects
 (`--capture-dir`, an ear's local retry cache or a mirrored tree); `--wipe`

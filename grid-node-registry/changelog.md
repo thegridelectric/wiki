@@ -12,8 +12,33 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-09-08 — seed moves to src/gnr; root build script dropped
+## 2026-09-29 — Rebuild orders a same-millisecond burst by the ear's arrival counter (`80d99f8`, merged `f58f345`)
+
+`test_rebuild_from_real_broker_capture` failed on a CI runner: three
+create commands published in a burst were persisted by the tap inside
+one millisecond, so their names collided and the rebuild replayed one
+create, refused the two whose parent it had never seen, and every later
+forest checkpoint diverged (applied 1, refused 2). The ear now names the
+second and later objects in a millisecond `<source>.2`, `<source>.3`;
+`parse_object_key` reads that counter into `CaptureObject.seq` and
+`capture_objects` sorts by `(persisted_ms, seq, key)`. The test tap
+mirrors the ear's rule. Unit tests pin the parse and the ordering;
+plain names still parse as before.
+
+## 2026-09-29 — Move to gwbase 0.5.14 (`9b216eb`, merged `57b9bf8`)
+
+Picks up the gwbase release that stops logging the broker password:
+`ActorBase.connect_consumer` logged the full AMQP URL at every connect,
+so this service wrote its broker credential into its file log and
+journald. Floor raised and lock refreshed; nothing else moved.
+
+The layer-2 rabbit tests also move their testcontainers broker to vhost
+`d1__1`: gwbase validates the URL vhost as `universe.run` since 0.5.12,
+and the container's default `/` vhost no longer passes. The executor
+already says the vhost is `<universe>__<run>` for every kind; the fixture
+was the divergence.
+
+## 2026-09-08 — seed moves to src/gnr; root build script dropped (`bcfb401`)
 
 Branch `jm/sema-snapshot-pattern`. `gnr_seed_request.yaml` becomes
 `src/gnr/sema_seed_request.yaml`, `build_gnr_snapshot.sh` is deleted, and

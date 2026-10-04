@@ -1,6 +1,6 @@
 # Odds and ends (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-25 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-09-30 · Linear: OPS-392
 
 > What this is: a spoke of [`primary.md`](primary.md) holding the small
 > launch items that do not earn a file each: one problem, one change,
@@ -287,17 +287,6 @@ state that it is the commanded value.
   the same handles for the same boss and scope on both sim pairs, and
   one asserts a single `new.command.tree` publication at boot.
 
-## The sieg loop never actuates under `MonitorOnly`
-
-- **Problem.** `MonitorOnly` means no physical control action at all, and
-  the sieg loop checks only `Standby` (`executor/sieg-loop.md` "Where it
-  falls short", defect 7).
-- **Change.** The loop sends nothing to relays 14 and 15 while the
-  authority is `MonitorOnly`, and nacks commands. `Standby` keeps its
-  full send.
-- **Test.** No relay command through a start, a stop and an admin
-  command under `MonitorOnly`.
-
 ## A sieg-loop restart finds the valve
 
 - **Problem.** At `ActuatorsReady` the valve machine assumes `FullyKeep`
@@ -308,3 +297,50 @@ state that it is the commanded value.
   the heat pump off reaches keep within one travel.
 - **Test.** A restart with the heat pump off goes motor dormant, then
   keep within one travel.
+
+## Channels the scada holds but does not report (raised 2026-09-28)
+
+- **Problem.** Some data channels exist on the scada as working values,
+  never as fleet data: the `-hz` frequency channels the flow readers
+  derive gpm from, and the pico-native channels at spruce
+  (`pipes1-depth3-device`, `fancoil-depth3-device`, the floor1 and pipes1
+  picos' own names) that an identity transformation maps onto the
+  channel we actually want. The layout has no way to say "this channel
+  is an input, not a reading": it is either declared and reported like
+  any other, or hidden by the `disabled_channel_names` list, which says
+  the wrong thing (the pico is fine; the channel is just not for
+  upstream). Consumers then meet channels that carry no meaning, and the
+  UnknownChannels logger and the disabled-roster glitch cannot tell the
+  two cases apart.
+- **Change.** An operational-params setting names the channels the
+  scada holds but does not report. The actors keep reading and posting
+  them to the scada as now; the scada (scada.py or its scada_data) is the
+  one place that decides what leaves the box, and it drops those channels
+  from report.event and snapshot.spaceheat there. No actor learns the
+  setting. The setting is a new field on the ops word, so it is a sema
+  discussion before an edit.
+- **Test.** Open: a layout with an unreported channel produces no reading
+  for it in report.event or snapshot.spaceheat while the derived channel
+  reports normally.
+
+## Sema spec: name the open form of an enum union (todo, raised 2026-09-30)
+
+- **Problem.** The registry carries a value drawn from one of several
+  enums two ways. `gw.alert` uses a discriminated `oneOf` over enum
+  refs with a sibling enum selecting the branch, which is the only form
+  `sema/spec/authoring/types.md` "Composition Rule" allows. `single.machine.state`,
+  `machine.states` and `fsm.atomic.report` use an enum-naming
+  `left.right.dot` field (`StateEnum`) beside a bare `string` value and
+  an axiom binding the value to the named enum. The spec does not
+  mention the second form, so a word that needs it (a family of enums
+  that grows per implementation) has no rule to follow.
+- **Change.** One paragraph in the Composition Rule naming both forms
+  and when each applies: the closed `oneOf` when the set of enums is
+  fixed by the schema and the closure should vendor them; the open form
+  when the set grows without versioning the word. The open form's parts
+  are the naming field (format `left.right.dot`), the `string` value
+  field, and the axiom. Change-controlled: discussed with the human
+  before editing.
+- **Test.** The spec's own doc tests; and `gwsproto` `fsm_event.py`
+  `check_axiom_1` (the same axiom, today a stub that returns `self`)
+  gets its check when the paragraph goes in.

@@ -1,6 +1,6 @@
 # gwalerter — the broker alerter
 
-Status: Draft · Pass 0 · Updated 2026-09-15
+Status: Draft · Pass 0 · Updated 2026-09-30
 
 > What this is: the house alerter as a gwbase actor on the fleet broker
 > (`thegridelectric/gridworks-alerter`, package `gwalerter`): its inputs,
@@ -64,8 +64,10 @@ database through the chain. One table per sema word the alerter keeps:
 - `readings` — scada alias, channel, value, the scada's read time and
   the alerter's arrival time. Rows that arrived before the window
   (`readings_window_s`, 4 h) leave on every report.
-- `alerts` — each raised alert word and, once it ends, its cleared word:
-  the open-alert state that survives a restart.
+- `alerts` — each alert's `Firing` record and, once it ends, its
+  `Resolved` record, keyed by `AlertId` and indexed by what the alert is
+  about (category, house alias or subject, kind): the open-alert state
+  that survives a restart.
 
 Last-heard is a query, the latest arrival across readings and layouts,
 never a column; a scada with a wrong clock cannot look alive. Across a
@@ -76,35 +78,42 @@ instances or typed records, never tuples.
 
 ## Alert words
 
-Three published words (`sema/definitions/types/gw.house.alert/000.yaml`,
-`gw.house.alert.cleared/000.yaml`, `enums/gw.house.alert.kind/000.yaml`).
-An alert is a service reporting on a house; `glitch` is a node
-reporting on itself, which is why it did not grow to cover this.
+One word, `gw.alert` (`sema/definitions/types/gw.alert/000.yaml`), with
+its enums `gw.alert.category`, `gw.alert.state` and a kind enum per
+category (`gw.house.alert.kind`, `gw.fleet.alert.kind`,
+`gw.platform.alert.kind`). The five new words are `staging`, so the
+alerter's snapshot is a dev-only `--allow-staged` build until they
+promote. An alert is a service reporting on something from the evidence
+it received; `glitch` is a node reporting on itself, which is why it did
+not grow to cover this.
 
-- `gw.house.alert`: `Src` (the alerter), `AboutGNodeAlias` (the house's
-  terminal asset, read off `g_nodes` at raise time so a rename never
-  strands an alert), `Kind`, `AlertId`, `RaisedMs`, `Summary`, `Evidence`
-  (a list of `channel.readings`, empty for kinds whose evidence is not
-  readings). Axiom: `AboutGNodeAlias` ends in `.ta`.
-- `gw.house.alert.cleared`: the same `AlertId`, `Src`, `AboutGNodeAlias`,
-  `Kind`, `ClearedMs`, `Evidence`.
-- `gw.house.alert.kind`: versioned, one value per detector, `Unknown`
-  first and default so a decoder on an older version meets a later kind
-  as something a manager drops, never as a no-data page.
+- `Src` (the alerter), `Category` (House, Fleet, PlatformService),
+  `Kind` from the enum the category selects, `State` (Firing,
+  Resolved), `AlertId`, `RaisedMs`, `ResolvedMs` on a Resolved record
+  only, `Summary`, `Evidence` (a list of `channel.readings`).
+- What it is about: a House alert carries `AboutGNodeAlias`, the house's
+  terminal asset read off `g_nodes` at raise time so a rename never
+  strands an alert; any other category names a service or host in
+  `Subject`.
+- Each kind enum is versioned, one value per detector, `Unknown` first
+  and default, so a decoder on an older version meets a later kind as
+  something a notifier drops, never as a no-data page.
 
-The alerter emits transitions only: one alert when a condition starts to
-hold, one cleared when it stops, both with the same `AlertId`. Repeat
-cadence, escalation and acknowledgement are the manager's. No severity
-field: the kind is what the manager routes on. Thresholds live in the
-kind's description and the alerter's configuration, never in the record.
+The alerter emits transitions only: a `Firing` record when a condition
+starts to hold, a `Resolved` record with the same `AlertId` and
+`RaisedMs` when it stops. Repeat cadence, escalation and acknowledgement
+are the notifier's. No severity field: the kind is what the notifier
+routes on. Thresholds live in the kind's description and the alerter's
+configuration, never in the record.
 
-The alert leaves the alerter as a broadcast on its own mic exchange
-(`alertsmic_tx`) with the house alias as the radio channel, so the key
-reads `rjb.<alerter>.alerts.gw-house-alert.<house alias>` and a manager
-binds by house on the tail. The mic exchange fans into the ear exchange,
-so JournalKeeper journals the words and the manager hears them as a tap.
+The record leaves the alerter as a broadcast on its own mic exchange
+(`alertsmic_tx`) with `AboutGNodeAlias` as the radio channel, else
+`Src`, so a House record's key reads
+`rjb.<alerter>.alerts.gw-alert.<house alias>` and a consumer binds by
+house on the tail. The mic exchange fans into the ear exchange, so
+JournalKeeper can journal the words and a notifier tap hears them.
 Sending is best-effort by gwbase contract: the store already holds the
-transition, so a failed send is logged, not retried.
+record, so a failed send is logged, not retried.
 
 ## Alert kinds
 
@@ -152,17 +161,47 @@ the alerter restarted while the alert is open. The shape is
   time. Last-heard is the store's query floored at the alerter's boot
   time, so a fresh alerter gives every house one threshold to speak
   before paging. The first report or layout from the house's scada
-  clears it with that arrival as evidence (the report's readings; empty
-  for a layout). Open-alert state is the store's, which is what makes a
-  restart neither re-raise nor forget. Witnessed PASS on the dev broker
-  2026-09-15, restart with the alert open included; the shadow week
-  against hw1 is what makes it Verified.
+  resolves it with that arrival as evidence (the report's readings;
+  empty for a layout). Open-alert state is the store's, which is what
+  makes a restart neither re-raise nor forget. Witnessed PASS on the dev
+  broker on `gw.alert` 2026-09-28 (`gridworks-alerter` `d29d9a6`),
+  restart with the alert open included; the shadow week against hw1 is
+  what makes it Verified.
+
+## The tap
+
+`gwalerter tap` is the alerter's second process: the only writer to
+Alertmanager's intake. A plain consumer with its own durable queue
+(`<alias>-tap`) on `alertsmic_tx`, bound by the `gw-alert` type segment
+(`rjb.*.*.gw-alert.#`), it decodes each record through the snapshot
+(`expect=Alert`), maps it, and posts to `alertmanager_url` on loopback.
+Labels are the identity Alertmanager groups and dedups on: `alertname`
+(the Kind), `category`, `subject` (the full `AboutGNodeAlias`, else
+`Subject`, else `Src`), `src`, `alert_id`. Annotations are the text a
+receiver renders: `summary`, `house` (the segment before `.ta`, display
+only) and `about` (the full alias plus the registry's display name, so
+two houses with one short name are told apart where a reader acts).
+`startsAt` is `RaisedMs`; `endsAt` is `ResolvedMs` on a `Resolved`
+record and absent otherwise.
+
+Alertmanager forgets a firing alert not re-posted within its
+`resolve_timeout`, and the alerter says each transition once, so the
+tap keeps the open set and re-posts it every `tap_resend_s` (300, under
+the 1 h timeout). At boot it reads that set from the alerter's store
+(`Store.open_alerts`, the same sqlite the actor writes), which is what
+makes a tap restart neither re-page nor forget. A post that fails after
+three attempts on a refused connection is logged and dropped: the store
+and the journal are the durable record, and the next re-post carries a
+firing alert anyway. Witnessed PASS on the laptop against a local
+Alertmanager, restart with the alert open included:
+`experiments/2026-09-30-alerter-to-alertmanager/`.
 
 ## Operating
 
 - Settings: `GWALERTER_*` from env and `.env` (`template.env`);
   `service_alias` is `<universe>.alerts` under the universe root.
-- Run: `gwalerter rabbit` (the systemd unit `alerter-rabbit.service`);
+- Run: `gwalerter rabbit` (the systemd unit `alerter-rabbit.service`)
+  and `gwalerter tap` (`alerter-tap.service`);
   stop is systemd's SIGTERM, which the actor takes without a hook: every
   store write is one sqlite transaction and the broker holds nothing.
 - Schema change: edit `db_models.py`, `uv run alembic revision

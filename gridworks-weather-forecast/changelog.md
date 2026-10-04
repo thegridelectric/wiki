@@ -13,6 +13,16 @@ Newest at the top.
 
 ---
 
+## 2026-09-30 — Move to gwbase 0.5.14 (`ca039fd`, merged `a4913e2`)
+
+Picks up the gwbase release that stops logging the broker password:
+`ActorBase.connect_consumer` logged the full AMQP URL at every connect,
+so the weather emission actor wrote its broker credential into its file
+log and journald. Floor raised and lock refreshed. The layer-2 test
+moves its testcontainers broker to vhost `d1__1`: gwbase validates the
+URL vhost as `universe.run` since 0.5.12, and the container's default
+`/` vhost no longer passes.
+
 ## 2026-08-27 — tweak log alias (`03f6be0`, merged to main via PR)
 
 The operator log alias was named for the unit role (`rabbitlog`, after the

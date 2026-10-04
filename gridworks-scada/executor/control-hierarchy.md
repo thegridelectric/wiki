@@ -1,6 +1,6 @@
 # Control hierarchy — HSMs, the command tree, and the capability cover
 
-Status: Draft · Pass 0 · Updated 2026-09-27
+Status: Draft · Pass 0 · Updated 2026-10-01
 
 > What this is: how the SCADA's hierarchical state machines (HSMs) and the command tree work **together**
 > — the piece the executor lacked. The HSM decides *who is in control*; the command tree *enforces* it via
@@ -16,7 +16,7 @@ Nested state machines, outermost first:
   Dormant` — which authority drives. Transitions + `auto_trigger` at `scada.py:99,979`.
 - **`LocalControlTopState`** (`enums/local_control_top_state.py`, under LocalControl): `Normal |
   UsingNonElectricBackup | ScadaBlind | Monitor | Dormant`. Driven by `actors/local_control/tou_base.py`.
-- **Per-actor FSMs** that are themselves control nodes: `HpBoss` (`actors/hp_boss.py`:
+- **Per-actor FSMs** that are themselves control nodes: `HpBoss` (`actors/hp_boss/hp_boss.py`:
   HpOff/PreparingToTurnOn/HpOn; its states are intent, set when the command is sent, and it does not
   wait for the relay), `SiegLoop` (`actors/sieg_loop/`: a valve FSM, and a control FSM under `StratProtect`),
   `PicoCycler` (`actors/pico_cycler.py`), `LeafAlly` (`actors/leaf_ally_loader.py`, storage-mode states).
@@ -129,6 +129,39 @@ leaf of the current command tree, and hp-boss is never a leaf. A commandable hea
 hp-boss: `Hydronic.HpCommandNodeName` names which node takes commands (`hp-odu` native modbus,
 `hp-ctrl-box` via a MIM) and the conditional axiom `CommandableHeatPump` requires that node to have
 a ComponentId and hp-boss as its effective handle parent.
+
+**The heat-pump surface is the `actors/hp_boss/` package: the command node
+in `hp_boss.py`, the sensing surface in `sensing.py`.** `sensing.py` holds
+what the scada knows about each kind of heat pump, by the `DeviceType` the
+layout binds to `hp-odu`: the draw above which the unit is running and
+below which it has stopped, the lead before an on-peak window at which the
+call opens (`HP_TRAITS`, read by the Nolan heating machine), and the defrost
+signatures (`DEFROST_SIGNATURES`, read by House0's plant judgment). These
+tables are the hand-kept copy of what the heat pump's device-type record
+will carry. The sieg loop still spells its own idle-draw line and settle
+time in `actors/sieg_loop/strat_protect.py`, unkeyed by device type; that is
+the one piece not yet in the package. Where it converges: hp-boss runs a
+sensed machine of the unit's state, Off, Charging, Defrost, and Unknown
+while blind, derived in `sensing.py` from the power channels and later
+confirmed by lift, and every consumer (the pump posture, the cold logic, the
+sieg strategy) reads that state rather than the raw draw. The state is the
+unit's, never a compressor's: some units have two compressors, and nothing
+outside the package knows how many. It is a machine state, not a channel
+(decided 2026-10-01): the scada reports it as a `SingleMachineState` in a
+sema enum, and the data side reaches it the way it reaches every machine
+state, through the journal's enum pseudo channels. That projection is a
+hand-kept map in JournalKeeper today, covering eight state enums and
+dropping the rest (hp-boss, the sieg valve, the Nolan buffer-only machine,
+five-v-boss, the pico-cycler, the relays and zone circuits); the
+layout and `layout.lite` are to declare every machine the scada reports
+(node, state enum, channel name) so the journal creates the channels from
+the lite with no map (`../../gridworks-journalkeeper/executor/persistor.md`
+"Open"). Two known limits of the interim rules:
+the running / stopped power pair does not handle defrost (the draw falls
+while the unit is still in a cycle and the pump must keep running), and no
+heat-pump temperature sensor is trusted yet; hp-ewt, hp-lwt, the primary and
+secondary flows and the secondary ewt and lwt join the sensing surface when
+their sensors, some of them picos, earn trust.
 
 **The call contact, its interlock, and the failsafe direction.** At spruce
 `hp-scada-ops-relay` drives a normally-open RIB whose contact asserts the
@@ -354,7 +387,7 @@ in the tree. The receiver compares them.
 
 The receiver speaks only when nobody else can. Command nodes holding
 both checks: relay (`actors/relay.py` `_process_event_message`),
-hp-boss (`actors/hp_boss.py` `process_fsm_event`), five-v-boss
+hp-boss (`actors/hp_boss/hp_boss.py` `process_fsm_event`), five-v-boss
 (`actors/five_v_boss.py` `process_fsm_event`), pico-cycler
 (`actors/pico_cycler.py` `process_fsm_event`), sieg-loop
 (`actors/sieg_loop/__init__.py` `process_fsm_event`), 0-10V outputer

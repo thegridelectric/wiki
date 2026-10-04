@@ -12,8 +12,7 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-09-08 — dead root seed and build script dropped
+## 2026-09-08 — dead root seed and build script dropped (`2b47aff`)
 
 Branch `jm/sema-snapshot-pattern`. `fis_seed_request.yaml` and
 `build_fis_snapshot.sh` are deleted; nothing read them. The vendored

@@ -4,19 +4,74 @@ One entry per commit in `thegridelectric/gridworks-alerter`,
 `thegridelectric/gridworks-alerts` and `thegridelectric/gridworks-alert-manager`
 (git = the what, this = the why).
 
-<!-- pending commit -->
-## 2026-09-17 — gridworks-alerter: One gw.alert word with State (OPS-547)
+## 2026-09-30 — Snapshot from the published alert words (`f0064a6`)
+
+The vendored snapshot regenerated from sema `632b58e`, where `gw.alert`
+000 and its four enums are published, without `--allow-staged`: the
+first published-only build of the alerter, so `indexes/staging.yaml`
+and the README's dev-only warning are gone and the box can run it. No
+generated class changed; only the registry copy, the expanded seed and
+the README moved.
+
+## 2026-09-30 — The tap: gw.alert into Alertmanager (`bee0564`)
+
+`gwalerter tap`, a second subcommand and systemd unit
+(`alerter-tap.service`): a plain consumer with its own durable queue on
+`alertsmic_tx`, bound by the `gw-alert` type segment, that decodes each
+record through the snapshot, maps it onto Alertmanager's v2 intake
+(labels `alertname`=Kind, `category`, `subject`, `src`, `alert_id`;
+annotations `summary`, `house`, `about`; `endsAt` from `ResolvedMs`) and
+posts on loopback, retrying a refused connection three times then
+dropping with a log line. Alertmanager forgets a firing alert not
+re-posted within `resolve_timeout` and the alerter says each transition
+once, so the tap re-posts its open set every `tap_resend_s` (300) and
+seeds that set from the alerter's store at boot (`Store.open_alerts`),
+which is what makes a tap restart neither re-page nor forget. Witnessed
+PASS on the laptop, `experiments/2026-09-30-alerter-to-alertmanager/`.
+
+## 2026-09-30 — Move to gwbase 0.5.14 (`f4d6893`)
+
+Picks up the gwbase release that stops logging the broker password:
+`ActorBase.connect_consumer` logged the full AMQP URL at every connect,
+so this service wrote its broker credential into its file log and
+journald. Floor raised and lock refreshed; nothing else moved.
+
+## 2026-09-28 — gridworks-alerts: Judge spruce's learned setpoints against the gw-temp sensor (`e252ea0`)
+
+Spruce's zones have mechanical dials, so the scada learns each zone's
+setpoint as the gw-temp reading at the end of a heat call. The cold-house
+detector judged that setpoint against the floor sensor, which sits about
+2 F under gw-temp there, and paged on a bedroom that was at setpoint the
+first time the learned setpoint appeared in the journal (19:48 ET). The
+detector now picks the temperature it judges by house:
+`SETPOINT_TEMPERATURE_ROLES_BY_HOUSE` puts gw-temp first for spruce; every
+other house keeps air then floor. Hard-coded per house because the layout
+vocabulary does not yet carry a zone's setpoint source; the note in the
+broker-alerter design records what retires it. Two tests replay the
+spruce readings, one as spruce (no alert) and one as maple (alert).
+Deployed to the alerts box the same evening.
+
+## 2026-09-28 — The alerter speaks one gw.alert word (OPS-547, `d29d9a6`, on `jm/gw-alert`)
 
 Sema `dev` reshaped the alert vocabulary (`3de1363`): the two house
 type words are gone and one `gw.alert` carries both transitions with
 `State` Firing/Resolved, a `Category` that selects the `Kind` enum, and
-the full GNode alias as identity. The alerter's snapshot is regenerated
-from a clean worktree at that commit with `--allow-staged` (dev-only
-until the five words promote); the store's `alerts` table, the NoData
-rule, the actor's emit and the tests move to the one word. A record
-with no house (Fleet, PlatformService) keys its broadcast on the
-alerter's own alias. The initial migration is edited in place: no box
-holds this store yet.
+the full GNode alias as identity. The seed takes `gw.alert` in place of
+the house words, and `scripts/regen_sema_snapshot.sh` passes its
+arguments through to `sema snapshot prepare`, so a dev round builds with
+`--allow-staged`. The snapshot is regenerated that way from sema
+`3b4260d` (the gw.alert axiom template fix) and is marked dev-only until
+the five words promote. The `alerts` table gains `category` and
+`subject`, takes a nullable `about_g_node_alias`, renames the cleared
+columns to `resolved_ms` / `resolved_payload`, and indexes the open
+alert by all of them; the initial migration is edited in place, since no
+box holds this store yet. The store's open, raise and clear take and
+return `Alert`, and refuse a record in the wrong `State`. NoData raises a
+`Firing` record and resolves it with a `Resolved` record carrying the
+same `AlertId` and `RaisedMs`. The actor broadcasts each record on
+`AboutGNodeAlias`, else on `Src`, so a record with no house keys on the
+alerter's own alias. The tests move to the one word and add a
+Firing/Resolved codec round trip that trips axioms 1 and 3.
 
 ## 2026-09-16 — gridworks-alerts: improve logging (`e3e9b47`)
 

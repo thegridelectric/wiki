@@ -7,6 +7,14 @@
 # Escape hatches (user-controlled, Claude MUST NOT create them): the
 # bulk-stop override files (see wiki/tools/bulk-aliases.sh), or deleting
 # ~/.claude/.experiment-started.<session-id>.
+#
+# Dismissal (Claude MAY write it): the start pattern also matches a routine
+# deploy restart (pull, sync, systemctl restart per an instance-README),
+# which owes no record. Claude writes one line naming why to
+# ~/.claude/.experiment-dismissed.<session-id>; this hook echoes that line
+# to the user as it lets the turn end, so a dismissal is visible in the
+# transcript, never silent. A block that can only be cleared by the user
+# loops: a Stop rejection re-invokes Claude with no user turn between.
 set -e
 UMBRELLA="$(cd "$(dirname "$0")/../.." && pwd)"
 INPUT=$(cat)
@@ -20,6 +28,15 @@ marker="$HOME/.claude/.experiment-started.$SESSION_ID"
 resolve_session_scope "$SESSION_ID"
 if [ -n "${SESSION_NAME:-}" ] && [ -f "$HOME/.claude/.bulk-stop-override.$SESSION_NAME" ]; then exit 0; fi
 [ -f "$HOME/.claude/.bulk-stop-override" ] && exit 0
+
+dismissed="$HOME/.claude/.experiment-dismissed.$SESSION_ID"
+if [ -f "$dismissed" ] && [ "$dismissed" -nt "$marker" ]; then
+  why=$(head -1 "$dismissed")
+  rm -f "$marker" "$dismissed"
+  jq -n --arg m "Experiment record check: dismissed as routine, no record written — $why" \
+    '{systemMessage: $m}'
+  exit 0
+fi
 
 # A README in a dated experiment folder, written after the run started —
 # or the field-window record, which experiments/field-window-recipe.md keeps
@@ -41,5 +58,5 @@ Before ending the turn, write the record (conventions: experiments/README.md):
 5. One line in experiments/logbook.md.
 6. The executor claim this run verifies, updated with a pointer to the folder.
 
-If the command only looked like an experiment (a routine restart), ask the user to delete $marker."
+If the command only looked like an experiment (a routine deploy restart per an instance-README, no claim tested), write ONE line saying why to $dismissed — the hook echoes it to the user and lets the turn end. Never dismiss a run that tested a claim."
 jq -n --arg r "$reason" '{decision: "block", reason: $r}'

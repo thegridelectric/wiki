@@ -2,6 +2,20 @@
 
 Status: Draft · Pass 0 · Updated 2026-09-22 · Linear: OPS-402
 
+> **Field note, 2026-10-02 (maple store-btu, firmware 6a713e1):** right after
+> taking the code update over the starter-scripts API, the btu pico posted
+> `code-update` then `async.btu.params` nine times in five minutes, i.e. it
+> rebooted after every params answer, while the API was the responder. Once
+> the scada was back on 8000 it posted params once and settled. The API
+> answers the params post with the pico's own payload plus `CaptureOffsetS`
+> and `ThermistorBeta: None`; the scada answers from the layout. Suspect:
+> `update_app_config` sees the API's answer as a changed config on every
+> boot and resets (`late` path), or trips on a key the API echoes that the
+> pico does not carry. Reproduce on the bench with the API as listener
+> before the next fleet reflash; the other btu picos reflashed the same
+> day (beech primary-btu, maple sieg-btu, spruce primary/store-btu) posted
+> once each, with the scada answering.
+
 **EDD: yes** the bench harness is the verification: a PicoW and a Wiznet
 pico on a relay-cut rail with a scripted listener in the scada's place.
 Firmware passes its harness scenarios on both boards before it goes to a

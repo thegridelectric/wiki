@@ -1,6 +1,6 @@
 # Cold house with a derived setpoint (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-18
+Status: Draft · Pass 0 · Updated 2026-09-29
 
 > What this is: how the scada judges "the house is getting cold" at a house
 > whose zone setpoints are derived by the scada instead of read from a
@@ -71,14 +71,97 @@ and not by injecting a `-set` value, and each ends in the question "did
    `latest_channel_values`.
 7. A critical zone's `-gw-temp` stops reporting.
 
+## Decisions (2026-09-29)
+
+- **Cold is 2 °F or more under setpoint, every family.** `is_system_cold`
+  compares at 1 °F today, and that number only ever worked because the
+  Honeywell thermostats reported no temperature until it was more than
+  2 °F from setpoint; the judgment was 2 °F in effect. Make it `>= 2 °F`
+  in the code so it reads as what it does.
+- **A learned-setpoint house keeps its last recorded setpoint,** across
+  restarts too, and declares cold when a critical zone has been in a
+  constant heat call AND its temperature is 2 °F or more under that last
+  recorded setpoint. The heat call is the thermostat saying "below
+  setpoint"; the recorded setpoint says by how much. This is the
+  stand-in for scenarios 2 and 3 above, where the generator holds no
+  setpoint.
+
+### The constant-call rule against every way the setpoint is lost
+
+Read off `handle_simple_falling_edge_setpoint` (`actors/derived_generator.py:530-650`)
+and `is_system_cold` (`actors/hydronic/shared.py:60-97`). The rule fires
+when a critical zone is calling without a break and its temperature is
+2 °F or more under the last recorded setpoint; it must fire in the cold
+cases and stay quiet in the thermostat-change cases the strategy exists
+to tell apart.
+
+| How the setpoint is lost | What the strategy does | Constant-call rule |
+| --- | --- | --- |
+| Restart, or first boot: `setpoint_f` is `None`, phase `Unknown`; the first reading sets the phase to a Suspect value with nothing learned | Emits nothing until a falling edge; `is_system_cold` logs "Could not find setpoint" and skips the zone, so a restart inside a long call never reads cold | Fires, given the persisted last recorded setpoint; with no record ever (new house, state file absent) there is still nothing to judge against |
+| Falling edge with no `-gw-temp` seen yet | Logs "no gw-temp available", learns nothing | Same as above |
+| Zone calling at or above setpoint + 2 °F (`SuspectZoneBelowSetpoint`: thermostat raised) | Clears `setpoint_f`, stops emitting; the old value stays in `latest_channel_values` unmarked | Stays quiet: the zone is warmer than the record, not colder |
+| Zone not calling at or below setpoint − 2 °F (`SuspectZoneAboveSetpoint`: thermostat lowered) | Clears `setpoint_f`, stops emitting | Stays quiet: no call, so the house cooling to the new setting is not read as cold |
+| Long call that never ends, with the setpoint learned before it | Keeps the learned value and emits it; today's judgment already works here | Fires once the zone falls 2 °F under it |
+
+Two cases neither the strategy nor the rule covers, named so they are
+not mistaken for covered:
+
+- **Cold with no call.** A thermostat or wire failure leaves a critical
+  zone cold and silent; the strategy reads it as "lowered". At a House0
+  house the thermostat still reports a setpoint and the judgment
+  catches it; at a learned-setpoint house nothing does. A floor
+  temperature per critical zone (ops word) is the candidate.
+- **No record ever.** The rule needs a last recorded setpoint; before
+  the first falling edge at a house there is none. The same floor
+  temperature is the stand-in.
+
+Open inside the decision: the bound on "constant heat call" (how long
+calling before the rule may fire); where the record persists on the box
+(a state file beside the layout, not the ops word, and durable data
+means a sema word or a hand-coded record with the missing word named);
+and that the on-peak-start minimum rule (a thermostat raised during
+on-peak does not trip the judgment) already composes, since a raised
+thermostat leaves the zone warmer than the record.
+
+## What a cold house says (2026-09-29)
+
+Today a cold house produces no glitch on either branch: the local
+control moves to backup after five minutes cold and reports a
+`SingleMachineState` with cause `SystemCold`, the ally raises an Info
+glitch only inside a dispatch contract with the stores also empty, and
+a critical zone with no setpoint or temperature is skipped silently.
+Neither branch has a freeze threshold; gridworks-alerts carries one
+(40 °F, hardcoded in `check_zone_freezing`, `docs/alerts.md` "Zone
+Freezing"), so the scada raises none and the alert lives off the box.
+
+Three glitches, each its own `Type`, so on-call can tell them apart and
+so the later ones are not re-pages of the first:
+
+1. **Critical zone cold.** Critical, at every house, the first time
+   the cold judgment holds. Where the layout has a backup and ops says
+   it is available, the machine also moves to `UsingBackup`; the switch
+   itself is the `SingleMachineState` report, not a second glitch.
+2. **Still cold in backup.** Critical. The machine has been in
+   `UsingBackup` for more than an hour and `is_system_cold` still holds.
+   Only a house with an available backup can raise it.
+3. **Zone freezing.** Critical. Any zone, critical or not, reads below
+   the freeze threshold (40 °F, the gridworks-alerts number, to become
+   a named constant beside the cold delta). Raised at any top state.
+
+Spruce this winter raises glitch 1 the first time a critical zone is
+cold and stays in Normal (`nolan-local-control.md` "The top machine
+and backup"); with no backup it never raises glitch 2.
+
+**One shared home for the cold machinery.** Judging whether a critical
+zone is cold, the constant-call rule, the recorded setpoint, the freeze
+check and the three glitches are one module every family imports
+(`actors/hydronic/shared.py` holds `is_system_cold` today; the judgment
+grows enough to earn a file of its own). The 2 °F delta and the freeze
+threshold are named constants at the top of that file, never literals
+in the comparisons.
+
 ## Open decisions
 
-- **What stands in when there is no setpoint.** Candidates, not yet
-  weighed: the zone's own heat call is the thermostat saying "I am below
-  setpoint", so a critical zone calling continuously for longer than some
-  bound while its temperature does not rise is a cold signal that needs no
-  setpoint at all; a floor temperature per critical zone from the ops word;
-  the last learned setpoint persisted across restarts.
 - **Whether a withdrawn setpoint is visible to readers.** Today a reader
   cannot tell a current `-set` from a withdrawn one. The generator could
   report its `SetpointPhase`, or readers could age the value out.

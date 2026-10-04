@@ -84,7 +84,19 @@ capture set (not bound) — so they never persist:
 
 ## Maintenance
 
-This set grows via the snapshot regen + `all_known_message_types()` edits — see
-the integrate design (`integrate-gwbase-sema-updates`) for the regen, and
-`primary.md` Open questions for the scope decision that drives what belongs
-here.
+Adding a type. The precondition is that it is a faithful sema word: gjk can
+only journal strict what the codec decodes strict, so a type that is not yet
+a clean word is modelled in sema first. For a clean word the recipe is three
+steps:
+
+1. **Seed** — add the type to `src/gjk/sema_seed_request.yaml`
+   `initial_targets.types` and regen with `scripts/regen_sema_snapshot.sh`
+   (rebuilds `src/gjk/sema`); the codec now decodes it strict.
+2. **Persistor** — add the type name to the right table in
+   `sema_message_persistor.py` (usually one line); that wires both the
+   routing-key bind and the default persist path.
+3. **Seed test** — confirm the type appears in the snapshot and decodes
+   (the round-trip gate and `samples/` ship with the snapshot).
+
+The scope decision that drives what belongs here is in `primary.md` Open
+questions.

@@ -1,14 +1,14 @@
 # alertmanager (hub) — Prometheus Alertmanager as the notifier, one `gw.alert` word
 
-Status: Draft · Pass 0 · Updated 2026-09-17 · Linear: OPS-547
+Status: Accepted · Pass 1 · Updated 2026-09-30 · Linear: OPS-547
 
 **EDD: yes** the experiment *is* the verification: the new alerter, with
 spruce's scada stopped, raises a spruce `NoData` as a `gw.alert` that
 arrives in Alertmanager's alert list and pages the Telegram test group,
 and the `Resolved` record on spruce's return closes it. A spoke reaches
 Verified only when that harness runs against it
-(`experiments/2026-09-XX-alerter-to-alertmanager/`, date set when it
-runs).
+(`experiments/2026-09-30-alerter-to-alertmanager/`, PASS on the laptop
+with a webhook receiver; the box run is spoke 2's).
 
 > **What this is.** The design that puts Prometheus Alertmanager on the
 > alerts box as the notifier for every GridWorks alert, retires the
@@ -40,6 +40,10 @@ runs).
    experiment.
 3. The prober: broker reachability checked from outside the broker's
    path, posted straight to Alertmanager. Its own spoke when reached.
+4. [`ack-and-escalation.md`](ack-and-escalation.md) — acknowledgement
+   as a silence made from a Telegram reaction (webhook, not polling),
+   phone escalation through Telnyx off a webhook receiver, and the
+   on-call sheet compiled into `time_intervals`. After spoke 2.
 
 ## Why
 
@@ -168,7 +172,7 @@ the guide to what people actually need):
   compares *detection* against gwalert's history, not two notifiers.
 - `gridworks-alert-manager` retires when the Alerts web page reads the
   journal instead of the manager's history (its own issue).
-- Escalation by count and the sheet-driven rotation are not carried
-  over: for six houses, one Telegram group per route and the people in
-  it handle rotation. A rotation, if wanted later, is a generator from
-  the sheet into Alertmanager `time_intervals`, as a separate issue.
+- Escalation by count is not carried over. Acknowledgement, phone
+  escalation and the sheet-driven rotation are spoke 4; until it is
+  built, one Telegram group per route and the people in it handle
+  rotation.

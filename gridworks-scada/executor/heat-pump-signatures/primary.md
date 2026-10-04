@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-25
+Status: Draft · Pass 0 · Updated 2026-10-01
 
 # Heat pump signatures
 
@@ -37,3 +37,15 @@ code per model, keyed on the heat pump `DeviceType` the layout binds to
 
 - Defrost at spruce and beech.
 - Idle behaviour beyond standby draw at maple and beech.
+- The Samsung stop lag and minimum compressor run. The journal shows the
+  draw falling under 80 W within a minute of the call opening on an old
+  run and four minutes after it on a run ninety seconds old; the Nolan
+  machine opens the call 120 s before an on-peak window on that reading
+  until a call-cycling experiment at spruce measures it.
+- The tables the code acts on live in `actors/hp_boss/sensing.py`
+  (`HP_TRAITS`, `DEFROST_SIGNATURES`), with the sieg loop's `StratProtect`
+  constants still outside it; the running / stopped power pair does not
+  handle defrost. Where it converges, and what the layout names:
+  `control-hierarchy.md` "The heat-pump surface".
+- Elm's Arctic high-temp monobloc (MAHRW030ZA (BEH2)-R32) has no
+  `DeviceType` value and no signature yet.

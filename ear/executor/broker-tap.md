@@ -42,6 +42,25 @@ This yields the governing principle:
 > grid ops, being the connection authority). `ear_tx` exists there only as a
 > passive, well-defined **shovel source**.
 
+## Object names
+
+Every message heard is stored verbatim under one name, the eventstore key
+grammar: `<from-alias>-<type-name>-<persisted-ms>-<source>.json`, four
+dash-separated segments, aliases and type names dotted so a bare dash
+split is exact. `persisted-ms` is the ear's wall clock at the moment it
+stores the object, not the sender's; `source` is the ear's own alias.
+
+A burst inside one millisecond keeps distinct names and its arrival
+order: the first object in a millisecond carries the plain source, each
+further one appends its arrival counter as a trailing dotted segment
+(`hw1.ear`, `hw1.ear.2`, `hw1.ear.3`); a new millisecond resets it. A
+bare-digit segment is never part of an alias, so a reader can tell the
+counter from the source, and the segment count never changes, so every
+reader of the grammar keeps parsing. Readers that replay in capture order
+(the registry rebuild) order by `persisted-ms`, then this counter.
+Unparseable routing keys are stored under `_unparsed_<routing-key>-<ms>-<source>.txt`
+with the same stamp.
+
 ## Dev vs. prod
 
 - **Dev:** the `ear_tx` tap exists for local inspection. There is **no

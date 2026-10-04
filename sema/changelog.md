@@ -10,6 +10,134 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-09-30 — Publish gw.alert 000 and its four enums (OPS-547, `632b58e` on jm/promote-alert-words)
+
+`gw.alert` 000, `gw.alert.category` 000, `gw.alert.state`,
+`gw.fleet.alert.kind` 000 and `gw.platform.alert.kind` 000 move from
+staging to published, bottom-up, by `sema promote`: five status lines,
+five hash pins, the regenerated public index, nothing else. **Why:** the
+alerter's laptop experiment against Alertmanager passed
+(`experiments/2026-09-30-alerter-to-alertmanager/`), which the
+alertmanager design set as the gate for promotion; a published closure
+is what lets the alerter ship a published-only snapshot to the alerts
+box on the hw1 broker.
+
+## 2026-09-30 — patching a mypy runtime python error (OPS-547, `fde7deb` on jm/alert-template-typing)
+
+The hand-written axiom template for `gw.alert` 000 gives its
+category-to-kind-enum mapping an explicit type, so mypy keeps the union
+of the three kind enums instead of widening the dict's values to
+`type[SemaEnum]`; the committed runtime regenerates. The strict-lint
+fixture seed gains `gw.alert`. **Why:** every snapshot build since the
+word was written reported one mypy error on the generated class, in
+report-only mode, and the one hard gate (the strict-lint test) never saw
+the word because its fixture seed predates it. The runtime behaved
+correctly throughout; the fix is the typing, and the fixture is what
+makes a regression on the alert words fail the suite.
+
+## 2026-10-01 — gw.nolan.family.params carries the buffer band thresholds (OPS-392, `ebde45d` on jm/nolan-params-thresholds)
+
+`gw.nolan.family.params` 000 (staging, edited in place) gains
+`BufferFullF` and `BufferChargeF`, `positive.int` each, both required,
+with axiom 1 ChargeBelowFull; the example carries Spruce's 130 F and
+90 F; the registry entry's summary and dependencies follow; the runtime
+regenerates. **Why:** the Nolan heating machine gates the heat pump call
+on the buffer band, and the band's two thresholds are a tunable of the
+house, so they are authored on the ops word rather than held in the
+actor. The heat pump's power thresholds are not here: those are a
+property of the heat pump, selected in scada code by its device type.
+
+
+## 2026-09-30 — layout.lite 013 drops the posture facts; gw.house.operating.status is the LTN's one source (OPS-392, `d89cf7e`)
+
+`layout.lite` 013 (in place) loses `AcceptsDispatch`, `DispatchRefusalReason`,
+`ServiceMode` and `SeasonalStorageMode` and its axiom 5; its dependencies
+on `gw.dispatch.refusal.reason`, `gw1.service.mode` and
+`gw1.seasonal.storage.mode` go with them. `tests/test_snapshot_cli.py`
+checks the vendored `SeasonalStorageMode` import on the 012 old version,
+which still carries the field. **Why:** the same four facts had just been
+given a home on `gw.house.operating.status`, sent after the startup
+announcements and on every change; carrying them on the boot projection
+too gave the LTN two sources that could disagree after a live params
+update. The LTN reads posture from the status word only.
+
+## 2026-09-30 — enum default is Unknown or the safe value (spec, `d80fbb5`)
+
+`authoring/enums.md` "Required Fields": the decode fallback is either a
+first value `Unknown` or the safe value, the one a consumer that must act
+on the enum can act on without harm when the true value is not known
+(`gw1.lc.top.state` → `Dormant`). **Why:** the previous wording named
+`Unknown` alone; the registry's posture and refusal enums want a safe
+value instead, and a default that makes an unknown value look like a
+normal working one is the defect the rule exists to prevent.
+
+## 2026-09-30 — gw1.actuation.authority retires; Standby, posture and dispatch refusal on gw.operational.params; gw.house.operating.status 000 (OPS-392, `ec79b21`)
+
+`gw.operational.params` 000 (in place) loses `ActuationAuthority` and
+gains `Standby`, `StandbyPosture` (`gw.standby.posture`: `MonitorOnly`,
+`NoHeatingOrCooling`), `EnergizedStandbyRelays`, `AcceptsDispatch` and
+`DispatchRefusalReason` (`gw.dispatch.refusal.reason`: `Standby`,
+`NoAggregator`, `ServiceContractBroken`; present iff refusing). Axioms
+3–5: Standby refuses with reason Standby; the reason is present iff
+`AcceptsDispatch` is false; the posture fixes the relay list per family
+(MonitorOnly empty; House0 NoHeatingOrCooling = `hp-failsafe-relay` +
+`aquastat-ctrl-relay`; Nolan NoHeatingOrCooling empty). `layout.lite`
+013 (in place) carries `AcceptsDispatch` + `DispatchRefusalReason` in
+the authority's place (axiom 5). `gw.house.operating.status` 000: one
+record of how a house operates (`ScadaAlias`, `ValidationState`,
+`Standby`, `StandbyPosture`, `SeasonalStorageMode`, `ServiceMode`,
+`AcceptsDispatch`, `DispatchRefusalReason`, `TopState`, `LtnDispatching`,
+`UnixMs`), sent once after the startup announcements and on change.
+`gw.top.state` registers Auto / Admin, which gwsproto already claimed at
+that URL. `gw1.nolan.lc.buffer.only.state`: Initializing / HpCallOn /
+HpCallOff / Dormant for the Nolan buffer-only heating machine.
+`gw1.actuation.authority` 000 is deleted (staging, no published referrer);
+`gw1.system.mode`'s `replaced_by` points at `gw1.service.mode` and
+`gw.operational.params`; `gw1.service.mode` prose drops "inert unless
+Active". The three edited-in-place words are restamped to today so
+their `created` follows their new dependencies.
+
+**Why:** authority did two jobs, selecting the standby machine and
+answering "may this house be dispatched", and the branch's first shape
+(a strategy enum beside a trimmed authority) carried Standby twice. No
+authored field now names a machine: the loader derives it from
+`Standby`, the layout family, `SeasonalStorageMode` and `ServiceMode`,
+and the `else: raise` is the consistency check. The refusal is the
+scada's own fact with a reason, the seed of the actuation-authority
+concept TaTradingRights fleshes out later; `ServiceContractBroken` is
+there now so the word's shape is final before the cold latch is built.
+Standby's relay list is per house (a house with an oil boiler holds two
+relays; a Nolan house none) and the posture enum names what the list
+achieves, so `MonitorOnly` survives as the posture that energizes
+nothing.
+
+## 2026-09-28 — gw.alert 000 axiom template names its classes by placeholder (OPS-547, `3b4260d`)
+
+`templates/axioms/gw_alert_000.py.jinja2` refers to the category, state
+and three kind enums, and to `gw.alert` 000 itself, through the
+generator's `{{ <word>_<version>_class_name }}` placeholders, as every
+other axiom template does. **Why:** the template spelled the sema
+runtime's class names (`GwAlertCategory`, `GwHouseAlertKind`, …), which
+only resolve in a snapshot that keeps the `gw` prefix. The alerter's
+seed strips `gw1` and `gw`, so its snapshot build failed its own lint
+with the enums named `AlertCategory` and the rest. The placeholders
+carry each consumer's local names and drive the imports, so the sema
+runtime regenerates unchanged.
+
+## 2026-09-28 — move.sieg.valve 001 (staging): add StopValve (`4d5530f`)
+
+The Siegenthaler loop takes two commands, a full run to send or to keep,
+and the field windows at maple showed the flow settling 24 to 31 s before
+the motor stops and the opening leg not moving for the first 30 s. Finding
+the valve's real stops needs a command that stops the motor where it is
+and holds that blend, and the next-phase strategies want position moves
+built on those stops. Version 000 is published, so the value goes in as
+001 at staging: `StopValve` appended third, default unchanged
+(MoveToFullSend, which the spec forbids changing), the word's description
+extended with "or stop where it is". No sema type references the enum, so
+the regenerated runtime touched only its own class and kept 000 under
+`old_versions/`. The gwsproto twin follows in gridworks-scada.
+
 ## 2026-09-25 — sieg.loop.strategy; gw.house0.family.params carries SiegLoopStrategy in place of UseSiegLoop (OPS-392, `5ca82f8`)
 
 The sieg-loop always exists in a House0 plant and always runs a

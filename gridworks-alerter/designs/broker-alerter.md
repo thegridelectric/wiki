@@ -1,6 +1,6 @@
 # broker-alerter — the house alerter as a broker citizen
 
-Status: Draft · Pass 0 · Updated 2026-09-17 · Linear: OPS-545
+Status: Accepted · Pass 1 · Updated 2026-09-28 · Linear: OPS-545
 
 **EDD: yes** the shadow run *is* the verification: the new alerter runs beside
 gwalert on the alerts box against the live hw1 broker, and each detector
@@ -256,6 +256,17 @@ hw1. So the order is fixed: OPS-547 spoke 1 on the dev broker with the
 staged snapshot, then the five words promoted, then a published regen,
 and only then the box deployment below. The box never sees the house
 words.
+
+A gap the cold-house detector carries into this design: which sensor a
+zone's setpoint is judged against depends on where the setpoint comes
+from. A spruce zone's setpoint is learned by the scada from the gw-temp
+reading at heat-call end, so only gw-temp is comparable to it; a
+smart-thermostat zone's setpoint is comparable to that thermostat's air
+reading. gwalert hard-codes spruce to gw-temp
+(`gridworks-alerts/src/gwalert/alert_generator.py`
+`SETPOINT_TEMPERATURE_ROLES_BY_HOUSE`) until the layout words carry a
+zone's setpoint source and thermostat kind; the broker-alerter's
+cold-house detector reads the choice off the layout instead.
 
 ## Do this next
 

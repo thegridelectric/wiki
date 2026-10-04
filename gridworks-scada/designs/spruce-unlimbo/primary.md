@@ -6,7 +6,7 @@ Status: Accepted · Pass 1 · Updated 2026-09-24 · Linear: OPS-392
 spokes reach Verified only when an experiment runs against the real bus or a
 real broker.
 
-**▶ Active spoke: [`basic-sieg.md`](basic-sieg.md)**
+**▶ Active spoke: [`nolan-local-control.md`](nolan-local-control.md)**
 
 > What this is: the hub for getting `jm/spruce-unlimbo`, the branch that
 > runs the Nolan layout at spruce, onto the whole fleet as `main` before
@@ -120,7 +120,11 @@ code. How a round runs and what the rounds have taught is
 19. `finalize-layout-lite-13.md` (est 4h, segment 1) — `layout.lite/013` and its closure from
     staging to published so spruce can send it on the production broker;
     `gw.nolan.layout` closes with the same promote
-20. `deployment.md` (est 5h) — the fleet rollout to all six boxes as `main`:
+20. `report-all-machine-states.md` — the layout and `layout.lite` declare
+    every machine the scada reports; the journal makes a channel of each
+    by one rule, no hand-kept map; which transitions earn an asynchronous
+    report
+21. `deployment.md` (est 5h) — the fleet rollout to all six boxes as `main`:
     precondition gates, per-family order and verification, rollback to the
     prior SHA, and the post-launch tlayouts loop for updating a deployed
     layout or ops

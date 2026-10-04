@@ -1,6 +1,6 @@
 # alerter-and-tap — the alerter on `gw.alert`, and the tap to Alertmanager
 
-Status: Draft · Pass 0 · Updated 2026-09-17
+Status: Accepted · Pass 1 · Updated 2026-09-30
 
 > **What this is.** Spoke 1 of the alertmanager design: the alerter
 > moves from the deleted house words to one `gw.alert` with `State`,
@@ -24,10 +24,12 @@ Status: Draft · Pass 0 · Updated 2026-09-17
 
 ## The tap
 
-- A second console script in `gridworks-alerter` (`gwalerter-tap`, its
-  own unit on the alerts box), same snapshot, same broker settings,
-  binding `alertsmic_tx` by the `gw-alert` type segment. Lives in the
-  alerter repo so the vocabulary snapshot is vendored once.
+- `gwalerter tap`, a second subcommand of the alerter's console script
+  and its own unit on the alerts box (`alerter-tap.service`), same
+  snapshot, same `.env`; a plain consumer with its own durable queue
+  (`<alias>-tap`) on `alertsmic_tx`, bound by the `gw-alert` type
+  segment (`rjb.*.*.gw-alert.#`). Lives in the alerter repo so the
+  vocabulary snapshot is vendored once.
 - It decodes each `gw.alert` (`expect=`), maps it, and posts to
   Alertmanager on loopback. Mapping: `alertname` = `Kind`; labels
   `category`, `subject` (the full `AboutGNodeAlias` or `Subject`, the
@@ -38,10 +40,19 @@ Status: Draft · Pass 0 · Updated 2026-09-17
   `Resolved`. Alertmanager dedups on the label set, so a re-sent
   `Firing` is idempotent and a `Resolved` closes it, and two houses
   sharing a short name never collapse into one alert.
-- Best effort with a retry on connection refused; the alerter's store
-  and the journal are the durable record, so a dropped post is logged,
-  not queued.
-- A test against `gw-dev-rabbit` posting to a local Alertmanager.
+- **The open set is re-posted.** Alertmanager forgets a firing alert
+  that is not re-posted within `resolve_timeout`, and the alerter says
+  each transition once, so the tap keeps the open alerts and re-posts
+  them every `tap_resend_s` (300, under the 1 h timeout). At boot it
+  reads that set from the alerter's store (`Store.open_alerts`; the tap
+  opens the same sqlite beside the actor, which is also where it finds
+  each house's display name), so a tap restart neither re-pages nor
+  drops an alert still firing.
+- Best effort with a retry on connection refused (three attempts); the
+  alerter's store and the journal are the durable record, so a dropped
+  post is logged, not queued.
+- Tests: the mapping and the open-set cadence against a recording httpx
+  transport; the consumer against `gw-dev-rabbit`.
 
 ## The experiment (laptop)
 
@@ -94,34 +105,17 @@ script and the Alertmanager config used.
 
 ## Do this next
 
-The swap, on a `jm/gw-alert` branch of `gridworks-alerter` (branch is
-`main`, tree clean at `5c8afb2`).
+The swap (steps 1–7, `d29d9a6`) and the tap are built and the laptop
+experiment PASSED on 2026-09-30
+(`experiments/2026-09-30-alerter-to-alertmanager/`): the five checks
+with a loopback webhook standing in for the Telegram group. This spoke
+is done once two things close:
 
-1. Seed: `src/gwalerter/sema_seed_request.yaml` drops `gw.house.alert`
-   and `gw.house.alert.cleared` for `gw.alert: ["000"]`, and its
-   "published words only" line moves to say the box rule and the dev
-   round differ. `scripts/regen_sema_snapshot.sh` passes its arguments
-   through to `sema snapshot prepare` (it takes none today); regen from
-   the `origin/dev` worktree with `--allow-staged`; expect `indexes/staging.yaml` naming the five
-   staged words and `Alert`, `AlertCategory`, `AlertState`,
-   `FleetAlertKind`, `PlatformAlertKind` beside `HouseAlertKind` in the
-   generated package.
-2. `db_models.py` `AlertSql` and `migrations/versions/0001_initial_schema.py`
-   per point 2.
-3. `store.py` (`open_alert` / `raise_alert` / `clear_alert` / `alerts`,
-   lines 308–358): one word in and out, `expect=Alert`; `open_alert`
-   keyed by category plus the subject the category names; a `Resolved`
-   record closes the row with its `AlertId`.
-4. `no_data.py` (96 lines): `evaluate` builds `Firing` records with
-   `Category.House`, `Kind=HouseAlertKind.NoData`, the full alias;
-   `clear` builds the `Resolved` record with the same `AlertId` and
-   `ResolvedMs`, and the codec's axiom 3 check is the test that it did.
-5. `alerter_actor.py` `emit` (line 124): one type in, radio channel per
-   settled point 1; `TRACKED_TYPES` gains `gw.alert`, loses the two.
-6. `tests/test_no_data.py`: same three tests on the one word, plus one
-   round-trip of a `Firing` and its `Resolved` through the codec that
-   exercises axioms 1 and 3.
-7. `./ci.sh` green (pyright included), then the OPS-545 no-data
-   experiment re-run on the dev broker
-   (`experiments/2026-09-15-alerter-no-data/`) with `gw.alert` records
-   in the log and the store. Then the tap.
+1. The Telegram test group: a bot token file and the group's chat id,
+   then `run.sh` once more with `TELEGRAM_CHAT_ID` and
+   `TELEGRAM_TOKEN_FILE` set, so the page is seen in a group and not
+   only in the receiver's log. The receiver stays in the harness as the
+   record of what was sent.
+2. ✅ Promotion: the five words are published (sema `632b58e`) and the
+   alerter's snapshot is a published-only build. Then the box: spoke 2,
+   `alertmanager-on-the-box.md`.

@@ -3,13 +3,39 @@
 One entry per `starter-scripts` commit (git = the what, this = the why).
 Entries before 2026-08-23 live in git history only.
 
-<!-- pending commit -->
-## 2026-09-28 — maple_snap: a line per snapshot
+## 2026-10-02 — snap_ads.py reads the 12 multipurpose channels by terminal number (`b42c41e`)
+
+`snap_ads.py` is rewritten as a hand tool: one pass over the three
+ADS1115s (`0x4b`, `0x49`, `0x48`), each terminal printed as `channelN`
+with a temperature in F to one decimal, or `open` (at or above 4.80 V,
+below about -35 F) or `short` (at or below 0.05 V), plus the raw volts.
+The old script carried a fixed channel-name table from one house's
+layout and printed a rail-pinned terminal as -35 F; names belong to the
+layout and the script now carries none. The driver it imports
+(`adafruit-circuitpython-ads1x15`) was already in `requirements/prod.txt`;
+the beech and beech2 venvs had never been synced to it. The board sits
+on the second pi (beech2's bus scans `0x48 0x49 0x4b`; beech's shows
+only the Krida and DFRobot boards), so the docstring says to run it
+there with that pi's scada stopped.
+
+## 2026-10-01 — start_api.sh runs from the venv; oak_krida.py deleted <!-- pending commit -->
+
+`start_api.sh` calls `venv/bin/uvicorn` from its own directory instead of
+a bare `uvicorn`; run as a script on a box the bare name is not on PATH and
+the API silently never binds (the first oak pico census on 2026-10-01
+captured nothing for that reason). `oak_krida.py` is deleted: the 5 V bus
+work it was kept for is `turn_off_5v.py` / `turn_on_5v.py`, which read
+board 1's address from the production layout and were verified at oak
+today (board 1 `0x20`, board 2 `0x23`; all seven picos re-posted).
+
+## 2026-09-28 — maple_snap: a line per snapshot (`e46bcb7`)
 
 `maple_snap.py` prints a line on every snapshot the scada sends as well as
 on a 5 W power move, so with the window scada's snapshot at 2 s the water
 temperatures move on the strip at the meter's pace; the 30 s heartbeat
 stays only so a stalled feed still shows its flag.
+`temp_spruce_store_fill.py` is deleted; it was a one-off for filling the
+spruce store.
 
 ## 2026-09-28 — tweak maple snapshot (`c1ab3c8`)
 
@@ -75,8 +101,9 @@ One pair of scripts keyed on the pi's hostname (`five_v_bus.py`): spruce
 drives gw108 relay 1 on GPIO 23 as the deleted `spruce_turn_off_5v.py` /
 `spruce_turn_on_5v.py` did; every
 other house drives Krida relay 1 on board 1, whose address is read from
-the production layout's Krida component (board 2 sits at 0x23 at oak,
-fir and elm, where a dip switch differs, and is never touched). The
+the production layout's Krida component (board 2 is never touched; it
+sits at 0x23 at oak and at 0x21 at fir, both seen on the bus 2026-10-01;
+the `five_v_bus.py` docstring still says 0x23 for fir and elm). The
 Krida write is a read-modify-write of the live 16-bit port, so only the
 named relays change; `adafruit_pcf8575` cannot be used for a single
 relay because its write buffer starts all-zero. A House0 off also

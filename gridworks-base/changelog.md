@@ -12,6 +12,23 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-09-28 — Drop the dev branch from the broker-image trigger and README
+
+`dev` is deleted and `main` is the only long-lived branch: the
+broker-image workflow builds on pushes to `main` alone, and the README
+says so. Nothing else in the repo named the branch.
+
+## 2026-09-28 — Log broker host, port and vhost; 0.5.14 (`9ba2b96`, merged `8e62581`)
+
+`ActorBase.connect_consumer` logged the full broker URL, which carries
+the password: every gwbase service wrote its broker credential into its
+file log and journald at each connect. The settings field is already a
+`SecretStr`; the log line unwrapped it. It now logs host, port and vhost
+from the parsed connection parameters. Found while archiving the alerter
+no-data evidence (OPS-545), where the captured logs had to be redacted.
+
+
 ## 2026-09-15 — Add the Alerter transport class; 0.5.13 (`a727867`, merged `6416d3f`)
 
 `TransportClass.Alerter` / `RoutingClass.Alerter` (`alerts`), an AMQP

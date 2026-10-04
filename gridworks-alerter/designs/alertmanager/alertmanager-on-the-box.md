@@ -1,6 +1,6 @@
 # alertmanager-on-the-box — Alertmanager stood up on the alerts box
 
-Status: Draft · Pass 0 · Updated 2026-09-17
+Status: Accepted · Pass 1 · Updated 2026-09-28
 
 > **What this is.** Spoke 2 of the alertmanager design: Prometheus
 > Alertmanager running on the alerts box as its own unit, configured

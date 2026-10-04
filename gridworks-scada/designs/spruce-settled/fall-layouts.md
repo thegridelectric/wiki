@@ -1,6 +1,6 @@
 # Fall 2026 layouts (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
+Status: Draft · Pass 0 · Updated 2026-10-04 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
 
 > What this is: the four layouts arriving after House0 and Nolan — one
 > simulated, three installed in Millinocket in fall 2026. This spoke holds
@@ -55,6 +55,15 @@ is not a condition of the merge to `main`.
 
 ## Open
 
+- Retiring the enum name `gw1.seasonal.storage.mode` (`AllTanks` /
+  `BufferOnly`, published; the `SeasonalStorageMode` field on both
+  family params words). The name reads as a universal choice, but both
+  values name a buffer, so it cannot describe a house1 variant with no
+  buffer. Today the local-control loaders, the derived generator and
+  the LTN read it, and a Nolan layout has a machine only for
+  `BufferOnly`. The replacement, per-family storage choices or a name
+  that does not presume a buffer, is decided when the first bufferless
+  word is authored.
 - Elm's word: a Nolan plant is monobloc, exchanger and secondary pump with
   one store tank and no buffer; elm has the first three and a buffer tank.
   Whether elm is `gw.nolan.layout` with the buffer made a Hydronic fact, or

@@ -10,6 +10,196 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-04 — NolanBufferOnlyCoolingTou: the Nolan cooling machine selected for BufferOnly only (OPS-392; `ddaa8e64`)
+
+`NolanCoolingTou` becomes `NolanBufferOnlyCoolingTou`, in
+`local_control/nolan/buffer_only_cooling_tou.py`. The loader selects it
+for a Nolan layout with `ServiceMode` Cooling and `SeasonalStorageMode`
+BufferOnly; a Nolan layout authoring AllTanks has no machine in either
+service mode and raises at selection
+(`test_nolan_all_tanks_selects_no_machine`). The Nolan ops fixture
+authors BufferOnly, and the boot-test row for the cooling machine
+follows. **Why:** the cooling loop never uses the store, so BufferOnly
+is the only storage mode it serves; the name says so, and a Nolan
+AllTanks machine is a later machine of its own rather than an alias of
+this one.
+
+## 2026-10-04 — Nolan machines in local_control/nolan/; turn_on_hp / turn_off_hp on HydronicNode (OPS-392; `55be2758`)
+
+The two Nolan machines move into `actors/local_control/nolan/`, matching
+`house0/`: `nolan.py` becomes `nolan/cooling_tou.py` (`NolanCoolingTou`)
+and `nolan_buffer_only_tou.py` becomes `nolan/buffer_only_tou.py`; the
+loader and the two test imports follow. `turn_on_hp`, `turn_off_hp` and
+the `hp_boss` property move from `House0Node` to `HydronicNode`, renamed
+from `turn_on_HP` / `turn_off_HP`; the House0 local controls and leaf
+allies call the new names. Standby's hand-built hp-boss `TurnOff` and
+`NolanBufferOnlyTou.command_call` call the shared primitives. The cooling
+loop's paced sequences become `sequence_hp_on` / `sequence_hp_off`, which
+call the primitive for the hp-boss step and keep their order and 15 s
+pacing. **Why:** every layout has an hp-boss, so turning the heat pump on
+or off is a shared action; one method serves standby, both families'
+local controls and the allies, and the cooling loop's async sequences no
+longer shadow it with a different signature.
+
+## 2026-10-02 — minor tweak for beech. throwaway (`95ed3027`, merged to main in #579)
+
+Commit title as landed. `actors/derived_generator.py`: the info glitch sent when SyncedReadings
+arrive from a tank-module node that is neither buffer nor tankN is
+commented out; the early return stays. Beech's new pipe-thermistor
+modules `dist` and `sieg` post every 60 s and on every 2000 µV move, and
+on main each post was a Glitch to the LTN, about 3,000 a day for the
+pair before async captures. A field hotfix off `main`, against the
+scada protocol's rule that topic branches cut off `jm/spruce-unlimbo`,
+because beech runs main until unlimbo merges in the coming days; the
+unlimbo derived-generator handles these nodes through declared
+strategies and does not have this branch. No test covers the path.
+
+## 2026-10-01 — NolanBufferOnlyTou: the Nolan heating machine (OPS-392; `6b3e284f` WIP hp boss + `f47e58c1` squash)
+
+`actors/local_control/nolan_buffer_only_tou.py` is new: the buffer-only
+heating machine for a Nolan layout, selected by the loader for Nolan +
+Heating + BufferOnly. Its states are `gw1.nolan.lc.buffer.only.state`
+(Initializing, HpCallOn, HpCallOff, Dormant), each transition reported
+as a `SingleMachineState`. The call closes off-peak (ops `Tariff`) while
+the buffer band wants charge and opens on-peak or when the band is full;
+the band is a latch on buffer depth3 at or above `BufferFullF` and
+depth1 below `BufferChargeF`. Either channel older than five minutes
+blinds the band: the top machine goes ScadaBlind, the scada-blind node
+takes the tree and drives the call on the schedule alone, and both fresh
+again re-boots Normal. The postures (zones on their thermostats with the
+scada relays open, store circuit closed, secondary pump and iso valve
+following hp-odu power with unknown power meaning on) are derived each
+check and commanded on change. `actors/hp_boss/` is now a package: the actor
+in `hp_boss.py`, and `sensing.py` holding what the scada knows about each
+kind of heat pump by hp-odu device type, the `HP_TRAITS` table the Nolan
+machine reads and the `DEFROST_SIGNATURES` table House0 reads (moved from
+`hydronic/house0.py`; `test_hydronic_house0.py` and
+`test_sensor_freshness.py` patch the table where it now lives), with the module note on where the surface is going
+(the unit's sensed state, Off / Charging / Defrost, on hp-boss). The traits
+table (Samsung AE055 and `SimHpOdu`): the pump thresholds
+(500/80 W) and the call-open lead, the time before an on-peak window
+opens that the call opens so the compressor has stopped drawing by the
+boundary (120 s, provisional until the stop lag is measured; the window
+end is not padded); a layout with no row fails construction naming the
+device type; `sieg_loop/strat_protect.py` notes that its idle-draw
+line and lag are the same heat-pump facts spelled again. GoDormant
+parks both machines; WakeUp re-boots, never resumes a call.
+`tests/actors/test_local_control_nolan.py` gains the eight heating tests
+(selection, the unknown heat pump, boot posture, band latch, call, the
+call-open lead, pump, ScadaBlind, dormant and wake) and `test_relays_boot.py` boots the new
+row; `tests/named_types/test_operational_params_axioms.py` gains the
+rejecting test for the band axiom (charge below full), which the
+axiom-coverage test required of the mirror wave. **Why:** the loop that runs a Nolan house through a heating season
+is the winter hack on the spruce box as scada behavior, with the same
+three rules; the machine's state now rides the snapshot and the journal.
+
+## 2026-09-30 — tests 3 and 6 of the Nolan spoke: standby after admin, the operating status once per change; the contract timing starts with the contract; the buffer band mirror (OPS-392, `72aa0f15` on jm/spruce-unlimbo)
+
+`tests/actors/test_relays_boot.py` gains the standby-after-admin test on
+the two Standby rows (willow, nolan): boot to the posture, admin turns
+the heat pump on and energizes a relay the ops word does not list,
+release; hp-boss is HpOff and the posture is back.
+`tests/actors/test_operating_status.py` is new: on each Standby ×
+ServiceMode cell the loader selects, the startup status carries the ops
+word's facts, a repeated report sends nothing, admin's take and release
+move TopState alone, two contracts back to back raise `LtnDispatching`
+on the first Active heartbeat and drop it once the second has ended
+past the warning window (a Standby cell refuses the offer and sends
+nothing), and a swapped deed shows on the next report. The contract's
+end and the warning and grace windows are shortened to seconds through
+test seams. In `actors/scada.py`, `process_new_contract` (the
+end-of-contract timing) now also runs when the scada starts a contract,
+not only on the ally's SuitUp. gwsproto's `NolanFamilyParams` gains
+`BufferFullF` and `BufferChargeF` with `check_axiom_1` (charge below
+full), the Nolan ops fixture authors 130 and 90, and the vendored
+closure registry refreshes from the tlayouts snapshot (sema `dev`
+`ebde45d`). **Why:** the ally suits up once per wake,
+so a contract that follows another back to back had no timing, no
+warning to the LTN, and an `LtnDispatching` that never fell; the test
+written for the emitter found it.
+
+## 2026-09-30 — the mirror wave: standby, dispatch refusal and the operating status replace actuation authority (OPS-392, `5fd53523` on jm/spruce-unlimbo)
+
+gwsproto mirrors the sema pass on `jm/operating-status`: `ActuationAuthority`
+leaves `gw.operational.params` and `layout.lite`; `Standby`,
+`StandbyPosture`, `EnergizedStandbyRelays`, `AcceptsDispatch` and
+`DispatchRefusalReason` arrive with `check_axiom_3..5`; `layout.lite` 013
+drops `ServiceMode` and `SeasonalStorageMode` too; `gw.house.operating.status`,
+`gw.standby.posture`, `gw.dispatch.refusal.reason` and
+`gw1.nolan.lc.buffer.only.state` get twins; `top.state` is `gw.top.state`.
+The three ops fixtures carry the new fields (the Nolan one authors
+`ServiceMode` Cooling, the only Nolan machine that exists). The loader
+derives the machine from `Standby`, family, storage mode and service mode
+and raises on a row it has no machine for; `local_control/standby.py` is
+one standby machine for every family on `HydronicNode` (the House0 one is
+gone), setting the posture from `EnergizedStandbyRelays` at ActuatorsReady
+and on every WakeUp; assembly checks each listed name is a relay the normal
+node claims. The LeafAlly wrapper is the one dispatch-refusal gate (the two
+gates inside the House0 allies are gone). The scada sends the operating
+status after its startup announcements and on every change (top state,
+`LtnDispatching` from the first Active heartbeat until no contract has been
+active past a completion's warning window); the LTN reads posture, service
+and storage mode from it alone and refuses to dispatch until the first one
+arrives. The Nolan loop is `NolanCoolingTou` with its review note. Tests:
+the boot rows are the selection table with the standby posture asserted on
+both families; the axiom and assembly rejections; the refusal gate on both
+families and every reason.
+
+**Why:** an authored machine name can disagree with the three facts that
+select it, and `layout.lite` carrying the posture facts gave the LTN two
+sources that could disagree after a live params update (OPS-392).
+The vendored closure registry is refreshed from the regenerated tlayouts
+snapshot. Not in this landing: the standby-after-admin and
+operating-status-emission tests.
+
+## 2026-09-28 — sieg valve: the measured positions of maple's valve
+
+The valve's constants were guesses: a 100 s range, keep onset at 26 s
+and keep complete at 82 s. The full travels of the four 2026-09-28
+maple windows measure them from the two flow meters: keep onset about
+26 s, keep complete about 56 s, the keep stop about 94 s, with a 4 s
+answer lag in the meters taken out. `FULL_RANGE_S` and `t2` change;
+`t2` sets the "just keep" park of HpStartingUp, which now waits where
+the flow has just become fully kept rather than 26 s further on. The
+numbers are one valve's and belong in the layout as parameters; the
+comment says so. The older admin-row test, superseded by
+`test_admin_sieg_row.py` in the previous commit and still expecting
+the old offers, is removed; its one case the new file lacked, that the
+loop's two relays offer nothing, moves there.
+
+## 2026-09-28 — admin panel: the sieg row offers the two commands the valve can use
+
+The panel draws two command buttons per row, and the sieg row mid-travel
+offered all three `MoveSiegValve` commands, so StopValve took the third
+slot and never appeared; the Action cell, 25 characters wide, also cut
+"MoveToFullSend / StopValve" to 25. The row now offers what the valve can
+usefully do from its observed state: at a stop, the move to the other
+stop; in a steady blend, both moves; travelling, StopValve and the move
+to the other stop, since the motor is already headed for this one. The
+Action cell joins commands with a bare slash so the longest pair fits.
+`test_admin_sieg_row.py` pins the offers per state on the willow
+layout. Found on the first maple StopValve window, 2026-09-28.
+
+## 2026-09-28 — sieg-loop takes StopValve: stop the motor mid-travel and hold the blend (`798c7f22`)
+
+Three maple windows on 2026-09-28 showed the valve's flow settling 24 to
+31 s before a 110 s run ends and the opening leg not moving for the first
+30 s, and a full run restarted from mid-travel overshooting the flow by
+84 s of motor. Finding the valve's real stops needs a command that stops
+the motor where it is. `move.sieg.valve` 001 (staging, in sema) adds
+`StopValve`; the gwsproto twin follows to 001. The valve records which
+command cancelled its run (`SiegValve.stopping`), so a stop and a new move
+are told apart explicitly: a stop settles `keep_seconds` from the clock,
+lands on SteadyBlend (or a stop), commands the hold under the stop's
+TriggerId and waits on the relay's report; the cut-short run reports
+under its own id first. With the motor at rest a stop acks and reports
+the state as it stands. The loop's dispatch is an explicit three-way with
+an unknown value raising; the scada command table maps StopValve to
+SteadyBlend; the `sieg-view` strip prints `keep=<s>` after the state.
+Tests first (red then green), full suite 1244 passed. Left as is: the
+panel offers StopValve at a stop, and a stop arriving before the run
+starts or after the motor stops is treated as "at rest".
+
 ## 2026-09-28 — power meter creates transactive-power; boot holds every derived creator to its claim (OPS-392, `eae6078e` on jm/spruce-unlimbo)
 
 Round five at maple showed `transactive-power` with no value in the

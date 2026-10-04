@@ -81,6 +81,7 @@ hand-copies).
 | `program_dac_eeprom.py` | DAC EEPROM | one-time power-on defaults |
 | `watchdog_power_cycle.py` | GPIO (watchdog pi) | full power removal of the primary pi |
 | `gw108_test_code.py` | clears both expanders on import | the authored board map; interactive use only, hack stopped |
+| `snap_ads.py` | no | one pass over the 12 multipurpose-board thermistor terminals on the second pi: `channelN` with F to one decimal, `open` (≥ 4.80 V) or `short` (≤ 0.05 V), and the raw volts; stop that pi's scada first |
 | `turn_off_5v.py` / `turn_on_5v.py` | spruce: GPIO 23; else Krida board 1 relays 1, 5, 6, 8 | drop / restore this house's 5V DC bus, keyed on hostname (`five_v_bus.py`); a House0 off also holds the heat pump and oil boiler off via relays 5, 6, 8, and on releases them unless `--keep-hp-off`; Krida writes are read-modify-write of the live port, never through `adafruit_pcf8575` (its write buffer starts all-zero) |
 | `start_api.sh` | no | the starter-scripts pico API on port 8000, the port the scada's web server uses; with the scada stopped, every pico POST prints here |
 

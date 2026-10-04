@@ -1,6 +1,6 @@
 # gjk persistors — what the custom persistors do
 
-Status: Draft · Pass 0 · Updated 2026-08-05
+Status: Draft · Pass 0 · Updated 2026-10-01
 
 > Sub-spec of [`primary.md`](primary.md): the persistor stack in depth, with
 > emphasis on the **channel model** and the fact that the `readings` fan-out is
@@ -117,3 +117,22 @@ Worth flagging for the owner (Joe's call):
 
 None of these are bugs — they are projection choices. The job of this doc is to
 make the lossiness explicit so it's a *decision*, not an accident.
+
+## Open
+
+- **Pseudo channels from the layout, programmatically.** `STATE_CHANNELS`
+  in `report_event_persistor.py` is a hand-kept map of eight state enums
+  keyed by machine handle; a `machine.states` row whose enum is not in it
+  is logged as unexpected and dropped from `readings`. The scada reports
+  more machines than that today (hp-boss, the sieg valve, the Nolan
+  buffer-only machine, five-v-boss, the pico-cycler, relay pins, zone
+  circuits), and every new machine the scada grows is dropped until
+  someone edits the map. The requirement: when gjk receives a new layout
+  (for now a layout.lite), it derives the pseudo channels it needs,
+  integer channels and enum-valued machine states alike, from the layout
+  rather than from a literal in code, so that nothing the scada reports
+  in a sema enum is lost to analysis by default. The scada side is
+  giving `layout.lite` a declared list of machines (node, state enum,
+  channel name); gjk creates a channel per entry, as it already does for
+  the pico roster, and counts a reported row with no entry as dropped.
+
