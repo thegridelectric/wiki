@@ -1,6 +1,6 @@
 # broker-alerter — the house alerter as a broker citizen
 
-Status: Accepted · Pass 1 · Updated 2026-09-28 · Linear: OPS-545
+Status: Accepted · Pass 1 · Updated 2026-10-05 · Linear: OPS-545
 
 **EDD: yes** the shadow run *is* the verification: the new alerter runs beside
 gwalert on the alerts box against the live hw1 broker, and each detector
@@ -41,7 +41,7 @@ the box; this design draws it at the data path.
   not a default. It lives in its own repo, `gridworks-alerter` (package
   `gwalerter`), named like the other gwbase services; `gridworks-alerts`
   stays gwalert's home until gwalert is retired, and
-  `gridworks-alert-manager` is untouched. Two repos because the two run
+  `gridworks-alert-manager` plays no part (its unit is stopped). Two repos because the two run
   side by side on the box for the shadow week and share nothing but
   thresholds.
 - **The standard gwbase queue**, `<alias>-F<3-hex>`, auto-delete, as every
@@ -106,9 +106,10 @@ the box; this design draws it at the data path.
   the readings window refills from live traffic and "last heard" restarts
   from boot time, so a detector that needs a window waits one window
   before it can fire.
-- **Sema-typed outputs.** The alerter emits an alert event and a cleared
-  event on the broker. The manager consumes them to page; JournalKeeper
-  journals them like anything else, so the web page's alerts history reads
+- **Sema-typed outputs.** The alerter emits `gw.alert` records on the
+  broker, `Firing` when a condition starts and `Resolved` when it stops.
+  The Opsgenie tap consumes them to page ("Paging through Opsgenie");
+  JournalKeeper journals them like anything else, so the web page's alerts history reads
   from the journal DB on the observability side and the bearer-token façade
   on the alerts box goes away. This absorbs OPS-449 (the gwalert ↔ manager
   interface) as one part.
@@ -123,9 +124,6 @@ Settled points live in `executor/gwalerter.md`; what remains open:
 - **Layout bootstrap.** `layout.lite` arrives only on scada boot. The store
   persists the latest per scada, but the first boot needs a seed: a one-time
   pull from the journal, or a layout request the scadas do not yet answer.
-- **Dead-man's switch.** Alerting and the houses share one broker, so a
-  broker outage is silent. The manager pages if the alerter's heartbeat
-  stops, over a path that is not the broker (loopback on the box is enough).
 - **Live is read off the OPS-317 liveness signals.** The fleet roots say
   who the alerter is responsible for; the journaled signal set (startup,
   shutdown, peer.active, `ally.inactive` / `ally.active`) says who is
@@ -144,9 +142,6 @@ Settled points live in `executor/gwalerter.md`; what remains open:
 - **Setpoints that report only on change** (spruce, last between July and
   September) need latest-known values, not a window; the store gives that
   for free but the detector must ask for it.
-- **The manager.** Whether it stays a separate process or becomes the same
-  actor's paging half. Keep it separate at first; it is the thing that pages
-  and should not restart when a detector changes.
 
 ## Sequence
 
@@ -167,8 +162,9 @@ Strangler, not rewrite. gwalert keeps running throughout.
    compare event for event.
 4. Read "live" off the OPS-317 liveness signals once they are journaled;
    the roster stays the house set.
-5. Port one detector at a time with its tests; the manager pages from the
-   new source for each detector as it reaches Verified.
+5. Port one detector at a time with its tests; as each reaches Verified
+   the Opsgenie tap pages for that kind and gwalert's check for it is
+   switched off the same day.
 6. Retire gwalert's DB connection when the last detector moves; drop the
    `gw_alerts` role and the façade.
 
@@ -208,54 +204,88 @@ the detector.
 So the alerter emits **transitions only**: one alert word when a
 condition starts to hold, one cleared word when it stops, both carrying
 the same `AlertId`. Nothing repeats from the alerter. The notifier owns
-the repeat cadence and escalation: today the manager
-(`gridworks-alert-manager`); OPS-547 replaces it with Prometheus
-Alertmanager and folds the pair into one `gw.alert` word with a `State`,
-and the alerter does not otherwise change. The alerter's
+the repeat cadence and escalation, and the notifier is Opsgenie
+("Paging through Opsgenie"). OPS-547 can later put Prometheus
+Alertmanager between the two as a router, and the alerter does not
+change when it does. The alerter's
 own state (which alerts are open) lives in its sqlite store so a restart
 neither re-raises nor forgets an open alert.
 
-Two consequences to settle with the manager's owner:
+Two consequences:
 
-- **Repeat cadence** is the manager's setting per kind, not the
-  alerter's. A starting point in the industry's range: re-notify an
-  unacknowledged alert at 30 min, then hourly, then every 4 h; an
-  acknowledged one never; a cleared one once, as "cleared".
-- **A missing cleared word** must not leave an alert open forever. The
-  dead-man's switch covers the alerter dying; the manager should also
-  expire an open alert it has not heard about for a long window (the
-  Alertmanager `resolve_timeout` idea) and say so.
+- **Repeat cadence** is an Opsgenie policy setting, not the alerter's.
+  A starting point in the industry's range: re-notify an unacknowledged
+  alert at 30 min, then hourly, then every 4 h; an acknowledged one
+  never.
+- **A missing `Resolved` record** must not leave an alert open forever.
+  The tap re-posts the open set from the alerter's store, so an alert
+  the store has resolved is closed at the next pass even if its record
+  was missed on the broker.
+
+## Paging through Opsgenie
+
+Two small things carry a detected condition to a person, and neither
+waits on OPS-547.
+
+- **The Opsgenie tap** is the tap of `executor/gwalerter.md` "The tap"
+  with an Opsgenie client beside its Alertmanager one
+  (`gridworks-alerter` `src/gwalerter/tap.py`, on `jm/gw-alert`). The
+  `Tap` class is kept as it is: its own durable queue on `alertsmic_tx`,
+  each record decoded through the snapshot, the open set read from the
+  alerter's store at boot so a restart neither re-pages nor forgets, and
+  the tests that pin those (`tests/test_tap.py`). What is added is the
+  mapping and the client: a `Firing` record creates an Opsgenie alert
+  whose alias is the `AlertId`, and the `Resolved` record closes that
+  alias. Which notifier a tap process posts to is a required setting
+  with no default. The Alertmanager mapping and client stay while
+  OPS-547 proposes Alertmanager and are deleted in the same change if
+  that proposal drops it. The tap is a separate process so that paging
+  does not restart when a detector changes.
+- **The prober**, its own small unit on the alerts box. Alerting and the
+  houses share one broker, so a broker outage is silent on the broker
+  path: the prober checks the hw1 broker from outside that path and
+  posts to Opsgenie directly, never through the broker or the alerter.
+
+  It checks the two doors the fleet uses, as a client of each, and
+  nothing else:
+
+  - **AMQPS round trip** (`hw1-1.electricity.works:5671`, vhost
+    `hw1__1`, its own scoped user): connect, declare an exclusive
+    auto-delete queue, publish one message to it through the default
+    exchange, and receive it back. The round trip matters because a
+    broker under a memory or disk alarm still accepts connections while
+    it blocks every publisher; a connect-only check passes through that
+    outage.
+  - **MQTT connect** on the TLS listener the scadas use (8883): TLS
+    handshake, CONNECT, CONNACK. The MQTT plugin and its listener can
+    fail while AMQP is healthy, and that is the door every house comes
+    through.
+
+  The management API is not checked: it is a third listener that can be
+  up while both doors are shut, and its being down is not an outage.
+
+  One probe a minute. A check that fails three probes running opens an
+  Opsgenie alert under a fixed alias for that check
+  (`hw1-broker-amqp`, `hw1-broker-mqtt`), so a long outage is one alert;
+  the first success closes it. The page says the check is made from the
+  alerts box, since a network fault at that box looks the same as a
+  broker fault from there. Starting values, tuned once it runs.
 
 **`NoData` under this pattern.** Raise when a registered, live house has
 sent nothing for 10 min (the threshold stays where gwalert has it); clear
 on the first message from that house, with the message's arrival as the
-evidence. The manager re-notifies on its cadence while it stays open and
-sends the cleared notice when data resumes. A house the registry marks
+evidence. Opsgenie re-notifies on its policy while the alert stays open,
+and the `Resolved` record closes it when data resumes. A house the registry marks
 as not expected to report (Standby, decommissioned) is not a `NoData`
 case; that is a field on the liveness record, not a rule here.
 
 ## The alert vocabulary and kinds
 
-Two states of the vocabulary exist at once, and this design tracks both:
-
-- **What the alerter runs on today:** the three house words
-  (`gw.house.alert`, `gw.house.alert.cleared`, `gw.house.alert.kind`),
-  published 2026-09-15, vendored in the alerter's snapshot at `5c8afb2`
-  and described in `executor/gwalerter.md` "Alert words" and "Alert
-  kinds" (the gwalert detector findings that shaped the kinds are there
-  too).
-- **What sema `dev` holds now:** the two house type words are deleted;
-  one `gw.alert` with `State` and its enums (`gw.alert.category`,
-  `gw.alert.state`, `gw.fleet.alert.kind`, `gw.platform.alert.kind`) sit
-  at `staging` (`3de1363`); `gw.house.alert.kind` stays published. That
-  reshaping is OPS-547's, and its spoke 1 moves the alerter onto it.
-
-A snapshot built with `--allow-staged` is marked dev-only by the sema CLI
-(`indexes/staging.yaml` plus a README warning) and MUST NOT run against
-hw1. So the order is fixed: OPS-547 spoke 1 on the dev broker with the
-staged snapshot, then the five words promoted, then a published regen,
-and only then the box deployment below. The box never sees the house
-words.
+The alerter runs on one `gw.alert` word with `State` and its enums, all
+published (sema `632b58e`), and its snapshot is a published-only build.
+Fields and kinds are in `executor/gwalerter.md` "Alert words" and "Alert
+kinds" (the gwalert detector findings that shaped the kinds are there
+too).
 
 A gap the cold-house detector carries into this design: which sensor a
 zone's setpoint is judged against depends on where the setpoint comes
@@ -279,10 +309,11 @@ detector thread, witnessed PASS on the dev broker
 included). A dev registry runs from `grid-node-registry` with `gnr api`
 and `gnr rabbit` against the seeded `d1` universe.
 
-The three house alert words are published and both snapshots (the
-alerter's and the experiments repo's) are regenerated from that set;
-the vocabulary is being reshaped under OPS-547 before the box sees it
-("The alert vocabulary and kinds" above).
+Alongside the box work, on the laptop: the Opsgenie client for the tap
+and the prober ("Paging through Opsgenie"), each witnessed before it
+runs on the box. A `Firing` record opens an Opsgenie alert and its
+`Resolved` record closes it, across a tap restart; the prober pages with
+the dev broker stopped.
 
 **DO THIS NEXT: the shadow deployment**, on the alerts box beside
 gwalert, per the gwbase box pattern (gwbase executor
@@ -291,9 +322,11 @@ login, its own unit, its own aliases, gwbase's file log plus journald.
 
 Before the box:
 
-1. Push sema `dev` (the words and their publication, `74393a7`) and land
-   the alerter's `jm/scaffold` on `main`: the box clones `main` at a
-   pushed SHA and nothing else.
+1. Push the alerter's `jm/gw-alert` (the move to `gw.alert` `d29d9a6`,
+   the tap `bee0564`, the published-word snapshot `f0064a6`), which
+   exists only as a local branch, and merge it to `main` with the
+   Opsgenie client: the box clones `main` at a pushed SHA and nothing
+   else.
 2. Broker. ✅ Definitions: the hw1 broker (`rmqbot`, vhost `hw1__1`,
    AMQPS `hw1-1:5671`) took gwbase 0.5.13's `hybrid_definitions.json`
    on 2026-09-17 by the rmqbot instance-README "Reload the rabbit
@@ -362,18 +395,18 @@ and unit install, with `alerter` for `gnr`):
 
 The shadow week:
 
-9. Notification for `NoData` goes through Alertmanager from day one
-   and gwalert's `no_data` check is switched off the same day (OPS-547);
-   the week compares detection, not notifiers. Each NoData raise and
+9. gwalert keeps paging Opsgenie for no-data through the week and the
+   alerter pages no one; the week compares detection. Each NoData raise and
    clear in the alerter's `alerts` table (sqlite at
    `~alerter/.local/share/gridworks/alerter/alerter.sqlite`) and file
-   log against gwalert's no-data alerts in the manager's history and
-   Opsgenie, event for event; a raise the alerter makes that gwalert
+   log against gwalert's no-data alerts in Opsgenie, event for
+   event; a raise the alerter makes that gwalert
    does not is examined, not assumed wrong (elm's summer silence is the
    known case gwalert misses). JournalKeeper does not journal the alert
    words until its seed carries them, so the week's record is the
    alerter's own store; adding the words to gjk's seed comes when the
    web Alerts page moves to the journal.
 10. `NoData` reaches Verified when the week matches or beats gwalert;
-    then the manager consumes the alerter's words for that kind and the
-    next detector starts.
+    then the Opsgenie tap goes live for that kind, gwalert's `no_data`
+    check is switched off the same day so no house is paged twice, and
+    the next detector starts.

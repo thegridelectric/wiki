@@ -1,6 +1,6 @@
 # GridWorks — working conventions for Claude
 
-Status: Accepted · Pass 2 · Updated 2026-09-21
+Status: Accepted · Pass 2 · Updated 2026-10-04
 
 > Canonical at `wiki/GridWorks_CLAUDE.md`; symlink setup in
 > [`README.md`](README.md#setup). Paths are relative to the umbrella dir
@@ -185,6 +185,16 @@ distributed-trust principle it served — that principle is core vision.
   actors over AMQP (`localhost:5672`), scada over MQTT (`localhost:1885`, TLS
   off, Rabbit MQTT plugin — topic dots become slashes; payloads intact). Mgmt
   UI `15672`. Creds live in each repo's `.env`; never hardcode them.
+- **A scada finds its files by their deployed names, in dev as on a box.**
+  Its config folder (`~/.config/gridworks/scada/`) holds
+  `hardware-layout.json`, `operational-params.json` and `ta-deed.json` side
+  by side, and the scada resolves them by default. Do NOT point a scada at
+  a fixture or gen-output file name through `*_PATHS__*` lines in a
+  `.env` or a template: a source with another name
+  (`tests/config/gw.nolan.*`, a tlayouts gen output) is renamed at the
+  copy, by `experiments/put_layout.sh` (`dev` seeds the laptop). Until
+  `jm/spruce-unlimbo` merges, a window scada reads the
+  `scada-experiment/` folder beside it; that folder goes away at the merge.
 - **Journal DB first; eventstore by hand.** Consumers read fleet
   emissions from the journal DB (readings tables + `gridworks.messages`
   payloads, decoded through the codec). The S3 eventstore is the deep

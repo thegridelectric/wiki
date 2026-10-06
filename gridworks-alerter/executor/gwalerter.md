@@ -1,6 +1,6 @@
 # gwalerter — the broker alerter
 
-Status: Draft · Pass 0 · Updated 2026-09-30
+Status: Draft · Pass 0 · Updated 2026-10-05
 
 > What this is: the house alerter as a gwbase actor on the fleet broker
 > (`thegridelectric/gridworks-alerter`, package `gwalerter`): its inputs,
@@ -81,9 +81,8 @@ instances or typed records, never tuples.
 One word, `gw.alert` (`sema/definitions/types/gw.alert/000.yaml`), with
 its enums `gw.alert.category`, `gw.alert.state` and a kind enum per
 category (`gw.house.alert.kind`, `gw.fleet.alert.kind`,
-`gw.platform.alert.kind`). The five new words are `staging`, so the
-alerter's snapshot is a dev-only `--allow-staged` build until they
-promote. An alert is a service reporting on something from the evidence
+`gw.platform.alert.kind`). All are published, and the alerter's
+snapshot is a published-only build. An alert is a service reporting on something from the evidence
 it received; `glitch` is a node reporting on itself, which is why it did
 not grow to cover this.
 

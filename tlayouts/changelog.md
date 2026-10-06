@@ -10,6 +10,116 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-06 — Every layout carries the standby command node (OPS-392, `b38b980` on jm/spruce)
+
+The snapshot is regenerated from sema `8c1feec`, whose layout words
+require a `standby` command node at `auto.lc.standby`, and both
+generators emit it beside `n`, `backup` and `scada-blind`. A layout
+without the node fails both words' `CommandNodesExistenceAndActorClass`,
+so every house's layout is regenerated before its next scada start on
+`jm/spruce-unlimbo`.
+
+## 2026-10-06 — Nolan layouts carry the hp-watch actor; the snapshot seeds gw2.lc.top.state (OPS-392, jm/spruce)
+
+The snapshot is regenerated from sema `9ad04ab`, which renames the
+`HpSensor` actor class to `HpWatch` and its node to `hp-watch`; the Nolan
+generator emits the node under the new name and class. The seed adds
+`gw2.lc.top.state`, which no layout word references, so that the
+registry the scada vendors carries it and its gwsproto twin is checked.
+`gw2` joins the stripped prefixes, giving the local class `LcTopState`.
+
+## 2026-10-05 — Layouts carry the water store as its own word (OPS-392, jm/spruce)
+
+The snapshot is regenerated from sema `2a222f6`, which adds
+`gw.water.store` 000. The House0 and Nolan generators emit
+`Hydronic.WaterStore` with the house's tank count in place of
+`Hydronic.TotalStoreTanks`. **Why:** a house's store is not always water
+tanks. One of the fall layouts stores heat in a cement slab under the
+floor, and it has no tanks to count. The tank count now belongs to a word
+that a layout includes only when its store is water tanks. Beech, maple,
+spruce and the three sim pairs regenerate. Elm, fir and oak still fail
+their axiom 8 check (`SiegManifoldChannels`) until `gw.house0.no.sieg`
+exists.
+`LayoutIdMap` no longer parses `TotalStoreTanks`. Nothing read it, and
+the store's tank count comes from the generator config.
+
+## 2026-10-05 — Circuits carry their temperature and setpoint, zones name a primary circuit, every layout has a cold-watch node (OPS-392, jm/spruce)
+
+`beech_gen.py`, `maple_gen.py`, `elm_gen.py`, `oak_gen.py` and
+`fir_gen.py` declare `SetpointSource` `FromThermostat` on every zone
+circuit. **Why:** each circuit said
+`Learned` beside a `HoneywellViaHubitat` thermostat whose `-set` channel
+the hub poller reports. The scada's cold judgment branches on
+`SetpointSource`: a `Learned` zone is cold only while it calls, against
+a recorded setpoint, and a `FromThermostat` zone is judged against the
+thermostat's own report with the on-peak-start protection. Left as
+`Learned`, a House0 house whose thermostat was raised during on-peak
+would read as cold. The two sim gens (willow, orange) keep `Learned`:
+their thermostats are `MechanicalDial`, which the circuit word's axiom 2
+does not allow beside `FromThermostat`.
+
+The vendored snapshot is regenerated from sema `ec35d40`, which moves
+temperature and setpoint channels onto circuits and has each zone name
+a primary circuit. **Why:** the generators author against the snapshot,
+so it comes first; they do not validate until they author the new
+fields.
+
+The generators author the new fields. Both families emit the
+`cold-watch` node (`ColdWatch`, `s.cold-watch`, no handle). A House0
+circuit is named after its zone, is the zone's primary, and names the
+thermostat's own `zoneN-…-temp` and `-set` channels; the choice of the
+ADS `gw-temp` channel for a zone's temperature is gone, so beech and
+maple are judged on the Honeywell's reading. A Nolan circuit's place in
+`zone_call_circuits` is its `CircuitPosition`: `ZoneCallCircuitSpec`
+drops `position`, carries `opto_idx` (the gw108 terminal, used for the
+whitewire input and the relay pair) and `primary` (required on one
+circuit of a zone that has several), and
+`thermistor_circuit_positions` replaces `thermistor_zone_idxs`. A
+thermistor circuit carries its `gw-temp` channel and a derived setpoint;
+spruce's fancoil circuit carries neither and the living room's primary
+is circuit 2. A `Learned` setpoint is a `simple-falling-edge-setpoint`
+derived channel in every family through one shared helper, so the
+House0 sim sensor no longer carries a `-set` channel. The generators
+refuse a circuit named after a zone it does not serve, and a Honeywell
+circuit declared `Learned`. **Why:** the layout words now require
+these fields, and the setpoint and temperature belong to a thermostat
+rather than a zone. Regenerated: spruce, its async1 variant, spruce-sim,
+willow-sim, orange-sim, beech and maple. Elm, oak and fir still stop at
+layout axiom 8 (`sieg-hot`) before writing an output, as before this
+change.
+
+## 2026-10-04 — Nolan layouts carry the hp-sensor actor; honeysuckle gen commented out (OPS-392, `80e7cbb` on jm/spruce)
+
+The Nolan builder's `hp-sensor` becomes an `HpSensor` actor
+(`s.hp-sensor`, no Handle), and the vendored snapshot takes sema's
+`gw1.actor.class` 014 `HpSensor` and the matching axiom 32, by hand
+edits that mirror the sema change file for file. `honeysuckle_gen.py` is
+commented out under a note that honeysuckle is going to be a new scada
+for the Stoneman microgrid. **Why:** the actor that runs the heat-pump
+threshold machine is the node the machine reports under. Honeysuckle
+fails `gw.nolan.layout` axiom 8 (RequiredSensing) and will not carry a
+Nolan layout.
+
+## 2026-10-04 — Nolan layouts carry hp-sensor; snapshot follows gw.nolan.layout axiom 32 (OPS-392, `d8da83c` on jm/spruce)
+
+The Nolan builder emits a `NoActor` ShNode `hp-sensor` with no Handle,
+and the snapshot regenerates for `gw.nolan.layout` axiom 32
+(HpSensorNode), ActuatorLeaves clause c on both layout words, and the
+renamed `spruce.hack.hp.state` values; the spruce and spruce-sim
+layouts regenerate. **Why:** the scada's heat-pump threshold machine
+reports its sensed state under `hp-sensor`, kept apart from `hp-odu`,
+and every Nolan layout must carry the node.
+
+## 2026-10-04 — Seed the two Nolan state-machine enums into the snapshot (OPS-392, `65ead19` on jm/spruce)
+
+The seed request lists the enums `gw1.nolan.lc.buffer.only.state` 000 and
+`spruce.hack.hp.state` 000, and the vendored snapshot regenerates from
+sema `6f7d5ea`. **Why:** the scada mirrors this snapshot's registry as its
+sema closure, and the state-machine enums should reach consumers such as
+JournalKeeper through the layout vocabulary. No layout names its state
+machines yet, so dependency closure cannot reach them; they are seeded
+directly as the first of them.
+
 ## 2026-10-04 — Nolan ops author SeasonalStorageMode BufferOnly (jm/spruce, `044d64f`)
 
 `spruce_gen.py` and `honeysuckle_gen.py` author

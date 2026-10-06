@@ -6,6 +6,29 @@ the *why*.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-10-05 — put_layout.sh asks before it copies over a target's differing params (OPS-392)
+
+Where a target's `operational-params.json` exists and differs from the
+source, `put_layout.sh` prints the difference and copies only on an
+answer of `y`; any other answer leaves the target alone and exits 1.
+**Why:** a scada now writes its own params file when a cold house makes
+it refuse dispatch, so the file on a box can hold a refusal the tlayouts
+source lacks, and a push of the source would clear it unseen.
+
+## 2026-10-04 — put_layout.sh dev seeds the laptop's config folders; a dev window reads them (OPS-392, `c3c0eed`)
+
+`put_layout.sh dev` copies the scada repo's Nolan sim fixtures into the
+laptop's `~/.config/gridworks/` folders under the deployed names
+(`hardware-layout.json`, `operational-params.json`, `ta-deed.json`),
+sha-checked like a house. `house_window.sh dev on` refuses until that
+check passes and hands the LTN the pair from its own folder, where it
+used to read path lines out of the scada `.env`. **Why:** a dev scada
+found its files through `.env` lines naming the fixtures, which no box
+does, and nothing named the deed, so the first sim Nolan run on the dev
+broker booted UnValidated with a `no-ta-deed` glitch. Dev now resolves
+its files the way a box does.
+
 ## 2026-09-30 — alerter-to-alertmanager: the tap witnessed; snapshot from the published alert words (OPS-547, `a598162`)
 
 The new folder records the run: the alerter's `gw.alert` through the

@@ -67,6 +67,10 @@ it exists. The candidate homes:
 | `STORE_DEFROST_DETECTION_MINUTES = 10` | `all_tanks.py:40`, `all_tanks_tou.py:21` | No defrost detection in the first minutes of charging the store | ops word | open |
 | `BLIND_MINUTES = 5` | `tou_base.py:43` | How long without readings before local control goes scada-blind | ops word | open |
 | `SYSTEM_COLD_MINUTES = 5` | `tou_base.py:44` | How long house and tanks stay cold before switching to non-electric backup | ops word | open |
+| `COLD_DELTA_F = 2.0` | `hydronic/cold.py` | How far under its setpoint a critical zone is before it is cold | ops word | open |
+| `COLD_LATCH_S = 300` | `hydronic/cold.py` | How long a critical zone is cold before the glitch and the dispatch refusal | ops word | open |
+| `STILL_COLD_IN_BACKUP_S = 3600` | `hydronic/cold.py` | How long cold in backup before the still-cold glitch | ops word | open |
+| `FREEZE_F = 40.0` | `hydronic/cold.py` | The zone temperature under which a zone is freezing | ops word | open |
 
 ## Procedural doctors and monitors (`actors/procedural/`)
 

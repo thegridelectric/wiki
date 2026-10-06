@@ -58,8 +58,7 @@ worth of starts and defrosts and the comparison is in the journal.
 
 - Not what the Nolan machine uses for the pump: that is the threshold
   machine hp-boss runs, which this machine retires
-  (`../spruce-unlimbo/nolan-local-control.md` "The heat-pump
-  threshold machine").
+  (`executor/local-control.md` "The heat-pump watch").
 - Not reported. Reporting it as a machine state needs the state enum
   as a sema word and the layout's machine declaration
   (`../spruce-unlimbo/report-all-machine-states.md`); both wait.

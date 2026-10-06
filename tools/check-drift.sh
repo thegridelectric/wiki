@@ -51,8 +51,9 @@ check_box ear gridworks-ear ear@ear
 check_box gnr-ear gridworks-ear ear@gnr-ear
 check_box gjk gridworks-journalkeeper journalkeeper
 check_box forecast gridworks-weather-forecast weather-rabbit weather-api
+# alert-manager.service on the alerts box is stopped on purpose, so it is
+# not checked.
 check_box alerts gridworks-alerts gridworks-alerts
-check_box alerts gridworks-alert-manager alert-manager
 
 # Broker definitions: the mounted boot file must match gwbase main's
 # committed artifact (definitions-are-law; drift here means the next
@@ -70,6 +71,28 @@ for h in ear gnr-ear; do
   [ -n "$n" ] && [ "$n" != 0 ] && OUT="$OUT
   $h: $n messages parked in need_to_put (store trouble?)"
 done
+
+# House params: a scada writes its own operational-params.json (the cold
+# latch that refuses dispatch), so a box's copy can differ from the tlayouts
+# source. Report the difference; a person decides which side is right. A
+# house that does not answer, or holds no params file, is not drift.
+UMBRELLA="$(cd "$(dirname "$0")/../.." && pwd)"
+check_house_params() {  # house source-file boxes...
+  local house="$1" src="$UMBRELLA/tlayouts/output/$1/$2" want got box dir
+  shift 2
+  [ -f "$src" ] || return 0
+  want=$(shasum -a 256 "$src" | cut -d' ' -f1)
+  for box in "$@"; do
+    for dir in scada scada-experiment; do
+      got=$($SSH "$box" "sha256sum .config/gridworks/$dir/operational-params.json 2>/dev/null | cut -d' ' -f1" 2>/dev/null)
+      [ -z "$got" ] || [ "$got" = "$want" ] || OUT="$OUT
+  $box: $dir/operational-params.json differs from tlayouts output/$house/${src##*/} (not a pull + restart: compare the two and decide which side is right)"
+    done
+  done
+}
+check_house_params spruce gw.nolan.operational.params.json spruce
+check_house_params beech operational-params.generated.json beech beech2
+check_house_params maple operational-params.generated.json maple maple2
 
 if [ -n "$OUT" ]; then
   printf '%s\n' "$OUT" > "$MARKER"

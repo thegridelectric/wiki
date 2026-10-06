@@ -49,7 +49,7 @@ minutes, against 0.3 F with the loop closed;
   `HpHasLift` → full send. There is no target LWT, no LWT slope and no
   travel-time reckoning; the 2025–26 loop (`c55fe9eb`) had all three.
 - **Stop.** HpBoss reports `HpOff` → `HpOff` → full keep, or full send
-  when the actuation authority is `Standby`.
+  when the ops word says `Standby`.
 - **Blind** (`is_blind`, `:265`): lift or power missing, or power over
   500 W more than 120 s after `hp_turned_off_time`. Blind drives to full
   send, and `hp_loop_is_getting_hot` also answers true when blind.
@@ -156,7 +156,7 @@ what the valve does.
 **Choosing the strategy.** Once, at construction, from the ops word
 (`selected_strategy`, `strategy.py`): the House0 family params'
 `SiegLoopStrategy` (enum `sieg.loop.strategy`), except that
-`ActuationAuthority.Standby` runs `HoldFullSend` whatever the params say,
+the ops word's `Standby` runs `HoldFullSend` whatever the params say,
 since the power-less posture is full send. `HoldFullSend` and
 `StratProtect` are built; any other value fails construction. HpBoss reads
 the same selection: under `StratProtect` a TurnOn passes through

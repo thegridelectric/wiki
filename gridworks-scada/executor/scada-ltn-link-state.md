@@ -100,8 +100,12 @@ the presence of a placeholder file. `ScadaAppInterface.validation_state`
 reads the deed at `settings.paths.tadeed` (default `ta-deed.json` beside
 the hardware layout) into a `ta.validation.state`: `UnValidated` when
 there is no deed, else the deed's `ValidatedRealAssetAndGps`,
-`ValidatedRealAssetIncorrectGps` or `ValidatedSimulatedAsset`. Only the
-state is read today; the signature over the deed and the owner
+`ValidatedRealAssetIncorrectGps` or `ValidatedSimulatedAsset`. A deed
+binds one terminal asset: a deed on file whose `TaId` is not the
+layout's TerminalAsset GNodeId is no deed (`ScadaAppInterface.ta_deed`
+returns None, `deed_on_file` is the file as read), covered by
+`tests/actors/test_startup_announcements.py` and not yet by a run on a
+broker. Only the state and the `TaId` are read today; the signature over the deed and the owner
 principal wait on the signing convention and principal word
 (`../explorations/deeds-and-trading-rights.md`).
 
@@ -141,9 +145,11 @@ with no LTN on the broker still records them. `announce_at_first_broker_link`
 a second, calls `send_startup_announcements` once, and returns.
 
 The announcement is `layout.lite`, then either the `ta.deed` the scada holds
-or, when it holds none, a Warning `Glitch` with Summary `no-ta-deed` naming
-the path it looked at (`settings.paths.tadeed`). None of the three asks for
-or demands an ack.
+or, when it holds none, a Warning `Glitch`: Summary `no-ta-deed` naming
+the path it looked at (`settings.paths.tadeed`) when there is no file, or
+Summary `ta-deed-wrong-asset` naming the deed's and the layout's ids and
+aliases when the file's deed is for another terminal asset. None of them
+asks for or demands an ack.
 
 Invariants: at most one send per scada run; nothing sent before the link is
 send-capable; a link flap after the send causes no resend (the task has

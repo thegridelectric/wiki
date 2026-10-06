@@ -10,6 +10,202 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-06 — gw2.lc.top.state: InBackup replaces UsingNonElectricBackup <!-- pending commit -->
+
+`gw2.lc.top.state` 000 drops `UsingNonElectricBackup` and gains
+`InBackup`. A top state says what the local control is doing, and which
+kind of backup a house has is a layout fact: the old value named one
+house's answer, an oil boiler, and an electric-element backup such as
+spruce's buffer elements could not report under it. Both layout words'
+`ActuatorLeaves` prose names the `backup` node for `InBackup`. The word
+had been marked published in the local registry earlier the same day
+and never pushed, so it returns to staging and is edited in place; its
+hash pin goes with the status.
+
+## 2026-10-06 — Both layout words require a standby command node under local control (OPS-392, `8c1feec` on jm/standby-node)
+
+`gw.house0.layout` 000 and `gw.nolan.layout` 000, both staging and
+edited in place, gain `standby` as a fourth `NoActor` command node under
+local control, at `auto.lc.standby`. Three axioms on each word name it:
+`CommandNodesExistenceAndActorClass`, `ActuatorLeaves` clause c and
+`CommandNodeHandles`. Each state of local control that commands has its
+own node, so the command tree alone says which state holds the plant; a
+standby scada commanded from `n` and read the same as Normal.
+
+`ActuatorLeaves` states the correspondence: the state nodes are named
+for the `gw2.lc.top.state` values in which local control holds the tree
+(`n` Normal, `backup` UsingNonElectricBackup, `scada-blind` ScadaBlind,
+`standby` Standby; Dormant has none). No instance check changes, since
+the three axioms above already pin the nodes; a runtime test fails when
+the enum gains a commanding value without a node. `gw2.lc.top.state:000`
+joins both words' axiom dependencies, and because a dependency may not
+be newer than its dependent, both words' `created` moves from
+2026-10-05T15:30Z to 2026-10-06T15:30Z.
+
+## 2026-10-06 — gw1.local.control.standby.top.state is deleted (OPS-392)
+
+The two-state standby enum (`EverythingOff`, `Dormant`) is removed with
+its registry entry, its published hash and its generated runtime class.
+`gw2.lc.top.state` carries `Standby` as a state of local control, so the
+standby machine has no vocabulary of its own. The word was marked
+`published` but never reached `main`, and nothing speaks it: gwsproto has
+no twin and no consumer snapshot seeds it.
+
+## 2026-10-06 — gw2.lc.top.state carries Standby and no Monitor; HpSensor becomes HpWatch (OPS-392)
+
+`gw2.lc.top.state` 000, published, is the top state of the local
+control node whichever machine the scada runs: `Dormant`,
+`UsingNonElectricBackup`, `Normal`, `ScadaBlind`, `Standby`, default
+`Dormant`. It is a new word because a versioned enum never loses a
+value and `gw1.lc.top.state` 001 carries `Monitor`, a state no machine
+reaches now that monitoring is a standby posture. `Standby` joins the
+enum so that one node reports one state word; the standby machine's own
+`gw1.local.control.standby.top.state` named its state `EverythingOff`,
+which misdescribed a posture with an energized-relay list and a
+pico-cycler subtree running on its own. Both old words carry
+`replaced_by: [gw2.lc.top.state]`. The new word also drops the
+`UsingNonEectricBackup` typo in 001's value descriptions.
+
+`HpSensor` becomes `HpWatch` and its node `hp-watch`, in place in
+`gw1.actor.class` 014 and `gw.nolan.layout` 000 axiom 32 (both
+staging): the actor watches the heat pump's running state, it senses
+nothing itself. Axiom 32 is `HpWatchNode`; the axiom template, the
+Nolan fixture and its tests follow.
+
+## 2026-10-05 — gw.water.store; the layout words drop a clause that cannot fire (OPS-392; `2a222f6`)
+
+Staging words edited in place, one new word. `gw.water.store` 000
+carries `TotalStoreTanks` (a positive int, at most 6 by its TankCount
+axiom). `gw.hydronic` 000 loses `TotalStoreTanks` and gains the
+optional `WaterStore`; its Cardinality axiom bounds only the zones.
+`gw.nolan.layout` SingleStoreTank requires the store present with one
+tank, `gw.house0.layout` gains axiom 37 WaterStore (present), and both
+StoreTankTemps axioms read the count through `WaterStore`. Clause b of
+RequiredActuators in both layout words no longer says
+`ZoneCallCircuits` is non-empty. `created` on `gw.hydronic` and both
+layout words moves to the new word's stamp, since each now depends on
+it. **Why:** the word allowed zero store tanks and the scada refused
+them, so a layout could pass sema and fail to load. Layouts whose
+store is not water tanks are coming, and the count belongs to a chunk
+such a layout omits, not to a number it sets to zero; the families
+that have tanks say so by axiom. The non-empty clause was dead:
+`gw.hydronic` requires a zone and every zone a primary circuit, and
+the nested word is validated first.
+
+## 2026-10-05 — relay nodes distinct, read-thermostat channels, learned-setpoint strategy (OPS-392, `ec35d40`)
+
+Staging words edited in place. `gw.hydronic` 000 CircuitDistinctness
+gains clauses e and f (no two circuits share a `FailsafeRelayNode` or
+an `OpsRelayNode`), and CircuitResolution loses clause d. In both
+layout words CircuitSetpointChannel now covers only learned setpoints
+after its two resolution clauses: c the channel is derived, d its
+inputs are the circuit's own temperature and heat-call channels, e its
+`Strategy` is `simple-falling-edge-setpoint`. ReadThermostatChannels is
+new (`gw.nolan.layout` 34, `gw.house0.layout` 36): a `FromThermostat`
+circuit's setpoint and temperature channels are data channels captured
+by the node of the circuit's thermostat component. **Why:** a setpoint
+read from a thermostat is only comparable with the temperature that
+same thermostat senses, so both channels are tied to its component;
+at a Honeywell house that makes the judged temperature the
+thermostat's own, not the GridWorks thermistor's. PrimaryCircuit
+already gives every zone a circuit that serves it, so the "served by
+at least one circuit" clause restated it.
+
+## 2026-10-05 — circuits carry their name, temperature and setpoint; zones name a primary circuit (OPS-392, `c1bfd28`)
+
+Every word touched is staging and edited in place. `gw1.hvac.zone` 000
+gains a required `PrimaryCircuitPosition` and loses `TempChannelName`.
+`gw1.zone.call.circuit` 000 gains a required `Name` and an optional
+`TempChannelName`, its `CircuitPosition` becomes the circuit's 1-based
+place in the layout's circuit list, and axiom 3 SetpointNeedsTemp is
+new. `gw.hydronic` 000 CircuitResolution b now says the circuit at
+place i has `CircuitPosition` i; PrimaryCircuit (3) and
+CircuitDistinctness (4) are new. In both layout words
+ZoneTempChannelResolution becomes CircuitTempChannelResolution and
+CriticalZoneSetpointChannel becomes CircuitSetpointChannel, with
+clauses tying `FromThermostat` to a data channel and `Learned` to a
+derived channel fed by the circuit's own temperature and heat-call
+channels; `zone.setpoint.source` 000 prose says the circuit's
+temperature channel; both words take `zone.setpoint.source` 000 as an axiom
+dependency. **Why:** a setpoint is a thermostat's, and a thermostat
+belongs to a circuit, so the temperature it is judged against has to
+be the one sensed at that thermostat. A zone with two circuits needs
+one of them named as the zone's own, which the cold-house judgment
+reads. The circuit number was the gw108 opto index; a layout's
+functional numbering cannot depend on one board's wiring, so it is the
+place in the list and the board index stays with the hardware config.
+
+## 2026-10-05 — improved zone / circuit / setpoint logic and cold management (OPS-392, `acc96d2`)
+
+Every word touched is staging and edited in place. `gw1.actor.class`
+014 appends `ColdWatch`, and CoreShNodesExistenceAndActorClass
+(`gw.nolan.layout` 3, `gw.house0.layout` 2, identical wording) gains
+the row `"cold-watch"` → `ColdWatch`. `gw1.zone.call.circuit` 000 gains
+an optional `SetpointChannelName`. `gw.hydronic` 000 CircuitResolution
+gains clauses c (zone Names are distinct) and d (every zone is served
+by at least one circuit), and its example gains the second circuit.
+Both layout words gain CriticalZoneSetpointChannel (`gw.nolan.layout`
+33, `gw.house0.layout` 35): every critical zone has a circuit that
+carries a setpoint channel, and every setpoint channel resolves to a
+temperature channel. `gw.recorded.setpoints` 000 is a new staging type:
+a scada's alias and the last `single.reading` each setpoint channel
+carried, unique by channel (axiom 1). **Why:** the cold-house judgment
+runs while the local control is dormant under a contract or under
+admin, so it is a node of its own and every layout carries it. A
+setpoint belongs to a circuit, since each thermostat has its own dial
+and a zone can have two; the judgment found a zone's setpoint by
+building a channel name from the zone's position, which is wrong where
+zones and circuits do not line up one to one. The zones are a disjoint
+cover of the circuits, which the hydronic word now states. The recorded
+setpoints are durable data the scada writes to disk, which had no word.
+
+## 2026-10-04 — gw1.actor.class 014 HpSensor; gw.nolan.layout axiom 32 requires it (OPS-392, `18accc1` on jm/tiny)
+
+Both words are staging and edited in place. `gw1.actor.class` 014
+appends `HpSensor`, and axiom 32 (HpSensorNode) requires the `hp-sensor`
+node to carry it. The Nolan vanilla fixture's `hp-sensor` becomes an
+actor (`s.hp-sensor`), and the clause-12c counterexample moves to a
+stray `NoActor` node under lc, matching House0's 14c. **Why:** the
+threshold machine reports under `hp-sensor`, so the actor that runs it
+should be that node. Sensing then stays out of hp-boss, the command
+node, and a layout opts in through the loader's usual ActorClass path.
+
+## 2026-10-04 — gw.nolan.layout axiom 32 HpSensorNode; ActuatorLeaves clause c (OPS-392, `1d7a06e` on dev)
+
+Both layout words are staging and edited in place. `gw.nolan.layout`
+axiom 32 (HpSensorNode) requires a `NoActor` ShNode named `hp-sensor`.
+ActuatorLeaves (`gw.nolan.layout` 12, `gw.house0.layout` 14, identical
+wording) gains clause c: the `NoActor` nodes directly under the
+LocalControl node are named `n`, `backup` or `scada-blind`. Runtime
+checks, the `hp-sensor` node in the Nolan vanilla fixture, and
+counterexamples for 32, 12c and 14c. **Why:** the scada's heat-pump
+threshold machine (`spruce.hack.hp.state`) reports under `hp-sensor`,
+apart from `hp-odu`, which will get its own digital comms, and the
+Nolan heating machine's pump posture depends on that machine. Clause b
+read any `NoActor` under lc as a command node, so a stray node there
+passed; the nodes under lc are the ones that hold local control's top
+states. With clause c, the node's placement follows from the handle
+axioms, so axiom 32 states only its existence and class.
+
+## 2026-10-04 — minor (OPS-392, `752f40b` on jm/spruce-hack-hp-detected)
+
+`spruce.hack.hp.state` 000, staging, edited in place: `HpOn` / `HpOff`
+become `HpDetectedOn` / `HpDetectedOff`. **Why:** hp-boss also reports
+`hp.boss.state`, whose `HpOn` / `HpOff` name the call it commanded;
+the threshold machine's values name what power metering detected, and
+the two read side by side in the journal.
+
+## 2026-10-04 — spruce.hack.hp.state 000 (OPS-392, `6f7d5ea` on jm/spruce-hack-hp-state)
+
+New staging enum `spruce.hack.hp.state` 000: `Unknown`, `HpOn`, `HpOff`,
+default `Unknown`. **Why:** hp-boss on Nolan layouts runs a small
+threshold machine on outdoor-unit power that drives the secondary pump
+and iso valve, repeating spruce's starter-script loop until the
+heat-pump state machine replaces it; every transition reports a
+`SingleMachineState`, which needs the word. Three values, not four: boot
+is `Unknown` (pump on) as in the starter script, because a separate
+boot state holding the pump off had no exit if power never arrived.
+
 ## 2026-09-30 — Publish gw.alert 000 and its four enums (OPS-547, `632b58e` on jm/promote-alert-words)
 
 `gw.alert` 000, `gw.alert.category` 000, `gw.alert.state`,

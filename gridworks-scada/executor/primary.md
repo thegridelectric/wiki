@@ -110,10 +110,10 @@ machine. Its only world-awareness is HpBoss state messages.
 - **Standby** → `full_send` (loop OPEN) — summer/off-season default; the loop
   is put in full send rather than left closed.
 
-Posture is read from the **static startup config** `settings.system_mode` (env
-`SCADA_SYSTEM_MODE`), so switching a SCADA to Standby is a restart-time change
-(the restart also rebuilds the LocalControl tree). Verified against code
-2026-06-10 (scada `e6ba4f51`).
+Standby is read from the ops word (`selected_strategy`,
+`actors/sieg_loop/strategy.py`) once at construction, so switching a scada
+to standby is new operational params and a restart
+([`local-control.md`](local-control.md) "Standby").
 
 **Known caveats (→ [OPS-400](https://linear.app/gridworks/issue/OPS-400) `sieg-semantic-harmonization`, not yet resolved):**
 control state `HpOff` no longer uniquely determines valve posture and valve
@@ -173,6 +173,8 @@ Normative across the domain — full statements in
 | Testing LTN↔SCADA (in-process harness) | [`testing.md`](testing.md) | Draft |
 | Experimentation rig (real-broker experiments) | [`experimentation-rig.md`](experimentation-rig.md) | Draft |
 | Required and usable energy (how the House0 store is judged ready for on-peak) | [`required-energy.md`](required-energy.md) | Draft |
+| Local control (selection, standby, the Nolan heating machine, the heat-pump watch, subscriptions, the top state, the dispatch refusal, the operating status) | [`local-control.md`](local-control.md) | Draft |
+| Cold house (the cold judgment, the latch, the dispatch refusal, the cold glitches) | [`cold-house.md`](cold-house.md) | Draft |
 | Magic thresholds (numbers decided in code; per-row disposition) | [`magic-thresholds.md`](magic-thresholds.md) | Draft |
 | Heat pump signatures (start-up, running, idle and defrost in the scada's channels, per heat pump model) | [`heat-pump-signatures/primary.md`](heat-pump-signatures/primary.md) | Draft |
 | Heat pump comms (call contact and Modbus from the vendor side, per heat pump model) | [`heat-pump-comms/primary.md`](heat-pump-comms/primary.md) | Draft |

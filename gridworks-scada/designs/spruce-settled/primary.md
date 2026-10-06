@@ -36,6 +36,9 @@ them exercises it (`experiments/`).
 - `publish-layouts-and-operational-params.md` — the layout closure and
   the operational-params pair from staging to published once the fleet
   runs them, and the wire words that still have no sema word minted
+- `layout-and-params-from-ltn.md` — what the LTN sends a running scada
+  to change its operational params or its layout, and the checks the
+  scada runs before it writes either
 - `misc-tests.md` — small tests that fixes have earned and not yet got
 - `pump-doctors-functional.md` — the dist and store pump doctors end to
   end on a plant that answers; the in-process suite pins the monitors

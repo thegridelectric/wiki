@@ -10,6 +10,440 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-06 — The local control's backup top state is InBackup (OPS-392) <!-- pending commit -->
+
+`LocalControlTopState` mirrors `gw2.lc.top.state` 000 as sema now has
+it: `UsingNonElectricBackup` is gone and `InBackup` takes its place, in
+the House0 top machine, the Nolan machine's state list, the cold watch's
+backup flag and both layout mirrors' `ActuatorLeaves` text. A top state
+says what the local control is doing; which kind of backup a house has
+is a layout fact, and the old name put one house's oil boiler into the
+state every family reports. A rename only: no transition or actuator
+action changes.
+
+## 2026-10-06 — Standby commands from its own node and goes Dormant when another node holds the tree (OPS-392)
+
+Standby had no top machine and borrowed `n`, which broke the symmetry
+the other local controls keep: the command tree read the same in standby
+as in Normal, the state stayed `Standby` while admin held the tree, every
+`WakeUp` set the posture again with nothing to guard on, and the scada's
+auto-state check carried an exemption for it.
+
+- **The `standby` node.** `CoreNodeNames.local_control_standby`, a
+  `NoActor` at `auto.lc.standby`, required by both layout mirrors and
+  allowed by the shared `ActuatorLeaves` check. `StandbyLocalControl`
+  claims the tree under it and commands the posture from it. The scada's
+  boot tree hangs under it when the ops word says `Standby`.
+- **A two-state top machine.** `Standby` to `Dormant` on `TopGoDormant`
+  and back on `TopWakeUp`, each reported with its cause. A `WakeUp` in
+  any state but `Dormant` is ignored.
+- **No exemption.** `enforce_auto_state_consistency` treats a standby
+  local control as any other: `GoDormant` when it is not dormant under
+  admin, `WakeUp` when it is dormant under auto local control.
+- **The Nolan machine lists `UsingNonElectricBackup`** with no
+  transition into it, so every family's heating machine has a state for
+  each of `n`, `backup` and `scada-blind`, and a test holds the state
+  nodes and the commanding top states in step.
+- **Acks reach the actor.** A relay acks its commander by node name, and
+  the state nodes have no actor of their own. Both `_send_to`
+  implementations deliver a message for any of the four state nodes to
+  the local control actor. Only `n` was routed, so an ack to
+  `scada-blind` or `backup` was published on the local MQTT link.
+- **Fixtures and closure.** The three layout fixtures in `tests/config/`
+  carry the node and are what the tlayouts sim generators write. The
+  vendored `sema_closure/registry.yaml` is the tlayouts snapshot registry
+  built from sema `8c1feec`.
+
+## 2026-10-06 — hp-watch replaces hp-sensor, the local control top state is gw2.lc.top.state, Standby is a state with no machine, and a refusing scada ends its stored contract (OPS-392)
+
+Sema `9ad04ab` renames the `HpSensor` actor class to `HpWatch` and its
+node to `hp-watch` (`gw1.actor.class` 014, `gw.nolan.layout` axiom 32),
+and publishes `gw2.lc.top.state` 000, which replaces both
+`gw1.lc.top.state` and `gw1.local.control.standby.top.state`.
+
+- **hp-watch.** The actor is `HpWatch` in `actors/hp_watch.py`; the
+  gwsproto `ActorClass` value, the `HSNN.hp_watch` name, `NolanLayout`
+  axiom 32 and the Nolan fixture follow. The fixture is what
+  `spruce_sim_gen.py` writes; the node keeps its ShNodeId.
+- **One top-state enum.** `LocalControlTopState` is the twin of
+  `gw2.lc.top.state` 000: `Monitor` is gone and `Standby` is in, so a
+  consumer reads one enum for the local control whatever runs. Each
+  heating machine lists its own states: the Nolan machine has no
+  `UsingNonElectricBackup`, and neither has `Standby`.
+- **Standby is a state, not a machine.** A house is in standby or it is
+  not, and moving between the two is new operational params and a
+  restart, so a machine toggling `EverythingOff` and `Dormant` reported
+  something that does not happen. `StandbyLocalControl` has no
+  `transitions` machine: its state is `Standby`, reported once at start,
+  and it stays `Standby` while admin holds the tree. Every `WakeUp`
+  re-claims the tree and sets the posture.
+  `LocalControlStandbyTopState` and `LocalControlStandbyTopEvent` are
+  deleted. `enforce_auto_state_consistency` reads a `Standby` local
+  control as consistent with every auto state; without that it would
+  send `GoDormant` on every check while admin holds the tree
+  (`test_relays_boot.py`, `test_local_control_top_machines.py`).
+- **A refusing scada ends the stored contract.** `resume_loaded_contract`
+  put the leaf ally back in charge of a live stored contract without
+  reading `AcceptsDispatch`; the refusal gate sat only on a newly offered
+  contract. A scada restarted into standby, or with any other refusal,
+  while a contract was live would have handed the tree to the leaf ally.
+  It now ends the contract through `process_ally_gives_up`, the path
+  the cold-house refusal uses: the contract is terminated, stored and
+  flushed, and the LTN gets the terminating heartbeat with the refusal
+  reason (`test_startup_contract_load.py`). `test_operating_status.py`
+  waits for the scada's tasks to start before it offers a contract; its
+  standby rows had offered one before the store was read, and passed
+  only because the resume then delivered that offer to the leaf ally.
+- **The closure copy** is the tlayouts registry regenerated from sema
+  `9ad04ab`, which now carries `gw2.lc.top.state`, so the conformance
+  test checks its twin.
+
+## 2026-10-05 — The stored contract loads at start, Monitor and the Nolan cooling machine come out, and a standby house raises no critical-zone-cold (OPS-392)
+
+Four steps toward a Nolan house running a heating season on its local
+control.
+
+**The startup contract load.** The scada read its stored contract four
+seconds into its run. An offer inside those seconds was stored and then
+read back: the LTN got the heartbeat again, the leaf ally got the
+heartbeat and the contract again, and a contract the ally had already
+given up was adopted again from the file. `start_tasks` now loads the
+store before any message is processed, and `resume_loaded_contract`
+(replacing `initialize_contracts`) does only the sends after the delay,
+skipping them when an offer has replaced the loaded contract or the
+loaded contract is no longer the live one. The two tests that waited
+for the load before offering no longer do.
+
+**Monitor.** `MonitorOnly` is a standby posture, so nothing sent the
+`MonitorOnly` / `MonitorAndControl` events and no machine reached the
+`Monitor` top state. Both heating machines drop the state and its
+transitions, `LocalControlTopEvent` drops the two events, and the
+House0 loop loses the guard that skipped control in `Monitor`. The
+value stays in `LocalControlTopState`: `gw1.lc.top.state` 001 is
+published.
+
+**The cooling machine.** `NolanBufferOnlyCoolingTou` was a port of the
+summer loop with no state machine, its schedule and held circuits in
+constants, and a paced sequence that kept commanding after the tree was
+taken. The module and its tests are removed; a Nolan layout out of
+standby authoring `Cooling` raises `NotImplementedError` at the loader,
+naming the summer loop in `starter-scripts`. The Nolan test fixture
+authors `Heating`, as every generated house does, and the
+required-node crash test rides the heating machine.
+
+**The cold watch in standby.** A standby house may be unheated on
+purpose, so paging on-call for a cold critical zone there is noise. The
+watch reads `Standby` from the ops params and raises no
+`critical-zone-cold`; `zone-freezing` is raised as before.
+
+**Two contract fixes found on the way.** `load_heartbeat` took any
+stored scada heartbeat whose contract had not ended as the live one, so
+a contract the ally had given up came back after a restart; a heartbeat
+in a done state is now kept as `prev` and not loaded. And
+`dispatch_contract_live` sent the leaf ally the contract twice from
+`LocalControl`, once inside the transition and once after it; the
+transition is now the only sender on that path.
+
+Tests: `test_startup_contract_load.py`,
+`test_local_control_top_machines.py`, `test_local_control_nolan.py`,
+`test_cold_handling.py`, `test_machine_state_announce.py`.
+
+## 2026-10-05 — One cold-house judgment for every family, a cold-watch actor with its latch and glitches, and zones judged through their primary circuit, the water store as its own word, and circuits looked up rather than named by position (OPS-392; `44b79f58`)
+
+`actors/hydronic/cold.py` holds a new tier, `ColdJudgmentNode`, between
+the shared hydronic tier and both family tiers; `is_system_cold` and
+`refresh_setpoints_at_onpeak_start` move into it from
+`hydronic/shared.py`. A critical zone is cold 2 °F or more under its
+setpoint (the comparison read 1 °F). A zone is judged through its
+primary circuit: that circuit's `TempChannelName`,
+`SetpointChannelName`, `SetpointSource`, and the heat-call channel
+found by its whitewire. A `FromThermostat` circuit keeps the
+on-peak-start rule; a `Learned` circuit is cold only while calling,
+against the last value its setpoint channel carried, which the scada
+keeps in `recorded-setpoints.json` in its data directory
+(`gw.recorded.setpoints`, now a sema word, so it leaves the conformance
+test's no-word list). `zone_channels` in `hydronic/shared.py` had no
+other caller and is deleted. The circuit's heat-call lookup lives on
+`HydronicLayout` as `heat_call_channel`.
+`ColdWatch`, a new actor at the `cold-watch` core node, extends the
+tier and calls `cold_watch` once a minute on its own loop; it learns
+"in backup" from the local control's top state through
+`MachineStateSubscribe`. Five minutes cold raises the Critical glitch
+`critical-zone-cold`. Five minutes cold with the stores empty (the
+buffer, and the store too when `SeasonalStorageMode` is AllTanks;
+`stores_empty` in `cold.py`) sends the scada the in-process
+`BreakServiceContract`, once per cold spell. An hour still cold in
+backup raises `still-cold-in-backup`, and a circuit under 40 °F raises
+`zone-freezing`. A scada holding a dispatch contract handles the break:
+it sets `AcceptsDispatch` false with `ServiceContractBroken` in the
+params it runs, writes its operational-params file (temp file and
+rename), reports the operating status and ends the contract through
+`process_ally_gives_up`. A scada holding no contract changes nothing.
+`is_buffer_empty`, `is_storage_empty` and `usable_kwh` move unchanged
+from `House0Hydronic` to `HydronicNode`, since they read only shared
+data. House0's own move to backup is unchanged. The House0 leaf allies'
+in-loop cold give-ups are removed, because the watch ends a contract for
+cold. At an offer they decline through `declines_offer_for_cold` in
+`cold.py`: a house cold now with its stores empty gives up, as before,
+and latches nothing. **Why:** a cold house said
+nothing. House0 moved to backup without a glitch, and only with its
+stores empty; a Nolan house had no cold handling at all; and at a
+learned-setpoint house the judgment went quiet in the cases it exists
+for, a restart inside a long heat call and a setpoint the generator had
+withdrawn. A house cold under a dispatch contract with heat still in
+its stores can keep the contract; cold with the stores empty, it has
+broken it, and a person looks before it takes dispatch again. The
+refusal is written to
+the params file because that file is the only thing a restart reads,
+and the latch has to outlive one. The watch is its own actor because a
+watch inside a local control's loop runs only while that local control
+is the one selected, and it reads circuits because the thermistor and
+the setpoint belong to a thermostat, of which a zone can have two
+(spruce's living room); names built from a zone's index judged a
+Honeywell house on the GridWorks thermistor instead of the reading the
+thermostat acts on.
+gwsproto mirrors sema `ec35d40`: `ColdWatch` in `gw1.actor.class` 014;
+`gw1.hvac.zone` carries `PrimaryCircuitPosition` and no
+`TempChannelName`; `gw1.zone.call.circuit` carries `Name`,
+`SetpointChannelName`, `TempChannelName` and axiom 3; `gw.hydronic`
+axiom 2 b and c and axioms 3 and 4; both layout words take the
+`cold-watch` core pair, `CircuitTempChannelResolution`,
+`CircuitSetpointChannel` and `ReadThermostatChannels`, whose bodies
+live in `type_helpers/circuit_channel_axioms.py`
+(`zone_temp_channel_resolution.py` is deleted). `CoreNodeNames` gains
+`cold_watch`. The three sim layout fixtures and the two House0 sim
+params fixtures are the regenerated tlayouts outputs.
+Tests: `test_cold_handling.py` (in-process, both families, the Nolan
+two-circuit living room), `test_cold_handling_live.py` (a running scada
+of each family with the watch on its own loop), rejecting tests for
+each new axiom and `test_recorded_setpoints.py`; the cold cases leave
+`test_hydronic_shared.py`. The two "circuits required" layout tests now
+expect `gw.hydronic` axiom 3, which refuses an empty circuit list.
+`scada_data.py`'s two late imports move to the top (ruff E402).
+gwsproto mirrors sema `2a222f6`: the new `WaterStore` (`gw.water.store`
+000, `TotalStoreTanks` 1 to 6) and `gw.hydronic` carrying it as the
+optional `WaterStore` in place of `TotalStoreTanks`; `gw.nolan.layout`
+axiom 9 and `gw.house0.layout` axiom 37 require it; the store-tank-temps
+axioms count its tanks. The RequiredActuators check in each layout word no longer
+refuses an empty circuit list, which `gw.hydronic` axiom 3 already
+refuses. `HydronicLayout.total_store_tanks` reads the word's count, 0
+when there is no water store, and no longer repeats the 1-to-6 bound.
+The vendored `sema_closure/registry.yaml` and the three sim layout
+fixtures are the regenerated tlayouts outputs. **Why:** a store is not
+always water tanks (a fall layout stores heat in a cement slab), so the
+scada does not assume tanks exist; the count belongs to a word that a
+layout includes only when its store is water tanks.
+Circuits are looked up, not named by position. The relay lookups and the
+four zone-relay commands in `hydronic/shared.py` (and their
+`ProceduralHost` signatures) take a `ZoneCallCircuit` and read its
+`FailsafeRelayNode` / `OpsRelayNode`. The dist-pump doctor loops over
+`ZoneCallCircuits`, and the dist-pump monitor reads each circuit's
+heat-call channel through `HydronicLayout.heat_call_channel`. House0
+local control's dist-pump recovery check requires only `dist-010v`,
+since the circuits' relays are required actuators. The relay actor's
+non-I2C branch takes the stat relay names from the circuits. **Why:**
+`zone{i}-…` names built from a zone's index miss a zone's second circuit
+(spruce's `living-rm-fancoil`, circuit 5 serving zone 2) and break when
+a circuit's place differs from its zone's. Tests: the monitor reads a
+call on that circuit, the doctor commands every circuit's relays, and
+`test_hydronic_shared.py` runs the commands over every circuit on the
+House0 and Nolan sim pairs.
+The dist-pump doctor's "No zones found" guard is deleted, since
+`gw.hydronic` requires a zone. Unused imports leave `tou_base.py`,
+`store_pump_monitor.py` and `leaf_ally/house0/all_tanks.py`.
+
+## 2026-10-04 — The Nolan sim deed fixture is ValidatedSimulatedAsset again (OPS-392; `387e42df`)
+
+`tests/config/gw.nolan.ta.deed.json` goes back to
+`ValidatedSimulatedAsset`, formatted as the other deed fixtures are.
+**Why:** `d1362178` committed it as one line reading
+`ValidatedRealAssetIncorrectGps`. While that change was being written,
+an intermediate `ScadaLiveTest` pointed the settings' deed path at the
+fixture itself, and an operating-status test that rewrites the deed
+wrote through to it; the committed helper copies the deed into the
+test's config dir, so no test reaches the fixture now.
+
+## 2026-10-04 — A deed binds only the layout's own terminal asset (OPS-392; `d1362178`)
+
+`ScadaAppInterface.ta_deed` returns the deed on file only when its
+`TaId` is the layout's TerminalAsset GNodeId; `deed_on_file` is the file
+as read. A deed naming another terminal asset is no deed: the scada is
+UnValidated, refuses every LTN contract offer, does not send the deed,
+and its startup announcement carries a Warning glitch
+`ta-deed-wrong-asset` with both ids and aliases in place of
+`no-ta-deed`. The Nolan sim deed fixture's `TaId` becomes its layout's
+TerminalAsset GNodeId. `ScadaLiveTest` copies the fixture deed issued
+to the test layout's terminal asset over the seeded Nolan one, so a
+House0 test runs on its own deed. Tests in
+`tests/actors/test_startup_announcements.py`.
+**Why:** the word says `TaId` is the terminal asset's GNodeId, the
+anchor the deed binds to, and nothing compared it with the layout: the
+Nolan fixture carried an unrelated id and every test still ran
+validated. A deed copied to the wrong house would have let that house
+trade on another asset's attestation.
+
+## 2026-10-04 — Deed fixtures for the two House0 sim pairs (OPS-392; `b3965939`)
+
+`tests/config/gw.house0.orange.ta.deed.json` and
+`gw.house0.willow.ta.deed.json`: a `ValidatedSimulatedAsset` `ta.deed`
+for each House0 sim layout, `TaId` and `TaAlias` taken from the layout's
+TerminalAsset GNode. **Why:** only the Nolan pair had a deed, so a sim
+House0 scada run in dev would be UnValidated and refuse every LTN
+contract offer.
+
+## 2026-10-04 — .env-template names no layout paths (OPS-392; `69505959`)
+
+The two `*_PATHS__HARDWARE_LAYOUT` lines leave `.env-template`.
+**Why:** they named `tests/config/hardware-layout.json`, which is not in
+the repo, and a checkout run that points at fixtures by name skips the
+default resolution every box uses (the layout, `operational-params.json`
+and `ta-deed.json` side by side in the config folder), which is how a
+sim Nolan scada on the dev broker came up with no deed. The laptop's
+config folders are seeded with the sim fixtures under the deployed names
+instead.
+
+## 2026-10-04 — rwt_f going into a weekend takes the tariff's clock hours on any day; required energy names a missing weather forecast (OPS-392; `7dd5dd57`)
+
+`rwt_f` took its required supply temperature as the `max` over the
+forecast hours inside the ops tariff's on-peak windows. From Friday
+19:00 to Saturday 06:59 and Saturday 12:00 to 15:59 the 48-hour forecast
+holds no such hour that counts, and `max` raised on an empty list on
+every main-loop pass. Now, when none counts, the windows' clock hours
+count on any day (`ShNodeActor.in_onpeak_clock_hours`).
+`compute_required_energy_wh` raises a named `RuntimeError` when it holds
+a heating forecast with no weather forecast, at every hour, where it
+used to fail with an attribute error only in the evening branch. The
+tests pin the clock and run the pass at every hour of every weekday.
+**Why:** `2902b3bf` moved `rwt_f` from clock-hour lists (`7-11`,
+`16-19`, any day, as `main` and `dev` have it) to the tariff's windows,
+which honour weekdays; the any-day fallback gives the weekend the
+behaviour `main` has had for two years. The every-hour test exists
+because `test_main_loop_pass_survives_the_first_forecast` ran on the
+real clock and passed by day and failed by night.
+
+## 2026-10-04 — Standby rows check the command nodes' relays; a listed command-node relay stops the scada at load (OPS-392; `a37c0975`)
+
+Tests only, in `tests/actors/test_relays_boot.py`. The standby rows
+(willow, Nolan) and the restore-after-admin test now also wait for the
+relays standby does not command: the call relay open after hp-boss's
+`TurnOff` (energized on House0's normally-closed wiring, de-energized on
+Nolan's normally-open), the 5 V relay closed under the pico cycler with
+five-v-boss at rest, and on House0 the two loop relays as the valve's
+run to full send has them. A new test boots `ScadaApp` with a params
+file whose `EnergizedStandbyRelays` lists a command node's relay, six
+cases across both families, and expects the load to raise. **Why:**
+standby's claim is that it reaches a command node's relay only through
+that node; the tests checked the relays under `n` and hp-boss's state
+but not the relays themselves, and the load check was tested only by
+calling the function, not through a boot.
+
+## 2026-10-04 — Live test: the pump follows the heat pump through both subscriptions (OPS-392; `679c24cd`)
+
+`tests/actors/test_hp_sensor_live.py` boots the sim Nolan pair with the
+heating machine selected and drives the sim power meter: 0 W, 700 W,
+0 W, then `hp-odu-pwr` returning no value. At each step it waits for the
+`hp-sensor` actor, the state the scada holds, the heating machine's copy
+and the secondary pump relay to agree. **Why:** the subscription work
+was tested by calling handlers directly; this runs the same chain with
+the actors started, covering the subscribe-at-start sends, the hop
+through the `LocalControl` loader, and the power meter's real messages.
+
+## 2026-10-04 — NolanBufferOnlyTou's pump follows the hp-sensor state (OPS-392; `f4310252`)
+
+`NolanBufferOnlyTou` subscribes to `hp-sensor` at start, keeps the last
+`spruce.hack.hp.state` it was sent (`Unknown` before any), and commands
+the secondary pump and iso valve the moment a state arrives: off in
+`HpDetectedOff`, on otherwise. `pump_wanted` no longer reads `hp-odu-pwr`
+or the traits' power lines. A state that arrives in Dormant or Monitor is
+kept and commands nothing; the boot on wake commands the pump by it.
+**Why:** the threshold judgment has one owner, `HpSensor`, and the pump
+moves on the transition rather than up to a check interval later.
+
+## 2026-10-04 — HpSensor runs the heat-pump threshold machine on forwarded hp-odu power (OPS-392; `625b89ba`)
+
+`HpSensor` subscribes to `hp-odu-pwr` at start and reports
+`spruce.hack.hp.state` under `hp-sensor`: `Unknown` at start,
+`HpDetectedOn` on a read above the heat pump's on line, `HpDetectedOff`
+on a read below its off line, held in between, `Unknown` again on the
+channel's flatline, one `SingleMachineState` per transition. The lines
+come from the `HP_TRAITS` row for the layout's `hp-odu` device type.
+**Why:** the secondary pump has to follow what the unit is doing, not
+what the call says, and the latch between the two lines is memory, so
+the judgment is a machine with one owner that others subscribe to. A
+first read between the lines, with no earlier state to hold, is
+`HpDetectedOff`: running the pump when the system is not hot
+destratifies the buffer.
+`test_a_recovered_meter_channel_reports_on_that_poll` waits for both of
+the meter's sends: the meter thread sends to the scada first, so the
+scada could hold the value before the send to the derived generator was
+recorded, and the test failed about one run in two.
+
+## 2026-10-04 — Channel and machine-state subscriptions: actors ask the scada, the scada forwards (OPS-392; `72ec96ce`)
+
+`actors/in_process_messages.py` holds `ChannelSubscribe` and
+`MachineStateSubscribe`. The scada keeps `channel_subscribers` and
+`machine_state_subscribers`, raises on a subscription to a channel or
+node the layout lacks, and forwards: a subscribed channel's reading as a
+`SingleReading` (from `SingleReading` or `SyncedReadings`), its
+`ChannelFlatlined` as received, and a node's `SingleMachineState` as
+received, with the latest held state sent on subscription. The sieg
+loop subscribes to hp-boss at start; `actors/subscription_handler.py`,
+the empty `channel_subscriptions` dict and the constructor's hard-coded
+sieg-loop entry go. **Why:** the heat-pump threshold machine needs
+`hp-odu-pwr` as it arrives and the Nolan pump needs the machine's
+states, and neither should poll or reach into another actor. **Why the
+node name:** a command node's handle moves with the command tree, so a
+handle-keyed subscription would lose hp-boss's states whenever the tree
+changes hands; the node name holds under every tree.
+
+## 2026-10-04 — Heat-pump tables sema-typed; a Nolan heat pump with no traits row stops the scada at load; NolanBufferOnlyTou call events a local enum (OPS-392; `ee1d94d8`)
+
+`HP_TRAITS` and `DEFROST_SIGNATURES` are keyed by `AnyDeviceType`
+members, their records' watt and second fields take `NonNegativeInt`,
+and both tables go through a `TypeAdapter` at import; `HP_TRAITS` also
+raises on a row whose off line is not below its on line. `sema_to_dc.check_hp_traits` raises at load when a
+`gw.nolan.layout`'s `hp-odu` device type has no row, naming the device
+type, the supported heat pumps and the file to add the row to; the
+raise in `NolanBufferOnlyTou`'s constructor goes. The heating
+machine's call events are `NolanLcBufferOnlyEvent`, a `SemaEnum` local
+to the machine and not published in sema, and both of its transition
+tables name their triggers and states by enum member. **Why:** these
+are interior structures with no published word, and they follow the
+sema discipline anyway: typed keys and fields, constants validated at
+import, no bare strings for vocabulary-shaped values. **Why the load
+check:** the
+threshold machine runs under every local-control selection, so a
+missing row has to stop the scada before any actor is built, not only
+when the heating machine is selected. Adding a heat pump is a code
+change, so this is a load check and not a layout axiom.
+
+## 2026-10-04 — HpSensor actor at hp-sensor; gwsproto mirrors gw.nolan.layout axiom 32 and the HpDetected values (OPS-392; `6a7b3238`)
+
+`ActorClass` takes `HpSensor`, and `actors.HpSensor` is the actor at the
+`hp-sensor` node, a no-op for now: it subscribes to nothing and reports
+nothing. `NolanLayout.check_axiom_32` mirrors HpSensorNode with two
+rejecting tests, `HSNN.hp_sensor` names the node, ActuatorLeaves gains
+clause c on both layouts, `SpruceHackHpState` takes `HpDetectedOn` /
+`HpDetectedOff`, the sema closure takes the tlayouts registry, and the
+Nolan test fixture is the regenerated spruce-sim layout. **Why:** the
+heat-pump threshold machine reports under `hp-sensor`, and the actor
+that will run it is that node, which keeps sensing out of hp-boss. The
+loader resolves every layout ActorClass to an actor, so the Nolan
+layouts boot only once the class exists. The state values are named
+apart from hp-boss's own `HpOn` / `HpOff`, which name the commanded
+call.
+
+## 2026-10-04 — gwsproto SpruceHackHpState; the Nolan state-machine enums join the sema closure (OPS-392; `f593b271`)
+
+`gwsproto.enums.SpruceHackHpState` mirrors the staging sema enum
+`spruce.hack.hp.state` 000 (`Unknown`, `HpOn`, `HpOff`, default
+`Unknown`), and `sema_closure/registry.yaml` takes the regenerated
+tlayouts snapshot registry, which now carries it and
+`gw1.nolan.lc.buffer.only.state` 000 (twin `NolanLcBufferOnlyState`). **Why:** hp-boss's
+heat-pump threshold machine on Nolan layouts reports each transition as
+a `SingleMachineState` of this enum; the closure mirror keeps the twin
+checked against the vocabulary consumers read.
+
 ## 2026-10-04 — NolanBufferOnlyCoolingTou: the Nolan cooling machine selected for BufferOnly only (OPS-392; `ddaa8e64`)
 
 `NolanCoolingTou` becomes `NolanBufferOnlyCoolingTou`, in

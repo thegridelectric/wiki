@@ -1,6 +1,6 @@
 # Control hierarchy — HSMs, the command tree, and the capability cover
 
-Status: Draft · Pass 0 · Updated 2026-10-01
+Status: Draft · Pass 0 · Updated 2026-10-05
 
 > What this is: how the SCADA's hierarchical state machines (HSMs) and the command tree work **together**
 > — the piece the executor lacked. The HSM decides *who is in control*; the command tree *enforces* it via
@@ -76,11 +76,13 @@ send) apart; the pattern and its current strain are in
 Most actuators **float** — re-parented under the current authority. The layout
 declares the authored tree as the plant with no one in charge: `auto` is the
 root, the command nodes and every floating actuator hang directly under it,
-and local control's own nodes (`n`, `backup`, `scada-blind`) hang under `lc`
+and local control's own nodes (`n`, `backup`, `scada-blind`, `standby`) hang
+under `lc`
 (both layout words' `CommandNodeHandles` axiom). The scada's first rewrite
 hands the actuators to `lc` and owns the live tree from then on; the live
-tree reads `auto.lc.n.<node>` where the layout reads `auto.<node>`, and that
-difference is what floating means. The axiom pins these handles; every
+tree reads `auto.lc.n.<node>` (`auto.lc.standby.<node>` at a standby scada)
+where the layout reads `auto.<node>`, and that difference is what floating
+means. The axiom pins these handles; every
 other actuator's is `auto.<Name>`:
 
 | Node | Declared handle | Words |
@@ -92,6 +94,7 @@ other actuator's is `auto.<Name>`:
 | `n` | `auto.lc.n` | both |
 | `backup` | `auto.lc.backup` | both |
 | `scada-blind` | `auto.lc.scada-blind` | both |
+| `standby` | `auto.lc.standby` | both |
 | `hp-boss` | `auto.hp-boss` | both |
 | `hp-scada-ops-relay` | `auto.hp-boss.hp-scada-ops-relay` | both |
 | `sieg-loop` | `auto.sieg-loop` | House0 (sieg word) |
@@ -269,20 +272,20 @@ this cured: the relay actor once carried `turn_on_HP`, the thermistor reader
     (`depth3`, `depth2`, `depth1`) to the storage top with no margin.
   The fall-through is deliberate: a house with a dead depth sensor keeps
   cycling on the nearest reading rather than stalling.
-- **E — zone/TOU pieces** (`get_zone_setpoints`, `is_onpeak`, `is_system_cold`):
-  family-neutral, reading ops words. `setpoints_at_onpeak_start` is each zone's
-  setpoint as on-peak began, and `is_system_cold` judges against the lower of it
-  and the current setpoint, so a thermostat raised during on-peak does not read
-  as a cold house. The memory is refreshed off-peak (`is_system_cold` does that
-  itself) and in the two minutes before a window opens, and held through
-  on-peak; that hold is the protection. A strategy that refreshes it on every
-  pass makes it the current setpoint and defeats it.
+- **E — zone/TOU pieces** (`get_zone_setpoints`, `is_onpeak`):
+  family-neutral, reading ops words.
+- **The cold tier** (`ColdJudgmentNode`, `actors/hydronic/cold.py`) sits
+  on E and under both family tiers, so every family's local control and
+  leaf ally inherits one cold judgment. The `ColdWatch` actor at the
+  `cold-watch` node extends the same tier with the latch and the
+  glitches: [`cold-house.md`](cold-house.md).
 
 Directory shape is role first, then family:
 
 ```
-actors/local_control/house0/   tou_base, all_tanks_tou, buffer_only_tou, standby
-actors/local_control/nolan.py
+actors/local_control/          standby.py
+actors/local_control/house0/   tou_base, all_tanks_tou, buffer_only_tou
+actors/local_control/nolan/    buffer_only_tou
 actors/leaf_ally/house0/       all_tanks, buffer_only
 actors/leaf_ally/nolan.py
 actors/hydronic/               shared.py · house0.py · nolan.py

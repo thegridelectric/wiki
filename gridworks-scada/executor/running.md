@@ -23,17 +23,25 @@ export PYTHONPATH=$PWD/gw_spaceheat:$PYTHONPATH
 ## 1 · `.env` and the hardware layout
 
 Both processes are configured by `.env` (copy `.env-template` if absent)
-and refuse to start without a loadable hardware layout:
+and refuse to start without a loadable hardware layout. `.env` names no
+layout paths: each process resolves its files by their deployed names in
+its config folder, as on a box.
 
-```sh
-SCADA_PATHS__HARDWARE_LAYOUT="tests/config/nolan-layout.json"
-LTN_PATHS__HARDWARE_LAYOUT="tests/config/nolan-layout.json"
-```
+| Process | Folder | Files |
+|---|---|---|
+| scada | `~/.config/gridworks/scada/` | `hardware-layout.json`, `operational-params.json`, `ta-deed.json` |
+| LTN | `~/.config/gridworks/ltn/` | `hardware-layout.json`, `operational-params.json` |
 
-- Available test layouts: `tests/config/nolan-layout.json` (spruce/Nolan
-  scheme) and `tests/config/house0-layout.json` (House0 scheme).
-  **`hardware-layout.json` no longer exists** (renamed on the spruce
-  branch line) — a `.env` pointing at it fails with `FileNotFoundError`.
+`experiments/put_layout.sh dev <change>` seeds both folders from the Nolan
+sim fixtures in `tests/config/` (`gw.nolan.*`), renaming at the copy and
+checking the sha256; `put_layout.sh dev check` compares without writing.
+
+- A missing `ta-deed.json` does not stop the boot: the scada sends a
+  `no-ta-deed` Warning glitch, runs UnValidated and refuses every LTN
+  contract offer.
+- `tests/config/` also holds two House0 sim pairs with their deeds
+  (`gw.house0.orange.*`, `gw.house0.willow.*`), which `put_layout.sh dev`
+  does not place.
 - On the spruce branch line use the nolan layout; House0 relay actuation
   is disabled there (see the spruce-unlimbo design).
 - Layout named-type `Version` strings must match the checked-out code's
@@ -73,9 +81,8 @@ and `LTN_SCADA_MQTT__{…same…}`.
 
 ## 4 · LTN specifics (known friction)
 
-- The LTN expects its own config dir: copy the hardware layout to
-  `~/.config/gridworks/ltn/hardware-layout.json` by hand (the framework
-  only auto-isolates XDG dirs under pytest).
+- The LTN reads its own config dir, `~/.config/gridworks/ltn/`, which
+  `put_layout.sh dev` seeds (section 1).
 - Without `LTN_SCADA_MQTT__TLS__USE_TLS=false` it resolves TLS cert
   paths under `~/.config/gridworks/ltn/certs/…`.
 

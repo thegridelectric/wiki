@@ -10,6 +10,24 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-05 — Merge main into jm/remove-position-point-pii
+<!-- pending commit -->
+
+Brings the registry-projection branch up to main (15 commits: the
+eventstore back-fill, `report.event` 004, `single.pico.state`, gwbase
+0.5.14) so it can merge once `gw_data` 0.4.0 is released. Two conflicts
+were real. Main split `persist_message` into `persist_in_session` plus a
+batched `persist_messages` for the S3 importer, while the branch added the
+required `live` flag that keeps replayed history from regressing a
+current-state projection. The flag now rides `persist_in_session`;
+`persist_messages` is the bulk-import path and always passes `live=False`,
+which replaces the branch's per-message `live=False` in the importer. The
+dependency floors take the higher of each side (`gridworks-base>=0.5.14`,
+`gw_data>=0.4.0`). The sema snapshot is regenerated from the merged seed
+against sema `fde7deb`; against main's snapshot it adds only the registry
+words. The lock is refreshed to `gw_data` 0.4.0 in a second commit once
+the release is on PyPI; the suite passes on both.
+
 ## 2026-09-29 — Move to gwbase 0.5.14 (`cd1cbd6`; conftest vhost `8daf405`; merged to main `5d6329b`)
 
 Picks up the gwbase release that stops logging the broker password:

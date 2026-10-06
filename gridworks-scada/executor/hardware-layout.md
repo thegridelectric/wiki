@@ -264,9 +264,10 @@ The buffer's elements stay flat hydronic-tier names (`buffer-top-elt`).
 `store-flow`, `store-btu`, `store-pump-relay` and the store pipes name the
 store circuit, not a tank, and keep `store-*`.
 
-**`backup` and `scada-blind` are House0 names.** They are House0 local
-control states; a shared tier takes them only once the Nolan state machine
-and its local control are worked through.
+**`backup`, `scada-blind` and `standby` are core names.** Every layout
+carries all three nodes, and both layout words fix their handles under
+`auto.lc`
+([`local-control.md`](local-control.md) "The top state").
 
 **`hp-odu` is the heat pump at a monobloc house.** Which device that is
 belongs to the layout's device-type records (node → component →

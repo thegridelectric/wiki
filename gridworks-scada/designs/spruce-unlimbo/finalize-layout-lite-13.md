@@ -1,6 +1,6 @@
 # Finalize `layout.lite/013` (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-18 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-10-04 · Linear: OPS-392
 
 > What this is: the spoke that takes `layout.lite/013` from staging to
 > published with its closure, so the spruce scada can send it on the
@@ -9,6 +9,16 @@ Status: Draft · Pass 0 · Updated 2026-09-18 · Linear: OPS-392
 > Two segments: the first publishes the word the box sends today, enough
 > for the fleet to run under local control; the second, once the maple
 > and spruce LTNs run, is the spruce-settled `ltns-ready.md` spoke.
+
+**To fold in: state machines and their states.** `layout.lite` and the
+layout words both need to carry the state machines the scada runs, each
+with its state enum (word and version) and so its possible states, so
+that JournalKeeper has a programmatic way to track them rather than
+hand-kept machine names. The machine-state enums
+(`gw1.nolan.lc.buffer.only.state`, `spruce.hack.hp.state`, and the
+rest) reach the journal as `SingleMachineState` values, and no layout
+names them. `spruce.hack.hp.state` is seeded into the tlayouts snapshot
+and the gwsproto closure mirror as the first of them.
 
 ## Two segments
 

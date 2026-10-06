@@ -1,6 +1,6 @@
 # Required energy and usable energy
 
-Status: Draft · Pass 0 · Updated 2026-09-18
+Status: Draft · Pass 0 · Updated 2026-10-04
 
 > What this is: how the scada judges whether a House0 home's thermal store
 > holds enough heat to ride through the coming on-peak hours. Two derived
@@ -46,7 +46,10 @@ Per forecast hour, from the weather forecast and the home's `Ha1Params`:
 ## How required energy is calculated
 
 `compute_required_energy_wh` returns `None` until buffer temperatures and a
-heating forecast exist. Then:
+heating forecast exist. The heating forecast is made from the weather
+forecast, so a heating forecast with no weather forecast behind it is a
+defect, and the pass raises a `RuntimeError` that says so at any hour.
+Then:
 
 1. **Sum the forecast load over three hour bands** across the whole forecast:
    morning (hours 7 to 11), midday (12 to 15), afternoon (16 to 19).
@@ -77,13 +80,24 @@ water onto the bottom of the stack. When the top layer can give up nothing
 give up nothing either, the drain ends. Usable energy runs this on the
 measured layer temperatures (a missing layer is skipped and the water volume
 is shared over the layers present); it is computed only when the ops word
-says `ActuationAuthority` Active and `ServiceMode` Heating.
+says `AcceptsDispatch` and `ServiceMode` Heating.
 
 `rwt_f(swt)` is the return temperature for supply water at `swt` against the
 hardest upcoming on-peak hour. It takes the highest `RswtF` among forecast
 hours inside the ops word's `Tariff.OnPeakWindows` (`in_onpeak_window`):
 every window when the morning is still ahead (clock hour after 19 or before
-12), only hours from 16:00 otherwise. Water at or above that required
+12), only hours from 16:00 otherwise.
+
+**Going into a weekend no on-peak hour counts**, since the forecast runs 48
+hours and the windows are weekday ones: from Friday 19:00 to Saturday 06:59
+it holds no on-peak hour at all, and from Saturday 12:00 to 15:59 none from
+16:00. The windows' clock hours then count on any day
+(`in_onpeak_clock_hours`), so Saturday 08:00 or Sunday 17:00 can set the
+required temperature. The weekend is judged as if it were on-peak, which
+counts less of the store as usable than a rule that knew no peak was coming
+would.
+
+Water at or above that required
 temperature gives the full delta-T the distribution system produces at
 `swt`; water more than 10 F below it gives nothing; between, the delta-T
 scales linearly.
@@ -102,6 +116,18 @@ the two disagree. The general rule the literals are a case of: before each
 upcoming window, the store needs that window's load, less what the heat pump
 can recharge in the gap before it. Moving the calculation onto that rule is
 [OPS-551](https://linear.app/gridworks/issue/OPS-551).
+
+**A tariff with no on-peak windows stops the pass.** `rwt_f` takes a `max`
+over the hours that count, and the weekend rule above only widens the days,
+not the hours. An ops word whose `Tariff.OnPeakWindows` is empty leaves
+nothing to take the max of at any hour; one with no window reaching past
+16:00 leaves nothing between 12:00 and 19:59. Either way `rwt_f` raises a
+`ValueError` on every main-loop pass, for usable and required energy alike.
+Every house's ops file and every scada test fixture carries both windows,
+but the `gw.tou.tariff` word allows an empty list. Open: what the store
+judgment means at a house with no on-peak hours (a flat rate), which the
+general rule of OPS-551 has to answer; until then such a tariff needs a
+named refusal at load, not an empty `max`.
 
 Open: both calculations live in `DerivedGenerator`, which every layout
 runs, but they model House0 water storage; the Nolan word requires neither

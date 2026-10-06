@@ -50,12 +50,9 @@ question this spoke has to answer: how the LTN sends a scada new
 operational params, and a new layout, in production. A controller's
 gains are operational params, not a command; they belong in the
 operational-params word and arrive the way the rest of that word does,
-not as a one-off wire word addressed at a handle. The shape to settle
-here: whether the LTN publishes a whole new ops-params instance the
-scada adopts atomically (and what the scada does with a running
-controller when the gains change), or the ops word gains a versioned
-partial update; and the same for the layout, where adoption means a
-restart today.
+not as a one-off wire word addressed at a handle. The shape of that
+arrival is `layout-and-params-from-ltn.md`'s to settle; the same question for the
+layout, where adoption means a restart today, stays here.
 
 ## Open
 

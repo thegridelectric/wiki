@@ -1,6 +1,6 @@
 # gridworks-alerter — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-09-17
+Status: Draft · Pass 0 · Updated 2026-10-05
 
 > What this is: house alerting as it runs on the `alerts` box — the
 > gwbase alerter **gwalerter** (`thegridelectric/gridworks-alerter`),
@@ -25,7 +25,9 @@ box facts, access profile and operating aliases live in
   A Caddy front at `https://alerts.electricity.works` exposes the GET routes
   only (`/health`, `/alerts-history`); the write route never leaves the box.
   The web frontend's Alerts page reads the history through that façade via
-  the web-api2 backend, which holds the token.
+  the web-api2 backend, which holds the token. The unit is stopped on
+  purpose (it paged unreliably): no Telegram message goes out and both
+  GET routes answer 502.
 
 ## Invariants
 
@@ -43,9 +45,9 @@ box facts, access profile and operating aliases live in
 
 ## Channels
 
-Telegram, through the manager, is the primary channel. Opsgenie remains a
-parallel channel from gwalert; whether it goes once Telegram has run a
-while is Open (check the bill). Email code exists but has no live call site.
+Opsgenie is the channel that pages: gwalert posts each alert to it. The
+manager's Telegram channel is off while its unit is stopped. Email code
+exists but has no live call site.
 
 ## Known gaps / Open
 
