@@ -8,7 +8,7 @@
 # (2) only once OPS-443 is Done, Stand up FIS (OPS-422) step 9. Flip DONE_443
 # to 1 when OPS-443 closes; delete this script and its hook entry when
 # OPS-422 is Done too.
-DONE_443=0
+DONE_443=1
 CLAIMS="$(dirname "$0")/../active-claims.md"
 [ -f "$CLAIMS" ] || exit 0
 n=$(awk -F'|' '/^\| [a-z]+-[a-z]+ · [0-9a-f]{6} \|/ && $4 ~ /gridworks-scada\//' "$CLAIMS" | wc -l | tr -d ' ')

@@ -4,6 +4,14 @@ One entry per commit in `thegridelectric/gridworks-alerter`,
 `thegridelectric/gridworks-alerts` and `thegridelectric/gridworks-alert-manager`
 (git = the what, this = the why).
 
+## 2026-10-06 — gridworks-alerts: Decode gw2.lc.top.state (OPS-392, `5a23fb7`)
+
+A scada on `jm/spruce-unlimbo` reports its local control top state as
+`gw2.lc.top.state` (Dormant, Normal, ScadaBlind, Standby, InBackup),
+which the decoder did not know, so the top-state channel came through
+as a bare integer. The `gw1.lc.top.state` list stays for scadas still
+on `main`.
+
 ## 2026-09-30 — Snapshot from the published alert words (`f0064a6`)
 
 The vendored snapshot regenerated from sema `632b58e`, where `gw.alert`

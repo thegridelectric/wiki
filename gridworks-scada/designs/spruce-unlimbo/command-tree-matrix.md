@@ -12,8 +12,11 @@ Today's only tree coverage calls `scada.set_command_tree` DIRECTLY (3
 bosses × 2 fixtures); nothing tests the trees the actual STATE
 TRANSITIONS produce. Drive each transition on both fixtures: admin wakes
 up / times out / releases; ally suit-up and hand-back; every LC top-event
-(incl. `set_limited_command_tree`'s backup and scada-blind paths, House0
-only); sieg vs non-sieg. Capture every published tree, and assert each
+(✅ `tests/actors/test_local_control_tree_by_top_state.py`: every
+local-control top-state transition on willow, orange and Nolan, heating
+and standby, with admin's take and release; `SystemCold` also on a
+running scada in `test_system_cold_live.py`); sieg vs non-sieg (no
+House0 fixture without the loop exists yet). Capture every published tree, and assert each
 constructs (axiom 1 fires on orphan prefixes) AND matches the expected
 handle shape for that state. Some of these are believed wrong today; the
 failures are the deliverable.

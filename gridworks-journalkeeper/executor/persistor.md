@@ -1,6 +1,6 @@
 # gjk persistors — what the custom persistors do
 
-Status: Draft · Pass 0 · Updated 2026-10-01
+Status: Draft · Pass 0 · Updated 2026-10-06
 
 > Sub-spec of [`primary.md`](primary.md): the persistor stack in depth, with
 > emphasis on the **channel model** and the fact that the `readings` fan-out is
@@ -95,6 +95,25 @@ itself — it defines the channels the others write against.
 - **`weather.forecast`** → 2 pseudo channels (`forecast-ws`, `forecast-oat`),
   again only the **first** array element; the rest of the forecast horizon is
   dropped from `readings`.
+- **`g.node.forest`** → `g_nodes` / `connectivity_edges`
+  (`g_node_forest_persistor.py`, `project_forest`). The registry's forest
+  broadcasts (deltas and gnr's periodic snapshots) upsert these two tables,
+  which are a projection of the grid-node-registry: nothing else writes
+  them, and gjk never reads gnr's database (grid-node-registry executor
+  "Write path & egress"). Rows key on the registry's immutable GNodeIds, so
+  deltas, snapshots and replays converge. Each row's `sent_at` holds the
+  forest's `SendTimeMs`; an older forest never overwrites a newer row,
+  equal send times pass (replays stay idempotent), and replayed history
+  (`live=False`, the S3 importer) never regresses current state. Edges
+  whose endpoints are not yet projected wait for a forest that carries
+  them; a new edge id claiming a (from, to) pair already held is skipped as
+  an anomaly. `position_point_id` is the registry's opaque id, stored
+  verbatim with no FK: no position content lives in `gw_data`.
+  `python -m gjk.forest_bootstrap --api-base <gnr> <roots>` fills the
+  projection from gnr's read API (`g.node.forest.request`) through the
+  same `project_forest`, writing no `messages` row; it is for standing up a
+  journalkeeper against a fresh database. Verified on a dev universe:
+  `experiments/2026-08-05-registry-projection-rig/`.
 
 ## The point: `readings` is a lossy projection
 

@@ -166,9 +166,9 @@ only the first:
 
 ## Related work
 
-- The upstream data-side once-over — gridworks-data, web-backend, and
-  web-frontend ingesting the three layout families without per-house
-  channel-name specials — is its own cross-cutting design,
+- The data-side cleanup after the first data catch — JournalKeeper,
+  web-backend and web-frontend reading the three layout families from the
+  layout word, without channel-name strings — is its own cross-cutting design,
   [OPS-542](https://linear.app/gridworks/issue/OPS-542). It runs downstream:
   this launch produces the layouts, that design makes the data pipeline read
   them.

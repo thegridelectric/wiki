@@ -292,6 +292,12 @@ distributed-trust principle it served — that principle is core vision.
   force.
   Non-repo box state (a sudoers drop-in, a `.bashrc` line) is fine to place
   directly but MUST be recorded in the box's instance-README.
+- **Box and journal-DB operations start in gridworks-infra.** Before
+  deploying, restarting, migrating or picking a DB login, read the box's
+  `gridworks-infra/<box>/instance-README.md` and, for the journal DB,
+  `gridworks-infra/databases/journaldb.md` (which login does what, where
+  its credentials live). Working it out from the box itself, the wiki or
+  `~/.ssh/config` is the miss this closes.
 - **In-field pico firmware upgrades are allowed this year and will be
   retired before scaling.** Build nothing durable on the upgrade path (the
   `code-update` post): no sema word, spec or scada feature depends on it.

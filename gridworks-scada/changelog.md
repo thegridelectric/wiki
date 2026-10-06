@@ -10,7 +10,20 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-06 — The local control's backup top state is InBackup (OPS-392) <!-- pending commit -->
+## 2026-10-06 — gwsproto mirrors the backup words and the cold override (OPS-392) <!-- pending commit -->
+
+Work in progress; rewritten against the diff before commit. Mirrors sema
+`6da94a4`: `BoilerBackup`, `ElementBackup`, `Hydronic.Backup`,
+`ColdOverride`, the `cold-override` node, `UsesBackupWhenCold`.
+
+## 2026-10-06 — The closure copy carries gw2.lc.top.state with InBackup (OPS-392, `66907132`)
+
+`sema_closure/registry.yaml` is refreshed from the tlayouts snapshot
+regenerated off sema `2be3031`: `gw2.lc.top.state` 000 is staging and
+lists `InBackup` in place of `UsingNonElectricBackup`, which the
+gwsproto twin already mirrors. The conformance test stays green.
+
+## 2026-10-06 — InBackup top state; backup and ScadaBlind use the full command tree (OPS-392, `1c08d7d2`)
 
 `LocalControlTopState` mirrors `gw2.lc.top.state` 000 as sema now has
 it: `UsingNonElectricBackup` is gone and `InBackup` takes its place, in
@@ -18,8 +31,26 @@ the House0 top machine, the Nolan machine's state list, the cold watch's
 backup flag and both layout mirrors' `ActuatorLeaves` text. A top state
 says what the local control is doing; which kind of backup a house has
 is a layout fact, and the old name put one house's oil boiler into the
-state every family reports. A rename only: no transition or actuator
-action changes.
+state every family reports. The rename changes no transition or
+actuator action.
+
+A cold House0 house with no boiler now turns its heat pump on. Entering
+backup or ScadaBlind used `set_limited_command_tree`, which put every
+actuator directly under the state node and left `hp-boss` under `n`, so
+the `TurnOn` from `backup` to `hp-boss` failed the event's immediate-boss
+rule and was only logged. `dev` has the same fault at houses with the
+Siegenthaler loop. The function dates from when backup commanded the
+heat pump's relay directly and was not updated when the heat pump moved
+behind `hp-boss`. It is removed: both states call `set_command_tree`,
+so `hp-boss` and `sieg-loop` stay in the tree under `backup` and
+`scada-blind` as they do under `n`. `test_system_cold_live.py` drives
+`SystemCold` on a running willow, with and without a boiler, and checks
+the tree and the commands the backup node sends; the no-boiler case
+failed before the change. `test_local_control_tree_by_top_state.py`
+checks the whole tree after every top-state transition of each local
+control on the three authored pairs, that the published tree is that
+tree, and that no command in the transition was dropped for want of the
+rights, the silent drop that hid the fault.
 
 ## 2026-10-06 — Standby commands from its own node and goes Dormant when another node holds the tree (OPS-392)
 

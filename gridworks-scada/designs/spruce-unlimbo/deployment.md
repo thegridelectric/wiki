@@ -1,6 +1,6 @@
 # Fleet deployment (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-18 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-10-06 · Linear: OPS-392
 
 > What this is: the actual rollout of `jm/spruce-unlimbo` onto the six
 > production boxes as `main` before the heating season — the ordered box
@@ -25,6 +25,46 @@ The branch does not become `main` until:
   link-up is published.
 - The commits `main` took after the branch point are each carried or
   dismissed (`main-changes.md`).
+
+## The first data catch
+
+Before any box moves to `main`, three boxes run `jm/spruce-unlimbo` on the
+production broker for a day, and the journal is checked to carry what they
+send.
+
+Gates:
+
+- `layout.lite/013` is published (the precondition above).
+- JournalKeeper vendors `layout.lite/013` and its `LayoutLitePersistor`
+  creates the new layout's channels in `reading_channels`.
+- The heat-call guard below is merged and deployed on gjk.
+
+The catch: the three boxes pull the branch and restart; every channel their
+layouts declare reaches `readings`, none dropped and none renamed
+(`experiments/spot-check-recipe.md`). After a day of data, decide whether
+the boxes move to `main` (the swap below) or stay on the branch. The
+cleanup of channel-name strings across gjk, the web-backend and the
+web-frontend follows the catch as its own design
+([OPS-542](https://linear.app/gridworks/issue/OPS-542)).
+
+**Heat-call guard.** For a house whose layout declares no `*-heat-call`
+channel, gjk synthesizes a `heat-call` pseudo-channel from each
+`*-whitewire-pwr` reading. A layout that declares heat-call as a
+DerivedChannel, with the scada publishing the readings itself, meets two
+hazards in that path:
+
+1. `get_pseudo_channels` guards only `data_channels`, so a derived
+   heat-call channel gets a duplicate channel row (the shared sync map drops
+   the name before the pseudo pass).
+2. The synthesis write path has no guard, so real and synthetic heat-call
+   readings interleave.
+
+The fix: the creation guard covers `data_channels ∪ derived_channels`, and
+synthesis runs per message only when the report carries whitewire readings
+and no heat-call readings. Historical backfills keep their synthesized
+heat-call, a box that reports heat-call itself passes through untouched,
+and no flag day is needed. Per-site wattage thresholds eventually ride the
+layout's DerivedChannel declaration rather than a dict in the persistor.
 
 ## The swap
 
@@ -236,6 +276,7 @@ rebuilding it:
 
 ## Open
 
+- Which three boxes run the first data catch.
 - Whether the swap is one fleet-wide window or staged over several days.
 - Who runs each box's pull — the box-runs-a-pushed-SHA guarantee holds either
   way, but the sequencing owner is unset.

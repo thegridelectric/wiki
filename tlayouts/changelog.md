@@ -10,6 +10,19 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-06 — Layouts declare their backup; every layout carries cold-override (OPS-392, jm/spruce) <!-- pending commit -->
+
+Work in progress; rewritten against the diff before commit. The
+snapshot is regenerated from sema `6da94a4`.
+
+## 2026-10-06 — The snapshot carries InBackup (OPS-392, `54af504` on jm/spruce)
+
+The snapshot is regenerated from sema `2be3031`, where
+`gw2.lc.top.state` 000 (staging, edited in place) replaces
+`UsingNonElectricBackup` with `InBackup`; the two layout words' prose
+for the `backup` node follows. `LcTopState` changes; no generated
+layout does.
+
 ## 2026-10-06 — Every layout carries the standby command node (OPS-392, `b38b980` on jm/spruce)
 
 The snapshot is regenerated from sema `8c1feec`, whose layout words

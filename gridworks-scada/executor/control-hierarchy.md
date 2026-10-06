@@ -14,8 +14,9 @@ Nested state machines, outermost first:
 - **`TopState`** (`enums/top_state.py`): `Auto | Admin`. Admin override. Defined `scada.py:92`.
 - **`MainAutoState`** (`enums/main_auto_state.py`, under Auto): `LocalControl | LeafTransactiveNode |
   Dormant` — which authority drives. Transitions + `auto_trigger` at `scada.py:99,979`.
-- **`LocalControlTopState`** (`enums/local_control_top_state.py`, under LocalControl): `Normal |
-  UsingNonElectricBackup | ScadaBlind | Monitor | Dormant`. Driven by `actors/local_control/tou_base.py`.
+- **`LocalControlTopState`** (`enums/local_control_top_state.py`, under LocalControl): `Dormant |
+  Normal | ScadaBlind | Standby | InBackup`. Each local control lists its own states
+  ([`local-control.md`](local-control.md) "The top state").
 - **Per-actor FSMs** that are themselves control nodes: `HpBoss` (`actors/hp_boss/hp_boss.py`:
   HpOff/PreparingToTurnOn/HpOn; its states are intent, set when the command is sent, and it does not
   wait for the relay), `SiegLoop` (`actors/sieg_loop/`: a valve FSM, and a control FSM under `StratProtect`),
@@ -306,8 +307,8 @@ is a hydronic-tier name.
 
 **Each interior node owns the command tree at and under it and publishes it.**
 Publication is the full-tree `new.command.tree` snapshot — the wire contract is
-replace-in-entirety. The construction sites (`scada.py`, the command-node base,
-`tou_base.set_limited_command_tree`) route through one B-tier
+replace-in-entirety. The construction sites (`scada.py` and the command-node base)
+route through one B-tier
 `publish_command_tree()`, so a publication-policy change is one line.
 
 ## Command interfaces and replies

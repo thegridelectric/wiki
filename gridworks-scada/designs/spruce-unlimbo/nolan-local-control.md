@@ -9,10 +9,12 @@ Status: Accepted · Pass 1 · Updated 2026-10-06 · Linear: OPS-392
 
 ## Do this next
 
-**▶ DO THIS NEXT: step 1.** With it, `LocalControlTopEvent` in gwsproto
-drops its sema URL, which cites a word that does not exist.
+**▶ DO THIS NEXT: step 1,** at "Building it" step 2: the tlayouts,
+closure and gwsproto wave for the new words.
+With it, `LocalControlTopEvent` in gwsproto drops its sema URL, which
+cites a word that does not exist.
 
-1. **Backup** ("Backup" below).
+1. **Backup and the cold override** (section below).
 2. **Code review from sol** ("For the review" below).
 3. **Run in the beta windows for maple and spruce** ("What to check in
    the field" below).
@@ -58,8 +60,8 @@ tries to break it. The places most likely to give:
    between the lines is `HpDetectedOff`. Either could be wrong for a
    heat pump other than spruce's Samsung, and the lines are hard-coded
    per device type.
-9. **`cold.py` reads `UsingNonElectricBackup`** from the top state, a
-   state the Nolan machine has no transition into.
+9. **`cold.py` reads `InBackup`** from the top state, a state the
+   Nolan machine has no transition into.
 10. **A whole-file params push** carrying a stale `AcceptsDispatch:
     true` clears a `ServiceContractBroken` latch (OPS-408).
 
@@ -69,45 +71,112 @@ Code: `actors/local_control_loader.py`, `local_control/standby.py`,
 `resume_loaded_contract`, `enforce_auto_state_consistency`,
 `process_ally_gives_up` and `report_operating_status`.
 
-## Backup
+## Backup and the cold override
 
-Not built. Today `UsingNonElectricBackup` bakes one house's answer (an
-oil boiler behind the aquastat switch) into the shared enum, and
-`OilBoilerBackup` on the ops word is a plant fact in the wrong word:
-every House0 gen sets it true, including a house whose boiler is
-missing a part. Both layout words require the `backup` node
-unconditionally.
+Not built. House0's backup state does two different things under one
+name, and a Nolan house does neither:
 
-The shape to converge on: backup is a layout structure plus an ops
-availability, not a state name.
+- **The cold override** is the primary heat source with the tariff set
+  aside: the heat pump runs on-peak because the house is cold. It is
+  not a second source of heat. House0 does this today, inside its
+  backup state, at a house with no boiler.
+- **Backup** is a second source of heat: an oil boiler behind the
+  aquastat switch, or electric elements on their relays.
 
-- The layout word carries a `Backup` chunk: a kind and the actuator
-  nodes it drives (oil boiler via the aquastat switch; electric elements
-  with their relay nodes; none). Installed-but-unwired elements are not
-  in the layout, since the scada has no node to command.
-- The ops word says whether the wired backup may be used now
-  (`BackupAvailable` or a per-backup enable). An out-of-service boiler
-  is an ops fact; the layout does not change to record it.
-- `SystemCold` moves to `UsingBackup` only when the layout has a backup
-  and ops says it is available. Otherwise a cold house is a Critical
-  glitch: the house needs a person, not a state.
-- `backup` is a required node only where the layout has a backup kind.
-- Spruce: electric elements, availability false this winter, since the
-  radiant floor keeps the house from getting too cold. The ops flag is
-  the whole mechanism. With it on, `UsingBackup` energizes the buffer
-  elements off-peak only; the call, the pump and the iso valve keep
-  their Normal rules, and the elements' own cutout turns them off.
-- Elm: oil boiler, availability true. Its installed but unwired
-  elements stay out of the layout until wired.
+All relays de-energized is the plant's failsafe position, where the
+aquastat and the boiler hold a House0 house with no scada. It coincides
+with boiler backup and is not a state of the local control.
 
-Building it: a new version of the published enum that appends
-`UsingBackup` (the old value stays), its gwsproto mirror, the `Backup`
-chunk on both layout words, the ops field replacing `OilBoilerBackup`,
-and House0's on-peak ScadaBlind branch reading the layout kind.
+**The words.**
 
-A Nolan layout's `backup` node stays for three uses: a winter local
-control that adds the elements, admin when someone is cold, and a Nolan
-FLO telling the scada to use them.
+- `gw2.lc.top.state` 000, staging and edited in place, has `InBackup`
+  and gains `ColdOverride`.
+- Both layout words gain a `cold-override` command node at
+  `auto.lc.cold-override`, by the same three axioms that carry
+  `standby`, so the command tree says which state holds the plant.
+- `gw.hydronic` gains an optional `Backup`, beside `WaterStore`, so both
+  layout words carry it. A layout with no backup has no `Backup`. The
+  kind of backup is the word itself, one of two:
+  - `gw.boiler.backup`, a boiler held by its aquastat, whatever its
+    fuel: `FailsafeRelayName` and `AquastatCtrlRelayName` name the two
+    relays by role, because `InBackup` commands each differently.
+  - `gw.element.backup`: `ElementRelayNames`, one or more resistive
+    elements on their relays.
+
+  Each carries `InService`, false for a backup that is installed and
+  unwired or out of service. `InService` lives in the layout only.
+- Axioms: every relay a backup names is a `ShNode` of actor class
+  `Relay`; the names are distinct, and the boiler's two relays are
+  different nodes. The `backup` command node at `auto.lc.backup` exists
+  if and only if `Hydronic.Backup` is present.
+- The ops word's `UsesBackupWhenCold` replaces `OilBoilerBackup`: the
+  house goes to its backup when cold.
+
+**Entering.** Each family keeps the cold rule it has: a critical zone
+cold with the stores empty for five minutes. The destination is the one
+new decision. With `UsesBackupWhenCold` true the house goes straight to
+`InBackup`; otherwise it goes to `ColdOverride`. A house with both a
+heat pump that could run through the peak and a backup does not try the
+heat pump first.
+
+**Leaving.** Either state returns to Normal when no critical zone is
+cold and it is off-peak, so an override entered on-peak holds through
+the rest of the peak.
+
+**House0.** The relay commands do not change, only the state and the
+node that sends them. `InBackup` is today's boiler branch, from
+`backup`: store pump off, store valved to discharge, `hp-failsafe-relay`
+to the aquastat, `aquastat-ctrl-relay` to the boiler. `ColdOverride` is
+today's no-boiler branch, from `cold-override`: store pump off, store
+valved to discharge, heat pump on. The on-peak ScadaBlind branch reads
+`UsesBackupWhenCold` where it reads `OilBoilerBackup`. The two Normal
+strategy machines are not touched.
+
+**Nolan.** In `ColdOverride` the call is closed whatever the tariff,
+and the secondary pump and iso valve follow the heat-pump watch as in
+Normal. Spruce's backup is a `gw.element.backup` naming the two
+buffer elements (`buffer-top-elt-relay`, `buffer-bottom-elt-relay`); the store
+elements are not backup. Its `InService` is false: spruce does not
+use backup at all for now. In `InBackup` the named relays close. Boot, and every
+way out of `InBackup`, opens them, so that elements held off is
+something the machine commands and a test asserts. Spruce runs with
+`UsesBackupWhenCold` false this winter: the radiant floor keeps the
+house from getting too cold.
+
+**The cold watch** raises `critical-zone-cold` at five minutes in every
+top state, so a house entering either state has already paged. Its
+`still-cold-in-backup` glitch reads `InBackup`.
+
+**At boot** the scada checks its layout and its params as a pair and
+does not start on a pair that fails: `UsesBackupWhenCold` true requires a
+`Backup` with `InService` true. The same check runs before a scada writes
+anything the LTN sends
+(`../spruce-settled/layout-and-params-from-ltn.md`).
+
+**Open.**
+
+- Whether the sema spec lets `Backup` be one of two words; if not, a
+  kind enum with axioms saying which fields each kind requires.
+- Whether the heat pump call and both elements may run together at
+  spruce.
+
+**Building it,** each step with its tests first:
+
+1. A test that drives House0's `SystemCold` on a running scada, with
+   and without a boiler, against the code as it is. It pins the relay
+   commands before anything moves
+   (`tests/actors/test_system_cold_live.py`). ✅
+2. The words: `ColdOverride`, the `cold-override` node,
+   `gw.boiler.backup`, `gw.element.backup` and `Hydronic.Backup`,
+   `UsesBackupWhenCold` ✅ in sema; then the tlayouts snapshot and
+   gens, the closure copy and the gwsproto mirrors, in one wave: the
+   scada reads `OilBoilerBackup` until its mirror moves. ◐
+3. House0's two destinations. Step 1's test stays green with the state
+   and the commanding node changed for the no-boiler house.
+4. Nolan's `ColdOverride`, then its `InBackup`.
+5. The pair check at boot.
+6. The executor's account of backup, carrying the question of which
+   comes first at a house with both.
 
 ## Cooling
 

@@ -82,5 +82,5 @@ cascade. The standard applies:
   does not carry it); the ear (lossless witness, no sema decode); web
   (reads gnr's REST API, not a snapshot).
 - **Later:** the terminalasset-registry inherits the standard at birth;
-  the gw_data sent-time column (tracked in OPS-443,
-  registry-projection-and-ear-capture) gives projections their do-not-regress guard.
+  the gw_data `sent_at` columns (OPS-443) give projections their
+  do-not-regress guard.

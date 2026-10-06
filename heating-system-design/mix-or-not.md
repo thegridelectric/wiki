@@ -267,17 +267,10 @@ Near RSWT, where a mixing valve would hold the supply, beech shows about
 16–17 °F. The storage argument for not mixing needs days this one does not
 provide: a hot store in milder weather with infrequent heat calls.
 
-## Open before the analysis starts
+## Open
 
 1. **Scope of the data.** Proposed: the 2025–26 heating season, every house
-   with distribution supply, return and flow channels, starting with claim 2.
+   with distribution supply, return and flow channels.
 2. **Series emitters.** Does any zone in the fleet have emitters in series
    with a temperature sensor at more than one of them? Claim 12 has no test
    without one.
-3. **Evidence folder.** The re-runnable pulls and analysis belong in a dated
-   folder in the experiments repo, on a topic branch.
-4. **January data cannot yet be pulled as sema.** `experiments/pull_readings.py`
-   stops on the `layout.lite` version beech emitted last winter (`Unsupported
-   version 006 for layout.lite`); the vendored snapshot needs that version
-   before the experiment folder's pulls can run.
-5. **Linear issue and estimate.** None exists for this work yet.

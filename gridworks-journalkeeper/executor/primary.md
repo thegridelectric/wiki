@@ -1,6 +1,6 @@
 # gridworks-journalkeeper — rebuild spec
 
-Status: Draft · Pass 0 · Updated 2026-08-28
+Status: Draft · Pass 0 · Updated 2026-10-06
 
 > Faithful-rebuild hub: enough to build journalkeeper from scratch.
 > **Part I — Functional specification** is the durable contract (what gjk
@@ -110,6 +110,9 @@ ecosystem adds actors and types**.
 - **`readings`** / **`reading_channels`** — derived rows fanned out by the
   custom persistors (telemetry reports → readings; layouts → channels), keyed
   back to the originating message id.
+- **`g_nodes`** / **`connectivity_edges`** — the projection of the
+  grid-node-registry's `g.node.forest` broadcasts; gjk is their only writer
+  (`persistor.md`).
 
 ## Glossary
 

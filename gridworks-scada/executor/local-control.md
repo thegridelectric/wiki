@@ -226,19 +226,19 @@ Subscribers today: `HpWatch` to `hp-odu-pwr`; `NolanBufferOnlyTou` to
 ## The top state
 
 Every local control reports one enum, `gw2.lc.top.state`: `Dormant`,
-`UsingNonElectricBackup`, `Normal`, `ScadaBlind`, `Standby`. Each
+`Normal`, `ScadaBlind`, `Standby`, `InBackup`. Each
 machine lists its own states:
 
 | Local control | States |
 | --- | --- |
 | `StandbyLocalControl` | `Dormant`, `Standby` |
-| House0 (`LocalControlTouBase`) | `Dormant`, `Normal`, `ScadaBlind`, `UsingNonElectricBackup` |
-| `NolanBufferOnlyTou` | `Dormant`, `Normal`, `ScadaBlind`, `UsingNonElectricBackup` (no transition into it) |
+| House0 (`LocalControlTouBase`) | `Dormant`, `Normal`, `ScadaBlind`, `InBackup` |
+| `NolanBufferOnlyTou` | `Dormant`, `Normal`, `ScadaBlind`, `InBackup` (no transition into it) |
 
 `Dormant` means another node holds the tree: admin, or the leaf ally
 under a dispatch contract. Command nodes exist only for the states that
 command, one each: `n` for `Normal`, `backup` for
-`UsingNonElectricBackup`, `scada-blind` for `ScadaBlind`, `standby` for
+`InBackup`, `scada-blind` for `ScadaBlind`, `standby` for
 `Standby`. All four are core names, both layout words fix their handles
 under `auto.lc`, and their `ActuatorLeaves` axiom states the
 correspondence. The state nodes have no actor of their own: a message
@@ -246,7 +246,7 @@ addressed to one, such as a relay's ack to its commander, is delivered
 to the local control actor (`_send_to`, `sh_node_actor.py` and
 `scada.py`).
 
-**Backup.** `UsingNonElectricBackup` is House0's: `tou_base` enters it
+**Backup.** Only House0 enters `InBackup`: `tou_base` does
 on `SystemCold`, and its on-peak ScadaBlind branch reads the ops word's
 `OilBoilerBackup`. The Nolan machine has the state and no transition
 into it. A cold Nolan house raises `critical-zone-cold`

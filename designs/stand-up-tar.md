@@ -1,6 +1,6 @@
 # Stand up TAR (the terminal-asset registry)
 
-Status: Draft · Pass 0 · Updated 2026-09-18 · Linear: [OPS-471](https://linear.app/gridworks/issue/OPS-471)
+Status: Draft · Pass 0 · Updated 2026-10-06 · Linear: [OPS-471](https://linear.app/gridworks/issue/OPS-471)
 
 **EDD: no** build-out — verified by the suite plus a deployed seed that round-trips
 layout + operational-params I/O and provisions a real SCADA from its record; not a
@@ -157,6 +157,13 @@ Reuse (from the grid-node-registry standup,
   authorization, not delivery.
 - **A vendored sema snapshot** instead of a live package import.
 - **Semantic snapshots** (versioned, checksummed exports) for portability/audit.
+- **Its own seed capture**, as gnr has. The TA registry emits seed data too,
+  likely more than gnr does, so it gets a separate slice: its own tap
+  exchange (`tar_ear_tx`), its own ear instance (a third login and unit per
+  the gridworks-ear pattern) and its own store. Mixing it into
+  `gw-seedstore` would bury the registry's compact stream inside a bigger
+  one, which is what a separate seed ear exists to prevent. Another
+  instance costs one login, one unit and one `.env`.
 
 Drop (GNR-specific, not needed here):
 

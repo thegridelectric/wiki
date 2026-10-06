@@ -83,7 +83,7 @@ stops is a scada restart and not a silent gap.
 The watch learns whether the house is in backup by subscribing to the
 local control's machine states at start
 (`MachineStateSubscribe(NodeName="lc")`): a top state of
-`UsingNonElectricBackup` is backup, any other is not.
+`InBackup` is backup, any other is not.
 
 When a critical zone has been cold for `COLD_LATCH_S` (five minutes)
 without a warm pass between, the watch does two things, once per cold

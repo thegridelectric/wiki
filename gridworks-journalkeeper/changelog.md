@@ -10,8 +10,42 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-06 — Load .env in forest_bootstrap
+
+`python -m gjk.forest_bootstrap` built `Settings()` without reading the
+repo's `.env`, so on the gjk box it fell back to the dev default
+(`localhost:5433`) and connected to nothing. It now passes
+`_env_file=dotenv.find_dotenv()`, as the S3 importer does. The docstring
+says the bootstrap is outside normal operation: gnr's daily snapshot
+broadcast keeps a running projection current and `gnr snapshot` forces a
+resync over the bus. It stays for standing up a journalkeeper against a
+fresh database. The prod bootstrap on 2026-10-06 ran with
+`uv run --env-file .env` to get around this.
+
+## 2026-10-06 — remove hack script
+
+`hack_reid_g_nodes.py` ran in prod on 2026-10-06: the six hand-seeded
+journal-DB g_nodes now carry their registry GNodeIds, and a rerun
+reports nothing to do. Its docstring asked for deletion once it had run.
+
+## 2026-10-06 — Re-id g_nodes by copy, not key update
+
+`hack_reid_g_nodes.py --execute` could not work against the journal DB.
+The foreign keys from `installations` and `connectivity_edges` into
+`g_nodes.id` are NO ACTION and not deferrable, so whichever side changes
+first breaks the reference at the end of that statement. The dry run never
+reached the updates, so it passed. The script now moves each row by
+copying it under its registry id (old alias parked with a `.reid` suffix,
+because `alias` is unique), re-pointing the referrers, and deleting the old
+row, all in the one transaction. It needs only row privileges, so it still
+runs as gw_journalkeeper. Checked against a throwaway TimescaleDB built from
+the gridworks-data setup scripts and migrations, at both `a7f151e8163f`
+and `c3e8f1a9d2b7`, with the six rows, their installations and edges
+seeded. The old script raised `ForeignKeyViolation` and left the database
+unchanged. The new one moved all six ids with every other column,
+installation and edge intact, and a rerun reported nothing to do.
+
 ## 2026-10-05 — Merge main into jm/remove-position-point-pii
-<!-- pending commit -->
 
 Brings the registry-projection branch up to main (15 commits: the
 eventstore back-fill, `report.event` 004, `single.pico.state`, gwbase

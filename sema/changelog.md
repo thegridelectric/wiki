@@ -10,7 +10,36 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-06 — gw2.lc.top.state: InBackup replaces UsingNonElectricBackup <!-- pending commit -->
+## 2026-10-06 — Backup words and the cold override (OPS-392, `6da94a4` on jm/backup-words)
+
+A House0 house's backup state did two things under one name: run a
+second source of heat, or run the heat pump through the peak because the
+house is cold. The words now separate them and let a layout say what
+backup it has.
+
+- `gw.boiler.backup` 000 and `gw.element.backup` 000 are new, staging. A
+  boiler names its two relays by role (`FailsafeRelayName`,
+  `AquastatCtrlRelayName`) because the local control commands each
+  differently; elements list their relays. Each carries `InService`,
+  false for a backup that is installed and unwired, out of service, or
+  not to be used.
+- `gw.hydronic` 000 gains an optional `Backup`, a `oneOf` of the two.
+  No `Backup` means no backup.
+- `gw2.lc.top.state` 000 appends `ColdOverride`: the house is cold and
+  the heat pump runs with the tariff set aside.
+- Both layout words: `cold-override` is a required command node at
+  `auto.lc.cold-override`; the `backup` node exists if and only if
+  `Hydronic.Backup` is present; `BackupRelays` requires every relay a
+  backup names to be a `Relay` ShNode. The two backup words join the
+  axiom dependencies.
+- `gw.operational.params` 000: `UsesBackupWhenCold` replaces
+  `OilBoilerBackup`. Whether a house has a boiler is a layout fact; the
+  params say only whether the house goes to its backup when cold.
+
+`created` on `gw.hydronic` and both layout words moves to the new words'
+stamp so dependency ordering holds, as earlier in-place edits did.
+
+## 2026-10-06 — gw2.lc.top.state: InBackup replaces UsingNonElectricBackup (`2be3031`)
 
 `gw2.lc.top.state` 000 drops `UsingNonElectricBackup` and gains
 `InBackup`. A top state says what the local control is doing, and which
