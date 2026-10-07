@@ -95,15 +95,23 @@ spell:
    (`Standby` true in its ops params) raises no `critical-zone-cold`:
    it may be unheated on purpose. Its `zone-freezing` glitch is raised
    like any other house's.
-2. When the stores are empty, it sends the scada the in-process message
-   `BreakServiceContract`. The stores are empty when the buffer is, and
-   at a house whose `SeasonalStorageMode` is AllTanks the store too
-   (`stores_empty`, `hydronic/cold.py`). Stores that empty later in the
-   same cold spell send it then.
+2. When the stores are empty, it sends the local control the in-process
+   message `HouseCold` and the scada `BreakServiceContract`, in that
+   order. The stores are empty when the buffer is, and at a house whose
+   `SeasonalStorageMode` is AllTanks the store too (`stores_empty`,
+   `hydronic/cold.py`). Stores that empty later in the same cold spell
+   send both then. `BreakServiceContract` goes once per cold spell;
+   `HouseCold` goes on every pass the latch holds with the stores
+   empty, so the watch says what it sees and the local control decides
+   what the message means in its state.
 
 A house cold with heat still in its stores can keep a contract; cold
 with its stores empty, it has broken one. A warm pass ends the cold
-spell and restarts the five minutes. It does not undo a refusal.
+spell and restarts the five minutes; one that ends a spell in which
+`HouseCold` was sent sends the local control `HouseWarm`. It does not
+undo a refusal. The messages are in `actors/in_process_messages.py`; what
+each machine does with them is [`local-control.md`](local-control.md)
+"The top state".
 
 ## The refusal
 
@@ -155,13 +163,41 @@ the later ones are not re-pages of the first.
 
 ## Backup
 
-The latch does not move a house to backup. A House0 local control keeps
-its own `SystemCold` transition: cold with its stores empty (the buffer,
-and at an all-tanks house the store too) for its own five minutes
-(`SYSTEM_COLD_MINUTES`, `local_control/house0/tou_base.py`). It is not
-gated on `OilBoilerBackup`: gating it would stop a house without a
-boiler from running its heat pump when cold on-peak. A Nolan local
-control has no backup state and stays in Normal.
+The latch is what moves a house out of `Normal`: `HouseCold` is the
+one judgment of cold with the stores empty, and the local control acts
+on it the moment it arrives rather than judging again on its own loop.
+Where it goes, `InBackup` or `ColdOverride`, is the machine's decision
+from the ops word's `UsesBackupWhenCold` and the layout's `Backup`
+([`local-control.md`](local-control.md) "The top state"). A house with
+no backup still leaves `Normal`, to run its primary heat source through
+the peak.
+
+A backup is a second source of heat, declared in the layout as the
+optional `Hydronic.Backup`, one of two words. `gw.boiler.backup` is a
+boiler held by its aquastat, whatever its fuel; `FailsafeRelayName` and
+`AquastatCtrlRelayName` name its two relays by role, because `InBackup`
+commands each differently. `gw.element.backup` is one or more resistive
+elements on the relays `ElementRelayNames` lists. Each carries
+`InService`, false for a backup installed but unwired or out of service;
+`InService` lives in the layout only. Every relay a backup names is a
+`Relay` ShNode, the names are distinct, and the `backup` command node
+exists exactly when the layout declares a backup. A layout with no
+backup has no `Backup`.
+
+`ColdOverride` is not a second source: it is the primary heat source
+run with the tariff set aside. A house with both a heat pump that could
+run through the peak and a backup goes to its backup; it does not try
+the heat pump first. All relays de-energized is the plant's failsafe
+position, where the aquastat and the boiler hold a House0 house with no
+scada; it coincides with boiler backup and is not a state of the local
+control.
+
+The pair is checked at load, before any actor is built
+(`check_backup_when_cold`, `sema_to_dc.py`): `UsesBackupWhenCold` true
+requires a `Hydronic.Backup` with `InService` true, and at a Nolan
+layout an element backup, since the Nolan machine has no boiler branch.
+A pair that fails does not boot. With `UsesBackupWhenCold` false the
+layout may declare any backup or none; it is never used.
 
 ## Leaf allies
 
@@ -195,8 +231,15 @@ two-circuit living room for the primary-circuit rule, the watch's
 subscription and its backup flag, and a Nolan house in standby staying
 quiet when cold and still reporting a freezing circuit. It also holds the House0 leaf ally
 declining an offer only when cold with its stores empty.
+It also holds the two messages to the local control: `HouseCold` on
+every pass the latch holds with the stores empty, carrying the break's
+cause, and `HouseWarm` on the warm pass only after a `HouseCold`.
 `tests/actors/test_cold_handling_live.py` runs two scadas with the
 watch on its own loop: a cold Nolan house holding no contract raises the
-glitch, keeps accepting dispatch and stays in Normal; a House0 house
-cold with its stores empty under a contract ends it and refuses
-dispatch.
+glitch, keeps accepting dispatch and goes to `ColdOverride`; a House0
+house cold with its stores empty under a contract ends it and refuses
+dispatch, and its local control takes its cold state once the ally
+has released the tree. `tests/actors/test_system_cold_live.py` holds willow cold at
+the watch and sees the local control reach `InBackup` or `ColdOverride`
+by `UsesBackupWhenCold`, hold through the peak and return off-peak on
+`HouseWarm`.

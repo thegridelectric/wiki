@@ -524,6 +524,10 @@ none of them.
 
 ## Open
 
+- Executor text to correct when the package settles:
+  `executor/sieg-loop.md`'s opening note describes a branch diff that
+  names the actuation authority, and `executor/primary.md` "Sieg loop
+  posture" predates the loop becoming a package.
 - Valve position and how certain the loop is of it. `keep_seconds` is one
   float assumed 100 (full keep) at boot with no record of how it was
   obtained; a commanded move re-homes by running the whole range, a

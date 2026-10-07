@@ -133,7 +133,7 @@ house between December and January, design-day RSWT moved up and down, and
 `DdDeltaTF` stayed at 20 °F everywhere. The LTN and the scada hold separate
 copies that were edited separately. The values, the coverage and the test of
 whether the early values over-heated the store are in
-`wiki/heating-system-design/mix-or-not.md` "Charge: how hot is hot enough".
+`heating-system-design/mix-or-not.md` "Charge: how hot is hot enough".
 
 ## Open
 

@@ -204,8 +204,9 @@ in the comparisons.
 
 - The per-zone floor temperature for the two uncovered cases above
   waits.
-- The `UsingBackup` rename, the layout `Backup` chunk and
-  `BackupAvailable` (`nolan-local-control.md` "Backup"). House0's move to backup is untouched by this spoke.
+- The ops word's `UsesBackupWhenCold` and the layout's `Hydronic.Backup`
+  are built (`executor/cold-house.md` "Backup"). House0's move to backup
+  is untouched by this spoke.
 - Standby and the cooling machine make no cold check.
 
 ## Open

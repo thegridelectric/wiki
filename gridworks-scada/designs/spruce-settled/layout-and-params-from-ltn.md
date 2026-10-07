@@ -66,8 +66,10 @@ nothing until all pass:
 4. Each carried word validates.
 5. The layout and the params the scada would hold after the write are a
    consistent pair, a carried word taken with the held one where only
-   one arrives. The first pair rule: `UsesBackupWhenCold` true in the
-   params requires `BackupExistsAndWorks` true in the layout.
+   one arrives. The first pair rule, built for boot as
+   `check_backup_when_cold` in `sema_to_dc.py`: `UsesBackupWhenCold`
+   true in the params requires a `Hydronic.Backup` with `InService`
+   true in the layout, an element backup at a Nolan layout.
 6. The files are replaced atomically.
 
 Steps 3 to 5 are what a scada runs on its own two files at boot, so the

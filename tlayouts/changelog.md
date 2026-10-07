@@ -10,10 +10,27 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-06 — Layouts declare their backup; every layout carries cold-override (OPS-392, jm/spruce) <!-- pending commit -->
+## 2026-10-06 — Spruce's buffer elements are in service (OPS-392, `48a0818` on jm/spruce)
 
-Work in progress; rewritten against the diff before commit. The
-snapshot is regenerated from sema `6da94a4`.
+`spruce_gen.py` declares `buffer_element_backup(in_service=True)`: the
+two buffer elements are wired, and the scada holds them off outside
+`InBackup`. The ops word keeps `UsesBackupWhenCold` false, so spruce
+does not go to them this winter.
+
+## 2026-10-06 — Layouts declare their backup; every layout carries cold-override (OPS-392, `4778d3c` on jm/spruce)
+
+The snapshot is regenerated from sema `6da94a4`. `LayoutGenConfig`
+gains a required `backup` (a `BoilerBackup`, an `ElementBackup`, or
+None), so every house declares the backup it has rather than inheriting
+one; `house0_sema_gen.boiler_backup` and
+`nolan_sema_gen.buffer_element_backup` name each family's relays. The
+family gens put it in `Hydronic.Backup`, emit the `backup` node only
+when there is one, and always emit `cold-override`. The ops flag is
+`uses_backup_when_cold`. The House0 houses declare an in-service boiler
+and go to it when cold, as they did; spruce declares its two buffer
+elements, not in service, and does not use backup. The elm, fir and oak
+gens are edited to the new config but not run: they fail House0 axiom 8
+(`sieg-hot`) on the clean tree too, and their layouts change next.
 
 ## 2026-10-06 — The snapshot carries InBackup (OPS-392, `54af504` on jm/spruce)
 
@@ -141,8 +158,7 @@ Nolan machine only for BufferOnly (`NolanBufferOnlyTou` for Heating,
 `NolanBufferOnlyCoolingTou` for Cooling); a Nolan ops word authoring
 AllTanks selects no machine and the scada raises at boot.
 
-<!-- pending commit -->
-## 2026-10-02 — beech: sieg and dist tank modules commented out (jm/beech-sieg-off, off main)
+## 2026-10-02 — beech: sieg and dist tank modules commented out (`e75cd0f` on jm/beech-sieg-off, off main)
 
 `gen_beech.py`: the `dist` tank module `pico_37a237` is commented out:
 on scada main `ApiTankModule.__init__` accepts only the buffer and
@@ -158,8 +174,7 @@ unplugged; a layout that still names it would carry a permanently
 missing pico. Production pair put on beech (`scada/`) and beech2
 (`scada2/`), both scadas left stopped.
 
-<!-- pending commit -->
-## 2026-10-02 — beech window layout: dist and sieg pipe-thermistor modules as identity deriveds (OPS-392, jm/spruce)
+## 2026-10-02 — beech window layout: dist and sieg pipe-thermistor modules as identity deriveds (OPS-392, `313af9d` on jm/spruce)
 
 `beech_gen.py` mirrors the production change on main: the dead dist-btu
 `pico_47352a` goes; dist is a Hall flow pico `pico_1d3b35` and a tank

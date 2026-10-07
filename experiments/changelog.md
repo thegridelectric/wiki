@@ -7,7 +7,37 @@ the *why*.
 Newest at the top.
 
 <!-- pending commit -->
-## 2026-10-05 — put_layout.sh asks before it copies over a target's differing params (OPS-392)
+## 2026-10-06 — mix-or-not: the emitter temperature drop across five houses, 2025–26 season (OPS-572)
+
+A new folder, `2026-10-06-mix-or-not/`: `emitter_drop.py` pulls a
+house's distribution supply, return and flow for a season through its
+channel words and reduces them to hourly records; `steady_drop.py`
+tables the drop in steady-circulation hours by supply temperature and
+`return_temp.py` and `return_by_heat.py` the return temperature by
+supply temperature against circulation fraction and against heat
+delivered, and `maple_panel_heater.py` maple before and after its
+panel heater; the hourly files, the tables, the pull logs
+and one `gw.experiment.run` per house are the evidence. **Why:** the mix-or-not paper's claim that
+the steady-state drop is about 20 °F had one day at one house behind
+it. Over the season it rises with supply temperature at every house and
+differs between houses by a factor of two, and the return runs 12 to
+44 °F colder in hours of little circulation than in steady ones.
+
+## 2026-10-06 — pull_readings.py pulls the 2025–26 season: snapshot with layout.lite 004–012 (OPS-572, `46d64ff`)
+
+The snapshot seed asks for `layout.lite` 004 through 013 and the vendored
+snapshot is regenerated from it. `pull_readings.py` accepts every one of
+those versions: 004–006 carry `synth.channel.gt` computed channels, which
+`gw.readings` has no place for, so those layouts yield their data
+channels and the pull prints how many synth channels it left out; 007
+onward carry `derived.channel.gt` and yield both lists. The regeneration
+also picks up the registry's current `gw.alert` and `gw1.actor.class`
+014. **Why:** the houses emitted 004 through 012 between October 2025 and
+April 2026 and the snapshot held 011 onward, so any pull before late
+February 2026 stopped with `Unsupported version` and the mix-or-not
+claims had no sema-typed evidence from the heating season.
+
+## 2026-10-06 — put_layout.sh asks before it copies over a target's differing params (OPS-392, `cc17d38`)
 
 Where a target's `operational-params.json` exists and differs from the
 source, `put_layout.sh` prints the difference and copies only on an

@@ -28,7 +28,7 @@ described in
 It replaces the load coefficients (alpha, beta, gamma) and nothing else.
 
 Three facts from the 2025–26 season shape the spokes
-(`wiki/heating-system-design/mix-or-not.md` "Charge: how hot is hot
+(`heating-system-design/mix-or-not.md` "Charge: how hot is hot
 enough" holds the values and where they are stored):
 
 - The parameters were set by hand and revised several times a season in

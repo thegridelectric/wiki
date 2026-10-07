@@ -4,6 +4,21 @@ One entry per commit in `thegridelectric/gridworks-alerter`,
 `thegridelectric/gridworks-alerts` and `thegridelectric/gridworks-alert-manager`
 (git = the what, this = the why).
 
+## 2026-10-07 — The tap pages through Opsgenie <!-- pending commit -->
+
+The tap posts to Opsgenie's Alert API instead of Alertmanager's intake:
+a `Firing` record creates an alert aliased by its `AlertId` (Opsgenie's
+dedup key), the `Resolved` record closes that alias with its summary as
+the note, and a reconcile pass against the store replaces the re-post
+cadence (Opsgenie has no `resolve_timeout`, but a post can fail and a
+record can be missed). `Store.resolved_record` reads the stored
+`Resolved` payload for that close. The Alertmanager mapping, client and
+settings are gone with the Alertmanager proposal handed off; the tap
+settings are the API key, the team and the host, key and team required.
+Why: the design pages through Opsgenie, which the fleet is already on
+call for, and a notifier the alerter does not own is one fewer process
+on the alerts box.
+
 ## 2026-10-06 — gridworks-alerts: Decode gw2.lc.top.state (OPS-392, `5a23fb7`)
 
 A scada on `jm/spruce-unlimbo` reports its local control top state as

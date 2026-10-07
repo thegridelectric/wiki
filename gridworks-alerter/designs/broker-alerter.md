@@ -1,6 +1,6 @@
 # broker-alerter — the house alerter as a broker citizen
 
-Status: Accepted · Pass 1 · Updated 2026-10-05 · Linear: OPS-545
+Status: Accepted · Pass 1 · Updated 2026-10-07 · Linear: OPS-545
 
 **EDD: yes** the shadow run *is* the verification: the new alerter runs beside
 gwalert on the alerts box against the live hw1 broker, and each detector
@@ -205,9 +205,7 @@ So the alerter emits **transitions only**: one alert word when a
 condition starts to hold, one cleared word when it stops, both carrying
 the same `AlertId`. Nothing repeats from the alerter. The notifier owns
 the repeat cadence and escalation, and the notifier is Opsgenie
-("Paging through Opsgenie"). OPS-547 can later put Prometheus
-Alertmanager between the two as a router, and the alerter does not
-change when it does. The alerter's
+("Paging through Opsgenie"). The alerter's
 own state (which alerts are open) lives in its sqlite store so a restart
 neither re-raises nor forgets an open alert.
 
@@ -218,29 +216,26 @@ Two consequences:
   alert at 30 min, then hourly, then every 4 h; an acknowledged one
   never.
 - **A missing `Resolved` record** must not leave an alert open forever.
-  The tap re-posts the open set from the alerter's store, so an alert
-  the store has resolved is closed at the next pass even if its record
-  was missed on the broker.
+  The tap reconciles what Opsgenie has been told against the alerter's
+  store, so an alert the store has resolved is closed at the next pass
+  even if its record was missed on the broker.
 
 ## Paging through Opsgenie
 
-Two small things carry a detected condition to a person, and neither
-waits on OPS-547.
+Two small things carry a detected condition to a person.
 
 - **The Opsgenie tap** is the tap of `executor/gwalerter.md` "The tap"
-  with an Opsgenie client beside its Alertmanager one
-  (`gridworks-alerter` `src/gwalerter/tap.py`, on `jm/gw-alert`). The
-  `Tap` class is kept as it is: its own durable queue on `alertsmic_tx`,
-  each record decoded through the snapshot, the open set read from the
-  alerter's store at boot so a restart neither re-pages nor forgets, and
-  the tests that pin those (`tests/test_tap.py`). What is added is the
-  mapping and the client: a `Firing` record creates an Opsgenie alert
-  whose alias is the `AlertId`, and the `Resolved` record closes that
-  alias. Which notifier a tap process posts to is a required setting
-  with no default. The Alertmanager mapping and client stay while
-  OPS-547 proposes Alertmanager and are deleted in the same change if
-  that proposal drops it. The tap is a separate process so that paging
-  does not restart when a detector changes.
+  (`gridworks-alerter` `src/gwalerter/tap.py`): its own durable queue on
+  `alertsmic_tx`, each record decoded through the snapshot, a `Firing`
+  record creating an Opsgenie alert whose alias is the `AlertId` and the
+  `Resolved` record closing that alias, and a reconcile pass against the
+  alerter's store at boot and on a cadence so a restart neither re-pages
+  nor forgets and a missed `Resolved` still closes. The API key and the
+  team paged are required settings with no default. The tap is a
+  separate process so that paging does not restart when a detector
+  changes. Tests pin the mapping, the close, the reconcile and the retry
+  (`tests/test_tap.py`); the witness against Opsgenie itself is
+  `experiments/2026-10-07-alerter-to-opsgenie/`.
 - **The prober**, its own small unit on the alerts box. Alerting and the
   houses share one broker, so a broker outage is silent on the broker
   path: the prober checks the hw1 broker from outside that path and
@@ -309,11 +304,12 @@ detector thread, witnessed PASS on the dev broker
 included). A dev registry runs from `grid-node-registry` with `gnr api`
 and `gnr rabbit` against the seeded `d1` universe.
 
-Alongside the box work, on the laptop: the Opsgenie client for the tap
-and the prober ("Paging through Opsgenie"), each witnessed before it
-runs on the box. A `Firing` record opens an Opsgenie alert and its
-`Resolved` record closes it, across a tap restart; the prober pages with
-the dev broker stopped.
+Alongside the box work, on the laptop: the Opsgenie tap is built with
+its tests and awaits its witness (a `Firing` record opens an Opsgenie
+alert and its `Resolved` record closes it, across a tap restart:
+`experiments/2026-10-07-alerter-to-opsgenie/`); the prober ("Paging
+through Opsgenie") is still to build, witnessed with the dev broker
+stopped. Each runs on the box only after its witness.
 
 **DO THIS NEXT: the shadow deployment**, on the alerts box beside
 gwalert, per the gwbase box pattern (gwbase executor

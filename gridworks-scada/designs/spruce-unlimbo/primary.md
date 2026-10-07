@@ -85,9 +85,9 @@ code. How a round runs and what the rounds have taught is
 10. `control-strategy-selection.md` (est 4h) — the LTN and the scada
    select the correct control strategy per house; ops chooses the machine,
    the machine owns its state; the LTN side still to design
-11. `nolan-local-control.md` — what is left on Nolan local control, the
-   field checks and the review brief; the built part is in
-   `executor/local-control.md`
+11. `nolan-local-control.md` — the field checks for the beta windows
+   and the review brief; the built part is in
+   `executor/local-control.md` and `executor/cold-house.md`
 12. `layout-word-axioms.md` — the axiom work still open on both staging
     layout words (the nameplate vocabulary gap,
     the renumbering before promotion), the `gw.house0.no.sieg` word with

@@ -88,7 +88,9 @@ state, never layout.
 
 `ActuatorKind` bounds what a call may mean — a radiant floor cannot
 cool (condensation hazard), a fan coil heats and cools; `CanCool` is
-the emitter's fact, not the stat's.
+the emitter's fact, not the stat's. As authored, `gw1.zone.call.circuit`
+carries `EmitterType` and `CanCool`, and its axiom 1 `OnlyFanCoilsCool`
+holds `CanCool` false for any emitter but a fan coil.
 
 Spare board positions are derivable, not modeled: the gw108
 device-type record carries all six positions; the circuit list emits

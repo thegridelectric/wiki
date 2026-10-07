@@ -169,31 +169,40 @@ the alerter restarted while the alert is open. The shape is
 
 ## The tap
 
-`gwalerter tap` is the alerter's second process: the only writer to
-Alertmanager's intake. A plain consumer with its own durable queue
+`gwalerter tap` is the alerter's second process: the only thing that
+talks to Opsgenie. A plain consumer with its own durable queue
 (`<alias>-tap`) on `alertsmic_tx`, bound by the `gw-alert` type segment
 (`rjb.*.*.gw-alert.#`), it decodes each record through the snapshot
-(`expect=Alert`), maps it, and posts to `alertmanager_url` on loopback.
-Labels are the identity Alertmanager groups and dedups on: `alertname`
-(the Kind), `category`, `subject` (the full `AboutGNodeAlias`, else
-`Subject`, else `Src`), `src`, `alert_id`. Annotations are the text a
-receiver renders: `summary`, `house` (the segment before `.ta`, display
-only) and `about` (the full alias plus the registry's display name, so
-two houses with one short name are told apart where a reader acts).
-`startsAt` is `RaisedMs`; `endsAt` is `ResolvedMs` on a `Resolved`
-record and absent otherwise.
+(`expect=Alert`) and maps it onto Opsgenie's Alert API
+(`opsgenie_url`, `GenieKey` auth with `opsgenie_api_key`, every alert
+to the team `opsgenie_team_id`). A `Firing` record creates an alert
+whose `alias` is the `AlertId`, which Opsgenie deduplicates on: a
+`Firing` told twice is one alert, a re-raise after a resolve a new one.
+The headline `message` is `[house] summary` for a house alert (the
+segment before `.ta`, display only), else the summary, cut to
+Opsgenie's 130 characters; `entity` is the full `AboutGNodeAlias` (else
+`Subject`, else `Src`), so two houses with one short name are two
+alerts; `source` is `Src`; `tags` the category and kind; `details` the
+kind, category, subject, src, alert id, house and `about` (the full
+alias plus the registry's display name). Every alert is `P1`, a
+starting value. A `Resolved` record closes the alias with its summary
+as the note. Who is paged, how often an open alert re-notifies and how
+it escalates are Opsgenie's policy.
 
-Alertmanager forgets a firing alert not re-posted within its
-`resolve_timeout`, and the alerter says each transition once, so the
-tap keeps the open set and re-posts it every `tap_resend_s` (300, under
-the 1 h timeout). At boot it reads that set from the alerter's store
-(`Store.open_alerts`, the same sqlite the actor writes), which is what
-makes a tap restart neither re-page nor forget. A post that fails after
-three attempts on a refused connection is logged and dropped: the store
-and the journal are the durable record, and the next re-post carries a
-firing alert anyway. Witnessed PASS on the laptop against a local
-Alertmanager, restart with the alert open included:
-`experiments/2026-09-30-alerter-to-alertmanager/`.
+The alerter says each transition once and a post can fail, so the tap
+keeps the set of alerts Opsgenie has been told are open and reconciles
+it against the store's open alerts (`Store.open_alerts`, the same
+sqlite the actor writes) every `tap_reconcile_s` (300) and at boot: an
+open alert Opsgenie has not taken is created, one Opsgenie holds that
+the store has resolved is closed with its `Resolved` record
+(`Store.resolved_record`). At boot the told set is empty, so the first
+pass re-creates every open alert and Opsgenie folds each into the
+alert it already has; that is what makes a tap restart neither re-page
+nor forget, and a `Resolved` missed on the broker still close. A post
+that fails after three attempts on a transport error is logged and
+left for the next pass; a refusal (4xx) is logged and not retried.
+Witness against Opsgenie itself: Open
+(`experiments/2026-10-07-alerter-to-opsgenie/`).
 
 ## Operating
 

@@ -61,7 +61,7 @@ energy ratio that scales its target
    use the result as three different things: the supply temperature the
    house needs, a buffer charge target in local control, and a penalty
    threshold on the top of the store in the FLO
-   (`wiki/heating-system-design/mix-or-not.md` "How RSWT is calculated").
+   (`heating-system-design/mix-or-not.md` "How RSWT is calculated").
    Once alpha and beta are replaced by a regression, the zero-power point
    `−alpha/beta` no longer exists. The word needs RSWT defined on its own
    terms: candidates are a directly estimated supply-temperature curve

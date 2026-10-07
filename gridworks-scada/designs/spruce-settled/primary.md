@@ -1,6 +1,6 @@
 # Spruce settled (hub)
 
-Status: Draft · Pass 0 · Updated 2026-09-29 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
+Status: Draft · Pass 0 · Updated 2026-10-07 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
 
 **EDD: yes** the deployed spruce line and the simulated houses are the
 verification; a spoke reaches Verified only when a run against one of
@@ -61,6 +61,9 @@ them exercises it (`experiments/`).
   governance machine, setpoint belief, and the thermostat chunk (sim
   thermostat, setpoint discovery, Hubitat/Honeywell); the launch-side
   relay-actor enforcement is OPS-392
+- TO DO `async-local-control.md` — the local control evaluates on
+  events (messages at receipt, timers armed when a time input is
+  known), retiring the 60 s pass; after the simulated houses run
 - HOLD `command-node-vocabulary.md` — "command node" is used with
   inconsistent meanings across the sema words and code (commander /
   actuator / ack-replier); the Commanding–Commandable–Actuator taxonomy is

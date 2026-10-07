@@ -10,11 +10,113 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-06 — gwsproto mirrors the backup words and the cold override (OPS-392) <!-- pending commit -->
+## 2026-10-07 — The backup pair check runs at load, for both families (OPS-392, `7a059dbe`)
 
-Work in progress; rewritten against the diff before commit. Mirrors sema
-`6da94a4`: `BoilerBackup`, `ElementBackup`, `Hydronic.Backup`,
-`ColdOverride`, the `cold-override` node, `UsesBackupWhenCold`.
+`UsesBackupWhenCold` true with no usable backup booted: Nolan refused
+in the machine's constructor, after other actors were built, and
+House0 booted and raised at its first `HouseCold`, or with a `Backup`
+out of service went to `InBackup` and commanded it. The check is now
+`check_backup_when_cold` in `sema_to_dc.py`, beside the other pair
+checks that run before any actor is built: a `Hydronic.Backup` with
+`InService` true, an element backup at a Nolan layout. The Nolan
+constructor's refusal and its test go; the loader-guard tests hold the
+check for both fixture pairs, the out-of-service case, the Nolan
+boiler case, and the allow case with `UsesBackupWhenCold` false.
+
+## 2026-10-07 — The watch says cold on every pass; a blind house that is cold takes its cold state (OPS-392, `3fdfb362`)
+
+`HouseCold` was sent once per cold spell and acted on only from
+`Normal`, so a house cold with its stores empty while `ScadaBlind`, or
+`Dormant` under the contract the same look ends, ran on with no cold
+state until it warmed and went cold again. The watch now sends
+`HouseCold` on every pass the latch holds with the stores empty
+(`BreakServiceContract` still once per spell, `HouseWarm` once after),
+and both machines take `SystemCold` / `SystemColdNoBackup` from
+`ScadaBlind` as from `Normal`; a repeat in a cold state moves nothing.
+Nolan's cold entry skips `CallGoDormant` when the call machine is
+already dormant. Tests: the watch's every-pass send, Nolan cold from a
+blind band, House0's tree from blind to backup, the transition tables
+from both sources, and the live House0-under-contract test now waits
+for the woken local control to take its cold state. Three Nolan tests
+that said "warm on-peak holds" read the wall clock; they pin the
+tariff.
+
+## 2026-10-06 — Nolan goes to InBackup on its elements; spruce's elements are in service (OPS-392, `903b83d6`)
+
+`NolanBufferOnlyTou` gains the `SystemCold` transition into `InBackup`
+and the way out, like House0's. On `HouseCold` with `UsesBackupWhenCold`
+true the tree moves under `backup`, the call machine goes `Dormant`,
+the call is opened if closed, and the relays the layout's
+`gw.element.backup` names are closed from `backup`; the boot pass opens
+them, so the warm off-peak return and the wake after admin both end
+with the elements open. The machine refuses to construct with
+`UsesBackupWhenCold` true and no element backup. The Nolan fixture is
+regenerated from `spruce_sim_gen` with the buffer elements `InService`
+true: spruce's elements are wired and the scada holds them off; with
+`UsesBackupWhenCold` false no path closes one, which a test pins.
+
+## 2026-10-06 — The cold watch tells the local control; Nolan goes to ColdOverride (OPS-392, `9afbd2e9`)
+
+The cold watch is the one judge of a cold house. At its latch with the
+stores empty it sends the local control the in-process `HouseCold`
+beside the `BreakServiceContract` it sends the scada, and the warm pass
+that ends such a spell sends `HouseWarm`. Both machines react on
+receipt: House0 leaves `Normal` for `InBackup` or `ColdOverride` and
+returns on `HouseWarm` off-peak (else at the first off-peak loop);
+Nolan gains `ColdOverride`, where the tree sits under `cold-override`,
+the call machine is `Dormant`, the call is closed whatever the tariff
+and the pump follows the hp-watch, and returns to `Normal` through a
+boot. House0's own cold polling goes: `SYSTEM_COLD_MINUTES`,
+`system_cold_since`, the abstract `time_to_trigger_system_cold` and its
+two strategy implementations. The machine never judged cold better than
+the watch, only a minute later, and a second latch on a polling loop is
+not responsive. The executor's "The top state", the Nolan machine
+section and `cold-house.md`'s latch, backup and tests sections state
+the new shape.
+
+## 2026-10-06 — House0 goes to InBackup or ColdOverride when cold; constructor checks that repeat layout axioms go (OPS-392, `56a740a4`)
+
+The House0 top machine gains `ColdOverride`. A cold house with its
+stores empty leaves `Normal` by one of two events, chosen by the ops
+word's `UsesBackupWhenCold`: `SystemCold` to `InBackup`, commanding from
+`backup` (store pump off, store valved to discharge, failsafe to the
+aquastat, aquastat control to the boiler), or the new
+`SystemColdNoBackup` to `ColdOverride`, commanding from `cold-override`
+(store pump off, store valved to discharge, heat pump on). The relay
+commands of each branch are what the single state sent before; what
+changes is the state reported and the node that holds the tree. Either
+state returns to `Normal` warm and off-peak and goes `Dormant` for admin.
+`LocalControlTopEvent`, a scada-only enum, carries the new event.
+
+Constructor checks that repeat layout axioms go: the House0 local
+control's three state-node checks, the two loaders' node and actor-class
+checks, the two House0 leaf allies' `la` check, and the scada's boot-boss
+check, which now reads the typed layout accessors. Axioms 2 and 3 of
+both layout words hold those facts. `local_control_backup_node` no longer
+refuses a Nolan layout: the node exists in either family exactly when the
+layout declares a `Backup`. Tests: the live SystemCold test names the
+state and node of each case and holds each cold state through the peak;
+the top-machine test pins the two events and their destinations; the
+tree test gets a `ColdOverride` twin and a House0 layout with no backup
+boots and goes to `ColdOverride`.
+
+## 2026-10-06 — gwsproto mirrors the backup words and the cold override (OPS-392, `529ad152`)
+
+Mirrors sema `6da94a4`, with the closure copy refreshed from the
+tlayouts snapshot. `BoilerBackup` and `ElementBackup` are new, with
+their axioms; `Hydronic.Backup` is the two, discriminated by TypeName.
+`LocalControlTopState` appends `ColdOverride` and `CoreNodeNames` gains
+`cold-override`. Both layout words require the `cold-override` node,
+take the `backup` node exactly when `Hydronic.Backup` is present, and
+check `BackupRelays`; `type_helpers/backup_axioms.py` holds the one
+implementation of the backup checks. `OperationalParams` carries
+`UsesBackupWhenCold` in place of `OilBoilerBackup`, and the House0
+local control reads it at the same two points, so behaviour is
+unchanged: a House0 house goes to its boiler when cold. The six
+`tests/config` fixtures are regenerated from the sim gens; the live
+SystemCold test names its second case for a house that does not use its
+backup. `LocalControlTopEvent` drops its sema URL, which cited a word that
+does not exist.
 
 ## 2026-10-06 — The closure copy carries gw2.lc.top.state with InBackup (OPS-392, `66907132`)
 

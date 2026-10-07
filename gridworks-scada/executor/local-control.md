@@ -103,7 +103,9 @@ such a relay only through its node's command.
 
 `NolanBufferOnlyTou` (`local_control/nolan/buffer_only_tou.py`) charges
 the buffer on the time-of-use schedule and leaves the store alone. Its
-plant judgment is `NolanHydronic` (`actors/hydronic/nolan.py`).
+plant judgment is `NolanHydronic` (`actors/hydronic/nolan.py`). It is
+the loop spruce ran through the winter of 2025-26
+(`starter-scripts/spruce_winter_hack.py`) as scada behavior.
 
 **States** (`gw1.nolan.lc.buffer.only.state`): `Initializing`,
 `HpCallOn`, `HpCallOff`, `Dormant`. The state names the one plant
@@ -136,6 +138,23 @@ schedule alone (closed off-peak, open on-peak); the heat pump's own
 limits stop it when the buffer is hot. The call machine reports
 `Dormant` meanwhile. `DataAvailable` returns to Normal through a boot
 when both channels are fresh.
+
+**The cold house.** On the cold watch's `HouseCold`
+([`cold-house.md`](cold-house.md) "The latch") the tree moves under the
+cold state's node and the call machine reports `Dormant`. With the ops
+word's `UsesBackupWhenCold` false the state is `ColdOverride`: the call
+is commanded closed and held whatever the tariff. With it true the state
+is `InBackup`: the call is opened if it was closed, and the relays the
+layout's `gw.element.backup` names are closed from `backup`; the
+machine refuses to construct with `UsesBackupWhenCold` true and no
+element backup in the layout, since it has no other backup to go to.
+The boot pass opens the element relays, so a cold stay ends with them
+open whichever way it ends, and a layout whose elements are not in
+service still has the scada holding them off. In either state the pump
+follows the hp-watch as in Normal and a blind band changes nothing. The
+watch's `HouseWarm` returns the machine to Normal through a boot when it
+is off-peak, else the first off-peak check does, so a stay entered
+on-peak holds through the rest of the peak.
 
 **Postures are not states.**
 
@@ -226,32 +245,52 @@ Subscribers today: `HpWatch` to `hp-odu-pwr`; `NolanBufferOnlyTou` to
 ## The top state
 
 Every local control reports one enum, `gw2.lc.top.state`: `Dormant`,
-`Normal`, `ScadaBlind`, `Standby`, `InBackup`. Each
+`Normal`, `ScadaBlind`, `Standby`, `InBackup`, `ColdOverride`. Each
 machine lists its own states:
 
 | Local control | States |
 | --- | --- |
 | `StandbyLocalControl` | `Dormant`, `Standby` |
-| House0 (`LocalControlTouBase`) | `Dormant`, `Normal`, `ScadaBlind`, `InBackup` |
-| `NolanBufferOnlyTou` | `Dormant`, `Normal`, `ScadaBlind`, `InBackup` (no transition into it) |
+| House0 (`LocalControlTouBase`) | `Dormant`, `Normal`, `ScadaBlind`, `InBackup`, `ColdOverride` |
+| `NolanBufferOnlyTou` | `Dormant`, `Normal`, `ScadaBlind`, `InBackup`, `ColdOverride` |
 
 `Dormant` means another node holds the tree: admin, or the leaf ally
 under a dispatch contract. Command nodes exist only for the states that
-command, one each: `n` for `Normal`, `backup` for
-`InBackup`, `scada-blind` for `ScadaBlind`, `standby` for
-`Standby`. All four are core names, both layout words fix their handles
-under `auto.lc`, and their `ActuatorLeaves` axiom states the
-correspondence. The state nodes have no actor of their own: a message
+command, one each: `n` for `Normal`, `backup` for `InBackup`,
+`cold-override` for `ColdOverride`, `scada-blind` for `ScadaBlind`,
+`standby` for `Standby`. All five are core names, both layout words fix
+their handles under `auto.lc`, and their `ActuatorLeaves` axiom states
+the correspondence; `backup` exists exactly when the layout declares a
+`Hydronic.Backup`, the other four always. The state nodes have no actor of their own: a message
 addressed to one, such as a relay's ack to its commander, is delivered
 to the local control actor (`_send_to`, `sh_node_actor.py` and
 `scada.py`).
 
-**Backup.** Only House0 enters `InBackup`: `tou_base` does
-on `SystemCold`, and its on-peak ScadaBlind branch reads the ops word's
-`OilBoilerBackup`. The Nolan machine has the state and no transition
-into it. A cold Nolan house raises `critical-zone-cold`
-([`cold-house.md`](cold-house.md) "The latch") and the machine stays in
-Normal.
+**The cold house.** The cold watch judges and the local control reacts
+to its two in-process messages ([`cold-house.md`](cold-house.md) "The
+latch"); no machine judges cold on its own loop. On `HouseCold` from
+`Normal` or `ScadaBlind`, either machine goes to `InBackup` (event
+`SystemCold`) when the ops word's `UsesBackupWhenCold` is true and to
+`ColdOverride` (`SystemColdNoBackup`) otherwise; the cold states need
+no band and no forecast, so a blind house that is cold is a cold house.
+`HouseCold` in any other top state, or in a cold state, is noted and
+moves nothing; the watch sends it on every pass it holds, so a machine
+that is `Dormant` when one arrives (under the contract that the same
+look ends) takes its cold state at the next pass after it wakes. Either
+cold state leaves for `Normal`
+(`CriticalZonesAtSetpointOffpeak`) on `HouseWarm` when off-peak, else at
+the first off-peak check after it, and goes `Dormant` for admin like
+`Normal`.
+
+`InBackup` commands from `backup`: at House0 store pump off, store
+valved to discharge, `hp-failsafe-relay` to the aquastat,
+`aquastat-ctrl-relay` to the boiler; at Nolan the call open and the
+element relays closed. Nolan's boot opens the element relays, so every
+way out of `InBackup` (the warm off-peak return, the wake after admin)
+ends with them open, commanded by the machine and asserted by a test. `ColdOverride` is the primary heat source with
+the tariff set aside, from `cold-override`: at House0 store pump off,
+store valved to discharge, heat pump on; at Nolan the call closed. House0's on-peak
+ScadaBlind branch reads `UsesBackupWhenCold` too.
 
 ## The dispatch refusal
 
@@ -320,7 +359,15 @@ reason, `Standby`, `ServiceMode`), or no offer this hour.
 
 ## Open
 
-- Cooling a Nolan house from the scada is not built.
+- Cooling a Nolan house from the scada is not built; the loader raises
+  on a Nolan layout authoring `Cooling`. A cooling machine starts from
+  the loop spruce ran through the summer of 2026
+  (`starter-scripts/spruce_summer_hack.py` at `2c31bc1`): radiant
+  circuits held, iso valve open, secondary pump on, the cool call
+  closed off-peak and open on-peak. The scada cannot put the heat pump
+  into cooling; a person changes the unit's mode, and the call contact
+  is inert while FSV 2091 is 0
+  (`heat-pump-comms/samsung-ae055feymcg.md`).
 - Backup for a Nolan house is not built.
 - A whole-file params push carrying a stale `AcceptsDispatch: true`
   would clear a `ServiceContractBroken` latch (OPS-408).

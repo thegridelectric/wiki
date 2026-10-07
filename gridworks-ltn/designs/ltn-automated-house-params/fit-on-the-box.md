@@ -67,7 +67,7 @@ From a read of the code; each is confirmed or dismissed by a run.
 
 The 2025–26 season is recorded: the parameters each house ran on, the
 SCADA's hourly forecast of load and RSWT, and what was measured
-(`wiki/heating-system-design/mix-or-not.md` "Where the record is"). The
+(`heating-system-design/mix-or-not.md` "Where the record is"). The
 fit is adopted for a house when, replayed over that season with forecast
 weather, it predicts 48-hour load better than the hand-set values that
 were in force.
