@@ -1,6 +1,6 @@
 # Magic thresholds
 
-Status: Draft · Pass 0 · Updated 2026-10-01
+Status: Draft · Pass 0 · Updated 2026-10-07
 
 > What this is: the inventory of numbers the scada and LTN decide with that
 > live in code rather than in an ops word, a `names` constant, or a device
@@ -39,6 +39,7 @@ it exists. The candidate homes:
 | Threshold | Where | What it decides | Candidate home | Disposition |
 |---|---|---|---|---|
 | Compressor running above 500 W, stopped below 80 W (Samsung AE055, `SimHpOdu`) | `hp_boss/sensing.py` (`HP_TRAITS`) | The secondary pump and iso valve posture in the Nolan heating machine; does not handle defrost | device record (`hp.device.type.gt`), read once by the unit's sensed state machine on hp-boss (`control-hierarchy.md` "The heat-pump surface") | hand-kept table until the record carries it |
+| `HELD_ON_S = 600` | `hp_watch.py` | How long `HpDetectedOn` holds with every read between the lines before the watch warns that the unit has stopped with its standby above the off line | code, with the sentence in `local-control.md` "The heat-pump watch": longer than any ramp or wind-down (62 s max at spruce), shorter than an idle gap | stays in code |
 | Call-open lead 120 s | `hp_boss/sensing.py` (`HP_TRAITS`) | How long before an on-peak window opens the call opens, so the compressor has stopped drawing by the boundary | device record (the unit's stop lag) | provisional until the spruce call-cycling experiment measures it |
 | `OFF_POWER_W = 500`, `OFF_SETTLE_S = 120` | `strat_protect.py` | Draw above which, this long after hp-boss reports off, the sieg loop is blind to the heat pump; not keyed by device type | the same device record values as the rows above, read from one place | open |
 

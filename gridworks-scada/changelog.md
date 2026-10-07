@@ -10,6 +10,116 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-07 — The scada pulls its forecast from the weather service (OPS-392)
+
+**What:** `weather_source.py` gains `GwwfWeatherSource` and loses the NWS
+source. The kinds are `Gwwf` (the default) and `Sim`. The source pulls
+`latest-forecast/<WeatherBundleName>` from the facade the new
+`weather_api_url` setting names, with `weather_pull_timeout_s` bounding
+each request; it keeps the message and the bundle record in the config
+dir as sema JSON (`<bundle>-gw.weather.forecast-000.json`,
+`<bundle>-gw.weather.forecast.bundle.gt-000.json`), reads them before any
+network call, derives slice times from the record's `SliceDurationSList`,
+unscales per the channel Unit, and returns the legacy `weather.forecast`
+shape so the derived generator is unchanged; fewer than 48 future slices
+falls to the coldest-of-month list. The LTN's own NWS pull is replaced by
+a call to the same source. `latitude`/`longitude` leave both settings
+classes. gwsproto gains twins for `gw.weather.forecast` (as
+`GwWeatherForecast`), `gw.weather.forecast.bundle.gt`,
+`gw.weather.forecast.channel.gt`, `gw.weather.channel.gt` and the
+`gw.weather.forecast.fidelity` enum, with axioms ported and counterexample
+tests; the live Millinocket payloads are the fixtures.
+
+**Why:** a scada should not source weather itself; gwwf publishes the
+bundle every ops word now names, and the persisted pair read first is the
+fix for a slow pull ending a resumed contract. No NWS kind remains because
+the six boxes move together and raw NWS access is not wanted.
+
+## 2026-10-07 — The ops word's WeatherBundleName reaches gwsproto and the closure (OPS-392)
+
+**What:** `OperationalParams.WeatherBundleName: LeftRightDotStr`; the
+three ops fixtures carry `us.me.millinocket.forecast.nws.hourly96`; the
+vendored closure registry is refreshed from the tlayouts snapshot so the
+conformance test sees the field at version 000.
+
+**Why:** the mirror wave of the sema edit. The scada's weather pull from
+gwwf (step 4 of the nolan-local-control weather design) reads this field
+for the bundle it pulls and persists.
+
+## 2026-10-07 — the leaf ally waits for a forecast instead of refusing the contract (OPS-392, `e55cc073`)
+
+**What:** both house0 allies take a contract into Initializing with no
+heating forecast in hand and wait there; the five-minute bail that
+already covered missing buffer temperatures now covers the forecast
+and the required energy too, and its AllyGivesUp reason names what
+was missing (`missing_inputs`). Two live tests in
+`tests/actors/test_startup_contract_load.py`: a forecast arriving
+after the resume wait leaves the resumed contract live; one that never
+arrives ends it after the wait with the forecast named. The settings
+defaults test gains the `weather_source` field from the last commit.
+
+**Why:** the ally refused any contract while `heating_forecast` was
+`None`, so a scada restarting under a live contract gave it up whenever
+the weather pull took longer than the four-second resume wait. The
+forecast arrives seconds after the weather does, and Initializing is
+already the state that waits for the ally's inputs with a bound; the
+refusal was the only input treated as fatal at once.
+
+## 2026-10-07 — WIP improve weather (OPS-392, `489aacba`)
+
+**What:** `weather_source.py` holds the derived generator's forecast
+source behind one interface: `NwsWeatherSource` is the api.weather.gov
+pull moved out of the actor, file cache and coldest-of-month fallback
+with it; `SimWeatherSource` returns a forecast the test sets after a
+delay the test sets. `ScadaSettings.weather_source` picks the kind and
+the apps build it beside the clock; `ScadaLiveTest` sets every child
+scada to the simulated source. One new test,
+`test_a_slow_weather_fetch_does_not_end_a_resumed_contract`, is red:
+a forecast arriving after the four-second resume wait loses the
+resumed contract.
+
+**Why:** the suite reached a live weather API on every live test, and
+`test_a_live_stored_contract_is_taken_up_again_after_a_restart` passed
+or failed on how fast NWS answered. The red test is the field bug
+written down first: the leaf ally refuses a contract with no forecast
+in hand, so a scada restarting under a live contract gives it up
+whenever the weather pull is slow or down. The fix follows in the next
+commit.
+
+## 2026-10-07 — hp-watch warns when HpDetectedOn holds between the lines (OPS-392, `6618a82b`)
+
+**What:** `HpWatch` raises one Warning glitch `hp-watch-held-on` per
+spell when `HpDetectedOn` has held for `HELD_ON_S` (600 s) with every
+read between the on and off lines, measured from the first such read;
+the state is unchanged. Two tests in `tests/actors/test_hp_watch.py`.
+
+**Why:** the watch is a latch that goes Off only on a read below the
+off line. Spruce's standby draw (62 to 68 W) clears the 80 W line by 10 W
+and has not been measured below freezing; standby above the line would
+hold On after every stop and run the secondary pump between cycles with
+nothing noticing. The power history shows the unit never sits between
+the lines for more than a minute, so ten minutes there while On is a
+stopped unit. Report, not a line change: the lines are right for the
+data we have.
+
+## 2026-10-07 — improved words for contract termination (OPS-392, `7199cd76`)
+
+Every scada-side end of a dispatch contract goes through
+`process_ally_gives_up`, which prefixed the cause with "Ally Gives up:"
+and logged "LeafAlly giving up" whoever decided: the cold watch breaking
+the contract and the scada refusing dispatch at a restart were reported
+to the LTN as the ally's doing. The handler is the one termination path
+for any decider; it now carries the Reason as given and logs that
+dispatch is ending. The two live tests that end a contract from the
+scada assert the cause starts with the refusal reason.
+
+The ally's own give-up for a blind buffer said "Missing temperatures
+required for operation", naming neither the store nor the channels. The
+availability it judges is the buffer's effective channels all reading,
+so the reason now says "Missing buffer temperatures:" and lists the
+absent channels, from `missing_buffer_temperatures` on the House0
+hydronic judgment, pinned in `tests/actors/test_hydronic_house0.py`.
+
 ## 2026-10-07 — The backup pair check runs at load, for both families (OPS-392, `7a059dbe`)
 
 `UsesBackupWhenCold` true with no usable backup booted: Nolan refused

@@ -36,6 +36,16 @@ answered by what the running LTN actually reads:
   off it; `AcceptsDispatch`, `ServiceMode` and `SeasonalStorageMode`
   come from `gw.house.operating.status` (`ltn/ltn.py:767-776`).
 
+## What the scada takes from the LTN
+
+- **The weather forecast.** The LTN relays gwwf's `gw.weather.forecast`
+  to its scada over the existing LTN→scada pipe, and the scada stops
+  pulling weather itself (gwwf `executor/delivery.md` "LTN relay is
+  primary"; the scada keeps the last-received forecast on disk as the
+  same word and falls back to the gwwf API only when the relay goes
+  quiet). Until the LTNs run, the scada's interim pull from gwwf is in
+  `../spruce-unlimbo/nolan-local-control.md`.
+
 ## The FLO boundary
 
 The direction is FLO as a service: the LTN hands the FLO its parameters

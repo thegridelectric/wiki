@@ -1,6 +1,6 @@
 # gwalerter — the broker alerter
 
-Status: Draft · Pass 0 · Updated 2026-10-05
+Status: Draft · Pass 0 · Updated 2026-10-07
 
 > What this is: the house alerter as a gwbase actor on the fleet broker
 > (`thegridelectric/gridworks-alerter`, package `gwalerter`): its inputs,
@@ -81,7 +81,10 @@ instances or typed records, never tuples.
 One word, `gw.alert` (`sema/definitions/types/gw.alert/000.yaml`), with
 its enums `gw.alert.category`, `gw.alert.state` and a kind enum per
 category (`gw.house.alert.kind`, `gw.fleet.alert.kind`,
-`gw.platform.alert.kind`). All are published, and the alerter's
+`gw.platform.alert.kind`), and the tap's words,
+`gw.opsgenie.alert.create`, `gw.opsgenie.alert.close` and
+`gw.opsgenie.alert` with `gw.opsgenie.priority` and
+`gw.opsgenie.alert.status`. All are published, and the alerter's
 snapshot is a published-only build. An alert is a service reporting on something from the evidence
 it received; `glitch` is a node reporting on itself, which is why it did
 not grow to cover this.
@@ -133,6 +136,8 @@ meaning, gwalert's alias, and what reading gwalert found.
 | `HpRunningOnpeak` | The heat pump drew power during a weekday on-peak hour. | `hp_onpeak` | gwalert scans the whole 2 h window and its per-house flag lets only the first offending hour alert; the port fires on live readings only. |
 | `LocalControlActive` | The house has fallen back to local control; the LTN is not dispatching it. | `not_in_atn` | Disabled in gwalert; "Atn" is the legacy name for the LTN. |
 | (none) | | `no_more_oil` | Dead code in gwalert; not ported until someone defines it. |
+| `AllHousesSilent` (Fleet) | Every tracked house is silent at once. | (none) | Vocabulary only; the broker-down case is `BrokerUnreachable`, and this kind waits for a cause that is not the broker. |
+| `BrokerUnreachable` (PlatformService) | A door of the fleet's broker fails the prober's check three probes running; `Subject` is the door as host:port. | (none) | gwalert polls the journal and has no broker check. Raised by the prober, not a detector over the store; while one is open, `NoData` holds. |
 
 ## Detectors
 
@@ -163,61 +168,116 @@ the alerter restarted while the alert is open. The shape is
   resolves it with that arrival as evidence (the report's readings;
   empty for a layout). Open-alert state is the store's, which is what
   makes a restart neither re-raise nor forget. Witnessed PASS on the dev
-  broker on `gw.alert` 2026-09-28 (`gridworks-alerter` `d29d9a6`),
+  broker on `gw.alert` 2026-09-28 (`gridworks-alerter` `7e8c646`),
   restart with the alert open included; the shadow week against hw1 is
   what makes it Verified.
 
 ## The tap
 
 `gwalerter tap` is the alerter's second process: the only thing that
-talks to Opsgenie. A plain consumer with its own durable queue
-(`<alias>-tap`) on `alertsmic_tx`, bound by the `gw-alert` type segment
-(`rjb.*.*.gw-alert.#`), it decodes each record through the snapshot
-(`expect=Alert`) and maps it onto Opsgenie's Alert API
-(`opsgenie_url`, `GenieKey` auth with `opsgenie_api_key`, every alert
-to the team `opsgenie_team_id`). A `Firing` record creates an alert
-whose `alias` is the `AlertId`, which Opsgenie deduplicates on: a
-`Firing` told twice is one alert, a re-raise after a resolve a new one.
-The headline `message` is `[house] summary` for a house alert (the
-segment before `.ta`, display only), else the summary, cut to
-Opsgenie's 130 characters; `entity` is the full `AboutGNodeAlias` (else
-`Subject`, else `Src`), so two houses with one short name are two
-alerts; `source` is `Src`; `tags` the category and kind; `details` the
-kind, category, subject, src, alert id, house and `about` (the full
-alias plus the registry's display name). Every alert is `P1`, a
-starting value. A `Resolved` record closes the alias with its summary
-as the note. Who is paged, how often an open alert re-notifies and how
-it escalates are Opsgenie's policy.
+talks to Opsgenie, and a poller of the store with no broker connection.
+The one alert that means the broker is down has to reach a person while
+the broker is down, and the store is already the truth about which
+alerts are open, so the tap reads it and nothing else: every
+`tap_reconcile_s` (10) it takes the store's open alerts
+(`Store.open_alerts`, the same sqlite the actor and the prober write)
+and maps each onto the tap's outbound words, which the post writes into
+Opsgenie's Alert API shape (`opsgenie_url`, `GenieKey` auth with
+`opsgenie_api_key`, every alert to the team `opsgenie_team_id`). The
+cadence is the longest a page waits; it is a local read, so seconds,
+against thresholds that are minutes. An open alert becomes a
+`gw.opsgenie.alert.create` whose `Alias` is the `AlertId`, which
+Opsgenie deduplicates on: a `Firing` told twice is one alert, a
+re-raise after a resolve a new one. The headline `Message` is `[house]
+summary` for a house alert (the segment before `.ta`, display only),
+else the summary, cut to Opsgenie's 130 characters; `Entity` is the
+full `AboutGNodeAlias` (else `Subject`, else `Src`), so two houses with
+one short name are two alerts; `Source` is `Src`; `Tags` the category
+and kind; the named details `Kind`, `Category`, `Subject`, and for a
+house alert `House` and `About` (the full alias plus the registry's
+display name), which the post writes into Opsgenie's flat `details`
+map under their lower-case names. Every alert is `P1`
+(`gw.opsgenie.priority`), a starting value. A `Resolved` record becomes
+a `gw.opsgenie.alert.close` of the alias with its summary as the
+`Note`. What Opsgenie holds is read back as `gw.opsgenie.alert` (alias,
+status, count, created, closed by), the word a shadow-week comparison
+reads lists of. Who is paged, how often an open alert re-notifies and
+how it escalates are Opsgenie's policy.
 
-The alerter says each transition once and a post can fail, so the tap
-keeps the set of alerts Opsgenie has been told are open and reconciles
-it against the store's open alerts (`Store.open_alerts`, the same
-sqlite the actor writes) every `tap_reconcile_s` (300) and at boot: an
-open alert Opsgenie has not taken is created, one Opsgenie holds that
-the store has resolved is closed with its `Resolved` record
-(`Store.resolved_record`). At boot the told set is empty, so the first
-pass re-creates every open alert and Opsgenie folds each into the
-alert it already has; that is what makes a tap restart neither re-page
-nor forget, and a `Resolved` missed on the broker still close. A post
-that fails after three attempts on a transport error is logged and
-left for the next pass; a refusal (4xx) is logged and not retried.
-Witness against Opsgenie itself: Open
-(`experiments/2026-10-07-alerter-to-opsgenie/`).
+The tap keeps the set of alerts Opsgenie has been told are open and
+each pass reconciles it: an open alert Opsgenie has not taken is
+created, one Opsgenie holds that the store has resolved is closed with
+its `Resolved` record (`Store.resolved_record`). At boot the told set is
+empty, so the first pass re-creates every open alert and Opsgenie folds
+each into the alert it already has; that is what makes a tap restart
+neither re-page nor forget. A post that fails after three attempts on a
+transport error is logged and left for the next pass; a refusal (4xx)
+is logged and not retried. Tests pin the mapping, the reconcile, the
+retry and a tap with no broker reachable paging a store-held alert
+(`tests/test_tap.py`). Witnessed PASS on the laptop against Opsgenie
+itself, restart with the alert open included:
+`experiments/2026-10-07-alerter-to-opsgenie/`.
+
+## The prober
+
+`gwalerter probe` (`src/gwalerter/prober.py`) is the alerter's third
+process and the one detector that reads no broker. The alerter and the
+houses share one broker, so a broker outage is silent on the broker
+path: the alerter hears nothing and sees every house as silent at once.
+The prober checks the broker's two doors from outside that path, as a
+client of each, every `probe_interval_s` (60): an AMQPS round trip on
+`probe_amqp_url` (connect, declare an exclusive auto-delete queue,
+publish one message to it through the default exchange, receive it
+back; a connect-only check passes through a memory or disk alarm that
+blocks every publisher) and an MQTT connect on `probe_mqtt_host:port`,
+the TLS listener the scadas use (handshake, CONNECT, any CONNACK; a
+refused credential is a CONNACK, so the prober carries none). The
+management API is not checked: a third listener that can be up while
+both doors are shut. A door that fails `probe_failures_to_raise` (3)
+probes running raises one `gw.alert` (`PlatformService`,
+`BrokerUnreachable`, `Subject` the door as host:port, never the URL)
+into the store with `Store.raise_alert`; the first success resolves it
+with `Store.clear_alert`. The prober has no Opsgenie client: the tap
+pages the record on its reconcile pass from the store, so the page
+arrives within `tap_reconcile_s` with no broker involved. The probe is
+made from the alerts box, so a network fault there looks the same as a
+broker fault, and the summary says so. Witnessed PASS on the laptop
+against the dev broker and Opsgenie itself, a four-minute broker stop
+with the tap paging both doors while it was down and no `NoData` after
+its return: `experiments/2026-10-07-alerter-broker-down/`
+(`evidence/2026-10-07-pass/`).
+
+While a `BrokerUnreachable` alert is open, the NoData rule raises
+nothing (`NoDataRule.broker_unreachable`, read off the store's open
+alerts each tick); when the last one resolves, the rule moves its
+last-heard floor to that moment, as at its own boot, so each house gets
+one silence threshold to reconnect before it pages. The actor's own
+hearing is the other hold, a different fact: the detector thread skips
+its tick while the actor is not consuming, and each time consuming
+starts (boot and every reconnect, gwbase's `local_rabbit_startup`) the
+actor moves the same floor to that moment
+(`AlerterActor.hearing_resumed`). The two diverge when the MQTT door is
+down while AMQPS is up: the actor hears, the houses cannot speak, and
+only the prober's alert holds the fleet off paging. A `NoData` already
+open stays open and resolves on the house's first message. The prober's
+records reach the store and the tap but not the broker, so JournalKeeper
+does not see them (Open).
 
 ## Operating
 
 - Settings: `GWALERTER_*` from env and `.env` (`template.env`);
   `service_alias` is `<universe>.alerts` under the universe root.
-- Run: `gwalerter rabbit` (the systemd unit `alerter-rabbit.service`)
-  and `gwalerter tap` (`alerter-tap.service`);
+- Run: `gwalerter rabbit` (the systemd unit `alerter-rabbit.service`),
+  `gwalerter tap` (`alerter-tap.service`) and `gwalerter probe`
+  (`alerter-probe.service`);
   stop is systemd's SIGTERM, which the actor takes without a hook: every
   store write is one sqlite transaction and the broker holds nothing.
 - Schema change: edit `db_models.py`, `uv run alembic revision
   --autogenerate -m "..."`, review the file; the chain applies on open.
 - Vocabulary change: edit the seed, `scripts/regen_sema_snapshot.sh`,
   `./ci.sh`. The seed takes published words only.
-- CI: `ci.sh` runs ruff, pyright and pytest; the live-broker test
-  self-skips without `gw-dev-rabbit`.
+- CI: `ci.sh` runs ruff, pyright and pytest; the live-broker tests
+  self-skip without `gw-dev-rabbit`.
 
 ## Open
 
@@ -226,3 +286,12 @@ Witness against Opsgenie itself: Open
 - Layout seeding at first boot; the dead-man's switch; the journaled
   OPS-317 liveness signals as the source of "live". The design carries
   these.
+- The `layouts` table stores whichever layout word a scada last sent,
+  but the snapshot vendors `layout.lite` only and `Store.record_layout`
+  / `Store.layout` are typed `LayoutLite`; a `gw.house0.layout` or
+  `gw.nolan.layout` is dropped at the codec today. The move is the seed
+  plus a union type with `isinstance` dispatch, when a tracked house
+  sends one; no schema change.
+- The prober's `BrokerUnreachable` records reach the store and the tap
+  but not the broker, so JournalKeeper does not see them; the alerter
+  re-broadcasting them once the broker is back is open.

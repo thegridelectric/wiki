@@ -125,9 +125,10 @@ accepting dispatch:
    file and a rename so neither a reader nor a power cut meets half a
    file;
 3. reports its operating status (`gw.house.operating.status`);
-4. ends the contract through `process_ally_gives_up`, the same
-   termination a leaf ally's give-up uses, so the LTN gets a
-   `TerminatedByScada` heartbeat.
+4. ends the contract through `process_ally_gives_up`, the one
+   termination path whoever decides, so the LTN gets a
+   `TerminatedByScada` heartbeat whose cause is the refusal reason and
+   the watch's cause, as given.
 
 From then on the `LeafAlly` wrapper answers every contract offer with
 `AllyGivesUp` and the refusal reason.

@@ -29,7 +29,7 @@ register Status column and writing the finding into the paper.
    which `gw.readings` does not hold, so those channels are not pullable
    for that period; data channels are.
 2. ✅ **Open the evidence folder.** Branch `jm/mix-or-not` in the
-   experiments repo and `experiments/2026-10-06-mix-or-not/`, with a
+   experiments repo and `experiments/dist-loop-experiments/`, with a
    logbook line.
 3. ✅ **Claim 2 across all houses.** Flow-weighted emitter temperature
    drop in steady-circulation hours, by supply temperature, for the

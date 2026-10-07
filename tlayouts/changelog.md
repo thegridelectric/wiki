@@ -10,6 +10,15 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-07 — Every house names the Millinocket 96-hour weather bundle (OPS-392)
+
+`OpsSpec.weather_bundle_name` (required) carried into `WeatherBundleName`
+on every generated ops word; each house generator sets
+`us.me.millinocket.forecast.nws.hourly96`, the one bundle gwwf publishes.
+The orange sim carries it too although the house is in New Haven; a
+second bundle is a gwwf mint, not a generator change. Snapshot regenerated
+against the sema commit that added the field.
+
 ## 2026-10-06 — Spruce's buffer elements are in service (OPS-392, `48a0818` on jm/spruce)
 
 `spruce_gen.py` declares `buffer_element_backup(in_service=True)`: the

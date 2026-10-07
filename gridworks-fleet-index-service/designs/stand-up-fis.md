@@ -231,7 +231,11 @@ is unchanged.
         instant a connection is in or out on cert and claims alone and
         runtime users are wiped; the live-traffic cutover, the human's
         to run, only after every service has been seen on the cert
-        path in step 2.
+        path in step 2. Same step: rewrite the rmqbot README's
+        "Runtime-created users" section and its TODO line to the two
+        internal accounts that remain (management login, break-glass),
+        each re-minted by recipe after a recreate; every fleet password
+        user is deleted, and the declarative-users issue is cancelled.
 
 ## v1 scope
 

@@ -6,24 +6,180 @@ the *why*.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-10-06 — mix-or-not: the emitter temperature drop across five houses, 2025–26 season (OPS-572)
+## 2026-10-07 — sieg-keep-ratio-map: the 91 MB capture reduced to 1.2 MB, the full one archived; history rewritten (OPS-392) <!-- pending commit -->
 
-A new folder, `2026-10-06-mix-or-not/`: `emitter_drop.py` pulls a
-house's distribution supply, return and flow for a season through its
-channel words and reduces them to hourly records; `steady_drop.py`
-tables the drop in steady-circulation hours by supply temperature and
+The broker capture was 4,857 `snapshot.spaceheat`s at 19 KB each and
+reached GitHub with the large-file warning. The full file now lives in
+the `gwdev` archive bucket under `experiments/<folder>/`, its key and
+sha256 in the README; the folder commits `reduce_capture.py` and its
+output: non-snapshot lines verbatim, snapshots decoded through the
+vendored `snapshot.spaceheat` (added to the seed) and reduced to the
+two meters, the protocol's relays and the sieg-loop states, one row
+per change. `keep_ratio.py` writes its settled stops as a typed table
+to CSV beside the printed text. The commits from `sieg keep ratio
+map` to the head were rewritten without the capture and force-pushed;
+the hashes in the entries below are the rewritten ones.
+
+## 2026-10-07 — pre-commit refuses a file over 2 MB (OPS-572) <!-- pending commit -->
+
+A 91 MB broker capture reached GitHub in the sieg-keep-ratio-map
+folder and drew the large-file warning. The repo gets
+`.pre-commit-config.yaml` with `check-added-large-files` at 2048 KB,
+installed per clone with `uvx pre-commit install`, so the commit that
+adds such a file is refused at the laptop. The README's evidence
+convention now says where larger bytes go: untouched to the immutable
+store, with the reduced form the analysis reads committed in the
+folder. Files already tracked are not re-checked.
+
+## 2026-10-07 — dist-loop-experiments: one workbook per document; the beech emitter physics mystery first (OPS-572) <!-- pending commit -->
+
+`sheets.py` takes a document slug and writes `<document>.xlsx` holding
+only the tables that document's text draws on, in place of one
+workbook for the whole folder: a reader of one memo gets its evidence
+and nothing else. The first entry is `beech-emitter-physics-mystery`:
+the January 24 steps, the minute trace under them (09:00 to 12:30 ET,
+a new filtered view of the minute grid), beech's steady-hour bins,
+beech's idle-zone calls with their recovery, and beech's hourly
+records. `csv/` still gets every table. Workbooks stay gitignored in
+both repos (`experiments/.gitignore` already had `*.xlsx`;
+heating-system-design gets the same line for the copy handed over).
+
+## 2026-10-07 — alerter-broker-down: code under test is the squashed `7e8c646` (OPS-545) <!-- pending commit -->
+
+`jm/gw-alert` was squashed after the re-run, so the commit the record
+named (`e36f6b8`) no longer exists; README, provenance, `CODE_REF` and
+the regenerated run record name `7e8c646` and say it was run as
+`e36f6b8`. **Why:** a code ref in an experiment record must be
+openable (no phantom references).
+
+## 2026-10-07 — alerter-broker-down: re-run on the store-only tap, PASS (OPS-545, `6945546`)
+
+The witness re-run on `gridworks-alerter` `7e8c646` (the tap a poller
+of the store with no broker connection, the actor re-flooring `NoData`
+at each reconnect): PASS on all four steps, both pages 36 s after the
+stop with the broker down, both closed 14 s after its return, no
+`NoData`. The evidence goes in its own folder, `evidence/2026-10-07-pass/`,
+beside the morning's FAIL folder; `instances/` is regenerated from the
+PASS evidence (the `NoData` pair from the FAIL run leaves, the run
+record carries Pass), and `emit_instances.py` names the code under test
+in one constant. The README carries both runs and notes the one hold
+the run cannot reach (an open `BrokerUnreachable` while the actor still
+hears). **Why:** the PASS is what stamps the prober claim in the
+executor, and the FAIL record stays as the reason the tap has no broker
+connection.
+
+## 2026-10-07 — alerter-broker-down: the prober witness; opsgenie_listing.py shared (OPS-545, `b485d17`)
+
+A new folder, `2026-10-07-alerter-broker-down/`: the runbook stops the
+dev broker for four minutes under the alerter, tap, prober and mock
+scada, each under a restart loop standing in for systemd, and saves
+Opsgenie's listing down, back and final; the emitter writes every
+`gw.alert` in the store (the prober's two doors, any `NoData`), the
+`gw.opsgenie.alert` words and a 001 run record with the verdict given
+on the command line; the 2026-10-07 run is FAIL (the prober passed;
+the tap paged late and `NoData` fired on reconnect, both alerter bugs
+the design now names). The Opsgenie listing reader moves out of the
+alerter-to-opsgenie folder to the top level as `opsgenie_listing.py`,
+since two witnesses now read listings. **Why:** the prober is the
+design's answer to a broker outage, and the bar before it runs on the
+alerts box is a real broker stop with no `NoData` page.
+
+## 2026-10-07 — Snapshot from sema 8a91cc0: the gw.opsgenie words published (OPS-545, `833e060`)
+
+Regen only: the mirrored registry and staging index record the five
+Opsgenie words as published; `gw.experiment.verdict` and
+`gw.experiment.run` 001 still stage, so the snapshot stays a dev build.
+**Why:** the mirror tracks the registry it was cut from.
+
+## 2026-10-07 — alerter-to-opsgenie: the notifier's view and the verdict as words (OPS-545, `e0d38b0`)
+
+The snapshot takes `gw.opsgenie.alert` and `gw.experiment.run` 001
+beside 000. The alerter-to-opsgenie folder emits one
+`gw.opsgenie.alert` per alert the run touched, read off Opsgenie's
+saved listing through the word instead of the `NotifierAlertView`
+record that stood in for it, and its run record is a 001 carrying
+`Verdict` Pass and the claim it stamps. Every earlier folder's emitter
+names `GwExperimentRun000` explicitly, so its committed 000 record
+reproduces unchanged; a verdict is not invented for a run that recorded
+none. **Why:** the words now exist, and the experiments folder is sema
+at every durable boundary.
+
+## 2026-10-07 — tables.py: every analysis table as a workbook tab and a CSV; for dist-loop-experiments (OPS-572, `c975747`)
+
+A shared `tables.py` at the repo top: a typed `Table` (name, title,
+columns, rows, source script) whose cells each hold one number or one
+string, a CSV writer, and a workbook writer (`openpyxl`, new
+dependency) that opens on a Summary tab naming every other tab with
+what its rows are, its size and the script behind it. In
+`dist-loop-experiments/` each analysis script builds its results as
+typed cells and exposes `tables()`; the printed text and markdown are
+renderings of the same cells and are unchanged apart from wording.
+`records.py` gives the hourly and minute files a `table()`.
+`sheets.py` writes `dist-loop-experiments.xlsx` and `csv/` (both
+gitignored): the analysis tables, the hourly records per house, and
+the minute grid as CSV (as tabs with `--minute-tabs`; the January 24
+table reaches the journal DB, `--no-db` skips it). Composite cells
+("168 (165–172)", "15.8 / 17.1 / 17.7") become one column each.
+Throughout the folder, in code identifiers, the JSON keys of the
+hourly and minute files (`SourceF`), the outputs and the README,
+"source" replaces "supply" for the water sent to distribution,
+matching the `dist-swt` channel; the two cold-zone `gw.experiment.run`
+instances regenerate with the new wording, and the README's Found
+entry points at `heating-system-design/beech-emitter-physics-mystery.md`,
+the renamed memo. **Why:** the heating engineers reading these results
+work in spreadsheets, want one number per cell, want the data behind
+every table, and use the channel's word for the water going out.
+
+## 2026-10-07 — dist-loop-experiments: the idle loop's cold water as a volume from the return's heat deficit (OPS-572, `3a65980`)
+
+`bolus_recovery.py` sizes the idle loop's cold water from the return's
+heat deficit over each call, as a volume at 65 °F, with the median flow
+the idle zone's valve adds; the report and the folder README carry the
+numbers. **Why:** the cold-zone memo says beech's upstairs loop holds a
+lot of water; the data can say how much (about 4 gallons, median 4.4,
+quartiles 3.2 to 6.3), and the memo's reader can weigh the window
+against another house's loop.
+
+## 2026-10-07 — updates to dist-loop-experiments (OPS-572, `098fc64`)
+
+`bolus_recovery.py` fits the house's steady line (drop against supply
+over its steady hours), removes the supply's share from the drop's
+excess 10 to 30 minutes after each cold-zone call, and compares the
+result with control minutes: steady call, no idle-zone call for 30
+minutes before. A second `gw.experiment.run` instance per house with
+a minute file carries the verdict, condition `cold.zone.call.recovery`.
+The commit also carries `opsgenie_listing.py`, described under the
+alerter-broker-down entry. **Why:** 28 of beech's 45 calls never
+re-entered the 5% recovery band, and the drop sat more than 3 °F off
+its pre-call value in most calls at 15 minutes and beyond. The control
+minutes do the same, and with the supply's movement removed the
+residual is within ±2 °F; the memo can say the slug leaves nothing
+past five minutes.
+
+## 2026-10-07 — dist-loop-experiments: the season's distribution loops as a dataset folder; README to the template, scripts on grid/records/houses, run 001 instances with verdicts (OPS-572, `2b749c3`)
+
+The folder `2026-10-06-mix-or-not/` becomes `dist-loop-experiments/`:
+a dataset folder, not a dated run, since the season's loops serve
+several claims. `emitter_drop.py` pulls a house's distribution supply,
+return and flow for a season through its channel words and reduces
+them to hourly records; `pump_speed.py` pulls beech on the minute grid
+with the pump channels and zone calls. `steady_drop.py` tables the
+drop in steady-circulation hours by supply temperature,
 `return_temp.py` and `return_by_heat.py` the return temperature by
-supply temperature against circulation fraction and against heat
-delivered, and `maple_panel_heater.py` maple before and after its
-panel heater; the hourly files, the tables, the pull logs
-and one `gw.experiment.run` per house are the evidence. **Why:** the mix-or-not paper's claim that
-the steady-state drop is about 20 °F had one day at one house behind
-it. Over the season it rises with supply temperature at every house and
-differs between houses by a factor of two, and the return runs 12 to
-44 °F colder in hours of little circulation than in steady ones.
+supply against circulation fraction and against heat delivered,
+`maple_panel_heater.py` maple before and after its panel heater,
+`beech_jan24_steps.py` the January 24 pump-speed hand test, and
+`bolus_recovery.py` the cold-zone-call events and the drop's recovery.
+Shared code sits in `grid.py`, `records.py` and `houses.py`; the
+hourly and minute files, the tables, the pull logs and one
+`gw.experiment.run` per house and claim are the evidence. **Why:** the
+mix-or-not paper's claim that the steady-state drop is about 20 °F
+had one day at one house behind it. Over the season it rises with
+supply temperature at every house and differs between houses by a
+factor of two, and the return runs 12 to 44 °F colder in hours of
+little circulation than in steady ones.
 
-## 2026-10-06 — pull_readings.py pulls the 2025–26 season: snapshot with layout.lite 004–012 (OPS-572, `46d64ff`)
+## 2026-10-06 — pull_readings.py pulls the 2025–26 season: snapshot with layout.lite 004–012 (OPS-572, `83931d9`)
 
 The snapshot seed asks for `layout.lite` 004 through 013 and the vendored
 snapshot is regenerated from it. `pull_readings.py` accepts every one of
@@ -37,7 +193,7 @@ April 2026 and the snapshot held 011 onward, so any pull before late
 February 2026 stopped with `Unsupported version` and the mix-or-not
 claims had no sema-typed evidence from the heating season.
 
-## 2026-10-06 — put_layout.sh asks before it copies over a target's differing params (OPS-392, `cc17d38`)
+## 2026-10-06 — put_layout.sh asks before it copies over a target's differing params (OPS-392, `0c88774`)
 
 Where a target's `operational-params.json` exists and differs from the
 source, `put_layout.sh` prints the difference and copies only on an
@@ -46,7 +202,7 @@ answer of `y`; any other answer leaves the target alone and exits 1.
 it refuse dispatch, so the file on a box can hold a refusal the tlayouts
 source lacks, and a push of the source would clear it unseen.
 
-## 2026-10-04 — put_layout.sh dev seeds the laptop's config folders; a dev window reads them (OPS-392, `c3c0eed`)
+## 2026-10-04 — put_layout.sh dev seeds the laptop's config folders; a dev window reads them (OPS-392, `3b6f6b2`)
 
 `put_layout.sh dev` copies the scada repo's Nolan sim fixtures into the
 laptop's `~/.config/gridworks/` folders under the deployed names
@@ -59,7 +215,7 @@ does, and nothing named the deed, so the first sim Nolan run on the dev
 broker booted UnValidated with a `no-ta-deed` glitch. Dev now resolves
 its files the way a box does.
 
-## 2026-09-30 — alerter-to-alertmanager: the tap witnessed; snapshot from the published alert words (OPS-547, `a598162`)
+## 2026-09-30 — alerter-to-alertmanager: the tap witnessed; snapshot from the published alert words (OPS-547, `e8182ff`)
 
 The new folder records the run: the alerter's `gw.alert` through the
 tap into a local Alertmanager, Firing paged, Resolved closed, alerter
@@ -71,7 +227,7 @@ as published; no generated class changed. **Why:** the design's handoff
 bar for OPS-547, and the snapshot has to say the words are published
 before the box run reads instances through it.
 
-## 2026-09-30 — sema snapshot regenerated from jm/operating-status (OPS-392, `65b1fdc`)
+## 2026-09-30 — sema snapshot regenerated from jm/operating-status (OPS-392, `9740b6d`)
 
 `src/gwexp/sema` regenerates: `layout.lite` 013 loses `ActuationAuthority`,
 `ServiceMode` and `SeasonalStorageMode`, so `gw1.actuation.authority` and
@@ -81,7 +237,7 @@ words). No gwexp code read the retired enum. **Why:** the posture facts
 ride `gw.house.operating.status` now, and the experiment tooling decodes
 `layout.lite` from this snapshot.
 
-## 2026-09-28 — sieg-keep-ratio-map: the map, run in two windows (`9cca498`)
+## 2026-09-28 — sieg-keep-ratio-map: the map, run in two windows (`4e13c08`)
 
 The 26 stops ran script-driven through the admin path in two maple
 windows, 18:23 to 21:07 ET, and the record is written: keep onset 27 to

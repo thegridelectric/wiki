@@ -11,6 +11,26 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-07 — Broker checks the CA's CRL: advanced.config carries the TLS block, crl/ mounted; cert inventory from the ledger (OPS-420, `97cd649`)
+
+The broker side of client-cert revocation. The
+whole `ssl_options` list moves from `rabbitmq.conf` into a new
+`config/advanced.config` with `crl_check = peer` and the
+`ssl_crl_hash_dir` cache on `/etc/rabbitmq/crl`; compose mounts
+`$RMQ1_CERTS/crl` as a directory (a replaced CRL is live at the next
+handshake, no recreate) and the new config file. Why one home: an
+`ssl_options` list in `advanced.config` replaces the conf file's
+`ssl_options.*` keys instead of merging (witnessed on 4.1.8, the rig
+leg of OPS-420), and the cache option has no conf-schema key. The
+README gains "Client-cert revocation (the CRL)" and the recreate
+recipe places the CRL before boot: with `crl_check = peer`, no CRL
+means every client cert is refused. Takes effect at the next container
+recreate; the first CRL (empty, `ec0ba799.r0`, `nextUpdate` 2027-10-07)
+is already on the box, placed by `mint-client-cert.py crl` after the
+ledger was bootstrapped the same day. `authority/cert-inventory.md` is
+regenerated from that ledger: the 2026 CA, the broker cert, the CRL,
+and the twelve recorded client certs (elm's scada still to record).
+
 ## 2026-09-08 — mint-client-cert.py: issue, record and revoke client certs; broker CRL (`06f2005`; merge `0298e35`)
 
 `authority/certbot/mint-client-cert.py`, an operator CLI in the shape of

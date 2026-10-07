@@ -1,6 +1,6 @@
 # mTLS + FIS auth
 
-Status: Accepted · Pass 2 · Updated 2026-09-28 · Linear: OPS-420
+Status: Accepted · Pass 2 · Updated 2026-10-07 · Linear: OPS-420
 
 **EDD: yes** verified by real handshakes against a broker running the full
 stack: a client proves identity with its cert and claims, FIS allows a valid
@@ -341,15 +341,21 @@ until closed alongside this rollout). Per-house recipe: mint (with consent)
 
    **Do this next:** the prod set-up sequence ("Setting up the CRL on
    the broker" below), the rig leg being done (2026-09-08, 38/38 in
-   `experiments/2026-09-05-fis-gate-battery/`). Tool built, dry-run
-   against weather, and on gridworks-infra `main` (merge `0298e35`, not
-   yet pushed); ledger bootstrap commands in
-   `scratch/cert-ledger-bootstrap.md` (human runs: step 1). Then the
-   rmqbot side on a `jm/` branch: `crl/` mount in `rmq-docker/
-   compose.yaml`, `rmq-docker/config/advanced.config` carrying the whole
-   TLS block, the `ssl_options.*` lines out of the box's `rabbitmq.conf`
-   (step 3 and 4; one recreate, quiet hour, human runs), the check
-   (step 6), the drift-check line. Then the four service certs.
+   `experiments/2026-09-05-fis-gate-battery/`). Tool on gridworks-infra
+   `main` (merge `0298e35`). ✅ Step 1, the ledger (2026-10-07): the
+   broker cert, five house scadas and six LTNs recorded off their boxes,
+   every one issued by the 2026 CA; elm's scada is the one entry still
+   missing (its pi was unreachable; `record elm --kind GNode --host elm
+   --path /home/pi/.config/gridworks/scada/certs/gridworks_mqtt/
+   gridworks_mqtt.crt`). ✅ Step 2: the empty CRL `ec0ba799.r0` is on
+   rmqbot, `nextUpdate` 2027-10-07. ✅ Steps 3 and 4 are built on
+   gridworks-infra `jm/broker-crl` (compose mounts `crl/` and
+   `advanced.config`; the conf carries no `ssl_options.*`), with the
+   drift-check line (`wiki/tools/check-drift.sh`) and the README
+   section, merged `97cd649`. ◐ Step 5, the recreate, at a quiet hour
+   by the runbook under "Setting up the CRL on the broker" step 5
+   (human runs the `compose up -d`). Then step 6, the check, then the
+   four service certs.
 2. **FIS v1** (OPS-422; its build plan is revised to match this design:
    claims from `AuthProps`, run-scoped leases, `/auth/topic` alias pinning,
    sync-kill-before-allow, no client_properties parsing).
@@ -568,7 +574,63 @@ same conf fragment and the rig's throwaway CA.
    `fail_if_no_peer_cert` flips to `true` in this list at notch 3.
 5. **Recreate the container** (steps 3 and 4 are one recreate, at a
    quiet hour: every client reconnects). The listeners now check the
-   CRL.
+   CRL. The branch is merged (`97cd649`); the runbook, every command
+   on rmqbot as `ubuntu` unless said otherwise:
+
+   1. *Before touching the box.* The CRL is in place (`ls
+      $RMQ1_CERTS/crl/` shows `ec0ba799.r0`; it is, since 2026-10-07).
+      The two passwords are on the clipboard from 1Password: the
+      default user (`RMQ1_USER`/`RMQ1_PASSWORD` in the box `.env`, the
+      user is `smqPublic`) and `analytics.ear.reader`. The broker's
+      live users are exactly those two (`rabbitmqctl list_users`,
+      checked 2026-10-07); the recreate deletes both, and until
+      `smqPublic` is back every scada, LTN and platform service is
+      refused, so the window between 4 and 6 is the outage.
+   2. *Copy the merged files to the box.* rmq-docker deploys by copy,
+      from a laptop checkout of gridworks-infra `main` at the merge:
+      `rsync -av rmqbot/rmq-docker/compose.yaml
+      rmqbot/rmq-docker/config/rabbitmq.conf
+      rmqbot/rmq-docker/config/advanced.config
+      rmqbot/rmq-docker/README.md ubuntu@rmqbot:rmq-docker/` (config
+      files into `rmq-docker/config/`). `diff` each against the repo
+      copy over ssh before going on; `config/rabbit_definitions.json`
+      stays as it is (the drift check says it matches gwbase `main`).
+   3. *Baseline.* `sudo docker exec rmq1 rabbitmqctl list_connections
+      user | sort | uniq -c` and `list_exchanges -p hw1__1 | wc -l`
+      (20). Keep the numbers.
+   4. *Recreate.* `cd ~/rmq-docker && sudo docker compose up -d`. This
+      recreates `rmq1` (compose and config changed) and wipes runtime
+      state. Then `sudo docker logs rmq1 2>&1 | grep -iE
+      "ssl|crl|error|started TLS"` until both TLS listeners report
+      started on 5671 and 8883; a listener that fails to start with
+      `no_cert` or `crl` in the line means `advanced.config` did not
+      load, and the rollback is step 8.
+   5. *Users back.* The default user from the container env, then
+      analytics, both README recipes ("Then create the default user",
+      "Runtime-created users"); `list_permissions -p hw1__1` shows the
+      two rows as before.
+   6. *Clients back.* `list_connections user | sort | uniq -c` returns
+      to the baseline within a few minutes (reconnect backoff); the
+      journal keeps receiving (gjk log), a house snapshot arrives. Any
+      client still missing after ten minutes: its own log says why,
+      and a handshake refusal naming the CRL means the CRL file is
+      unreadable to the container (mode, or the `crl/` mount empty).
+   7. *Check (step 6 below).* A throwaway cert cut on certbot with
+      `gwcert key add` under a scratch name, copied to the laptop,
+      connects on 5671 with `--cafile ca.crt --cert --key` and
+      password auth (client certs are optional, so it is also accepted
+      on 8883 with `mosquitto_pub`); `mint-client-cert.py record` it,
+      `revoke` it, and the same connect is refused at the handshake on
+      both ports with the broker log naming the CRL, while a house
+      stays connected. Then the drift check's CRL line reads the
+      `nextUpdate` (`wiki/tools/check-drift.sh`).
+   8. *Rollback.* The previous `compose.yaml` and `rabbitmq.conf` are
+      in git (`97cd649^`); copy them back, remove
+      `config/advanced.config`, `compose up -d` again (a second
+      recreate, users re-created again). Nothing else changed on the
+      box.
+   9. *Record.* `rmqbot/instance-README.md` and the platform inventory
+      say the broker checks the CRL; the drift check line is live.
 6. **Check.** Every fleet client is back (the connection list, the
    journal); then a throwaway cert cut for the purpose is revoked, the
    CRL replaced, and its connect refused at the handshake on 5671 and

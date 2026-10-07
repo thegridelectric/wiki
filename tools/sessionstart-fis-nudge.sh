@@ -1,6 +1,6 @@
 #!/bin/bash
 # sessionstart-fis-nudge.sh — SessionStart nudge for the third lane. When
-# another live session already claims gridworks-scada/, ask the user whether
+# another live session (open scratch row) claims gridworks-scada/, ask the user whether
 # this session should take the next standing item. Read-only; silent unless
 # a scada claim exists. Standing ask from 2026-09-30.
 #
@@ -11,7 +11,15 @@
 DONE_443=1
 CLAIMS="$(dirname "$0")/../active-claims.md"
 [ -f "$CLAIMS" ] || exit 0
-n=$(awk -F'|' '/^\| [a-z]+-[a-z]+ · [0-9a-f]{6} \|/ && $4 ~ /gridworks-scada\//' "$CLAIMS" | wc -l | tr -d ' ')
+# A claim row alone is not liveness: a session that wrapped leaves its row
+# until the human prunes it. Count a scada claim only when that session's
+# scratch row in jess-estimates is still open (`HH:MM–` with no end).
+EST="$(dirname "$0")/../../admin/jess-estimates.md"
+[ -f "$EST" ] || exit 0
+n=0
+for sess in $(awk -F'|' '/^\| [a-z]+-[a-z]+ · [0-9a-f]{6} \|/ && $4 ~ /gridworks-scada\// {split($2,a," "); print a[1]}' "$CLAIMS"); do
+  grep -Eq "s:${sess} \| [0-9-]+ \| *[0-9]{1,2}:[0-9]{2} *– *\|" "$EST" && n=$((n+1))
+done
 [ "$n" -gt 0 ] || exit 0
 if [ "$DONE_443" = 0 ]; then
   cat <<'MSG'

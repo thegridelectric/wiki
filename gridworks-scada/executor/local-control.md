@@ -1,6 +1,6 @@
 # Local control
 
-Status: Draft · Pass 0 · Updated 2026-10-06
+Status: Draft · Pass 0 · Updated 2026-10-07
 
 > What this is: how a scada chooses its local control, what standby is,
 > the Nolan heating machine and the heat-pump watch it follows, the
@@ -203,6 +203,27 @@ row stops the scada at load (`check_hp_traits`, `sema_to_dc.py`). It is
 a scada check and not a layout axiom: adding a heat pump is a code
 change, not a word change.
 
+**Authoring a row.** The lines bracket a band the unit only passes
+through: the off line sits above every idle plateau and idle pulse
+(controls, crankcase heater, oil-return and fan cycles), the on line
+below the lowest sustained running draw, and nothing the unit does sits
+between them for longer than a ramp. Both come from the unit's own
+power history, not its data sheet. With the lines so placed, `Unknown`
+and the first between-read are tie-breaks, not safety choices: the
+watch is wrong only when the band holds something. Spruce's Samsung,
+measured 2026-08-03 to 2026-10-07: standby 62 to 68 W with pulses to
+390 W, running draw 505 W and up, starts across the band in under 24 s
+and stops in under 62 s.
+
+**A held On is reported.** `HpDetectedOn` with every read between the
+lines for `HELD_ON_S` (600 s) means the unit has stopped and its standby
+draw sits above the off line, so the secondary pump is running between
+cycles. The watch raises one Warning glitch `hp-watch-held-on` per such
+spell, measured from the first between-read, and leaves the state
+alone; a read above the on line starts a new spell. The periodic report
+every capture period guarantees reads during a plateau, so the warning
+comes within two capture periods of the hold.
+
 ## Subscriptions
 
 An actor asks the scada for a channel's readings or a machine's states,
@@ -369,8 +390,6 @@ reason, `Standby`, `ServiceMode`), or no offer this hour.
   is inert while FSV 2091 is 0
   (`heat-pump-comms/samsung-ae055feymcg.md`).
 - Backup for a Nolan house is not built.
-- A whole-file params push carrying a stale `AcceptsDispatch: true`
-  would clear a `ServiceContractBroken` latch (OPS-408).
 
 ## Tests
 

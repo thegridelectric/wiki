@@ -4,78 +4,73 @@ One entry per commit in `thegridelectric/gridworks-alerter`,
 `thegridelectric/gridworks-alerts` and `thegridelectric/gridworks-alert-manager`
 (git = the what, this = the why).
 
-## 2026-10-07 — The tap pages through Opsgenie <!-- pending commit -->
+## 2026-10-07 — gridworks-infra: update to alerts instance (`2905106`)
 
-The tap posts to Opsgenie's Alert API instead of Alertmanager's intake:
-a `Firing` record creates an alert aliased by its `AlertId` (Opsgenie's
-dedup key), the `Resolved` record closes that alias with its summary as
-the note, and a reconcile pass against the store replaces the re-post
-cadence (Opsgenie has no `resolve_timeout`, but a post can fail and a
-record can be missed). `Store.resolved_record` reads the stored
-`Resolved` payload for that close. The Alertmanager mapping, client and
-settings are gone with the Alertmanager proposal handed off; the tap
-settings are the API key, the team and the host, key and team required.
-Why: the design pages through Opsgenie, which the fleet is already on
-call for, and a notifier the alerter does not own is one fewer process
-on the alerts box.
+The alerts box instance-README and `platform-inventory.md` record that
+`alert-manager.service` is stopped on purpose: it paged unreliably, so
+pages go out through Opsgenie only (sent by gwalert), no Telegram
+messages are sent, and `/health` and `/alerts-history` answer 502
+through the Caddy façade, so the web Alerts page shows no history. Why
+in the box record: the next person on the box must not "fix" a stopped
+unit by starting it. The proposal for what replaces the manager is
+OPS-547.
 
-## 2026-10-06 — gridworks-alerts: Decode gw2.lc.top.state (OPS-392, `5a23fb7`)
+## 2026-10-07 — The broker alerter, squashed again: the prober, the store-only tap, the re-floor on resume (`7e8c646`)
 
-A scada on `jm/spruce-unlimbo` reports its local control top state as
-`gw2.lc.top.state` (Dormant, Normal, ScadaBlind, Standby, InBackup),
-which the decoder did not know, so the top-state channel came through
-as a bare integer. The `gw1.lc.top.state` list stays for scadas still
-on `main`.
+`jm/gw-alert` squashed a second time to one commit, so the branch still
+merges to `main` as one unit: the three entries below (`42a4802`, the
+prober, and the store-only tap) are its content, each with its why.
 
-## 2026-09-30 — Snapshot from the published alert words (`f0064a6`)
+## 2026-10-07 — The tap pages from the store alone; the actor re-floors NoData when it resumes hearing (folded into `7e8c646`)
 
-The vendored snapshot regenerated from sema `632b58e`, where `gw.alert`
-000 and its four enums are published, without `--allow-staged`: the
-first published-only build of the alerter, so `indexes/staging.yaml`
-and the README's dev-only warning are gone and the box can run it. No
-generated class changed; only the registry copy, the expanded seed and
-the README moved.
+The broker-down witness (`experiments/2026-10-07-alerter-broker-down/`)
+failed on two counts around a prober that passed: the tap, a consumer
+of the mic exchange, died at connect for the whole outage and paged
+`BrokerUnreachable` four minutes late, and the detector thread skipped
+every tick while the actor was not consuming, so NoData never re-floored
+and fired a false page five seconds after the reconnect. The tap loses
+its broker consumer, queue, binding and decode path and becomes a
+poller of the store (`Tap.run` is reconcile then wait; `tap_reconcile_s`
+default 300 → 10, the longest a page now waits). The actor floors the
+NoData rule's last-heard at each `local_rabbit_startup`, which gwbase
+calls on every (re)connect. Why these and not the design's first fixes
+(connect-retry around the consumer, a `hearing` argument on the rule):
+the store already held every record the consumer heard, so the consumer
+was a fast path over the real path, and the skip while deaf is right on
+its own; only the re-floor was missing. Tests first: a tap with no
+broker reachable creates a store-held alert (`test_tap.py`), and an
+actor that resumes consuming past the threshold raises nothing until a
+full threshold later (`test_no_data.py`); `broker_up` moves to conftest.
+Template, README and CLI prose follow. The broker-down witness re-run on
+this commit is PASS on all four steps (`evidence/2026-10-07-pass/`).
 
-## 2026-09-30 — The tap: gw.alert into Alertmanager (`bee0564`)
+## 2026-10-07 — The prober: BrokerUnreachable from outside the broker path, NoData holds while it is open (folded into `7e8c646`)
 
-`gwalerter tap`, a second subcommand and systemd unit
-(`alerter-tap.service`): a plain consumer with its own durable queue on
-`alertsmic_tx`, bound by the `gw-alert` type segment, that decodes each
-record through the snapshot, maps it onto Alertmanager's v2 intake
-(labels `alertname`=Kind, `category`, `subject`, `src`, `alert_id`;
-annotations `summary`, `house`, `about`; `endsAt` from `ResolvedMs`) and
-posts on loopback, retrying a refused connection three times then
-dropping with a log line. Alertmanager forgets a firing alert not
-re-posted within `resolve_timeout` and the alerter says each transition
-once, so the tap re-posts its open set every `tap_resend_s` (300) and
-seeds that set from the alerter's store at boot (`Store.open_alerts`),
-which is what makes a tap restart neither re-page nor forget. Witnessed
-PASS on the laptop, `experiments/2026-09-30-alerter-to-alertmanager/`.
+`gwalerter probe`, the third process (`alerter-probe.service`): every
+minute it checks the broker's two doors as a client, an AMQPS round
+trip and an MQTT connect on the scadas' listener, and a door that fails
+three probes running raises a `gw.alert` (PlatformService,
+BrokerUnreachable, Subject the door) into the store; the first success
+resolves it. It has no Opsgenie client: the tap's reconcile pass pages
+what the store holds, with no broker involved. The NoData rule raises
+nothing while a BrokerUnreachable alert is open and re-floors last-heard
+when it resolves. Settings `probe_*` (URL, MQTT host/port/TLS,
+interval, failures to raise), the unit, the aliases, `template.env`.
+README gains "What it alerts on" (the two live conditions and the kinds
+the vocabulary already holds for the detectors still in gwalert) and
+corrects tracked houses to Active and Pending. Why: the alerter is a
+broker consumer, so a broker outage is silent to it and would otherwise
+surface as one NoData page per house; the design's prober closes that
+gap, and the store route gives it the same record shape and pager as
+every other alert. Folded into the PR before the squash.
 
-## 2026-09-30 — Move to gwbase 0.5.14 (`f4d6893`)
+## 2026-10-07 — The broker alerter: gw.alert on a detector thread, the store, and the Opsgenie tap (OPS-545, folded into `7e8c646`)
 
-Picks up the gwbase release that stops logging the broker password:
-`ActorBase.connect_consumer` logged the full AMQP URL at every connect,
-so this service wrote its broker credential into its file log and
-journald. Floor raised and lock refreshed; nothing else moved.
+One commit on `jm/gw-alert` squashing the seven that followed `5c8afb2`
+(2026-09-28 to 2026-10-07), so the branch merges to `main` as one unit
+and the box clones one SHA. The seven, oldest first, each with its why:
 
-## 2026-09-28 — gridworks-alerts: Judge spruce's learned setpoints against the gw-temp sensor (`e252ea0`)
-
-Spruce's zones have mechanical dials, so the scada learns each zone's
-setpoint as the gw-temp reading at the end of a heat call. The cold-house
-detector judged that setpoint against the floor sensor, which sits about
-2 F under gw-temp there, and paged on a bedroom that was at setpoint the
-first time the learned setpoint appeared in the journal (19:48 ET). The
-detector now picks the temperature it judges by house:
-`SETPOINT_TEMPERATURE_ROLES_BY_HOUSE` puts gw-temp first for spruce; every
-other house keeps air then floor. Hard-coded per house because the layout
-vocabulary does not yet carry a zone's setpoint source; the note in the
-broker-alerter design records what retires it. Two tests replay the
-spruce readings, one as spruce (no alert) and one as maple (alert).
-Deployed to the alerts box the same evening.
-
-## 2026-09-28 — The alerter speaks one gw.alert word (OPS-547, `d29d9a6`, on `jm/gw-alert`)
-
+**The alerter speaks one gw.alert word** (was `d29d9a6`).
 Sema `dev` reshaped the alert vocabulary (`3de1363`): the two house
 type words are gone and one `gw.alert` carries both transitions with
 `State` Firing/Resolved, a `Category` that selects the `Kind` enum, and
@@ -95,6 +90,94 @@ same `AlertId` and `RaisedMs`. The actor broadcasts each record on
 `AboutGNodeAlias`, else on `Src`, so a record with no house keys on the
 alerter's own alias. The tests move to the one word and add a
 Firing/Resolved codec round trip that trips axioms 1 and 3.
+
+**Move to gwbase 0.5.14** (was `f4d6893`).
+Picks up the gwbase release that stops logging the broker password:
+`ActorBase.connect_consumer` logged the full AMQP URL at every connect,
+so this service wrote its broker credential into its file log and
+journald. Floor raised and lock refreshed; nothing else moved.
+
+**The tap: gw.alert into Alertmanager** (was `bee0564`).
+`gwalerter tap`, a second subcommand and systemd unit
+(`alerter-tap.service`): a plain consumer with its own durable queue on
+`alertsmic_tx`, bound by the `gw-alert` type segment, that decodes each
+record through the snapshot, maps it onto Alertmanager's v2 intake
+(labels `alertname`=Kind, `category`, `subject`, `src`, `alert_id`;
+annotations `summary`, `house`, `about`; `endsAt` from `ResolvedMs`) and
+posts on loopback, retrying a refused connection three times then
+dropping with a log line. Alertmanager forgets a firing alert not
+re-posted within `resolve_timeout` and the alerter says each transition
+once, so the tap re-posts its open set every `tap_resend_s` (300) and
+seeds that set from the alerter's store at boot (`Store.open_alerts`),
+which is what makes a tap restart neither re-page nor forget. Witnessed
+PASS on the laptop, `experiments/2026-09-30-alerter-to-alertmanager/`.
+
+**Snapshot from the published alert words** (was `f0064a6`).
+The vendored snapshot regenerated from sema `632b58e`, where `gw.alert`
+000 and its four enums are published, without `--allow-staged`: the
+first published-only build of the alerter, so `indexes/staging.yaml`
+and the README's dev-only warning are gone and the box can run it. No
+generated class changed; only the registry copy, the expanded seed and
+the README moved.
+
+**The tap pages through Opsgenie** (was `409637f`).
+The tap posts to Opsgenie's Alert API instead of Alertmanager's intake:
+a `Firing` record creates an alert aliased by its `AlertId` (Opsgenie's
+dedup key), the `Resolved` record closes that alias with its summary as
+the note, and a reconcile pass against the store replaces the re-post
+cadence (Opsgenie has no `resolve_timeout`, but a post can fail and a
+record can be missed). `Store.resolved_record` reads the stored
+`Resolved` payload for that close. The Alertmanager mapping, client and
+settings are gone with the Alertmanager proposal handed off; the tap
+settings are the API key, the team and the host, key and team required.
+Why: the design pages through Opsgenie, which the fleet is already on
+call for, and a notifier the alerter does not own is one fewer process
+on the alerts box.
+
+**The tap speaks the gw.opsgenie words** (was `3dde59b`).
+The tap's outbound shapes are sema words: a `Firing` record maps onto
+`gw.opsgenie.alert.create` and a `Resolved` record onto
+`gw.opsgenie.alert.close`, both constructed through the snapshot, and
+the Opsgenie request body is written from the word at the post (the
+named details into Opsgenie's flat string map under their lower-case
+names). The two NamedTuples that stood in for the words are gone, and
+the priority is the `gw.opsgenie.priority` enum. The snapshot carries
+the three Opsgenie words with `gw.opsgenie.alert` (the alert as Opsgenie
+lists it back, for the shadow-week comparison); they are staging, so
+this snapshot is a dev-only build (`indexes/staging.yaml`) and the
+words are promoted before the branch merges to `main`. Why: sema is
+mandatory at every inter-app boundary, and the tap's boundary with
+Opsgenie is one.
+
+**Published-only snapshot with the gw.opsgenie words** (was `4b90170`).
+The snapshot is regenerated from sema `8a91cc0`, where the five
+Opsgenie words are published; the dev-only marker
+(`indexes/staging.yaml`) is gone and the seed is back to its default.
+Why: the box clones `main` and runs a published-only build, and this
+is the snapshot it gets.
+
+## 2026-10-06 — gridworks-alerts: Decode gw2.lc.top.state (OPS-392, `5a23fb7`)
+
+A scada on `jm/spruce-unlimbo` reports its local control top state as
+`gw2.lc.top.state` (Dormant, Normal, ScadaBlind, Standby, InBackup),
+which the decoder did not know, so the top-state channel came through
+as a bare integer. The `gw1.lc.top.state` list stays for scadas still
+on `main`.
+
+## 2026-09-28 — gridworks-alerts: Judge spruce's learned setpoints against the gw-temp sensor (`e252ea0`)
+
+Spruce's zones have mechanical dials, so the scada learns each zone's
+setpoint as the gw-temp reading at the end of a heat call. The cold-house
+detector judged that setpoint against the floor sensor, which sits about
+2 F under gw-temp there, and paged on a bedroom that was at setpoint the
+first time the learned setpoint appeared in the journal (19:48 ET). The
+detector now picks the temperature it judges by house:
+`SETPOINT_TEMPERATURE_ROLES_BY_HOUSE` puts gw-temp first for spruce; every
+other house keeps air then floor. Hard-coded per house because the layout
+vocabulary does not yet carry a zone's setpoint source; the note in the
+broker-alerter design records what retires it. Two tests replay the
+spruce readings, one as spruce (no alert) and one as maple (alert).
+Deployed to the alerts box the same evening.
 
 ## 2026-09-16 — gridworks-alerts: improve logging (`e3e9b47`)
 

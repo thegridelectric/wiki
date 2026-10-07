@@ -107,9 +107,10 @@ the box; this design draws it at the data path.
   from boot time, so a detector that needs a window waits one window
   before it can fire.
 - **Sema-typed outputs.** The alerter emits `gw.alert` records on the
-  broker, `Firing` when a condition starts and `Resolved` when it stops.
-  The Opsgenie tap consumes them to page ("Paging through Opsgenie");
-  JournalKeeper journals them like anything else, so the web page's alerts history reads
+  broker, `Firing` when a condition starts and `Resolved` when it stops,
+  and records each in its store first. The Opsgenie tap pages from the
+  store, never from the broker ("Paging through Opsgenie");
+  JournalKeeper journals the broadcasts like anything else, so the web page's alerts history reads
   from the journal DB on the observability side and the bearer-token façade
   on the alerts box goes away. This absorbs OPS-449 (the gwalert ↔ manager
   interface) as one part.
@@ -225,16 +226,24 @@ Two consequences:
 Two small things carry a detected condition to a person.
 
 - **The Opsgenie tap** is the tap of `executor/gwalerter.md` "The tap"
-  (`gridworks-alerter` `src/gwalerter/tap.py`): its own durable queue on
-  `alertsmic_tx`, each record decoded through the snapshot, a `Firing`
-  record creating an Opsgenie alert whose alias is the `AlertId` and the
-  `Resolved` record closing that alias, and a reconcile pass against the
-  alerter's store at boot and on a cadence so a restart neither re-pages
-  nor forgets and a missed `Resolved` still closes. The API key and the
-  team paged are required settings with no default. The tap is a
-  separate process so that paging does not restart when a detector
-  changes. Tests pin the mapping, the close, the reconcile and the retry
-  (`tests/test_tap.py`); the witness against Opsgenie itself is
+  (`gridworks-alerter` `src/gwalerter/tap.py`): a poller of the
+  alerter's store and nothing else. Every `tap_reconcile_s` it reads the
+  store's open alerts, creates in Opsgenie each one it has not told
+  (alias the `AlertId`, so a retold alert folds into the one Opsgenie
+  holds) and closes each it told that the store has since resolved. The
+  tap has no broker connection: the one alert whose meaning is "the
+  broker is down" must reach a person while the broker is down, and the
+  broker-down witness showed a tap that consumed the mic exchange dying
+  at connect for the whole outage and paging four minutes late. The
+  store is already the truth about which alerts are open, so the
+  consumer was a fast path over a backstop that was the real path. The
+  cost is latency of one poll, and the poll is cheap (a local sqlite
+  read), so the cadence is seconds, against thresholds that are minutes.
+  The API key and the team paged are required settings with no default.
+  The tap is a separate process so that paging does not restart when a
+  detector changes. Tests pin the mapping, the close, the reconcile, the
+  retry and a tap with no broker paging a store-held alert
+  (`tests/test_tap.py`); witnessed against Opsgenie itself in
   `experiments/2026-10-07-alerter-to-opsgenie/`.
 - **The prober**, its own small unit on the alerts box. Alerting and the
   houses share one broker, so a broker outage is silent on the broker
@@ -304,25 +313,97 @@ detector thread, witnessed PASS on the dev broker
 included). A dev registry runs from `grid-node-registry` with `gnr api`
 and `gnr rabbit` against the seeded `d1` universe.
 
-Alongside the box work, on the laptop: the Opsgenie tap is built with
-its tests and awaits its witness (a `Firing` record opens an Opsgenie
+Alongside the box work, on the laptop: the Opsgenie tap is built,
+tested and witnessed against Opsgenie (a `Firing` record opens an
 alert and its `Resolved` record closes it, across a tap restart:
-`experiments/2026-10-07-alerter-to-opsgenie/`); the prober ("Paging
-through Opsgenie") is still to build, witnessed with the dev broker
-stopped. Each runs on the box only after its witness.
+`experiments/2026-10-07-alerter-to-opsgenie/`). The tap's outbound
+and read-back shapes are sema words, published (sema `8a91cc0`):
+`gw.opsgenie.alert.create`, `gw.opsgenie.alert.close`,
+`gw.opsgenie.alert`, with `gw.opsgenie.priority` and
+`gw.opsgenie.alert.status`. The tap constructs the create and close
+through the snapshot and writes Opsgenie's request body from the word;
+the experiment emits one `gw.opsgenie.alert` per alert the run touched
+and a `gw.experiment.run` 001 carrying `Verdict` Pass; the alerter's
+snapshot is published-only again.
 
-**DO THIS NEXT: the shadow deployment**, on the alerts box beside
+The prober is built and tested (`src/gwalerter/prober.py`, `gwalerter
+probe`, `alerter-probe.service`, the `probe_*` settings, the `NoData`
+hold in `no_data.py`). The broker-down witness
+(`experiments/2026-10-07-alerter-broker-down/`) first ran **FAIL** on
+2026-10-07: the prober itself passed (one `BrokerUnreachable` per door
+29 s after the stop, both resolved 6 s after the start), and two things
+around it did not.
+
+1. **The tap cannot page while the broker is down.** `Tap.run` connects
+   to the broker first and reconciles after, so with the broker down it
+   dies at connect, restarts, and never reads the store; both pages
+   arrived four minutes late, at the first connect after the broker
+   returned, and were closed 20 s later.
+2. **The alerter's detector loop skips every tick while the actor is not
+   consuming** (`AlerterActor.run_detectors`), so the `NoData` rule never
+   ran during the outage, never saw the open `BrokerUnreachable`, never
+   re-floored, and fired `NoData` 5 s after reconnecting with "since"
+   the mock's last report before the stop.
+
+Both failures have the same shape: the alerter treated its own
+deafness as something to route around (exit and restart, skip the
+tick) instead of a state to hold in. Two small changes close them,
+smaller than a connect-retry loop in the tap or a new argument on the
+rule:
+
+(a) **The tap is store-only.** The broker consumer, its durable queue,
+the mic binding and the decode path leave `tap.py`; `Tap.run` is a
+loop of reconcile then wait `tap_reconcile_s`, and the default moves
+from 300 s to 10 s. Fix as the design first wrote it (reconcile before
+connect, retry the connect) would have kept the broker in the tap's
+critical path for no gain, since the store already held every record
+the consumer heard. Test: a tap with no broker reachable creates a
+store-held alert through Opsgenie on its first pass. The actor's mic
+broadcast of each record stays: that is for JournalKeeper and any
+manager, not for the tap.
+
+(b) **The actor re-floors the rule when hearing resumes.** gwbase calls
+`local_rabbit_startup` at the end of every `start_consuming`, so each
+reconnect reaches it; the actor moves `NoDataRule.heard_floor_ms` to
+now there, exactly as the rule does when the last `BrokerUnreachable`
+resolves. `run_detectors` keeps skipping while the actor is not
+consuming: while it is deaf every house looks silent for the actor's
+reason, and there is nothing to detect. The skip's old justification (a
+record raised while the channel is down would never be sent) is no
+longer the reason, since the store-driven tap pages such a record; the
+reason is the deafness. The rule's `evaluate` keeps its signature.
+Test: an actor that resumes consuming past the threshold raises nothing
+until a full threshold later.
+
+The two holds in the rule are different facts and both stay: the
+actor's consuming state says "I cannot hear", the prober's open
+`BrokerUnreachable` says "the houses cannot speak", and they diverge
+when the MQTT door is down while AMQPS is up (the actor consumes, every
+house goes silent, and without the store check the rule would page the
+whole fleet for one broker fault).
+
+Both went in with their tests (now in `7e8c646`), and the witness re-run
+on that code is **PASS** on all four steps (both pages 36 s after the
+stop with the broker down, both closed 14 s after its return, no
+`NoData`; `evidence/2026-10-07-pass/`). One hold the run cannot
+exercise is the rule's hold on an open `BrokerUnreachable` while the
+actor itself hears (MQTT door down, AMQPS up); a one-door outage would
+be its own run, not a gate for the shadow deployment.
+
+**DO THIS NEXT:**
+
+**The shadow deployment**, on the alerts box beside
 gwalert, per the gwbase box pattern (gwbase executor
 `service-deployment.md`) and `gridworks-infra/box-access.md`: its own
 login, its own unit, its own aliases, gwbase's file log plus journald.
 
 Before the box:
 
-1. Push the alerter's `jm/gw-alert` (the move to `gw.alert` `d29d9a6`,
-   the tap `bee0564`, the published-word snapshot `f0064a6`), which
-   exists only as a local branch, and merge it to `main` with the
-   Opsgenie client: the box clones `main` at a pushed SHA and nothing
-   else.
+1. ✅ `jm/gw-alert` is squashed to one commit (`7e8c646`: the move to
+   `gw.alert`, the Opsgenie tap on the words, the published-only
+   snapshot, the prober, the store-only tap and the re-floor on resume)
+   and pushed. ◐ Merge it to `main`: the box clones `main` at
+   a pushed SHA and nothing else.
 2. Broker. ✅ Definitions: the hw1 broker (`rmqbot`, vhost `hw1__1`,
    AMQPS `hw1-1:5671`) took gwbase 0.5.13's `hybrid_definitions.json`
    on 2026-09-17 by the rmqbot instance-README "Reload the rabbit

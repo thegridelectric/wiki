@@ -65,6 +65,19 @@ if [ -n "$MAIN_SHA" ] && [ -n "$BOX_SHA" ] && [ "$MAIN_SHA" != "$BOX_SHA" ]; the
   rmqbot: mounted rabbit_definitions.json differs from gwbase main (update per rmqbot instance-README before any broker restart)"
 fi
 
+# Broker CRL: past nextUpdate, crl_check=peer refuses every client cert on
+# 5671 and 8883 (mtls); every mint/revoke re-signs it for a year, so a
+# near expiry means nobody has minted in ~10 months. Warn 60 days out;
+# a missing file is the louder fault (every client cert refused).
+CRL_NEXT=$($SSH rmqbot 'f=$(ls ~/rmq-certs-2026/crl/*.r0 2>/dev/null | head -1); [ -n "$f" ] && openssl crl -in "$f" -noout -nextupdate | cut -d= -f2' 2>/dev/null)
+if [ -n "$CRL_NEXT" ]; then
+  CRL_EPOCH=$(date -j -f "%b %d %H:%M:%S %Y %Z" "$CRL_NEXT" +%s 2>/dev/null)
+  if [ -n "$CRL_EPOCH" ] && [ "$CRL_EPOCH" -lt $(( $(date +%s) + 60*86400 )) ]; then
+    OUT="$OUT
+  rmqbot: broker CRL nextUpdate is $CRL_NEXT (under 60 days; re-sign with authority/certbot/mint-client-cert.py crl)"
+  fi
+fi
+
 # Witness retry caches (drains should leave them empty).
 for h in ear gnr-ear; do
   n=$($SSH "$h" 'ls ~/.local/share/gridworks/ear/output/need_to_put/*/ 2>/dev/null | wc -l | tr -d " "' 2>/dev/null)

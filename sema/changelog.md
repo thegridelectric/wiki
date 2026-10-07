@@ -10,6 +10,51 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-07 — gw.operational.params names its weather bundle (OPS-392)
+
+`gw.operational.params` 000 (staging, edited in place) gains the required
+`WeatherBundleName` (`left.right.dot`): the `gw.weather.forecast.bundle.gt`
+whose emissions are the home's weather forecast, read alike by the LTN
+that relays it and the scada that pulls it. No new dependency, no new
+axiom. Registry summary and indexes regenerated. The field exists because
+the scada stops sourcing weather itself and the designation must live
+where both actors read it, with no default.
+
+## 2026-10-07 — Promote the gw.opsgenie words (OPS-545, `8a91cc0`)
+
+`gw.opsgenie.priority`, `gw.opsgenie.alert.status`,
+`gw.opsgenie.alert.close` 000, `gw.opsgenie.alert.create` 000 and
+`gw.opsgenie.alert` 000 go staging → published, bottom-up; the diff is
+the five status lines, their hash pins and the public index. **Why:**
+the alerter's box snapshot is a published-only build and the tap now
+speaks these words, so the shadow deployment needs them published.
+`gw.experiment.verdict` and `gw.experiment.run` 001 stay staging; the
+experiments snapshot is a dev build.
+
+## 2026-10-07 — Opsgenie words, an experiment verdict, the namespace paragraph (OPS-545, `8e504e5`)
+
+The broker alerter's tap pages through Opsgenie, and sema is mandatory
+at every inter-app boundary, so the tap's two outbound requests and its
+read-back of what Opsgenie holds become words GridWorks owns under
+`gw.`, versioned by us as Opsgenie's API moves: `gw.opsgenie.alert.create`
+(the alert's facts as named fields that the tap writes into Opsgenie's
+details map; House and About together, axiom 1), `gw.opsgenie.alert.close`,
+and `gw.opsgenie.alert` (alias, status, acknowledgement, count, times, who
+acknowledged and closed; ClosedBy iff Closed, axiom 1), with the literal
+enums `gw.opsgenie.alert.status` and `gw.opsgenie.priority`. All staging.
+
+`gw.experiment.run` 001 adds a required `Verdict` (new versioned enum
+`gw.experiment.verdict`: Unknown, Pass, Fail, Inconclusive) and an
+optional `Claim` naming the executor claim the run verifies, so a run's
+PASS lives in an instance and not only in README prose; the upgrade from
+000 sets Unknown, and 000 gains its superseded-version example.
+
+The spec hub's point 5 now says a name is unique because it is
+registered, not because of its first segment, and that the first segment
+is a recommended grouping (owning organization, or the system the words
+describe, as `hubitat.*` and `i2c.*` are GridWorks-owned); the registry
+checks nothing about it. Reservation machinery is a design, OPS-573.
+
 ## 2026-10-06 — Backup words and the cold override (OPS-392, `6da94a4` on jm/backup-words)
 
 A House0 house's backup state did two things under one name: run a
