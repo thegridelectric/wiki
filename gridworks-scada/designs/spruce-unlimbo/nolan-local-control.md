@@ -1,6 +1,6 @@
 # Nolan local control (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-10-07 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-10-08 · Linear: OPS-392
 
 > What this is: what to check as Nolan local control runs in the beta
 > windows, and the brief for the adversarial review. What is built is
@@ -85,33 +85,44 @@ test first:
    and the logger. Boxes get steps 3, 4 and 6 at the next deploy;
    `experiments/put_layout.sh` places the regenerated ops pair.
 
-7. ☐ **gwwf's seasonal template.** **▶ Do this next.** The scada's
-   `COLDEST_OAT_BY_MONTH` list becomes a gwwf record and gwwf builds the
-   rung it declares, so a Fidelity SeasonalTemplate message is gwwf's own
-   and the scada's fill retires. Decided: months are the grid; the create
-   command takes a new version. Four parts, sema first, each with its
-   test first:
-   1. **The word.** `gw.weather.seasonal.template.gt` 000, staging: one
-      record per weather location — LocationAlias, twelve monthly
-      temperature values scaled per a Unit, a wind speed value scaled per
-      a Unit, Start, Id. Published words all around it, so the
-      dependencies are published; read `sema/spec` again at the edit and
-      post the type-kind summary before touching `sema/definitions/`.
-   2. **`gw.weather.create.cmd` 001.** The record slot's closed `oneOf`
-      gains the template word; 000 stays. Minting stays a human act; the
-      Millinocket row is the scada's current list.
-   3. **gwwf builds the rung and serves the record.** The scheduler's
-      third rung lays the template on the bundle grid, marked
-      SeasonalTemplate, where today it glitches and skips
-      (`gridworks-weather-forecast/src/gwwf/scheduler.py`); the facade
-      serves a location's template beside its bundles, and the record is
-      a DB table like the other four. gwwf sits on `main`: cut a `jm/`
-      branch; its spec is `wiki/gridworks-weather-forecast/executor/`.
-   4. **The scada reads the template.** `GwwfWeatherSource` pulls and
-      persists the template beside the bundle record and fills from it;
-      the hand-kept list and its note go. When a box gets both records
-      is the provisioning design's question (Draft, no issue yet), not
-      this spoke's.
+7. ◐ **gwwf's seasonal template.** The scada's hand-kept list is a
+   gwwf record and gwwf builds the rung it declares, so a Fidelity
+   SeasonalTemplate message is gwwf's own and the scada's fill reads the
+   record. Months are the grid; the create command took a new version.
+   Built, each with its test first:
+   1. ✅ **The word.** `gw.weather.seasonal.template.gt` 000, staging:
+      LocationAlias, TempByMonth (twelve, January first, °F x100),
+      Start, Id; axiom TwelveMonths. No wind and no unit fields: gw1.unit
+      holds one temperature and one wind unit, so a unit field could take
+      one value, and a design-cold template carries no wind. The x1000 on
+      wind stays where it is: NWS serves whole knots as km/h floats, so a
+      scaled integer loses nothing; gwwf reading the rounded text layer
+      instead of the raw gridpoint is a separate fetch gap, not this
+      spoke's.
+   2. ✅ **`gw.weather.create.cmd` 001** (staging): Record gains the
+      template; 000 stays published. Sema suite green (812).
+   3. ✅ **gwwf builds the rung and serves the record** on
+      `jm/seasonal-template`: `seasonal_templates` table and migration,
+      insert-only create, broadcast on the location alias,
+      `/seasonal-templates` on the facade, the scheduler's third rung
+      (each slice at its UTC month's value, no wind, the downgrade
+      glitch; no template still glitches and skips), the actor taking
+      the location's latest Start at boot. The regen script passes
+      `--allow-staged`. **Not yet run:** the snapshot regen refuses a
+      dirty sema checkout, so gwwf's tests wait on the sema commit.
+   4. ✅ **The scada reads the template** on `jm/spruce-unlimbo`: the
+      `WeatherSeasonalTemplateGt` twin (`sema validate` OK), the template
+      kept beside the bundle record and pulled on the first fill, the
+      list and its note gone; a bundle without a template is no
+      forecast. Weather and named-type tests green.
+
+   **▶ Do this next.** In order: commit sema (`jm/weather-seasonal-template`);
+   `scripts/regen_sema_snapshot.sh` in gwwf, then `./ci.sh` (docker up);
+   commit gwwf; mint the Millinocket template on hw1 with `gwwf create`
+   after the gwwf deploy runs the migration (the row is the scada's old
+   list, x100; Start 2026-10-07); then the spruce and maple windows pull
+   it with the next deploy. The ops-params drift the session hook reports
+   on all five boxes is the same deploy's side-by-side compare.
 
 ### Shape
 

@@ -72,6 +72,7 @@ consumer switches.
 | **forecast channel** | `gw.weather.forecast.channel.gt` — one named predictor of one channel; declares its own time-slice shape. |
 | **bundle** | `gw.weather.forecast.bundle.gt` — the subscribable sign-up object: a shared time-slice grid + emission schedule across a quantity's forecast-channel/channel pair; its Name is the broadcast radio channel. |
 | **location** | `gw.weather.location.gt` — the place anchor; provider-neutral coordinates + external station ids. |
+| **seasonal template** | `gw.weather.seasonal.template.gt` — a location's design-cold temperature by month; the fidelity ladder's last rung. |
 | **observation** | `gw.weather.observation` — the message word carrying a station's real-time reading. |
 | **forecast** | `gw.weather.forecast` — the message word carrying one bundle's predicted values for one emission slot. |
 | **Fidelity** | the degradation rung a forecast message was built at: live / stored / seasonal.template. |

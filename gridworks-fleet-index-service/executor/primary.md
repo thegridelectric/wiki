@@ -5,9 +5,8 @@ Status: Draft · Pass 0 · Updated 2026-09-05
 > What this is: the faithful spec of the **Fleet Index Service (FIS)** — the
 > authority-plane service the broker calls (`rabbitmq-auth-backend-http`) to
 > authorize every connection and every topic publish, enforcing a single
-> authorized instance per (GNodeId, run). The build plan is the
-> `stand-up-fis` design (OPS-422); the auth architecture it implements is
-> the mTLS+FIS design (OPS-420); the non-GNode-services extension is
+> authorized instance per (GNodeId, run). The build plan is OPS-422; the
+> auth architecture it implements is OPS-420; the non-GNode-services extension is
 > [`../explorations/principal-model.md`](../explorations/principal-model.md).
 > Read this hub first, then the two spokes in the order listed at the end.
 
@@ -49,10 +48,10 @@ survive): fail closed, by design.
 - Tracks principals and instance leases. A **principal** is a durable
   identity belonging to a core piece of the GridWorks platform that is
   allowed to connect to the broker: a **GNode** in the grid topology (a
-  house's scada, its leaf transactive node, a market maker), whose id is
-  its GNodeId; or a **Service** outside the topology (the
-  grid-node-registry, the ear, the journalkeeper, the weather forecast
-  service), whose id is a UUID FIS mints.
+  house's scada, its leaf transactive node, a market maker, the weather
+  forecast service at `hw1.isone.weather`), whose id is its GNodeId; or
+  a **Service** outside the topology (the grid-node-registry, the ear,
+  the journalkeeper, the alerter), whose id is a UUID FIS mints.
 - Determines the authoritative instance per (identity, run).
 - Serves the four RabbitMQ HTTP auth endpoints. `/auth/user` is the gate;
   `/auth/vhost` cross-checks the claimed run against the vhost;
@@ -96,8 +95,8 @@ survive): fail closed, by design.
 
 Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-14@1e16d79 (`experiments/2026-08-14-sasl-mechanism-spike/`) — AMQP leg only
 
-The broker forwards, per protocol (protocol facts verified at source,
-OPS-420 "Protocol ground truth"):
+The broker forwards, per protocol (rmqbot `auth-path.md` "What the
+broker forwards to an auth backend"):
 
 - **AMQP** — `username` (from the cert CN, via the GridWorks SASL
   mechanism) + a single `claims` param: the **`fis.connect.claims`** sema

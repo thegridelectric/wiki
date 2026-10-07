@@ -10,6 +10,27 @@ repo's git history.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-10-07 — The scada fills from the weather service's seasonal template (OPS-392)
+
+**What:** The hand-kept `COLDEST_OAT_BY_MONTH` list is gone.
+`GwwfWeatherSource` keeps a third record beside the forecast and the
+bundle, the location's `gw.weather.seasonal.template.gt`
+(`<alias>-gw.weather.seasonal.template.gt-000.json`), read first and
+pulled from the facade's `/seasonal-templates` on the first fill that
+finds none stored (the location's latest Start at or before plant time).
+`seasonal_fill` takes the template and lays each slice at its UTC
+month's value; a bundle record with no template stored or reachable is
+no forecast, with a WARNING. gwsproto gains the `WeatherSeasonalTemplateGt`
+twin with axiom 1 (`sema validate`: OK), the Millinocket template is a
+`tests/config` fixture, and the weather-source tests cover the template
+pulled once and kept, the fill from a stored template, and the
+no-template case.
+
+**Why:** the fill is the weather service's own record, minted and
+served like the location and bundle, so no scada carries a Millinocket
+row in code and a new location needs no scada change.
+
 ## 2026-10-07 — The derived generator and the LTN read the sema forecast (OPS-392, `ac9e0828`)
 
 **What:** `WeatherSource.forecast` returns the `gw.weather.forecast`

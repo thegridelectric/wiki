@@ -28,12 +28,12 @@ Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-11@711a8cc 
   through one public read-only HTTP API returning sema-typed message
   words. The one API serves all pull consumers: LTN drop recovery,
   scada fallback when its LTN relay goes quiet, and post-hoc/analytics
-  reads. It also lists the active channel, forecast-channel, and
-  location records (consumers cache; pull again on decode-miss;
+  reads. It also lists the active channel, forecast-channel, location
+  and seasonal-template records (consumers cache; pull again on decode-miss;
   Start-scoped history resolves archived messages). There is no
   broker request/response vocabulary — pull is HTTP-only.
 - **Records broadcast once at creation.** Each new record — bundle,
-  forecast-channel, channel, location — is broadcast a single time
+  forecast-channel, channel, location, seasonal template — is broadcast a single time
   when minted, so it enters the immutable store through the universal
   audit tap and an archived message resolves against the record
   active at its time (the bundle word's Start exists for exactly

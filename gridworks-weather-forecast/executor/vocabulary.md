@@ -131,6 +131,22 @@ per-service — price forecasts get their own word in their own
 service, and a shadow challenger stands up its own (its emissions
 need a bundle to ride). `.gt`: the weather DB is the canonical seed.
 
+## gw.weather.seasonal.template.gt — the last rung
+
+The design-cold temperature of each month at a location: `LocationAlias`,
+`TempByMonth` (twelve integers, January first, degrees Fahrenheit times
+100), `Start`, `Id`. One axiom, TwelveMonths. It carries no wind and no
+unit fields: a design-cold template plans for the cold case, not for a
+wind, and `gw1.unit` holds one temperature unit, so a unit field could
+take one value. The record is the SeasonalTemplate rung of the fidelity
+ladder: the scheduler lays it on the bundle grid, each slice at its UTC
+month's value scaled to the channel's unit, when the live product fails
+and the stored horizon is absent or exhausted; a location with no
+template glitches and skips the slot. A later record for the same
+location supersedes by `Start`; the actor takes the latest Start at or
+before boot. `.gt`: the weather DB is the canonical seed; the facade
+lists every template at `/seasonal-templates`.
+
 ## The message words
 
 Two message words: `gw.weather.observation` and `gw.weather.forecast`.

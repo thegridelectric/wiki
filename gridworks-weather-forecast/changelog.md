@@ -13,6 +13,25 @@ Newest at the top.
 
 ---
 
+<!-- pending commit -->
+## 2026-10-07 — The seasonal template rung (OPS-392)
+
+The forecast ladder's third rung is built: when the live product fails
+and the stored horizon is absent or exhausted, the scheduler lays the
+location's `gw.weather.seasonal.template.gt` on the bundle grid (each
+slice at its UTC month's value, scaled to the channel's unit, no wind)
+and emits with Fidelity SeasonalTemplate, with the usual downgrade
+glitch; a location with no template still glitches and skips. The
+template is the fifth record kind: `seasonal_templates` table (alembic
+`7d2e9a41c6b3`), insert-only through `create` on `gw.weather.create.cmd`
+001, broadcast once on its location alias, listed by the facade at
+`/seasonal-templates` (every Start; a consumer takes the latest for its
+location, as the actor does at boot). Snapshot regenerated with
+`--allow-staged` since the word is staging. Tests: DB round trip and
+referential order, facade listing, broadcast tail, and three scheduler
+cases (no product, stored exhausted, no template).
+
+
 ## 2026-09-30 — Move to gwbase 0.5.14 (`ca039fd`, merged `a4913e2`)
 
 Picks up the gwbase release that stops logging the broker password:

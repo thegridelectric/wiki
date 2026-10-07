@@ -6,7 +6,7 @@ the *why*.
 
 Newest at the top.
 
-## 2026-10-07 — dist-loop-experiments: the memo's workbook; the paper's theory and stored-heat tables in Python and as Excel formulas (OPS-572) <!-- pending commit -->
+## 2026-10-07 — dist-loop-experiments: the memo's workbook; theory and stored-heat tables in Python and as Excel formulas; AddedGpm (OPS-572, `d42414c`, `f01f584`)
 
 `sheets.py` gains the cold-zone memo as its second document: the
 minute trace around the January 26 call, the three bolus tables and
@@ -17,8 +17,11 @@ that builds each twice: as numbers, and as live formulas over a
 `theory-inputs` tab, for a reader who works in Excel and wants to see
 the Python beside it. The Python form reproduces the paper's rounded
 numbers; a formula table is written to the workbook only, never CSV.
+The second commit adds `AddedGpm` to the events table, the flow the
+idle zone's valve added during the call, so the memo's 0.95 gpm has a
+cell.
 
-## 2026-10-07 — logs and captures over 2 MB gzipped in place; the duplicate maple window log dropped <!-- pending commit -->
+## 2026-10-07 — logs and captures over 2 MB gzipped in place; the duplicate maple window log dropped (OPS-572, `6d8cb87`)
 
 Under the 2 MB rule, the ops498-load importer logs, the two
 beta-field-windows run captures and three window logs are committed
@@ -30,7 +33,7 @@ beta-field-windows keeps only the last run was stale, since every run
 has its folder under `runs/`; the Layout and Conventions text says so
 now. History is not rewritten for these: they were pushed long ago.
 
-## 2026-10-07 — sieg-keep-ratio-map: the 91 MB capture reduced to 1.2 MB, the full one archived; history rewritten (OPS-392) <!-- pending commit -->
+## 2026-10-07 — sieg-keep-ratio-map: the capture reduced to 1.2 MB, the full one archived; snapshot.spaceheat in the seed (OPS-392, `05cb54a`, `0123b90`)
 
 The broker capture was 4,857 `snapshot.spaceheat`s at 19 KB each and
 reached GitHub with the large-file warning. The full file now lives in
@@ -44,7 +47,7 @@ to CSV beside the printed text. The commits from `sieg keep ratio
 map` to the head were rewritten without the capture and force-pushed;
 the hashes in the entries below are the rewritten ones.
 
-## 2026-10-07 — pre-commit refuses a file over 2 MB (OPS-572) <!-- pending commit -->
+## 2026-10-07 — pre-commit refuses a file over 2 MB (OPS-572, `ae806d9`)
 
 A 91 MB broker capture reached GitHub in the sieg-keep-ratio-map
 folder and drew the large-file warning. The repo gets
@@ -55,7 +58,7 @@ convention now says where larger bytes go: untouched to the immutable
 store, with the reduced form the analysis reads committed in the
 folder. Files already tracked are not re-checked.
 
-## 2026-10-07 — dist-loop-experiments: one workbook per document; the beech emitter physics mystery first (OPS-572) <!-- pending commit -->
+## 2026-10-07 — dist-loop-experiments: one workbook per document; the beech emitter physics mystery first (OPS-572, `b749070`)
 
 `sheets.py` takes a document slug and writes `<document>.xlsx` holding
 only the tables that document's text draws on, in place of one

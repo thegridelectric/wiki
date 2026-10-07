@@ -1,6 +1,6 @@
 # The weather forecast at the scada
 
-Status: Draft · Pass 0 · Updated 2026-10-07
+Status: Draft · Pass 0 · Updated 2026-10-08
 
 > What this is: where the scada's outdoor forecast comes from, what it
 > holds, how the derived generator and the LTN read it, and what happens
@@ -70,16 +70,20 @@ the scada:
 1. A message covering the next 48 hours serves, at the fidelity it
    carries.
 2. With no message, or one that no longer covers the next 48 hours, the
-   source fills from the location's seasonal template: the bundle's whole
-   slice grid from the next whole hour at the month's coldest
-   temperature and no wind, marked `SeasonalTemplate`. The fill lives in
-   memory; it is never persisted or sent. Today the template is the
-   hand-kept monthly list `COLDEST_OAT_BY_MONTH` in `weather_source.py`,
-   the Millinocket row; the weather service's per-location template word
-   and rung retire it (Open).
-3. With no bundle record stored or reachable there is no forecast at all
-   and a WARNING says so: without the record there is no grid or unit to
-   fill on. When a box first receives its two records is the provisioning
+   source fills from the location's seasonal template
+   (`gw.weather.seasonal.template.gt`, the bundle's LocationAlias): the
+   bundle's whole slice grid from the next whole hour, each slice at its
+   UTC month's template temperature and no wind, marked
+   `SeasonalTemplate`. The fill lives in memory; it is never persisted or
+   sent. The template is a third record kept beside the two
+   (`<alias>-gw.weather.seasonal.template.gt-000.json`), read first and
+   pulled from the facade's `/seasonal-templates` on the first fill that
+   finds none stored, taking the location's latest Start at or before
+   plant time.
+3. With no bundle record stored or reachable, or a bundle record but no
+   template stored or reachable, there is no forecast at all and a WARNING
+   says so: without the records there is no grid, unit or value to fill
+   on. When a box first receives its three records is the provisioning
    sequence's question.
 
 A fill and a failed pull log at WARNING under the scada's base logger
@@ -96,8 +100,9 @@ wind_speed_mph)`.
 
 ## Open
 
-- The weather service's seasonal-template word and rung, and the scada
-  reading the template from it (the spruce-unlimbo work, OPS-392).
+- A box's first boot with no internet and no records: the fill
+  requires a stored template, so such a box has no forecast until the
+  provisioning sequence places the records.
 - When the bundle record and the template reach a box: the provisioning
   sequence.
 - The LTN relays the forecast once the LTNs run; the scada's pull path

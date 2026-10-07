@@ -11,6 +11,22 @@ repo's git history.
 
 Newest at the top.
 
+## <!-- pending commit --> 2026-10-07 — gate: `auth_http.request_timeout` pinned under the handshake; mint tool names when its next step runs
+
+Branch `jm/gate-request-timeout`. `rmq-docker/gate/fis-gate.conf` sets
+`auth_http.request_timeout = 9500` (ms). `mint-client-cert.py`'s "Next, on
+the box" block says the TLS lines go in only once the FIS gate is on for the
+broker.
+
+**Why:** the broker's default 10 s `handshake_timeout` bounds the whole auth
+sequence and the http backend's default `request_timeout` is 15 s, so a slow
+FIS died as an anonymous handshake timeout; under the handshake, it fails as
+an `auth_http` timeout and the log names the timer. 9.5 s still admits a
+supersession that spends its full 9 s (8 s confirm, 1 s close grace). The
+tool note: a gwbase actor with a `rabbit.tls` block offers only the
+GRIDWORKS mechanism and has no password fallback, so adding the lines before
+the gate is on takes the service offline (witnessed on weather 2026-10-07).
+
 ## <!-- pending commit --> 2026-10-07 — cert inventory: platform-service certs minted and placed, not yet in use
 
 The platform-service certs, cut through `mint-client-cert.py mint`

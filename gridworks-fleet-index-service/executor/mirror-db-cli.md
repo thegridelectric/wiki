@@ -82,7 +82,7 @@ Four tables, three of them bijective with a word:
   `principal_id`, `run`, `status`, `transport`, `connected_at_unix_ms`,
   `revoked_at_unix_ms`. The partial unique index on (`principal_id`,
   `run`) where status is `Active` is invariant 1. The word is version
-  `001` (`staging`), which carries `Run`: the lease is keyed (principal,
+  `001` (`published`), which carries `Run`: the lease is keyed (principal,
   run), so the run belongs in the row. `000` keys on GNodeId alone and
   does not upgrade, since a run cannot be recovered from a standalone
   instance.

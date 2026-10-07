@@ -12,6 +12,22 @@ Newest at the top.
 
 ---
 
+## <!-- pending commit --> 2026-10-07 — HTTP-level tests for the `/auth/*` endpoints
+
+Branch `jm/fis-auth-http-tests`. `tests/test_api.py` drives the FastAPI app
+through `TestClient` against the test Postgres: a malformed `/auth/user`
+body and a missing username answer `deny`; a Service principal's first
+connect answers `allow <run>` and leaves its `auth_events` row; `/auth/vhost`
+denies a tag ≠ vhost and allows a match; `/auth/resource` allows;
+`/auth/topic` denies an unparseable write key and allows a read. The app's
+session factory is swapped for the test engine's by a fixture.
+
+**Why:** every verdict was tested at the `decide_*` layer and the HTTP layer
+only at `/ping`, so form parsing, the `allow <run>` body the broker turns
+into the connection's user tag, and the background audit write had no test
+in pytest, only the battery. Found reading the code against the executor
+before wiring the prod gate.
+
 ## 2026-09-08 — dead root seed and build script dropped (`2b47aff`)
 
 Branch `jm/sema-snapshot-pattern`. `fis_seed_request.yaml` and

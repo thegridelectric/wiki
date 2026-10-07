@@ -1,6 +1,6 @@
 # Stand up FIS
 
-Status: Accepted · Pass 1 · Updated 2026-09-07 · Linear: OPS-422
+Status: Accepted · Pass 1 · Updated 2026-10-07 · Linear: OPS-422
 
 **EDD: yes** verified by the day-in-the-life handshake
 ([`../executor/day-in-the-life.md`](../executor/day-in-the-life.md)) run for real on the
@@ -11,35 +11,28 @@ the first with the predecessor closed before the successor is admitted.
 
 > What this is: build and deploy the Fleet Index Service. The **model is
 > specified** in [`../executor/primary.md`](../executor/primary.md) and
-> its two spokes (the gate, the invariants, deployment posture, rabbit
+> its three spokes (the gate, the invariants, deployment posture, rabbit
 > config, db structure, test plan); the auth architecture it implements is OPS-420. This design
-> does **not** restate that — it is the **ordered build plan**. The
-> `gridworks-fleet-index-service` repo is README-only today, so this is
-> from-scratch.
+> does **not** restate that — it is the **ordered build plan**.
 
 ## Build order (each step maps to a section of `executor/primary.md`)
 
-Steps 1–8 are built; the dev battery is green (27/27 verdicts plus the
-reconnect storm) with Findings A and B both closed. Step 9's box is
-built and live: `hw1-2` serves `hw1__2` with the gate ON and FIS beside
-it on the `jm/stand-up-fis` branch (`experiments/2026-09-06-fis-staging-box/`,
-two findings fixed there: the broker container needs the host network to
-reach FIS on loopback; `fis api` now configures logging). Every word in
-the FIS closure is published. **The remote rung is green (2026-09-06):
-the battery ran against `hw1-2` with the identities' principal rows
-minted on the box, client certs from certbot against the real CA, FIS
-under systemd and the management-API-down leg over ssh: 27/27 verdicts,
-storm 100/100, evidence in
-`experiments/2026-09-05-fis-gate-battery/battery-2026-09-06-hw1-2.log`.
-That is the done-when; `hw1-2` is dropped (its reproducer rebuilds it).
-Prod step 1 is done: FIS runs on `hw1-1` with the gate off and the
-mirror full. Next move: prod step 2 under step 9 below, the principals
-and certs while the password path still stands, and only then the
-gate. The stamps are open: the
-executor hub and its three spokes are `Draft · Pass 0`, the green
-staging run is their evidence, and the Pass/maturity call (Verified,
-`Reviewed 2026-09-06@7b00342`) is the human's.** The push accelerator
-(5c) is not on that path.
+Steps 1–8 are built (5c, the push accelerator, is not on the path).
+The battery is green at every rung: dev (27/27 plus the reconnect
+storm), the staging box `hw1-2` on 2026-09-06 (the identities' principal
+rows minted on the box, client certs from certbot against the real CA,
+FIS under systemd, the management-API-down leg over ssh: 27/27, storm
+100/100, `experiments/2026-09-05-fis-gate-battery/battery-2026-09-06-hw1-2.log`),
+and the CRL leg on the rig 2026-09-08 (38/38). The staging run is the
+done-when; `hw1-2` is dropped (its reproducer rebuilds it). Every word
+in the FIS closure is published. Prod step 1 is done: FIS runs on
+`hw1-1` with the gate off and the mirror full. Prod step 2's platform
+principals and certs are minted and placed (OPS-420, 2026-10-07). **Next
+move: the "Before the gate" items below, then the house rows; the gate
+itself is OPS-420's rollout item.** The stamps are open: the executor
+hub and its three spokes are `Draft · Pass 0`, the green staging run is
+their evidence, and the Pass/maturity call (Verified, `Reviewed
+2026-09-06@7b00342`) is the human's.
 
 1. ✅ **Scaffold the service.** FastAPI + Postgres + `uv` (mirror the
    grid-node-registry stack). Settings via `pydantic-settings` (own
@@ -55,12 +48,12 @@ staging run is their evidence, and the Pass/maturity call (Verified,
    index rather than by the gate's care alone.
 3. ✅ **`/auth/user` — the gate** (*executor `auth-endpoints.md` "`/auth/user` — the gate"*).
    Claims arrive as the `claims` sema word (AMQP) or `client_id` + `vhost`
-   (MQTT); decode through the snapshot codec, strict. Implement the five
-   verdicts exactly: malformed → deny; principal missing/inactive → deny;
+   (MQTT); decode through the snapshot codec, strict. The verdicts:
+   malformed → deny; principal missing/inactive → deny;
    lease match → allow; revoked → deny (forever); never-seen →
    **synchronous supersession before responding** — revoke prior lease,
-   `DELETE /api/connections/<id>` via the management API, confirm **no
-   connections remain** (empty kill = success), create lease, allow;
+   `DELETE /api/connections/username/<principal-id>` via the management
+   API, confirm **no connections remain** (empty kill = success), create lease, allow;
    kill unconfirmable → deny (fail closed). For AMQP GNodes, claimed
    alias/class must match the registry mirror.
 4. ✅ **`/auth/{vhost,resource,topic}`.** vhost: claimed-run ≟ actual-vhost
@@ -95,7 +88,7 @@ staging run is their evidence, and the Pass/maturity call (Verified,
    alias from gnr by GNodeId on reconnect) is the client half — OPS-420 /
    gwbase-proactor, not this issue. The ~1s pre-rename courtesy note is
    deferred to a v2 gnr refinement.
-5d. **Principal minting — `fis principal`.** The FIS-side primitive
+5d. ✅ **Principal minting — `fis principal`.** The FIS-side primitive
    provisioning calls when it cuts a cert: `create` mints the principal row
    first and prints its id, which becomes the cert CN (`gwcert key add
    --common-name <id>`). A service principal's id is a fresh uuid4 minted
@@ -110,7 +103,7 @@ staging run is their evidence, and the Pass/maturity call (Verified,
    each `/auth/user` verdict. The word and its two enums were reshaped to
    the gate's contract (reason per verdict path, `PrincipalId` not
    `GNodeId`, required `Run`, a Reason → Decision projection with its
-   axiom) and flipped `draft → staging` in sema; the sink is FIS's own
+   axiom) in sema; the sink is FIS's own
    `auth_events` table, bijective with the word, written from a
    background task after the response; the migration was run up and down
    on a fresh database.
@@ -132,10 +125,7 @@ staging run is their evidence, and the Pass/maturity call (Verified,
    admitted in under half a second, fail-closed with the management API
    unreachable, and a 100-connection reconnect storm inside the
    10 s handshake budget; the AMQP legs use gwbase's own credentials class
-   and claims word, the MQTT legs a cert-bearing paho client. A dev universe
-   is defined by all comms going through localhost brokers, which is also
-   the only place `staging` vocabulary may run: `fis.connect.claims` and
-   `g.node.instance.gt/001` stay mutable through this stage.
+   and claims word, the MQTT legs a cert-bearing paho client.
 
 ## Findings (step 8, dev battery)
 
@@ -188,8 +178,7 @@ is unchanged.
    - ✅ Build the box from the recipe (hcloud, certbot server cert for
      `hw1-2.electricity.works`, Route 53); FIS up before the gate overlay.
    - ✅ Carry the battery identities' principal rows, minted on the box
-     with the registry's ids (`setup-remote.sh`). The four platform
-     services' rows: open, with their certs.
+     with the registry's ids (`setup-remote.sh`).
    - ✅ The battery's remote rung: rig from the environment (`rig.py`,
      `remote.env`), FIS and the management-API-down leg over ssh, certs
      cut on certbot against the real CA.
@@ -207,35 +196,70 @@ is unchanged.
         differs from the recipe's Hetzner shape (EC2, one 16 GB root
         disk, no volume), so pgdata is a plain directory on root;
         recorded in the infra README and the platform inventory.
-     2. **Principals and certs** while the broker still offers password
-        auth. Weather is a GNode: its row carries the registry's
-        GNodeId (`hw1.isone.weather`, `2af8a877-…`; registry status
-        Pending, which the gate does not check but the record should
-        say Active). gnr, ear and gjk are Service principals: ids
-        minted on the prod FIS with `fis principal create`, never on
-        dev; cert CN = the printed id; a cert-inventory row each. Each
-        service switches to cert plus claims one at a time (mTLS
-        design, OPS-420, "Minting a platform-service cert", order
-        weather, gnr, ear, gjk); a bad cert or claim falls back to the
-        password path, so nothing can go down here. Proof is each
-        service's own log showing the cert path taken: with the gate
-        off FIS is never called and `auth_events` stays empty.
-        Also here: the house scadas already connect with certs over
-        MQTT; read one box's cert CN against the registry. Their rows
-        must exist on the prod FIS with their GNodeIds and their CNs
-        must be those ids, or they are denied at the first reconnect
-        after the gate.
+     2. ◐ **Principals and certs.** ✅ The platform rows exist on the prod
+        FIS (read 2026-10-07 with `fis principal list`): weather as a
+        GNode carrying the registry's GNodeId (`hw1.isone.weather`,
+        `2af8a877-…`); gnr, ear, gjk and the alerter as Service
+        principals, ids minted on the prod FIS with `fis principal
+        create`, never on dev, cert CN = the printed id, a
+        cert-inventory row each (OPS-420). The certs are placed and not
+        enabled: a gwbase service has no password fallback, so it moves
+        to cert plus claims only once the gate is on, with a bounded
+        downtime (its restart) and a rollback of removing the three
+        `*_RABBIT__TLS__*` lines. Open: the house side. The six scadas and
+        six LTNs connect with certs over MQTT today and have no rows on
+        the prod FIS; at notch 4 their CN reaches FIS and a missing row
+        is a deny at the first reconnect. Mint their rows from the
+        ledger's CNs (`--kind GNode --g-node-id`), and read one box's
+        cert CN against the registry first.
      3. **The gate** on `hw1-1`: the overlay recreate (`compose.gate.yaml`,
-        host network), re-mint the default user, then watch
-        `auth_events` fill as each service reconnects. From this
-        instant a connection is in or out on cert and claims alone and
-        runtime users are wiped; the live-traffic cutover, the human's
-        to run, only after every service has been seen on the cert
-        path in step 2. Same step: rewrite the rmqbot README's
-        "Runtime-created users" section and its TODO line to the two
-        internal accounts that remain (management login, break-glass),
-        each re-minted by recipe after a recreate; every fleet password
-        user is deleted, and the declarative-users issue is cancelled.
+        host network), re-mint the two internal accounts, then watch
+        `auth_events` fill as each service restarts onto its cert. From
+        this instant a connection is in or out on cert and claims alone
+        and runtime users are wiped, so the four service restarts follow
+        in the same window; the live-traffic cutover is the human's to
+        run and is OPS-420's rollout item. Same step: rewrite the rmqbot
+        README's "Runtime-created users" section and its TODO line to
+        the two internal accounts that remain (management login,
+        break-glass), each re-minted by recipe after a recreate; every
+        fleet password user is deleted, and the declarative-users issue
+        is cancelled.
+
+## Before the gate (FIS side, found 2026-10-07 reading code against the executor)
+
+Each goes in before the prod recreate; the first three are required,
+the rest are decisions to make and record in the executor.
+
+- **Malformed denials are not recorded.** `api.py` returns deny on an
+  undecodable `/auth/user` body with "No typed request to record
+  against", so the executor's "every outcome is recorded" does not hold
+  for the malformed path and `USER_REASONS` `Malformed` is unreachable
+  from HTTP. Record it.
+- **No HTTP-level `/auth/*` tests.** `test_api.py` covers `/ping` only;
+  form parsing, the `allow <run>` body and the background recording are
+  untested in pytest. Add them, with the malformed case first.
+- **The `auth_http` request timeout is unpinned.** `fis-gate.conf` sets
+  no `auth_http.request_timeout`; the battery rides the default. Pin it
+  below the broker's 10 s handshake budget and record the number in the
+  executor's budget reasoning.
+- **Read-through plus a kill can exceed the handshake budget.** A mirror
+  miss costs the gnr timeout (5 s) before a kill's 8 s confirm; the
+  executor's budget reasoning counts the kill alone. Decide: shorten one,
+  or accept and state it.
+- **MQTT GNodes get no read-through on a mirror miss.** `decide_topic`
+  has none, so a freshly provisioned scada is admitted and every write is
+  denied until the next reconcile (300 s). The executor says a GNodeId
+  absent from the mirror is read through. Decide whether `/auth/topic`
+  reads through too.
+- **Rollback after an unconfirmed kill.** `gate.py` restores the
+  predecessor's Active lease when the kill is unconfirmed, though the
+  DELETE may already have closed its sockets; the executor says revoke
+  and deny with no undo. Pick one and align the other.
+- **Topic reads admit any non-write permission** (`permission !=
+  "write"`); the executor names `read`. Narrow or restate.
+- **Repo prose names the wiki.** `gate.py`, `api.py`, `mirror.py`,
+  `settings.py`, `rabbit_admin.py` and `ci.sh` cite "build step", "FIS
+  executor" or OPS ids. Rewrite to the code's own meaning.
 
 ## v1 scope
 
@@ -259,5 +283,10 @@ cheaply; only the staging run counts as verification.
 - **Clean restart** (nothing to kill) → admitted without delay.
 - A stale-alias node connects but its first publish is denied at
   `/auth/topic`.
-- Auth stays fast under ~100 concurrent connects (measure FIS latency;
-  pin the auth_http timeout budget).
+- Auth stays fast under ~100 concurrent connects (witnessed on `hw1-2`);
+  the `auth_http` request timeout is pinned (open, above).
+- One identity holds simultaneous `hw1__1` and `hw1__2` leases on two
+  brokers; the kill is broker-wide for the identity (Finding A), which
+  is exact for a one-run broker.
+- The executor test plan's remaining cases: wrong class, run outside the
+  universe, and suspension alone not closing a live connection.

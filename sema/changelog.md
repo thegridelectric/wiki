@@ -10,6 +10,22 @@ repo's git history.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-10-07 — gw.weather.seasonal.template.gt and create.cmd 001 (OPS-392)
+
+New staging word `gw.weather.seasonal.template.gt` 000: one record per
+weather location with the design-cold temperature of each month
+(`TempByMonth`, twelve integers January first, degrees Fahrenheit times
+100), `LocationAlias`, `Start`, `Id`. Axiom 1 TwelveMonths. No wind field
+and no unit fields: gw1.unit offers one temperature and one wind unit, so
+a unit field could hold one value, and a design-cold template carries no
+wind. `gw.weather.create.cmd` 001 (staging) adds the template to the
+Record oneOf; 000 stays published. Runtime regenerated with the axiom
+template and the 000→001 upgrade; counterexample fixture and test. The
+word exists so the forecast fidelity ladder's SeasonalTemplate rung is
+the weather service's own record rather than a list hand-kept in the
+scada.
+
 ## 2026-10-07 — gw.operational.params names its weather bundle (OPS-392)
 
 `gw.operational.params` 000 (staging, edited in place) gains the required

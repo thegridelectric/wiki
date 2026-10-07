@@ -15,8 +15,8 @@ the authored record instance). The command word carries the full
 record plus a `Proof` placeholder (authority = the authenticated
 connection until the authority substrate lands); ack/nack twins reply
 direct, discriminated by TypeName and correlated by the command's
-content hash. One command word covers all four record kinds — its
-Record slot is a closed `oneOf` over the four record words — because
+content hash. One command word covers all five record kinds — its
+Record slot is a closed `oneOf` over the five record words — because
 the act is the same regardless of kind: create a record.
 
 The sender is its own weather-class operator identity
@@ -48,7 +48,8 @@ records from the eventstore by hand — or by re-minting through
 
 Referential order, so each record's references already exist when its
 axioms fire: **location → observation channels → forecast channels →
-bundle** (the bundle embeds its channels).
+bundle** (the bundle embeds its channels); the location's **seasonal
+template** any time after the location.
 
 ## GNode registration — required before a service can mint anything
 
