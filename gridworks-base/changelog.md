@@ -12,8 +12,7 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-09-28 — Drop the dev branch from the broker-image trigger and README
+## 2026-09-28 — drop dev refs (`aa90451`, merged `74cb1fb`)
 
 `dev` is deleted and `main` is the only long-lived branch: the
 broker-image workflow builds on pushes to `main` alone, and the README

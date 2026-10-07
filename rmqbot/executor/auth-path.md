@@ -79,6 +79,13 @@ rides `client_id` and there is no schema envelope. Two facts pin this:
   why fleet password users are deleted as they migrate rather than merely
   left unused.
 
+Broker-native MQTT session takeover (`client_id = GNodeId`, newest wins)
+was considered for single-writer and rejected: it has no notion of
+legitimacy, so a hung zombie auto-reconnecting steals the session back
+from its rightful successor, and its kick is an asynchronous cast with FIS
+out of the loop. With the instance id in `client_id`, a superseded zombie
+presents its own revoked id and is refused at the gate.
+
 ## Broker-side configuration of the gate
 
 The gate is an **overlay** on a box's broker, never an edit to its

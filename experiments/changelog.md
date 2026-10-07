@@ -6,6 +6,30 @@ the *why*.
 
 Newest at the top.
 
+## 2026-10-07 — dist-loop-experiments: the memo's workbook; the paper's theory and stored-heat tables in Python and as Excel formulas (OPS-572) <!-- pending commit -->
+
+`sheets.py` gains the cold-zone memo as its second document: the
+minute trace around the January 26 call, the three bolus tables and
+beech's steady bins. The emitter physics paper's two hand-arithmetic
+tables (the EN 442 theory return per flow, and the fast steps' excess
+as heat stored in the iron) now have a script, `emitter_theory.py`,
+that builds each twice: as numbers, and as live formulas over a
+`theory-inputs` tab, for a reader who works in Excel and wants to see
+the Python beside it. The Python form reproduces the paper's rounded
+numbers; a formula table is written to the workbook only, never CSV.
+
+## 2026-10-07 — logs and captures over 2 MB gzipped in place; the duplicate maple window log dropped <!-- pending commit -->
+
+Under the 2 MB rule, the ops498-load importer logs, the two
+beta-field-windows run captures and three window logs are committed
+gzipped (76 MB of tree to about 2 MB, bytes intact; `zcat` reads them
+and `emit_instances.py` opens either form). The 2026-09-28 13:02 maple
+window log was committed twice; the ecodan folder now points at the
+beta-field-windows run's copy. The top README's claim that
+beta-field-windows keeps only the last run was stale, since every run
+has its folder under `runs/`; the Layout and Conventions text says so
+now. History is not rewritten for these: they were pushed long ago.
+
 ## 2026-10-07 — sieg-keep-ratio-map: the 91 MB capture reduced to 1.2 MB, the full one archived; history rewritten (OPS-392) <!-- pending commit -->
 
 The broker capture was 4,857 `snapshot.spaceheat`s at 19 KB each and

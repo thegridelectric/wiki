@@ -209,7 +209,6 @@ process-internal — those come from the two process logs).
 |---|---|---|---|
 | scada | → | (void) | `gridworks.ping` · `gw/d1-isone-ct-newhaven-orange1-scada/to/ltn/gridworks-ping` — sent while `awaiting_peer`, no LTN alive |
 | scada | → | (void) | `heating.forecast` · `gw/d1-isone-ct-newhaven-orange1-scada/to/ltn/heating-forecast` |
-| scada | → | (void) | `weather.forecast` · `gw/d1-isone-ct-newhaven-orange1-scada/to/ltn/weather-forecast` |
 | scada | → | (void) | `snapshot.spaceheat` · `gw/d1-isone-ct-newhaven-orange1-scada/to/ltn/snapshot-spaceheat` — repeats every ~30 s (`awaiting_peer` is send-active) |
 | scada | ← | ltn | `gridworks.ping` · `gw/d1-isone-ct-newhaven-orange1/to/s/gridworks-ping` — LTN's first breath |
 | scada | ← | ltn | `send.layout` · `gw/d1-isone-ct-newhaven-orange1/to/s/send-layout` — LTN asks for the layout |

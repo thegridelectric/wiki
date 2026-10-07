@@ -16,13 +16,12 @@ live contract ends the contract whenever that pull is slow or down.
 The scada should not be sourcing weather at all; the LTN relays it
 (`../spruce-settled/ltns-ready.md`, gwwf `executor/delivery.md` "LTN
 relay is primary"). Until the LTNs run, the scada keeps a pull path,
-but to our own service and through sema. Four steps, each with its
+but to our own service and through sema. Six steps, each with its
 test first:
 
 1. ✅ **Shape check.** Does `gw.weather.forecast` carry what the
    scada reads off `weather.json` today (hourly unix times, °F, mph,
-   a 96 h horizon)? Answered below under "Shape"; anything missing is
-   a gwwf question before it is a scada one.
+   a 96 h horizon)? Yes; canonized in `executor/weather-forecast.md`.
 2. ✅ **Sim weather in the harness.** `weather_source.py`:
    `SimWeatherSource` (forecast and delay the test sets) is every
    live test's source; the NWS pull sits behind the same interface.
@@ -67,67 +66,62 @@ test first:
    hourly (minted 2026-10-07; first emission 15:01Z). Order from here:
    the ops word names the bundle, then step 4 and step 3 together.
 
-6. ☐ **The legacy forecast type goes.** **▶ Do this next:** the
-   derived generator and the LTN read `gw.weather.forecast` and the
-   bundle record directly, the sim source returns the sema message, the
-   `weather.forecast` twin comes out, and the `weather_source` logger
-   joins the scada's log output. Boxes get steps 3 and 4 at the next
-   deploy; `experiments/put_layout.sh` places the regenerated ops pair.
+6. ✅ **The legacy forecast type goes.** `WeatherSource.forecast`
+   returns the `gw.weather.forecast` message and its bundle record as a
+   pair; the derived generator and the LTN hold the pair and derive
+   their hourly °F / mph series off it; the `weather.forecast` twin and
+   the message to the LTN are gone. The coldest-of-month fill is a
+   `gw.weather.forecast` of Fidelity SeasonalTemplate on the stored
+   bundle record, so a box with no bundle record stored or reachable
+   has no forecast at all (a WARNING names it) where the old code
+   filled blind; the record is pulled once and kept, so this is a
+   first-boot-without-internet case. The source logs under
+   `<base>.weather_source`: pull failures and fills at WARNING, the pull
+   line at INFO. Plant time in the weather path comes from
+   `services.clock`: the source judges coverage and fills on it, the
+   sim source's slices start at the plant's next hour, the consumers
+   slice on it; only the pull timeouts are wall time.
+   `tests/test_misc/test_weather_source.py` pins each rung, the clock
+   and the logger. Boxes get steps 3, 4 and 6 at the next deploy;
+   `experiments/put_layout.sh` places the regenerated ops pair.
+
+7. ☐ **gwwf's seasonal template.** **▶ Do this next.** The scada's
+   `COLDEST_OAT_BY_MONTH` list becomes a gwwf record and gwwf builds the
+   rung it declares, so a Fidelity SeasonalTemplate message is gwwf's own
+   and the scada's fill retires. Decided: months are the grid; the create
+   command takes a new version. Four parts, sema first, each with its
+   test first:
+   1. **The word.** `gw.weather.seasonal.template.gt` 000, staging: one
+      record per weather location — LocationAlias, twelve monthly
+      temperature values scaled per a Unit, a wind speed value scaled per
+      a Unit, Start, Id. Published words all around it, so the
+      dependencies are published; read `sema/spec` again at the edit and
+      post the type-kind summary before touching `sema/definitions/`.
+   2. **`gw.weather.create.cmd` 001.** The record slot's closed `oneOf`
+      gains the template word; 000 stays. Minting stays a human act; the
+      Millinocket row is the scada's current list.
+   3. **gwwf builds the rung and serves the record.** The scheduler's
+      third rung lays the template on the bundle grid, marked
+      SeasonalTemplate, where today it glitches and skips
+      (`gridworks-weather-forecast/src/gwwf/scheduler.py`); the facade
+      serves a location's template beside its bundles, and the record is
+      a DB table like the other four. gwwf sits on `main`: cut a `jm/`
+      branch; its spec is `wiki/gridworks-weather-forecast/executor/`.
+   4. **The scada reads the template.** `GwwfWeatherSource` pulls and
+      persists the template beside the bundle record and fills from it;
+      the hand-kept list and its note go. When a box gets both records
+      is the provisioning design's question (Draft, no issue yet), not
+      this spoke's.
 
 ### Shape
 
-Everything the scada reads off `weather.json` is in `gw.weather.forecast`
-or derivable from the bundle record it names. The scada holds two
-persisted sema instances, not one: the last forecast message and the
-bundle record (`gw.weather.forecast.bundle.gt`, fetched rarely from
-`GET /{party}/bundles`), because slice times and units live on the
-record, not the message.
+Answered and canonized: how the scada reads the forecast pair, why the
+96 hours stay, fill as a fidelity, and the station as the location are
+`executor/weather-forecast.md`. What remains here is the gwwf side that
+spoke step 7 builds.
 
-| Scada reads | `weather.json` | `gw.weather.forecast` |
-| --- | --- | --- |
-| hourly times | `time`, unix s | `FirstSliceStart` + the record's `SliceDurationSList` |
-| outdoor temp | `oat`, whole °F | `TempValues`, scaled per the record's Unit (`FahrenheitX100`) |
-| wind | `ws`, whole mph | `WindSpeedValues`, scaled per Unit (`MilesPerHourX1000`) |
-| horizon | 96 h kept, 48 h used | the bundle's `TotalSlices` |
-| staleness | `time[-1] >= now + 48 h` | `SourceUpdatedTime`, `MessageCreatedMs`, `Fidelity` |
-| fill | coldest-of-month list in code | `Fidelity: SeasonalTemplate` from gwwf |
-| location | scada lat/long sent to NWS | `BundleName`; the location is the station's |
+## Proof is in the pudding
 
-**The 96 hours stay.** The persisted copy covers the box losing the
-internet, an outage gwwf's Stored rung cannot reach; 96 h keeps 48
-real hours through a two-day cut-off, and a day-old forecast beats a
-seasonal constant for the required-energy and swt sums. A 96-hour
-hourly bundle is its own slug in gwwf; the FLO takes its first 48 h
-and never asks for more.
-
-**Fill is a fidelity, not a slug.** gwwf publishes on one bundle and
-marks each message Live, Stored or SeasonalTemplate; a consumer never
-switches subscription when the source dies. The template is one
-record per weather location (a new gwwf word; the scada's twelve
-monthly values are the Millinocket row). The scada persists its
-station's template beside the forecast and uses it only when cut off
-from gwwf past its 96-hour copy.
-
-**Location is the station's, never the house's.** The scada and the
-LTN both send house lat/long to api.weather.gov today; that stops.
-The NWS gridpoint is the forecast channel's `SourceLocator`. The ops
-word names the bundle and nothing else; method and station are read
-off the record, never parsed from a name.
-
-**No interpolation at the scada.** gwwf's NWS adapter verifies the
-product is contiguous and rejects a short one, so a forecast that
-arrives is complete and aligned; interpolated replay exists only for
-observations. The scada's `if 'temperature' in period` filter, which
-drops a missing hour and shifts every later index, goes with the
-fetch.
-
-gwwf dependencies, named in the gwwf issue, not here: the 96-hour
-bundle slug; the per-location seasonal template word and the rung
-built on it; `BundleName` on `gw.operational.params`.
-
-## Do this next
-
-**▶ DO THIS NEXT: step 1,** the code review from sol.
 
 1. **Code review from sol** ("For the review" below).
 2. **Run in the beta windows for maple and spruce** ("What to check in

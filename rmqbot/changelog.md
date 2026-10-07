@@ -11,6 +11,52 @@ repo's git history.
 
 Newest at the top.
 
+## <!-- pending commit --> 2026-10-07 — cert inventory: platform-service certs minted and placed, not yet in use
+
+The platform-service certs, cut through `mint-client-cert.py mint`
+and delivered to their boxes: weather (a GNode, `--g-node
+hw1.isone.weather`), then gnr, ear, gjk and the alerter (Services; FIS
+minted each principal id as the CN; the alerter's sits under the `alerts`
+login until the broker-alerter login exists). Placed, not in use: a gwbase actor with a
+`rabbit.tls` block offers only the GRIDWORKS SASL mechanism at login and
+the prod broker does not list it yet, so weather, tried first, refused
+to connect and was reverted to password auth within a minute. No
+password fallback is built, by decision; the TLS blocks are set at notch
+4 (OPS-420).
+
+## 2026-10-07 — cert inventory: the CRL carries one revoked serial; the prod CRL check throwaway (`7430902`)
+
+The prod revocation check ran against the live broker: a throwaway
+client cert was recorded, connected on 5671 and 8883, revoked, and
+refused at the next handshake on both ports with no broker restart
+while every fleet connection stayed up. The inventory records the
+CRL's new signing time and the throwaway's revoked row; the ledger on
+certbot keeps the row forever (a revoked serial is a claim about
+history), while the cert and key material was deleted.
+
+## 2026-10-07 — rmqbot: recipe for a compose/config change (container recreate); analytics password read from .env (`503c928`)
+
+Both broker users are now re-creatable from `rmq-docker/.env` alone:
+`analytics.ear.reader`'s password joins the default user's there as
+`RMQ1_ANALYTICS_PASSWORD`, and the "Runtime-created users" recipe reads
+it on the host instead of a paste. The recreate recipe's first step
+drops the clipboard. Why: the first recreate (the CRL mounting, the
+same day) stalled on a paste; a recipe that needs 1Password mid-outage
+is a recipe that lengthens the outage.
+
+## 2026-10-07 — rmqbot: recipe for a compose/config change (container recreate) (`9aa416e`)
+
+`rmqbot/instance-README.md` gains "Change compose or config (a recreate)"
+between the definitions reload and stop/start: nine steps from "merged on
+main" through copy-and-diff, baseline, the recreate and its log watch,
+users back, clients back, the change's own check, rollback and record.
+Why: the CRL mounting was the first change to the container's compose
+and config since the box was built, and the only runbook for it lived in
+a design file that gets deleted on completion; box operations start in
+the box's instance-README. The folders list names `advanced.config` and
+`crl/`. Written before the recreate it was first used for (outage about
+one minute: boot time plus the users-back step).
+
 ## 2026-10-07 — Broker checks the CA's CRL: advanced.config carries the TLS block, crl/ mounted; cert inventory from the ledger (OPS-420, `97cd649`)
 
 The broker side of client-cert revocation. The

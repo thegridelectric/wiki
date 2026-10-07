@@ -118,12 +118,21 @@ concern yet.
 ## `/auth/topic`
 
 `permission: read` (every MQTT subscribe) → allow: authorization is about
-authority, not visibility. `permission: write`, on a routing key with at
-least two segments (fewer → deny):
+authority, not visibility. The write rule carries the integrity weight; a
+read rule would make every future consumer (admin console, analytics tap,
+debugging session) need grant plumbing before it could listen. The
+accepted cost, named: a stolen fleet cert can passively read fleet traffic
+until its principal is suspended. Telemetry and prices are not secrets; if
+a payload class ever becomes confidential, the remedy is encrypting that
+payload, not broker read ACLs. `permission: write`, on a routing key with
+at least two segments (fewer → deny):
 
 - The connection's identity is a GNode in the mirror → allow iff segment 2
   (index 1) equals the identity's current alias in wire form (dots →
-  hyphens). The alias is looked up per verdict; the broker caches the
+  hyphens). One rule covers all three transport grammars: `rj`, `rjb` and
+  `gw` all put the from-alias at segment 2 (the `gw` grammar's destination
+  segment is a short spaceheat-node name, local to the house and never
+  FIS's business). The alias is looked up per verdict; the broker caches the
   verdict per (connection, exchange, routing key), which is why a rename
   kills the connection (hub, "Registry changes force reconvergence").
 - Not in the mirror but an `Active` **Service** principal → allow. A

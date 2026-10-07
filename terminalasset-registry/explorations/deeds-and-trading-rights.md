@@ -1,11 +1,13 @@
 # TaDeed and TaTradingRights without Algorand
 
-Status: Draft · Pass 0 · Updated 2026-09-09
+Status: Draft · Pass 0 · Updated 2026-10-07
 
-> What this is: the successor to the legacy Algorand ownership plane —
-> TaDeed (proof a validated terminal asset is owned), TaTradingRights
-> (transferable, clawback-able authority to trade/dispatch it) — rebuilt on
-> validator-signed records instead of NFTs. An exploration: the shape is
+> What this is: the successor to the legacy Algorand ownership plane,
+> rebuilt on validator-signed records instead of NFTs. This doc holds the
+> TaTradingRights half (transferable, clawback-able authority to trade and
+> dispatch a validated asset) and the enforcement points; the TaDeed and
+> its infrastructure are the ta-deed-infrastructure design (Linear
+> OPS-574). An exploration: the shape is
 > converged enough to write down, the word schemas and registrar home are
 > not. Extends the original intent capture at
 > `wiki/gridworks-scada/explorations/deeds-and-trading-rights.md`
@@ -41,25 +43,12 @@ not.
 
 ## The two planes — opposite rename semantics, on purpose
 
-The legacy design fused transport identity and ownership attestation into
-one credential story. They separate:
-
-- **Connection cert** (transport plane, mtls-fis-auth): binds the immutable
-  `GNodeId` to a keypair. Says nothing about location, metering, or
-  ownership. A rename **never** reissues it — a rename must never brick a
-  house's comms; convergence is a FIS connection kill and re-check.
-- **TaDeed** (authority plane, this doc): a validator's signed attestation
-  of *a physical, metered asset at a grid location, owned by someone*. For
-  a TerminalAsset the alias encodes the copper path — the market context
-  the asset settles in — so **the alias belongs in the deed**, and a
-  re-parent that changes the copper path invalidates the location claim:
-  the deed is swapped (a retire record + a fresh issue), the legacy
-  ceremony reborn as two signed records. An alias change provokes a new
-  *deed*, never a new *connection cert*.
-
-This answers the origin capture's open question ("is the deed a separate
-cert from the connection cert, or layered on it?"): separate plane,
-different document kind, deliberately opposite rename behavior.
+The connection cert (transport plane, OPS-420) and the TaDeed (OPS-574)
+are separate documents with deliberately opposite rename behavior: a
+rename never reissues the cert and always provokes a new deed. The
+deed side is specified in the ta-deed-infrastructure design (Linear
+OPS-574) "Two planes, opposite rename semantics". TaTradingRights ride
+the deed side: rights exist only over a valid deed.
 
 ## Mechanism: validator-signed sema records
 
@@ -71,10 +60,8 @@ X.509 deed-certificates were considered and rejected: certs are not
 transferable, clawback becomes revocation, and revocation distribution is
 exactly the machinery the fleet does not have.
 
-- The deed binds **TaId (the TA's GNodeId — the immutable anchor) + the
-  alias at issue (the attested location) + the owner (the homeowner's
-  principal) + the attested facts (GPS location, asset type, power
-  metering) + the validator's identity**.
+- What the deed binds and how it is signed: ta-deed-infrastructure
+  (OPS-574) "The deed".
 - **Issue, transfer, clawback, retire are each a new signed record** — a
   transfer *is* a record, the semantics NFT ownership provided, without a
   chain. The append-only record sequence is the ledger; the eventstore is
@@ -126,72 +113,29 @@ meets authority (this plane's *what may they do*):
 
 ## Lifecycle ordering — cert first, deed second
 
-1. Registry rows created (TA + scada + LTN, `Pending`) — identity exists.
-2. Provisioning mints the connection cert (`CN=<GNodeId>`) — the scada can
-   join the broker and telemeter. Commissioning needs comms before a
-   validator ever visits.
-3. TaValidator attests on site → **TaDeed** issued. (The legacy
-   `GNodeStatus` gate carries forward: deed- and rights-bearing contracts
-   require the TA `Active`.)
-4. The deed enables the **TaTradingRights** grant to an LTN.
-5. Only now does any party hold dispatch or market authority over the TA.
-
-A freshly certed, undeeded scada connecting and emitting telemetry with
-nobody entitled to dispatch it is the correct commissioning state, not a
-gap.
+Specified in the ta-deed-infrastructure design (OPS-574) "Lifecycle:
+cert first, deed second". What this doc adds: the deed enables the
+**TaTradingRights** grant to an LTN, and only then does any party hold
+dispatch or market authority over the TA.
 
 ## Deeds attest reality — in every universe
 
-A TaDeed attests the **validation state** of a device, in any universe. A
-TaValidator stakes a signature on what the asset is, and the deed carries
-that finding as a `ValidationState` a reader must consult; the deed's
-existence alone says nothing. First pass of the enum: `UnValidated` (no
-deed, the scada's own default), `ValidatedRealAssetAndGps` (physical load
-drawing electricity where its alias and GPS say), `ValidatedRealAssetIncorrectGps`
-(physical load, real electricity, not at the declared location, for example
-run against Millinocket prices on `hw1` from a bench elsewhere), and
-`ValidatedSimulatedAsset` (no electricity drawn anywhere).
-
-So a simulated asset does get a TaDeed, marked as such. What the validator
-vouches for in that case is small (the identity declares itself simulated,
-the layout carries sim devices, the universe is dev or hybrid) and the deed
-admits to dev and hybrid universes, never `w`. Hybrid universes do not
-*require* deeds (trust by configuration/mTLS, gnr executor "Universes"), but
-hybrid's real houses MAY receive real ones, so the full validator ceremony
-can be dry-run on real Millinocket houses before the `w` universe exists.
-The transport-plane consequences (GNode `Pending` with a cert admits
-telemetry only; an `UnValidated` scada rejects every LTN contract offer with
-its own rejection word) are recorded under OPS-420.
-
-Non-copper services (weather, ear, gjk) get no deed — nothing physical to
-attest. Their complete trust story is the transport plane: identity cert,
-FIS principal, publish-time alias pinning, `validated-user-id` — which
-already gives consumers broker-authenticated provenance on every message.
+The `ValidationState` values, simulated-asset deeds and the universe
+rule are in the ta-deed-infrastructure design (OPS-574) "The deed" and
+"Simulated assets"; the scada-side consequences are canonical in the
+scada executor `scada-ltn-link-state.md` "The trading gate". Non-copper
+services (weather, ear, gjk) get no deed and no trading rights; their
+whole trust story is the transport plane.
 
 ## Open
 
-- **Registrar home.** Who projects current-holder state: gnr (it already
-  serves the identity forest), a `w`-universe registrar sibling, or FIS
-  (which consults but maybe shouldn't own). The terminalasset-registry
-  domain exists to answer this.
-- **Word schemas** — `ta.deed` v000 and `ta.validation.state` exist in
-  staging (TaId, TaAlias, ValidationState, ValidatorAlias, IssuedS; no
-  signature, no owner yet). Still open: `ta.trading.rights`, the
-  retire/transfer/clawback record kinds, the owner principal field, and
-  the signature scheme and canonical form (sema words are the payload; the
-  signing convention is new ground).
-- **Validator onboarding** — how a TaValidator's key is issued, scoped, and
-  retired; whether validator certs carry constraints or FIS holds a
-  `validator` principal kind (the principal-model exploration has the
-  slot).
-- **Re-parent granularity** — does every re-parent invalidate the deed, or
-  only one that changes the market context (a cosmetic rename leaves
-  metering and location physically unchanged)? Lean: the deed pins the
-  copper path; any copper-path change re-attests. Needs a grill.
+The deed-side questions (registrar home, validator onboarding, re-parent
+granularity, scada verification posture) moved to OPS-574.
+
+- **Word schemas** — `ta.trading.rights` and the transfer/clawback record
+  kinds. The deed words and the signing convention are OPS-574's.
 - **SLA encoding** — what of the SLA is machine-readable in the rights
   record (hash only vs. structured clawback conditions).
-- **Scada-side verification posture** — see Enforcement; decide with the
-  `w`-universe design.
 - **Fold the origin capture** —
   `wiki/gridworks-scada/explorations/deeds-and-trading-rights.md` becomes a
   pointer here (or is deleted) once a session holds both claims.

@@ -185,6 +185,10 @@ The credentials class holds no secret and therefore does not erase itself
 after connecting. A broker that does not offer the `GRIDWORKS` mechanism
 gets `(None, None)`, which pika reads as an ordinary negotiation miss — so a
 broker still on password auth fails cleanly rather than crashing the actor.
+There is no password fallback, by decision: an actor with a `rabbit.tls`
+block connects only to a broker that offers `GRIDWORKS`, so the block is
+set only once that broker does (a cert placed on the box with the block
+unset is the intended interim state).
 
 **Switching an actor to cert-plus-claims is config, not code.** A
 `rabbit.tls` block on the settings (`ca_cert_path`, `cert_path`,

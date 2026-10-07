@@ -10,6 +10,30 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-07 — The derived generator and the LTN read the sema forecast (OPS-392, `ac9e0828`)
+
+**What:** `WeatherSource.forecast` returns the `gw.weather.forecast`
+message and its `gw.weather.forecast.bundle.gt` record as a pair, or
+None when no bundle record is stored or reachable; the pair derives
+slice start times and unscaled °F / mph on request. The derived
+generator and the LTN hold the pair and read their hourly series off
+it; the derived generator no longer forwards a weather message to the
+LTN. The coldest-of-month fill is a `gw.weather.forecast` of Fidelity
+`SeasonalTemplate` on the stored bundle record. `SimWeatherSource`
+returns the same pair on a simulated bundle. The `weather.forecast`
+gwsproto twin, its test and its axiom-coverage allowlist rows are gone;
+`heating.forecast` keeps a fresh WeatherUid per forecast since the
+weather word carries no id. The weather source logs under the scada's
+base logger (`<base>.weather_source`): WARNING for a failed pull or a
+fill, INFO for a pull. Plant time in the weather path is read from
+`services.clock` (coverage, fill, the sim source's slices, the
+consumers' slicing); only the pull timeouts are wall time.
+
+**Why:** the legacy `weather.forecast` shape was a translation layer
+kept so the consumers were unchanged; with the service pull in place
+the consumers read the sema words themselves and the scada emits no
+word it does not own.
+
 ## 2026-10-07 — The scada pulls its forecast from the weather service (OPS-392)
 
 **What:** `weather_source.py` gains `GwwfWeatherSource` and loses the NWS

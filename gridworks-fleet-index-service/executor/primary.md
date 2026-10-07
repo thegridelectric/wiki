@@ -20,6 +20,16 @@ connections confirmed closed before the successor is admitted. Why a
 fleet needs this, told through one scada's day:
 [`day-in-the-life.md`](day-in-the-life.md).
 
+The check lives in the connect gate, and the gate carries the instance id,
+because an enforcement that reconciles *after* connect (management-API
+polling, event listeners) bounds the two-instances window only by the
+health of the reconciler, an unbounded window in the worst case. Two
+connections representing the same GNode is not acceptable. Forging an
+instance needs the identity's private key (the claims ride inside a
+handshake only the key-holder can complete), and single-writer then makes
+the theft loud: thief and rightful node supersede each other in a visible
+churn of auth events.
+
 ## Deployment
 
 **One FIS per broker box, colocated with the broker**, with its own small
@@ -70,6 +80,17 @@ survive): fail closed, by design.
    identity, and that every publish's `user_id` and routing-key from-alias
    match the connection's authenticated identity (`validated-user-id` +
    topic authorization).
+5. **Human principals prove authority per act, and no gateway holds it
+   for them.** Certificates onto the broker are GridWorks' single core
+   security mechanism; a web gateway that bridges a browser session onto
+   the broker SHALL NOT collapse that to the strength of a web session. A
+   human's proof is a phishing-resistant, hardware-bound credential
+   (WebAuthn/FIDO2 passkey) registered to their FIS principal, never a
+   password or bearer token; a high-impact command requires a fresh step-up
+   assertion, so a stolen session cannot actuate; the gateway forwards that
+   assertion to FIS and holds no standing authority to issue commands on a
+   session's behalf. It is a transport bridge, not an authority. The
+   impact ladder is `command-surface.md` rule 8.
 
 ## How the claims arrive
 
@@ -114,8 +135,8 @@ reconcile as the fallback — kills that identity's connections; the kill
 flushes the cache. The killed node then reconnects and **self-heals its
 alias**: its durable identity is its cert CN (the GNodeId), so it looks its
 own current alias up in gnr by GNodeId and reconnects with it — no
-provisioning redeploy. (The self-heal is a client contract, owned by the
-mTLS+FIS auth design and gwbase/proactor; FIS's part is only the kill.)
+provisioning redeploy. (The self-heal is a client contract of
+gwbase/proactor, not yet built; FIS's part is only the kill.)
 Convergence is immediate under the push, bounded by the reconcile interval
 without it.
 

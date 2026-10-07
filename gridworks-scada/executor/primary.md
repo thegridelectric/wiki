@@ -173,6 +173,7 @@ Normative across the domain — full statements in
 | Testing LTN↔SCADA (in-process harness) | [`testing.md`](testing.md) | Draft |
 | Experimentation rig (real-broker experiments) | [`experimentation-rig.md`](experimentation-rig.md) | Draft |
 | Required and usable energy (how the House0 store is judged ready for on-peak) | [`required-energy.md`](required-energy.md) | Draft |
+| Weather forecast (the forecast pair from the weather service, how the consumers read it, degradation and fill) | [`weather-forecast.md`](weather-forecast.md) | Draft |
 | Local control (selection, standby, the Nolan heating machine, the heat-pump watch, subscriptions, the top state, the dispatch refusal, the operating status) | [`local-control.md`](local-control.md) | Draft |
 | Cold house (the cold judgment, the latch, the dispatch refusal, the cold glitches) | [`cold-house.md`](cold-house.md) | Draft |
 | Magic thresholds (numbers decided in code; per-row disposition) | [`magic-thresholds.md`](magic-thresholds.md) | Draft |

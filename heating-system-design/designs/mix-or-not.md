@@ -7,7 +7,7 @@ and analysis under `experiments/` tests it against fleet data from all
 houses.
 
 > What this is: the work plan for the mix-or-not whitepaper
-> (`heating-system-design/mix-or-not.md`, in the heating-system-design
+> (`heating-system-design/mix-or-not/mix-or-not.md`, in the heating-system-design
 > repo): the ordered steps that turn
 > its claims register into tested claims. The paper holds the argument
 > and the findings; this file holds what to do next.

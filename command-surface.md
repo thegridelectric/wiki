@@ -103,8 +103,10 @@ surface is built against it.
    counterparty gets its own surface, one tier up, that the holder
    translates.
 8. **Authority scales with impact.** Low-impact commands ride a normal
-   session; high-impact ones need a fresh, hardware-bound assertion
-   (mtls-fis-auth, [OPS-420](https://linear.app/gridworks/issue/OPS-420)).
+   session; high-impact ones need a fresh, hardware-bound assertion. The
+   ladder: read < in-band setpoint < mode change < relay or actuator; the
+   strongest proof gates the strongest action. What the proof is, and that
+   no gateway holds it, is the FIS executor's invariant 5.
 9. **Say what happens when the counterparty is gone.** Every surface
    names its absent-counterparty behavior: admin session death returns the
    scada to Auto; contract loss returns it to LocalControl; the homeowner
