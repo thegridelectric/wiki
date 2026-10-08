@@ -13,17 +13,65 @@ Status: Draft · Pass 0 · Updated 2026-10-07
 
 The plan in June was to get one branch onto the fleet before the
 heating season. What happened instead was a rebuild of how the scada
-knows what it is. Layouts are authored in Sema and the scada boots from
-a layout word, an operational-params word and a deed. Actors read the
-layout instead of hard-coded name rosters. Relays, the DAC and
-thermistors resolve their pins from device-type records over one I2C
-bus, with a simulated backend. One liveness rule covers the pico
-actors, liveness is judged per channel, and a lost sensor reads
-unknown. The sieg loop is a package and a command node that owns its
-two relays. Command nodes ack or nack their boss. Temperature is a
-record that carries its unit, and the timezone and on-peak hours come
-from the ops word. The weather forecast comes from the weather service,
-not from the scada's own pull.
+knows what it is. A house is declarations the code reads rather than
+assumptions the code makes: its topology in the hardware layout (which
+pumps, valves, tanks and sensors exist and what each is for), its
+equipment in device-type records (which heat pump, which board, how
+each is spoken to), and its tuning in the operational params
+(thresholds, power levels, the control strategy). A new manifold, a new
+heat pump or a new control strategy is a new set of words to the same
+code, which is what lets the fall layouts arrive as layouts rather than
+forks.
+
+## Highlights
+
+- **Layouts authored in Sema.** The scada boots from a layout word, an
+  operational-params word and a deed; the in-repo layout generator is
+  gone to tlayouts. Actors read the layout instead of hard-coded name
+  rosters.
+- **Layout decoupled from parameters.** What a house is and how it is
+  tuned are two words with two lifecycles; a parameter change does not
+  regenerate a layout.
+- **Function decoupled from hardware.** A relay or a temperature sensor
+  is a function the layout declares; a device-type record says how the
+  board does it. Relays, the DAC and thermistors resolve their pins from
+  their records over one I2C bus with proper management and a simulated
+  backend.
+- **Thermostats, zones and whitewire circuits handled correctly.** A
+  zone's heat call is derived the same way whatever senses it: a
+  Hubitat thermostat, a whitewire-power reading beside a stat
+  temperature (house0), or an opto input beside a wired thermistor
+  (nolan and the sim). The layout composes the two raw inputs per zone
+  and the derived generator makes the call; a zone already calling at
+  boot is reported at once (`executor/hardware-layout.md`, the zone
+  sensing section). Most of the work is in; what remains is in the
+  nolan-local-control spoke.
+- **Tariffs as an abstraction.** The timezone and the on-peak hours come
+  from the tariff in the ops word, not from settings and not from three
+  hand-written tables (the old tables are in
+  `historical-executor/on-peak-clock.md`).
+- **Weather from the weather service.** The scada no longer pulls NWS
+  itself; it reads the service's forecast words and falls back to the
+  service's seasonal template, and refuses to boot without one
+  (`executor/weather-forecast.md`).
+- **Simulated time stubbed in.** One clock with wall,
+  coordinator-timestep and manual sources behind a single interface.
+- **Backup defined.** One judgment of a cold house and one cold-watch
+  actor serve every layout family; a cold house stops taking dispatch
+  until a person clears it (`executor/cold-house.md`).
+- **A command tree with acks.** Command nodes ack or nack their boss,
+  with a NotMyBoss nack when a command reaches the wrong handle; one
+  rule for who may send; gwadmin renders and drives the tree
+  (`executor/control-hierarchy.md`).
+- **Liveness per channel.** One liveness rule covers the pico actors,
+  liveness is judged per channel, a lost sensor reads unknown, and
+  field conditions become daily Warning glitches.
+- **The sieg loop as a package.** A command node that owns its two
+  relays, runs on the clock, and confirms each move
+  (`executor/sieg-loop.md`).
+- **Units and provenance carried.** Temperature is a record with its
+  unit; `is_simulated` is derived, simulated until proven real; a deed
+  with UnValidated status refuses LTN offers.
 
 ## Numbers, `jm/spruce-unlimbo` from 2026-07-01
 
@@ -31,7 +79,7 @@ not from the scada's own pull.
 | --- | --- |
 | Commits | 214 (Jul 20, Aug 26, Sep 132, Oct 36 to the 7th) |
 | Changelog entries | 218 |
-| App code `gw_spaceheat/` | +11.5k / −13.4k lines, net smaller |
+| `gw_spaceheat/` | +11.5k / −13.4k lines; the removals are the in-repo layout generator, the duplicate sieg loop and the old I2C multiplexers |
 | Test functions | 102 → 947 |
 | Test files | 56 → 161 |
 | Files deleted | 75, among them the in-repo layout generator, the 1,510-line old sieg loop, and 26k lines of hand-kept layout JSON |
