@@ -1,11 +1,11 @@
 # Scada provisioning (design)
 
-Status: Draft · Pass 0 · Updated 2026-10-07
+Status: Draft · Pass 0 · Updated 2026-10-07 · Linear: OPS-576
 
 > What this is: when, in the life of a Pi scada, each thing it needs
 > arrives on the box, and which route is the default. Opened to hold the
 > weather records' answer; the rest of the provisioning sequence is
-> gathered here as it is decided. No Linear issue yet.
+> gathered here as it is decided.
 
 ## Weather records arrive at or after TaValidation
 

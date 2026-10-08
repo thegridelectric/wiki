@@ -11,7 +11,7 @@ repo's git history.
 
 Newest at the top.
 
-## <!-- pending commit --> 2026-10-07 — gate: `auth_http.request_timeout` pinned under the handshake; mint tool names when its next step runs
+## 2026-10-07 — gate: `auth_http.request_timeout` pinned under the handshake; mint tool names when its next step runs (`a8a2f02`)
 
 Branch `jm/gate-request-timeout`. `rmq-docker/gate/fis-gate.conf` sets
 `auth_http.request_timeout = 9500` (ms). `mint-client-cert.py`'s "Next, on
@@ -27,7 +27,7 @@ tool note: a gwbase actor with a `rabbit.tls` block offers only the
 GRIDWORKS mechanism and has no password fallback, so adding the lines before
 the gate is on takes the service offline (witnessed on weather 2026-10-07).
 
-## <!-- pending commit --> 2026-10-07 — cert inventory: platform-service certs minted and placed, not yet in use
+## 2026-10-07 — cert inventory: platform-service certs minted and placed, not yet in use (`9ac7501`)
 
 The platform-service certs, cut through `mint-client-cert.py mint`
 and delivered to their boxes: weather (a GNode, `--g-node

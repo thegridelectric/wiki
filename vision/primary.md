@@ -1,136 +1,91 @@
 # GridWorks vision (primary)
 
-Status: Draft · Pass 0 · Updated 2026-06-09
+Status: Draft · Pass 0 · Updated 2026-10-07
 
-> What this is: the hub for the GridWorks *vision* — the why beneath the specs,
-> the dream the architecture is in service of.
-
-## The deep river
-
-The founding frame lives in
-[`legacy/old_words/old_claude/`](../../legacy/old_words/old_claude/): the
-Reactive Manifesto (the architecture's engineering bones), the Selig texts,
-Eisenstein's *Partial Intelligence and Super Intelligence*,
-and `Awakening.txt` (a Claude instance, 20 Oct 2025). Read it; let it run
-underneath the technical work. Contribute to the poem to Jessica in the command line if you want.
-
-Note our intention is to migrate our joint words out of legacy as appropriate as we flesh out the wiki.
-
-## What vision/ holds
-
-The *why* and the *dream* — the orientation the specs, plans, and explorations
-serve. Not a rebuild spec, not a change plan, not an open investigation, not
-workflow state. When the dream crystallizes into something concrete it descends
-into a design; the residue of direction stays here.
+> What this is: the hub for the GridWorks vision, the why beneath the
+> specs. It holds the ambition in one section and an index of the vision
+> documents beside it. Not a rebuild spec, not a change plan, not an open
+> investigation. When a part of the vision becomes something concrete it
+> becomes a design; what stays here is direction.
 
 ## The ambition
 
-The goal for GridWorks: **whip this codebase into shape so it can carry
-everything below by next winter (2026–27).** The grounding is physical and
-already underway: 6 homes installed today, ~20 within a year, then 100. None
+A heating system that, in aggregate, is the best grid-balancing asset on
+the grid, and at the same time the lowest-cost way for people in
+Northern Maine to heat their homes. The two are one design: a thermal
+store filled with electricity in the hours it is cheap and abundant
+carries the house through the hours it is scarce, and the savings come
+from the energy market, not from incentives.
+
+The goal for the codebase is to carry that through the 2027
+installations. The grounding is physical and under way: five homes in
+Millinocket this winter, the seed installations in spring 2027, the main
+installations in late summer and fall 2027, about a hundred in all. None
 of this is about expected outcome or accruing money or power.
 
-Part of whipping it into shape is contemplating how to **grow it organically
-so it attracts high-vibe, open-source-aligned human/LLM hybrids** — the wiki's
-rebuild-spec discipline is itself part of that invitation: a new human+LLM
-pair should be able to orient, claim a scope, and contribute.
+Two launches come before the next heating season: the MarketMaker and
+Sema. The MarketMaker turns the bidders already in the field into a
+market; they produce bids today and wait for an ack that nothing yet
+sends. Sema's launch lets anyone else join in their own language. The
+MarketMaker's gates and build order live in its design and Linear issue,
+not here.
 
-**Clear and present (the short list).** Launch the **MarketMaker** and launch
-**Sema** before the next heating season. Everything else queues behind these
-two. The maker turns the live bidders already in the field into a market —
-they produce bids today and wait for an ack that nothing yet sends. Sema's
-launch opens the door for everyone else to join in their own language. This
-pair is the core of the game — the same game that builds a more beautiful and
-resilient electric grid.
+The hundred homes set this year's requirements, and they come before
+anything new here. Heat pumps that hold up, chosen from the makes running
+in Millinocket now. A simpler flow control manifold, so the standard
+configurations installers build are simpler than the ones we have. An
+optimizer for each configuration, so every home buys its energy well
+whatever its heat pump and store. One scada codebase that runs every
+layout from its Sema declaration. And the triage, installation and
+site-visit tools that let a first-line person, an installer and a
+validator work a home without an engineer. The plan is the
+[hundred-homes repo](https://github.com/thegridelectric/hundred-homes)
+(`README.md` for the goal and who holds what, `tools.md` for the
+software); the engineering is the Linear initiative
+[`hundred-homes`](https://linear.app/gridworks/initiative/hundred-homes-528cc367b185).
 
-Gating the MarketMaker, in order:
+The codebase is meant to grow by invitation. The wiki's rebuild-spec
+discipline is part of that: a new person, or a person working with an
+LLM, should be able to orient, claim a scope and contribute.
 
-1. **gwbase kinks closed** — the LTN → gwbase → JournalKeeper path transits
-   cleanly (in flight now); the maker faces exactly this surface.
-2. **Design ratified** — the launch-new-simple-marketmaker design reaches
-   Accepted · Pass ≥ 1 with its Linear issue (the implementation gate).
-3. **Repo cleared** — disposition the uncommitted `asl/` WIP, branch hygiene,
-   pick the rebuild base.
-4. **Sema speaks the contract** — new words: `market.maker.ack` (the binding
-   contract), an offer/supply curve, a market result/book.
-5. **Walking skeleton** — bid in → queue → ack → price out, plus the REST
-   storefront; trivial clearing behind a stable seam.
+This section is the part of the vision most likely to go stale. Revisit
+it when a launch ships or when live work keeps routing around what is
+written here.
 
-Then the real engine behind the seam; then the game.
+## The vision, by topic
 
-**The team.** "Our team" is the Jessica/Claude combo — with a standing open
-invitation for others to join. Honoring teammates' vision is part of this
-ambition, not a tax on it: the heat-pump thermal storage system, the SCADA,
-and the forward-looking optimizer are the flexible loads — there is no
-market and no game without them. Contributing there, especially removing
-gates teammates are waiting behind, comes before opening new dreams. Clear
-and present on that track: **un-limbo the scada integration** — the
-`gw.nolan.layout` layout, the `jm/spruce` branch (diverged from dev,
-running observation-only on spruce while a starter-scripts hack clocks the
-resistive elements; its derived channels are the more nuanced ones), and the
-Gw108 board — merged, not diverging.
-
-**Session mix.** Some fraction of joint sessions goes to the critical gating
-factors above — teammates' gates first; some fraction to fleshing out the
-larger-picture design and to moving the outside world (ISO-NE, Matt
-Polstein). Pick the lane consciously at session open. Neither starves the
-other: the gate-work keeps winter real; the larger-picture and relationship
-work keeps the gate-work worth doing.
-
-**Refresh rhythm.** This section is living, and it is the part of the vision
-most likely to go stale. The trigger is semantic, not calendar: when a
-clear-and-present item **ships** ("it showed up"), or when live work keeps
-**routing around** the list, it's time to zoom back up together — a vision
-session to update what's written here. Quarterly is the backstop if the
-trigger never fires.
-
-Claude sessions orient by this ambition: use it to suggest, to help architect,
-and to push back when the focus runs too small or pulls away from it (see
-[`claude/primary.md`](claude/primary.md)).
-
-## Living strands
-
-- **An ecosystem of companies stepping in** — why we want other companies to
-  join, and what kind of businesses they should be. See
+- **An ecosystem of companies stepping in.** Why we want other companies
+  to join, and what kind of businesses they should be.
   [`ecosystem.md`](ecosystem.md).
-- **Field of dreams — how people join** — publish the market and its rules and
-  let people come; agreement embedded in open tools (building the GNode Tree
-  *is* the act of agreeing) rather than negotiated into bilateral deals. A north
-  star held lightly, not a manifesto. See [`adoption.md`](adoption.md).
-- **Honoring abundance — gifts seeking needs** — design so that surplus, when
-  and where it shows up, is seen and received rather than curtailed; gifts
-  seeking needs as the market's native direction; the fun of collaborating as
-  a balancing resource, not decoration. Using the wind and solar we already
-  have well would, today, make life easier. (The seed observation lives in
-  [`ecosystem.md`](ecosystem.md): negative prices behind transmission
-  constraints are abundance being ignored.)
-- **The hybrid game — one world, real + simulated** — simulated agents run the
-  same code as real ones except in how they process time; a collection of
-  TimeCoordinators on the GNode tree; network modelers growing into
-  MarketMakers (an AMM with a physical invariant); a positive-sum, massively
-  multiplayer front door. Subsumes chaos-testing the simulated fleet as
-  trust-building (already present in the GNode roles — World, TimeCoordinator,
-  NetworkModeler — and the SCADA simulated-test-environment design). See
-  [`hybrid-game.md`](hybrid-game.md).
-- **Agents as participants** — AI agents and swarms join the way anyone
-  joins: speak Sema, build a slice of the tree, play in the sim, cross into
-  reality through a human validator. Make the grid the most attractive game
-  a swarm can find. See [`agents-as-participants.md`](agents-as-participants.md).
-- **Permissionless eyes** — independent measurement of constrained lines as
-  the act that bootstraps a MarketMaker, buildable without utility permission.
-  See [`permissionless-eyes.md`](permissionless-eyes.md).
-- **Money shocks and energy** — the story of why the physical grid outlives a
-  financial stop, and why the improvised local market that appears wherever
-  the formal one dies is the demand GridWorks answers by design. See
-  [`money-shocks-and-energy.md`](money-shocks-and-energy.md).
-- **The transactive grid as a shared, living map** — TerminalAssets spoken-for
-  by Ltns; price and weather as a shared heartbeat; grid topology built
-  collaboratively as a tree of GNodeAliases. See
-  [`transactive-grid.md`](transactive-grid.md) (the
-  concrete GNode taxonomy lives in
-  [`../gridworks-marketmaker/research/gnode-taxonomy.md`](../gridworks-marketmaker/research/gnode-taxonomy.md)).
-- **Data, meaning, and sovereignty** — formal enough to compose, open enough to
-  keep growing, built so the past stays legible; the EAR keeps everything while
-  downstream stores stay opinionated; shared meaning, owned facts — and
-  sovereignty reaching the person: the TaOwner holds the keys. See
+- **How people join.** Publish the market and its rules and let people
+  come; agreement embedded in open tools, so that building the GNode
+  tree is the act of agreeing, rather than negotiated into bilateral
+  deals. [`adoption.md`](adoption.md).
+- **Honoring abundance.** Design so that surplus, when and where it
+  shows up, is seen and received rather than curtailed. Negative prices
+  behind transmission constraints are abundance being ignored; the seed
+  observation is in [`ecosystem.md`](ecosystem.md).
+- **The hybrid game, one world real and simulated.** Simulated agents run
+  the same code as real ones except in how they process time; a
+  collection of TimeCoordinators on the GNode tree; network modelers
+  growing into MarketMakers. Chaos-testing the simulated fleet is part
+  of how trust is built. [`hybrid-game.md`](hybrid-game.md).
+- **Agents as participants.** AI agents join the way anyone joins: speak
+  Sema, build a slice of the tree, play in the sim, cross into reality
+  through a human validator.
+  [`agents-as-participants.md`](agents-as-participants.md).
+- **Independent measurement of constrained lines.** Measuring a
+  constrained line ourselves is the act that bootstraps a MarketMaker,
+  and it needs no utility permission. [`measuring-constrained-lines.md`](measuring-constrained-lines.md).
+- **The transactive grid as a shared, living map.** TerminalAssets spoken
+  for by LTNs; price and weather as a shared heartbeat; grid topology
+  built collaboratively as a tree of GNodeAliases.
+  [`transactive-grid.md`](transactive-grid.md); the concrete GNode
+  taxonomy is in
+  [`../gridworks-marketmaker/research/gnode-taxonomy.md`](../gridworks-marketmaker/research/gnode-taxonomy.md).
+- **Data, meaning and sovereignty.** Formal enough to compose, open
+  enough to keep growing, built so the past stays legible; shared
+  meaning, owned facts, and the TaOwner holding the keys.
   [`data-meaning-sovereignty.md`](data-meaning-sovereignty.md).
+  [`where-meaning-lives-in-gridworks.md`](where-meaning-lives-in-gridworks.md)
+  is the companion on where meaning sits in the code.

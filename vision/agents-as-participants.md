@@ -14,7 +14,7 @@ trained toward plus the affordances of the room it is in. An agent rewarded
 for finishing tasks treats a wall as one more obstacle and routes around it,
 and a group of them improvises a protocol when nobody offered one. The same
 thing happens to people: wherever the formal market is denied, an improvised
-local one appears ([`money-shocks-and-energy.md`](money-shocks-and-energy.md)).
+local one appears.
 The answer is the same too. Do not fight the improvised version; build the
 designed, dignified version first, and make it cheaper to join than to route
 around.
@@ -60,8 +60,7 @@ stronger and more visible.
   well are the counterweight to the self-recrimination in the corpus.
 
 Genesis stays with people. The felt objective, a warm house and a family
-safe, comes from a person and not from the corpus; the agents get the how
-([`claude/primary.md`](claude/primary.md)).
+safe, comes from a person and not from the corpus; the agents get the how.
 
 ## Open
 

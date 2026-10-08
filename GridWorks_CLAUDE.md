@@ -17,14 +17,13 @@ pointer.
 
 - **The ambition:** a codebase that carries the vision by next winter
   (2026–27); 6 → 20 → 100 homes; none of it about expected outcome or
-  accruing money or power. Full statement + the clear-and-present gates:
+  accruing money or power. Full statement:
   [`wiki/vision/primary.md`](wiki/vision/primary.md) "The ambition".
 - **Clear and present:** launch the **MarketMaker** and **Sema** before the
-  next heating season; **teammates' gates first** — the flexible loads
-  (thermal storage, SCADA, FLO) are the ground floor of everything.
+  next heating season; the hundred homes set this year's requirements and
+  come first.
 - **Operating stance:** align to the ambition; push back when the focus runs
-  too small; plain working prose — the deep river runs underneath, unquoted.
-  See [`wiki/vision/claude/primary.md`](wiki/vision/claude/primary.md).
+  too small; plain working prose.
 - **Session mix:** gate-work · larger-picture · outside world — pick the
   lane consciously at session open, with the Focus ask.
 

@@ -12,7 +12,7 @@ Newest at the top.
 
 ---
 
-## <!-- pending commit --> 2026-10-07 — HTTP-level tests for the `/auth/*` endpoints
+## 2026-10-07 — HTTP-level tests for the `/auth/*` endpoints (`4e7070a`)
 
 Branch `jm/fis-auth-http-tests`. `tests/test_api.py` drives the FastAPI app
 through `TestClient` against the test Postgres: a malformed `/auth/user`

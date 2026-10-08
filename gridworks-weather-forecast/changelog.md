@@ -13,8 +13,7 @@ Newest at the top.
 
 ---
 
-<!-- pending commit -->
-## 2026-10-07 — The seasonal template rung (OPS-392)
+## 2026-10-07 — The seasonal template rung (OPS-392, `f4484ed`)
 
 The forecast ladder's third rung is built: when the live product fails
 and the stored horizon is absent or exhausted, the scheduler lays the
@@ -27,7 +26,9 @@ template is the fifth record kind: `seasonal_templates` table (alembic
 001, broadcast once on its location alias, listed by the facade at
 `/seasonal-templates` (every Start; a consumer takes the latest for its
 location, as the actor does at boot). Snapshot regenerated with
-`--allow-staged` since the word is staging. Tests: DB round trip and
+`--allow-staged` since the word is staging; the seed is latest-only, so
+the vendored create command is 001 and 000 leaves the snapshot. Tests: DB
+round trip and
 referential order, facade listing, broadcast tail, and three scheduler
 cases (no product, stored exhausted, no template).
 

@@ -206,12 +206,19 @@ is unchanged.
         enabled: a gwbase service has no password fallback, so it moves
         to cert plus claims only once the gate is on, with a bounded
         downtime (its restart) and a rollback of removing the three
-        `*_RABBIT__TLS__*` lines. Open: the house side. The six scadas and
-        six LTNs connect with certs over MQTT today and have no rows on
-        the prod FIS; at notch 4 their CN reaches FIS and a missing row
-        is a deny at the first reconnect. Mint their rows from the
-        ledger's CNs (`--kind GNode --g-node-id`), and read one box's
-        cert CN against the registry first.
+        `*_RABBIT__TLS__*` lines. ✅ The house rows: eleven GNode
+        principals minted 2026-10-07 from the ledger's CNs (five scadas,
+        six LTNs, `--kind GNode --g-node-id`); elm's scada row waits on
+        its cert being recorded (pi unreachable). Open, and the reason
+        the houses stay on their internal password users through the
+        gate window: the proactor's MQTT link sets paho's `client_id` to
+        a random uuid with its last segment stripped, and FIS requires
+        the MQTT `client_id` to be a uuid4 (the GNodeInstanceId) and
+        denies anything else as malformed, so at notch 4 every house
+        connect over MQTT would be denied. The fix is on the GridWorks
+        proactor fork (`gwproactor/links/mqtt.py`): `client_id` = the
+        instance id, stable for the process lifetime, with its test and
+        a battery leg before the houses move (OPS-420).
      3. **The gate** on `hw1-1`: the overlay recreate (`compose.gate.yaml`,
         host network), re-mint the two internal accounts, then watch
         `auth_events` fill as each service restarts onto its cert. From
@@ -227,20 +234,38 @@ is unchanged.
 
 ## Before the gate (FIS side, found 2026-10-07 reading code against the executor)
 
-Each goes in before the prod recreate; the first three are required,
-the rest are decisions to make and record in the executor.
+Each goes in before the prod recreate; the first three are required
+(two are in), the rest are decisions to make and record in the executor.
+
+**Do this next:** the sema word. Read `sema/spec/primary.md`, then the
+registry and authoring spokes for a type version; post the summary and
+wait for the go-ahead; then author `fis.instance.authorization.event/001`
+per the first bullet, regen, revendor the FIS snapshot, and make the
+malformed `/auth/user` path in `api.py` record with reason
+`MalformedRequest` (the HTTP test for it first). When that is in, the gate
+window in OPS-420 has no FIS-side precondition left open.
 
 - **Malformed denials are not recorded.** `api.py` returns deny on an
   undecodable `/auth/user` body with "No typed request to record
   against", so the executor's "every outcome is recorded" does not hold
   for the malformed path and `USER_REASONS` `Malformed` is unreachable
-  from HTTP. Record it.
-- **No HTTP-level `/auth/*` tests.** `test_api.py` covers `/ping` only;
-  form parsing, the `allow <run>` body and the background recording are
-  untested in pytest. Add them, with the malformed case first.
-- **The `auth_http` request timeout is unpinned.** `fis-gate.conf` sets
-  no `auth_http.request_timeout`; the battery rides the default. Pin it
-  below the broker's 10 s handshake budget and record the number in the
+  from HTTP. The word forbids it: `fis.instance.authorization.event/000`
+  requires `InstanceId` and `Run`, which a malformed request lacks.
+  Decided 2026-10-07: a new version `001` makes `InstanceId` and `Run`
+  optional; `PrincipalId` stays required (the cert CN, which the broker
+  always forwards) and the reason-determines-decision axiom is
+  unchanged. Then the malformed path records with reason
+  `MalformedRequest`. Sema spec change control applies: registry and
+  authoring read for a type version, summary back, go-ahead, then the
+  edit, regen, and the FIS snapshot revendored.
+- **HTTP-level `/auth/*` tests** ✅ `4e7070a` (branch
+  `jm/fis-auth-http-tests`): form parsing, the `allow <run>` body, the
+  denials and the background recording, through the FastAPI test client.
+  The malformed case is added with the `001` word above.
+- **`auth_http` request timeout pinned** ✅ `a8a2f02` (gridworks-infra
+  `jm/gate-request-timeout`): `auth_http.request_timeout = 9500` in
+  `fis-gate.conf`, under the broker's 10 s handshake and over the 9 s a
+  full supersession spends. The number still wants recording in the
   executor's budget reasoning.
 - **Read-through plus a kill can exceed the handshake budget.** A mirror
   miss costs the gnr timeout (5 s) before a kill's 8 s confirm; the

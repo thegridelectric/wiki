@@ -36,6 +36,7 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **gridworks-base** — [`designs/mock-transport-for-tests.md`](gridworks-base/designs/mock-transport-for-tests.md)
 - **gridworks-base** — [`designs/neutral-message-metadata.md`](gridworks-base/designs/neutral-message-metadata.md)
 - **gridworks-base** — [`designs/publish-backpressure.md`](gridworks-base/designs/publish-backpressure.md) (bound the marshaled-send queue; backlog follow-up to OPS-383; Linear OPS-384)
+- **gridworks-fleet-index-service** — [`designs/hundred-home-cert-mint.md`](gridworks-fleet-index-service/designs/hundred-home-cert-mint.md) (one provisioning act per house at 100 homes: GNode rows derived from the registry or minted by the tool; Linear OPS-575)
 - **gridworks-fleet-index-service** — [`designs/stand-up-fis.md`](gridworks-fleet-index-service/designs/stand-up-fis.md) (build + deploy the FIS auth service: FastAPI `/auth/*` + single-writer instance lease; reads grid-node-registry; 2026-summer; Linear OPS-422)
 - **gridworks-homeassistant** — [`designs/btu-meter-integration.md`](gridworks-homeassistant/designs/btu-meter-integration.md) (BTU meter → HA via HACS integration; Linear OPS-47)
 - **gridworks-data** — [`designs/disentangle-installations.md`](gridworks-data/designs/disentangle-installations.md) (split installations' four data kinds — registry-owned identity, sema-owned layout/params, PII to a new remote customer db by opaque id, auth to web-backend; retire the JSONB copies; Draft, OPS-473)

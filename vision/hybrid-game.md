@@ -39,7 +39,7 @@ Said precisely: a blockchain AMM prices against an arbitrary mathematical
 invariant (constant-product, x·y=k) with no referent in the world. This prices
 against a **physical invariant** — the line's actual capacity and measured
 flow. It is an AMM whose bonding curve is reality, updated by measurement
-(see [`permissionless-eyes.md`](permissionless-eyes.md)). The distributed
+(see [`measuring-constrained-lines.md`](measuring-constrained-lines.md)). The distributed
 conversation has a near-pun namesake in the literature: **ADMM** decomposition
 of OPF, where what neighboring nodes exchange while converging *are prices*.
 Sema is the shared-meaning substrate that literature never had: LLM and human

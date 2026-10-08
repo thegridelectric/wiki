@@ -10,8 +10,7 @@ repo's git history.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-10-07 — gw.weather.seasonal.template.gt and create.cmd 001 (OPS-392)
+## 2026-10-07 — gw.weather.seasonal.template.gt 000 and gw.weather.create.cmd 001 (OPS-392, `6cb1aee`)
 
 New staging word `gw.weather.seasonal.template.gt` 000: one record per
 weather location with the design-cold temperature of each month

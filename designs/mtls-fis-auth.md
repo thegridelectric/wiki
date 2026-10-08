@@ -123,15 +123,13 @@ Done items are marked ✅, the item in progress ◐.
     denials recorded, HTTP-level `/auth/*` tests, `auth_http` request
     timeout pinned);
   - the prod FIS holds a principal row for every identity that will
-    connect. It holds five today (weather as a GNode, four Services, read
-    2026-10-07 with `fis principal list`); the six house scadas and six
-    LTNs have none, and at notch 4 MQTT cert login sends their CN to FIS,
-    so without rows they are denied at the first reconnect. Mint them
-    from the ledger's CNs before the recreate, or keep the houses on
-    their internal password users through the window and migrate them
-    after. Decide which before the recreate;
-  - the MQTT fleet's `CONNECT client_id` is its GNodeInstanceId
-    (proactor), or the houses stay on password users until it is.
+    connect: ✅ sixteen rows 2026-10-07 (weather and eleven houses as
+    GNodes, four Services; `fis principal list`); elm's scada row waits
+    on its cert being recorded;
+  - the houses stay on their internal password users through the
+    window: the proactor's MQTT `client_id` is a random value FIS denies
+    as malformed (**mqtt-client-id** below), so the house flip is a
+    later step, after that change.
   The gridworks-alerter joins the list when it becomes a broker client
   (OPS-545); today it reads the journal DB and holds no connection.
 - **elm-ledger** record elm's scada cert when its pi is reachable.
@@ -156,6 +154,13 @@ here is the gate-on item above and:
   node reconnects, looks its current alias up in gnr by its GNodeId and
   reconnects with it, no provisioning redeploy (FIS `primary.md` "Registry
   changes force reconvergence"). Not built.
+- **mqtt-client-id** the proactor fork's MQTT link sets paho's
+  `client_id` to a random uuid with its last segment stripped
+  (`gwproactor/links/mqtt.py`); FIS requires the MQTT `client_id` to be
+  the GNodeInstanceId (a uuid4) and denies anything else as malformed.
+  Change: `client_id` = the instance id, stable for the process
+  lifetime, with its test and a battery leg on the MQTT side before the
+  houses move. Not built.
 - **user-id-client** gwbase sets `properties.user_id` to the connection
   identity on every publish, so the broker's validation (witnessed
   refusing a forged id on `hw1-2`) has something to check. Not built.

@@ -90,7 +90,7 @@ test first:
    SeasonalTemplate message is gwwf's own and the scada's fill reads the
    record. Months are the grid; the create command took a new version.
    Built, each with its test first:
-   1. ✅ **The word.** `gw.weather.seasonal.template.gt` 000, staging:
+   1. ✅ **The word** (sema `6cb1aee`). `gw.weather.seasonal.template.gt` 000, staging:
       LocationAlias, TempByMonth (twelve, January first, °F x100),
       Start, Id; axiom TwelveMonths. No wind and no unit fields: gw1.unit
       holds one temperature and one wind unit, so a unit field could take
@@ -100,29 +100,42 @@ test first:
       instead of the raw gridpoint is a separate fetch gap, not this
       spoke's.
    2. ✅ **`gw.weather.create.cmd` 001** (staging): Record gains the
-      template; 000 stays published. Sema suite green (812).
-   3. ✅ **gwwf builds the rung and serves the record** on
-      `jm/seasonal-template`: `seasonal_templates` table and migration,
+      template; 000 stays published. Sema suite green (812). Same commit.
+   3. ✅ **gwwf builds the rung and serves the record** (`f4484ed` on
+      `jm/seasonal-template`): `seasonal_templates` table and migration,
       insert-only create, broadcast on the location alias,
       `/seasonal-templates` on the facade, the scheduler's third rung
       (each slice at its UTC month's value, no wind, the downgrade
       glitch; no template still glitches and skips), the actor taking
       the location's latest Start at boot. The regen script passes
-      `--allow-staged`. **Not yet run:** the snapshot regen refuses a
-      dirty sema checkout, so gwwf's tests wait on the sema commit.
-   4. ✅ **The scada reads the template** on `jm/spruce-unlimbo`: the
-      `WeatherSeasonalTemplateGt` twin (`sema validate` OK), the template
-      kept beside the bundle record and pulled on the first fill, the
-      list and its note gone; a bundle without a template is no
-      forecast. Weather and named-type tests green.
+      `--allow-staged`; the snapshot is latest-only, so the vendored
+      create command is 001 and 000 leaves the snapshot. `ci.sh` green
+      (43 passed, docker up).
+   4. ✅ **The scada reads the template** (`109d4404` on
+      `jm/spruce-unlimbo`): the
+      `WeatherSeasonalTemplateGt` twin (`sema validate` OK), the list
+      and its note gone. The bundle record and the template are
+      provisioning: boot reads them from the config dir, pulls whichever
+      is missing, and raises `WeatherProvisioningError` without both, so
+      an install without the service fails at its first boot; with the
+      service reachable, the first boot pulls and keeps them. The test
+      conftest seeds both records into every per-test config dir beside
+      the ops params and the deed. Weather and named-type tests green;
+      full suite green (1559).
 
-   **▶ Do this next.** In order: commit sema (`jm/weather-seasonal-template`);
-   `scripts/regen_sema_snapshot.sh` in gwwf, then `./ci.sh` (docker up);
-   commit gwwf; mint the Millinocket template on hw1 with `gwwf create`
-   after the gwwf deploy runs the migration (the row is the scada's old
-   list, x100; Start 2026-10-07); then the spruce and maple windows pull
-   it with the next deploy. The ops-params drift the session hook reports
-   on all five boxes is the same deploy's side-by-side compare.
+   Not yet: no template exists on hw1, and no box runs this code. Step 7
+   closes when the Millinocket template is minted and a window scada
+   boots off it.
+
+   **▶ Do this next.** All three repos are in: sema `6cb1aee`, gwwf
+   `f4484ed` (`jm/seasonal-template`), scada `109d4404`
+   (`jm/spruce-unlimbo`). In order: push and deploy gwwf on hw1 so the
+   migration creates `seasonal_templates` (gridworks-infra hw1
+   instance-README); mint the Millinocket template with `gwwf create`
+   (the scada's old list, x100; Start 2026-10-07); push scada, and the
+   spruce and maple windows pull the template at their first boot after
+   the deploy. The ops-params drift the session hook reports on all five
+   boxes is the same deploy's side-by-side compare.
 
 ### Shape
 

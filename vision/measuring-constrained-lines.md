@@ -1,4 +1,4 @@
-# Permissionless eyes (vision)
+# Measuring constrained lines (vision)
 
 Status: Draft · Pass 0 · Updated 2026-06-09
 

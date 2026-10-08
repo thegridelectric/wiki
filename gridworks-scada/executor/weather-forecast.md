@@ -76,15 +76,15 @@ the scada:
    UTC month's template temperature and no wind, marked
    `SeasonalTemplate`. The fill lives in memory; it is never persisted or
    sent. The template is a third record kept beside the two
-   (`<alias>-gw.weather.seasonal.template.gt-000.json`), read first and
-   pulled from the facade's `/seasonal-templates` on the first fill that
-   finds none stored, taking the location's latest Start at or before
-   plant time.
-3. With no bundle record stored or reachable, or a bundle record but no
-   template stored or reachable, there is no forecast at all and a WARNING
-   says so: without the records there is no grid, unit or value to fill
-   on. When a box first receives its three records is the provisioning
-   sequence's question.
+   (`<alias>-gw.weather.seasonal.template.gt-000.json`).
+3. The bundle record and the template are provisioning. Boot reads both
+   from the config dir and pulls whichever is missing from the facade
+   (`/bundles`, `/seasonal-templates`, the location's latest Start at or
+   before plant time), writing it beside the others; a record neither
+   stored nor obtainable raises `WeatherProvisioningError` and the scada
+   does not start. A box installed without the service is found out at
+   its first boot, not at its first outage. Only the forecast message is
+   pulled on the scada's loop.
 
 A fill and a failed pull log at WARNING under the scada's base logger
 (`<base>.weather_source`); a successful pull logs at INFO.
@@ -100,10 +100,8 @@ wind_speed_mph)`.
 
 ## Open
 
-- A box's first boot with no internet and no records: the fill
-  requires a stored template, so such a box has no forecast until the
-  provisioning sequence places the records.
-- When the bundle record and the template reach a box: the provisioning
-  sequence.
+- Whether the provisioning sequence places the bundle record and the
+  template on a box before its first boot, or the first boot's pull is
+  the provisioning.
 - The LTN relays the forecast once the LTNs run; the scada's pull path
   is the interim.
