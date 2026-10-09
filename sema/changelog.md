@@ -10,6 +10,39 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-08 — git.commit format and gw.scada.commit 000 (OPS-7, `e3e2a10`)
+
+New published format `git.commit` (full 40-char lowercase hash, optional
+`-dirty`) and new staging type `gw.scada.commit` 000 (ScadaAlias,
+GitCommit, MessageCreatedMs), with the runtime template, indexes, hash
+pin and regenerated runtime. **Why:** nothing in the persistent store
+says which scada code was running; the scada announces its commit once
+per run at boot and JournalKeeper journals it. A new word rather than a
+`layout.lite` field because the commit is a fact about the running
+code, not the house. `firmware.commit` is not reused: it names the
+gridworks-pico commit and admits `unstamped`.
+
+## 2026-10-08 — promoting fis.instance.authorization.event 001 to published (OPS-422, `263c401`)
+
+`fis.instance.authorization.event` 001 goes staging → published; the
+diff is the status line, its hash pin and the public index. **Why:**
+FIS is a prod service and its vendored snapshot is a published-only
+build, so the word has to be published before FIS can carry it.
+
+## 2026-10-08 — fis.instance.authorization.event 001: InstanceId and Run optional, so malformed denials record (OPS-422, `a68df3a`)
+
+The FIS gate denies a `/auth/user` request whose claims do not decode,
+and the executor says every verdict is recorded, but `000` requires
+`InstanceId` and `Run`, which such a request never carries, so the
+malformed path was the one verdict with no record. `001` makes the two
+optional and keeps `PrincipalId` and `Transport` required: the broker
+always forwards the username, and the transport is known structurally
+(a `claims` param is AMQP, otherwise MQTT). Decision, Reason, the
+projection table and the axiom are unchanged; the upgrade is the
+identity. Staged, not published: promotion is the owner's act, and
+the prod FIS consumes the word only once published. The commit carries
+the regenerated indexes and runtime with the hand-written files.
+
 ## 2026-10-07 — gw.weather.seasonal.template.gt 000 and gw.weather.create.cmd 001 (OPS-392, `6cb1aee`)
 
 New staging word `gw.weather.seasonal.template.gt` 000: one record per

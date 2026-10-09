@@ -13,7 +13,7 @@ broker; not code review.
 > half. The parallel **admin / direct-relay** path (incident-mode, operator,
 > broker-mTLS, which *suspends* the SLA) is out of scope — it is already specified
 > in [`../gridworks-admin/executor/primary.md`](../gridworks-admin/executor/primary.md)
-> and depends on mtls-fis-auth ([OPS-420](https://linear.app/gridworks/issue/OPS-420)).
+> and rides the broker gate (FIS executor).
 
 ## Why the LTN brokers it (the core decision)
 
@@ -43,9 +43,9 @@ admin/incident path, which deliberately suspends the SLA.
 - **LTN → SCADA (prod broker).** The LTN already reaches the SCADA as its parent
   over the prod broker (the dispatch contract / link). Application commands ride
   this existing path; the SCADA accepts mode / param / preference commands **from
-  its LTN** (its authenticated parent). This leg hardens under mtls-fis-auth
-  ([OPS-420](https://linear.app/gridworks/issue/OPS-420)) when that lands, but
-  starts on the existing contract.
+  its LTN** (its authenticated parent). This leg hardens when the houses
+  and LTNs move onto the broker gate (OPS-578), but starts on the existing
+  contract.
 
 So this design's prerequisites are **light** next to the admin path: the LTN's app
 API plus new LTN↔SCADA message types, not operator certs or an admin gateway.
@@ -92,8 +92,8 @@ so wiring FIS is a swap.
 - **Authority scales with impact.** A session may carry a low-impact comfort
   preference, but a **high-impact command (mode / control-param change) requires a
   fresh hardware-bound assertion** — a web login alone is never enough to drive
-  control (cross-cutting invariant: mtls-fis-auth,
-  [OPS-420](https://linear.app/gridworks/issue/OPS-420)).
+  control (cross-cutting invariant: FIS executor `primary.md`
+  "Invariants (normative)", rule 5).
 - **SCADA-local safety backstop.** Independent of auth: the SCADA's local safety
   floors (freeze protection, max-SWT, …) hold **regardless of any remote command**,
   so a bad or spoofed LTN message cannot endanger a house. The SCADA acts on behalf
@@ -107,8 +107,8 @@ so wiring FIS is a swap.
 
 Incident-mode operator control of actuators is the **parallel** `gridworks-admin`
 path: broker-mTLS + FIS, TopState `Auto→Admin`, SLA suspended. A web admin
-controlling relays **depends on mtls-fis-auth**
-([OPS-420](https://linear.app/gridworks/issue/OPS-420)) and is **not** allowed
+controlling relays **depends on the broker gate** (FIS executor) and is
+**not** allowed
 over the weak password-only broker path. It does not ride this LTN-brokered
 surface; track its implementation separately.
 

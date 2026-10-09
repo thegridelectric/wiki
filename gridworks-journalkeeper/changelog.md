@@ -10,6 +10,10 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-09 — Track gwbase 0.5.15: user_id on every publish (`362cfa4`)
+
+gwbase 0.5.15 stamps `user_id` on every publish with the connection identity, so the broker's validated-user-id check verifies this service's publishes instead of skipping them (OPS-579); the floor and the lock move together so the deployed box installs it.
+
 ## 2026-10-06 — Load .env in forest_bootstrap
 
 `python -m gjk.forest_bootstrap` built `Settings()` without reading the

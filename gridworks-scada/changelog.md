@@ -10,6 +10,35 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-08 — Proactor pin to v4.1.13+jm3 (OPS-422, `97ea5806`)
+
+The fork's `v4.1.13+jm3` makes the upstream link's MQTT `client_id` a
+uuid4 minted once per process, which FIS reads as the GNodeInstanceId;
+the `+jm2` id was a stripped uuid FIS denies as malformed, so without
+this pin every house connect over MQTT would be refused once the gate
+goes on. The tag moves by hand in the five `requirements/` files that
+carry it (`base.in`, `base.txt`, `dev.in`, `dev.txt`, `drivers.txt`),
+so nothing else in the pins moves. The laptop venv runs the fork as
+an editable install and is unaffected; a box picks the tag up at its
+next reinstall.
+
+## 2026-10-08 — The scada announces the commit it is running (OPS-7, `2b01bb46`)
+
+**What:** `send_startup_announcements` sends a fourth message after the
+operating status: `gw.scada.commit` (ScadaAlias, GitCommit,
+MessageCreatedMs). `git_commit_of` reads the full HEAD hash of the
+scada's own checkout and suffixes `-dirty` when tracked files differ
+from HEAD; a run from a directory with no `.git` sends nothing and logs
+why. gwsproto gains the `ScadaCommit` twin and the `git.commit`
+property format (`sema validate`: OK), the conformance map names the
+format, and the startup-announcement tests cover the fourth message,
+the no-checkout case and the dirty suffix. **Why:** nothing in the
+persistent store said which scada code was running; beech's design
+night had to be reconstructed from branch history. The commit is a
+fact about the running code, so it is its own word rather than a
+`layout.lite` field. JournalKeeper takes the word in the same change
+that takes `layout.lite` 013.
+
 ## 2026-10-07 — The scada fills from the weather service's seasonal template (OPS-392, `109d4404`)
 
 **What:** The hand-kept `COLDEST_OAT_BY_MONTH` list is gone.

@@ -40,12 +40,13 @@ Considerations open:
 Both phases have direction (cert-derived permissions; web admin on
 cert foundation) but the *how* is still wide open. They graduate to
 `designs/` when:
-- `mtls-fis-auth` has shipped and we know what cert claims are
-  available
+- the houses and LTNs are on the broker gate (OPS-578) and the cert
+  claims in use are settled
 - the 100-home scale is closer and the forcing function is real
 
 ## Cross-refs
 
-- the `mtls-fis-auth` design (Linear [OPS-420](https://linear.app/gridworks/issue/OPS-420)) — prerequisite.
+- the FIS executor spec (`gridworks-fleet-index-service/executor/`) and rmqbot
+  [`auth-path.md`](../executor/auth-path.md) — the gate this builds on.
 - `authority/tls/tls-certs.md` (in `gridworks-infra`) — original
   phase architecture.

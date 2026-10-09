@@ -12,6 +12,10 @@ Newest at the top.
 
 ---
 
+## 2026-10-09 — Track gwbase 0.5.15: user_id on every publish (`a289ec0`)
+
+gwbase 0.5.15 stamps `user_id` on every publish with the connection identity, so the broker's validated-user-id check verifies this service's publishes instead of skipping them (OPS-579); the floor and the lock move together so the deployed box installs it. Both actors on the ear box (`ear`, `gnr-ear`) pick it up at the next pull.
+
 ## 2026-09-29 — Same-millisecond objects get distinct, ordered names (`98954bb`, merged `b3cd7dd`)
 
 Objects are named by the millisecond the ear stores them, so a burst of

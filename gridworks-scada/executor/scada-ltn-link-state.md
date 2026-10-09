@@ -134,13 +134,14 @@ and its one job is the sim-time bridge.
 
 ## The startup announcements: layout and deed, once per run
 
-Status: Verified · Pass 0 · Updated 2026-09-21 · Reviewed 2026-09-19@dfc35644
+Status: Verified · Pass 0 · Updated 2026-10-08 · Reviewed 2026-10-08@2b01bb46
 
-A scada says two things about itself once per run that do not wait on an LTN:
-the layout it booted on, and the deed it holds — or that it holds none. Both
-go up the moment the upstream link can first carry a publish, which is
-send-capability (`active` or `awaiting_peer`), not peer-active, so a window
-with no LTN on the broker still records them. `announce_at_first_broker_link`
+A scada says four things about itself once per run that do not wait on an
+LTN: the layout it booted on, the deed it holds — or that it holds none —,
+its operating status, and the commit it is running. All go up the moment
+the upstream link can first carry a publish, which is send-capability
+(`active` or `awaiting_peer`), not peer-active, so a window with no LTN on
+the broker still records them. `announce_at_first_broker_link`
 (`actors/scada.py`) polls `ScadaAppInterface.upstream_is_send_capable()` once
 a second, calls `send_startup_announcements` once, and returns.
 
@@ -148,8 +149,20 @@ The announcement is `layout.lite`, then either the `ta.deed` the scada holds
 or, when it holds none, a Warning `Glitch`: Summary `no-ta-deed` naming
 the path it looked at (`settings.paths.tadeed`) when there is no file, or
 Summary `ta-deed-wrong-asset` naming the deed's and the layout's ids and
-aliases when the file's deed is for another terminal asset. None of them
-asks for or demands an ack.
+aliases when the file's deed is for another terminal asset. Then
+`gw.house.operating.status` ("Local control" has the word), then
+`gw.scada.commit`. None of them asks for or demands an ack.
+
+`gw.scada.commit` carries the scada's alias, the full 40-character hash
+of the checkout the scada runs from, suffixed `-dirty` when tracked files
+differ from HEAD (`git_commit_of`, `actors/scada.py`), and the time the
+announcement was made. It ties every message of the run to the code that
+produced it; the full hash because the record is permanent and a short
+hash can become ambiguous. The commit is a fact about the running code,
+not the house, so it is its own word rather than a field of `layout.lite`
+or the operational params. A run from a directory with no `.git` sends
+nothing and logs why. JournalKeeper journals the word keyed on
+`MessageCreatedMs` (OPS-392 carries that change with `layout.lite` 013).
 
 Invariants: at most one send per scada run; nothing sent before the link is
 send-capable; a link flap after the send causes no resend (the task has

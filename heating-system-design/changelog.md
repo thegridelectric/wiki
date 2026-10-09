@@ -5,7 +5,6 @@ the *what*, this file the *why*.
 
 Newest at the top.
 
-<!-- pending commit -->
 ## 2026-10-07 — WIP various memos on distribution water temps (OPS-572, `39f91ef`)
 
 One squashed commit, the repo's second, holding three days of work.

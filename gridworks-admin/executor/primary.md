@@ -99,9 +99,8 @@ key, on any carrier ([`../../api-pattern.md`](../../api-pattern.md)
   follows the mTLS rule: a phishing-resistant hardware-bound credential
   per human, a fresh step-up assertion for actuator commands, and a
   gateway that mints a short-lived cert for that human rather than
-  holding standing authority of its own (mtls-fis-auth,
-  [OPS-420](https://linear.app/gridworks/issue/OPS-420), "Gateway
-  boundary").
+  holding standing authority of its own (FIS executor `primary.md`
+  "Invariants (normative)", rule 5).
 - **The scada owns the session.** Holder, session id, last heartbeat
   and deadline live on the scada. The admin process arbitrates which
   human is behind the identity; the scada enforces one session per

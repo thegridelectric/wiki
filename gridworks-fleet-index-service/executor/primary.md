@@ -1,14 +1,13 @@
 # Fleet Index Service (FIS) — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-09-05
+Status: Draft · Pass 0 · Updated 2026-10-09
 
 > What this is: the faithful spec of the **Fleet Index Service (FIS)** — the
 > authority-plane service the broker calls (`rabbitmq-auth-backend-http`) to
 > authorize every connection and every topic publish, enforcing a single
-> authorized instance per (GNodeId, run). The build plan is OPS-422; the
-> auth architecture it implements is OPS-420; the non-GNode-services extension is
+> authorized instance per (GNodeId, run). The non-GNode-services extension is
 > [`../explorations/principal-model.md`](../explorations/principal-model.md).
-> Read this hub first, then the two spokes in the order listed at the end.
+> Read this hub first, then the spokes in the order listed at the end.
 
 ## Purpose
 
@@ -42,6 +41,22 @@ fabric(s) and reads only its own universe's registry — a staging box runs
 its own FIS, and different universes have disjoint registry + broker + FIS
 stacks. FIS being unreachable means no new connections (existing ones
 survive): fail closed, by design.
+
+Prod is `hw1-1`: FIS beside the `hw1` broker, the gate on (the box and
+cutover record: `gridworks-infra/rmqbot/`). A principal is one instance
+per run, so a service that runs two processes under one alias holds a
+principal per process (ear's `ear` and `gnr-ear` logins), and a prober
+that opens its own connection is its own principal; sharing a principal
+makes the two instances supersede each other.
+
+The client side of the contract, in gwbase (gwbase executor `actors.md`
+"Connect-time identity"): every publish carries `user_id` = the
+connection identity, and a GNode re-reads its alias from gnr by GNodeId
+before each reconnect, so a rename converges without a provisioning
+redeploy ("Registry changes force reconvergence"). The proactor's MQTT
+side has no alias at connect; the gate checks the alias per topic on
+publish, so a renamed scada sees publish denials until it restarts on its
+new alias.
 
 ## Scope
 
@@ -134,8 +149,8 @@ reconcile as the fallback — kills that identity's connections; the kill
 flushes the cache. The killed node then reconnects and **self-heals its
 alias**: its durable identity is its cert CN (the GNodeId), so it looks its
 own current alias up in gnr by GNodeId and reconnects with it — no
-provisioning redeploy. (The self-heal is a client contract of
-gwbase/proactor, not yet built; FIS's part is only the kill.)
+provisioning redeploy (the gwbase side: gwbase executor `actors.md`
+"GridworksActor"; FIS's part is only the kill).
 Convergence is immediate under the push, bounded by the reconcile interval
 without it.
 
@@ -158,6 +173,10 @@ rationale; what FIS depends on:
   by the broker itself.
 - **No fleet password users**: on MQTT an explicit username+password
   outranks the cert-derived name, so a live password user is a CN bypass.
+  The `internal` backend answers only for usernames it holds (the
+  management login and the analytics reader), so a password client is
+  never seen by FIS, and an unknown username falls through and is denied
+  with no principal (`auth-endpoints.md`).
 - **The `ssl_options` tightening** (`verify_peer`,
   `fail_if_no_peer_cert = true`) is not part of the gate fragment; a box
   carries it in its own `rabbitmq.conf` (prod at notch 3).
@@ -198,6 +217,27 @@ the run that verifies.
   plus kill).
 - 100 concurrent connects all admitted, every connect inside the
   broker's 10 s handshake budget.
+- One identity holds simultaneous leases on two brokers (`hw1__1` and
+  `hw1__2`); the kill is broker-wide for the identity, exact for a
+  one-run broker.
+- Revocation holds on both transports: two certs with the same CN
+  supersede each other in turn until the older serial is listed in the
+  CRL, after which it is refused at the handshake on AMQP and MQTT with
+  no broker restart and FIS never asked; an expired CRL refuses every
+  new connection.
+
+Witnessed: the dev run 27/27 plus the storm; the staging box `hw1-2`
+(real FIS, real TLS, gate overlay, boot order) 2026-09-06, 27/27 with
+the storm 100/100 inside the budget, supersession 6.8 s
+(`battery-2026-09-06-hw1-2.log`); the CRL leg on the rig 2026-09-08,
+38/38; revocation on the prod broker 2026-10-07. The staging box is
+dropped; its recipe, `experiments/2026-09-06-fis-staging-box/`, is the
+reproducer (TLS-only `rabbitmq.conf`, `fail_if_no_peer_cert`, a vhost of
+its own) and the dress rehearsal for a broker move, since the battery
+kills connections and takes the management API down. Not recorded as
+witnessed: wrong class, run outside the universe, suspension alone not
+closing a live connection, and timer attribution under a real failure
+(handshake vs the `auth_http` request, with the pinned budget holding).
 
 ## Glossary
 

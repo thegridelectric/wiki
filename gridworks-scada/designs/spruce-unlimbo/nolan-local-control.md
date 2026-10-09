@@ -1,6 +1,6 @@
 # Nolan local control (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-10-08 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-10-09 · Linear: OPS-392
 
 > What this is: what to check as Nolan local control runs in the beta
 > windows, and the brief for the adversarial review. What is built is

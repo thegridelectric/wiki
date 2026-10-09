@@ -43,8 +43,10 @@ codec: a claims body that does not decode is malformed, never guessed at.
   (idempotent reconnect).
 - **Instance id previously revoked** → deny. Forever — revoked lease rows
   are permanent (a TTL cleanup would re-admit an old zombie).
-- **Instance id never seen** (AMQP also: claimed alias/class must match the
-  registry's current values — deny on mismatch) → supersession,
+- **Instance id never seen** (a GNode the mirror does not hold is first
+  read through from the registry, on either transport, and an id the
+  registry does not know is denied; AMQP also: claimed alias/class must
+  match the registry's current values — deny on mismatch) → supersession,
   synchronously, before responding: mark the prior lease revoked; close the
   identity's connections with one management-API call,
   `DELETE /api/connections/username/<principal-id>`; confirm through
@@ -53,6 +55,14 @@ codec: a claims body that does not decode is malformed, never guessed at.
   a supersession and a clean stop leaves nothing to close); create the new
   lease ACTIVE; return allow. If the close is refused or the confirm does
   not land within its budget (`FIS_RABBIT_CONFIRM_S`) → deny, fail closed.
+  The supersession is one transaction: an unconfirmed kill commits
+  nothing, the predecessor's lease stands as it was, and the successor is
+  denied. The successor retries with the same instance id, still never
+  seen, so its next attempt supersedes again, and the newest instance wins
+  once the broker answers. A predecessor whose sockets the kill did close
+  may reconnect first under its standing lease (an idempotent reconnect)
+  and is then superseded on that retry. A revoked lease row therefore
+  always records a confirmed kill.
   If the lease insert loses to a concurrent boot of the same identity on
   the same run (the partial unique index refuses it) → deny; the loser
   retries on its next connect.
@@ -68,7 +78,12 @@ codec: a claims body that does not decode is malformed, never guessed at.
   established connections: live, held in ETS, answered without asking any
   connection process (a connection mid-handshake, such as the successor
   itself, is neither counted nor consulted), and covering MQTT connections
-  too. The listing gates no safety decision. The close is broker-wide for
+  too. The listing gates no safety decision. A `rabbitmqctl` confirm was
+  built, measured and dropped with the box wiring it needed:
+  `list_connections` deadlocks under the gate (it asks the successor's
+  own blocked reader), and an `eval` on the tracking table costs an
+  Erlang VM per call, which the reconnect storm turned into 9 s
+  connects. The close is broker-wide for
   the identity, exact while a broker hosts one run; a broker that
   multiplexes runs would need a vhost-scoped close. The 204 from the close
   returns before the sockets are gone, which is why the confirm is a poll
@@ -84,7 +99,18 @@ codec: a claims body that does not decode is malformed, never guessed at.
   so the confirm budget is 8 s: a wedged predecessor's successor is
   admitted in one connect at about 6.5 s, a responsive one's in well
   under a second, and both stay inside the broker's 10 s handshake
-  timeout.
+  timeout. The broker's own wait on FIS (`auth_http.request_timeout`) is
+  9.5 s, under the handshake and over the kill. The one path that can
+  exceed it is a read-through on a mirror miss (the gnr call's 5 s
+  timeout) ahead of a kill with a live predecessor: an AMQP GNode
+  provisioned inside the last reconcile interval whose second instance
+  arrives while gnr is slow. The broker then gives up and denies, while
+  FIS finishes the kill and writes the lease, so the client's next connect
+  finds its own lease and is admitted as an idempotent reconnect. The
+  worst case is one timed-out connect resolved by the retry, never a wrong
+  verdict, and that is accepted rather than shortening the gnr timeout: a
+  gnr call cut short reads as a registry miss and denies on every retry
+  until the next reconcile.
 
 Map: allow → the plain-text body `allow <run>` (the claimed run becomes the
 connection's user tag, "How the claims arrive"); every deny → the
@@ -146,7 +172,15 @@ After responding, record the verdict as a
 **`fis.instance.authorization.event`** (its `fis.authorization.reason`
 carries one value per verdict path above; a projection fixes the
 `fis.authorization.decision` each reason implies). Every outcome is
-recorded, allow and deny alike. The sink is FIS's own `auth_events`
+recorded, allow and deny alike. A malformed request records the
+principal the broker named and the transport its shape gives away (a
+`claims` param is AMQP, `client_id` plus `vhost` is MQTT) with no
+instance or run; a request that names no principal is denied with no
+record, there being nothing to record it against. A password login for a
+username `internal` does not hold is that case: the broker forwards the
+username as the principal, it is not a principal id, and the deny leaves
+only a log line (seen on the prod gate's first seconds, before the
+default user was re-created). The sink is FIS's own `auth_events`
 table, bijective with the word, since FIS joins no broker; the write rides
 a background task after the response so the gate's latency is untouched.
 **Open:** the fleet's persistent store does not yet see these records —

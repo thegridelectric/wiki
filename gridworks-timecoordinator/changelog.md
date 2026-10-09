@@ -12,6 +12,10 @@ Newest at the top.
 
 ---
 
+## 2026-10-09 — Track gwbase 0.5.15 (`7528e95, on `dev``)
+
+The floor was 0.5.6; the lock resolves to 0.5.15 so the simulation runs on the same gwbase as the fleet (`user_id` on publish, OPS-579).
+
 ## 2026-07-04 — Track gwbase 0.5.6 (`047b530`)
 
 **What:** `pyproject.toml` `gridworks-base>=0.5.2` → `>=0.5.6`; relocked.

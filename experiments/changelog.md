@@ -6,6 +6,26 @@ the *why*.
 
 Newest at the top.
 
+## 2026-10-08 — beech-missing-store-heat-analysis on the template; field-window-recipe: what a dev window needs for weather (OPS-7) <!-- pending commit -->
+
+**What:** the snapshot seed gains `report.event` 002 and
+`heating.forecast` 000 (regenerated), and `chart.py` in
+`2026-10-08-beech-missing-store-heat-analysis/` decodes its three
+evidence files through the codec at the versions beech sent instead of
+indexing dicts. The folder's `README.md`
+takes the template's sections (Why, Found, Timeline, Analysis notes),
+says in Found that the decisive fact, the RSWT the code tested against,
+had to be read from a guessed commit because neither the running code
+nor the derived RSWT is in the store, marks OPS-7 Done under Follow-up
+work, and gets its logbook line. The dev paragraph of
+`field-window-recipe.md` says the scada
+provisions its forecast bundle and seasonal template at boot, that the
+hw1 facade does not serve the sim location's template, and that a dev
+window boots only with both records copied into the config folder by
+hand until `put_layout.sh dev` copies them or a weather service runs on
+the dev broker. **Why:** the first dev window of the gw.scada.commit
+check crashed on exactly this, and nothing said so.
+
 ## 2026-10-07 — dist-loop-experiments: the memo's workbook; theory and stored-heat tables in Python and as Excel formulas; AddedGpm (OPS-572, `d42414c`, `f01f584`)
 
 `sheets.py` gains the cold-zone memo as its second document: the

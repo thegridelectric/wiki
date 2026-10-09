@@ -49,8 +49,8 @@ first operator's link is cut, every step on `ear`.
    ([OPS-428](https://linear.app/gridworks/issue/OPS-428) delivers
    this; admin is its first second-talker consumer).
 2. The `hw1.admin` cert and Principal, minted with the certbot tool
-   ([OPS-420](https://linear.app/gridworks/issue/OPS-420) "Minting a
-   platform-service cert"); the FIS write rule pins its alias.
+   (gridworks-infra `authority/certbot/README.md` "The issuance tool");
+   the FIS write rule pins its alias.
 3. The admin process gains the `hw1.admin` connection, the cert roster,
    HTTPS with client certs, beat relay and socket-death release.
 4. `gwa` becomes the human-side client of that process; the TUI lifts,
@@ -74,7 +74,7 @@ first operator's link is cut, every step on `ear`.
 - The proactor makeover
   ([OPS-428](https://linear.app/gridworks/issue/OPS-428)): the
   addressed envelope and the scada in the fabric.
-- mtls-fis-auth ([OPS-420](https://linear.app/gridworks/issue/OPS-420)):
+- The broker gate (FIS executor; built under [OPS-420](https://linear.app/gridworks/issue/OPS-420)):
   the cert plane and alias pinning, and the production-deploy gate:
   admin SHALL NOT drive a real house's relays over a weaker path.
 - The admin session ([OPS-529](https://linear.app/gridworks/issue/OPS-529)):

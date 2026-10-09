@@ -1,6 +1,6 @@
 # rmqbot — deployment spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-08-14
+Status: Draft · Pass 0 · Updated 2026-10-09
 
 > What this is: the faithful spec of GridWorks' **running production
 > RabbitMQ/MQTT broker** — what it is, where it runs, how it's secured today.
@@ -43,6 +43,12 @@ Sub-specs:
   story is stock image + git + 1Password** — no custom AMI; recipe in the
   rmq-docker README. ssh is a dedicated key pair (private key in
   1Password) plus per-person keys; the fleet key does not open this box.
+- **Moving the broker off AWS** is a DNS repoint (human-executed) plus
+  one reconnect storm: same hostname, same CA, same client certs, zero
+  per-house config, following the staging-box recipe
+  (`experiments/2026-09-06-fis-staging-box/`). It is not combined with
+  an auth cutover: mixing a DNS/IP move into a per-client migration
+  re-imports the flag day the ratchet engineered out.
 - **TLS serves on all three listeners** — AMQPS 5671, MQTT-TLS 8883,
   management 15671 — from a single 2-year keypair (CN + DNS SAN
   `hw1-1.electricity.works`, expires 2028-07). Plaintext 5672/1883 remain
@@ -104,53 +110,92 @@ Analytics topology belongs to the analytics broker (OPS-426): there is no
   `gridworks-infra/authority/ca.crt`; clients get it from git.
 - **Leaf policy:** ~2 years; expiries steered to summer and staggered —
   leaves and root never share a cliff, and no cert expires in heating
-  season. Leaf lifetime is the rotation knob, not the root's.
-- **Client-cert CNs carry the immutable identity** (GNodeId for GNodes);
-  naming and issuance automation are the mTLS design's to own (OPS-420).
+  season. Leaf lifetime is the rotation knob, not the root's. Renewal
+  automation is a follow-on that needs FIS and provisioning built first;
+  when it ships, lifetimes drop to 90–180 days.
+- **Client-cert CNs carry the immutable identity** (GNodeId for GNodes; a
+  uuid4 principal id for a platform service). Leaves are issued only by
+  the tool on certbot, which mints the FIS principal row, cuts the cert
+  and writes the ledger (gridworks-infra `authority/certbot/README.md`
+  "The issuance tool"); a cert cut outside the tool is one the ledger
+  cannot revoke.
+- **Revocation is a CRL on the broker.** The fleet verifies the broker's
+  cert, so revoking that would mean distributing a list to every pi, LTN
+  box and service box; it is not done, and the broker cert's lifetime is
+  its only rotation. The broker verifies every client cert and is the
+  only thing that does, so the client-cert revocation list has one
+  reader on one box. The ledger on certbot (one entry per leaf: name, CN,
+  serial, expiry, optional revocation) is the source; every mint or
+  revoke re-signs the CRL (one-year `nextUpdate`) and places it in the
+  broker's certs dir; `crl_check = peer` in `advanced.config` reads it
+  at every handshake, so a replaced CRL is live with no restart, on AMQP
+  and MQTT alike. This is what closes the two-pi case: a replaced pi's
+  predecessor holds a still-valid cert with the same CN, instance ids
+  are minted per boot, and the MQTT adapter forwards nothing of the
+  cert but the username, so no FIS-side check can tell the two apart;
+  the CRL refuses the old serial before FIS is asked. FIS holds no cert
+  state. The CRL's own expiry is the one operational commitment: past
+  `nextUpdate` the broker refuses every new connection until a fresh
+  CRL is placed, so the daily platform-drift check carries it. Setup
+  and the post-recreate check: gridworks-infra `rmqbot/rmq-docker/
+  README.md` "Client-cert revocation (the CRL)".
 - certbot ssh is **per-person keys only**; the fleet key deliberately does
   not open the CA box.
 - Registers: certificates in `gridworks-infra/authority/cert-inventory.md`;
   what-runs-where in `gridworks-infra/production-inventory.md`.
 
-## The TLS ratchet (current position: notch 1, plus one pilot house)
+## The TLS ratchet (current position: notch 4 for platform services, notch 2 for houses and LTNs)
 
 The path from plaintext-with-passwords to cert-only authentication has four
-independently flippable notches; notches 2–4 belong to the mTLS design
-(OPS-420) and run after the 4.x upgrade:
+independently flippable notches:
 
 1. **Encrypt (done, verified 2026-07-17).** `ssl_options.verify =
    verify_peer` + `fail_if_no_peer_cert = false`: client certs optional —
    verified when presented, rejected when invalid, ignored when absent.
    Clients reach encryption with `ca.crt` + a port change; passwords
    unchanged.
-2. **Client certs** — mint per-client (CN = immutable identity), migrate one
-   client at a time; no flag day. Beech runs this today as the pilot:
-   encrypted on 8883, presenting its GNodeId cert, verified at handshake.
-3. **Require certs** — `fail_if_no_peer_cert = true`.
-4. **Cert + FIS are the identity and the gate** — the GridWorks SASL
-   mechanism plugin (AMQP; built from
-   `gridworks-infra/rmqbot/auth-mechanism/` into a mountable `.ez` and not
-   yet enabled on this broker — [`auth-path.md`](auth-path.md)) and
-   `mqtt.ssl_cert_login = true`: CN becomes
-   the username, with **chained backends** (`auth_backends.1 = internal`
-   for the management UI + one break-glass account; `.2 = http` → FIS,
-   colocated on this box). Fleet password users are deleted as they
-   migrate — on MQTT an explicit username+password outranks the cert name,
-   so a live password user is a CN bypass — and the plaintext listeners
-   close when the last one has. The management UI keeps password login
-   over HTTPS in every era. Notch 3 flips only when the broker log shows
-   every fleet client presenting a cert. Details: the mTLS design
-   (OPS-420); the FIS contract: the FIS executor spec.
+2. **Client certs (done for the fleet, 2026-08).** Every house scada
+   and every house LTN presents a client cert with CN = its own GNodeId
+   (the LTN's GNodeId is distinct from its scada's), verified at the
+   handshake; no house dials plaintext 1883. Houses mint with
+   `--common-name <GNodeId>` on certbot; the per-house rclone remotes
+   use key-based auth. The LTNs run in per-house tmux sessions on two
+   shared EC2 boxes with one rclone remote per box; their live
+   confirmation is the per-minute `gridworks.ping` in the S3 eventstore,
+   not the journal.
+3. **Require certs** — `fail_if_no_peer_cert = true` in
+   `advanced.config`. Flips once the broker log shows every fleet client
+   presenting a cert; a straggler delays it and breaks nothing.
+4. **Cert + FIS are the identity and the gate (live for the platform
+   services since 2026-10).** The GridWorks SASL mechanism plugin (AMQP;
+   built from `gridworks-infra/rmqbot/auth-mechanism/` into the mounted
+   `.ez` — [`auth-path.md`](auth-path.md)) and `mqtt.ssl_cert_login =
+   true`: CN becomes the username, with **chained backends**
+   (`auth_backends.1 = internal` for the management UI and the default
+   break-glass login; `.2 = http` → FIS, colocated on this box). Chaining
+   is a decision, not a deferral: dropping `internal` would cost the
+   management UI and the break-glass path for no security gain. On MQTT
+   an explicit username+password outranks the cert-derived name, so any
+   client still sending a password is a CN bypass; the MQTT fleet
+   authorizes on `client_id = GNodeInstanceId` + `ssl_cert_login`
+   (proactor). The management UI keeps password login over HTTPS in
+   every era. The FIS contract: the FIS executor spec.
 
-Notches 3–4 may combine into one restart once every client presents a cert
-and every CN has its passwordless user; written separately, handshake
-failures stay distinguishable from auth failures on cutover day.
+The houses and LTNs still send the default user's password inside TLS,
+so they authorize on `internal` today; moving them to their cert-derived
+names, notch 3, and closing 5672 and 1883 are OPS-578. Notches 3 and 4
+are written separately so that handshake failures stay distinguishable
+from auth failures on cutover day.
 
 ## Security posture today
 
-- **Auth is password-based** (the rotated shared default user), now inside
-  TLS for clients that have moved to 5671/8883, still plaintext for the
-  rest. Cert-based identity arrives with the ratchet.
+- **Platform services authorize on cert plus claims through FIS**; a
+  revoked cert is refused at the handshake by the CRL. **Houses and LTNs
+  present their certs but still log in as the default user** (password
+  inside TLS), so they authorize on `internal`; the broker holds exactly
+  two password users, the default login and `analytics.ear.reader`
+  (gridworks-infra `rmqbot/rmq-docker/README.md` "Runtime-created
+  users"). Closing that path is OPS-578.
 - **Audit-tap consumers get a dedicated read-only user.** `analytics.ear.reader`
   (no tags; password in 1Password) is scoped so a leaked cred cannot touch the
   control plane: configure/write `^analytics\..*$`, read `^(analytics\..*|ear_tx)$`
@@ -166,8 +211,10 @@ failures stay distinguishable from auth failures on cutover day.
   is the forcing function for the later security phases.
 - Local MQTT brokers (Mosquitto on the Pis) are **LAN-only**, no auth, not
   internet-exposed.
-- **Emergency response today:** rotate broker passwords, revoke Tailscale device
-  access, restart SCADA in local-only (HomeAlone) mode, physical site access.
+- **Emergency response today:** revoke a client cert on certbot (`revoke`,
+  the CRL is live at the next handshake) or suspend its FIS principal;
+  rotate the default user's password; revoke Tailscale device access;
+  restart SCADA in local-only (HomeAlone) mode; physical site access.
 
 ## Verification
 

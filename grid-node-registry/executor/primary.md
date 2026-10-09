@@ -82,8 +82,8 @@ field device serving a real house lives in the wall-clock ("live") run, while a
 bench rig can join a re-run as hardware-in-the-loop (physical hardware always
 experiences wall-clock time, so it can't follow a sped-up sim clock); and
 single-writer authority is per **(GNodeId, run)**, since the same GNode identity
-legitimately runs in several runs at once (a FIS-design consequence,
-OPS-420/422). For a real universe the run number doubles as **fabric
+legitimately runs in several runs at once (FIS executor `primary.md`
+"Invariants (normative)"). For a real universe the run number doubles as **fabric
 generation**: reality executes once, but the message fabric can be rebuilt —
 broker migration or disaster recovery mints `w__2` with the same universe, same
 registry, same identities. **Which run is "live" is deployment state — a pointer
@@ -262,16 +262,6 @@ mTLS+FIS-authenticated rabbit connection (principal = cert `CN=GNodeId`); the re
 authorizes by checking the principal's `base_class = MarketMaker` and that the
 affected subtree is within its authority. A detached signed-command scheme stays
 available via the `AuthoritySource` seam for a future distributed/on-chain authority.
-
-**Until mTLS+FIS lands, a stop-gap proof gate holds the write path**: with
-`GNR_WRITE_PROOF_SHA256` configured, `_check_proof` refuses any
-create/re-parent whose `Proof` doesn't sha256-hash to it — checked before
-anything else, including the idempotent-replay short-circuit, so an unproven
-command touches nothing and learns nothing. The secret lives only with the
-operator; the deploy holds the hash; rotation is a `.env` edit + restart.
-Honest limit: the Proof rides inside commands, so it appears in
-`command_log` and the ear capture — the key is exactly as secret as the
-capture store. Retired by OPS-420.
 
 ## Distributed-readiness (keep the swap a swap, not a rewrite)
 
@@ -585,7 +575,8 @@ load-bearing, and the FIS deny needs no rich payload — **and mechanically cann
 carry one**: the `rabbitmq-auth-backend-http` protocol returns only
 `allow`/`deny`, so there is no channel to hand the denied client a hint. The
 FIS-side contract (cert-subject = `GNodeId`, the claims channels, the
-publish-time alias rule) lives in the mTLS+FIS auth work (OPS-420 / OPS-422).
+publish-time alias rule) is the FIS executor spec
+(`gridworks-fleet-index-service/executor/primary.md`).
 
 ## Stack
 

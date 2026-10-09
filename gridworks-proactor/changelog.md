@@ -13,6 +13,28 @@ Newest at the top.
 
 ---
 
+## 2026-10-08 — Bump version to 4.1.13+jm3
+
+Scada pins the fork by git tag, so the client_id change needs a new tag
+to reach a box; `v4.1.13+jm3` names `dev` with `jm/mqtt-client-id`
+merged. `uv.lock` is left as is, as at `+jm2`.
+
+## 2026-10-08 — The upstream MQTT client_id is a per-process instance id (OPS-422)
+
+FIS reads the MQTT `client_id` as the GNodeInstanceId and denies any
+value that is not a uuid4, so the segment-stripped random id the MQTT
+link sent would have shut every house out once the gate goes on. The
+proactor now mints one uuid4 at construction (`Proactor.instance_id`),
+and the upstream link presents it at CONNECT, unchanged across
+reconnects. Fresh per boot on purpose: two scadas started on one pi
+each mint their own, FIS supersedes the earlier lease, and the loser's
+reconnects stay denied rather than the pair flapping. Only the upstream
+link carries it; each other link mints its own uuid4, because a broker
+drops the existing session when a second CONNECT arrives with the same
+`client_id`, and the scada's local and admin links share the pi's
+mosquitto (the tree tests failed with one id on three links).
+`tests/test_proactor/test_comm/test_mqtt_client_id.py` pins it.
+
 ## 2026-09-05 — Bump version to 4.1.13+jm2
 
 Scada pins the fork by git tag, so the CONNACK fix needs a new tag to

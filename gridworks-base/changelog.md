@@ -10,6 +10,23 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-09 — user_id on every publish; a GNode re-reads its alias from gnr before each reconnect; 0.5.15 (`65ecc48`, bump in `28c7a81`)
+
+The two client-side obligations the FIS gate left open (OPS-579).
+`ActorBase.send` stamps `user_id` with the connection identity, the cert
+CN under TLS or the URL username without (`gwbase/principal.py`, one
+read at construction; `cryptography` added to parse the PEM), so the
+broker's validated-user-id check verifies every publish instead of
+skipping unset ones; `test_actor_base` asserts the delivered property
+against the live dev broker, which is the broker's acceptance.
+`GridworksActor.refresh_identity_before_reconnect` runs on the
+reconnect thread before each connect and adopts the alias gnr holds for
+its GNodeId (`gwbase/gnr_reader.py`, stdlib urllib, `GNodeSettings.gnr_url`),
+renaming the queue and the claims, so a registry rename converges
+without a provisioning redeploy; unit tests cover adopt, gnr silent, and
+`gnr_url` unset. The rename witness against a real gnr and FIS is the
+issue's remaining done-when.
+
 ---
 
 ## 2026-09-28 — drop dev refs (`aa90451`, merged `74cb1fb`)

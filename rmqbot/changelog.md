@@ -11,6 +11,16 @@ repo's git history.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-10-09 — rmq-docker README: houses and LTNs log in as the default user until they move to their certs
+
+"Runtime-created users" said house and LTN password users are deleted
+one by one as clients move; the prod broker holds no such users
+(`list_users` on `hw1-1`, 2026-10-09: the default login and
+`analytics.ear.reader` only). The houses and LTNs send the default
+user's credential inside TLS; what retires it is rotating that password
+after the last client moves to its cert-derived name (OPS-578).
+
 ## 2026-10-07 — gate: `auth_http.request_timeout` pinned under the handshake; mint tool names when its next step runs (`a8a2f02`)
 
 Branch `jm/gate-request-timeout`. `rmq-docker/gate/fis-gate.conf` sets

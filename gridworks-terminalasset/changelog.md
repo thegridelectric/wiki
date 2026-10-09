@@ -12,6 +12,10 @@ Newest at the top.
 
 ---
 
+## 2026-10-09 — Track gwbase 0.5.15; the dev g.node.gt.json is written at 006 (`93f52d2, on `dev``)
+
+The floor was 0.5.2; the lock resolves to 0.5.15 so the simulated terminal asset runs on the same gwbase as the fleet. The self-minted dev identity was still a `g.node.gt` 004, which gwbase has rejected since 0.5.10 (it vendors 006 only); the record already carried every 006 field, so only the version string moves. As a `GridworksActor` it gains the alias self-heal; with `gnr_url` unset in the dev rung the lookup is off and the boot log says so (OPS-579).
+
 ## 2026-08-22 — take ownership of snapshot seed and regen (`86ee3f2`)
 
 (Squashed in: the README's Sema note rewritten in the sema README's own

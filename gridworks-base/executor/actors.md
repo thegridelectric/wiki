@@ -1,6 +1,6 @@
 # gridworks-base — Application layer & diagnostics
 
-Status: Draft · Pass 0 · Updated 2026-08-14
+Status: Draft · Pass 0 · Updated 2026-10-09
 
 Sub-spec of the gridworks-base rebuild spec — **start at
 [`primary.md`](primary.md)**. Section numbers are global; this file holds
@@ -159,6 +159,19 @@ At construction it:
   connect-time channels: `client_properties` and the connect claims
   ("Connect-time identity" below). `g_node_alias` / `g_node_instance_id`
   survive as back-compat property aliases for `alias` / `instance_id`.
+- **Heals its alias before every reconnect.** The durable identity is
+  the GNodeId; the alias is whatever the registry says now. On the
+  reconnect thread, after the backoff and before the next connect,
+  `refresh_identity_before_reconnect` asks gnr for the node by GNodeId
+  (`gwbase/gnr_reader.py`, `GET /gnr/g-node-by-id/<id>` on
+  `settings.gnr_url`) and, if the alias differs, `rename`s: the next
+  connect's claims, queue name and bindings carry the new alias with no
+  provisioning redeploy. A rename makes FIS close the connection and
+  refuse the old alias's claims, so this is what lets the reconnect
+  converge. gnr unreachable or the id unknown: keep the alias held and let
+  the gate decide. `gnr_url` unset turns the lookup off, logged at boot.
+  The `g.node.gt.json` on disk is not rewritten; a restart boots on the
+  stale alias, is refused, and heals on its first reconnect.
 
 ## Connect-time identity
 
@@ -171,6 +184,14 @@ broker records these on the connection, where the management API and the
 `connection_created` event can read them. They are for audit and
 reconciliation only: the AMQP reader never passes `client_properties` to an
 auth backend, so nothing an authorization decision depends on may live here.
+
+**`user_id` on every publish** (`ActorBase.send`) is the name the broker
+authenticated the connection as: the client certificate's subject CN under
+a `rabbit.tls` block, the URL username without one (`gwbase/principal.py`,
+computed once at construction). The broker's validated-user-id check
+drops a publish whose `user_id` differs from the connection's name, so
+consumers can trust the property as the sender's identity; a publish with
+it unset is not checked, which is why gwbase always sets it.
 
 **Connect claims** (`ActorBase._connect_claims`) build a
 `fis.connect.claims` word — alias, instance id, the run being joined, and

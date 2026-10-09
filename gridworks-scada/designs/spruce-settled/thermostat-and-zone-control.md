@@ -1,6 +1,6 @@
 # Zone circuits and the thermostat model (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: OPS-532
+Status: Draft · Pass 0 · Updated 2026-10-08 · Linear: OPS-532
 
 > What this is: how zones, zone-call circuits, thermostats, and their
 > relays are modeled in the layout, and the control model on top — the
@@ -181,6 +181,19 @@ Unknown behavior explicitly (LocalControl's critical-zone check
 cannot silently treat Unknown as satisfied); any conservative
 fallback is the consumer's declared policy input, never written into
 the belief.
+
+The phase rides the wire as a state-machine state, like every other
+scada state, and consumers read the phase, never the last value on
+the setpoint channel. The failure this closes (spruce living room,
+2026-10-08): the learner moved to `SuspectZoneAboveSetpoint` and went
+quiet, and two minutes later the alerter read the 5-minute-old 75.7 F
+sample against a fresh 73.7 F room and paged "below setpoint" on a
+room the scada no longer believed had a setpoint. Silence on the
+value channel is indistinguishable from persistence; only an emitted
+phase transition tells a consumer the belief changed. Today
+(`derived_generator.py:574-582`) the `Suspect±` phases also drop the
+value, which this section says they keep; the state-machine word
+settles that with the phase.
 
 ## Admin: two altitudes
 

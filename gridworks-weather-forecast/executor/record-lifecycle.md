@@ -20,11 +20,13 @@ Record slot is a closed `oneOf` over the five record words — because
 the act is the same regardless of kind: create a record.
 
 The sender is its own weather-class operator identity
-(`<universe>.weatherminter`), never the service's own alias — this
-identity is created fresh for each invocation and torn down
-afterward; it has no persistent presence. Command and verdict ride
-the fabric's `(WeatherForecastService, WeatherForecastService)`
-self-edge.
+(`<universe>.weatherminter`), never the service's own alias. The
+identity is a durable Service principal with its own cert (the
+settings' `minter_rabbit` client); each invocation is a fresh
+GNodeInstance on that principal, torn down afterward, so the minter
+has no persistent presence on the bus and never supersedes the actor.
+Command and verdict ride the fabric's
+`(WeatherForecastService, WeatherForecastService)` self-edge.
 
 gwwf's actor validates the command through the vendored snapshot,
 inserts the record (insert-only — records are durable identities,

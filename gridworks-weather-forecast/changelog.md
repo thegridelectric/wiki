@@ -11,6 +11,35 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-09 — Track gwbase 0.5.15: user_id on every publish, alias self-heal (OPS-579, `cfefc8f`)
+
+gwbase 0.5.15 stamps `user_id` on every publish with the connection
+identity, so the broker's validated-user-id check verifies this
+service's publishes instead of skipping them; the floor and the lock
+move together so the deployed box installs it. gwwf is a GNode, so it
+also gains the alias self-heal: with `GWWF_GNR_URL` set the actor
+re-reads its alias by GNodeId before each reconnect and adopts a
+registry rename; `template.env` carries the line, and the forecast box
+`.env` gets it at the deploy. One layer-2 test timed out once under the
+full gate on the first run and passed on every rerun; a timing flake,
+not the bump.
+
+## 2026-10-09 — The minter connects as its own principal (OPS-392, `0066e01`)
+
+**What:** `GwwfSettings.minter_rabbit`, an optional `RabbitBrokerClient`
+the create command connects with; `minter_settings` builds the minter's
+service settings from it, falling back to the actor's client when unset.
+Two tests pin the choice. The README's record section replaces the
+retired `gwwf seed` line: the five record kinds in referential order,
+`gwwf create` as the one way in, and the minter identity; `template.env`
+carries the commented minter lines. **Why:** under the gated broker the create
+command was refused: it reused the actor's cert while claiming the
+`weatherminter` alias, which FIS denies as an alias mismatch, and a
+matching alias would have been worse, two instances on one principal
+superseding each other at every mint. The minter is its own Service
+principal with its own cert on the forecast box, and each `gwwf create`
+a fresh GNodeInstance on it.
+
 ---
 
 ## 2026-10-07 — The seasonal template rung (OPS-392, `f4484ed`)

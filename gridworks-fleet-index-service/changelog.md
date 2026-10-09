@@ -12,6 +12,103 @@ Newest at the top.
 
 ---
 
+## 2026-10-08 — every platform service on cert plus claims; gnr-ear and the prober get their own principals; the alerter box user provisioned (gridworks-infra `7766ac6`)
+
+The first platform service through the gate: weather's three
+`GWWF_RABBIT__TLS__*` lines and a restart, admitted 16 s later under its
+principal id with the GRIDWORKS mechanism, one `Authorized` row. The run
+record gains the step and the note that the box's restart alias is not
+loaded in a non-interactive ssh (the first attempt restarted nothing, which
+the broker's connection age showed). The cert inventory marks weather's
+cert in use. gnr followed at 21:39 the same way; gjk at 21:43 with its
+URL moved from plain `amqp://` to `amqps://…:5671`, since gwbase refuses
+a TLS block on any other scheme; ear's `ear` login at 22:35 the same
+way. The `gnr-ear` login could not share ear's cert, one principal being
+one instance per run, so it got its own Service principal and cert and
+connects on it since 22:44, its URL moved from the broker's raw IP to the
+hostname. The alerts box gains the `alerter` login (keys, sudoers, the
+cert moved under it, the repo, units installed, `.env` with the TLS
+lines), in the alerts instance-README, and the prober its own Service
+principal and cert rather than a password user, since a leaked password
+with publish rights can drive the broker into an alarm that blocks the
+fleet. `alerter-rabbit` is enabled and connects as the alerter principal
+through the gate, the shadow week's start. Also recorded: the six
+password reconnects FIS refused before users-back left no `auth_events`
+row; the executor's auth-endpoints spoke now names that as the
+no-principal case it already excludes.
+
+## 2026-10-08 — Gate on hw1-1: run record, the box README and inventory say so (gridworks-infra `82b0c3f`)
+
+The prod gate window ran 2026-10-08 21:00 UTC from the checklist; the
+record at the bottom of `rmqbot/rmq-docker/README.md` is now the run log.
+The instance-README names both compose files in the recreate command and
+lists the overlay among the box's folders; the platform inventory row says
+the gate is on. What the window showed: the six reconnects that arrived
+in the 4 s before users-back fell through `internal` to FIS and were
+denied, so the chained backends were seen working on the first live
+connection; after users-back every client was back at baseline in 18 s.
+
+## 2026-10-08 — Provisioning a broker box includes the FIS gate; the prod cutover is a dated record (gridworks-infra `479f2f9`)
+
+`rmqbot/rmq-docker/README.md`. The from-nothing recipe is now "Provision
+a broker box" and carries the gate as steps 8 and 9 (FIS beside the
+broker with its principal rows, then the overlay recreate and its two
+checks): every broker box runs the gate, and until now the three pieces
+sat in three places with no stated order. "The FIS gate" keeps the
+overlay mechanics and says why it is a recreate (network mode, plugins,
+conf fragment are container properties) and that a password user is
+unaffected. The prod cutover is a one-off, not an operation of the box,
+so it is a checklist at the bottom of the same README, "Prod gate
+cutover, 2026-10 (record)", that becomes the run record; the box's
+instance-README is untouched until the window runs. Also records that the
+box holds only two users, so the "house and LTN password users" the
+design named do not exist as a job.
+
+## 2026-10-08 — gate aligned to the executor: MQTT read-through at connect, topic permissions narrowed, repo prose in its own words (`a9a798c`)
+
+Three alignments of the gate to the executor, found reading one against
+the other, in one commit.
+
+**Read-through on MQTT.** The read-through on a mirror miss sat inside the
+AMQP alias and class check, so an MQTT GNode connecting before its node
+reached the mirror was admitted and then every write was denied at
+`/auth/topic` as a write with no identity. The broker caches topic
+verdicts per connection and a mirror insert flushes nothing, so that
+denial held for the connection's life, past the next reconcile. The
+mirror lookup now runs for every GNode principal ahead of the lease path,
+with the alias and class comparison still AMQP-only, which is the rule
+the executor states. The MQTT side follows the same consequence as AMQP:
+a registry that does not know the id, or cannot be reached, admits
+nothing new.
+
+**Topic permissions.** `decide_topic` allowed any permission other than
+`write`, where the executor names `read`. The broker sends only those two
+on a topic call, so nothing changes for it; a value that is neither (a
+future permission, a malformed call) now fails closed as every other gate
+path does.
+
+**Repo prose.** Docstrings and comments cited the wiki's build steps and
+executor headers ("build step 3", `executor "Scope"`) and hedged with
+"in v1". A repo does not know about the wiki, and a build-step number is
+transition narrative that means nothing once the build is done. Each
+passage now states the thing's own meaning; the `ci.sh` comment about
+when the db tests arrived goes.
+
+## 2026-10-08 — malformed `/auth/user` requests are recorded (auth event `001`) (`a3cfe41`)
+
+The gate denied a request whose claims did not decode without a record,
+the one `/auth/user` outcome the audit trail missed: `000` of
+`fis.instance.authorization.event` required `InstanceId` and `Run`, which a
+malformed request never carries. The snapshot moves to `001` (the two
+optional), `parse_user_request` returns a `MalformedRequest` carrying what
+the broker did forward (the username and the transport, known
+structurally) instead of `None`, and the handler records it with reason
+`MalformedRequest` after the deny. A request with no username at all is
+still deny without a record: there is no principal to record against. The
+`auth_events` columns follow the word (a migration makes `instance_id` and
+`run` nullable). The HTTP tests cover both malformed shapes, AMQP claims
+and an MQTT `client_id` that is not a uuid4.
+
 ## 2026-10-07 — HTTP-level tests for the `/auth/*` endpoints (`4e7070a`)
 
 Branch `jm/fis-auth-http-tests`. `tests/test_api.py` drives the FastAPI app

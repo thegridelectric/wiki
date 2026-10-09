@@ -4,6 +4,42 @@ One entry per commit in `thegridelectric/gridworks-alerter`,
 `thegridelectric/gridworks-alerts` and `thegridelectric/gridworks-alert-manager`
 (git = the what, this = the why).
 
+## 2026-10-09 — Track gwbase 0.5.15: user_id on every publish (`6c0e9df`)
+
+gwbase 0.5.15 stamps `user_id` on every publish with the connection identity, so the broker's validated-user-id check verifies this service's publishes instead of skipping them (OPS-579); the floor and the lock move together so the deployed box installs it.
+
+## 2026-10-08 — the MQTT door verifies against the probe's CA (`47f9826`)
+
+`mqtt_ssl_context` builds the MQTT door's TLS context from the
+`probe_amqp.tls` block (the GridWorks CA as trust root, the probe cert
+presented) and `mqtt_connack` takes that context; without a tls block the
+system store stands, as before.
+
+**Why:** the first live run of `alerter-probe` on the alerts box (2026-10-09
+01:33 UTC) counted 8883 unreachable three times, `CERTIFICATE_VERIFY_FAILED:
+self-signed certificate in certificate chain`, and fired a BrokerUnreachable
+into the store at 01:35:29: the broker's cert chains to the GridWorks CA,
+which the system trust store does not hold, and the door had no way to be
+told. The AMQP door already used the block. The tap was off, so nothing
+paged; the alert resolves on the door's first success. Test first:
+`test_mqtt_door_trusts_the_probe_ca` (a throwaway CA from openssl).
+
+## 2026-10-08 — the prober connects on its own cert and claims; `probe_amqp` is a broker-client block (`7b8b5c7`)
+
+The prober's AMQP door was a URL with a password user of its own. On the
+gated broker that user would be a standing password login whose queue
+and publish rights, if leaked, can drive the broker into a memory alarm
+that blocks every fleet publisher. The prober now connects the way every
+gwbase actor does: `GWALERTER_PROBE_AMQP__URL` plus an optional
+`GWALERTER_PROBE_AMQP__TLS__*` block (a `RabbitBrokerClient`), and with
+the block it presents the cert and the GRIDWORKS mechanism carrying
+`fis.connect.claims` as `<alias>.probe`, its own Service principal so its
+lease never contends with the alerter's; one instance id for the
+process's life, so each probe is an idempotent reconnect. Without the
+block (the dev broker) the URL's credentials stand. Tests: the claims
+are the prober's own on the probe URL's run; a tls block with no claims
+raises rather than falling back to a password.
+
 ## 2026-10-07 — gridworks-infra: update to alerts instance (`2905106`)
 
 The alerts box instance-README and `platform-inventory.md` record that

@@ -1,6 +1,6 @@
 # Fleet deployment (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-10-06 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-10-08 · Linear: OPS-392
 
 > What this is: the actual rollout of `jm/spruce-unlimbo` onto the six
 > production boxes as `main` before the heating season — the ordered box
@@ -273,6 +273,19 @@ rebuilding it:
   SHA and posture) so the path is proven, not theoretical.
 - One post-launch layout/ops update has gone through the tlayouts loop end to
   end on a real box.
+- The house scadas and LTNs are off their internal password users and on
+  cert plus FIS, one box at a time, each password user deleted as its box
+  moves (on MQTT an explicit username and password outranks the cert name,
+  so a live password user is a bypass of the gate). Until then the boxes
+  stay on passwords: the broker chains `internal` before FIS, so the
+  platform services authorize through FIS while the houses do not, and a
+  password-side box is outside FIS's lease logic (no supersession of a
+  second scada on one pi, no eviction by suspending its principal). The
+  first move is a beta window: the window scada connects on proactor
+  `v4.1.13+jm3`, whose upstream `client_id` is the per-process instance
+  id, and FIS `auth_events` shows that uuid4 and the lease created on it.
+  Then `ssl_cert_login` and the per-box flip (OPS-420 notch 4), and
+  plaintext 5672 and 1883 close after the last password user goes.
 
 ## Open
 

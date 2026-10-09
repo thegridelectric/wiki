@@ -1,6 +1,6 @@
 # gwalerter — the broker alerter
 
-Status: Draft · Pass 0 · Updated 2026-10-07
+Status: Draft · Pass 0 · Updated 2026-10-08
 
 > What this is: the house alerter as a gwbase actor on the fleet broker
 > (`thegridelectric/gridworks-alerter`, package `gwalerter`): its inputs,
@@ -128,7 +128,7 @@ meaning, gwalert's alias, and what reading gwalert found.
 | `NoData` | A tracked house has sent nothing for longer than the silence threshold (10 min). | `no_data` | gwalert's house list is the rows its 2 h query returned, so a house with no reading in the window is never checked; the new rule reads last-heard from the store. |
 | `ScadaRebootLoop` | The scada has booted repeatedly in a short span (more than 5 layouts in 5 min). | `rebooting` | Reads off layout arrivals directly. |
 | `CriticalGlitch` | The scada reported a glitch at Critical level; the summary is the evidence. | `critical_glitch` | A scada reporting on itself; the alert relays it to a human. |
-| `ZoneBelowSetpoint` | A critical zone is more than the tolerance (2 F) below its setpoint, and the setpoint was not just raised. | `zone_setpoint` | Suppressed in Standby. Zone name rides in the evidence. |
+| `ZoneBelowSetpoint` | A critical zone is more than the tolerance (2 F) below its setpoint, and the setpoint was not just raised. | `zone_setpoint` | Suppressed in Standby. Zone name rides in the evidence. The port gates on the zone's setpoint-phase state, not the last value on the setpoint channel: a learned setpoint is checked only while its phase is `LastHeatCallEndTemp`; `Unknown` and `Suspect±` are no check at all. gwalert reads the last value and cannot tell silence from persistence; its tolerance equals the learner's, so the two trip together and gwalert paged spruce 2026-10-08 on a room whose setpoint the scada had just dropped. |
 | `ZoneFreezeRisk` | A zone is below the freeze-risk threshold (40 F). | `zone_freezing` | 40 F is not freezing; the name says risk, the description carries the number. |
 | `NoDistFlow` | A sustained heat call ended and no distribution flow was seen since before it started, on three cycles running. | `dist_pump` | Pump power never gates the alert in gwalert, only the message wording; the name follows the condition (flow), not the suspect (pump). |
 | `NoStoreFlow` | The store pump has been commanded on for more than 10 min with no store flow. | `store_pump` | Assumes a store pump exists, which the fall layouts do not all have. |

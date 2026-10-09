@@ -117,6 +117,10 @@ is the gate to connecting.
 1. Read what JournalKeeper and the data repos take from `layout.lite`
    today (which fields, which nested words), so 013 carries exactly
    that and nothing that forces a further reshape before publishing.
+   The JournalKeeper change that takes 013 also adds `gw.scada.commit`
+   to the types it journals (OPS-7): the scada announces its commit at
+   boot right after `layout.lite`, and both reach the journal in one
+   JournalKeeper release.
 2. Decide the closure: publish 013 with the Krida pair in it, or cut a
    014 without them once the sema wave drops them from the House0 word
    (scada stopped reading them 2026-09-10).

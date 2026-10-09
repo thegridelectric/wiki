@@ -1,6 +1,6 @@
 # broker-alerter — the house alerter as a broker citizen
 
-Status: Accepted · Pass 1 · Updated 2026-10-07 · Linear: OPS-545
+Status: Accepted · Pass 1 · Updated 2026-10-08 · Linear: OPS-545
 
 **EDD: yes** the shadow run *is* the verification: the new alerter runs beside
 gwalert on the alerts box against the live hw1 broker, and each detector
@@ -254,7 +254,10 @@ Two small things carry a detected condition to a person.
   nothing else:
 
   - **AMQPS round trip** (`hw1-1.electricity.works:5671`, vhost
-    `hw1__1`, its own scoped user): connect, declare an exclusive
+    `hw1__1`, as its own Service principal `hw1.alerts.probe` on its own
+    cert, through the gate like a house; no password user, since one
+    with publish rights can drive the broker into an alarm that blocks
+    the fleet): connect, declare an exclusive
     auto-delete queue, publish one message to it through the default
     exchange, and receive it back. The round trip matters because a
     broker under a memory or disk alarm still accepts connections while
@@ -410,22 +413,13 @@ Before the box:
    definitions" recipe; the diff against the previous file was exactly
    the two exchanges and the `alertsmic_tx → ear_tx` binding, and
    `list_exchanges -p hw1__1` shows 20 including `alerts_tx` and
-   `alertsmic_tx`; every AMQP and MQTT client reconnected. ◐ Runtime
-   user `hw1.alerts` by the `rmq-docker/README.md` user recipe (root on
-   rmqbot; password to 1Password only), the first scoped service user
-   on hw1 (every other service connects as `smqPublic`). The actor
-   declares its consume exchange and its own queue on connect, binds the
-   queue to `alerts_tx` and `ear_tx`, consumes it, and publishes on
-   `alertsmic_tx`; binding needs write on the queue and read on the
-   exchange, so the three regexes are:
-
-   ```shell
-   sudo docker exec rmq1 rabbitmqctl set_permissions -p hw1__1 hw1.alerts \
-       '^(hw1\.alerts-.*|alerts_tx)$' '^(hw1\.alerts-.*|alertsmic_tx)$' \
-       '^(hw1\.alerts-.*|alerts_tx|ear_tx)$'
-   ```
-
-   Run after the ✅ above, before step 5's `.env`.
+   `alertsmic_tx`; every AMQP and MQTT client reconnected. ✅ The alerter
+   connects as the `alerter` Service principal on its cert through the
+   FIS gate (on since 2026-10-08), as every platform service does; no
+   runtime user and no permission regexes (FIS's resource verdict is
+   allow-all in v1). The actor declares its consume exchange and its own
+   queue on connect, binds the queue to `alerts_tx` and `ear_tx`,
+   consumes it, and publishes on `alertsmic_tx`.
 3. Registry read: `fetch_forest("https://gnr.electricity.works",
    ["hw1.isone.me.versant.keene"])` from the laptop returns the six
    houses (all Pending); that URL is `GWALERTER_GNR_URL`.
@@ -446,7 +440,9 @@ and unit install, with `alerter` for `gnr`):
    clone, `main`); `uv sync --frozen`; `.env` mode 600 from
    `template.env`: `GWALERTER_SERVICE_ALIAS=hw1.alerts`,
    `GWALERTER_RABBIT__URL` (amqps, `hw1-1.electricity.works:5671`, vhost
-   `hw1__1`, the `hw1.alerts` credential),
+   `hw1__1`, a placeholder user: the login is the cert) with the three
+   `GWALERTER_RABBIT__TLS__*` paths, and `GWALERTER_PROBE_AMQP__URL` with
+   its `GWALERTER_PROBE_AMQP__TLS__*` paths for the prober's own cert,
    `GWALERTER_FLEET_ROOTS=hw1.isone.me.versant.keene`,
    `GWALERTER_GNR_URL=https://gnr.electricity.works`,
    `GWALERTER_SUPER_ALIAS=hw1.super`,
@@ -487,3 +483,13 @@ The shadow week:
     then the Opsgenie tap goes live for that kind, gwalert's `no_data`
     check is switched off the same day so no house is paged twice, and
     the next detector starts.
+
+**On the box, 2026-10-08.** `alerter-rabbit` runs on the alerts box
+since 22:49 UTC as the `alerter` principal on cert plus claims through
+the FIS gate: forest request answered, the six houses tracked, queue
+`hw1.alerts-F…` bound to `ear_tx` and consuming. The shadow week (step
+9) starts there; `alerter-tap` stays disabled through it. `alerter-probe`
+is installed with the prober's own cert in place and waits on the
+`probe_amqp` broker-client change merging, since the box runs `main`;
+until that merge the box `.env` also carries the old
+`GWALERTER_PROBE_AMQP_URL` key that `main` reads, to delete at the merge.

@@ -16,7 +16,7 @@ generated classes are the only way an instance is built or read:
 | --- | --- | --- |
 | `fis.connect.claims` | 000 | the AMQP `claims` param at `/auth/user` |
 | `g.node.instance.gt` | 001 | the lease row |
-| `fis.instance.authorization.event` | 000 | the auth event row |
+| `fis.instance.authorization.event` | 001 | the auth event row |
 | `g.node.forest.request` | 000 | the reconcile pull |
 | `g.node.forest` | 002 | the reconcile reply; carries `g.node.gt` 006, the mirror row |
 
@@ -88,7 +88,8 @@ Four tables, three of them bijective with a word:
   instance.
 - `auth_events` ↔ `fis.instance.authorization.event`: `event_id`,
   `principal_id`, `instance_id`, `run`, `alias`, `g_node_class`,
-  `transport`, `decision`, `reason`, `decided_at_unix_ms`.
+  `transport`, `decision`, `reason`, `decided_at_unix_ms`. `instance_id`
+  and `run` are null on a malformed request's record, as the word allows.
 
 Schema changes are migrations (alembic), run up and down on a fresh
 database before they land.

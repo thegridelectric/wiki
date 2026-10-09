@@ -199,8 +199,14 @@ and assert it decodes clean. A green decode is a *guarantee* the two carriers ag
 - **gwsproto stops serializing `None`/`null` fields.** Surfaced by the live
   round-trip — sema tolerates it but it shouldn't be emitted. Worth its own design
   when picked up.
-- **A simulated weather-forecast service** so the harness gets weather the way prod
-  does (the Phase-A fixture is a static secret weather file for now).
+- **A weather service on the dev broker** so a dev scada gets weather the
+  way prod does. The scada's boot now provisions the forecast bundle and
+  the seasonal template from the config folder or the weather facade, and
+  refuses to start without them; a dev window today runs on fixture
+  copies placed by hand (`experiments/field-window-recipe.md`), so the
+  pull path, and any experiment that needs live forecasts, has no dev
+  rehearsal. A full dev simulation runs `d1.weather` beside the scada,
+  the LTN and the terminal asset.
 - **DB backfill of real `gw.house0.layout`s respecting uniqueness** — the wand
   (`make_imaginary_layout.py`) is the seed tooling (instance ids unique, device-type
   ids canonical/shared).

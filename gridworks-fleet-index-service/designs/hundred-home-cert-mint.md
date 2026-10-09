@@ -11,8 +11,9 @@ gate battery's MQTT leg, not by code review.
 > scales to 100 homes. Today a house's two identities (scada, LTN) each
 > need a client cert cut on certbot and a principal row on the FIS that
 > gates the broker. The design decides whether a GNode needs a row at all
-> and folds whatever remains into the mint. FIS v1 is OPS-422; the gate
-> window and the proactor MQTT client-id change are OPS-420.
+> and folds whatever remains into the mint. The gate and the cert plane
+> are built (FIS executor; rmqbot executor "PKI"); moving the houses onto
+> them is OPS-578.
 
 ## Where it stands
 
@@ -53,9 +54,8 @@ nothing new and is what runs today.
 
 ## Out of scope
 
-Renewal automation (a follow-on named in OPS-420's cert lifecycle); the
-provisioning service that later absorbs the tool; the proactor MQTT
-client-id change (OPS-420).
+Renewal automation (the follow-on named in rmqbot executor "PKI", leaf
+policy); the provisioning service that later absorbs the tool.
 
 ## Do this next
 

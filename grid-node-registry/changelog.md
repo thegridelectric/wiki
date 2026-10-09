@@ -12,6 +12,10 @@ Newest at the top.
 
 ---
 
+## 2026-10-09 — Track gwbase 0.5.15: user_id on every publish (`412b339`)
+
+gwbase 0.5.15 stamps `user_id` on every publish with the connection identity, so the broker's validated-user-id check verifies this service's publishes instead of skipping them (OPS-579); the floor and the lock move together so the deployed box installs it.
+
 ## 2026-09-29 — Rebuild orders a same-millisecond burst by the ear's arrival counter (`80d99f8`, merged `f58f345`)
 
 `test_rebuild_from_real_broker_capture` failed on a CI runner: three

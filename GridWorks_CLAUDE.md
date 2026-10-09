@@ -62,7 +62,7 @@ like a design name resolves to a design file before anything else. Kebab-case
 the words; try both, take whichever hits:
 
 - **Cross-cutting:** whole phrase as slug in `wiki/designs/`
-  ("mtls fis auth" → `wiki/designs/mtls-fis-auth.md`).
+  ("remove password access" → `wiki/designs/remove-password-access.md`).
 - **Per-domain:** first word a `wiki/` domain folder ⇒ remaining words as slug
   in `wiki/<domain>/designs/` ("sema snapshot improvement" →
   `wiki/sema/designs/snapshot-improvement.md`).
