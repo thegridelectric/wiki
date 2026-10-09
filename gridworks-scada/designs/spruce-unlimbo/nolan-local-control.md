@@ -14,7 +14,7 @@ the scada pulls its forecast from api.weather.gov at start, the leaf
 ally refuses a contract until a forecast exists, and a restart under a
 live contract ends the contract whenever that pull is slow or down.
 The scada should not be sourcing weather at all; the LTN relays it
-(`../spruce-settled/ltns-ready.md`, gwwf `executor/delivery.md` "LTN
+(`ltns-ready.md`, gwwf `executor/delivery.md` "LTN
 relay is primary"). Until the LTNs run, the scada keeps a pull path,
 but to our own service and through sema. Six steps, each with its
 test first:
@@ -85,7 +85,7 @@ test first:
    and the logger. Boxes get steps 3, 4 and 6 at the next deploy;
    `experiments/put_layout.sh` places the regenerated ops pair.
 
-7. ◐ **gwwf's seasonal template.** The scada's hand-kept list is a
+7. ✅ **gwwf's seasonal template.** The scada's hand-kept list is a
    gwwf record and gwwf builds the rung it declares, so a Fidelity
    SeasonalTemplate message is gwwf's own and the scada's fill reads the
    record. Months are the grid; the create command took a new version.
@@ -123,19 +123,25 @@ test first:
       the ops params and the deed. Weather and named-type tests green;
       full suite green (1559).
 
-   Not yet: no template exists on hw1, and no box runs this code. Step 7
-   closes when the Millinocket template is minted and a window scada
-   boots off it.
+   gwwf is deployed on the forecast box with the migration applied and
+   the Millinocket template minted (2026-10-09; the facade serves it
+   under `/hw1-isone-weather/seasonal-templates`). The mint needed its
+   own principal under the FIS gate: `gwwf create` connects as the
+   `hw1.weatherminter` Service on a second cert in the weather certs
+   dir (gwwf `0066e01`). Witnessed on spruce 2026-10-09 (scada
+   `97ea5806`, `experiments/2026-10-09-spruce-nolan-window/`): first
+   boot pulled the bundle record, the template and a Live forecast
+   from the facade and kept them as sema files in the config dir.
 
-   **▶ Do this next.** All three repos are in: sema `6cb1aee`, gwwf
-   `f4484ed` (`jm/seasonal-template`), scada `109d4404`
-   (`jm/spruce-unlimbo`). In order: push and deploy gwwf on hw1 so the
-   migration creates `seasonal_templates` (gridworks-infra hw1
-   instance-README); mint the Millinocket template with `gwwf create`
-   (the scada's old list, x100; Start 2026-10-07); push scada, and the
-   spruce and maple windows pull the template at their first boot after
-   the deploy. The ops-params drift the session hook reports on all five
-   boxes is the same deploy's side-by-side compare.
+   **▶ Do this next.** Read the spruce window's record
+   (`experiments/2026-10-09-spruce-nolan-window/` "Found") against the
+   table in "What to check in the field" and mark each row witnessed
+   or still open; the call, the band and the blind-band rows need a
+   longer window or an off-peak one. Then the maple window (both pis).
+   The cert window (`--cert`, the upstream link on spruce's own cert to
+   the prod broker; harness and box are ready) waits until
+   `layout.lite` 013 is published and `finalize-layout-lite-13.md` is
+   done: a window on the prod broker announces its layout to the fleet.
 
 ### Shape
 
@@ -163,6 +169,8 @@ Each row is a claim to confirm in a window, read from the journal's
 
 | Claim | What to see |
 | --- | --- |
+| A cert window is admitted by FIS | The upstream link connects to hw1-1 on the box's cert with no password; FIS `auth_events` shows one allow for principal `9024e45e…` on the window's instance id, a lease created on it, and the deployed scada's lease superseded; the scada log shows the upstream link active and `gw.scada.commit` sent |
+| First boot provisions weather from the facade | `Pulled a 96-slice Live forecast` in the log, the bundle record and the seasonal template written to `scada-experiment/`, no `WeatherProvisioningError` |
 | A Nolan scada boots with the call open | `gw1.nolan.lc.buffer.only.state` goes `Initializing` then `HpCallOff`; zones on their thermostats, charge valve closed, store pump off |
 | The call follows the schedule and the band | `HpCallOn` only off-peak with the band wanting charge; `HpCallOff` at buffer-depth3 ≥ `BufferFullF`, and 120 s before each on-peak window |
 | The pump follows the heat pump, not the call | `spruce.hack.hp.state` goes `HpDetectedOn` above 500 W and `HpDetectedOff` below 80 W; secondary pump and iso valve move with it, and run in `Unknown` |
@@ -211,6 +219,15 @@ to be raised again.
   and a restart under a live contract ends the contract whenever the
   weather API is slow or down. Still to walk: an offer in the window, a
   contract that expires in it, a store written by another status.
+
+- **spruce-window-2026-10-09.** Five items from the first window
+  (`experiments/2026-10-09-spruce-nolan-window/` "Found"): a Critical
+  `i2c-expander-reset` glitch on 0x21 at boot+1 min (OPS-452
+  signature); the secondary pump commanded on for 150 ms at boot while
+  the hp watch is Unknown; `required-energy` and the zone setpoint
+  channels never valued; heat-call and energy channels flapping stale
+  two minutes after a 300 s publish; the cold watch's setpoint and
+  temperature misses for three zones.
 
 **Patched, confirm:**
 

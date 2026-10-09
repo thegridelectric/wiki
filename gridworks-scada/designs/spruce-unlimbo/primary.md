@@ -1,6 +1,6 @@
 # Spruce un-limbo (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-09-24 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-10-09 · Linear: OPS-392
 
 **EDD: yes** bench (honeysuckle) and box harness runs are the verification;
 spokes reach Verified only when an experiment runs against the real bus or a
@@ -61,8 +61,8 @@ code. How a round runs and what the rounds have taught is
    hydronic per family · E zone-TOU) and the role-first directory shape; in
    `executor/control-hierarchy.md` "The node-actor partition". The
    hydronic-file reviews and H0N/H0CN retirement it surfaced are done
-   (OPS-539).
-6. ✅ DONE correct-house0 (OPS-539; est ≈29h → 26.5h) — House0 made right
+   (correct-house0).
+6. ✅ DONE correct-house0 (est ≈29h → 26.5h) — House0 made right
    across the sema word, the tlayouts gens and the scada code: the House0 and Nolan words'
    requirement and circuit axioms mirrored in gwsproto, every layout
    emitted by a gen with the pi's ids, the H0N/H0CN aliases retired; the
@@ -70,62 +70,91 @@ code. How a round runs and what the rounds have taught is
    (`experiments/2026-09-18-beta-field-windows/`); in
    `executor/hardware-layout.md` "Names — `gwsproto/names/`" and
    "Generation — the tlayouts gens", `tlayouts/executor/primary.md`
-7. ✅ DONE startup-announcements (OPS-392; est 0.75h) — what a scada says
+7. ✅ DONE startup-announcements (est 0.75h → 0.5h) — what a scada says
    once per run when the broker link can first carry a publish: the home's
    `ta.deed` as its own word, a warning when there is none, and the method
    that sends them; in `executor/scada-ltn-link-state.md` "The startup
    announcements". Real deeds placed on the boxes (spruce, beech, maple,
    fir, oak; elm pending its box)
-8. `cold-house-derived-setpoint.md` — the cold-house judgment at a house
-   whose zone setpoints the scada derives: what stands in when the derived
-   generator holds no setpoint, and the glitch scenarios that test it
-9. `operational-params-cleanup.md` (est 6.5h) — the Nolan ops word sheds
-   the House0 store knobs once the strategy selectors land; the tunables
-   still in scada settings move to the ops surface
-10. `control-strategy-selection.md` (est 4h) — the LTN and the scada
-   select the correct control strategy per house; ops chooses the machine,
-   the machine owns its state; the LTN side still to design
-11. `nolan-local-control.md` — the field checks for the beta windows
+8. ✅ DONE dev-spruce layout readiness (est 10h → 8.5h) — the spruce
+   layout and ops pair assembled at boot from the sema-authored artifacts
+   (`c755195b`)
+9. ✅ DONE summer hack through scada (est 24h → 28.6h) — the summer relay
+   hack run through the scada's own actors: the relay actor's i2c path
+   with board-record resolution and confirmed state, the DAC writer on
+   the I2cBus, NolanLocalControl's layout-family selection, the first
+   spruce window (2026-08-12)
+10. ✅ DONE sema-round-2 (est 6h → 20.4h) — the layout words' second round:
+   Strategy out for HardwareLayoutTypeName, FlowManifoldVariant removed,
+   the command tree axioms, the sieg split, the LayoutLite rename,
+   CommandableHeatPump, the House0 and Nolan axioms mirrored in gwsproto
+   (2026-09-02/03)
+11. ✅ DONE partition-names-grill (est 1.5h → 1h) — the grill that settled
+   the partition's strata and the disjoint names tiers before `bd13a371`
+12. ✅ DONE hp-boss-cleanup (est 3h → 1.9h) — hp-boss is the heat pump's
+   command node in every layout, drops its actuators-ready gate, and its
+   admin drive becomes a live test (2026-09-07)
+13. ✅ DONE snapshot-drop-gw1 (est 0.75h → 0.25h)
+14. ✅ DONE is-simulated-decompression (est 1.5h → 0.5h) — TaDeed read
+   into a ValidationState; UnValidated refuses LTN offers (`4bb46035`)
+15. ✅ DONE design estimating (est 5h → 1.5h) — the estimates for the
+   remaining spokes, one at a time
+16. ✅ DONE beta-field-windows axiom decisions (est 0.5h → 0.25h) — the
+   axiom decisions recorded in `beta-field-windows.md`
+17. `nolan-local-control.md` — the field checks for the beta windows
    and the review brief; the built part is in
    `executor/local-control.md` and `executor/cold-house.md`
-12. `layout-word-axioms.md` — the axiom work still open on both staging
-    layout words (the nameplate vocabulary gap,
-    the renumbering before promotion), the `gw.house0.no.sieg` word with
-    the oak / fir / elm generators (est 3h), and the closing windows
-13. `relay-actor-enforcement.md` (est 3h) — the relay actor keeps every relay reliable
-    on the new code: assert-then-verify with I2C self-heal, confirmed state
-    from pin-readback, honest boot; the two relay-test gaps that witness it
-    pulled forward to launch. The zone-call / thermostat control model on top
-    is post-launch (OPS-532)
-14. **`sensor-freshness.md`** (est 3h) ◐ built (`6e0efaac`, `b86da812`),
-    field verification open — a lost power meter or heat pump water sensor
-    reads as unknown: the power meter stops re-sending its last good value
-    and tells the scada the channel is lost; the heat pump accessors return
-    `None` for a flatlined channel; the pico actors flatline one quiet
-    channel
-15. **`basic-sieg.md`** (est 4h) — the least the sieg loop has to change before
+18. `ltns-ready.md` — the LTNs running against the new scada code
+   before the fleet is on the production broker: a local run first,
+   and from it the minimal LTN updates so reports are acked and the
+   LTNs do not crash; FLO quality waits
+19. `finalize-layout-lite-13.md` (est 4h) — `layout.lite/013` and its closure from
+    staging to published so spruce can send it on the production broker;
+    `gw.nolan.layout` closes with the same promote
+20. **`basic-sieg.md`** (design pass est 4h → 8.5h; build est 4h) — the least the sieg loop has to change before
     maple and beech take the branch, chipped not rebuilt: a start that waits
     to open and fails open, one owner for the valve relays, the valve
     commandable from the admin panel, `MonitorOnly` honoured, a restart that
     finds the valve, scada2 re-sending its readings when its link goes
     active, the relays' energization back as a channel, and the House0
     rows of the hp-boss live test uncommented
-16. `command-tree-matrix.md` (est 3h) — the sender rule for five nodes (built),
+21. `cold-house-derived-setpoint.md` — the cold-house judgment at a house
+   whose zone setpoints the scada derives: what stands in when the derived
+   generator holds no setpoint, and the glitch scenarios that test it
+22. `operational-params-cleanup.md` (est 6.5h) — the Nolan ops word sheds
+   the House0 store knobs once the strategy selectors land; the tunables
+   still in scada settings move to the ops surface
+23. `control-strategy-selection.md` (est 4h) — the LTN and the scada
+   select the correct control strategy per house; ops chooses the machine,
+   the machine owns its state; the LTN side still to design
+24. `layout-word-axioms.md` — the axiom work still open on both staging
+    layout words (the nameplate vocabulary gap,
+    the renumbering before promotion), the `gw.house0.no.sieg` word with
+    the oak / fir / elm generators (est 3h → 6.5h), and the closing windows
+25. `relay-actor-enforcement.md` (est 3h) — the relay actor keeps every relay reliable
+    on the new code: assert-then-verify with I2C self-heal, confirmed state
+    from pin-readback, honest boot; the two relay-test gaps that witness it
+    pulled forward to launch. The zone-call / thermostat control model on top
+    is post-launch (OPS-532)
+26. **`sensor-freshness.md`** (est 3h) ◐ built (`6e0efaac`, `b86da812`),
+    field verification open — a lost power meter or heat pump water sensor
+    reads as unknown: the power meter stops re-sending its last good value
+    and tells the scada the channel is lost; the heat pump accessors return
+    `None` for a flatlined channel; the pico actors flatline one quiet
+    channel
+27. `command-tree-matrix.md` (est 3h → 1h) — the sender rule for five nodes (built),
     the state-transition tree matrix on `command_node.py`, the relay's full
     report to the journal
-17. `odds-and-ends.md` (est 3h) — small launch items, one problem / change / test
+28. `odds-and-ends.md` (est 3h) — small launch items, one problem / change / test
     each (the panel's unobserved row offers every command; hp-boss
     reports its state at start; the LTN Dst-routing test)
-18. `main-changes.md` (est 1.5h) — the commits `main` took after the branch point,
+29. `main-changes.md` (est 1.5h) — the commits `main` took after the branch point,
     each carried or dismissed before the branch becomes `main`
-19. `finalize-layout-lite-13.md` (est 4h, segment 1) — `layout.lite/013` and its closure from
-    staging to published so spruce can send it on the production broker;
-    `gw.nolan.layout` closes with the same promote
-20. `report-all-machine-states.md` — the layout and `layout.lite` declare
+30. `report-all-machine-states.md` — the layout and `layout.lite` declare
     every machine the scada reports; the journal makes a channel of each
     by one rule, no hand-kept map; which transitions earn an asynchronous
     report
-21. `deployment.md` (est 5h) — the fleet rollout to all six boxes as `main`:
+31. `deployment.md` (est 5h) — the fleet rollout to all six boxes as `main`:
     precondition gates, per-family order and verification, rollback to the
     prior SHA, and the post-launch tlayouts loop for updating a deployed
     layout or ops

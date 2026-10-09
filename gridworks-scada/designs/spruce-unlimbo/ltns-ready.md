@@ -1,13 +1,25 @@
 # LTNs ready (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-10-05 · Linear: OPS-532
+Status: Draft · Pass 0 · Updated 2026-10-09 · Linear: OPS-392
 
-> What this is: the spruce-settled spoke that gets a maple LTN and a
-> spruce LTN running on the new code, each with a FLO and the parameters
-> it needs, and then settles what the LTN takes from the scada. Opens
-> after the fleet runs under local control; the second segment of
-> spruce-unlimbo's `layout.lite/013` work transfers here when its first
-> segment closes (the transfer note is in that spoke).
+> What this is: the spruce-unlimbo spoke that gets the LTNs running
+> against the new scada code before the fleet is on the production
+> broker, and settles what the LTN takes from the scada. Until launch it
+> lives here; the LTN work that can wait moves back to spruce-settled
+> (OPS-532) when this spoke closes.
+
+## Launch note
+
+The LTNs need to run before we are on the production broker. The first
+job is to test locally, and use that test to find the minimal updates
+to the LTN that get it working. The spoke text is worked in-process
+with the spoke itself: the local run says what the LTN needs, and that
+is what gets written here.
+
+The split is roughly: what do we need so that the reports are acked
+and the LTNs do not crash. The LTNs do not have to work well with their
+FLOs yet. Once the launch part is done, this file moves back over to
+spruce-settled with whatever LTN work can wait until after launch.
 
 ## The two FLOs
 

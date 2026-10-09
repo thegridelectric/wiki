@@ -8,7 +8,7 @@ Status: Draft · Pass 0 · Updated 2026-10-04 · Linear: OPS-392
 > stays off rmqbot until the word it sends on link-up is published.
 > Two segments: the first publishes the word the box sends today, enough
 > for the fleet to run under local control; the second, once the maple
-> and spruce LTNs run, is the spruce-settled `ltns-ready.md` spoke.
+> and spruce LTNs run, is the `ltns-ready.md` spoke.
 
 **To fold in: state machines and their states.** `layout.lite` and the
 layout words both need to carry the state machines the scada runs, each
@@ -30,7 +30,7 @@ carrying what the LTN reads today (`SeasonalStorageMode`,
 only that a Nolan layout no longer crashes the builder.
 
 **Segment 2, after the LTNs work.** Lives in
-`../spruce-settled/ltns-ready.md`: what each LTN takes from the scada,
+`ltns-ready.md`: what each LTN takes from the scada,
 the `flo.params` versions, and whether `layout.lite` is reshaped or
 replaced. **When segment 1 closes:** distill the publish outcome into
 the executor, then move anything still open in this spoke (the closure

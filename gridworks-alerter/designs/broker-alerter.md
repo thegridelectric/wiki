@@ -1,6 +1,6 @@
 # broker-alerter — the house alerter as a broker citizen
 
-Status: Accepted · Pass 1 · Updated 2026-10-08 · Linear: OPS-545
+Status: Accepted · Pass 1 · Updated 2026-10-09 · Linear: OPS-545
 
 **EDD: yes** the shadow run *is* the verification: the new alerter runs beside
 gwalert on the alerts box against the live hw1 broker, and each detector
@@ -306,6 +306,29 @@ zone's setpoint source and thermostat kind; the broker-alerter's
 cold-house detector reads the choice off the layout instead.
 
 ## Do this next
+
+**Shadow-week finding, 2026-10-09: the alerter cannot see spruce at all.**
+Its store holds a House NoData for `hw1.isone.me.versant.keene.spruce.ta`
+open since 2026-10-08T22:59:43Z, ten minutes after `alerter-rabbit` was
+enabled, never resolved; a 15-minute spruce window on 2026-10-09 (the
+deployed scada stopped) was invisible inside it. Cause, pinned on the
+wire from the journal DB: production spruce (`actual-spruce`) sends
+`report.event` 003 with the envelope MessageId differing from Report.Id
+in every message. 003 carries no axiom tying them, so the message is
+valid as sent and JournalKeeper journals it. `process_message` decodes
+every tracked message with the codec default, which upgrades 003 to 004
+and then fails 004's restored axiom 1 (ReportIdentityPropagation); every
+spruce report is dropped (`Dropped report.event from …spruce.scada`, 192
+by 14:53Z, no other house; beech sends 002 with equal ids and passes).
+The rule this breaks: an arrival is an arrival at its sent version.
+Decode with auto-upgrade off to count the arrival and clear NoData, and
+upgrade only where the store needs a 004 field; the test first is a 003
+report whose ids differ counting as an arrival. Where to look on the
+alerts box, `alerter` login: the store
+`~/.local/share/gridworks/alerter/alerter.sqlite` (table `alerts`; no
+`sqlite3` binary, read it with python's sqlite module) and the log
+`~/.local/state/gridworks/alerter/log/hw1.alerts.log`. Elm's open NoData
+from the same boot is separate (pi unreachable).
 
 Settled and built, in `executor/gwalerter.md`: the store, the registry
 projection, the fleet roots, the alert words, the output transport

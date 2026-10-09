@@ -6,6 +6,28 @@ the *why*.
 
 Newest at the top.
 
+## 2026-10-09 — spruce-nolan-window: first Nolan beta window on spruce (OPS-392) <!-- pending commit -->
+
+**What:** the folder for the 15-minute dev-broker window of scada
+`97ea5806` on spruce: README, runbook, the boot log, the broker capture
+and the persisted events as evidence, `emit_instances.py` and the
+`gw.experiment.run` 001 it emits; one logbook line. **Why:** the first
+box run of the sema weather path and of proactor `+jm3`, and the first
+witness of the nolan-local-control spoke's boot claims; it closes the
+spoke's step 7 (the scada fills from gwwf's seasonal template).
+
+## 2026-10-09 — house_window.sh --cert: the window on the prod broker, on the house's own cert (OPS-392) <!-- pending commit -->
+
+**What:** `on` takes `--cert`: the box boots from `~/envs/cert.env`
+instead of `dev.env`, no tunnel is opened and no laptop capture started,
+and `--ltn` is refused with it. `window_boot.py`'s docstring names both
+env files; the recipe gains "A cert window". **Why:** the first move of
+the scada's deployment design is a window whose upstream link logs in by
+client cert on the per-process instance id, so FIS records the lease and
+the house's events reach the journal through the acked path. The
+dev-broker window cannot show that: its isolation is that the env carries
+no hw1 creds. Spruce's `cert.env` is box state, recorded in its README.
+
 ## 2026-10-08 — beech-missing-store-heat-analysis on the template; field-window-recipe: what a dev window needs for weather (OPS-7) <!-- pending commit -->
 
 **What:** the snapshot seed gains `report.event` 002 and

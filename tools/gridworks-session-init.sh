@@ -129,7 +129,7 @@ CTX="You are session ${NAME} (hash ${HASH}). Your starter row was inserted into 
 
 **Read wiki/active-claims.md now** for the full multi-session protocol (it lives below the table in that file). The key first-turn action: **ASK the user for the session Focus** — a 1-line statement of intent (e.g., \"Decouple Sema from Transport\") — and fill the Focus column.
 
-**After Focus is set — the estimate ritual.** ${ESTIMATES_NAME} is this session owner's estimates log: no Scope claim needed, but touch only your own rows. If the Focus has no scoreboard row there, agree an estimate with the user (point + 90% low/high hours), add the row, and post the full scope as a comment on the Linear issue. Then start a scratch row under \"Active hours — scratch\" (Work · Day · Started, ET). At wrap, sum the scratch rows into Actual and log hours on the issue."
+**After Focus is set — the estimate ritual.** ${ESTIMATES_NAME} is this session owner's estimates log: no Scope claim needed, but touch only your own rows. If the Focus has no scoreboard row there, Read ONLY the \"Before you estimate\" section of wiki/estimating.md (the top section; stop at the next ## header), agree an estimate with the user (point + 90% low/high hours), add the row with Design/spoke = \"OPS-NNN slug\" and nothing else, and post the full scope as a comment on the Linear issue. Then start a scratch row under \"Active hours — scratch\" (Work · Day · Started, ET). At wrap, sum the scratch rows into Actual and log hours on the issue."
 
 if [ -n "$OPENROWS" ]; then
   CTX+="
