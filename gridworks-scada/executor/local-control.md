@@ -100,6 +100,11 @@ relays, `vdc-relay`) fails the params load and the scada does not start
 (`check_energized_standby_relays`, `sema_to_dc.py`). Standby reaches
 such a relay only through its node's command.
 
+Witnessed on beech, both pis, 2026-10-09: a Standby House0 scada boots
+with `aquastat-ctrl` and `hp-failsafe` energized, `hp-boss` off, and the
+sieg loop holding full send
+(`experiments/2026-10-09-nolan-local-control-windows/`, run 003).
+
 ## The Nolan heating machine
 
 `NolanBufferOnlyTou` (`local_control/nolan/buffer_only_tou.py`) charges
@@ -172,6 +177,12 @@ on-peak holds through the rest of the peak.
 
 **Boot** commands every actuator the machine is the direct boss of, in
 one pass: the postures above plus the call open.
+
+Witnessed on spruce's window scada against the dev broker, 2026-10-09:
+the boot with the call open, the call opening off-peak against the band
+with the pump following the heat pump both ways, and the call closing at
+`BufferFullF` (`experiments/2026-10-09-nolan-local-control-windows/`,
+runs 001 and 002).
 
 ## The heat-pump watch
 

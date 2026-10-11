@@ -1,6 +1,6 @@
 # rmqbot — deployment spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-10-09
+Status: Draft · Pass 0 · Updated 2026-10-11
 
 > What this is: the faithful spec of GridWorks' **running production
 > RabbitMQ/MQTT broker** — what it is, where it runs, how it's secured today.
@@ -49,24 +49,30 @@ Sub-specs:
   (`experiments/2026-09-06-fis-staging-box/`). It is not combined with
   an auth cutover: mixing a DNS/IP move into a per-client migration
   re-imports the flag day the ratchet engineered out.
-- **TLS serves on all three listeners** — AMQPS 5671, MQTT-TLS 8883,
-  management 15671 — from a single 2-year keypair (CN + DNS SAN
-  `hw1-1.electricity.works`, expires 2028-07). Plaintext 5672/1883 remain
-  open deliberately (see the ratchet below).
-- **All users are runtime-created** from the box's `.env` (mode 600,
-  never committed) after boot — 4.x seeds no default vhost or user from
-  the conf, and definitions import creates none either; recipes in the
-  rmq-docker README. No password lives in the conf or in git.
+- **TLS only, client cert required.** The broker listens on AMQPS 5671,
+  MQTT-TLS 8883 and management 15671, from a single 2-year keypair
+  (CN + DNS SAN `hw1-1.electricity.works`, expires 2028-07), and refuses
+  a broker connection without a client cert at the handshake. There is
+  no plaintext AMQP or MQTT listener and no STOMP. Plaintext management
+  15672 listens on the box's loopback only, for FIS. The `RabbitMQ`
+  security group admits 22, 5671, 8883 and 15671.
+- **One user, the default login, runtime-created** from the box's `.env`
+  (mode 600, never committed): `administrator` tag and no vhost
+  permission, so it opens the management API and UI and no broker
+  connection. 4.x seeds no default vhost or user from the conf, and
+  definitions import creates none either; recipe in the rmq-docker
+  README. No password lives in the conf or in git.
 - **4.x conf idioms:** definitions load via
   `definitions.import_backend = local_filesystem` +
   `definitions.local.path`; MQTT session expiry via
   `mqtt.max_session_expiry_interval_seconds = 86400`;
   `mqtt.allow_anonymous = false` is the require-auth switch. The image
   ships rabbitmqadmin v2 (changed flag syntax; README recipes match).
-- **No data volume**: a container recreate wipes runtime state. Topology
-  reloads from the box-side definitions file; every user (default
-  included, plus `analytics.ear.reader`) must be re-created — recipes in
-  the rmq-docker README.
+- **No named data volume.** The image declares `/var/lib/rabbitmq` a
+  volume; `docker compose up -d` re-attaches it to a recreated container,
+  so the user and runtime state survive. `compose down` or `up -V` starts
+  on an empty data dir. A change only inside a mounted file (a conf
+  fragment) needs `up -d --force-recreate`: compose does not see it.
 - **QoS-0 MQTT subscriptions** live in the `rabbit_mqtt_qos0_queue`
   pseudo-queue inside the connection process — the management UI shows
   `?` for their depth columns and no per-queue graphs; per-connection
@@ -144,71 +150,52 @@ Analytics topology belongs to the analytics tap broker: there is no
 - Registers: certificates in `gridworks-infra/authority/cert-inventory.md`;
   what-runs-where in `gridworks-infra/production-inventory.md`.
 
-## The TLS ratchet (current position: notch 4 for platform services, notch 2 for houses and LTNs)
+## The TLS ratchet
 
-The path from plaintext-with-passwords to cert-only authentication has four
-independently flippable notches:
+Cert-only authentication was reached in four independently flippable
+notches, all in place:
 
-1. **Encrypt (done, verified 2026-07-17).** `ssl_options.verify =
-   verify_peer` + `fail_if_no_peer_cert = false`: client certs optional —
-   verified when presented, rejected when invalid, ignored when absent.
-   Clients reach encryption with `ca.crt` + a port change; passwords
-   unchanged.
-2. **Client certs (done for the fleet, 2026-08).** Every house scada
-   and every house LTN presents a client cert with CN = its own GNodeId
-   (the LTN's GNodeId is distinct from its scada's), verified at the
-   handshake; no house dials plaintext 1883. Houses mint with
-   `--common-name <GNodeId>` on certbot; the per-house rclone remotes
-   use key-based auth. The LTNs run in per-house tmux sessions on two
-   shared EC2 boxes with one rclone remote per box; their live
-   confirmation is the per-minute `gridworks.ping` in the S3 eventstore,
-   not the journal.
+1. **Encrypt.** `ssl_options.verify = verify_peer`: a presented client
+   cert is verified, an invalid one rejected.
+2. **Client certs.** Every house scada and every house LTN presents a
+   client cert with CN = its own GNodeId (the LTN's GNodeId is distinct
+   from its scada's). Houses mint with `--common-name <GNodeId>` on
+   certbot; the per-house rclone remotes use key-based auth. The LTNs run
+   in per-house tmux sessions on two shared EC2 boxes with one rclone
+   remote per box; their live confirmation is the per-minute
+   `gridworks.ping` in the S3 eventstore, not the journal.
 3. **Require certs** — `fail_if_no_peer_cert = true` in
-   `advanced.config`. Flips once the broker log shows every fleet client
-   presenting a cert; a straggler delays it and breaks nothing.
-4. **Cert + FIS are the identity and the gate (live for the platform
-   services since 2026-10).** The GridWorks SASL mechanism plugin (AMQP;
-   built from `gridworks-infra/rmqbot/auth-mechanism/` into the mounted
-   `.ez` — [`auth-path.md`](auth-path.md)) and `mqtt.ssl_cert_login =
-   true`: CN becomes the username, with **chained backends**
-   (`auth_backends.1 = internal` for the management UI and the default
-   break-glass login; `.2 = http` → FIS, colocated on this box). Chaining
+   `advanced.config`.
+4. **Cert + FIS are the identity and the gate.** The GridWorks SASL
+   mechanism plugin (AMQP; built from `gridworks-infra/rmqbot/auth-mechanism/`
+   into the mounted `.ez` — [`auth-path.md`](auth-path.md)), the only AMQP
+   mechanism, and `mqtt.ssl_cert_login = true`: CN becomes the username,
+   with **chained backends** (`auth_backends.1 = internal` for the
+   management login; `.2 = http` → FIS, colocated on this box). Chaining
    is a decision, not a deferral: dropping `internal` would cost the
-   management UI and the break-glass path for no security gain. On MQTT
-   an explicit username+password outranks the cert-derived name, so any
-   client still sending a password is a CN bypass; the MQTT fleet
-   authorizes on `client_id = GNodeInstanceId` + `ssl_cert_login`
-   (proactor). The management UI keeps password login over HTTPS in
-   every era. The FIS contract: the FIS executor spec.
+   management UI for no security gain. On MQTT an explicit
+   username+password outranks the cert-derived name, so a password user
+   with vhost access is a CN bypass; the default login holds none, and the
+   MQTT fleet authorizes on `client_id = GNodeInstanceId` +
+   `ssl_cert_login` (proactor). The management UI keeps password login
+   over HTTPS. The FIS contract: the FIS executor spec.
 
-The houses and LTNs still send the default user's password inside TLS,
-so they authorize on `internal` today; moving them to their cert-derived
-names, notch 3, and closing 5672 and 1883 are OPS-578. Notches 3 and 4
-are written separately so that handshake failures stay distinguishable
-from auth failures on cutover day.
+Notches 3 and 4 are separate so that a handshake failure (no or bad cert)
+stays distinguishable from an auth refusal (FIS deny).
 
 ## Security posture today
 
-- **Platform services authorize on cert plus claims through FIS**; a
-  revoked cert is refused at the handshake by the CRL. **Houses and LTNs
-  present their certs but still log in as the default user** (password
-  inside TLS), so they authorize on `internal`; the broker holds exactly
-  two password users, the default login and `analytics.ear.reader`
+- **Every broker connection authorizes on cert plus claims through
+  FIS**: houses, LTNs and platform services alike. A revoked cert is
+  refused at the handshake by the CRL. No password opens a broker
+  connection; the one password user is the management login
   (gridworks-infra `rmqbot/rmq-docker/README.md` "Runtime-created
-  users"). Closing that path is OPS-578.
+  users").
 - **Audit-tap consumers belong on the tap broker, not here.** Prod is
   the control-plane realm; anyone who reads the fleet but is not the
   fleet gets the analytics tap broker, fed by the one-way shovel
   (gridworks-infra `authority/README.md`
-  "Trust realms"). `analytics.ear.reader` (no tags; password in
-  1Password; configure/write `^analytics\..*$`, read
-  `^(analytics\..*|ear_tx)$`, so it can declare its own `analytics.*`
-  queues, bind them to `ear_tx`, and publish nowhere) still exists on
-  prod for consumers not yet moved; its removal follows the web realtime
-  gateway's move to the tap (OPS-542).
-  The user lives in the broker's data store, not
-  `rabbit_definitions.json` — re-create after any container recreate
-  (recipe in the rmq-docker README).
+  "Trust realms").
 - Admin control is via **Tailscale-protected textual interfaces** — adequate to
   ~30 homes; it hits Tailscale's ~100-device limit at the 100-home scale, which
   is the forcing function for the later security phases.
@@ -223,10 +210,10 @@ from auth failures on cutover day.
 
 The broker contract is checked by a re-runnable harness:
 `gridworks-infra/rmqbot/rmq-docker/tests/check-broker-contract.py` (run
-instructions in the rmq-docker README). Six checks: TLS-without-client-cert
-on 5671, garbage-cert rejection, plaintext auth, and the analytics
-permission contract in both directions. Run it after any conf change; 6/6
-is the bar. The topology drift check (see Topology above) is the second
+instructions in the rmq-docker README). Eight checks: no client cert
+refused on 5671 and 8883, a garbage cert refused, 5672, 1883, 15672, 61613
+and 15674 closed from off the box, and the default login on the management
+API. Run it after any conf change; 8/8 is the bar. The topology drift check (see Topology above) is the second
 harness.
 
 The SASL mechanism plugin has its own witness, since nothing on the running

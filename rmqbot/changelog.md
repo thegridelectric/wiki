@@ -12,6 +12,43 @@ repo's git history.
 Newest at the top.
 
 <!-- pending commit -->
+## 2026-10-11 — Prod broker: GRIDWORKS the only AMQP mechanism; default user holds no vhost permission (gridworks-infra `e29513e`)
+
+After the password rotation, `smqPublic` plus its password and any valid
+fleet cert still opened an AMQPS or MQTTS connection with full rights on
+`hw1__1`. The gate fragment now lists only `GRIDWORKS`, so AMQP has no
+password login, and the default-user recipe no longer grants vhost
+permissions (they were cleared on the live broker the same afternoon), so
+the user opens the management API and UI and nothing else; MQTT has no
+mechanism list, and the missing vhost permission is what keeps the user
+off it. A local replica showed an administrator with no vhost permission
+refused on AMQPS (`530 NOT_ALLOWED`) and MQTTS; FIS's
+`/api/connections/username/…` calls answer unchanged. Break-glass grants
+the permission for a session and clears it after (rmq-docker README).
+
+## 2026-10-11 — rmqbot: a compose recreate keeps users (anonymous data volume) (gridworks-infra `73900c2`)
+
+The runbook said a recreate wipes every user. It does not: the image
+declares `/var/lib/rabbitmq` a volume and `docker compose up -d`
+re-attaches it, which the password rotation found when `add_user`
+answered "already exists". Only `compose down` or `up -V` starts on an
+empty data dir. The recreate steps now check that the user is present
+instead of re-creating it.
+
+## 2026-10-11 — Prod broker: TLS only, client cert required, STOMP off, one password user (gridworks-infra `b91de88`)
+
+The last password client (the web realtime gateway) left prod for the tap
+(OPS-586), so password access closed (OPS-578): no plaintext AMQP or MQTT
+listener, `fail_if_no_peer_cert = true`, and the STOMP and web-STOMP
+plugins off, since nothing used them and both took a password in
+plaintext. Plaintext management 15672 stays on the box's loopback because
+FIS closes superseded connections through it. `analytics.ear.reader` is
+gone and the default user's password was rotated (every house and LTN
+had held the old one). The contract harness is rewritten to the new
+contract: eight stdlib checks, none presenting a fleet cert. The docs
+that named `smqPublic` as a fleet login (gjk, fleet inventory, the
+gateway's `.env`) now name the cert logins and the tap.
+
 ## 2026-10-11 — rmqtap capacity: the shovel's ceiling at prefetch 100 (gridworks-infra, `jm/authority-readme`)
 
 "Capacity and faults" named the shovel as the first thing to saturate,

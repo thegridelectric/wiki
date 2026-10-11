@@ -6,19 +6,42 @@ the *why*.
 
 Newest at the top.
 
-## 2026-10-09 — nolan-local-control-windows: the Nolan and Standby beta windows on spruce and beech (OPS-392) <!-- pending commit -->
+## 2026-10-11 — prod-broker-outage-drill: record, runbook, reconnect view (OPS-545, OPS-304, `9535d40`)
+
+**What:** the folder for the planned outage of hw1-1, listeners down
+9 min 20 s: README, `runbook.sh` (census, stop, start, collect), the
+alerter-store rows, the reduced broker log and the after-connection
+lists as evidence, `emit_instances.py` with the four `gw.alert`
+transitions and the `gw.experiment.run`, and `views.py` for the alert
+and reconnect display CSVs; one logbook line; `.ruff_cache/` ignored.
+`tap_listen.py` reformatted (no behavior change), and the README names it as the way to watch
+live fleet traffic, with `GWEXP_TAP__URL` in the `.env` list.
+**Why:** the prober's broker-down path had only run against the dev
+broker; this is its PASS against prod (`BrokerUnreachable` on both
+doors 3 min 36 s after the stop, no `NoData`). The reconnect timing is
+the finding OPS-304 takes up: the AMQP services were back within 30 s,
+while the MQTT fleet waited 46–49 s on paho's default backoff and
+returned in lockstep.
+
+## 2026-10-11 — nolan-local-control-windows: record, executor claims, views, capture under the cap (OPS-392, OPS-426, `0517932`)
 
 **What:** the folder for the day's dev-broker windows of scada
 `97ea5806`: the 15-minute spruce morning window, the 25-minute spruce
 afternoon window and the 20-minute beech window on both pis; README
 with one run section each, runbook, the boot logs, broker captures and
-persisted events as evidence, `emit_instances.py` and the three
-`gw.experiment.run` instances; one logbook line. **Why:** the first box
-run of the sema weather path and of proactor `+jm3`; the first witness
-of the nolan-local-control spoke's boot claims and then of the call
-cycle (on off-peak with the band wanting charge, off at BufferFullF,
-the pump following the heat pump both ways); the first Standby House0
-boot on a box, with the sieg loop at full send.
+persisted events as evidence (the afternoon capture gzipped under the
+2 MB cap), `emit_instances.py` and the three `gw.experiment.run`
+instances, each claim naming its `local-control.md` section, and
+`views.py` for the run and glitch display CSVs; one logbook line.
+Also `tap_listen.py`: an exclusive queue on the analytics tap broker's
+copy of `ear_tx`, logged in as `gw.analyst`.
+**Why:** the first box run of the sema weather path and of proactor
+`+jm3`; the first witness of OPS-392's Nolan boot claims and then of
+the call cycle (on off-peak with the band wanting charge, off at
+BufferFullF, the pump following the heat pump both ways); the first
+Standby House0 boot on a box, with the sieg loop at full send. The tap
+listener gives a laptop a view of live fleet traffic that cannot publish
+anywhere, so watching the fleet never touches the prod broker.
 
 ## 2026-10-09 — house_window.sh --cert: the window on the prod broker, on the house's own cert (OPS-392) <!-- pending commit -->
 

@@ -12,8 +12,9 @@
 # Checks per checkout: on its expected branch and even with origin
 # (fetches first), clean tree, and the running process started AFTER the
 # checkout's last commit (a pull without a restart runs the old code).
-# Houses: both pis, repo ~/gridworks-scada, systemd unit gwspaceheat on
-# the first pi and gwspaceheat2 on the second. LTNs: ~/ltn-<house>/
+# Houses: repo ~/gridworks-scada, systemd unit gwspaceheat on the first
+# pi and gwspaceheat2 on the second (SECOND_PIS names the houses that
+# have one). LTNs: ~/ltn-<house>/
 # gridworks-scada on the two LTN boxes, process = the python whose
 # working directory is under that folder (the tmux REPL).
 
@@ -30,7 +31,9 @@ trap 'rm -rf "$TMP"' EXIT
 
 # Expected branch per checkout. Spruce is the one house off main: its pi
 # runs actual-spruce and its LTN runs jm/spruce (fleet-inventory.md).
-HOUSES="beech:main oak:main fir:main maple:main elm:main spruce:actual-spruce"
+# elm and elm2 are offline; add elm back to HOUSES and SECOND_PIS when they return.
+HOUSES="beech:main oak:main fir:main maple:main spruce:actual-spruce"
+SECOND_PIS="beech oak fir maple"
 LTN_BOXES="ltn:maple:main,oak:main ltn2:beech:main,elm:main,fir:main,spruce:jm/spruce"
 
 # The remote fragment: prints one line per finding, nothing when clean.
@@ -78,7 +81,7 @@ check_ltn_box() {  # host house:branch,...
 for hb in $HOUSES; do
   h=${hb%%:*}; b=${hb#*:}
   check_pi "$h" gwspaceheat "$b" &
-  check_pi "${h}2" gwspaceheat2 "$b" &
+  case " $SECOND_PIS " in *" $h "*) check_pi "${h}2" gwspaceheat2 "$b" & ;; esac
 done
 for bs in $LTN_BOXES; do
   check_ltn_box "${bs%%:*}" "${bs#*:}" &

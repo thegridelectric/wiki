@@ -1,6 +1,6 @@
 # Fleet Index Service (FIS) — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-10-09
+Status: Draft · Pass 0 · Updated 2026-10-11
 
 > What this is: the faithful spec of the **Fleet Index Service (FIS)** — the
 > authority-plane service the broker calls (`rabbitmq-auth-backend-http`) to
@@ -174,12 +174,12 @@ rationale; what FIS depends on:
 - **No fleet password users**: on MQTT an explicit username+password
   outranks the cert-derived name, so a live password user is a CN bypass.
   The `internal` backend answers only for usernames it holds (the
-  management login and the analytics reader), so a password client is
+  management login, with no vhost permission), so a password client is
   never seen by FIS, and an unknown username falls through and is denied
   with no principal (`auth-endpoints.md`).
 - **The `ssl_options` tightening** (`verify_peer`,
   `fail_if_no_peer_cert = true`) is not part of the gate fragment; a box
-  carries it in its own `rabbitmq.conf` (prod at notch 3).
+  sets it in its own TLS config.
 
 ## Publishing operational messages
 
