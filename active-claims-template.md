@@ -68,15 +68,13 @@ verbatim; deviation is a defect, not a stylistic choice. RFC 2119 keywords
 - **Before extending into a new path or area, you MUST re-check this file**
   and update your row. If the new area overlaps another active session's
   scope, you MUST stop and raise it; you MUST NOT edit across the boundary.
-- **Estimates logs are per person and live outside the wiki.** The numbers
-  are hours worked, so they belong in a private place: Jessica's is
-  `admin/jess-estimates.md` (the private admin repo), and the session hook
-  finds the owner's log through `GW_ESTIMATES`. Anyone else who wants the
-  practice keeps their own `<name>-estimates.md` wherever suits them.
-  Your session appends to **its owner's** file and no one else's. Like this
-  file, it is edited without a claim: add your own scoreboard and scratch
-  rows and close your own timers; you MUST NOT edit another session's rows,
-  and it MUST NOT appear in any Scope cell.
+- **Estimating is personal tooling, outside the wiki.** An owner who keeps
+  an estimates log (hours worked against a point and a 90% interval) keeps
+  it, its method notes and its session hooks in their own private place,
+  and nothing in the wiki or the shared hooks depends on it. Your session
+  appends to **its owner's** file and no one else's, edited without a
+  claim; you MUST NOT edit another session's rows, and it MUST NOT appear
+  in any Scope cell.
 - **Commits:** Human does all commits. You MUST stage only your own paths;
   you MUST NOT `git add -A` while other sessions may be live. (See
   `GridWorks_CLAUDE.md` "Commit suggestions".)

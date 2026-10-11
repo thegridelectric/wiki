@@ -1,6 +1,6 @@
 # Concern: FIS auth for GNodes and non-GNode services
 
-Status: Draft · Pass 0 · Updated 2026-08-14
+Status: Draft · Pass 0 · Updated 2026-10-11
 
 > One FIS authorization path serving both GNode actors and non-GNode
 > services (journalkeeper, ear, gnr, future analytics consumers), without
@@ -38,6 +38,24 @@ Status: Draft · Pass 0 · Updated 2026-08-14
 - **Permission grammar** — whether a higher-level "role" abstraction
   (e.g., "ear-reader") expanding to rabbit permissions is worth it when
   `/auth/resource` tightens past allow-all. Defer until then.
-- **Operator** (cloud admin) auth — a separate principal kind lands with
-  the `gridworks-admin` design (OPS-429), including the WebAuthn step-up
-  posture. Out of scope here.
+- **How a human proves identity.** Three positions exist and are not
+  reconciled:
+  1. The FIS executor's invariant 5: a phishing-resistant hardware-bound
+     credential (a WebAuthn/FIDO2 passkey) registered to the human's FIS
+     principal, with a fresh step-up assertion for a high-impact command.
+  2. The admin executor: humans authenticate to the admin process with
+     personal client certs, the process keeps the roster, and FIS needs
+     no operator kind.
+  3. `gridworks-provisioning/explorations/principal-kinds-extension.md`:
+     a third principal kind, `operator`, with scope-based permissions,
+     shorter cert lifetime and MFA (the `gridworks-admin` design,
+     OPS-429).
+  The passkey and personal-cert positions can coexist (a browser front
+  under 1, a CLI under 2); whether `operator` becomes a FIS kind is the
+  decision.
+- **The admin identity's publish rule.** The admin executor says
+  `hw1.admin` is a service-kind principal with "from-alias pinned on
+  every publish"; `auth-endpoints.md` says a Service has no registry
+  alias to pin. Both docs stand as written until the rule is decided.
+- **The auth-event record** is not yet drained into the fleet's
+  persistent store (`auth-endpoints.md` "Auth event").

@@ -1,6 +1,6 @@
 # Where Does Meaning Live in the GridWorks System
 
-Status: Draft · Pass 0 · Updated 2026-07-19
+Status: Draft · Pass 0 · Updated 2026-10-11
 
 What this is: the GridWorks architecture position naming Sema as the
 semantic authority of the GridWorks system. The vision-grade *why* under
@@ -37,7 +37,7 @@ but where the bijection does hold, the name says so. A TypeName ending in
 `.gt` declares that the type is coupled bijectively with one table in a
 canonical seed database: the table's rows are instances of the type, and
 that table is where those facts are asserted. Message types that cross the
-wire and are gone (`bid`, `report`, `heartbeat.a`) carry no `.gt`; the
+wire and are gone (`bid`, `report`, `heartbeat.a`) have no `.gt`; the
 `.gt` words are the system's durable records.
 
 The coupling runs in the direction this whole position describes: Sema
@@ -46,16 +46,16 @@ hold. For example, `hp.device.type.gt` defines the category-level facts of
 a compressor-bearing heat pump unit (capacity, electrical limits, the
 primary-pump facts); the corresponding seed table holds one row per
 registered device category (e.g. `SamsungAE055FCYDCG`). Each seed-coupled
-`.gt` schema carries a short note to this effect in its
+`.gt` schema has a short note to this effect in its
 `extended_description`, naming which seed database the word belongs to —
 layout words to the terminalasset registry, grid topology and identity to
 the grid node registry, runtime instances to the FIS — so the convention is
 visible to a reader of the public schema who has never seen this document.
 
-A few words carry `.gt` by naming inertia and are not seed-coupled:
+A few words have `.gt` by naming inertia and are not seed-coupled:
 `position.point.gt`, `hubitat.gt`, `hubitat.poller.gt`, and
 `maker.api.attribute.gt` are value objects embedded in other types, not
-tables of their own. They carry no note, and neither do retired words
+tables of their own. They have no note, and neither do retired words
 (`replaced_by` set) nor drafts.
 
 ## Semantic Snapshots and Meaning-Preserving Exports

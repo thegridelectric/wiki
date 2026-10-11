@@ -1,6 +1,6 @@
 # broker-alerter — the house alerter as a broker citizen
 
-Status: Accepted · Pass 1 · Updated 2026-10-09 · Linear: OPS-545
+Status: Accepted · Pass 1 · Updated 2026-10-10 · Linear: OPS-545
 
 **EDD: yes** the shadow run *is* the verification: the new alerter runs beside
 gwalert on the alerts box against the live hw1 broker, and each detector
@@ -307,7 +307,52 @@ cold-house detector reads the choice off the layout instead.
 
 ## Do this next
 
-**Shadow-week finding, 2026-10-09: the alerter cannot see spruce at all.**
+**Shadow-week finding, 2026-10-10: a refused prober login blinded the
+alerter to two real outages.** On 2026-10-09 beech and spruce were each
+taken down for thirty minutes from about 19:25Z (the NolanLocalControl
+windows); gwalert paged both (spruce 19:36Z, beech 19:41Z) and the
+alerter raised nothing. It was healthy: restarted 18:58Z on the merged
+spruce fix, consuming, and it resolved the stale spruce NoData a minute
+later. The hold was the prober's: the hw1 broker began refusing the
+prober's own AMQPS login at 17:53Z (ACCESS_REFUSED on the GRIDWORKS
+mechanism, the actor's login on the same door fine), the prober raised
+`BrokerUnreachable` on 5671 at 17:55:59Z, and the NoData rule holds
+while one is open. ✅ Fixed in `cc10999` (the fleet
+heard inside `heard_period_s` outranks the probe: no raise, open alert
+resolves, failures count only while the fleet is unheard; test first,
+ci.sh green; `executor/gwalerter.md` "The prober"); ✅ on the box since
+2026-10-10 10:33Z (`915ee1e`, both units, by `tools/box-deploy.sh
+alerter`).
+The refusal has a cause, read off the FIS log: at 17:53:31Z a second
+process on the alerts box connected with the probe's cert (a
+non-interactive ssh session as `alerter`), FIS leased the principal
+`hw1.alerts.probe` to that new instance id as `superseded` and revoked
+the running prober's lease; the prober mints one instance id for its
+process life (`doors()` in `prober.py`), so every probe since is
+`revoked-forever`. No TTL is involved. The second process bound a queue with
+routing key `#` on a topic exchange, the actor's bind shape, not the
+prober's: a hand-run `gwalerter rabbit` carrying the probe cert, six
+minutes long. The actor's own principal (`alerter`) was untouched; its
+only logins that day are its three starts. ✅ `alerter-probe` restarted 10:21Z
+2026-10-10 (a fresh instance id is allowed as `superseded`); the open
+record resolved on its first tick. The prober stays a separate process
+on its own identity: it has to be able to speak when the actor process
+itself is dead. ✅ The alerts instance-README names both principals and
+the one-cert-one-program rule; the umbrella CLAUDE.md carries the rule
+for every box.
+✅ The MQTT probe's fixed client id was not a uuid4, so FIS refused it
+as malformed every minute and the probe, which counted any CONNACK as
+an open door, passed on the refusal (`c158d95`: the client id is the
+prober's instance id; both doors lease-match on FIS since 11:08Z). The
+weak pass condition is the design-process finding: the prober's witness
+ran on the dev broker, which has no gate, so a check that accepts a
+refusal could not be refuted there, and the MQTT probe never verified
+what the scadas need. ◐ The probe now requires an accepted CONNACK
+(`jm/mqtt-accepted-connack`, test first, ci.sh green); the witness for
+a gate fault (FIS stopped on the broker box, every scada refused) is
+its own run against the staging broker, which carries the gate.
+
+**Shadow-week finding, 2026-10-09: the alerter cannot see spruce at all.** ✅ Fixed in `42b4681` (decode at sent version, seed pinned 002 through 004); witnessed locally against the real spruce 003 wire payload from the journal (PASS); ◐ on the box after the merge to `main` and a pull.
 Its store holds a House NoData for `hw1.isone.me.versant.keene.spruce.ta`
 open since 2026-10-08T22:59:43Z, ten minutes after `alerter-rabbit` was
 enabled, never resolved; a 15-minute spruce window on 2026-10-09 (the
@@ -329,6 +374,18 @@ alerts box, `alerter` login: the store
 `sqlite3` binary, read it with python's sqlite module) and the log
 `~/.local/state/gridworks/alerter/log/hw1.alerts.log`. Elm's open NoData
 from the same boot is separate (pi unreachable).
+
+**The cluster after that: the NoData summary names the cause.** ◐ Built
+on `jm/report-at-sent-version` (arrivals per alias and migration, the
+envelope count in the actor, one `heard_period_s` expectation times `NYQUIST`, four clauses
+in `CAUSE_CLAUSES`, summary update on tick; 55 tests, ci.sh green),
+distilled to `executor/gwalerter.md` "The store" and "Detectors";
+awaiting commit and the shadow week. The count is per alias, never per
+type, and nothing about any message's cadence is assumed beyond "heard
+at least once a minute": the scada's snapshot cadence is configurable
+and the scada-LTN exchange will change. To verify in the shadow week:
+spruce on `actual-spruce` reads like beech; elm reads "scada silent;
+ltn speaking" (its pi is unreachable, its LTN runs).
 
 Settled and built, in `executor/gwalerter.md`: the store, the registry
 projection, the fleet roots, the alert words, the output transport

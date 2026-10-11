@@ -102,17 +102,17 @@ The provisioning system extends — does not replace — the mTLS + FIS
 infrastructure already designed for runtime authorization
 ([`../../gridworks-fleet-index-service/executor/primary.md`](../../gridworks-fleet-index-service/executor/primary.md)):
 
-- **At provisioning time**: a new GNode's cert is **minted** — by the
-  provisioning service (which has authority to issue per the FIS
-  trust chain).
-- **At runtime**: FIS validates that cert + authorizes the
+- **At provisioning time**: a new GNode's cert is **minted** by the
+  issuance tool on certbot, which also creates the principal row on
+  FIS. FIS issues no certs and keeps no cert state; the rule and the
+  CA custody: gridworks-infra `authority/README.md` "Issuing".
+- **At runtime**: the broker validates that cert and FIS authorizes the
   GNodeInstanceId (per the runtime invariants).
 
 Provisioning therefore needs:
 
-- A **cert-issuing capability** (operates within FIS's trust chain) —
-  could live in FIS itself, in a separate provisioning service that
-  FIS trusts, or in a co-located component.
+- A way to drive the **issuance tool** for a new GNode as part of the
+  install flow.
 - A **gem-write capability** with multi-sig enforcement.
 - A **broker-config push capability** so the SCADA knows where to
   connect after install.

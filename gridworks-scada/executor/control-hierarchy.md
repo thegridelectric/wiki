@@ -209,7 +209,7 @@ The load-bearing distinction for running many layouts:
   there.
 
 Today this is fused and frozen to House0: `set_command_tree` is the shared sub-methods *and* the per-layout
-assembly, hardcoded to `H0N.*`. The pass-two direction (hardware-layout-pass-one) un-fuses them — see below.
+assembly, hardcoded to `H0N.*`. The pass-two direction (OPS-407) un-fuses them — see below.
 
 ## The two `set_command_tree` locations
 

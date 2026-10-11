@@ -22,7 +22,7 @@ Status: Accepted · Pass 1 · Updated 2026-09-25 · Linear: OPS-40
   dial** in its simplest local form: the real device actors (`ApiTankModule` /
   `ApiBtuMeter` / `ApiFlowModule`) self-generate fictitious input on a timer — no plant,
   no broker — so a full-sim House0 layout runs every device code path without crashing.
-  The cheap precursor to the coherent plant; unblocks the hardware-layout-pass-one
+  The cheap precursor to the coherent plant; unblocks the hardware-layout pass one (OPS-407)
   `primary-flow` behavior test. Candidate next-active spoke.
 - [`simulated-actors.md`](simulated-actors.md) — the sim seam (device boundary, the
   plant pushes), the first-pass plant model, the plant's I/O contract, and the

@@ -12,7 +12,7 @@ standalone experiment.
 > analytics consume. It is the layout/params sibling of the grid-node-registry — same
 > *seed* pattern (see [`../vision/where-meaning-lives-in-gridworks.md`](../vision/where-meaning-lives-in-gridworks.md)),
 > deliberately **without** GNR's decentralizable / on-chain requirement. The Sema
-> words and the authoring gen come from hardware-layout-pass-one
+> words and the authoring gen come from hardware-layout pass one (OPS-407)
 > ([OPS-407](https://linear.app/gridworks/issue/OPS-407)); this is where the asserted
 > facts **live**.
 
@@ -173,7 +173,7 @@ Drop (GNR-specific, not needed here):
 
 ## Relationship to other work
 
-- **hardware-layout-pass-one ([OPS-407](https://linear.app/gridworks/issue/OPS-407))** —
+- **hardware-layout pass one ([OPS-407](https://linear.app/gridworks/issue/OPS-407))** —
   defines the Sema words (`gw.house0.layout`, `capture.tuning`,
   `gw.house0.operational.params`, the component vocabulary) and the gwsproto types +
   `sema_to_dc`. The **authoring gen** (`sema_gen`, `layout_gen`, default-ops) moves **out

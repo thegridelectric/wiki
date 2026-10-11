@@ -12,6 +12,18 @@ Newest at the top.
 
 ---
 
+## 2026-10-11 — how-fis-works.md: the problem, the mechanism, a day in the life (`42f67a6`)
+
+Branch `jm/authority-readme`. A teammate new to FIS needs one document
+that says what problem it solves and how, without reading the contract
+specs: unauthorized parties dispatching grid assets, and two copies of
+one node (two LTNs for one scada) running at once; the broker as the only
+way in, a signed certificate plus a yes from FIS to get in, the newest
+instance kicking the old one off, and the three publish rules. The
+README's opening now states this at a high level and points to it. The
+narrative replaces the wiki's day-in-the-life spoke, so it lives next to
+the code it describes and a public reader can find it.
+
 ## 2026-10-08 — every platform service on cert plus claims; gnr-ear and the prober get their own principals; the alerter box user provisioned (gridworks-infra `7766ac6`)
 
 The first platform service through the gate: weather's three

@@ -36,9 +36,11 @@ its config folder, as on a box.
 sim fixtures in `tests/config/` (`gw.nolan.*`), renaming at the copy and
 checking the sha256; `put_layout.sh dev check` compares without writing.
 
-- A missing `ta-deed.json` does not stop the boot: the scada sends a
-  `no-ta-deed` Warning glitch, runs UnValidated and refuses every LTN
-  contract offer.
+- A missing `ta-deed.json` stops the boot unless the params word refuses
+  dispatch with reason `NoTaDeed` (or is in Standby); with that word the
+  scada sends a `no-ta-deed` Warning glitch at startup, runs UnValidated
+  and refuses every LTN contract offer through the leaf-ally gate
+  (`local-control.md` "The dispatch refusal").
 - `tests/config/` also holds two House0 sim pairs with their deeds
   (`gw.house0.orange.*`, `gw.house0.willow.*`), which `put_layout.sh dev`
   does not place.

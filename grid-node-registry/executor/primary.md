@@ -1,6 +1,6 @@
 # grid-node-registry — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-09-02
+Status: Draft · Pass 0 · Updated 2026-10-10
 
 > What this is: the faithful spec of the **Grid Node Registry** (`gnr`) — the
 > authoritative record of GridWorks GNodes, their geographic positions, and the
@@ -55,7 +55,8 @@ There are **many** dev/hybrid universes (`d1`, `d2`, `hw1`, …) but exactly
 "is this real money?" ⇔ "is the universe the single production one?" (The
 enforcement guardrail — a GNode may only talk on a broker in its own universe,
 the broker host/vhost encoding that universe, `gw-dev-rabbit` serving `d1__1` on
-localhost — lives in the scada `hardware-layout-pass-one` design; what binds
+localhost — lives in the scada executor (`testing.md` "The universe
+guardrail"); what binds
 *here* is that every alias the registry holds carries its universe in segment 0.)
 
 A registry instance is **scoped to one universe**: a dev registry holds the `d1`
@@ -632,14 +633,16 @@ the write loop) a real broker by the layered suite:
   deployed registry must run that alias (the two are literals in `cli.py`
   and the box `.env`; they drifted once and cost an unrouted command): decodes `g.node.reparent.cmd` → `apply_reparent` → root-keyed
   `g.node.forest` broadcast; `broadcast_snapshot(root)` is the anti-entropy
-  path (cadence is deploy config). The `gnrmic_tx → amq.topic` bridge
+  path, run by a thread inside the rabbit actor once per
+  `GNR_SNAPSHOT_INTERVAL_S` (required deploy config), the first tick five
+  minutes after start. The `gnrmic_tx → amq.topic` bridge
   (gwbase ≥ 0.5.6) carries broadcasts to MQTT-native listeners.
 - **`gnr.api`** — the FastAPI read façade (routes
   `/<service>/<sema-type-with-hyphens>`, no logic of its own):
   `POST /gnr/g-node-forest-request`, `GET /gnr/g-node-by-id/{id}`,
   `GET /gnr/g-node-by-alias/{alias}`.
-- **`gnr.cli`** — the operator surface: `gnr rabbit` / `gnr api` /
-  `gnr snapshot` runners and `gnr create` (interactive wizard or arg form:
+- **`gnr.cli`** — the operator surface: `gnr rabbit` / `gnr api` runners
+  and `gnr create` (interactive wizard or arg form:
   GNodeClass menu with `BaseGNodeClass` inferred from `g.node.gt` axiom 1;
   existence pre-check over the read API; publishes with the write Proof
   from env or prompt; waits on the typed verdict, then polls the API as the

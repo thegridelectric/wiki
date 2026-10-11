@@ -10,6 +10,28 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-10 — Add NoTaDeed as a dispatch refusal reason (OPS-392, `07d6fb3`)
+
+A scada with no `ta.deed` refuses contracts today through a second path,
+a `SlowContractRejection` carrying its validation state, which the LTN
+only logs; the ops word's `AcceptsDispatch` pair, the one test every
+gate reads, cannot say the deed is missing. `NoTaDeed` lets it: the
+scada holds no deed for its terminal asset, so the asset has no standing
+in any market. Staging, so added in place; registry description lists
+the four values.
+
+## 2026-10-10 — gw.operational.params 000: axiom 6, Standby holds a House0 loop at full send (OPS-392, `b1d5c70`)
+
+A Standby House0 word that said `StratProtect` was a lie the scada
+corrected silently: its strategy selection runs `HoldFullSend` under
+Standby whatever the field says, and beech's window pair carried exactly
+that pair (`experiments/2026-10-09-nolan-local-control-windows/` run 2).
+Axiom 6 pins the field to what the loop does: Standby with a House0
+family requires `SiegLoopStrategy` `HoldFullSend`. Staging, so in place;
+`sieg.loop.strategy:000` joins the axiom dependencies (named by the
+axiom, structural only one hop down); runtime template, regenerated
+runtime, first runtime fixtures and tests for the word.
+
 ## 2026-10-08 — git.commit format and gw.scada.commit 000 (OPS-7, `e3e2a10`)
 
 New published format `git.commit` (full 40-char lowercase hash, optional

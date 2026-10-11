@@ -27,4 +27,5 @@ gridworks-ear:ear
 gridworks-alerter:gridworks-alerter
 gridworks-alerts:gridworks-alerter
 tlayouts:tlayouts
+gridworks-web-backend:gridworks-web-backend
 "

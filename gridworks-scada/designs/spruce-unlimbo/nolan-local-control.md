@@ -129,12 +129,12 @@ test first:
    own principal under the FIS gate: `gwwf create` connects as the
    `hw1.weatherminter` Service on a second cert in the weather certs
    dir (gwwf `0066e01`). Witnessed on spruce 2026-10-09 (scada
-   `97ea5806`, `experiments/2026-10-09-spruce-nolan-window/`): first
+   `97ea5806`, `experiments/2026-10-09-nolan-local-control-windows/`): first
    boot pulled the bundle record, the template and a Live forecast
    from the facade and kept them as sema files in the config dir.
 
    **▶ Do this next.** Read the spruce window's record
-   (`experiments/2026-10-09-spruce-nolan-window/` "Found") against the
+   (`experiments/2026-10-09-nolan-local-control-windows/` "Found") against the
    table in "What to check in the field" and mark each row witnessed
    or still open; the call, the band and the blind-band rows need a
    longer window or an off-peak one. Then the maple window (both pis).
@@ -190,6 +190,19 @@ Spruce's window runs `jm/spruce-unlimbo` against the `jm/spruce` layout
 and displaces the winter hack, so an experiment window there is short
 (`experiments/field-window-recipe.md`).
 
+**Do this next: beech out of Standby, into BufferOnly, in a short
+bounded window.** Gen: `standby=False`,
+`seasonal_storage_mode="BufferOnly"`, `accepts_dispatch=False` with
+`dispatch_refusal_reason="NoAggregator"` (no LTN runs FLOs yet; every
+house gen takes that pair for the next weeks, spruce and maple
+included), loop on `HoldFullSend`; the deed is on the box. Regenerate, place on both pis with `put_layout.sh beech`
+(the board-variant and HoldFullSend fixes ride along), move beech's
+row in the recipe's Houses table from Standby to Active and rewrite
+"Beech is Standby on purpose". The first window where branch code
+runs beech's heat: look for the tree under the local control and never
+`Standby`, the first charge's SystemCold mark, and the loop's one move
+to send.
+
 ## For the review
 
 The reviewer reads `executor/local-control.md` against the code and
@@ -221,13 +234,16 @@ to be raised again.
   contract that expires in it, a store written by another status.
 
 - **spruce-window-2026-10-09.** Five items from the first window
-  (`experiments/2026-10-09-spruce-nolan-window/` "Found"): a Critical
+  (`experiments/2026-10-09-nolan-local-control-windows/` "Found"): a Critical
   `i2c-expander-reset` glitch on 0x21 at boot+1 min (OPS-452
   signature); the secondary pump commanded on for 150 ms at boot while
   the hp watch is Unknown; `required-energy` and the zone setpoint
   channels never valued; heat-call and energy channels flapping stale
   two minutes after a 300 s publish; the cold watch's setpoint and
-  temperature misses for three zones.
+  temperature misses for three zones. From run 2: expander 0x21 reset
+  three times across the two windows, each near a relay transition on
+  0x21, a Critical glitch each time; and the beech board-variant
+  warnings, closed in tlayouts.
 
 **Patched, confirm:**
 

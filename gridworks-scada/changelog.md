@@ -10,6 +10,32 @@ repo's git history.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-10-10 — Pin transitions 0.9.3 to match gwsproto
+
+`gwsproto` requires `transitions>=0.9.3`, but the compiled requirements
+pinned 0.9.2, so pip reported a conflict on box installs (oak2). The pin
+moves to 0.9.3 in `base.txt`, `drivers.txt` and `dev.txt`, and `base.in`
+carries the same floor so the next compile keeps it. 0.9.3 still depends
+only on `six`. The pins were edited by hand: `pip-compile` in the venv
+fails against its pip version.
+
+## 2026-10-09 — nysquist interval for derived channels uses actual reporting period, not hard-coded 60 s (OPS-392, `b2bec9aa`)
+
+**What:** `ScadaData.capture_seconds` takes a derived channel's freshness
+period from the channel itself: its `EmitPeriodS`, or for an on-trigger
+channel the longest period among the inputs it is derived from
+(`derived_seconds`). Test
+`test_a_derived_channel_ages_on_its_own_emit_period`
+(`tests/actors/test_unknown_channel_logging.py`) pins a 300 s heat call
+fresh at 200 s, a 60 s periodic channel stale, and an identity derived
+ageing with its device channel. **Why:** the first spruce Nolan window
+(`experiments/2026-10-09-nolan-local-control-windows/`) showed the heat
+call and setpoint channels flapping stale about two minutes after every
+300 s publish: every derived channel carried a hard-coded 60 s period,
+so the 2.1 Nyquist bound fell at 126 s and the snapshot dropped them
+for 174 s of every 300.
+
 ## 2026-10-08 — Proactor pin to v4.1.13+jm3 (OPS-422, `97ea5806`)
 
 The fork's `v4.1.13+jm3` makes the upstream link's MQTT `client_id` a

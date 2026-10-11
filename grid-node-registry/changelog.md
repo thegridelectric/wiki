@@ -10,6 +10,22 @@ git history.
 
 Newest at the top.
 
+## 2026-10-10 — Snapshot broadcast runs inside gnr rabbit; gnr snapshot and its timer removed (`6b97e55`, merged `5c676df`)
+
+The periodic forest-snapshot broadcast (anti-entropy) is a thread inside
+the `gnr rabbit` process, one tick per `GNR_SNAPSHOT_INTERVAL_S` (required,
+86400 in deploy), the first five minutes after start. `gnr snapshot`,
+`_run_snapshot`, `service/gnr-snapshot.service` and `.timer` are gone;
+`forest_roots()` joins the authority interface. Why: under the FIS gate a
+cert is one program's identity leased to one instance, and the one-shot ran
+from the same checkout and `.env`, so every firing superseded the running
+gnr-rabbit and left it refused (`revoked-forever`) until a hand restart,
+nightly since the gate cutover. A `forest_lock` around apply-plus-broadcast
+and read-plus-send also closes the race where a snapshot read before a
+write commits was published after the write's change broadcast. Layer 2
+test: a one-second interval delivers `g.node.forest` on the root channel
+with no command sent. Design OPS-582.
+
 ---
 
 ## 2026-10-09 — Track gwbase 0.5.15: user_id on every publish (`412b339`)

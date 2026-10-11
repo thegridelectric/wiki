@@ -96,7 +96,7 @@ bar.
 
 The binding table remains the authoritative who-may-route-to-whom
 ([`../../gridworks-base/executor/transport.md`](../../gridworks-base/executor/transport.md)).
-Analytics topology belongs to the analytics broker (OPS-426): there is no
+Analytics topology belongs to the analytics tap broker: there is no
 `hw1_analytics` vhost on prod; `analytics.ear.reader` reads `ear_tx` on
 `hw1__1`.
 
@@ -196,16 +196,19 @@ from auth failures on cutover day.
   two password users, the default login and `analytics.ear.reader`
   (gridworks-infra `rmqbot/rmq-docker/README.md` "Runtime-created
   users"). Closing that path is OPS-578.
-- **Audit-tap consumers get a dedicated read-only user.** `analytics.ear.reader`
-  (no tags; password in 1Password) is scoped so a leaked cred cannot touch the
-  control plane: configure/write `^analytics\..*$`, read `^(analytics\..*|ear_tx)$`
-  — it can declare its own `analytics.*` queues and bind them to `ear_tx`, and
-  can publish nowhere (no exchange matches its write pattern; the write regex
-  is bind-plumbing, not publish rights). Consumers use non-durable auto-delete
-  queues per the deferred-shovel arrangement
-  (`../designs/analytics-broker-shovel.md`). The user lives in the broker's
-  data store, not `rabbit_definitions.json` — re-create after any container
-  recreate (recipe in the rmq-docker README).
+- **Audit-tap consumers belong on the tap broker, not here.** Prod is
+  the control-plane realm; anyone who reads the fleet but is not the
+  fleet gets the analytics tap broker, fed by the one-way shovel
+  (gridworks-infra `authority/README.md`
+  "Trust realms"). `analytics.ear.reader` (no tags; password in
+  1Password; configure/write `^analytics\..*$`, read
+  `^(analytics\..*|ear_tx)$`, so it can declare its own `analytics.*`
+  queues, bind them to `ear_tx`, and publish nowhere) still exists on
+  prod for consumers not yet moved; its removal follows the web realtime
+  gateway's move to the tap (OPS-542).
+  The user lives in the broker's data store, not
+  `rabbit_definitions.json` — re-create after any container recreate
+  (recipe in the rmq-docker README).
 - Admin control is via **Tailscale-protected textual interfaces** — adequate to
   ~30 homes; it hits Tailscale's ~100-device limit at the 100-home scale, which
   is the forcing function for the later security phases.

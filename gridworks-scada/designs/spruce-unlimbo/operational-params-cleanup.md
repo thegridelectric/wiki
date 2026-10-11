@@ -78,11 +78,11 @@ reached through `isinstance` guards (`sema_to_dc.py` `use_sieg_loop`).
    an assumed default answering a varying question; make it required like
    the thermostat axes.
 
-Then the docs: `../../designs/hardware-layout-pass-one/operational-params.md`
-still describes one word with `SystemMode`, `Latitude` and `Longitude`
-inline and `hp_model` / `whitewire_threshold_watts` bound for the layout;
-bring it to the two-word shape above, or fold it into the executor and
-delete it when that hub closes.
+Then the docs: the executor's account of operational params
+(`../../executor/hardware-layout.md` "What a layout is", and
+`components.md` for `capture.tuning`) must state the two-word shape
+above, with no `SystemMode`, `Latitude` or `Longitude` inline and no
+`hp_model` / `whitewire_threshold_watts` bound for the layout.
 
 ## Gates and sequencing
 

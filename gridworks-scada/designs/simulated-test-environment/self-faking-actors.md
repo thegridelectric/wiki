@@ -65,7 +65,7 @@ seam when the plant lands.
 
 Sim is declared at the **device boundary via an open `pascal.case` `Sim*` `DeviceType`** (a
 `gw1.device.type` value) — **not** a MakeModel. MakeModel was **retired** this cycle (the
-device-type model; see `executor/components.md` and the hardware-layout-pass-one work). `gw1.device.type`
+device-type model; see `executor/components.md` and the hardware-layout pass one (OPS-407) work). `gw1.device.type`
 already carries `GridworksSimSensor`, `GridworksSimRelayBank`, `GridworksSimPowerMeter` (one
 annotated "was MakeModel GRIDWORKS__SIMPM1"). **Stale-language note:** `primary.md` and
 `simulated-actors.md` still say "`Sim*` MakeModel" throughout — that should be swept to
@@ -91,9 +91,9 @@ annotated "was MakeModel GRIDWORKS__SIMPM1"). **Stale-language note:** `primary.
    `derived_generator` computing (affine tank calibration end-to-end — currently untested with
    non-zero B — and the `sum` primary-flow strategy once it lands).
 
-## Why this matters for hardware-layout-pass-one
+## Why this matters for the hardware-layout pass (OPS-407)
 
-The hardware-layout-pass-one design left a **`primary-flow` behavior test** as a deferred
+The hardware-layout pass one (OPS-407) design left a **`primary-flow` behavior test** as a deferred
 deliverable that explicitly *needs simulated plants* (`sum` derived strategy across the three
 Siegenthaler configs; the affine tank-calibration path). **This spoke is the minimal plant that
 deliverable runs against** — the self-faking `ApiBtuMeter` + `ApiFlowModule` feeding

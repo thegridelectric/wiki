@@ -1,6 +1,6 @@
 # gwalerter — the broker alerter
 
-Status: Draft · Pass 0 · Updated 2026-10-08
+Status: Draft · Pass 0 · Updated 2026-10-09
 
 > What this is: the house alerter as a gwbase actor on the fleet broker
 > (`thegridelectric/gridworks-alerter`, package `gwalerter`): its inputs,
@@ -27,8 +27,12 @@ types reach the store:
 
 Every message is decoded through the vendored sema snapshot
 (`src/gwalerter/sema`, generated from `sema_seed_request.yaml` by
-`scripts/regen_sema_snapshot.sh`); older `report.event` versions upgrade
-on decode. A body that fails to decode is logged and dropped; the actor
+`scripts/regen_sema_snapshot.sh`), each message at the version it was
+sent, never upgraded: the seed names `report.event` 002 through 004, the
+versions the fleet's scadas send, and an arrival at any of them counts.
+(A 003 report may carry a MessageId that differs from Report.Id; 004's
+identity axiom would reject it upgraded, and the report is valid as
+sent.) A body that fails to decode is logged and dropped; the actor
 keeps consuming.
 
 ## Which houses
@@ -68,6 +72,13 @@ database through the chain. One table per sema word the alerter keeps:
   `Resolved` record, keyed by `AlertId` and indexed by what the alert is
   about (category, house alias or subject, kind): the open-alert state
   that survives a restart.
+- `arrivals` — the latest arrival from each alias under the fleet
+  roots, any message type, read off the routing envelope with the body
+  undecoded: one row per alias, overwritten on each arrival. Whether a
+  house's scada and LTN are speaking is read from here. The actor binds
+  the audit exchange with `#` and `amq.topic` fans every MQTT publish
+  into it, so everything a house's scada or LTN sends is counted, most
+  of it never journaled.
 
 Last-heard is a query, the latest arrival across readings and layouts,
 never a column; a scada with a wrong clock cannot look alive. Across a
@@ -172,6 +183,60 @@ the alerter restarted while the alert is open. The shape is
   restart with the alert open included; the shadow week against hw1 is
   what makes it Verified.
 
+  A report is the only arrival for the rule: the scada publishes a
+  report only while its link to the LTN is active (an Event in its
+  proactor, held on disk otherwise), so a stopped report means the
+  house's data is not reaching the cloud, whichever side stopped it.
+  The summary names the cause from whether the house's two parties have
+  been heard at all: the scada (the `.scada` sibling) and the LTN (the
+  terminal asset's parent alias) are each "speaking" when anything
+  arrived from them inside `heard_period_s` (60, the expectation that
+  each is heard at least once a minute) times the Nyquist factor 2.1
+  (`NYQUIST`, as the scada sizes its own monitored-name timeouts). No
+  message type is looked at and no per-type cadence is assumed, since
+  the scada's and LTN's chatter is configurable and will change. Never
+  the silence threshold, under which a scada dead for nine minutes would
+  still read as speaking:
+
+  | Scada speaking | LTN speaking | Summary clause |
+  | --- | --- | --- |
+  | no | no | `scada and ltn both silent` |
+  | no | yes | `scada silent; ltn speaking` |
+  | yes | no | `scada speaking; ltn silent` |
+  | yes | yes | `scada and ltn both speaking; reports not arriving` |
+
+  The first row is the house side (the prober's BrokerUnreachable holds
+  NoData for the MQTT door); the second the pi or its network; the third
+  the LTN process or box, with reports safe on the scada's disk; the
+  fourth a fault between two live parties, the scada's link never going
+  active or its own report path, on a house that looks healthy from
+  outside. The rule re-reads the clause on every tick and, when it
+  moves, rewrites the open alert's `Firing` record in the store and
+  broadcasts it again under the same `AlertId`. Resolve names only the
+  return of reports.
+
+  While the broker is down the rule does nothing: no raise and no
+  clause update, since `evaluate` returns before the house loop on an
+  open `BrokerUnreachable`, and the actor skips the tick while it is
+  not consuming. An open NoData keeps the clause it had and the
+  `arrivals` rows stop moving. On the broker's return the floor moves,
+  so nothing new can raise for a full threshold, but the next tick
+  re-reads the clause before the first arrivals land, and for up to one
+  Nyquist window (126 s) an open alert may read "scada and ltn both
+  silent" and then correct itself. A summary flicker, not a page; if
+  the shadow week shows it, the hold is one window on the clause after
+  the floor moves.
+
+  What remains a page at scale: a homeowner's internet outage (rows one
+  and two) becomes a displayed fact, routine at a hundred homes, the
+  readings held on the scada and uploaded on return, nothing to act on
+  from the cloud. An LTN not up (row three, and a fleet of them when an
+  LTN box goes down) is always a page: the LTN is the house's controller
+  and the platform's responsibility. A scada speaking but not sending
+  its reports (row four) is always a page: a fault in our code or broker
+  path on a house that looks healthy from outside, which nothing but an
+  alert finds.
+
 ## The tap
 
 `gwalerter tap` is the alerter's second process: the only thing that
@@ -230,8 +295,14 @@ client of each, every `probe_interval_s` (60): an AMQPS round trip on
 publish one message to it through the default exchange, receive it
 back; a connect-only check passes through a memory or disk alarm that
 blocks every publisher) and an MQTT connect on `probe_mqtt_host:port`,
-the TLS listener the scadas use (handshake, CONNECT, any CONNACK; a
-refused credential is a CONNACK, so the prober carries none). The
+the TLS listener the scadas use (handshake, CONNECT, an accepted
+CONNACK; the prober carries no username or password, its cert and
+instance id are its login, and a refused CONNACK is the door shut: what
+refuses the prober at the gate, FIS down or the gate broken, refuses
+every scada). Both doors present the prober's cert and one instance id,
+the AMQPS claims' and the MQTT client id, so the gate leases the prober
+once; a client id that is not a uuid4 is refused as malformed, and a
+second uuid4 would supersede the first. The
 management API is not checked: a third listener that can be up while
 both doors are shut. A door that fails `probe_failures_to_raise` (3)
 probes running raises one `gw.alert` (`PlatformService`,
@@ -245,7 +316,21 @@ broker fault, and the summary says so. Witnessed PASS on the laptop
 against the dev broker and Opsgenie itself, a four-minute broker stop
 with the tap paging both doors while it was down and no `NoData` after
 its return: `experiments/2026-10-07-alerter-broker-down/`
-(`evidence/2026-10-07-pass/`).
+(`evidence/2026-10-07-pass/`). Witnessed PASS against prod on
+2026-10-11: the hw1 broker's listeners down for 9 min 20 s, both doors
+raised 3 min 36 s after they stopped and resolved 17 s after startup, no
+`NoData` meanwhile (`experiments/2026-10-11-prod-broker-outage-drill/`).
+
+The fleet being heard outranks the probe. Each tick the prober reads
+the store's latest arrival from any alias (`Store.latest_arrival`, the
+`arrivals` table the actor writes off every envelope); while anything
+arrived inside the last `heard_period_s` (60), the broker is carrying
+the fleet's data whatever the probe found, so a failing door is logged
+but not counted, nothing is raised, and an open `BrokerUnreachable`
+resolves with a summary saying the fault is the prober's own (its
+login, its cert, the box's network). The failures that raise are the
+ones running while the fleet is unheard, so "three probes running"
+means three minutes of a shut door and a silent fleet together.
 
 While a `BrokerUnreachable` alert is open, the NoData rule raises
 nothing (`NoDataRule.broker_unreachable`, read off the store's open
@@ -283,6 +368,15 @@ does not see them (Open).
 
 - The detectors after `NoData`, and each Verified by a week of shadow
   output beside gwalert on the alerts box against hw1.
+- The tap creates an Opsgenie alert once, from the `Firing` record it
+  first sees, so a cause clause that moves while the alert is open
+  reaches the store and the mic but not the page; carrying it to Opsgenie
+  is an update call and its own word.
+- Paging by cause: the LTN rows are a cloud-side fault and the house
+  rows a house-side one, which is what a paging rule routes on; a
+  fleet-level rollup when many LTNs fall silent at once; and a faster
+  LTN-silent kind with its own threshold (knowable in three minutes,
+  where reports take ten). All belong to the tap's paging rules.
 - Layout seeding at first boot; the dead-man's switch; the journaled
   OPS-317 liveness signals as the source of "live". The design carries
   these.

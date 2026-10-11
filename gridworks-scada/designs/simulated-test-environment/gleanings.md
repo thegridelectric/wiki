@@ -215,7 +215,7 @@ and assert it decodes clean. A green decode is a *guarantee* the two carriers ag
   longer document about what full test-harness runs mean. Canonize only after the
   sprint finishes.
 - **Finish `gw1.scada.device.type.gt` — a spruce-untangle dependency.** The
-  hardware-layout-pass-one design created it as a **minimal draft stub** (board-level
+  hardware-layout pass one (OPS-407) design created it as a **minimal draft stub** (board-level
   identity only). Flattening the full gw108 board descriptor — `NativeGpio` in/out BCM
   pin maps, `I2cRelays`, `CtAdc`, `ThermistorAdcs`, `Dacs` (mirroring the scada
   `ScadaDeviceTypeGt` / Joe's `starter-scripts/gw108_test_code.py`) — is the codification
@@ -224,7 +224,7 @@ and assert it decodes clean. A green decode is a *guarantee* the two carriers ag
 ## Two facets of simulation (sim.sensor vs sim.pico)
 
 Surfaced while evaluating whether to keep `sim.pico.tank.module.component.gt`
-(hardware-layout-pass-one, 2026-06-13). There are **two distinct facets** of
+(hardware-layout pass one (OPS-407), 2026-06-13). There are **two distinct facets** of
 simulating a device, and they test different layers — keep both:
 
 - **Generic plant-seam traffic generation** — `sim.sensor.component.gt`
@@ -247,7 +247,7 @@ handler. (`sim.pico.tank.module` is the only component-faithful example so far.)
 
 ## Device-type membership is a hardware-layout invariant (all layout types)
 
-From hardware-layout-pass-one (2026-06-13). Every hardware-layout sema type is **expected
+From hardware-layout pass one (OPS-407) (2026-06-13). Every hardware-layout sema type is **expected
 to carry a device-type membership axiom**: (1) every Component's `DeviceType` SHALL be a
 member of the `gw1.device.type` enum, and (2) for every Component whose `DeviceType`
 requires a specialized record (a category with category-level data — electric meter,
@@ -273,10 +273,10 @@ dependency-timestamp ordering (`/014` predates the new component versions).
   measures — not operational/service config (`executor/components.md` "What belongs in
   the hardware layout"). The **web server** is the clearest case: its host/port is
   service config, not a device. The `AbstractWebServer` device type (added this sprint)
-  keeps hardware-layout-pass-one uniform — every component carries a `DeviceType` — but
+  keeps hardware-layout pass one (OPS-407) uniform — every component carries a `DeviceType` — but
   the real endpoint is lifting service config *out* of the layout into scada settings.
   The web server **stays** as a thing; it just shouldn't be a hardware-layout component.
-  (Pass-two / its own cleanup, beyond hardware-layout-pass-one.)
+  (Pass-two / its own cleanup, beyond hardware-layout pass one (OPS-407).)
 - **Hubitat is not going forward; Home Assistant is uncertain — don't over-invest in the
   current poller/hubitat model.** Andrew's pollers + the Hubitat hub component exist to
   support the **5 initial House0 homes**. We do **not** plan to keep supporting Hubitat,
@@ -294,14 +294,14 @@ dependency-timestamp ordering (`/014` predates the new component versions).
   for something the layout already encodes. **At least half of it should be replaced by a derived
   property: "does the layout contain any simulated component?"** (e.g. `layout.has_simulated_components`
   — any `sim.*` component / `SimSensorActor` / `GridworksSimSensor`). That `SimSensorActor` exists
-  (shipped in hardware-layout-pass-one) makes the "faked sensor data" half straightforwardly
+  (shipped in hardware-layout pass one (OPS-407)) makes the "faked sensor data" half straightforwardly
   derivable: if the layout has sim sensors, sensor data is simulated — no separate flag needed. The
   **actuation** half (skip GPIO) is a *different* concern and can come apart from sensor-faking (a
   relay-bench rig: real actuation, faked sensors), so don't collapse both into one boolean — model
   actuation-stubbing per the component (real vs sim relay) rather than the global flag. Ties to the
   **universe guardrails** (a layout with sim components must be a dev/hybrid universe, never the
   single production `w` universe): "is this simulated?" should be answered by the layout + universe,
-  not a hand-set switch. (Its own small design; deferred from hardware-layout-pass-one.)
+  not a hand-set switch. (Its own small design; deferred from hardware-layout pass one (OPS-407).)
 - **Universe guardrail — the durable boundary is server-side in gridworks-base.** A GNode's
   *universe* is the first dotted segment of its alias (`d1`, `hw1`, the single production `w`);
   the rabbit broker carries the same universe in its DNS host (`hw1-1.electricity.works`) and its

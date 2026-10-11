@@ -109,21 +109,20 @@ broker. Only the state and the `TaId` are read today; the signature over the dee
 principal wait on the signing convention and principal word
 (`../explorations/deeds-and-trading-rights.md`).
 
-An `UnValidated` scada answers a `Created` offer with
-`slow.contract.rejection` (its alias, the ContractId, its validation
-state) and starts nothing: no scada heartbeat, no tree change, the auto
-state stays LocalControl (`actors/scada.py`
-`process_slow_contract_heartbeat`, the first branch). The LTN drops its
-pending Created heartbeat on the rejection and unlinks its contract
-file, so the refused offer is neither resent nor reloaded at the next
-boot (`actors/ltn/contract_handler.py`
-`process_slow_contract_rejection`). With a deed present the offer is
-taken: the scada goes LocalControl to LeafTransactiveNode and both
-sides' heartbeats read Received.
+An `UnValidated` scada runs a params word that refuses dispatch with
+reason `NoTaDeed` (the app does not build otherwise,
+`local-control.md` "The dispatch refusal"), so a `Created` offer meets
+the leaf-ally gate and gets `AllyGivesUp` with that reason, and the LTN
+sends none while the operating status says `AcceptsDispatch` false.
+The LTN still handles a `slow.contract.rejection`
+(`actors/ltn/contract_handler.py` `process_slow_contract_rejection`);
+the scada no longer sends one. With a deed present and the word
+accepting dispatch the offer is taken: the scada goes LocalControl to
+LeafTransactiveNode and both sides' heartbeats read Received.
 
 The gate is layout-blind. Both halves are tested on the Nolan and the
 House0-sim pairs on the in-process rig (`tests/actors/
-test_contract_rejection.py`, `tests/actors/test_auto_state.py`); the rig
+test_dispatch_refusal_gate.py`, `tests/actors/test_auto_state.py`); the rig
 is the witness here because a live LTN creates offers only inside ten
 seconds of the top of the hour with a price and a FLO figure in hand,
 and the path is the same on either transport.

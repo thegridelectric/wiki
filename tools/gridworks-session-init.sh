@@ -103,42 +103,10 @@ if [ -n "$CLAUDE_CODE_SESSION_ID" ]; then
   echo "$NAME" > "$HOME/.claude/.session-by-id/$CLAUDE_CODE_SESSION_ID"
 fi
 
-# Open scratch rows in the owner's estimates log (timers without a stop
-# value) — surfaced so every session sees running work at start. The log is
-# PER PERSON (see the active-claims protocol); set GW_ESTIMATES to point at
-# yours if you are not Jessica.
-ESTIMATES="${GW_ESTIMATES:-$GW/admin/jess-estimates.md}"
-ESTIMATES_NAME="${ESTIMATES#$GW/}"
-OPENROWS=""
-if [ -f "$ESTIMATES" ]; then
-  OPENROWS=$(awk -F'|' '
-    /^## Active hours/ { f=1; next }
-    f && /^## /        { f=0 }
-    f && /^\|/ && $2 !~ /^ *Work *$/ && $2 !~ /^ *-+ *$/ {
-      # The table is Work | Day | Started; an OPEN timer is a Started cell
-      # left hanging on a trailing hyphen ("18:56-"). A closed one ends in
-      # a total or a range. (This tested $5 — a column that does not
-      # exist — so every row read as open.)
-      s = $4; gsub(/^ +| +$/, "", s)
-      if (s ~ /-$/) print $0
-    }' "$ESTIMATES")
-fi
-
 # Build additionalContext for Claude.
 CTX="You are session ${NAME} (hash ${HASH}). Your starter row was inserted into wiki/active-claims.md.
 
-**Read wiki/active-claims.md now** for the full multi-session protocol (it lives below the table in that file). The key first-turn action: **ASK the user for the session Focus** — a 1-line statement of intent (e.g., \"Decouple Sema from Transport\") — and fill the Focus column.
-
-**After Focus is set — the estimate ritual.** ${ESTIMATES_NAME} is this session owner's estimates log: no Scope claim needed, but touch only your own rows. If the Focus has no scoreboard row there, Read ONLY the \"Before you estimate\" section of wiki/estimating.md (the top section; stop at the next ## header), agree an estimate with the user (point + 90% low/high hours), add the row with Design/spoke = \"OPS-NNN slug\" and nothing else, and post the full scope as a comment on the Linear issue. Then start a scratch row under \"Active hours — scratch\" (Work · Day · Started, ET). At wrap, sum the scratch rows into Actual and log hours on the issue."
-
-if [ -n "$OPENROWS" ]; then
-  CTX+="
-
-**Open scratch rows in ${ESTIMATES_NAME} (timers not yet stopped):**
-${OPENROWS}
-
-Continue or close the ones that belong to this session's Focus; mention any that look stale to the user."
-fi
+**Read wiki/active-claims.md now** for the full multi-session protocol (it lives below the table in that file). The key first-turn action: **ASK the user for the session Focus** — a 1-line statement of intent (e.g., \"Decouple Sema from Transport\") — and fill the Focus column."
 
 if [ -n "$STALE" ]; then
   CTX+="

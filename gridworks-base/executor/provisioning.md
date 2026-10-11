@@ -33,8 +33,14 @@ on them.
   `queues()` / `policies()` declare the standing `debug` queue and its cap
   policy. The definitions builder emits all of them, so a container
   recreate reproduces the whole fabric from files.
-- **Identities** — users, vhost, and permissions live *here*, not in the
-  conf's `default_*` lines (which would race the definitions import at boot).
+- **Identities** — the vhost lives *here*, and so does the dev user with
+  its permissions, not in the conf's `default_*` lines (which would race
+  the definitions import at boot). `build_definitions` emits a user only
+  when one is passed (dev); a prod artifact has an empty `users` list and
+  the broker box creates its users at runtime
+  ([`../../rmqbot/executor/primary.md`](../../rmqbot/executor/primary.md)
+  "Current deployment"). Who may be on a broker at all:
+  gridworks-infra `authority/README.md`.
 
 **Vhost = `<universe>__<run>`.** A vhost names one
 **run** of a universe — the universe is the durable GNode set, a run is one

@@ -15,8 +15,8 @@ Enforces single authorized `GNodeInstanceId` per **(GNodeId, run)**.
 Lease-based single-writer authority: a GNode has at most one live instance
 per run, and a new instance supersedes the old one — with the predecessor's
 connections confirmed closed before the successor is admitted. Why a
-fleet needs this, told through one scada's day:
-[`day-in-the-life.md`](day-in-the-life.md).
+fleet needs this, told through a day in the life: gridworks-fleet-index-service
+`how-fis-works.md`.
 
 The check lives in the connect gate, and the gate carries the instance id,
 because an enforcement that reconciles *after* connect (management-API
@@ -266,8 +266,6 @@ closing a live connection, and timer attribution under a real failure
 
 ## Spokes
 
-0. [`day-in-the-life.md`](day-in-the-life.md) — what FIS is for, as a
-   narrative for a person; read first, not normative.
 1. [`auth-endpoints.md`](auth-endpoints.md) — the HTTP contract, the gate's
    verdicts and the supersession mechanics, the vhost, resource and topic
    rules, the auth event.

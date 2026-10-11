@@ -43,7 +43,8 @@ The other readers of the same facts:
 - **Derived generator.** The usable-energy gate reads `AcceptsDispatch`
   and `ServiceMode` from the scada's own params.
 - **Sieg strategy.** `Standby` runs `HoldFullSend` whatever the family
-  params say (`selected_strategy`, `sieg_loop/strategy.py`).
+  params say (`selected_strategy`, `sieg_loop/strategy.py`); axiom 6 on
+  `gw.operational.params` requires the word to say so already.
 
 `gw1.system.mode` is the predecessor of these ops fields. It stays
 published because older words depend on it and the web backend reads
@@ -320,10 +321,22 @@ The scada says whether it will take a dispatch contract, and why.
 - `AcceptsDispatch` on `gw.operational.params` is the one test every
   gate reads.
 - `DispatchRefusalReason` (`gw.dispatch.refusal.reason`) is present iff
-  `AcceptsDispatch` is false: `Standby`, `NoAggregator` (collecting
-  data, no aggregator chosen), or `ServiceContractBroken` (the house
-  went cold with its stores empty under a contract; held until a person
-  clears it).
+  `AcceptsDispatch` is false: `Standby`, `NoTaDeed` (no `ta.deed` for
+  the terminal asset, so no standing in any market), `NoAggregator`
+  (collecting data, no aggregator chosen), or `ServiceContractBroken`
+  (the house went cold with its stores empty under a contract; held
+  until a person clears it). Standby outranks NoTaDeed, which outranks
+  NoAggregator.
+
+**The word says what the deed says.** `check_dispatch_against_deed`
+(`sema_to_dc.py`) runs when the app is built, after the layout and
+params load: a scada with no `ta.deed` for its terminal asset (none on
+file, or one naming another asset) refuses dispatch with reason
+`NoTaDeed` unless it is in Standby; a scada holding a deed does not say
+`NoTaDeed`. Any other pairing raises and the scada does not start. The
+params are never written for this: the person or agent starting the
+scada adds the deed or changes the params. The one refusal the scada
+writes itself is `ServiceContractBroken`.
 
 **Axioms 3 to 5 on `gw.operational.params`:**
 

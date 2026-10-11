@@ -100,5 +100,5 @@ types, so the coercion default does not bite.
   well-formedness).
 - Handle templates in or out of the first version (stratum 4 above).
 - Whether the strict-validation tooling mode lands with this design or separately.
-- Sequencing against hardware-layout-pass-one: the mirrors are live and correct today, so this can
+- Sequencing against OPS-407: the mirrors are live and correct today, so this can
   land after the pass-one core ships; the terminalasset need may pull it earlier.

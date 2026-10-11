@@ -12,7 +12,47 @@ repo's git history.
 Newest at the top.
 
 <!-- pending commit -->
-## 2026-10-09 — rmq-docker README: houses and LTNs log in as the default user until they move to their certs
+## 2026-10-11 — rmqtap capacity: the shovel's ceiling at prefetch 100 (gridworks-infra, `jm/authority-readme`)
+
+"Capacity and faults" named the shovel as the first thing to saturate,
+at about 300 to 450 homes, because gwbase consumed with prefetch 1 and
+each message cost a 110 ms round trip to prod. gwbase 0.5.17 and the
+shovel on the box use prefetch 100, so the shovel's ceiling is now its
+confirmed publish to the tap, several thousand homes (a guess), and the
+tap broker with several full-stream consumers saturates first.
+
+<!-- pending commit -->
+## 2026-10-11 — authority/README.md: who may be on a broker (gridworks-infra, `jm/authority-readme`)
+
+The cross-cutting picture of broker access (issuing and CA custody, the
+two-backend gate, the prod and tap realms, the password users, human
+access to boxes, where secrets live) had been drafted as a wiki hub. It
+describes boxes and brokers this repo operates, and part of it (CA key
+custody, where passwords are kept) belongs in a private repo, so it moves
+to `authority/README.md`. What FIS decides is in gridworks-fleet-index-service
+`how-fis-works.md`, which the README links. The top-level README's
+`authority/` line points at it.
+
+## 2026-10-11 — updates with rmq-tap (gridworks-infra `0996495`)
+
+OPS-426. `rmqbot/rmq-docker/tap/` is the analytics broker's
+compose, conf and plugin list: AMQPS and management HTTPS only, a
+publicly issued certificate, no MQTT, no FIS gate, definitions from the
+shovel repo. `rmqtap/instance-README.md` is the box recipe (box, DNS,
+certificate, broker, users, the shovel login and unit) and the record of
+non-repo state, with the corrections the 2026-10-11 build found folded
+in (certbot's hook dir, the private-repo clone over `ssh -A`, the
+`known_hosts` entry the issuance tool's transfer needs). The box is live:
+the shovel runs as `hw1.shovel` on cert and claims, the mirror was
+witnessed copying the fleet's traffic, and the shovel's analytics login was
+refused a write to `ear_tx`. Also: `tools/box-deploy.sh` gains the
+`rmqtap` row, the cert inventory the shovel's cert, `fis/README.md`
+the identity rules a service is built to, and `new-platform-service.md`
+the order of operations for a new platform service, the platform
+inventory the box, and the instance-README links how-fis-works.md for a
+reader new to the gate.
+
+## 2026-10-09 — rmq-docker README: houses and LTNs log in as the default user until they move to their certs (`7ff4401`)
 
 "Runtime-created users" said house and LTN password users are deleted
 one by one as clients move; the prod broker holds no such users

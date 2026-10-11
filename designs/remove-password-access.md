@@ -1,6 +1,6 @@
 # remove-password-access
 
-Status: Draft · Pass 0 · Updated 2026-10-09 · Linear: OPS-578
+Status: Draft · Pass 0 · Updated 2026-10-10 · Linear: OPS-578
 
 **EDD: yes** each flip is witnessed on the prod broker (the client's connection under its cert-derived name and its `auth_events` allow) and the final notches by a refused plaintext connect.
 
@@ -57,13 +57,66 @@ delays the last two steps and breaks nothing.
 3. **require-certs** `fail_if_no_peer_cert = true` in the box's
    `advanced.config`, a recreate per the rmqbot instance-README, once the
    broker log shows every client presenting a cert.
-4. **remove-password-access** 5672 and 1883 close when no fleet client sends a
+4. **remove-password-access** 5672 and 1883 close when no client sends a
    password; then the default user's password is rotated, since every
    house and LTN held the old one (the password-access close that stays
-   in the Linear project).
+   in the Linear project). The last password client is the web realtime
+   gateway on plaintext 5672; it leaves prod for the analytics tap broker
+   (fed by a one-way shovel, since FIS cannot mint a read-only identity)
+   under OPS-542, not by a cert of its own. This step waits on that move.
 
-Do this next: after OPS-392's deployment spoke witnesses one house
-through the gate, pick the second house and run step 1 for it.
+Flipped and witnessed (step 1):
+
+- **oak** 2026-10-10 06:59 ET. Pull to `a70c10ea` and `mkenv-pi.sh`
+  (proactor `+jm3`), the two `SCADA_GRIDWORKS_MQTT__USERNAME` /
+  `__PASSWORD` lines commented out, restart. Broker lists the MQTT
+  connection with user = cert CN `fbbea6a1-…` on 8883; FIS log on the
+  broker box: `auth/user allow (superseded)`, `auth/vhost allow`, topic
+  allows on the oak scada's write aliases; the scada's `gridworks_mqtt`
+  link active one second later. oak2 pulled and rebuilt the same morning
+  (it never reaches the broker; it feeds oak over local MQTT).
+- **beech** 2026-10-10 07:02 ET, same recipe. Broker lists user = cert
+  CN `19ee09df-…` on 8883; FIS `auth/user allow (superseded)` and
+  `auth/vhost allow`; link active within a second.
+- **fir** 2026-10-10 07:03 ET, same recipe; user = cert CN `53de05b6-…`,
+  FIS allow (superseded) and vhost allow, link active within a second.
+- **maple** 2026-10-10 07:11 ET, same recipe; user = cert CN
+  `6267013a-…`, FIS allow (superseded) and vhost allow, link active.
+- **spruce** 2026-10-10 07:12 ET, `actual-spruce` at `50e59e5e`, same
+  recipe; user = cert CN `9024e45e-…`, FIS allow (superseded) and vhost
+  allow, link active.
+- **maple LTN** 2026-10-10 17:37 ET (step 2): `~/ltn-maple/gridworks-scada`
+  at `a70c10ea`, proactor `+jm3`, the two `LTN_SCADA_MQTT__USERNAME` /
+  `__PASSWORD` lines commented out, REPL restarted in its tmux session;
+  broker lists user = cert CN `793ca985-…` on 8883, FIS allow (superseded)
+  and vhost allow.
+- **oak LTN** 2026-10-10 17:38 ET, same recipe on `ltn`; user = cert CN
+  `b759f5bb-…`, FIS allow (superseded) and vhost allow.
+- **beech LTN** 2026-10-10 17:38 ET, same recipe on `ltn2`; user = cert
+  CN `4da8659f-…`, FIS allow.
+- **elm LTN** 2026-10-10 17:44 ET and **fir LTN** 17:45 ET, same recipe on
+  `ltn2`; users = cert CNs `d78d1f39-…` and `db350a9b-…`, FIS allow
+  (superseded) each.
+- **spruce LTN** 2026-10-10 18:15 ET on `ltn2`: checkout fast-forwarded
+  from `jm/spruce` to `actual-spruce` `50e59e5e`, venv rebuilt (proactor
+  `+jm3`), the two login lines commented out, REPL restarted; user = cert
+  CN `fde9fa11-…` on 8883, FIS allow (superseded), vhost allow, topic
+  allows. Its layout is still January's; a later tidy.
+
+A house pulls, rebuilds its venv with `tools/mkenv-pi.sh` and restarts
+before the flip; a pull without the rebuild leaves the old proactor in
+the venv (oak, before its flip). Comment the two lines out or delete
+them; an empty value still sends a username.
+
+One password login remains on the broker (2026-10-10 18:20 ET): the
+web-api2 realtime gateway (`gridworks-web-backend`, aiormq, plaintext
+5672 from 34.206.144.158). Every house and LTN is on its cert.
+
+Do this next: elm's scada after **elm-row** (its pi was unreachable
+2026-10-10). Step 3 (require certs) can go once elm is on its cert, since
+the gateway's plaintext 5672 connection presents no cert either way and
+`fail_if_no_peer_cert` is a TLS-listener setting. Step 4 waits on
+OPS-542 moving the gateway off prod.
 
 ## Done-when
 

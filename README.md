@@ -81,8 +81,10 @@ design area.
 | [`gridworks-ltn/`](gridworks-ltn/) | LeafTransactiveNode — per-house transactive agent (parent of scada). Code currently at `gridworks-scada/gw_spaceheat/actors/ltn/`; runs via tmux; uses private `gridworks-innovations/gridworks-flo/`. Acceptable-minimum spec, lots Open. |
 | [`flo/`](flo/) | FLO — the per-house bid optimizer (`gridflo`, private `gridworks-innovations/gridworks-flo/`); runs in-process in each LTN today, becoming its own service (OPS-514). Executor hub stub only. |
 | [`gridworks-weather-forecast/`](gridworks-weather-forecast/) | Weather service. Today: like-for-like port of `gjk/weather_service.py` (publishes `weather` v000). Eventually: forecasts (`weather.forecast`) for LTN forward-looking optimizers + observations under a renamed `gw.weather`-ish type. |
+| [`gridworks-web-backend/`](gridworks-web-backend/) | The fleet web page's two services: the read API over the journal DB and the realtime WebSocket gateway from the tap broker. |
 | [`gridworks-proactor/`](gridworks-proactor/) | The MQTT-native "live actor" + monitored-communication infra under the scada (first-pass spec) |
 | [`ear/`](ear/) | The universal audit tap / fundamental persistence mechanism |
+| [`shovel/`](shovel/) | Mirrors the audit tap onto the analytics broker, one way |
 | [`rmqbot/`](rmqbot/) | The deployed RabbitMQ/MQTT broker: hosting, TLS/certs, ops |
 | [`gridworks-fleet-index-service/`](gridworks-fleet-index-service/) | FIS — the connection-authority (mTLS + instance authorization) |
 | [`gridworks-scada/`](gridworks-scada/) | The residential heat-pump SCADA — legacy cleanup in discovery (see its `PROCESS.md`) |

@@ -24,7 +24,7 @@ kinds of data with four lifecycles have grown onto it:
 2. **Engineering config as unversioned JSONB** — `hardware_layout`,
    `house_parameters`. Sema owns this meaning; hardware layout and
    operational params are being sema-fied right now
-   (hardware-layout-pass-one, OPS-407), with the terminalasset-registry
+   (OPS-407), with the terminalasset-registry
    (OPS-471) as the durable home. A second schemaless copy is semantic
    drift by construction.
 3. **Mutable ops state without provenance** — `scada_ip_address`,

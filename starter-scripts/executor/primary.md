@@ -1,6 +1,6 @@
 # starter-scripts — executor spec
 
-Status: Draft · Pass 0 · Updated 2026-09-02
+Status: Draft · Pass 0 · Updated 2026-10-09
 
 > What this is: the fast primer on the `starter-scripts` repo as it is
 > used today — the hand-run and systemd-run scripts that operate the
@@ -137,6 +137,56 @@ Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-23@5fda749 
   channel_c. ADS 0x49 healthy since 07-31.
 - Secondary-btu pico drops out for 13–14 min stretches; judge
   `secondary-flow` by its own read time, never receipt time.
+
+## The gw108 CT chain
+
+The four CT inputs share one ADS1115 (U1, address 0x48 on the default
+bus, 3.3 V reference, the board record's `CtAdc` capability), read
+single-ended against ground: CT1 → AIN0 (P0), CT2 → AIN1 (P1), CT3 →
+AIN2 (P2), CT4 → AIN3 (P3). Each terminal pair is a + (signal) and −
+pair; the − side of every channel is one shared node, `1V65`, the
+midpoint of two 100 kΩ resistors between 3.3 V and ground. The input
+node has a 100 nF capacitor to ground, two Schottky clamps, and a
+two-pin header that, with a shunt fitted, puts the board's 470 Ω
+burden across the CT. The headers are numbered the opposite way to the
+channels: CT1 → JP4, CT2 → JP3, CT3 → JP2, CT4 → JP1. The chip's
+ALERT/RDY pin is unconnected, so the pi never sees conversion-ready.
+
+**An empty input reads its neighbour.** With a CT on P3 and nothing
+on P0, P0 carried 94 % of the CT's signal at the same bias
+(`experiments/2026-09-07-gw108-ct-testing/`, 2026-09-09). The CT is a
+floating AC source between its input node and `1V65`; the ADC reads
+each node against ground, and `1V65` is held only by 23 to 50 kΩ, so
+the CT's voltage splits across both nodes and reaches every other
+input through the shared node. The fix is a 10 µF capacitor from
+`1V65` to ground (about 265 Ω at 60 Hz, a hundred times stiffer),
+after which each CT's whole voltage appears on its own input node.
+Until a board carries it, its CT channels are not independent.
+
+**Sampling.** Single-shot conversions, one per bus request, give exact
+codes at about 390 per second on the 100 kHz bus; free-running the
+chip and polling for changed codes collapses duplicates, so that mode
+is not used. 390 is not a multiple of 60, so folding a second or two
+of samples onto one mains period, with the frequency fitted from the
+data, gives a composite waveform with hundreds of points per cycle.
+The capture word is `gw.adc.waveform/000` (sema, staging): terminal
+asset alias, message id, `MessageCreatedMs`, chip type and bus
+address, input, PGA full scale in mV, data rate, wall clock of the
+first conversion, a host-timed microsecond offset per code, and the
+raw signed 16-bit codes. It is ADC-generic; CT meaning lives in the
+component vocabulary. The bench harness (`capture.py`, `fold.py`,
+`peek.py` in the rung above) runs from the pi's `~/experiments` clone
+with the scada venv and writes instances through the vendored class.
+
+**Spruce, 2026-09-07.** CT1 (P0, JP4) clamps the store pump through a
+current-output CT, 100 A to 50 mA, and needs the JP4 shunt; CT2 (P1,
+JP3) clamps the secondary pump through an eGauge-style voltage-output
+CT, 20 A rated, burden inside, so JP3 stays open; CT3 and CT4 are
+empty. No shunts were fitted that day. The secondary pump on CT2
+tracked from 10 mV rms at minimum speed to 274 mV at maximum on one
+pass with the fold locking at every level; the absolute scale is
+still unpinned. Cross-check: the secondary-btu pico reports
+`secondary-pump-ct` (VoltsTimes100) from its own CT, 167 at rest.
 
 ## Glossary
 

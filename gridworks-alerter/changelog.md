@@ -4,6 +4,107 @@ One entry per commit in `thegridelectric/gridworks-alerter`,
 `thegridelectric/gridworks-alerts` and `thegridelectric/gridworks-alert-manager`
 (git = the what, this = the why).
 
+## 2026-10-10 — the MQTT probe requires an accepted CONNACK (<!-- pending commit -->)
+
+`mqtt_connack` reads the CONNACK's return code and fails the probe on
+anything but 0. Tests: a one-shot listener answering accepted passes,
+answering refused (codes 2 and 5) fails.
+
+**Why:** the check was "any CONNACK means the door is open", and with
+the gate on the broker answered the prober with a refusal every minute
+for a day and a half while the check passed. A door that refuses
+everyone, FIS down or the gate broken, is the outage that locks the
+whole fleet out, and the old check would have called it open. Now that
+the prober holds a lease on the MQTT door an accepted CONNACK is
+reachable, and it is the condition the scadas need. The witness that
+verified the prober (`experiments/2026-10-07-alerter-broker-down/`) ran
+against the dev broker, which has no gate; a pass condition weaker than
+what the fleet needs went through because nothing in the run could
+refuse it.
+
+## 2026-10-10 — MQTT probe needs to send a UUID instance id (`c158d95`)
+
+`mqtt_connack` takes the client id, and `doors()` gives both doors the
+one instance id the process mints: the AMQPS claims carry it and the
+MQTT CONNECT presents it. The fixed `gwalerter-probe` client id goes.
+
+**Why:** the gate reads an MQTT client id as the instance id and
+refuses one that is not a uuid4 as malformed, so every probe since the
+box went up logged a FIS deny and a broker "access refused" a minute.
+The probe counted the refused CONNACK as an open door, so no false
+alarm, only noise that hid real refusals. One uuid4 on both doors is
+the only shape that neither trips the malformed check nor supersedes
+the prober's own AMQPS lease.
+
+## 2026-10-10 — sanity check for the prober (`cc10999`)
+
+The prober reads the store's latest arrival from any alias each tick
+(`Store.latest_arrival`); while anything arrived inside the last
+`heard_period_s`, a failing door is logged but not counted, nothing is
+raised, and an open `BrokerUnreachable` resolves with a summary naming
+the fault as the prober's own. Failures count only while the fleet is
+unheard. Test first: `test_fleet_data_arriving_outranks_a_failing_probe`.
+
+**Why:** on 2026-10-09 the hw1 broker began refusing the prober's own
+AMQPS login at 17:53Z (ACCESS_REFUSED on the GRIDWORKS mechanism) while
+the actor's login on the same door, and every house's data through it,
+kept working. The prober raised `BrokerUnreachable` on 5671 at 17:55:59Z
+and the NoData rule's hold on it blinded the alerter for the rest of
+the day: beech and spruce were each down thirty minutes from 19:25Z and
+the alerter raised nothing, while gwalert paged both. A door refusing
+the prober with the fleet's data flowing is the prober's fault, never
+the fleet's, and the data is the evidence.
+
+## 2026-10-09 — the NoData summary names the cause from the envelope arrivals (`40f62cd`)
+
+A new `arrivals` table (migration `0002`) holds the latest arrival from
+each alias under the fleet roots, any message type, written by the actor
+off the routing envelope for every message, body undecoded and type
+unread. The NoData rule reads two of them for the house, its scada and
+its LTN, each "speaking" when heard inside `heard_period_s` (60) times
+the Nyquist factor 2.1 (`NYQUIST`, the scada's own constant), and
+appends one of four clauses to the summary, from "scada and ltn both
+silent" to "scada and ltn both speaking; reports not arriving". The
+clause is re-read every tick; when it moves, the open alert's `Firing`
+record is rewritten in the store (`Store.update_alert`) and broadcast
+again under its `AlertId`. Resolve is unchanged.
+
+**Why:** the shadow week's spruce finding raised the question of what
+NoData means. A report is an Event the scada publishes only while its
+link to the LTN is active, so a stopped report covers the LTN being
+down as much as the scada, and nothing else may count as an arrival for
+the rule. What the other signals can do is say which side stopped: a
+listener on the hw1 ear exchange (beech, 2026-10-09 17:54 to 17:59Z)
+showed snapshots every 30 s, LTN pings every 60 s with the scada's ack
+of each, and the report every 5 min, none of it journaled but the
+report. The count is per alias and not per type, with one window: the
+scada's snapshot cadence is configurable and the scada-LTN exchange will
+change, so the alerter assumes only that each party is heard at least
+once a minute, and sizes silence as that period times Nyquist, the way
+the scada sizes its monitored-name timeouts. Not the silence threshold,
+because a scada dead for nine minutes still has an arrival inside
+600 s. Tests
+first: the four rows, a party outside the window, the summary following
+the cause, and the actor counting an untracked type's envelope.
+
+## 2026-10-09 — a report counts at its sent version; the seed pins `report.event` 002 through 004 (`42b4681`)
+
+The actor decodes each tracked message with auto-upgrade off and accepts
+`ReportEvent`, `ReportEvent003` and `ReportEvent002` alike; the store's
+`record_report` takes the union. The seed names `report.event` versions
+002, 003 and 004 (the versions the fleet sends) instead of every version,
+so the snapshot drops 000 and its `report` 001 dependency.
+
+**Why:** the shadow week's first finding (2026-10-09): the alerter never
+saw spruce. Production spruce sends `report.event` 003 with the envelope
+MessageId differing from Report.Id, legal in 003 (no identity axiom) and
+journaled as such; the codec's default upgrade rewrote it to 004 and
+failed 004's reinstated ReportIdentityPropagation axiom, so every spruce
+report was dropped and a House NoData stood open from the first boot. The
+other five houses send 002 with equal ids. An arrival is an arrival at
+its sent version. Test first: `test_report_counts_at_its_sent_version`
+(a 003 report whose ids differ reaches the store and sets last-heard).
+
 ## 2026-10-09 — Track gwbase 0.5.15: user_id on every publish (`6c0e9df`)
 
 gwbase 0.5.15 stamps `user_id` on every publish with the connection identity, so the broker's validated-user-id check verifies this service's publishes instead of skipping them (OPS-579); the floor and the lock move together so the deployed box installs it.

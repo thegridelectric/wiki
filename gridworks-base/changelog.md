@@ -10,6 +10,36 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-11 — prefetch_count is a service setting, default 100; 0.5.17 <!-- pending commit -->
+
+Branch `jm/prefetch-count`. `ActorBase` consumed with a private
+prefetch of 1, so a consumer waited one round trip to its broker per
+message. Services run on both sides of the Atlantic from the hw1 broker
+in us-east, and at about 110 ms that caps a Helsinki consumer near 9
+messages a second: the ear, which binds all of `ear_tx`, would fall
+behind at roughly 300 to 450 homes. `ServiceSettings.prefetch_count`
+(env `<PREFIX>_PREFETCH_COUNT`) now sets it, default 100, and
+`ActorBase.prefetch_count` is public. ActorBase acks on arrival and no
+two actors share a queue, so prefetch changes throughput only;
+prefetched messages are unacked and redelivered if the process dies.
+Tests cover the default and the Basic.Qos argument.
+
+## 2026-10-10 — ActorBase.stop ends the reconnect loop itself; a clean stop is not logged as a reconnect; 0.5.16
+
+Branch `jm/actor-stop-path`. Version 0.5.16 so every actor picks the fix
+up on its next dependency refresh. `stop()` clears `_main_loop_running` before
+telling the consumer to stop, so ending the reconnect loop no longer
+depends on a subclass's `local_stop` calling the base hook: a tap that
+overrode `local_stop` without it (the shovel, 2026-10-10) reconnected
+forever and `stop()` never returned from `join`. `on_cancelconsumer_ok`
+no longer clears `_closing_consumer`, so the connection close that
+completes a deliberate stop takes the shutdown branch instead of logging
+"Consumer connection closed, reconnect necessary" and going round the
+reconnect path; `flush_consumer` already resets the flag.
+`tests/test_actor_stop.py` stops such a tap through the dev broker and
+asserts the thread ends and no reconnect warning is logged (it hangs on
+the previous code).
+
 ## 2026-10-09 — user_id on every publish; a GNode re-reads its alias from gnr before each reconnect; 0.5.15 (`65ecc48`, bump in `28c7a81`)
 
 The two client-side obligations the FIS gate left open (OPS-579).

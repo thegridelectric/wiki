@@ -6,15 +6,19 @@ the *why*.
 
 Newest at the top.
 
-## 2026-10-09 — spruce-nolan-window: first Nolan beta window on spruce (OPS-392) <!-- pending commit -->
+## 2026-10-09 — nolan-local-control-windows: the Nolan and Standby beta windows on spruce and beech (OPS-392) <!-- pending commit -->
 
-**What:** the folder for the 15-minute dev-broker window of scada
-`97ea5806` on spruce: README, runbook, the boot log, the broker capture
-and the persisted events as evidence, `emit_instances.py` and the
-`gw.experiment.run` 001 it emits; one logbook line. **Why:** the first
-box run of the sema weather path and of proactor `+jm3`, and the first
-witness of the nolan-local-control spoke's boot claims; it closes the
-spoke's step 7 (the scada fills from gwwf's seasonal template).
+**What:** the folder for the day's dev-broker windows of scada
+`97ea5806`: the 15-minute spruce morning window, the 25-minute spruce
+afternoon window and the 20-minute beech window on both pis; README
+with one run section each, runbook, the boot logs, broker captures and
+persisted events as evidence, `emit_instances.py` and the three
+`gw.experiment.run` instances; one logbook line. **Why:** the first box
+run of the sema weather path and of proactor `+jm3`; the first witness
+of the nolan-local-control spoke's boot claims and then of the call
+cycle (on off-peak with the band wanting charge, off at BufferFullF,
+the pump following the heat pump both ways); the first Standby House0
+boot on a box, with the sieg loop at full send.
 
 ## 2026-10-09 — house_window.sh --cert: the window on the prod broker, on the house's own cert (OPS-392) <!-- pending commit -->
 

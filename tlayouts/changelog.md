@@ -10,6 +10,38 @@ repo's git history.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-10-10 — Spruce and maple refuse dispatch for NoAggregator; beech holds full send; snapshot picks up NoTaDeed (OPS-392)
+
+No LTN runs FLOs yet, so every house gen refuses dispatch with reason
+`NoAggregator` for the coming weeks: spruce and maple move from
+`accepts_dispatch=True` to the refusing pair (beech stays Standby, whose
+reason axiom 3 fixes). Only the ops word's two dispatch fields change in
+each output. Beech's gen said `StratProtect` with Standby true; the loop
+runs `HoldFullSend` under Standby whatever the field says, and axiom 6 on
+`gw.operational.params` makes that pair fail at generation. Beech names
+`HoldFullSend`, as maple does, until the StratProtect test-drives begin.
+Snapshot regenerated on sema `07d6fb3` for `gw.dispatch.refusal.reason`
+`NoTaDeed`.
+
+## 2026-10-10 — gwsproto OperationalParams mirrors axiom 6: Standby holds a House0 loop at full send (OPS-392, `82620c5`)
+
+Snapshot regenerated on sema `b1d5c70`: the vendored
+`gw.operational.params` 000 carries axiom 6 (Standby with a House0
+family requires `SiegLoopStrategy` `HoldFullSend`) and its axiom
+dependency on `sieg.loop.strategy`. The commit title is the scada
+mirror's; the diff is the snapshot alone.
+
+## 2026-10-10 — fix beech pico board variants (OPS-392)
+
+The four beech TankSpec rows said `PicoWiznetEth2350`; the picos post
+`PicoWiznetEth2040` (buffer, tank2, tank3) and `PicoRaspberryWifi2040`
+(tank1), so every window boot on beech raised four Warning glitches
+`<node> pico PicoBoardVariant differs from the layout`
+(`experiments/2026-10-09-nolan-local-control-windows/` run 2). The rows
+now name what each pico posted; the regenerated beech layout differs
+only in those four fields.
+
 ## 2026-10-07 — Every house names the Millinocket 96-hour weather bundle (OPS-392)
 
 `OpsSpec.weather_bundle_name` (required) carried into `WeatherBundleName`

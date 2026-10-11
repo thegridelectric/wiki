@@ -297,6 +297,16 @@ distributed-trust principle it served — that principle is core vision.
   `gridworks-infra/databases/journaldb.md` (which login does what, where
   its credentials live). Working it out from the box itself, the wiki or
   `~/.ssh/config` is the miss this closes.
+- **A TLS cert belongs to one program.** Each client cert on a box is
+  the identity of the one service that is deployed to use it, and the
+  FIS gate leases that identity to one running instance: any other
+  process that presents the cert (a hand-rolled listener, a one-off
+  `gwalerter rabbit`, a test) supersedes the deployed service and it is
+  refused for the rest of its life (the alerts prober, 2026-10-09, blind
+  for a day). NEVER load a cert, or a `.env` that names one, into
+  anything but its own program without asking the human first; a
+  listener or experiment gets its own principal and cert, minted with
+  consent.
 - **In-field pico firmware upgrades are allowed this year and will be
   retired before scaling.** Build nothing durable on the upgrade path (the
   `code-update` post): no sema word, spec or scada feature depends on it.
@@ -603,17 +613,6 @@ present tense and put the what/why of the change in the changelog entry. A
 design may track its own build status (✅/◐) while alive — designs are
 deleted on completion. Comparisons to *legacy* systems are rationale, not
 transition; those stay.
-
-**Voice** — wiki prose is the developers' voice: plain sentences the team
-can align to. DO NOT use the AI-cadence drumroll — an em-dash setup resolved
-by a punchy verdict fragment ("there are only two honest options — X, or Y.
-No incremental third path."). Same family, also banned: ", full stop", "— X
-edition", one-fragment verdict sentences, antithesis flourishes ("saves
-bytes, never trust"). Say the thing as an ordinary sentence. A developer's
-verbatim phrases stay verbatim. Do NOT attribute notes or decisions to a
-developer by name/date — no "(<name>, 2026-06-14)", no "<name>'s bar"; wiki
-prose is the project's settled voice. A bare date is fine when useful; the
-name is not.
 
 **Sema-typed JSON files** — on-disk instance filenames are dash-separated
 fields, each field internally LeftRightDot (a spaceheat.name subject swaps

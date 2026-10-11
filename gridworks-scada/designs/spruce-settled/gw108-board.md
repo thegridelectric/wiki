@@ -1,6 +1,6 @@
 # gw108 board documentation (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
+Status: Draft · Pass 0 · Updated 2026-10-09 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
 
 > What this is: spruce-unlimbo spoke holding the gw108 board facts the relay
 > port needs — schematic-verified signal chains, the expander map, and the
@@ -198,13 +198,17 @@ fitted (else its secondary runs open); a voltage-output CT needs it open
   3 mV mains pickup. That signature tells wired from unwired without
   opening the panel.
 
+CT1 showing CT2's waveform while unburdened and idle is the shared
+bias node: every CT's − lead sits on `1V65`, held only by two 100 kΩ
+resistors, so one CT's voltage reaches every other input; a 10 µF
+capacitor from `1V65` to ground is the fix (starter-scripts executor
+"The gw108 CT chain").
+
 **Open:** the absolute scale for CT2 (its rated millivolts at 20 A, or one
-clamp-meter reading against a ladder level); why CT1, unburdened and with
-the store pump off, shows CT2's waveform (same conductor, or pickup from
-the adjacent cable); the secondary-btu pico's own `secondary-pump-ct`
-reads a constant 1.67 V with the pump running. The CT channel-config
-vocabulary (ratio, passes, burden, the derived scale) is the
-ct-measurement-chain design's (OPS-518).
+clamp-meter reading against a ladder level); the secondary-btu pico's own
+`secondary-pump-ct` reads a constant 1.67 V with the pump running. The CT
+channel-config vocabulary (ratio, passes, burden, the derived scale) and
+the scada actor are their own scada design (OPS-581).
 
 ## Relay naming + the zone state machine (settled 2026-08-11)
 
