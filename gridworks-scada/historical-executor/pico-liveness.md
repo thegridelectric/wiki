@@ -43,7 +43,7 @@ the roster the cycler also power-cycled the bus every 30 min
 - A tank pico's single late post could trigger a whole-bus VDC cycle,
   rebooting every pico on the house; the picos then rejoined wifi as a
   herd. The 2026-08-03 pico gap analysis (`experiments/
-  2026-08-03-pico-gap-analysis/`) measured the herd effect on spruce
+  pico-power-cycling/2026-08-03-gap-analysis/`) measured the herd effect on spruce
   and the 30 min shake rhythm; the tank-side false trigger is a second
   source of bus cycles in the same data, not separated there.
 - A tank pico reported missing kept reporting every 10 s until it

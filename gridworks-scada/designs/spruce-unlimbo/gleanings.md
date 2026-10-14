@@ -9,14 +9,13 @@ Status: Draft · Pass 0 · Updated 2026-09-18 · Linear: OPS-392
 ## The gwsproto mirror check — what it sees and what it misses (2026-09-18)
 
 gwsproto twins are written by hand, and `gwsproto_sema_conformance.py`
-checks them after the fact in two directions. Forward, every gwsproto
-type, enum and format is held against the sibling `sema/` checkout
-(version against sema's latest, the sema example decoded and re-dumped,
-enum value sets, format examples). In reverse, every word in
-`sema_closure/registry.yaml`, a copy of the tlayouts snapshot registry,
-must have a twin at the closure's version. The copy is the registry
-index only, names and versions with no schemas, and a Stop hook blocks
-while it differs from the tlayouts snapshot.
+checks them after the fact against the scada's own vendored sema
+snapshot (`packages/gridworks-scada-protocol/sema_snapshot/`, every word
+the scada speaks at the version it speaks). Forward, every gwsproto type,
+enum and format is held against the snapshot (version, serialized shape,
+the canonical sample decoded and re-dumped, enum value sets, format
+examples); in reverse, every snapshot word must have a twin; and every
+named-types test runs its instances through the snapshot codec.
 
 - The reverse check sees names and version numbers and nothing else. A
   staging word edited in place looks unchanged to it. When the three pico

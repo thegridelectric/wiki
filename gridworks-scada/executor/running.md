@@ -117,9 +117,10 @@ the production broker through three layers, and a window holds all three.
    wire: those are published before a box speaks them to the production
    broker, and the closure words they `$ref` come with them. Words that
    only live in the layout file on the box may stay staging. The check is
-   by hand: every gwsproto schema pin and every word in the closure copy
-   (`sema_closure/registry.yaml`) against the registry's status;
-   `gwsproto_sema_conformance.py` has no release-gate flag.
+   by hand: every gwsproto schema pin and every word in the scada's sema
+   snapshot (`packages/gridworks-scada-protocol/sema_snapshot/`, its
+   `indexes/staging.yaml` lists the staging words) against the registry's
+   status; `gwsproto_sema_conformance.py` has no release-gate flag.
 2. **Credential-structural.** The window scada keeps the box's real
    identity but boots from `~/envs/dev.env`: dev-broker credentials only,
    upstream host a localhost tunnel (`ssh -f -N -R 1885:localhost:1885

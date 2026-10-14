@@ -1,6 +1,6 @@
 # LTNs ready (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-10-09 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-10-14 · Linear: OPS-392
 
 > What this is: the spruce-unlimbo spoke that gets the LTNs running
 > against the new scada code before the fleet is on the production
@@ -20,6 +20,17 @@ The split is roughly: what do we need so that the reports are acked
 and the LTNs do not crash. The LTNs do not have to work well with their
 FLOs yet. Once the launch part is done, this file moves back over to
 spruce-settled with whatever LTN work can wait until after launch.
+
+The LTN and the scada always run from the same code at launch. When the
+fleet starts publishing to the rabbit broker, the cloud-box LTN gets the
+cert and the matching code. So a heartbeat version change on the scada
+branch is not a wire break to build around: the LTN runs on the laptop
+from the same branch against the dev rabbit broker, and there is nothing
+to build now.
+
+The cloud LTN will decode several versions of a word one day, the scada
+never will. That decoder arrives when the LTN moves out of scada into
+gridworks-base, not before.
 
 ## The two FLOs
 
@@ -83,6 +94,37 @@ one in `optimal-flexibility` and rewrites most of `ltn/ltn.py` and
   and both rewrite `ltn/ltn.py` (the operating-status reads on one
   side, the optimizer swap on the other), so the review includes
   bringing the branch onto the launch line.
+
+## The heat pump's electrical bounds
+
+Two FLO inputs describe the heat pump's electrical envelope, and until
+2026-10-14 neither reached the FLO from the house.
+
+- **`HpMaxElecKw`** (`flo.params.house0`) is the heat pump's maximum
+  electrical draw in kW; gridflo caps each hour's electrical input with it
+  and scales the stability penalty by it. The house states this fact once,
+  as `HpMaxKwEl` in `gw.operational.params` (9.66 at most houses, 10.0 at
+  beech and maple); the scada copies it into `ha1.params`, which its own
+  controllers read and which the LTN receives inside `layout.lite` and on
+  every `scada.params` change. The LTN now copies `ha1.params.HpMaxKwEl`
+  into `HpMaxElecKw`. Before, the gwsproto twin's class default of 9.66
+  filled the field at every house, so the FLO planned against 9.66 at
+  beech and maple while the scada's controllers used 10.0. gridflo's own
+  copy of the type has the same 9.66 default; it has never fired, since
+  the LTN always sends the field, and it stays for now.
+- **`HpMinElecKw`** is the minimum electrical draw while running, in kW,
+  negative to represent metered offsets at the lower bound. No layout or
+  ops word states it; the LTN passes -0.5 from
+  `actors/ltn/flo_tuning.py`, where every FLO input with no house source
+  lives (the storage-loss percent, the per-step thermal caps, the two
+  penalty families, the constant delta-T).
+
+Cleanup, owned here: each `flo_tuning` constant is either a fact about
+the house, which earns a field in `gw.operational.params` and flows
+through `ha1.params` as `HpMaxKwEl` does, or a FLO tuning choice, which
+stays with the FLO; one name per fact across the three words, so the
+`HpMaxKwEl` / `HpMaxElecKw` pair converges when `flo.params.house0`
+next versions.
 
 ## LTN code that scrapes where the layout answers
 

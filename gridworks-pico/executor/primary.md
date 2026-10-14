@@ -139,7 +139,7 @@ provisioning is the only way code reaches a pico.
 
 ## Verified field facts
 
-Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-05@5e77cee (`experiments/2026-08-03-pico-gap-analysis/`, `experiments/2026-08-05-pico-link-census/`, `experiments/2026-08-10-hp-snafu-and-pico-blackout-postmortem/`)
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-05@5e77cee (`experiments/pico-power-cycling/2026-08-03-gap-analysis/`, `experiments/pico-power-cycling/2026-08-05-link-census/`, `experiments/2026-08-10-hp-snafu-and-pico-blackout-postmortem/`)
 
 - **A permanently dead pico in the layout reboots every sibling.** The
   cycler shakes the shared VDC bus every 30 minutes while any zombie

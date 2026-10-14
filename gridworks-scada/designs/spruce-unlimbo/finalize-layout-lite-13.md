@@ -132,9 +132,9 @@ is the gate to connecting.
 5. Read `sema/spec` `governance.md` "Promotion" and
    `registry/structure.md` "Status Field"; promote bottom-up with
    `sema promote`, the read-receipt being the list of words promoted.
-6. Refresh the vendored closure copy in gwsproto
-   (`packages/gridworks-scada-protocol/sema_closure/registry.yaml`)
-   and run the conformance test.
+6. Regenerate the scada's sema snapshot
+   (`gridworks-scada/scripts/regen_sema_snapshot.sh`) and run the
+   conformance test.
 7. Record the promotion in the sema changelog.
 
 ## Open

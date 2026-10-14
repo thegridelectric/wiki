@@ -6,6 +6,37 @@ the *why*.
 
 Newest at the top.
 
+## 2026-10-14 — pico-power-cycling: reboot-storm run, pico folders regrouped, firmware track record
+<!-- pending commit -->
+
+**What:** new undated `pico-power-cycling/` folder, with
+`2026-08-03-pico-gap-analysis/` and `2026-08-05-pico-link-census/`
+moved in as `2026-08-03-gap-analysis/` and `2026-08-05-link-census/`
+(links in the logbook, the 07-30 postmortem and the wiki updated); a
+folder README; `firmware-track-record.md` (served build md5 matched to
+the gridworks-pico commit, the 2026 rollout by box); and the
+`2026-10-14-reboot-storm/` run: `pull_reboots.py`, the three per-day
+CSVs, the read-only box census as external evidence, README and
+logbook line. `README.md` lists the new folder under Layout; `ci.sh`
+globs one level deeper so a nested folder's emitter and instances stay
+gated, skips the per-run `beta-field-windows` emitter (it takes a run
+folder and a code ref) and validates the run folders' instances; the
+moved scripts find the repo root two levels up. The gate goes green:
+`drive_keep_ratio.py` joins the pyright exclusions (it imports
+`gwadmin`), `webhook_receiver.py` overrides `log_message` with the
+base signature, `chart.py` narrows its Optionals before arithmetic.
+**Why:** the pico-cycler has been power-cycling the Wiznet houses'
+buses 100–250 times a day since the fall reflash, and the reboot
+questions keep returning on new data, so the pico runs get one home
+with the firmware history beside them. The run dates the storm house
+by house to the upload of the 2026-09-15 inline-net tank firmware
+(`0ca8a2f`) and, from the journal's post times, to its cause: the
+scada's missing rule has no margin over the 60 s post period, and the
+new firmware sends one sync post in five about a second late. The
+fix belongs in the scada (`jm/spruce-unlimbo` already has it as
+`PicoLiveness`); the record names the two further `main` defects found
+beside it.
+
 ## 2026-10-11 — prod-broker-outage-drill: record, runbook, reconnect view (OPS-545, OPS-304, `9535d40`)
 
 **What:** the folder for the planned outage of hw1-1, listeners down

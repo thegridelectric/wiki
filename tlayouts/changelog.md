@@ -11,18 +11,26 @@ repo's git history.
 Newest at the top.
 
 <!-- pending commit -->
-## 2026-10-10 — Spruce and maple refuse dispatch for NoAggregator; beech holds full send; snapshot picks up NoTaDeed (OPS-392)
+## 2026-10-13 — Ops params say DispatchHold; snapshot on sema 550b57a; beech holds full send (OPS-392)
 
-No LTN runs FLOs yet, so every house gen refuses dispatch with reason
-`NoAggregator` for the coming weeks: spruce and maple move from
-`accepts_dispatch=True` to the refusing pair (beech stays Standby, whose
-reason axiom 3 fixes). Only the ops word's two dispatch fields change in
-each output. Beech's gen said `StratProtect` with Standby true; the loop
-runs `HoldFullSend` under Standby whatever the field says, and axiom 6 on
-`gw.operational.params` makes that pair fail at generation. Beech names
-`HoldFullSend`, as maple does, until the StratProtect test-drives begin.
-Snapshot regenerated on sema `07d6fb3` for `gw.dispatch.refusal.reason`
-`NoTaDeed`.
+The ops word no longer states `AcceptsDispatch` and a reason, which were
+a copy of a derived answer; it states the hold the file places on
+dispatch, `DispatchHold` (`gw.dispatch.hold`: `OperatorHold`,
+`ServiceContractBroken`). `layout_gen.py` builds it through the
+snapshot's `DispatchHold` class from two `OpsSpec` booleans. Beech
+(Standby) and spruce (its Nolan ally is not built, so the operator holds
+it out) say `operator_hold=True`; every other house and the sim gens,
+spruce-sim included, say both false. `NoAggregator` is gone with the
+enum value. Beech's gen said `StratProtect` with Standby true; axiom 5
+on the ops word (Standby with a House0 family requires
+`SiegLoopStrategy` `HoldFullSend`) fails that pair at generation, so
+beech names `HoldFullSend`, as maple does, until the StratProtect
+test-drives begin. Snapshot regenerated on sema `550b57a`
+(`gw.dispatch.hold`; the refusal enum leaves the snapshot, since no
+layout word references it now). Outputs regenerated for beech, maple,
+spruce, spruce-async1, spruce-sim, orange-sim and willow-sim; elm, fir
+and oak still fail the House0 layout's `SiegManifoldChannels` axiom
+(`sieg-hot` missing), unchanged by this wave.
 
 ## 2026-10-10 — gwsproto OperationalParams mirrors axiom 6: Standby holds a House0 loop at full send (OPS-392, `82620c5`)
 

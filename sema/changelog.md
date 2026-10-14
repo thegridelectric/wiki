@@ -10,6 +10,122 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-14 — Axiom refusal is proved by mutation; counterexample fixtures go (`064300f`)
+
+**What:** `tests/runtime/refusal.py` is a test-side helper: `example`,
+`mutated`, `axioms` (numbers and clause labels read off the generated
+class) and `assert_refused` (the codec refuses at the payload's own version
+naming the axiom number as a whole number, and the clause label when
+given). Every `tests/runtime/<word>/fixtures/axiom_*.json` becomes a
+mutation of the word's example in the word's test file through it, and the
+fixture folders go. Axiom bodies with labeled clauses name the clause in
+their refusal (`Axiom 4 (ForecastNaming, clause a) failed:`), so the clause
+check is real. `pyproject.toml` adds `pythonpath = ["."]` so test files
+import the helper. The spec drops what nothing built: snapshot.md
+"Counterexamples" and "Counterexample gate", the fixture-path paragraph in
+type-semantics.md (clause labels stay, and a refusal SHOULD name its
+clause), and the counterexample bullet in registry/types.md.
+
+**Why:** a stored counterexample is a second copy of the example that
+drifts from it, and nothing ever built the registry folder or the snapshot
+gate the morning's spec commit described. Snapshots ship data, not test
+code, and a consumer whose runtime is generated gains nothing from
+re-proving the axiom bodies sema's own suite proves. A hand-written
+implementation protecting itself is that implementation's concern.
+
+## 2026-10-14 — Counterexample fixtures live in the registry and ship in snapshots (`8d9acf9`)
+
+**What:** spec only. `authoring/type-semantics.md` gives every axiom clause a
+counterexample fixture at
+`definitions/counterexamples/<type.name>/<version>/axiom_<n>[_<label>].json`,
+which the version's runtime MUST refuse naming that axiom. `snapshot.md`
+adds a generated `counterexamples/` folder beside `samples/`, a build-time
+counterexample gate (accepted, or refused for another reason, fails the
+build), coverage in the samples report, and names counterexamples as the
+second kind of data a consumer-side harness may run over.
+`registry/types.md` permits adding a fixture to a published version, since
+it sits outside the schema file and its hash.
+
+**Why:** 160 type versions declare axioms; 30 have counterexamples in sema's
+tests while the scada's hand-written twin tests hold 267. A negative
+fixture belongs to the word, not to one consumer. Shipping them lets any
+implementation not generated from the snapshot (gwsproto before the
+proactor port, pico firmware, another language) prove it refuses what the
+vocabulary refuses. Keeping a vendored snapshot unedited stays the drift
+check's job, not this.
+
+## 2026-10-14 — ha1.params v006 changed to match the wire (`c2fef3a`)
+
+**What:** `ha1.params/006` requires HpMaxKwEl and the five Cop fields,
+drops HpMaxKwTh, and loses the schema `default` on HpTurnOnMinutes; its
+registry summary, hash pin and a 006 example follow. The 005 → 006 upgrade
+refuses with `UpgradeRequiresContext` (HpMaxKwEl and the Cop fields are the
+house's operational params, not derivable from a 005 instance). The
+layout.lite 011 and 012 examples drop the embedded HpMaxKwTh and are
+re-pinned. Runtime and indexes regenerated.
+
+**Why:** the gwsproto twin is what has been publishing ha1.params since
+before sema launched, and it always sends those six and never HpMaxKwTh;
+the word was laxer than the wire. Under the bootstrap allowance (version
+published before June 2026, wire data decides) the correction is in place
+rather than a 007, which would have cascaded through layout.lite 011 to
+013 and scada.params 005. Sanctioned per case 2026-10-13.
+
+**Also:** the staging component words `pico.btu.meter.component.gt/000`,
+`pico.flow.module.component.gt/001` and `pico.tank.module.component.gt/012`
+lose their optional `FirmwareCommit` property and the `firmware.commit`
+structural dependency, in place. Runtime and indexes regenerated. The
+params words are untouched: `tank.module.params/210`,
+`flow.hall.params/210` and `async.btu.params/110` keep their required
+`FirmwareCommit` in staging for the firmware that will post it.
+
+The beech census of 2026-10-14 and the firmware source at the
+commit the fleet runs (6a713e1) show no pico posts a commit. An optional
+property on the component words only widened what a layout may say
+without any producer saying it; when firmware stamps a commit, a new
+version of each component word takes it as required, the way the params
+words' staging versions already do. The scada seeds each params word at
+the version its picos post (tank 200, hall flow 101, btu 100), not at
+sema's latest.
+
+## 2026-10-13 — gw.dispatch.hold; slow.contract.heartbeat 001 published from the wire, 002 with Reason; one refusal vocabulary across ops word, rejection, heartbeat (OPS-392, `550b57a`)
+
+The scada decides in one place why it will not take or keep a dispatch
+contract, and says it in one enum. `gw.dispatch.refusal.reason` now
+holds `NoTaDeed`, `OperatorHold`, `ServiceContractBroken`, `ScadaBlind`,
+`InAdmin`; `Standby` and `NoAggregator` leave, and the default is
+`OperatorHold` because an unknown reason read as the house held out is
+the no-harm fallback. The ops word stops stating `AcceptsDispatch` and
+its reason, which were a copy of a derived answer, and states the two
+facts a person or the cold latch actually own, bunched in one new word,
+`gw.dispatch.hold` (`OperatorHold`, `ServiceContractBroken`), referenced
+as `DispatchHold`. The word's name and description say it is one of
+three authorities over dispatch, beside the deed and the running scada,
+not the answer. Axiom 3 becomes "Standby implies
+DispatchHold.OperatorHold"; the presence axiom leaves and the two below
+it move up to 4 and 5. The ops word's `created` moves to today, as the
+new dependency is younger than its old stamp. `slow.contract.rejection` names its `Reason` in the enum
+instead of a validation state. `gw.house.operating.status` keeps
+`AcceptsDispatch` and its reason as the derived answer and adds
+`ScadaBlind`. All four were staging, so edited in place; the
+rejection's `created` moves to today because its new dependency is
+younger than its old stamp.
+
+The heartbeat had no sema word. `slow.contract.heartbeat` 001 is the
+wire form gridworks-scada has sent since `8898a88c` (2026-01-14),
+published as-is with its closure: `slow.dispatch.contract` 000 (on the
+wire since `f38e1e4a`, 2025-03-03), `gw1.slow.dispatch.contract.status`
+000 (the ten statuses plus a leading `Unknown` default, since a decoder
+must not act on a status it does not know), and the integer format
+`decimal.digit` for the chained digits. Their `created` stamps are
+back-dated to the scada commits that first sent them, by decision, so
+the registry records when the vocabulary entered service rather than
+when it was written down. 002 is staging and adds the typed `Reason`
+beside the free `Cause`, present iff `TerminatedByScada` (axiom 6); its
+upgrade refuses a terminated heartbeat with `UpgradeRequiresContext`
+rather than invent one. Runtime regenerated; the ops-params fixtures
+and the format table follow.
+
 ## 2026-10-10 — Add NoTaDeed as a dispatch refusal reason (OPS-392, `07d6fb3`)
 
 A scada with no `ta.deed` refuses contracts today through a second path,

@@ -178,6 +178,7 @@ Normative across the domain — full statements in
 | Cold house (the cold judgment, the latch, the dispatch refusal, the cold glitches) | [`cold-house.md`](cold-house.md) | Draft |
 | Magic thresholds (numbers decided in code; per-row disposition) | [`magic-thresholds.md`](magic-thresholds.md) | Draft |
 | Sensing hierarchy (channels ranked by the harm of a lost or wrong reading; what the scada does today) | [`sensing-hierarchy.md`](sensing-hierarchy.md) | Draft |
+| Sensor freshness (the one nyquist bound for stale and dead; who declares a loss; what a reader sees) | [`sensor-freshness.md`](sensor-freshness.md) | Accepted |
 | Heat pump signatures (start-up, running, idle and defrost in the scada's channels, per heat pump model) | [`heat-pump-signatures/primary.md`](heat-pump-signatures/primary.md) | Draft |
 | Heat pump comms (call contact and Modbus from the vendor side, per heat pump model) | [`heat-pump-comms/primary.md`](heat-pump-comms/primary.md) | Draft |
 | The Siegenthaler loop actor as it runs (what it does, what maple shows, where it falls short) | [`sieg-loop.md`](sieg-loop.md) | Draft |

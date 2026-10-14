@@ -10,15 +10,242 @@ repo's git history.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-10-10 — Pin transitions 0.9.3 to match gwsproto
+## 2026-10-14 — fix forecast bug (`477e5604`)
 
-`gwsproto` requires `transitions>=0.9.3`, but the compiled requirements
-pinned 0.9.2, so pip reported a conflict on box installs (oak2). The pin
-moves to 0.9.3 in `base.txt`, `drivers.txt` and `dev.txt`, and `base.in`
-carries the same floor so the next compile keeps it. 0.9.3 still depends
-only on `six`. The pins were edited by hand: `pip-compile` in the venv
-fails against its pip version.
+What: the main loop of `derived_generator.py` re-fetches weather and
+rebuilds the heating forecast when there is none, when the forecast's
+first hour is behind the clock, or when new ScadaParams arrived; the
+`received_new_params` flag is read again. A test advances the clock past
+the forecast's first hour and sees the second fetch.
+
+Why: the refetch was dropped in `5b539860` (2026-02-02, the tank-module
+refactor) on the renovation line and never restored; `main` has it.
+`actual-spruce` carries the loss, so spruce has judged the buffer against
+boot-day weather between restarts. Found while planning the ally's
+startup order (contract-refusal.md).
+
+## 2026-10-14 — The scada answers dispatch at the offer: dispatch_refusal, buffer_fresh, deed_grants_dispatch; the ally's gates go; tests author the ops word through ops_word_with (`8c6078fa`)
+
+What: `Scada.dispatch_refusal` is the one reason the scada will not take
+or keep a dispatch contract, in the order NoTaDeed (`deed_grants_dispatch`
+in `sema_to_dc.py`: the deed's TaId and TaAlias name the layout's
+terminal asset and its ValidationState is not UnValidated), OperatorHold
+and ServiceContractBroken (the ops word's `DispatchHold`), ScadaBlind
+(`buffer_fresh`), else None. The offer handler answers a refused offer
+with `slow.contract.rejection` naming the Reason and nothing else moves;
+the per-heartbeat check under a held contract and `resume_loaded_contract`
+give the contract up with it; `house_operating_status` derives
+AcceptsDispatch and DispatchRefusalReason from it and fills ScadaBlind,
+and the main loop re-reports the status each pass.
+`process_break_service_contract` writes `DispatchHold.ServiceContractBroken`
+on the ops word, which the refusal then reads; the derived generator
+reads the hold. `buffer_fresh`: `channels_fresh` in `hydronic/shared.py`
+(every named channel enabled in the layout and read inside its nyquist
+bound), House0 on the effective buffer channels, Nolan on the band; it
+replaces Nolan local control's private 300 s clock. `AllyGivesUp` 001
+takes the Reason enum plus a Cause, and the terminating heartbeat names
+the Reason. Gone: the loader wrapper's gate, the cold decline at an offer
+(`declines_offer_for_cold`), and the House0 allies' forecast condition,
+five-minute bail clock, `missing_inputs` and required-energy wait in
+Initializing. Admin is as before: an offer during Admin is ignored
+without a message, and a held contract resumes when Admin times out.
+Tests: the precedence table and offer-time rejection per reason over the
+LTN+scada pair (`test_dispatch_refusal_gate.py`); fixtures author
+`DispatchHold`; `seed_deed` and `fresh_buffer` helpers; `ops_word_with`
+authors the ops word from a fixture through `OperationalParams` with typed
+selections, and the five tests that edited it as a JSON dict use it (the
+two sites that author an invalid word on purpose keep the raw dict).
+`contract-refusal.md` leaves the repo root.
+
+Why: contract-refusal.md "The model: three authorities, one answer" and
+"The build", items 1, 2, 3 and the gates half of 5. The ally's forecast
+and required-energy gates were a boot-race hack; the scada answers
+offers, the ally only breaks contracts. Item 4 (Admin ends a live
+contract) was built and then taken back out so the Admin decision can be
+made on its own; the design paragraph that describes it stays open. A
+test that hand-edits the word as a dict is the sema failure mode the
+rules name; it also let two relays-boot rows write Standby without the
+operator hold, which the word refuses. The root file was a design
+explainer committed into the code repo. Suite 1581 passed, 1 skipped.
+
+## 2026-10-14 — Snapshot regen picks up clause-named refusals; per-type positive round-trips that repeat the sample check go (`5e659524`)
+
+**What:** `scripts/regen_sema_snapshot.sh` against sema `064300f`: the
+snapshot's `g.node.gt` and `gw1.scada.device.type.gt` refusals name their
+clause (`Axiom 1 (ClassConsistency, clause a) failed:`). The
+`test_<word>_generated` tests in `tests/named_types/` whose round-trip
+equals the snapshot sample are deleted, with whatever they alone used; the
+conformance sweep's `test_no_sample_reject` and `test_no_dump_drift`
+already decode every snapshot sample through the twin and require a
+byte-equal re-dump. `sema_oracle.py`'s snapshot leg matches the axiom
+number as a whole number (`Axiom 1\b`), so a word with ten or more axioms
+cannot pass on the wrong one.
+
+**Why:** sema proves axiom refusal by mutation now, through its own
+test-side helper; snapshots ship data, not test code, so the scada keeps
+its own oracle. The hand-copied example in a per-type positive test drifts
+from the sample and nothing regenerates it; the sweep's input is the
+sample itself. The mutation tests and `test_axiom_coverage.py` stay: they
+are the only check that reaches a hand-written twin's axiom bodies, until
+the proactor port generates the twins.
+
+## 2026-10-14 — patch for pico liveness (`cda464ba`, `actual-spruce`)
+
+**What:** the same change as `e0768309` on `main`, on the `actual-spruce`
+branch spruce runs: `ApiTankModule.missing()` with the 2.1 nyquist margin,
+`report_missing_if_due` with the elapsed-time report gate, and the three
+tests in `tests/actors/test_api_tank_module.py`.
+
+**Why:** spruce has the same zero-margin rule and trips it rarely (Pico W
+on wifi, a narrower late window), two reboots in the storm window. One
+rule on both field branches. OPS-592.
+
+## 2026-10-14 — The tank-module actor gives pico liveness the nyquist margin and reports a missing pico once a minute (`e0768309`)
+
+**What:** on `main` (branch `jm/pico-liveness-margin`), `ApiTankModule.missing()`
+is `now - last_heard > NYQUIST_MULTIPLE * CapturePeriodS` with
+`NYQUIST_MULTIPLE = 2.1`, the same multiple the actor's watchdog already
+used; the report check in the keepalive loop becomes
+`report_missing_if_due`, an elapsed-time test against `FLATLINE_REPORT_S`.
+Three tests in `tests/actors/test_api_tank_module.py`: a post 60.8 s after
+the previous one is not missing; silence past the bound is; the report
+repeats once a minute, not every tick.
+
+**Why:** the rule had no margin, so the first post more than 60.0 s after
+the previous one sent `PicoMissing` and the cycler opened the 5 V relay.
+The 2026-09-15 pico build posts after its ADC burst instead of from the
+timer callback, so one post in five from a Wiznet tank pico arrives about
+0.8 s late, and the four ethernet houses were rebooting their buses 100 to
+250 times a day (`experiments/pico-power-cycling/2026-10-14-reboot-storm/`).
+The report compare was `last_error_report > 60`, a timestamp against a
+count, always true, so a missing pico was re-reported every 10 s. OPS-592.
+
+## 2026-10-14 — gwsproto twins drop defaults on fields sema requires; the scada speaks flow.hall.params 101 (`b3ba95f4`)
+
+**What:** the sema seed pins `flow.hall.params` at 101, the published
+version every hall flow pico in the field posts, and the snapshot is
+regenerated at it; `FlowHallParams` is the 101 shape (no PicoBoardVariant,
+no MicropythonVersion). The flow actor decodes every hall params post with
+the twin and answers in kind; its local 101 class, the 200 branch and the
+board-and-MicroPython identity check for flow modules go, with the two
+tests of that check. Tank modules and BTU meters keep theirs.
+
+**What:** the eight array fields of `gw1.scada.device.type.gt/000` the
+word lists as required (TelemetryNameList, NativeGpioInputs,
+NativeGpioOutputs, Expanders, Muxes, I2cRelays, ThermistorAdcs, Dacs)
+lose their `= []` defaults on the gwsproto twin; the Krida board record
+and the device-type test helper spell their empty lists out; the
+`KNOWN_SHAPE_DRIFT` entry goes. `LinearOneDimensionalCalibration` likewise
+loses `M = 1.0` / `B = 0` (the identity calibration as a hidden default) and
+its docstring shrinks to the `Sema:` line; only tlayouts builds it, passing
+both. `Glitch.CreatedMs` and the `ReportEvent` envelope (MessageId,
+TimeCreatedMs, Src, inherited with defaults from gwproto's `EventBase`)
+become required on the wire; a custom `__init__` marked
+`__pydantic_base_init__` stamps the clock (Glitch) or derives the envelope
+from the Report (ReportEvent) on direct construction only, so the ~40 actor
+`Glitch(...)` sites stand and `model_validate` refuses a payload without
+them. `SlowContractHeartbeat` takes the same idiom: IsAuthoritative and
+SignedProof required on the wire, construction defaults to authoritative and
+the `SIGNED_PROOF_STUB` constant; the test that asserted decode fills them
+goes, replaced by one for each path. `HeatingForecast.ForecastCreatedS`
+likewise: required on the wire, the clock at construction. Tests cover both
+paths. The three Hubitat words (`hubitat.gt/000`, `hubitat.poller.gt/001`,
+`maker.api.attribute.gt/001`) lose twelve defaults between them, plain
+deletions: tlayouts spells every field out, the hub stub builder gains
+`WebListenEnabled=True`, and three actor-test helpers spell out the
+attribute fields. The pico flow and tank component twins, real and sim,
+lose their FlowMeterType, SendHz, SendGallons, SendTickLists and
+SerialNumber defaults; only tlayouts builds them and passes every field.
+`FloParamsHouse0` loses all thirty defaults on fields `flo.params.house0/007`
+requires (the uuid factories, the clock, the tuning constants, `FloGitCommit
+= 'Unknown'`); the LTN, its only builder, passes every field: identity and
+clock at the call site, `HpTurnOnMinutes`, `HpMaxElecKw` and `TimezoneStr`
+from `ha1.params` and its settings, the FLO tuning constants from
+`actors/ltn/flo_tuning.py`, where the Unknown commit marker also lives. The
+`KNOWN_SHAPE_DRIFT` allowlist is empty. `HpMaxElecKw` is the one behavior
+change in the cluster: the twin's class default of 9.66 had filled it at
+every house, so the FLO now sees the house's `HpMaxKwEl` (10.0 at beech and
+maple).
+
+**Why:** a pydantic default makes the field optional on decode, so the
+twin accepted a record sema refuses. "This board has no DACs" is a fact
+the record states, not a value the reader fills in; a convenience default
+belongs in a constructor helper, never on the model field. First of the
+staging-word drift entries burned down.
+
+## 2026-10-13 — The scada vendors its own sema snapshot as the conformance oracle
+
+**What:** `packages/gridworks-scada-protocol/sema_seed_request.yaml` names
+every gwsproto twin that has a sema word, at the version the scada speaks
+(the three pico params words pinned at 100 / 200 / 200);
+`scripts/regen_sema_snapshot.sh` (the sema template instance,
+`--allow-staged`) builds the snapshot into `sema_snapshot/sema` beside
+gwsproto, committed. The conformance sweep reads the snapshot instead of
+the sibling sema checkout and the hand-copied tlayouts closure registry:
+version pins, a snapshot class required at every pinned version, a shape
+check (serialized field names and required set against the snapshot
+class), the canonical samples decoded and re-dumped byte-equal, enum
+values, formats, and every snapshot word mirrored. Allowlists record the
+exact drift, keyed `type/version` with the field lists, so a listed word
+that drifts any other way fails; the shape list records sixteen twins
+that default a field sema requires or lack one, and one closure enum with
+no twin. `tests/named_types/sema_oracle.py` adds `assert_conforms` and
+`assert_refused`: an instance a test builds must decode through the
+snapshot codec and re-encode identically, and a payload the twin refuses
+the snapshot must refuse on the same axiom, by number or name. Every
+single-statement `pytest.raises` around a `model_validate` in
+`tests/named_types` became `assert_refused` (88 sites) and every
+dump-equality assert gained `assert_conforms` (5). `sema_closure/` is
+gone, with its Stop hook; the package README says what the sweep checks.
+
+**Why:** the twins stay hand-written until the proactor refactor, and the
+old sweep checked axioms only as far as a positive example reached,
+covered the layout closure only, and skipped without a sibling sema. The
+snapshot's generated classes carry the sema runtime's own axiom bodies,
+so it is `sema validate` as a local test against the vendored copy, for
+every word the scada speaks, in any checkout.
+
+## 2026-10-13 — gwsproto twins for gw.dispatch.hold, refusal reason and heartbeat 002; contract-refusal.md (`e71dca4e`)
+
+**What:** the gwsproto twins of the contract-refusal words on sema
+`550b57a`: `DispatchHold` (new), `OperationalParams` states `DispatchHold`
+in place of `AcceptsDispatch` and a reason (axiom 3 becomes
+StandbyImpliesOperatorHold, the posture and full-send axioms renumber to
+4 and 5), `SlowContractRejection` says `Reason: DispatchRefusalReason` in
+place of a validation state, `SlowContractHeartbeat` moves to 002 with
+`Reason` and the six sema axioms mirrored by number (`DecimalDigit`
+format for the digits; axiom 5 is a presence check both ways), the status
+enum gains the leading `Unknown` default and its `enum_name` says
+`gw1.slow.dispatch.contract.status`, `HouseOperatingStatus` gains
+`ScadaBlind` and refuses Standby as `OperatorHold`. The closure copy
+follows the tlayouts snapshot; the three ops-params fixtures say
+`DispatchHold`; named-types tests for the heartbeat and the contract are
+new. `Scada._send_to` wraps an actor's `process_message` in a try/except
+that logs and sends an `actor-raised` Error glitch. A top-level
+`contract-refusal.md` is the human-facing explanation of the dispatch
+gate: the three files that decide before boot, what the running scada
+observes, the precedence table and the two messages.
+
+**Why:** the refusal logic was spread over the ops word, the ally and the
+rejection, and a person on a box had nowhere to read why a house does
+not dispatch; the sema words give the scada one vocabulary for declining
+or ending dispatch and the twins must say the same. The actor call was
+bare, so an exception in any actor propagated into whatever scada
+handler sent the message; the Nolan leaf ally is about to raise on a
+contract by design and the scada must survive that and say so.
+
+## 2026-10-12 — gwsproto OperationalParams mirrors axiom 6: Standby holds a House0 loop at full send (OPS-392, `99cedc4e`)
+
+**What:** the vendored closure registry is refreshed to the tlayouts
+snapshot of 2026-10-10 (`82620c5` there), which adds axiom 6 to
+`gw.operational.params` 000 with `sieg.loop.strategy` as an axiom
+dependency. `OperationalParams.check_axiom_6` mirrors it: a House0
+family in Standby must carry `SiegLoopStrategy` HoldFullSend; a Nolan
+family has no loop and is unconstrained. Tests cover both families.
+
+**Why:** the closure test requires every snapshot word at its version to
+have a gwsproto twin, and the Stop hook blocks while the copy and the
+snapshot differ. The snapshot moved on 2026-10-10 without the mirror.
 
 ## 2026-10-09 — nysquist interval for derived channels uses actual reporting period, not hard-coded 60 s (OPS-392, `b2bec9aa`)
 

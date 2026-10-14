@@ -62,7 +62,7 @@ the migration follows the word.
   `weather_forecast_persistor`, `weather_bundle_persistor`,
   `postgres_views.md`.
 - **experiments** (ad-hoc analysis): `pull_readings.py`,
-  `2026-08-03-pico-gap-analysis/*`.
+  `pico-power-cycling/2026-08-03-gap-analysis/*`.
 - **gridworks-fleet**: `src/gwf/models/data_channel.py` + scripts —
   verify at execution time whether these hit the journal DB or
   fleet's own.

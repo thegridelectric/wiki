@@ -89,3 +89,14 @@ them exercises it (`experiments/`).
   is the admin domain's
   [OPS-529](https://linear.app/gridworks/issue/OPS-529); it goes onto
   the deployed line in this design's window.
+- The scada side of the pico firmware round
+  [OPS-595](https://linear.app/gridworks/issue/OPS-595): the
+  `pico-heartbeat` route on `ApiBtuMeter` and `ApiTankModule`,
+  `PicoLiveness` taking a `recovery_budget_s` beside its multiple (the
+  bound 2.1 × P + C, C = 50 s, with `MISSING_MULTIPLE` moved to the one
+  shared 2.1), the Warning glitch at 21 s, optional temperature
+  channels and the params answer omitting absent fields in
+  `ApiBtuMeter`, and the `async.btu.params` 110 / `tank.module.params`
+  210 pins, twins and snapshot with the 100/200 rollout. The firmware
+  ships first under OPS-595; the fleet keeps the capture-period bound
+  until this is built.
