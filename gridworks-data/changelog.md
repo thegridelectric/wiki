@@ -10,6 +10,57 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-15 — retire installations: customers, installers and installations leave journaldb (branch `jm/retire-installations`) <!-- pending commit -->
+
+What: migration `e5a1c2d3f4b6` re-keys `user_installation_roles` from
+`installation_id` to a plain `ta_g_node_id` (mapped through the g_nodes
+projection, failing loudly on a role it cannot map) and drops the three
+tables; the three models go, the roles model follows, the dev seed seeds
+the LTN and TA g_nodes per house and nothing about a person. First
+tests in the repo: the migration chain on a testcontainers TimescaleDB,
+the re-key, model-versus-head drift, and the downgrade. `gw_data` 0.5.0.
+
+Why: OPS-473, second spoke. The households are in the private customer
+store; the analytics database hands out read credentials and must hold
+nothing about a person. The JSONB layout, params and ops copies are
+deleted rather than moved because the journal's words hold the first
+two and alert state belongs to the alerting rework.
+
+## 2026-10-15 — gwpii: seed from journaldb, dev households, optional contact fields (repo `gridworks-pii`, `f3a2139`)
+
+What: customer email and phone and the installer's contact fields are
+optional in the baseline. `gwpii.seed.journaldb` plus
+`scripts/seed_from_journaldb.py` move the six households out of
+journaldb with a row-level check; `gwpii.seed.dev` plus
+`scripts/seed_dev.py` fill a development store with deterministic bogus
+households; `docker-compose.yaml` runs that store on 5441. Tests cover
+both seeds against a fake journaldb schema.
+
+Why: the real rows have no email for five of six customers and a bare
+string for the installer, so the shape follows the data; the baseline is edited rather than
+migrated because the store held no rows and was rebuilt on the box. journaldb's
+`installations.g_node_id` is the LeafTransactiveNode's id; the seed
+maps it to the TA GNodeId through the layouts, cross-checked with the
+registry. The dev seed exists so the dashboard and the retire step can
+be exercised end to end without a real person in any dev database.
+
+## 2026-10-15 — gwpii package skeleton: pii schema, baseline migration, add-customer CLI (repo `gridworks-pii`, `3ab8da5` on `jm/pii-skeleton`)
+
+What: the private `gridworks-pii` repo opens with the `gwpii` package
+(SQLAlchemy models for the `pii` schema, pydantic records, alembic
+baseline), partner-label minting, and the `gwpii` CLI with
+`add-scheme`, `add-customer` and `show`. Tests run against a
+testcontainers Postgres: a customer round-trips, a second
+`add-customer` for the same TA GNodeId is refused, labels never repeat,
+and the baseline migration matches the models.
+
+Why: the first spoke of OPS-473. Customer PII and the customer-to-house
+link leave journaldb for a store that is outside the production system:
+never on the broker, never a sema word, reachable only by the operator
+CLI over a tunnel. The TerminalAsset GNodeId is the only anchor; the
+partner label is the only name a partner ever sees. Box and seed from
+journaldb follow once the package works locally.
+
 ## 2026-09-14 — README: the database is observability, never a control dependency (`28a144b`; PR #10 merge `1b1d79c`)
 
 **Why:** A design for automated house-parameter fitting was about to

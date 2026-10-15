@@ -123,6 +123,42 @@ Read the caught day through the whole pipeline, asserting:
 The harness is a re-runnable reproducer; findings distill into scoped
 Verified claims once it is green.
 
+## Rename `reading_channels.terminal_asset_alias` here
+
+`reading_channels.terminal_asset_alias` becomes `about_g_node_alias`,
+nullable: a channel is about a GNode, and a channel of aggregated power
+across every terminal asset in Millinocket is about none in particular
+(decided 2026-10-15 under OPS-473, deferred here because every consumer
+binds the column by name and this design is where they are all rewritten).
+What the rename touches, from a read of the live journaldb and the
+repos on 2026-10-15:
+
+- **gridworks-data:** `ReadingChannelSql.terminal_asset_alias` and the
+  unique constraint on (alias, name, deactivated_date), which stays with
+  `NULLS NOT DISTINCT`. The index named `terminal_asset_alias` is on
+  `name`, a misnomer to fix in the same migration. The three SQL
+  functions under `scripts/misc` (`retrieve_readings_1s`,
+  `calc_energy_1hr`, `calc_hourly_data`) read the column by name in text
+  bodies and must be recreated; the `readings_1hr` continuous aggregate
+  and `cached_hourly_data` carry an output column of the old name, which
+  is dropped and recreated if the name is to go through. The aggregate
+  follows a rename of the underlying column by attribute number, but
+  prove that on a local timescaledb-ha container before journaldb.
+- **gridworks-journalkeeper:** creates channel rows through the gw_data
+  model and loads them by alias (`reading_channel_eras.load_channel_rows`,
+  the report-event, layout-lite and weather-bundle persistors). Breaks on
+  the first insert after the rename unless deployed in the same window.
+- **gridworks-web-backend:** raw SQL naming the column in
+  `hourly_data_download`, `installation_summaries`, `readings_csv`,
+  `hourly_electricity`; model references in `readings_csv` and
+  `synced_readings_bundle`. The `terminal_asset_alias` strings in its
+  sema types are the sema word's field, untouched.
+- **gridworks-alerts:** reads the column through the model in
+  `alert_generator.py` and derives the house alias from it.
+
+One window: gw_data release, then journalkeeper, web-backend and alerts
+deployed with the migration.
+
 ## Open
 
 - Which families the three catch boxes cover; a family not among them needs

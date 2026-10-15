@@ -10,7 +10,7 @@ the PII store is stood up and gw_data is refactored; each build step
 before it is checked by the suite plus row-level checks against the live
 database.
 
-**▶ Active spoke: [`pii-store.md`](pii-store.md)**
+**▶ Active spoke: [`retire-installations.md`](retire-installations.md)**
 
 > What this is: the hub for taking customer PII and auth credentials out
 > of journaldb, retiring the `installations` table, and standing up
@@ -73,9 +73,9 @@ declare them, production does not have them.
 
 ## Spokes, in order
 
-1. **[`pii-store.md`](pii-store.md)** — the `gridworks-pii` repo, box,
+1. [`pii-store.md`](pii-store.md) ✅ — the `gridworks-pii` repo, box,
    record shape, operator CLI, partner labels, seed from journaldb.
-2. [`retire-installations.md`](retire-installations.md) — gw_data,
+2. **[`retire-installations.md`](retire-installations.md)** — gw_data,
    web-backend and frontend branches; the tables go; roles re-key to the
    TA GNodeId; the dashboard's Address and Contact sections go dark
    until OPS-600.

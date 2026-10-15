@@ -10,6 +10,37 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-15 — Every gwsproto enum has a default and the sema ones match sema; the conformance report runs from the command line; thirteen axiom refusals go through the oracle (`eb73e305`)
+
+What: `test_every_enum_has_a_default` requires every gwsproto enum to
+declare a `default()` that is one of its own values, and
+`KNOWN_ENUM_DEFAULT_DRIFT` is empty. `DeviceType` defaults to
+`EgaugePowerMeter`, `SimDeviceType` to `SimSensor` and `PicoCyclerEvent`
+to `WakeUp`, as their sema words say; `LocalControlTopEvent`, which has
+no sema word, defaults to `TopGoDormant`. `AnyDeviceType` resolves a
+name by exact membership in one of the two device vocabularies
+(`device_type_by_membership`) and refuses a name outside both at the
+field. `gwsproto_sema_conformance.py` `main()` counts shape drift as a
+list of its keys when it sums the failures. The plain axiom refusals in
+`test_command_interface.py`, `test_scada_control_capabilities.py`,
+`test_scada_device_type_gt.py`, `test_async_btu_params.py` and
+`test_tank_module_params.py` call `assert_refused` instead of a bare
+`pytest.raises`; the two other-version wire-shape refusals in the params
+tests stay bare and say why.
+
+Why: the sema enum rule makes the default the forward-compatibility
+fallback (an unknown value decodes to it), and the scada makes no
+exception to it for any enum. `b9b57467` had removed the two device-type
+defaults because, with them, the bare `DeviceType | SimDeviceType` union
+let `GwStrEnum._missing_` turn a sim name into `EgaugePowerMeter` before
+pydantic tried `SimDeviceType`; the membership validator keeps the stale-
+name refusal at the field, where that commit put it, with the defaults
+in place. `b94d05ca` made shape drift a dict keyed `type/version`, so the
+command-line report died on the list-plus-dict sum while the pytest path
+stayed green. The thirteen refusals were a miss from the conformance
+build; all five words are in the snapshot, so each refusal now has its
+snapshot leg.
+
 ## 2026-10-15 — hand-rolled gwsproto now forced to match sema versions (`dccde298`)
 
 What: the hand-written twins and their fixtures move to the pinned

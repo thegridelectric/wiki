@@ -1,6 +1,6 @@
 # Spruce un-limbo (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-10-14 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-10-15 · Linear: OPS-392
 
 **EDD: yes** bench (honeysuckle) and box harness runs are the verification;
 spokes reach Verified only when an experiment runs against the real bus or a
@@ -104,9 +104,9 @@ code. How a round runs and what the rounds have taught is
 - **`nolan-local-control.md`** — the field checks for the beta windows
   and the review brief; the built part is in
   `executor/local-control.md` and `executor/cold-house.md`
-- `gwsproto-conformance.md` — the scada vendors its own sema snapshot and
-  every named-types test checks its instance against the snapshot class;
-  the hand-written twins stay until the proactor refactor
+- ✅ DONE gwsproto-conformance (est 4h → 2h) — the scada vendors its
+  own sema snapshot as the oracle, one version per word, every enum with
+  a default (`executor/gwsproto-conformance.md`, `eb73e305`)
 - `ltns-ready.md` — the LTNs running against the new scada code
   before the fleet is on the production broker: a local run first,
   and from it the minimal LTN updates so reports are acked and the

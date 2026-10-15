@@ -171,6 +171,7 @@ Normative across the domain — full statements in
 | Admin (operator surface; code in this repo, domain elsewhere) | [`admin.md`](admin.md) → `wiki/gridworks-admin/` | pointer |
 | SCADA↔LTN link state machine (proactor linking) | [`scada-ltn-link-state.md`](scada-ltn-link-state.md) | Draft |
 | Testing LTN↔SCADA (in-process harness) | [`testing.md`](testing.md) | Draft |
+| gwsproto conformance (the vendored sema snapshot as oracle) | [`gwsproto-conformance.md`](gwsproto-conformance.md) | Accepted |
 | Experimentation rig (real-broker experiments) | [`experimentation-rig.md`](experimentation-rig.md) | Draft |
 | Required and usable energy (how the House0 store is judged ready for on-peak) | [`required-energy.md`](required-energy.md) | Draft |
 | Weather forecast (the forecast pair from the weather service, how the consumers read it, degradation and fill) | [`weather-forecast.md`](weather-forecast.md) | Draft |

@@ -6,7 +6,30 @@ the *why*.
 
 Newest at the top.
 
-## 2026-10-15 — spruce-radiant-slab: dataset folder, first pulls, the two-lump slab workbook; pull_readings reads a gzipped instance <!-- pending commit -->
+## 2026-10-15 — spruce-radiant-slab: the two-stage least-squares fit; free float excludes fan coil calls; no assumed area or depth (OPS-601) <!-- pending commit -->
+
+**What:** `sheets.py` fits G and C in two stages, each a least-squares
+slope through the origin: G over C from the free float (floor fall per
+hour against floor minus air), then C from the charge (accumulated heat
+in to the zone against the floor's rise plus G over C times the
+accumulated floor-minus-air hours), G the product. The Fit sheet shows
+both stage tables with the slopes as cell formulas; the Calibration
+sheet and the grid-search profile go. The free-float flag, in the sheet
+and in stage 1, requires no fan coil calling as well as no heat in and
+no slab zone calling, and the charge span refuses a fan coil call. The
+Model sheet's per-square-foot translation and every mention of an
+assumed slab area or thickness are removed from the workbook, README,
+claim and logbook line. Living room: G over C 0.0735 per hour, C 2.59
+kWh per °F, G 0.191 kW per °F, RMS 0.42 °F (the joint grid search gave
+0.220 and 2.3, RMS 0.45). **Why:** the two stages are the model as
+stated: the BTU meter gives the slab's heat content per degree, the
+free float gives heat to the room per degree of floor minus air, and
+each is a fit a reader can check in cells. A fan coil on the same loop
+takes an unknown share of the metered heat, so its calls disqualify a
+row. Spruce's slab area and depth are not known, so no number stands
+in for them.
+
+## 2026-10-15 — spruce-radiant-slab: dataset folder, the two-lump slab workbook through sema; snapshot follows data.channel.gt 004 (OPS-601) (`f6c75fd`)
 
 **What:** `spruce-radiant-slab/`, an undated dataset folder on the
 template: README with the two-lump floor-and-room model to fit, spruce's
@@ -17,10 +40,24 @@ hours with a slab zone calling alone; two `gw.readings` pulls (Sep 21 to
 25, Oct 6 to 8) gzipped under the cap; `sheets.py` building the model
 workbook (inputs, heat in as BTU and kWh, actual against predicted
 floor temperature, a Calibration sheet on the Oct 7 night, a Fit sheet)
-and fitting U and the effective slab thickness jointly over the
-living-room-only charge and the free float; one `gw.experiment.run`; a
-logbook line.
-`pull_readings.py --display-from` opens a `.json.gz` instance. **Why:**
+with the model stated per zone as a conductance G (kW per °F) and a
+capacity C (kWh per °F), fitted jointly for the living room over its
+charge alone and the free float, the garage set aside; one
+`gw.experiment.run`; a logbook line.
+`pull_readings.py --display-from` opens a `.json.gz` instance.
+The folder speaks sema end to end: `import_layout.py` brings spruce's
+`gw.nolan.layout` word into the folder from the tlayouts generator's
+output, every nested word upgraded through the codec, and `sheets.py`
+reads the slab zones and their floor, air and heat-call channels from
+that word and the readings from the `gw.readings` instances through the
+snapshot, each channel to natural units by its own word's encoding; the
+display CSVs are for browsing only. The seed adds `gw.nolan.layout` and
+pins `gw.readings` 000 and 001; the regenerated snapshot follows the
+sema registry to `data.channel.gt` 004, and the emitters of four
+other folders (pico-power-cycling gap stats, ads-noise and no-cool
+jump stats, the pump-speed-sweep readings) re-serialize their committed
+instances on the new binding: `gw.readings` 001 and channel words at
+004 (OPS-601). **Why:**
 the Knife's Edge homes are sized from a rule of thumb (2 BTU/h per sq ft
 per °F floor to room); spruce can measure it. The inventory came first
 because journaling of most spruce channels starts at different dates
@@ -28,7 +65,13 @@ because journaling of most spruce channels starts at different dates
 temps in four islands, heat pump from July). The gzip read closes the
 gap between the 2 MB rule (instances committed gzipped) and the standard
 "From the instance to the display CSV" paragraph, which until now only
-worked on an unzipped file.
+worked on an unzipped file. The layout word replaces a hand-kept
+channel-name table in `sheets.py`: which zones are slabs and which
+channel is each one's floor sensor is the layout's to say, so the fit
+fails loudly when the house changes instead of reading a stale column.
+The layout comes through the codec because the registry rebound the
+staging layout word to `data.channel.gt` 004 on 2026-10-15 and the
+generator's own snapshot is still on 003.
 
 ## 2026-10-14 — ci.sh: offer_contract.py joins the pyright exclusions (OPS-392) (`0b86961`)
 

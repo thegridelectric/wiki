@@ -10,11 +10,15 @@ Status: Accepted · Pass 1 · Updated 2026-10-15 · Linear: OPS-473
 
 ## Do this next
 
-Branch `jm/retire-installations` in gridworks-data, gridworks-web-backend
-and gridworks-web-frontend. In gridworks-data: delete the three models
-and the seed script's use of them, re-key `user_installation_roles` to a
-plain `ta_g_node_id` column, write the alembic migration. gjk does not
-reference the tables (checked 2026-10-15); it stays on `main`.
+gridworks-data is done on branch `jm/retire-installations` (migration
+`e5a1c2d3f4b6`, models, seed, first tests; dry run of the role re-key
+on live journaldb maps beech-user and matt.polstein to their TAs, zero
+unmapped). Next: web-backend. Branch `jm/retire-installations` off
+`jds/tsdb_api`, which is what web-api2 deploys, not `main`. Read how
+each of the eight files uses `installations` before editing, pin
+`gw_data` 0.5.0, move the house list to the TerminalAsset rows of
+`g_nodes`, and reshape the v2 summaries endpoint as "Web-backend" below
+says. gjk stays on `main` (checked 2026-10-15).
 
 ## What survives, and where each field goes
 

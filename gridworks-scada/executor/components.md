@@ -258,9 +258,9 @@ The web handlers run off the proactor thread. A handler answers the pico
 and queues the accepted post to its own actor (`send_threadsafe`);
 everything that sends a message happens in `process_message`.
 
-The params words are in no vendored closure, so the gwsproto conformance
-test does not see their twins; `sema validate` on a serialized instance is
-their check.
+The params twins are seeded in the scada's sema snapshot at the version
+the picos post (`gwsproto-conformance.md`), so the conformance test checks
+them like every other twin.
 
 ## A sensor out of service
 

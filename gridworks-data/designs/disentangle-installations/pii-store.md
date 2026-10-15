@@ -10,11 +10,11 @@ Status: Accepted · Pass 1 · Updated 2026-10-15 · Linear: OPS-473
 
 ## Do this next
 
-Create the private repo `gridworks-pii` with the package skeleton
-(schema, pydantic models, alembic baseline) and the `add-customer` CLI
-command against a local Postgres, with a test that a customer record
-round-trips and that a second `add-customer` for the same TA GNodeId is
-refused. The box comes after the package works locally.
+Done 2026-10-15: the repo, the box and the seed. The six houses are in
+the store with their labels, the journaldb side is untouched. The work
+moves to the retire-installations spoke. The partner labels are never
+written into the wiki or any repo: the label-to-house pairing is as
+sensitive as the address and lives only in the store.
 
 ## The repo
 
@@ -70,22 +70,32 @@ sitting and the GNodeId is copied from the registrar's output.
 
 ## The box
 
-The gnr box recipe: its own Hetzner cx23, Postgres 16 in a container on
-a LUKS volume auto-unlocked from a root keyfile, bound to loopback only,
-nothing inbound but ssh. A nightly `pg_dump` encrypted to a new private
-bucket that is not the seed store. Runbook in `gridworks-infra/pii/`
-once the gridworks-infra claim is free. The web-backend identity
-database (OPS-600) goes on the same box.
+AWS t4g.micro in us-east-1, Postgres 16 from the distribution bound to
+loopback, the whole root volume EBS-encrypted, nothing inbound but ssh.
+A US location because the records are US households; AWS over Hetzner's
+US locations because it is half the price there and encryption at rest
+comes with the volume instead of a LUKS recipe. Nightly `pg_dump` kept
+on the box; the off-box copy is an EBS snapshot, by hand until the
+account grants an automation role. Runbook: `gridworks-infra/pii/`. The
+web-backend identity database (OPS-600) goes on the same box.
 
 ## Seed from journaldb
 
 The one-off script reads `installations.address`, `customers` and
-`installers` for the six houses, joins each to its TA GNodeId through
-`installations.g_node_id`, drops latitude and longitude, and writes the
-six customer records plus their installers with a change record naming
-the seed. The six houses get HH labels the same day so "House 5" is
-retired. Verified by a row-level check: six customers, each with a
-label, none with coordinates.
+`installers` for the six houses. `installations.g_node_id` is the
+house's LeafTransactiveNode GNodeId, not the TerminalAsset's, so the
+script maps each to its TA GNodeId through a six-row table read from
+the generated layouts and checked against the registry's
+`…keene.<house>.ta` aliases. It drops latitude and longitude and writes
+the six customer records plus their installer with a change record
+naming the seed. The six houses get HH labels the same day so "House 5"
+is retired. Verified by a row-level check: six customers, each with a
+label, none with coordinates. The journaldb side is read with the
+`gw_analyst` login, never the journalkeeper's.
+
+What the data showed: five of six customers have no email and the one
+installer is a bare name, so email, phone and the installer's contact
+fields are optional in the record.
 
 ## Open
 
