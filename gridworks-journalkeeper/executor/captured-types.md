@@ -1,6 +1,6 @@
 # gjk captured types — coverage matrix
 
-Status: Draft · Pass 0 · Updated 2026-08-28
+Status: Draft · Pass 0 · Updated 2026-10-15
 
 > Part-II (contingent) companion to [`primary.md`](primary.md): the concrete
 > set of message types gjk binds + persists today, how each is handled, and
@@ -40,11 +40,13 @@ back-fill (see [`s3-backfill.md`](s3-backfill.md)):
 | `flo.params.house0` | custom | v000–v007 | `default_message_id` | `params_generated_s` |
 | `weather.forecast` | custom | v000 | `default_message_id` | `forecast_created_s` |
 | `report` | default | (version-agnostic) | `id` | `message_created_ms` |
+| `gw.alert` | custom | v000 | `default_message_id` from the record's created time | `raised_ms` for a Firing record, `resolved_ms` for a Resolved one (two rows per alert) |
+| `gw.hack.alert.silences` | default | — | `default_message_id` | persisted_at (a whole-list snapshot; no id, no created time) |
 | `glitch` | default | — | `default_message_id` | `created_ms` |
 | `gridworks.event.problem` | default | — | `message_id` | `time_created_ms` |
 | `new.command.tree` | default | — | `default_message_id` | `send_time_ms` |
 | `atn.bid` | default | — | `default_message_id` | persisted_at |
-| `gw.weather.*` (observation, forecast, channel/location/bundle records, create.cmd, cmd.ack/nack) | custom (bundle) / default | v000 | `message_id` where the word has one, else `default_message_id` | word's created field, else persisted_at |
+| `gw.weather.*` (observation, forecast, channel/location/bundle records, create.cmd, cmd.ack/nack) | custom (bundle) / default | v000 (bundle fan-out); channel.gt, bundle.gt and create.cmd 001 decode and take the default path | `message_id` where the word has one, else `default_message_id` | word's created field, else persisted_at |
 | `energy.instruction` | default | — | `default_message_id` | `send_time_ms` |
 | `scada.params` | default | — | `message_id` | `unix_time_ms` |
 | `heating.forecast` | default | — | `default_message_id` | `forecast_created_s` |

@@ -6,7 +6,7 @@ Status: Accepted · Pass 1 · Updated 2026-10-14 · Linear: OPS-392
 spokes reach Verified only when an experiment runs against the real bus or a
 real broker.
 
-**▶ Active spoke: [`contract-refusal.md`](contract-refusal.md)**
+**▶ Active spoke: [`nolan-local-control.md`](nolan-local-control.md)**
 
 > What this is: the hub for getting `jm/spruce-unlimbo`, the branch that
 > runs the Nolan layout at spruce, onto the whole fleet as `main` before
@@ -101,7 +101,7 @@ code. How a round runs and what the rounds have taught is
   remaining spokes, one at a time
 - ✅ DONE beta-field-windows axiom decisions (est 0.5h → 0.25h) — the
   axiom decisions recorded in `beta-field-windows.md`
-- `nolan-local-control.md` — the field checks for the beta windows
+- **`nolan-local-control.md`** — the field checks for the beta windows
   and the review brief; the built part is in
   `executor/local-control.md` and `executor/cold-house.md`
 - `gwsproto-conformance.md` — the scada vendors its own sema snapshot and
@@ -134,9 +134,10 @@ code. How a round runs and what the rounds have taught is
 - `cold-house-derived-setpoint.md` — the cold-house judgment at a house
   whose zone setpoints the scada derives: what stands in when the derived
   generator holds no setpoint, and the glitch scenarios that test it
-- **`contract-refusal.md`** — one derived refusal reason, answered to the
-  LTN at the offer with `slow.contract.rejection`; the deed checked for
-  content and in flight
+- ✅ DONE contract-refusal (est 1.5h) — one derived refusal reason,
+  answered to the LTN at the offer with `slow.contract.rejection`; the
+  deed checked for content and in flight; the field checks are rows in
+  `nolan-local-control.md`
 - `operational-params-cleanup.md` (est 6.5h) — the Nolan ops word sheds
   the House0 store knobs once the strategy selectors land; the tunables
   still in scada settings move to the ops surface

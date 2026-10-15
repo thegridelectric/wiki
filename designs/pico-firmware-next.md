@@ -191,6 +191,13 @@ the only pico post with a word while the data it guards has none:
 those four are written in the same wave. `pico.comms.params` is posted
 only by the legacy ticklist btu code and gets no word.
 
+The units the firmware posts in `multichannel.snapshot`, `GpmTimes100`,
+`CelsiusTimes100` and `VoltsTimes100`, are `spaceheat.telemetry.name`
+values, the enum every scada data channel declares; the scada matches
+on them by string today (`api_btu_meter.py:329`). The word types
+`UnitList` with that enum, no new enum version needed, and the test API
+refuses a value outside it.
+
 ## 2. What a pico says about itself
 
 The params post already names the board (`PicoBoardVariant`, which is
@@ -213,15 +220,22 @@ on the layout and the MAC is logged only.
 **Rollout.** The firmware posts `"Version": "100"` and `"200"` today
 (`async_btu_main_no_net.py:382`, `tank_module_3_main_no_net.py:329`)
 and a deployed pico takes new code only at boot, so the move to
-110/210 is not one step across a house. The order: the box serves the
-new build first; the scada deploys with both versions pinned in
-`sema_seed_request.yaml` and the twins and handlers accepting either;
-an old-build pico sends no heartbeat, is dead at 71 s, is cycled, and
-takes the new code at that boot. That one rail cycle per house is the
-rollout mechanism and is expected. A pico that does not heartbeat
-after it is de-layouted until it is reflashed at the bench, as the
-pico spec says for a dead pico, never left for the cycler to chase.
-The 100/200 pins come out once every pico in the fleet is on 110/210.
+110/210 is not one step across a house. The scada goes first: it
+deploys answering the heartbeat and with both params versions pinned in
+`sema_seed_request.yaml`, the twins and handlers accepting either. A
+new-build pico against a scada without the heartbeat route resets about
+every 40 s, so no pico is reflashed before its scada is there. The
+scada serves no code update; the firmware's `new.code` post is answered
+404 by it and ignored. New code reaches a pico through
+`starter-scripts/pico_reflash.sh` on the box: scada stopped, the
+starter-scripts API serving the build to the named HwUids, the 5 V bus
+cycled, each pico installing at boot and resetting into the new build.
+Beech's primary-btu goes first and runs a few days; then house by
+house, spruce last since both its scada lines must be ready. A pico
+that does not come back is de-layouted until it is reflashed at the
+bench, as the pico spec says for a dead pico. The 100/200 pins come out
+once every pico in the fleet is on 110/210. The ordered steps are
+OPS-532's.
 
 ## 3. The GW101 as a flow-only meter
 
@@ -297,10 +311,43 @@ the record. Window 1 is two drops so each tests one outcome.
    flow channel, no temperature channel in the layout, and the actor
    rejecting a snapshot that names one.
 
-Bench, before the windows: a Pico W reassociates after `active(False)`
-then `active(True)` on the fleet's MicroPython build, or the rebuild
-uses `deinit()` and a fresh `WLAN` object; and whether `settimeout`
-works on the Wiznet build.
+Bench, before the windows. Pico W, MicroPython 1.23.0, 2026-10-14
+against the test API, two runs. The chain ran as designed both times:
+four 404s to a self-reset in about 43 s, the next heartbeats
+`SelfReset`, the second self-reset held to 60 s of uptime and the third
+to 120, the first 200 clearing the count. Two pre-existing behaviours
+surfaced and were changed: a failed snapshot reposted every second until
+a 200 (now a failed data post holds data until the next heartbeat, so
+the chain keeps the heartbeat's clock), and a boot without a link posted
+data under default names for up to 30 s (now the params retry runs at
+the rebuild). The boot association is the open one: starting every
+connect from `active(False)` did not change it; six boots out of seven,
+power-on and self-reset alike, timed out on the first association and
+came up at once on the rebuild's, so the connect now tries up to three
+associations itself. With that build, and the bench pico moved to
+MicroPython 1.29.0 (the fleet's Pico Ws run 1.23.0), two power-on boots
+gave both outcomes: one associated first time and sent its heartbeat at
+5 s of uptime, the other timed out once and sent it at 16 s, heartbeat
+first on both. The first association fails on both MicroPython
+versions. The 10 s bound on an attempt is now most of a slow boot; a
+shorter one waits for the ethernet boards, which share the constant.
+The W5500 RP2040 (MicroPython 1.26.0) ran the chain the same way,
+ethernet up first time on every boot, self-resets at 60 and 120 s, the
+marker surviving each; every ethernet rebuild printed the driver's
+`wiznet5k_send_ethernet: fatal error -5`, so the rebuild now deactivates
+the chip before re-initing it. The Wiznet Pico2 (W5500-EVB-Pico2, MicroPython 1.27.0 preview of
+2025-08-30) ran the chain the same way: self-resets at 124, 60 and 120 s
+of uptime, every post-reset heartbeat `SelfReset` at 4 s, so the RP2350
+scratch base is right; the rebuild with the deactivate printed no driver
+error. That build ships no `urequests`; `mpremote mip install requests
+urequests` from the host put it under `/lib`; the board's firmware README
+in gridworks-pico already has the Thonny form of that install as a
+provisioning step. The timeout
+question is closed: on the Wiznet driver `socket.settimeout` raises
+`ENOTCONN` before connect and `EINVAL` after it, and a `urequests` post
+with `timeout=` fails at once, so an ethernet post can carry no bound
+and the firmware's rule (timeout on wifi only) stands. Bench work on all
+three boards is done; window 1 is next.
 
 **A test API in gridworks-pico.** The firmware is tested against a
 small HTTP API that lives in gridworks-pico itself, not against a
@@ -328,10 +375,5 @@ first scada item.
 
 ## Do this next
 
-Set up the test API in gridworks-pico. Then author the sema words:
-`pico.heartbeat` and `pico.reset.cause`, then `microvolts`,
-`multichannel.snapshot`, `new.code` and `new.pico` (registry and
-authoring spokes first, summary posted, per the sema protocol), and
-the `ReadTemps` and `MacAddress` edits to the four staging words. Then
-the firmware against the test API, then the bench checks. The scada
-side and the field windows wait on OPS-532.
+Window 1 on a field pico, once the scada side under OPS-532 answers the
+heartbeat route.

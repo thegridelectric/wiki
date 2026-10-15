@@ -10,6 +10,200 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-15 — hand-rolled gwsproto now forced to match sema versions (`dccde298`)
+
+What: the hand-written twins and their fixtures move to the pinned
+snapshot. `Unit` 003 (`WattsPerSquareMeter`, `MilesPerHourX10`,
+`FahrenheitX10`), `Quantity` 003 (`Irradiance`, `Currency`),
+`UNIT_TO_QUANTITY` rows for the six units 002 and 003 added,
+`UnitQuantityProjection` 001, `DerivedChannelGt` 003, `DataChannelGt`
+004, `SpaceheatTelemetryQuantityProjection` 001, `WeatherChannelGt` 001,
+`WeatherForecastBundleGt` 001. The scada's stored bundle record is the
+001 file (`weather_source.py`); the captured Millinocket bundle fixture
+under `tests/config` is at 001 with its two observation channels; the
+three layout fixtures and every inline test payload carry data channels
+at 004 and derived channels at 003. The axiom-coverage known-set keys
+its untested derived-channel and projection axioms to the versions the
+twins speak.
+
+Why: with the snapshot holding one version per word, the twins as a set
+are for the first time one closure sema itself publishes; before, each
+twin matched its word's latest version independently, and those latest
+versions did not form a closure (`DerivedChannelGt` 002 beside `Unit`
+002 while sema bound derived.channel.gt 002 to unit 001). A box runs
+this only after the weather service serves 001 bundle records: the scada
+provisions its bundle from the service at boot when the stored 001 file
+is absent, and a 000 record from the service fails the twin.
+
+## 2026-10-15 — The conformance test requires one version per word and checks enum defaults (`b94d05ca`)
+
+What: `gwsproto_sema_conformance.py` measures version drift against the
+seed pin rather than the snapshot's latest, reports `multi-version` (a
+word the snapshot holds at more than one version, each version with its
+users) and `default-drift` (twin `default()` against the snapshot enum's
+`default`). The test asserts `multi-version` is empty with no known-set,
+and records the three enum default drifts as debt to resolve.
+
+Why: a scada speaks exactly one version of each word, so a second
+version in the snapshot is never acceptable debt; it is a sema-side
+dependent bound off the pin, and the test says so without an allowlist
+to grow into. The test is red between this commit and the twins commit
+that follows.
+
+## 2026-10-15 — The sema seed pins one version per word; the snapshot holds each word at one version (`e47889f4`)
+
+What: `sema_seed_request.yaml` names a version for every type and every
+versioned enum (`versions: ["NNN"]`) instead of asking for the registry's
+latest, with the weather channel and bundle records at 001,
+`data.channel.gt` at 004 and the telemetry projection at 001. The
+snapshot is regenerated from the pinned seed off sema `86e041c`:
+`gw1.unit` and `gw1.quantity` at 003 only, `derived.channel.gt` at 003
+only, the tank calibration pair at 001 only.
+
+Why: the proactor can only speak one version of each word, and a
+latest-by-default seed let the dependency closure pull a second version
+silently (gw1.unit 000/001/002 were all in the snapshot, with
+derived.channel.gt:002 bound to Unit001 while the twin and the weather
+words use 002). Pinning makes the closure's disagreements visible in the
+regen instead of in a box. The weather records move with the unit line
+because they are the only words that bound gw1.unit 002 into the scada.
+
+## 2026-10-14 — The allies do not swallow a raise; the Nolan layout declares no energy channel (`84aac8b3`)
+
+What: `process_slow_dispatch_contract` in both House0 allies runs
+without a try/except, so a contract whose handling raises reaches the
+scada's in-process dispatch, which logs it and sends an Error glitch
+(`actor-raised`) to the LTN and keeps serving messages. Test, written
+to fail first (`tests/actors/test_actor_raised.py`): an ally whose
+`wake_up` raises on a contract produces exactly one Error glitch naming
+the ally and the payload, and the ally then takes the next message.
+The derived generator drops its family gate (`energy_models_apply`):
+the layered energy models run wherever the layout declares a
+system-model channel, and the Nolan fixture declares none, so the
+first-forecast energy update is gated on the system-model roster.
+The gwsproto `NolanLayout` twin loses axiom 22 (SystemModelEnergyChannels)
+with its named-types test, mirroring the sema word; the Nolan fixture is
+regenerated from the tlayouts spruce sim gen without `usable-energy`
+and `required-energy`; the sema snapshot is regenerated on sema
+`275bb41`. The channel-freshness test moves to the willow
+layout, which keeps a 60 s energy channel. The hydronic layout data
+class loses its House0 system-model check, which ran on every layout
+and duplicated the House0 twin's axiom 22. `ScadaData` no longer seeds
+`usable-energy` with a fresh reading of 0 on every layout; its readers
+already default to 0.
+
+Why: a swallowed raise dropped a contract silently (the spoke's first
+to-do); the layered models are House0's, so a Nolan layout declaring
+their channels promised a value nothing sends, and the generator's
+family check was covering for a layout that should not have declared
+them.
+
+## 2026-10-14 — Live-test scadas serve their web APIs on free ports; the failure dump names shutdown and problem events
+
+What: `ScadaLiveTest` gives every web server a child scada's layout
+declares a port free at construction, so a live test never depends on
+what else listens on the laptop. The instrumented scada records each
+`ShutdownEvent` and `ProblemEvent` it generates, and the failure dump
+prints them with their reason. Test, written to fail first
+(`tests/test_misc/test_live_test_harness.py`): with port 8000 held by
+the test itself, a Nolan scada boots, stays up through several poll
+periods, and the dump of a stopped scada names the reason.
+
+Why: nine live tests failed for a day with a timeout and a dump of
+cancelled tasks, with no line saying why. The Nolan fixture layout
+declares its web server on 8000, a `pico_testapi` held the port, the
+bind failed, the proactor shut the scada down half a second after boot,
+and the reason reached only the lifecycle log. A fixed port is a
+deployed-box fact, not a test fact; and a dump that names the shutdown
+reason turns a day of diagnosis into one grep.
+
+
+## 2026-10-14 — Admin ends a live contract with InAdmin; InAdmin is the fifth refusal reason; scada-ltn-contract.md explains the scada-LTN contract (`82b5f64b`)
+
+What: `dispatch_refusal` returns `InAdmin` when the top state is Admin,
+after `ScadaBlind` in the permanence order. `end_contract(reason, cause)`
+on the scada sends, stores and flushes the terminating heartbeat and
+cancels the contract task; `process_ally_gives_up` calls it after its
+auto transition, and `admin_wakes_up` calls it with `InAdmin` before
+`AutoGoesDormant`. The silent resume in `auto_wakes_up` and the
+"Ignoring new contract, in Admin" branch go, both unreachable. Tests,
+written to fail first (`tests/actors/test_dispatch_refusal_gate.py`):
+the precedence table's InAdmin rows; Admin mid-contract sends the LTN
+`TerminatedByScada` with `InAdmin`, an offer during Admin is rejected
+with `InAdmin`, and after Admin times out the scada is in LocalControl
+with no contract and takes the next offer. `scada-ltn-contract.md` at
+the repo top level is the human-readable explainer of the scada-LTN
+dispatch contract: the sources of authority in permanence order, how
+the LTN sees the answer, admin, startup.
+
+Why: the LTN must not believe it holds dispatch while a person runs the
+house, and an offer during Admin deserves an answer with a reason. The
+scada owns these transitions; the ally's give-up is one caller of the
+scada's own helper, and Admin does not detour through LocalControl to
+end a contract. The re-offer latency (local control until the next
+hour) is accepted: 5-minute contracts may come, and occasional Admin is
+not a problem at scale.
+
+
+## 2026-10-14 — The ally awaits its inputs: initialize is the one Initializing judgment; the announcement and the resume await the first forecast; sim weather pins (`9fecbb27`)
+
+What: `SimWeatherSource` gains three pins (`release` holds a fetch open,
+`misses_left` answers None per miss, `fetches` counts). The contract
+store's file name is `CONTRACT_FILE_NAME`. Tests, written to fail first
+(`tests/actors/test_ally_initialize.py`, and the resume test in
+`test_startup_contract_load.py`): the ally judges once its inputs are
+in, GoDormant cancels the judgment, the announcement and the resume
+await the first forecast, the first forecast is retried with a Warning
+per miss, the roster glitch names a disabled dispatch channel.
+`ops_word_with` composes typed values on the word (no dict keys) and
+authors a broken service contract. `fixture_config_dir` lays a config
+dir out in the test's tmp dir (layout and deed under their deployed
+names); the cold-handling `make_app` boots off it instead of the
+fixture dir, which a boot wrote a `ta-deed.json` into.
+
+The build: both House0 allies spawn `initialize` on `wake_up` and on
+`StopNonElectricBackup`, the one Initializing judgment (awaits
+`first_forecast` and `buffer_fresh_once`, then judges if still
+Initializing); the contract handler and `main` skip Initializing; the
+`SyncedReadings` re-judgment and the scada's first-buffer-reading
+forward to the ally go. `engage_brain` in Initializing with no forecast
+is a Warning (`judged-without-forecast`); a task that ends in an
+exception is an Error (`leaf-ally-initialize-failed`). The derived
+generator sends `no-weather-forecast` per missed fetch while no heating
+forecast is held. The scada's announcement awaits `first_forecast`; the
+resume is its own task (`resume_at_first_forecast`) and continuation
+heartbeats are dropped while it is pending; `send_contract_to_ally`
+checks the refusal first and is the one sender. The daily roster glitch
+says which disabled channels dispatch needs.
+
+Why: contract-refusal.md "The ally awaits its inputs" and "The startup
+order"; the three build steps are one cluster, tests first.
+
+## 2026-10-14 — Two readiness events on ScadaData; buffer_temps_available retires in favor of buffer_fresh; the energy models are House0's (`f9514410`)
+
+What: `ScadaData` gains `first_forecast` and `buffer_fresh_once`, two
+one-shot `asyncio.Event`s; the derived generator sets the first after it
+stores the first heating forecast, the scada sets the second on its
+reading path the first time `buffer_fresh` is true. `buffer_temps_available`
+goes: its readers (derived generator, House0 local controls, both House0
+allies) ask `buffer_fresh`. The family switch moves from `Scada.buffer_fresh`
+to `hydronic/shared.py` with both dispatch-channel sets, so a non-hydronic
+actor can ask it. Lint tidy in the touched House0 control files: three
+f-strings with no placeholders, an unused import, and the de-energize
+failure log now names the exception it swallows.
+
+The derived generator's layered energy models are declared House0's
+(`energy_models_apply`): on a Nolan layout the system-model channel the
+layout declares is registered and never evaluated.
+
+Why: the ally's `initialize` awaits these two facts before its first
+judgment (contract-refusal.md "The ally awaits its inputs"). Two words
+for buffer availability was one too many. The older one was written only
+on the House0 surface, so a Nolan scada never set it, and that accident
+was the only thing keeping the House0 energy models from running on
+spruce, where their store and on-peak assumptions mean nothing; the
+explicit gate replaces the accident.
+
 ## 2026-10-14 — fix forecast bug (`477e5604`)
 
 What: the main loop of `derived_generator.py` re-fetches weather and

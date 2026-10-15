@@ -174,8 +174,10 @@ Normative across the domain — full statements in
 | Experimentation rig (real-broker experiments) | [`experimentation-rig.md`](experimentation-rig.md) | Draft |
 | Required and usable energy (how the House0 store is judged ready for on-peak) | [`required-energy.md`](required-energy.md) | Draft |
 | Weather forecast (the forecast pair from the weather service, how the consumers read it, degradation and fill) | [`weather-forecast.md`](weather-forecast.md) | Draft |
-| Local control (selection, standby, the Nolan heating machine, the heat-pump watch, subscriptions, the top state, the dispatch refusal, the operating status) | [`local-control.md`](local-control.md) | Draft |
-| Cold house (the cold judgment, the latch, the dispatch refusal, the cold glitches) | [`cold-house.md`](cold-house.md) | Draft |
+| Local control (selection, standby, the Nolan heating machine, the heat-pump watch, subscriptions, the top state, the operating status) | [`local-control.md`](local-control.md) | Draft |
+| Cold house (the cold judgment, the latch, the cold glitches) | [`cold-house.md`](cold-house.md) | Draft |
+| Dispatch gate (the three authorities, the one derived refusal, the rejection and the termination, ScadaBlind, the ops word's hold) | [`dispatch-gate.md`](dispatch-gate.md) | Accepted |
+| Leaf ally (the ally never decides about data; the first judgment and the readiness events; the startup order; one sender, one ender) | [`leaf-ally.md`](leaf-ally.md) | Accepted |
 | Magic thresholds (numbers decided in code; per-row disposition) | [`magic-thresholds.md`](magic-thresholds.md) | Draft |
 | Sensing hierarchy (channels ranked by the harm of a lost or wrong reading; what the scada does today) | [`sensing-hierarchy.md`](sensing-hierarchy.md) | Draft |
 | Sensor freshness (the one nyquist bound for stale and dead; who declares a loss; what a reader sees) | [`sensor-freshness.md`](sensor-freshness.md) | Accepted |

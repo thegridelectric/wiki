@@ -116,35 +116,33 @@ each machine does with them is [`local-control.md`](local-control.md)
 ## The refusal
 
 On `BreakServiceContract` a scada holding a dispatch contract (a live
-contract heartbeat, or the leaf ally holding the command tree) and
-accepting dispatch:
+contract heartbeat, or the leaf ally holding the command tree) that is
+not already held out by its ops word:
 
-1. sets `AcceptsDispatch` false with `DispatchRefusalReason`
-   `ServiceContractBroken` in the params it runs;
+1. sets `DispatchHold.ServiceContractBroken` true in the params it runs;
 2. writes its operational-params file with that change, through a temp
    file and a rename so neither a reader nor a power cut meets half a
    file;
 3. reports its operating status (`gw.house.operating.status`);
 4. ends the contract through `process_ally_gives_up`, the one
    termination path whoever decides, so the LTN gets a
-   `TerminatedByScada` heartbeat whose cause is the refusal reason and
-   the watch's cause, as given.
+   `TerminatedByScada` heartbeat whose reason is
+   `ServiceContractBroken` and whose cause is the watch's, as given.
 
-From then on the `LeafAlly` wrapper answers every contract offer with
-`AllyGivesUp` and the refusal reason.
+From then on `dispatch_refusal` answers `ServiceContractBroken` to every
+offer ([`dispatch-gate.md`](dispatch-gate.md)).
 
 A scada holding no contract has broken none and changes nothing. A scada
-that already refuses dispatch (for example `NoAggregator`) keeps its
-params and its reason. The glitch is raised all the same.
+whose ops word already holds it out (`OperatorHold`, or the latch
+already set) keeps its params. The glitch is raised all the same.
 
-**The clear.** Only a params file that accepts dispatch, read at a
-restart, clears the refusal. The house warming up does not. A cleared
-refusal raises no glitch; the scada reports it as an operating status
-carrying `AcceptsDispatch` true after the restart.
+**The clear.** Only a person editing `ServiceContractBroken` back to
+false clears it. The house warming up does not. A cleared latch raises
+no glitch; the scada's next operating status says it accepts dispatch.
 
 **The scada is a second writer of its params file.** The file on a box
 can therefore differ from its tlayouts source, and a push of the source
-would clear the refusal unseen. `experiments/put_layout.sh` compares the
+would clear the latch unseen. `experiments/put_layout.sh` compares the
 box's file with the source before it pushes and shows a difference for a
 person to decide; the session-start drift check reports each house whose
 box params differ from tlayouts.
@@ -219,6 +217,14 @@ cold with the stores empty.
   floor temperature per critical zone on the ops word is the candidate.
 - **No record ever.** Before a `Learned` circuit's first learned setpoint
   there is nothing to judge against. The same floor is the stand-in.
+- **An off-peak raise is judged at once.** The on-peak-start memory
+  is refreshed off-peak, so a `FromThermostat` zone raised more than
+  `COLD_DELTA_F` off-peak reads cold on the next pass and pages after
+  `COLD_LATCH_S`, before the house has had time to warm. Agreed
+  2026-10-14: judge against the lower of the current setpoint and the
+  setpoint as it stood two hours earlier, at all times, so a raise
+  counts only after two hours and a thermostat lowered counts at once;
+  the local test that fails today comes first.
 - No test drives House0's `SystemCold` transition on a running scada.
 - No test runs the watch on a running scada in standby.
 

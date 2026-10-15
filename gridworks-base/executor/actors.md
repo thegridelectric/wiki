@@ -117,15 +117,29 @@ The dispatch rule (implemented in `Orchestrator.dispatch_message`):
 
 ```
 dispatch_message(envelope, body):
+    header = None
+    if envelope is a WrappedRoutingEnvelope (a `gw` routing key):
+        header, payload = unwrap_bytes(body)   # a failure is logged and dropped
+        require header.message_type == envelope.type_name (else drop)
+        body = payload as JSON bytes
     if envelope.type_name in {"heartbeat.a", "sim.timestep"}:
         decode (private codec); handle internally
         # a heartbeat.a NOT from my_super_alias is re-routed to process_message
     else:
-        process_message(envelope, body)
+        process_message(envelope, body, header)
 ```
 
 `Orchestrator` is abstract on `process_message` — final application classes
-implement it and do **not** override `dispatch_message`.
+implement it and do **not** override `dispatch_message`. Its signature is
+`process_message(*, envelope, body, header: GridworksHeader | None)`:
+`body` is the bare sema JSON in every routing category, because the
+framework opens a `gw` envelope on the way in, and `header` is that
+envelope's `GridworksHeader` (`None` for an `rj` / `rjb` body). The
+application decodes `body` with its own codec and never branches on
+`envelope.category`; a subclass that needs `dst` or `ack_required` reads
+the header. The unwrap depends only on the envelope words gwbase vendors
+(`gw`, `gridworks.header`), so the payload stays opaque to gwbase and the
+application's snapshot stays its own.
 
 Behavioral rules of note:
 
@@ -242,7 +256,7 @@ MQTT-native with no AMQP exchanges, `transport.md` "AMQP topology"):
 
 ```
 class HelloGNode(GridworksActor):
-    def process_message(self, *, envelope, body):
+    def process_message(self, *, envelope, body, header):
         return                              # ignore everything
 
 # settings: GNodeSettings(service_alias="d1.hello"), g.node.gt.json on disk

@@ -1,6 +1,6 @@
 # Spruce settled (hub)
 
-Status: Draft · Pass 0 · Updated 2026-10-07 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
+Status: Draft · Pass 0 · Updated 2026-10-14 · Linear: [OPS-532](https://linear.app/gridworks/issue/OPS-532)
 
 **EDD: yes** the deployed spruce line and the simulated houses are the
 verification; a spoke reaches Verified only when a run against one of
@@ -31,6 +31,9 @@ them exercises it (`experiments/`).
 - `pico-cycler-coverage.md` — the five in-process tests the cycler
   command work still owes (overlap, sim-pico loop, journal path, GPIO
   commit order, admin ack)
+- `pico-firmware-rollout.md` — the scada side of the pico firmware
+  round (heartbeat route, params at 110/210, the liveness bound) and the
+  house-by-house reflash order behind it
 - `command-tree-diagrams.md` — the graphic command-tree diagrams the
   control-hierarchy executor asks for
 - `publish-layouts-and-operational-params.md` — the layout closure and
@@ -89,14 +92,3 @@ them exercises it (`experiments/`).
   is the admin domain's
   [OPS-529](https://linear.app/gridworks/issue/OPS-529); it goes onto
   the deployed line in this design's window.
-- The scada side of the pico firmware round
-  [OPS-595](https://linear.app/gridworks/issue/OPS-595): the
-  `pico-heartbeat` route on `ApiBtuMeter` and `ApiTankModule`,
-  `PicoLiveness` taking a `recovery_budget_s` beside its multiple (the
-  bound 2.1 × P + C, C = 50 s, with `MISSING_MULTIPLE` moved to the one
-  shared 2.1), the Warning glitch at 21 s, optional temperature
-  channels and the params answer omitting absent fields in
-  `ApiBtuMeter`, and the `async.btu.params` 110 / `tank.module.params`
-  210 pins, twins and snapshot with the 100/200 rollout. The firmware
-  ships first under OPS-595; the fleet keeps the capture-period bound
-  until this is built.

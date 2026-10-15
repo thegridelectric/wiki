@@ -10,6 +10,135 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-15 — data.channel.gt 004 and spaceheat.telemetry.quantity.projection 001 on gw1.quantity 003; the scada's words no longer reach quantity 000 (`86e041c`)
+
+**What:** `spaceheat.telemetry.quantity.projection` 001 and
+`data.channel.gt` 004, both staging, each identical to its predecessor
+except `Quantity` is `gw1.quantity` 003 and the channel's
+TelemetryQuantityConsistency axiom names projection 001. The five
+staging dependents of `data.channel.gt` 003 rebind in place to 004:
+`gw.readings` 001, `scada.control.capabilities` 002, `layout.lite`
+013, `gw.house0.layout` 000, `gw.nolan.layout` 000; their `created`
+stamps move to the new versions' stamp so dependency order holds. The
+upgrade bodies that build those versions lift nested data channels
+through `.upgrade()` (`gw.readings` 000→001, `scada.control.capabilities`
+001→002), and their summaries say so. Runtime fixtures with nested
+channels follow, `data.channel.gt` gains a v003 fixture, and projection
+000 gets the `examples` block a superseded version must carry, with its
+published hash re-pinned for that one sanctioned reason.
+
+**Why:** a scada speaks one version of each word, and its snapshot still
+held `gw1.quantity` at 000 beside 003 because these two published words
+bound 000. With them on 003 the scada's conformance test can require an
+empty multi-version set instead of recording the exception.
+
+
+## 2026-10-15 — Publish gw.hack.alert.silences 000: the houses an alerting service is not paging (`8d0f793`)
+
+**What:** one type, `gw.hack.alert.silences` 000, published directly:
+`Src` and `SilencedGNodeAliases`, a list of `left.right.dot` terminal
+asset aliases, with one axiom (every alias ends in `.ta`) and its
+runtime template, fixture and mutation test. Registry entry, indexes,
+runtime and the published-hash pin regenerated.
+
+**Why:** elm is weeks into a heat pump install and the broker-alerter
+(OPS-545) would page it the moment its tap goes live; the registry's
+Suspended status is the wrong tool for a house in service, and the
+legacy gwalert's quiet is a hard-coded short-name list plus silence by
+absence. The alerter needs a sema-typed, journaled, visible list of
+houses it is not paging (OPS-598). The word is a whole-list snapshot
+with no reason, span or id, and the `gw.hack` prefix and extended
+description say it is a stop gap until an alert manager service owns
+silencing. Published rather than staged because the alerts box runs a
+published-only snapshot on hw1.
+
+## 2026-10-15 — Publish gw1.unit 003, gw1.quantity 003 and the weather words on them; rebind the unit/quantity line through layout.lite (`1c7d905`)
+
+**What:** `gw1.unit` 003 adds `WattsPerSquareMeter`, `MilesPerHourX10`
+and `FahrenheitX10`, with an extended description stating the scale
+convention (one decimal finer than the best source's accuracy), marking
+`MilesPerHourX1000` legacy and `KilowattHoursX1000` / `DollarsX1000`
+planned obsolete; `gw1.quantity` 003 adds `Irradiance` and `Currency`.
+Both published. On them: `gw.weather.channel.gt` 001 (Quantity and Unit
+at 003), `gw.weather.forecast.bundle.gt` 001 (observation channels at
+channel.gt 001), `gw.weather.create.cmd` 001 rebound in place to both,
+and `gw.weather.seasonal.template.gt` 000, all promoted to published with
+their hash pins. New staging versions: `gw1.unit.quantity.projection` 001
+(table gains the six units 002 and 003 added), `derived.channel.gt` 003,
+`gw.readings` 001. Staging words rebound in place: `gw.house0.layout` 000
+and `gw.nolan.layout` 000 to `derived.channel.gt` 003 and `gw1.quantity`
+003; `layout.lite` 013 to `derived.channel.gt` 003 and
+`gw1.tank.temp.calibration.map` 001; `synced.readings.bundle` 003 axiom 5
+to `gw1.unit` 003. `gw.readings` 000 gains the example a superseded
+version must carry. **Why:** the scada speaks one version of each word,
+and its snapshot held `gw1.unit` and `gw1.quantity` at three versions
+each because the 002 bump for the weather words never reached the
+projection, the derived channel or the layouts. Solar irradiance needs a
+unit, so the rebind rides the 003 line instead of 002, and the weather
+words move to it so the scada's closure holds one version. The two new
+units follow the scale convention from measured source accuracy (ASOS
+wind ±2 kt in whole knots; ASOS temperature 0.9 F RMSE delivered in
+whole degrees). `Currency` exists because the projection table must map
+every unit and `DollarsX1000` had no quantity. The seasonal template was
+already in use by the weather service, so it is published with the rest.
+
+## 2026-10-14 — Publish the eight pico words (`88fac01`)
+
+**What:** `pico.reset.cause` 000, `pico.heartbeat` 000,
+`multichannel.snapshot` 000, `microvolts` 100, `new.code` 100, `new.pico`
+100, `async.btu.params` 110 and `tank.module.params` 210 go staging →
+published, bottom-up, with their content-hash pins recorded and the
+public registry index regenerated. Nothing else changes.
+
+**Why:** Every one of the eight was posted by real boards on the bench
+on 2026-10-14 (Pico W, W5500 RP2040, Wiznet Pico2) and validated through
+the codec, the four shipped posts after a year on the wire; and a pico
+in the field talks to a production scada, which may only speak published
+words. The scada side that decodes `pico.heartbeat` and the 110/210
+params is still to be built (OPS-532); anything it needs from these
+words is a new version. OPS-595.
+
+## 2026-10-14 — gw.nolan.layout drops SystemModelEnergyChannels (`275bb41`)
+
+What: the staging word `gw.nolan.layout` 000 loses axiom 22
+(SystemModelEnergyChannels), which required the `usable-energy` and
+`required-energy` system-model derived channels; the numbers above it
+keep their place. The registry entry drops the two energy-model words
+from the word's axiom dependencies; the stashed-axiom note loses the
+same requirement; the runtime, its axiom template, the runtime tests
+and the indexes are regenerated in place.
+
+Why: the layered energy models (`gw0.usable.energy.layered`,
+`gw0.required.energy.layered`) are House0's, built on House0's store
+and on-peak assumptions. A Nolan layout that declares them promises a
+value nothing will send; the word now stays silent on them, and only
+`gw.house0.layout` requires the pair.
+
+## 2026-10-14 — The pico vocabulary: four shipped posts, the heartbeat, ReadTemps and MacAddress (`5950c2b`)
+
+**What:** Six staging words and two in-place edits. The four posts the
+fleet already sends, at the versions it sends them: `multichannel.snapshot`
+000 (the btu meter's readings, `UnitList` typed as
+`spaceheat.telemetry.name` 007), `microvolts` 100 (the tank module's
+thermistor voltages), `new.code` 100 (the boot-time code-update request)
+and `new.pico` 100 (the provisioner's announcement); axiom 1 on the two
+list-bearing words is list-length consistency. New: `pico.heartbeat` 000
+(`HwUid`, `UptimeS`, `ResetCause`) and the `pico.reset.cause` enum
+(`Unknown`, `PowerOn`, `Watchdog`, `SelfReset`). In place on the staging
+params words: `async.btu.params` 110 gains required `ReadTemps` and
+`MacAddress`, its four temperature fields go optional under axiom 2
+(present iff `ReadTemps`); `tank.module.params` 210 gains required
+`MacAddress`. Upgrade docstrings, registry summaries, fixtures, axiom
+templates and mutation tests move with them; indexes and runtime
+regenerated.
+
+**Why:** The shipped posts have gone over the wire for a year decoded by
+hand-written gwsproto twins with no sema contract, and the next firmware
+round adds the heartbeat, the flow-only GW101 and the MAC. The pico test
+API in gridworks-pico validates every post against a sema snapshot, so
+the vocabulary comes first and the hand-typed interim models there go.
+OPS-595.
+
 ## 2026-10-14 — Axiom refusal is proved by mutation; counterexample fixtures go (`064300f`)
 
 **What:** `tests/runtime/refusal.py` is a test-side helper: `example`,

@@ -286,6 +286,11 @@ publisher's `<rc>mic_tx`.
     classes). Applications implement `process_message` and do not touch
     `dispatch_message`. A bare `ActorBase` tap implements
     `dispatch_message` directly (it has no control plane).
+    `Orchestrator.dispatch_message` opens a `gw` envelope before
+    `process_message`: the application always receives the bare sema
+    body, with the `GridworksHeader` beside it for a wrapped message and
+    `None` otherwise; a wrapped body that does not unwrap, or whose
+    header disagrees with the routing key, is dropped at the framework.
 22. `Orchestrator` privately handles `heartbeat.a` and `sim.timestep`
     for its configured supervisor and time coordinator; a subclass's
     codec does not need those types registered. (`GridworksActor`

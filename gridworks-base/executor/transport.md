@@ -538,8 +538,9 @@ consume resets the delay to 0.
    `broadcast.*` keys (which gwbase's main parser deliberately does *not* learn
    as a category).
 4. Call `dispatch_message(envelope, body)` on the application
-   (`Orchestrator` filters control-plane types, then forwards to
-   `process_message`; a bare tap implements `dispatch_message` directly;
+   (`Orchestrator` opens a `gw` envelope, filters control-plane types,
+   then forwards the bare body and the header to `process_message`; a
+   bare tap implements `dispatch_message` directly;
    see [`actors.md`](actors.md) `actors.md` "The application layer").
 
 **Send** (`send(envelope, body, correlation_id?)`) — runs the cheap checks

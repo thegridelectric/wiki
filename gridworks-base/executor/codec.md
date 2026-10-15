@@ -279,15 +279,22 @@ self.send(
 )
 ```
 
-**Receive-side usage:**
+**Receive-side usage:** an `Orchestrator` subclass never calls
+`unwrap_bytes`. `dispatch_message` opens a `gw` envelope before
+`process_message` runs, so `body` is the bare sema JSON in every routing
+category and the header, when there is one, arrives beside it
+([`actors.md`](actors.md) "Orchestrator"):
 
 ```python
-def process_message(self, *, envelope, body):
-    if envelope.category == MessageCategory.GridworksWrapped:
-        header, payload_dict = unwrap_bytes(body)
-        inner = self._codec.from_dict(payload_dict)
+def process_message(self, *, envelope, body, header):
+    inner = self._codec.from_bytes(body)
+    if header is not None and header.ack_required:
         ...
 ```
+
+A bare `ActorBase` tap implements `dispatch_message` itself and owns its
+bodies; it calls `unwrap_bytes` where its envelope is a
+`WrappedRoutingEnvelope`.
 
 ### Open design question — should the envelope be universal?
 

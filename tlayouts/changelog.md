@@ -10,9 +10,40 @@ repo's git history.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-10-13 — Ops params say DispatchHold; snapshot on sema 550b57a; beech holds full send (OPS-392)
+## 2026-10-14 — Beech disables dist-depth3-device <!-- pending commit -->
 
+What: `dist-depth3-device` joins beech's `disabled_channel_names`; the
+pair is regenerated. The `micro-v` channel stays, so the fault remains
+visible.
+
+Why: the thermistor is open. The 2026-10-14 beech window read 3.3 V,
+the pico rail, on it (`open-thermistor` glitch), so its temperature is
+not a reading. Nothing derives from it.
+
+## 2026-10-14 — Beech out of Standby, BufferOnly, held out of dispatch (`115027e`)
+
+What: `beech_gen.py` sets `standby=False` and
+`seasonal_storage_mode="BufferOnly"`; `operator_hold=True` stays, so
+the ops word's `DispatchHold` keeps the house out of dispatch and the
+LTN sees `OperatorHold`. The pair is regenerated.
+
+Why: the first beta window where branch code runs beech's heat. No
+LTN runs FLOs yet, so the hold stays on every house gen for now.
+
+## 2026-10-14 — The energy channels are House0's; snapshot on sema 275bb41 (`63a1bfc`)
+
+What: `usable-energy` and `required-energy` move out of the shared
+derived-channel emitter into the House0 gen (`emit_energy_channels`), so
+a Nolan layout emits neither. The sema snapshot is regenerated on sema
+`275bb41` (`gw.nolan.layout` without SystemModelEnergyChannels); the
+spruce sim pair is regenerated and the scada's Nolan fixture is copied
+from it.
+
+Why: the layered energy models are House0's, so a Nolan layout
+declaring their channels promised a value nothing sends.
+
+Also in this commit: ops params say DispatchHold; snapshot on sema
+550b57a; beech holds full send.
 The ops word no longer states `AcceptsDispatch` and a reason, which were
 a copy of a derived answer; it states the hold the file places on
 dispatch, `DispatchHold` (`gw.dispatch.hold`: `OperatorHold`,

@@ -1,6 +1,6 @@
 # gwalerter — the broker alerter
 
-Status: Draft · Pass 0 · Updated 2026-10-09
+Status: Draft · Pass 0 · Updated 2026-10-15
 
 > What this is: the house alerter as a gwbase actor on the fleet broker
 > (`thegridelectric/gridworks-alerter`, package `gwalerter`): its inputs,
@@ -45,7 +45,22 @@ it reports, before the registry settles its position, and a Suspended
 house is out of service on purpose and does not page. A house that must
 not page lives outside the roots.
 Membership is a registry fact, edited where the registry is edited; the
-alerter keeps no roster. A scada's house is the `.ta` sibling under its
+alerter keeps no roster.
+
+A tracked house can be silenced: its alerts are still raised, stored,
+broadcast and resolved, and the tap does not page them. The silences
+are one `gw.hack.alert.silences` instance, the list of terminal asset
+aliases not paged right now, read from the one file `silences_path`
+names (in the alerter's config folder, named by the sema file
+convention, `<alias>-gw.hack.alert.silences-000.json`) at boot and on
+every detector tick; a changed file replaces the store's list and the
+snapshot is broadcast on the mic exchange, as it is once at startup, so
+JournalKeeper journals it. A missing file silences nothing; a file that
+does not decode leaves the last loaded list standing, logged once. A
+house is silenced by adding its alias to the file and paged again by
+removing it. The word is a stop gap until an alert manager service
+owns silencing; the fleet's readers see which houses are quiet on
+purpose from the journal. A scada's house is the `.ta` sibling under its
 parent alias, the aliasing the registry's `g.node.gt` axioms state. A
 scada heard from that reports for no tracked house is logged once per
 boot, so a forgotten install is visible.
@@ -72,6 +87,8 @@ database through the chain. One table per sema word the alerter keeps:
   `Resolved` record, keyed by `AlertId` and indexed by what the alert is
   about (category, house alias or subject, kind): the open-alert state
   that survives a restart.
+- `silences` — the terminal assets in the latest
+  `gw.hack.alert.silences` snapshot, replaced wholesale on each load.
 - `arrivals` — the latest arrival from each alias under the fleet
   roots, any message type, read off the routing envelope with the body
   undecoded: one row per alias, overwritten on each arrival. Whether a
@@ -180,8 +197,15 @@ the alerter restarted while the alert is open. The shape is
   empty for a layout). Open-alert state is the store's, which is what
   makes a restart neither re-raise nor forget. Witnessed PASS on the dev
   broker on `gw.alert` 2026-09-28 (`gridworks-alerter` `7e8c646`),
-  restart with the alert open included; the shadow week against hw1 is
-  what makes it Verified.
+  restart with the alert open included. Live on hw1 since 2026-10-15,
+  paging through the tap beside gwalert: oak's LTN stopped by hand at
+  18:46Z raised at 19:00:06Z ("ltn silent for 10.1 minutes"), paged at
+  19:00:11Z, resolved on the first report back at 19:01:04Z and closed
+  in Opsgenie at 19:01:11Z; gwalert's five-minute cycles missed the
+  eleven-minute outage. An LTN stop pages about fourteen minutes after
+  the stop, not ten: the scada's own link timeout lets one more report
+  out. gwalert's `no_data` check is still on; switching it off is the
+  wean.
 
   A report is the only arrival for the rule: the scada publishes a
   report only while its link to the LTN is active (an Event in its
@@ -253,9 +277,9 @@ cadence is the longest a page waits; it is a local read, so seconds,
 against thresholds that are minutes. An open alert becomes a
 `gw.opsgenie.alert.create` whose `Alias` is the `AlertId`, which
 Opsgenie deduplicates on: a `Firing` told twice is one alert, a
-re-raise after a resolve a new one. The headline `Message` is `[house]
-summary` for a house alert (the segment before `.ta`, display only),
-else the summary, cut to Opsgenie's 130 characters; `Entity` is the
+re-raise after a resolve a new one. The headline `Message` is `[House]
+summary` for a house alert (the capitalized segment before `.ta`,
+display only), else the summary, cut to Opsgenie's 130 characters; `Entity` is the
 full `AboutGNodeAlias` (else `Subject`, else `Src`), so two houses with
 one short name are two alerts; `Source` is `Src`; `Tags` the category
 and kind; the named details `Kind`, `Category`, `Subject`, and for a
@@ -269,10 +293,26 @@ status, count, created, closed by), the word a shadow-week comparison
 reads lists of. Who is paged, how often an open alert re-notifies and
 how it escalates are Opsgenie's policy.
 
+Open and closed in Opsgenie mean the condition holds, and the alerter
+owns both: the tap closes an alert when the store resolves it, and a
+person closing one by hand only gets there first. The alerter emits
+transitions only, one `Firing` and one `Resolved` per condition under
+one `AlertId`; nothing repeats from it. Acknowledging is the person's
+mark and the alerter never touches it, so an alert that closed without
+an acknowledgement is Opsgenie's history of an outage nobody looked at.
+A human-owned close would let a second outage fold into a stale open
+alert and page nobody, which is what gwalert's per-day alias did on
+2026-09-15 at spruce, and at a hundred homes would leave every broker
+blip's alerts for the on-call to sweep.
+
 The tap keeps the set of alerts Opsgenie has been told are open and
-each pass reconciles it: an open alert Opsgenie has not taken is
-created, one Opsgenie holds that the store has resolved is closed with
-its `Resolved` record (`Store.resolved_record`). At boot the told set is
+each pass reconciles it: an open alert about an unsilenced house that
+Opsgenie has not taken is created, one Opsgenie holds about a house
+since silenced (`Store.silenced_aliases`) is closed with a note saying
+so while the alert stays open in the store, and one Opsgenie holds that
+the store has resolved is closed with its `Resolved` record
+(`Store.resolved_record`). A house dropped from the silence list with
+its alert still open is paged on the next pass. At boot the told set is
 empty, so the first pass re-creates every open alert and Opsgenie folds
 each into the alert it already has; that is what makes a tap restart
 neither re-page nor forget. A post that fails after three attempts on a
@@ -351,7 +391,8 @@ does not see them (Open).
 ## Operating
 
 - Settings: `GWALERTER_*` from env and `.env` (`template.env`);
-  `service_alias` is `<universe>.alerts` under the universe root.
+  `service_alias` is `<universe>.alerts` under the universe root;
+  `silences_path` names the silences file.
 - Run: `gwalerter rabbit` (the systemd unit `alerter-rabbit.service`),
   `gwalerter tap` (`alerter-tap.service`) and `gwalerter probe`
   (`alerter-probe.service`);
@@ -378,8 +419,11 @@ does not see them (Open).
   LTN-silent kind with its own threshold (knowable in three minutes,
   where reports take ten). All belong to the tap's paging rules.
 - Layout seeding at first boot; the dead-man's switch; the journaled
-  OPS-317 liveness signals as the source of "live". The design carries
-  these.
+  OPS-317 liveness signals as the source of "live".
+- The detectors gwalert still runs (zone setpoint, freeze risk, the
+  rest of `alert_generator.py`) port one at a time, each with its tests
+  and its shadow week; gwalert's `no_data` is switched off once the
+  overlap has shown nothing missed, so no house is paged twice.
 - The `layouts` table stores whichever layout word a scada last sent,
   but the snapshot vendors `layout.lite` only and `Store.record_layout`
   / `Store.layout` are typed `LayoutLite`; a `gw.house0.layout` or

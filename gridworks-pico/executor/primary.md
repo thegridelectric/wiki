@@ -1,6 +1,6 @@
 # gridworks-pico — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-09-22
+Status: Draft · Pass 0 · Updated 2026-10-14
 
 > What this is: the MicroPython firmware on the Raspberry Pi Pico W boards
 > that read tank thermistors, flow meters and BTU meters in each house and
@@ -72,27 +72,63 @@ Tank module and BTU meter both keep all four.
 ## Connectivity
 
 `net.py` is the one networking module for the tank module and the BTU
-meter: `connect_to_wifi`, `connect_to_ethernet`, the two connected
-checks, and an `HttpClient` whose `post(path, payload, mode)` returns
-`(status, body)` and whose `post_fire_and_forget` carries readings.
+meter: a `Link` (wifi or ethernet) that connects, rebuilds and reports
+its MAC, an `HttpClient` whose every post feeds the link's failure
+count, and a `Heartbeat`. The single-file `_no_net.py` builds fold it
+in; `provisioner_generator.py` writes them and `provisioner.py` from
+`net.py` and the two mains, each stamped with the commit it was built
+from (`FirmwareCommit`), and nothing in them is edited by hand.
 
-A pico recovers its own link. The first connect gives up after
-`CONNECT_TIMEOUT_S` (10), a failed post sets `needs_reconnect`, and the
-main loop re-runs the association no more often than
-`RECONNECT_COOLDOWN_S` (30), with no reset and no flash write on that
-path. A pico cannot power-cycle itself; the scada's rail cycle is the
-last resort.
+A pico is seen by its heartbeat. `pico.heartbeat` goes every
+`HEARTBEAT_PERIOD_S` (10) to `/<actor>/pico-heartbeat`: `HwUid`,
+`UptimeS`, `ResetCause`. The timer callback only marks one due; the main
+loop sends it, as it sends every post, since a timer callback cannot do
+network I/O. The first heartbeat goes at boot before `update_code()` and
+the params post. `ResetCause` comes from watchdog scratch 0, which every
+`machine.reset()` in the firmware marks first (`net.self_reset`) and
+which clears on power-on: marker set is `SelfReset`, a watchdog boot
+without it is `Watchdog`, otherwise `PowerOn`. The marker is cleared as
+it is read. No hardware watchdog runs, so an unmarked `Watchdog` is worth
+seeing.
+
+A pico acts on the API's answer, not on the NIC. A post answered 200 is
+heard; any other answer or no answer is a failure, and the failure count
+drives recovery in the main loop (`Link.recover`): after
+`FAILURES_PER_RECOVERY_STEP` (2) failures in a row the link is rebuilt,
+wifi by deactivating and reassociating, ethernet by re-initialising the
+chip, both taking DHCP again within `CONNECT_TIMEOUT_S` (10); after two
+more the pico resets itself. The rebuild and the reset happen only from
+the main loop, never from a timer callback, so neither can interrupt a
+flash write. A Pico W post is bounded at `POST_TIMEOUT_S` (5), at most
+half the heartbeat period; a Wiznet post takes no timeout (see
+"Platform") and a stalled one is caught by the scada's rail cycle.
+
+Self-resets back off. Scratch 1 counts connectivity self-resets in a row;
+a pico booted with count n waits an uptime of
+`SELF_RESET_BUDGET_S` (60) × 2^(n−1), capped at `SELF_RESET_BUDGET_MAX_S`
+(480), before resetting again, and the first 200 clears the count. With
+the scada down a pico therefore churns about once a minute, then every
+two, four and eight minutes; a reset writes no flash and the pico buffers
+nothing, so the churn is harmless and expected at every scada stop longer
+than about 40 s. A pico cannot power-cycle itself; the scada's rail cycle
+is the last resort.
 
 The params post is the one place the scada checks a pico's identity and
 hands it the layout's capture settings, so it is retried until answered.
-`start()` posts once after `update_code()` and keeps whether the scada
-answered; `main_loop()` posts again every `PARAMS_RETRY_S` (30) while
-the link reports up, until it has. A late answer that changes a
-parameter is saved and the pico resets onto it, since names, capture
-period and timers are set once at boot; a late answer with no change
-writes nothing. `CaptureOffsetS` is never saved and never counts as a
-change. `update_code()` is not retried: the update listener takes a
-pico's second `code-update` request as proof the update installed.
+`boot()` posts once after `update_code()` and keeps whether the scada
+answered; the main loop posts again every `PARAMS_RETRY_S` (30) while
+the link is up, until it has. A late answer that changes a parameter is
+saved and the pico resets onto it (marked, not counted), since names,
+capture period and timers are set once at boot; a late answer with no
+change writes nothing. `CaptureOffsetS` is never saved and never counts
+as a change; the tank module's sync timer takes it as its first period.
+`update_code()` is not retried: the update listener takes a pico's
+second `code-update` request as proof the update installed.
+
+The btu meter is flow-only until a params answer says `ReadTemps`: the
+temperature names, beta and delta exist in `app_config.json` and the
+params post iff it is true, and with it false the thermistors are not
+read and no temperature channel enters the snapshot.
 
 There is no failover address. An IP-to-DNS fallback cannot work on Wiznet
 (no mDNS) and would split the two link types into different behaviour,

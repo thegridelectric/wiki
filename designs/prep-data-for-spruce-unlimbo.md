@@ -1,6 +1,6 @@
 # Prep data for spruce-unlimbo
 
-Status: Draft · Pass 0 · Updated 2026-10-11 · Linear: OPS-542
+Status: Draft · Pass 0 · Updated 2026-10-15 · Linear: OPS-542
 
 **EDD: yes** the day of fleet data from the spruce-unlimbo first data catch
 is the verification; a claim reaches Verified only when that data reads the
@@ -36,7 +36,15 @@ façade over it, the web-frontend visualizes. The cleanup is on:
   string matching in the persistors
   (`gridworks-journalkeeper/executor/persistor.md` "Open"). Pseudo-channels
   stay; what changes is that gjk derives them from the layout it receives
-  rather than from literals in code.
+  rather than from literals in code. One goes away outright: the
+  `buffer-available-kwh` pseudo channel in `flo_params_house0_persistor.py`
+  stores the LTN's `BufferAvailableKwh`, which the LTN computes from a
+  hard-coded four-layer buffer and returns as 0 whenever `KeepBufferFull`
+  is true (every deployed House0 house). No layout has that buffer any
+  more, so the channel is removed rather than re-derived; the journal's
+  existing rows stay, a rebuild from scratch will not have them. It is the
+  only live emitter of the `KilowattHoursX1000` unit value, which stays in
+  `gw1.unit` because 002 is published.
 - **gridworks-web-backend** — the public read-only façade: the API returns
   the channels and layout/params shape for every family from the layout
   word, with no per-house channel-name table.
@@ -124,3 +132,13 @@ Verified claims once it is green.
 - Whether the simulated fourth fall layout (OPS-532) is exercised here too.
 - The exact web-frontend and web-backend seams that still read channel
   names by string rather than the layout word.
+- The state enums the journal fans out versus the registry. Sema deleted
+  `gw1.local.control.standby.top.state` on 2026-10-06 (`f234cfd`,
+  `replaced_by: gw2.lc.top.state`) while the enum was still vendored in
+  JournalKeeper's snapshot and bound to the `local-control-standby-state`
+  pseudo channel; the 2026-10-15 gjk regen had to drop both to build.
+  Deleting a published enum a consumer vendors is the pattern to look at
+  here: which `gw1.*` state enums the gjk pseudo channels still name,
+  which the scada on `jm/spruce-unlimbo` reports, and how a replaced enum
+  reaches the journal without a hole (readings for that machine stop at
+  the deletion; none in the 60 days before it).

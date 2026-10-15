@@ -89,6 +89,15 @@ the scada:
 A fill and a failed pull log at WARNING under the scada's base logger
 (`<base>.weather_source`); a successful pull logs at INFO.
 
+**A first forecast is not certain.** The weather source answers None
+when the bundle on file no longer matches the pulled forecast and a
+fresh bundle is unreachable. The derived generator retries until the
+first forecast is stored, with the Warning glitch `no-weather-forecast`
+per miss, and sets `first_forecast` on `ScadaData` when it is. There is
+no bail clock: the seasonal template keeps a forecast the normal case,
+and the retry is for the abnormal one (`leaf-ally.md` "The startup
+order" for what waits on it).
+
 ## Settings and the sim
 
 `weather_source` picks the kind: `Gwwf` (a box) or `Sim` (every test

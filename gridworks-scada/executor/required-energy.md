@@ -80,7 +80,8 @@ water onto the bottom of the stack. When the top layer can give up nothing
 give up nothing either, the drain ends. Usable energy runs this on the
 measured layer temperatures (a missing layer is skipped and the water volume
 is shared over the layers present); it is computed only when the ops word
-says `AcceptsDispatch` and `ServiceMode` Heating.
+has no `DispatchHold` set, says `ServiceMode` Heating, and the buffer is
+fresh.
 
 `rwt_f(swt)` is the return temperature for supply water at `swt` against the
 hardest upcoming on-peak hour. It takes the highest `RswtF` among forecast

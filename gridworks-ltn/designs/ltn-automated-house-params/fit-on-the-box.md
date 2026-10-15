@@ -1,6 +1,6 @@
 # fit-on-the-box
 
-Status: Draft · Pass 0 · Updated 2026-10-06 · Linear: OPS-531
+Status: Draft · Pass 0 · Updated 2026-10-14 · Linear: OPS-531
 
 > What this is: a spoke of [`primary.md`](primary.md). Adopting the
 > house-load regression as a daily subprocess on the LTN box: what it
@@ -43,6 +43,15 @@ CSV or the data DB.
 - **Weather the LTN does not have.** Observed outside temperature and
   wind, and solar irradiance
   ([`working-store.md`](working-store.md) "The hourly reduction").
+- **Forecast skill as an input.** The fit trains on observed weather
+  and runs on forecast weather, so the 48-hour load error includes the
+  weather forecast's own error, which the backtest never sees. Before
+  choosing a solar source, and for temperature and wind as well, score
+  each candidate forecast as issued against a measured or reanalysis
+  truth for Millinocket over last winter, by hour ahead. The source is
+  chosen on that score and on whether its archive keeps forecasts as
+  issued, since the fleet's NWS bundle has no solar field today. Survey
+  in progress 2026-10-14.
 
 ## Checks before the fit drives a house
 
@@ -65,12 +74,17 @@ From a read of the code; each is confirmed or dismissed by a run.
 
 ## The comparison that decides adoption
 
-The 2025–26 season is recorded: the parameters each house ran on, the
-SCADA's hourly forecast of load and RSWT, and what was measured
-(`heating-system-design/mix-or-not/mix-or-not.md` "Where the record is"). The
-fit is adopted for a house when, replayed over that season with forecast
-weather, it predicts 48-hour load better than the hand-set values that
-were in force.
+We run the evaluation ourselves; the repo's backtest is a starting
+point, not the evidence. The 2025–26 season is recorded: the parameters
+each house ran on, the SCADA's hourly forecast of load and RSWT, and what
+was measured. Each candidate model (the seven-term regression as
+delivered, the three-coefficient form, and any variant we think better)
+is replayed over that season with the weather forecast as it was issued
+at each origin, never the observed weather, so the 48-hour load error
+includes the forecast's own error. The lagged terms are fed forward from
+the model's own predictions at every lead. The model adopted for a house
+is the one that predicts 48-hour load best under those conditions, and
+it must beat the hand-set values that were in force.
 
 ## Build step
 

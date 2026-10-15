@@ -1,6 +1,6 @@
 # gridworks-journalkeeper — rebuild spec
 
-Status: Draft · Pass 0 · Updated 2026-10-06
+Status: Draft · Pass 0 · Updated 2026-10-15
 
 > Faithful-rebuild hub: enough to build journalkeeper from scratch.
 > **Part I — Functional specification** is the durable contract (what gjk
@@ -150,7 +150,9 @@ ecosystem adds actors and types**.
 broker (consume exchange; one `#` bind — the whole bus)
   └─ ActorBase consume → on_message: parse routing key  ── parse fails ─▶ recover* / log+drop
        └─ JournalKeeper.dispatch_message  ── type ∉ capture set ─▶ drop (pre-decode)
-            └─ SemaCodec.from_dict(json.loads(body))   ── degraded ─▶ skip
+            ├─ `gw` key: unwrap_bytes(body), header MessageType must equal the key's type ── else ─▶ log+drop
+            ├─ `rj` / `rjb` key: the body is the bare sema JSON
+            └─ SemaCodec.from_dict(payload)   ── degraded ─▶ skip
                  (capture gate re-applies post-decode — covers recover*)
                  └─ SemaMessagePersistor.persist_message
                       ├─ custom persistor → MessageSql + fanned readings

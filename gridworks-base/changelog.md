@@ -10,7 +10,29 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-11 — prefetch_count is a service setting, default 100; 0.5.17 <!-- pending commit -->
+## 2026-10-15 — Orchestrator.dispatch_message unwraps gw bodies; process_message gains header; 0.6.0 (`d6d7c4d`)
+
+Branch `jm/unwrap-in-dispatch` (OPS-596). `Orchestrator.dispatch_message`
+opens a `gw` envelope itself: `process_message(*, envelope, body, header)`
+now receives the bare sema JSON bytes in every routing category, with the
+`GridworksHeader` for a wrapped message and `None` for `rj` / `rjb`. A
+wrapped body that does not unwrap, or whose header `MessageType` disagrees
+with the routing key, is logged and dropped at the framework; control-plane
+routing runs after the unwrap. Version 0.6.0: every subclass's
+`process_message` signature changes.
+
+**Why:** gwbase already classifies each delivery by the first routing-key
+word, but left the branch on `envelope.category` to every subclass, and no
+subclass made it. The broker-alerter unwrapped every tracked type and
+dropped the registry's bare `g.node.forest` broadcasts; the registry,
+weather and journal-keeper actors decode bare and would fail the other way
+on their first wrapped subscription. One unwrap in the framework removes
+the class of mistake. gwbase decodes only the envelope words it vendors
+(`gw`, `gridworks.header`) and passes the payload on as bytes, so each
+repo's snapshot stays decoupled from gwbase's. Tests:
+`tests/test_dispatch_unwrap.py`.
+
+## 2026-10-11 — prefetch_count is a service setting, default 100; 0.5.17 (`69b6fe2`)
 
 Branch `jm/prefetch-count`. `ActorBase` consumed with a private
 prefetch of 1, so a consumer waited one round trip to its broker per

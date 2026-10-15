@@ -1,6 +1,6 @@
 # Nolan local control (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-10-09 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-10-14 · Linear: OPS-392
 
 > What this is: what to check as Nolan local control runs in the beta
 > windows, and the brief for the adversarial review. What is built is
@@ -180,6 +180,11 @@ Each row is a claim to confirm in a window, read from the journal's
 | The operating status is quiet | One `gw.house.operating.status` after startup, then one per changed field; an admin session moves `TopState` alone |
 | A refusing scada ends a stored contract | Restarted refusing dispatch with a live contract in the store: one `TerminatedByScada` heartbeat to the LTN carrying the reason, the leaf ally never in charge |
 | A cold Nolan house needs a person and runs the heat pump | `critical-zone-cold` glitch, then `gw2.lc.top.state` `ColdOverride` in the same minute, call closed on-peak, commands from `cold-override`; back to `Normal` through a boot once warm and off-peak |
+| An offer is answered only after the announcement | A scada booted with its first fetch held slow sends `gw.scada.commit` and its first `gw.house.operating.status` only once the first forecast is in; an offer sent before that is not taken, and the first taken offer follows the ally's first judgment with a forecast |
+| A refusal reaches the LTN with its reason | For each refusal reason the scada can derive (no deed, operator hold, service contract broken, blind, in admin): one `slow.contract.rejection` at the LTN naming it, nothing else moves, the leaf ally stays dormant |
+| A contract ends by each termination case | A contract taken and ended by its duration, by the LTN, by the scada refusing mid-contract, and by an admin session (`InAdmin`): one terminating heartbeat to the LTN with the cause, the ally dormant after it, the next offer taken afterwards |
+| The Hubitat reports both thermostats | Beech's two Honeywell zones (`down`, `up`) have fresh setpoint and temperature readings in the window's capture; a zone with neither is the Hubitat gap round four saw |
+| Nothing unexpected in the data or the log | After each beech window, the capture and the scada log are read through for what no row above names: a reading that never arrives, a state that flaps, a glitch nobody expected, a reading dropped at a boundary |
 | The elements never close | No `CloseRelay` to `buffer-top-elt-relay` / `buffer-bottom-elt-relay` in any window; `OpenRelay` to both at every boot. Spruce runs `UsesBackupWhenCold` false this winter: the radiant floor keeps the house from getting too cold, and with it false no path closes an element relay |
 
 Every box carries an `operational-params.json` older than the ops word
@@ -190,18 +195,37 @@ Spruce's window runs `jm/spruce-unlimbo` against the `jm/spruce` layout
 and displaces the winter hack, so an experiment window there is short
 (`experiments/field-window-recipe.md`).
 
-**Do this next: beech out of Standby, into BufferOnly, in a short
-bounded window.** Gen: `standby=False`,
-`seasonal_storage_mode="BufferOnly"`, `accepts_dispatch=False` with
-`dispatch_refusal_reason="NoAggregator"` (no LTN runs FLOs yet; every
-house gen takes that pair for the next weeks, spruce and maple
-included), loop on `HoldFullSend`; the deed is on the box. Regenerate, place on both pis with `put_layout.sh beech`
-(the board-variant and HoldFullSend fixes ride along), move beech's
-row in the recipe's Houses table from Standby to Active and rewrite
-"Beech is Standby on purpose". The first window where branch code
-runs beech's heat: look for the tree under the local control and never
-`Standby`, the first charge's SystemCold mark, and the loop's one move
-to send.
+On the laptop sim (2026-10-14), `experiments/offer_contract.py` offers a
+contract as the LTN at any minute, so a refusal is read within a minute
+instead of at the top of the hour. Seen there: a restart under a held
+contract with the hold set ends it with `TerminatedByScada` /
+`OperatorHold`; an offer is refused with `OperatorHold`,
+`ServiceContractBroken` (latch set), `NoTaDeed` (deed `UnValidated`) and
+`ScadaBlind` (`buffer-depth1` disabled in the layout), each reaching
+the LTN as a `slow.contract.rejection` naming the reason. Not yet seen:
+`InAdmin` (an admin session is interactive), a termination mid-contract.
+
+Beech ran its first window out of Standby on 2026-10-14 (19:58 to
+20:20, dev broker, laptop LTN): `BufferOnly` local control at `HpOff`
+on a full buffer, never `Standby`; an `offer_contract.py beech` offer
+refused with `OperatorHold` and the rejection at the LTN; both Honeywell
+thermostats reporting on their 300 s period; every enabled channel in
+the window's reports. Found: `dist-depth3` reads the 3.3 V pico rail
+(open thermistor, hardware); one `local_mqtt` response timeout at boot;
+`usable-energy` has no value under `OperatorHold` because
+`derived_generator.py` guards the estimate on `DispatchHold`, which is
+not the rule we want.
+
+**Do this next: the energy estimate does not depend on the dispatch
+hold.** Write the test that fails today (a House0 scada under
+`OperatorHold` with a fresh buffer and a forecast publishes
+`usable-energy`), drop the two `DispatchHold` clauses from the guard,
+keep ServiceMode, freshness and forecast, and rewrite the sentence in
+`executor/dispatch-gate.md` "The answer" that states the old rule.
+Then, on beech with the hold off for the window: the remaining
+refusals (`ServiceContractBroken`, `NoTaDeed`, `ScadaBlind`), the
+`InAdmin` termination and refusal through `gwa watch`, and a
+termination mid-contract.
 
 ## For the review
 

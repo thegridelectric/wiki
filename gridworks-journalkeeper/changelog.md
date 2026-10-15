@@ -10,6 +10,35 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-15 — The alerter's words are journaled; gwbase 0.6.0; the body is opened by its routing category (`c28fb46`)
+
+Branch `jm/alerter-words-gwbase-0-6-0`. The seed vendors `gw.alert` and
+`gw.hack.alert.silences`; `gw.alert` gets a persistor whose created time
+is the record's own (RaisedMs for Firing, ResolvedMs for Resolved) so the
+two records of one alert are two dedupable rows; the silences snapshot
+is a receipt-time-keyed basic type. `dispatch_message` opens the body by
+the parsed envelope's category: a `gw` (wrapped) delivery is unwrapped
+and its header's MessageType checked against the routing key, an `rj` /
+`rjb` delivery is the bare sema JSON; the "Payload if present" guess is
+gone. gridworks-base 0.6.0. The regen, from sema `8d0f793`, also
+takes what the registry did since June: `gw1.local.control.standby.top.state`
+is deleted there (replaced by `gw2.lc.top.state`), so its seed line and the
+`local-control-standby-state` pseudo channel go (no scada has reported
+that machine in 60 days); `gw.weather.channel.gt`, `forecast.bundle.gt`
+and `create.cmd` are pinned to every version so the 000 records the
+journal holds still decode and the bundle fan-out keeps its v000, while
+001 takes the default path.
+
+**Why:** the alerter has broadcast `gw.alert` on `alertsmic_tx` since
+2026-10-08 and `gw.hack.alert.silences` since 2026-10-15; both reached
+the ear's eventstore and neither the journal, because JournalKeeper
+returns without a word on a type outside its capture set. The alerts page
+and the silence history read the journal, so the words have to be here.
+gwbase 0.6.0 made the unwrap a framework matter for the Orchestrator
+tier; JournalKeeper is an ActorBase tap and does the same thing itself,
+by the envelope class rather than by sniffing the body.
+
+
 ## 2026-10-09 — Track gwbase 0.5.15: user_id on every publish (`362cfa4`)
 
 gwbase 0.5.15 stamps `user_id` on every publish with the connection identity, so the broker's validated-user-id check verifies this service's publishes instead of skipping them (OPS-579); the floor and the lock move together so the deployed box installs it.

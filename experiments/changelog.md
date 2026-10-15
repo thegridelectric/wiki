@@ -6,8 +6,53 @@ the *why*.
 
 Newest at the top.
 
-## 2026-10-14 — pico-power-cycling: reboot-storm run, pico folders regrouped, firmware track record
-<!-- pending commit -->
+## 2026-10-15 — spruce-radiant-slab: dataset folder, first pulls, the two-lump slab workbook; pull_readings reads a gzipped instance <!-- pending commit -->
+
+**What:** `spruce-radiant-slab/`, an undated dataset folder on the
+template: README with the two-lump floor-and-room model to fit, spruce's
+five call circuits by emitter kind, the mixing valve and hot-side meter
+as read from the data and confirmed on site, a per-channel table of what
+the journal holds for spruce and from when, the fall events and the
+hours with a slab zone calling alone; two `gw.readings` pulls (Sep 21 to
+25, Oct 6 to 8) gzipped under the cap; `sheets.py` building the model
+workbook (inputs, heat in as BTU and kWh, actual against predicted
+floor temperature, a Calibration sheet on the Oct 7 night, a Fit sheet)
+and fitting U and the effective slab thickness jointly over the
+living-room-only charge and the free float; one `gw.experiment.run`; a
+logbook line.
+`pull_readings.py --display-from` opens a `.json.gz` instance. **Why:**
+the Knife's Edge homes are sized from a rule of thumb (2 BTU/h per sq ft
+per °F floor to room); spruce can measure it. The inventory came first
+because journaling of most spruce channels starts at different dates
+(BTU meter and heat calls from January, room temps from Mar 30, floor
+temps in four islands, heat pump from July). The gzip read closes the
+gap between the 2 MB rule (instances committed gzipped) and the standard
+"From the instance to the display CSV" paragraph, which until now only
+worked on an unzipped file.
+
+## 2026-10-14 — ci.sh: offer_contract.py joins the pyright exclusions (OPS-392) (`0b86961`)
+
+**What:** `offer_contract.py` is added to `PYRIGHT_EXCLUDE` in `ci.sh`.
+**Why:** like `window_boot.py` it runs from the scada venv and imports
+gwproto, gwsproto and the LTN settings, which the experiments venv does
+not have; pyright in this venv cannot resolve them.
+
+## 2026-10-14 — offer_contract.py: an offer as the LTN at any minute; beech Active in the recipe (OPS-392) (`b529626`)
+
+**What:** `offer_contract.py <target>` publishes one `Created`
+`slow.contract.heartbeat` to a window scada on the dev broker, as the
+LTN the target's layout names, so a refusal or an acceptance is read
+within a minute instead of at the top of the hour; it refuses a
+non-local broker host. `field-window-recipe.md` moves beech from
+Standby to Active in the Houses table and says every house is held out
+of dispatch by `OperatorHold` until an LTN runs FLOs.
+**Why:** the LTN offers only in the ten seconds after the hour, and the
+scada reads its ops file, deed and layout at boot, so cycling the five
+refusal reasons took a restart and an hour each. The script is a
+forgery of the LTN; the signed TaTradingRights validation is what will
+make it impossible, and until then it is dev-broker only.
+
+## 2026-10-14 — pico-power-cycling: reboot-storm run, pico folders regrouped, firmware track record (`b529626`)
 
 **What:** new undated `pico-power-cycling/` folder, with
 `2026-08-03-pico-gap-analysis/` and `2026-08-05-pico-link-census/`
@@ -74,7 +119,7 @@ Standby House0 boot on a box, with the sieg loop at full send. The tap
 listener gives a laptop a view of live fleet traffic that cannot publish
 anywhere, so watching the fleet never touches the prod broker.
 
-## 2026-10-09 — house_window.sh --cert: the window on the prod broker, on the house's own cert (OPS-392) <!-- pending commit -->
+## 2026-10-09 — house_window.sh --cert: the window on the prod broker, on the house's own cert (OPS-392) (`1e5bd72`)
 
 **What:** `on` takes `--cert`: the box boots from `~/envs/cert.env`
 instead of `dev.env`, no tunnel is opened and no laptop capture started,
@@ -86,7 +131,7 @@ the house's events reach the journal through the acked path. The
 dev-broker window cannot show that: its isolation is that the env carries
 no hw1 creds. Spruce's `cert.env` is box state, recorded in its README.
 
-## 2026-10-08 — beech-missing-store-heat-analysis on the template; field-window-recipe: what a dev window needs for weather (OPS-7) <!-- pending commit -->
+## 2026-10-08 — beech-missing-store-heat-analysis on the template; field-window-recipe: what a dev window needs for weather (OPS-7) (`41604df`, committed as "update sema snapshot")
 
 **What:** the snapshot seed gains `report.event` 002 and
 `heating.forecast` 000 (regenerated), and `chart.py` in
@@ -171,7 +216,7 @@ records. `csv/` still gets every table. Workbooks stay gitignored in
 both repos (`experiments/.gitignore` already had `*.xlsx`;
 heating-system-design gets the same line for the copy handed over).
 
-## 2026-10-07 — alerter-broker-down: code under test is the squashed `7e8c646` (OPS-545) <!-- pending commit -->
+## 2026-10-07 — alerter-broker-down: code under test is the squashed `7e8c646` (OPS-545) (`21b33f6`, committed as "updating alerter-broker-test ... success")
 
 `jm/gw-alert` was squashed after the re-run, so the commit the record
 named (`e36f6b8`) no longer exists; README, provenance, `CODE_REF` and

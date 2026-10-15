@@ -40,8 +40,9 @@ The other readers of the same facts:
   `ServiceMode` is `Heating`, both read with `SeasonalStorageMode` from
   `gw.house.operating.status` (`ltn/ltn.py`). Until a status arrives the
   LTN refuses.
-- **Derived generator.** The usable-energy gate reads `AcceptsDispatch`
-  and `ServiceMode` from the scada's own params.
+- **Derived generator.** The energy passes read `DispatchHold` and
+  `ServiceMode` from the scada's own params, and run only on a House0
+  layout.
 - **Sieg strategy.** `Standby` runs `HoldFullSend` whatever the family
   params say (`selected_strategy`, `sieg_loop/strategy.py`); axiom 6 on
   `gw.operational.params` requires the word to say so already.
@@ -327,58 +328,12 @@ ScadaBlind branch reads `UsesBackupWhenCold` too.
 
 ## The dispatch refusal
 
-The scada says whether it will take a dispatch contract, and why.
-
-- `AcceptsDispatch` on `gw.operational.params` is the one test every
-  gate reads.
-- `DispatchRefusalReason` (`gw.dispatch.refusal.reason`) is present iff
-  `AcceptsDispatch` is false: `Standby`, `NoTaDeed` (no `ta.deed` for
-  the terminal asset, so no standing in any market), `NoAggregator`
-  (collecting data, no aggregator chosen), or `ServiceContractBroken`
-  (the house went cold with its stores empty under a contract; held
-  until a person clears it). Standby outranks NoTaDeed, which outranks
-  NoAggregator.
-
-**The word says what the deed says.** `check_dispatch_against_deed`
-(`sema_to_dc.py`) runs when the app is built, after the layout and
-params load: a scada with no `ta.deed` for its terminal asset (none on
-file, or one naming another asset) refuses dispatch with reason
-`NoTaDeed` unless it is in Standby; a scada holding a deed does not say
-`NoTaDeed`. Any other pairing raises and the scada does not start. The
-params are never written for this: the person or agent starting the
-scada adds the deed or changes the params. The one refusal the scada
-writes itself is `ServiceContractBroken`.
-
-**Axioms 3 to 5 on `gw.operational.params`:**
-
-3. If `Standby` is true, `AcceptsDispatch` is false and the reason is
-   `Standby`.
-4. The reason is present iff `AcceptsDispatch` is false.
-5. The posture fixes the energized list per family: `MonitorOnly` means
-   an empty list; `NoHeatingOrCooling` means `hp-failsafe-relay` and
-   `aquastat-ctrl-relay` for House0 and an empty list for Nolan.
-
-**Two gates.**
-
-- **A new offer.** While `AcceptsDispatch` is false the `LeafAlly`
-  wrapper answers every `SlowDispatchContract` with `AllyGivesUp`
-  carrying the reason, and the offer never reaches the family's ally
-  (`leaf_ally_loader.py`).
-- **A stored contract.** The scada loads its stored contract when its
-  tasks start, before any message is processed, and four seconds later
-  `resume_loaded_contract` speaks of it. A live contract puts the leaf
-  ally back in charge, and the LTN and the leaf ally get its heartbeat.
-  A scada that does not accept dispatch ends the live contract instead:
-  it terminates, stores and flushes it, the LTN gets the terminating
-  heartbeat with the reason, and the leaf ally hears nothing. A stored
-  contract that ran out while the scada was down is completed at the
-  load, and that heartbeat goes to the LTN and the leaf ally whatever
-  the scada accepts. Nothing is sent when an offer since the load has
-  replaced the loaded contract.
-
-The scada writes its own params file when it latches
-`ServiceContractBroken` ([`cold-house.md`](cold-house.md) "The
-refusal").
+Whether the scada takes a dispatch contract, and why not, is one derived
+answer, `Scada.dispatch_refusal`, read at the offer, at each heartbeat
+and at the stored-contract resume: [`dispatch-gate.md`](dispatch-gate.md).
+Local control's part in it is `ScadaBlind`: its `MissingData` /
+`DataAvailable` judgment asks the same `buffer_fresh` predicate the gate
+asks, so a house local control calls blind is a house the gate refuses.
 
 ## The operating status
 
@@ -387,19 +342,23 @@ announcements and then only when a field changes; a healthy hour
 produces none (`report_operating_status`, `scada.py`). It carries the
 slow facts of the LTN–scada agreement, so "not dispatching" reads as a
 reason: no standing (`ValidationState`, from the deed), an admin
-session (`TopState`), a refusing posture (`AcceptsDispatch` with its
-reason, `Standby`, `ServiceMode`), or no offer this hour.
+session (`TopState`), a refusal (`AcceptsDispatch` and
+`DispatchRefusalReason`, derived from `dispatch_refusal`), blindness
+(`ScadaBlind`), a posture (`Standby`, `ServiceMode`), or no offer this
+hour.
 
-- Six fields are copied from the scada's decoded params, never from a
-  second source. The rest are the scada's alias, the time, and the
-  runtime facts (`ValidationState`, `TopState`, `LtnDispatching`).
+- Four fields are copied from the scada's decoded params, never from a
+  second source: `Standby`, `StandbyPosture`, `SeasonalStorageMode`,
+  `ServiceMode`. The rest are the scada's alias, the time, and the
+  derived facts (`ValidationState`, `TopState`, `AcceptsDispatch`,
+  `DispatchRefusalReason`, `ScadaBlind`, `LtnDispatching`).
 - `LtnDispatching` is true from the first heartbeat that goes Active
   and false only after no contract has been active for a settling
   window past a completion, so back-to-back hourly contracts read as
   one long true.
 - It does not carry the raw contract status or any machine's state.
-- It is the LTN's one source for the posture facts: `layout.lite` does
-  not carry `AcceptsDispatch`, `ServiceMode` or `SeasonalStorageMode`.
+- It is the LTN's one source for the posture facts: `layout.lite` has
+  no `AcceptsDispatch`, `ServiceMode` or `SeasonalStorageMode`.
 - The deed is a boot-time fact; a new deed means a scada restart.
 
 ## Open

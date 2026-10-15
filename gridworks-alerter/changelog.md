@@ -4,7 +4,83 @@ One entry per commit in `thegridelectric/gridworks-alerter`,
 `thegridelectric/gridworks-alerts` and `thegridelectric/gridworks-alert-manager`
 (git = the what, this = the why).
 
-## 2026-10-10 — the MQTT probe requires an accepted CONNACK (<!-- pending commit -->)
+## 2026-10-15 — shorter better summaries for no data alerts (`380f754`)
+
+Branch `jm/short-summaries`. Every alert Summary and tap text is rewritten
+to one short clause with the duration in minutes and the GNode alias last,
+in parens: `scada silent for 10.1 minutes (…beech.ta)`; `ltn silent for
+10.1 minutes; scada does not send up reports with no ltn (…)`; `no
+reports for 10.1 minutes, scada and ltn both speaking (…)`; `data again
+after 23.4 minutes (…)`; the broker door lines carry the down time and
+probe count; the tap's headline prefix is the capitalized short name
+(`[Beech]`) and its silenced close note is `Silenced after N minutes (…)`.
+A scada that is silent reads the same whether or not the LTN is also
+silent, so the open alert no longer re-fires when the LTN follows the
+scada into silence; the cause comparison is on the clause, not the
+Summary string.
+
+**Why:** the first live pages (beech, 2026-10-15) read as a sentence of
+timestamps and the LTN's state, which a reader does not need when the
+scada is the one that stopped. A page is read on a phone; the duration
+and the house are what a person acts on, and the alias at the end is
+what they search by. The LTN line teaches the one fact a reader cannot
+be presumed to know: a scada sends up no reports without its LTN.
+
+## 2026-10-15 — The houses the tap does not page: gw.hack.alert.silences from one file, stored, applied in the tap, broadcast (`5a4b64c`)
+
+Branch `jm/alert-silences`, OPS-598. The seed vendors
+`gw.hack.alert.silences` 000; the store gains a `silences` table that is
+replaced wholesale from each snapshot; the actor reads the one file
+named by the sema file convention in its config folder at boot and on
+the detector tick and broadcasts the list on its mic exchange at boot and
+on change; the tap's reconcile skips open alerts about a listed house.
+Settings gain the required `silences_path`; a missing file silences
+nothing and a file that does not decode leaves the last list standing.
+Tests first for each (store, tap, actor); the resume test now expects
+the startup snapshot. The regen also takes sema's in-place sample
+corrections to `layout.lite` and `ha1.params` into the vendored
+snapshot.
+
+**Why:** elm is weeks into a heat pump install and the tap would page
+it first. Detectors and the alert record are untouched, so the journal
+and the alerts page still see elm's NoData; only the page is withheld,
+and a house dropped from the file pages on the next pass.
+
+## 2026-10-15 — layout.lite 011 is stored at its sent version (`8af47ad`)
+
+Branch `jm/layout-lite-011`. The actor's layout branch matches
+`LayoutLite011` as well as `LayoutLite`, and the store's `record_layout`
+takes either; a new test sends the 011 sample and expects a stored row and
+a tracked house, and failed against the old actor before the change.
+
+**Why:** the seed vendors both published layout.lite versions on purpose,
+and the codec decoded 011 cleanly, but the dispatch matched the 012 class
+only, so every layout from the fleet on `main` (beech, fir, maple, oak;
+spruce on `actual-spruce` sends 012) fell to the catch-all and was logged
+"Tracked type layout.lite decoded as LayoutLite011; not stored", a few
+times a day since 2026-10-09. The projection had no layout rows for those
+four houses. The same omission the report.event branch avoids by listing
+every vendored version. The store keeps the row at version 011; the codec
+upgrades it to 012 on read.
+
+## 2026-10-15 — the forest arrives bare: gwbase 0.6.0 unwraps, the actor decodes the body (`c751fc9`)
+
+Branch `jm/forest-bare-broadcast`. `gridworks-base>=0.6.0`;
+`process_message` takes the new `header` parameter and decodes `body`
+straight through the codec, with no `unwrap_bytes` of its own. The forest
+test sends `g.node.forest` as a bare `rjb` broadcast, the way the registry
+publishes it, and failed against the old actor before the change.
+
+**Why:** the actor unwrapped every tracked type as a `gw` envelope, which
+the scadas' report.event and layout.lite are and the registry's
+g.node.forest is not, so every live forest broadcast was dropped
+("Expected TypeName 'gw', got 'g.node.forest'", alerts box log 2026-10-14
+22:02Z) and the forest projection only refreshed at boot. gwbase 0.6.0
+opens the envelope in `dispatch_message` (OPS-596), so the actor sees the
+bare sema body in every routing category and the branch it forgot no
+longer exists.
+
+## 2026-10-10 — the MQTT probe requires an accepted CONNACK (`d831851`)
 
 `mqtt_connack` reads the CONNACK's return code and fails the probe on
 anything but 0. Tests: a one-shot listener answering accepted passes,
