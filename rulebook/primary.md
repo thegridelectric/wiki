@@ -65,6 +65,19 @@ instance of the recipe is the alerter (OPS-605).
   through the executor's seed copy, reading a `decode:` line in the
   trace spec that stands in for the Words rows' ReadAs until that
   table exists; at the port the script reads ReadAs and the line goes.
+- A database as an interface, which it becomes when a process from a
+  second executor reads or writes it (the alerter's store, shared by
+  its own three processes, stays internal). Two-sided: the owner
+  (journalkeeper) lists the surface once in its Boundaries table as a
+  store it serves, and each reader (web-backend on the journal) lists
+  a Boundaries row of Kind store with OwnerExecutor the owner and Form
+  the tables and columns it reads. It would make a
+  trace possible for a DB-reading service, since the harness serves
+  the row from its Form, and it would show meaning read off columns as
+  rows citing the sema word that retires each. Fits the data
+  sovereignty line in `../vision/primary.md`; runs counter to how
+  analysis reads the journal today, which no executor binds. Settled
+  when the first DB-reading service gets an executor.
 - `wiki/tests/test_doc_health.py` and the hub line caps in
   `base-CLAUDE.md` "Wiki essentials" assume markdown executors;
   the stamp becomes the Domain row's Status and Pass columns.

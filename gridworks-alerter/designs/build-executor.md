@@ -43,7 +43,11 @@ green against the built service over the dev broker
    trace spec's `decode:` line, and drop the line.
 6. **Replay harness.** `experiments/traces/`: replay a trace against
    the built service over the dev broker, clock driven from the trace,
-   diff the wire-out within the Reproduce column's allowance. Evidence
+   diff the wire-out within the Reproduce column's allowance. The
+   harness serves every Boundaries row of Kind http or api from its
+   Form (the registry read, Opsgenie) and records the calls as
+   wire-out; the build reaches nothing else, so a journal read fails
+   the trace. Drives the trace's events, `restart` first. Evidence
    kept as EDD requires.
 7. **Traces.** Run the convention's iteration ("Finding the traces")
    until every clause has a vector; see To-do for the ones already
@@ -59,6 +63,9 @@ green against the built service over the dev broker
   hand or are induced on the dev broker, and a field window replaces
   them once JournalKeeper journals the LTN's pings (OPS-392, the
   layout.lite 013 release).
+- A restart trace for the store axiom: the oak LTN stop window with a
+  `restart` event between the Firing and the Resolved; expected output
+  has one Firing and one Resolved.
 - A counterexample for the sema axiom: a body the snapshot refuses,
   logged and dropped, the consumer still consuming.
 - Vectors for the broker-unreachable concern: the prober's three

@@ -13,6 +13,7 @@
 
 _(every file under a `designs/` folder, anywhere in the wiki)_
 
+- (gridworks-journalkeeper) [`gridworks-journalkeeper/designs/build-executor-journalkeeper.md`](gridworks-journalkeeper/designs/build-executor-journalkeeper.md) (the second table-shaped executor: port the journalkeeper's markdown executor, list every pseudo channel as a Words row with no word, specify the journal as a served store; Draft, Linear OPS-606)
 - (gridworks-alerter) [`gridworks-alerter/designs/build-executor.md`](gridworks-alerter/designs/build-executor.md) (the alerter as the first table-shaped executor: port the pruned markdown into the twelve tables, build the checker, renderer, settings generator and replay harness, find a trace for every clause; Draft, Linear OPS-605)
 - (gridworks-alerter) [`gridworks-alerter/designs/alertmanager.md`](gridworks-alerter/designs/alertmanager.md) (a proposal: Prometheus Alertmanager as a router between the alerter and whatever triage uses; Linear OPS-547)
 - (gridworks-alerter) [`gridworks-alerter/designs/dark-channels.md`](gridworks-alerter/designs/dark-channels.md) (two alert kinds the 09-11 Millinocket power loss showed missing: a capturing node dark while the scada is heard, and a fleet-wide same-minute reboot; reads from the liveness projection; Draft, Linear OPS-570)
