@@ -39,7 +39,7 @@ Absorbed from [OPS-47](https://linear.app/gridworks/issue/OPS-47)'s checklist, g
 
 **Vocabulary**
 - Add **Sema** vocabulary for the relevant types ([OPS-47](https://linear.app/gridworks/issue/OPS-47) says "ASL" — legacy
-  for Sema; see [`glossary.md`](../../glossary.md)).
+  for Sema; see [`glossary.md`](../../conventions/glossary.md)).
 - Decide whether **Units** are an enum or a string (the str-vs-enum question,
   resolved once for the boundary).
 

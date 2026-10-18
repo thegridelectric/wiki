@@ -317,7 +317,7 @@ Status: Accepted · Pass 0 · Updated 2026-09-25 · Reviewed 2026-09-14@293b0215
 
 These interfaces and replies are the scada's command surface toward
 admin, the first built to the cross-cutting pattern
-([`../../command-surface.md`](../../command-surface.md)); the same
+([`../../command-surface.md`](../../conventions/command-surface.md)); the same
 shape serves the surface toward the LTN.
 
 A command interface is three parts: vocabulary (an event enum named by

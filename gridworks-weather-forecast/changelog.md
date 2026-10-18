@@ -310,7 +310,7 @@ layer-2 test that boots the real actor as `d1.weather` on a vanilla
 testcontainers rabbit + migrated postgres, then restarts it and
 watches interpolated replay bridge the outage.
 
-**Read API** (house pattern, canon [`api-pattern.md`](../api-pattern.md)).
+**Read API** (house pattern, canon [`api-pattern.md`](../conventions/api-pattern.md)).
 Public, read-only, thin over a `WeatherReads` seam: record listings
 + latest observation per location + latest forecast per bundle.
 Routes return the sema types themselves — byte-identical to

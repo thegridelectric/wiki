@@ -31,7 +31,7 @@ Not a runtime framework.
 the resolution target for cross-domain links to "sema"; (c) hold ratified
 design-specs in [`designs/`](designs/) and open architectural questions
 in [`explorations/`](explorations/) — per
-[`../designs-process.md`](../designs-process.md). Design *depth* for the
+[`../designs-process.md`](../conventions/designs-process.md). Design *depth* for the
 in-repo spec stays in `sema/`; the wiki holds GridWorks-side intent and
 investigations that don't belong in the language spec itself.
 
@@ -41,7 +41,7 @@ Sema concepts that consumers regularly trip over (each defers to the
 canonical definition in `sema/spec/`):
 
 - **`LeftRightDot` format word** governs `GNodeAlias` and any "grid
-  address" string — see [`../glossary.md`](../glossary.md) for the
+  address" string — see [`../glossary.md`](../conventions/glossary.md) for the
   one-line grammar; canonical definition in `sema/spec/`.
 
 ## Cross-links
@@ -51,4 +51,4 @@ canonical definition in `sema/spec/`):
   there → [`../gridworks-base/executor/codec.md`](../gridworks-base/executor/codec.md).
 - SCADA boundary types (`gwsproto`) follow Sema rules →
   [`../gridworks-scada/explorations/sema-style.md`](../gridworks-scada/explorations/sema-style.md).
-- Legacy naming `ASL` → Sema → [`../glossary.md`](../glossary.md).
+- Legacy naming `ASL` → Sema → [`../glossary.md`](../conventions/glossary.md).

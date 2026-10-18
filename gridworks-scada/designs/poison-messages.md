@@ -21,7 +21,7 @@ indefinitely.
 **The reporting compounds the problem.** The ProblemEvents and comm
 events generated *about* the flap are themselves AckRequired — they
 join the same reupload queue on the same flapping link. The failure
-reporter feeds the failure. Maxim (now in GridWorks_CLAUDE.md):
+reporter feeds the failure. Maxim (now in base-CLAUDE.md):
 **if it flaps, skip the acks.**
 
 ## What gets built

@@ -25,7 +25,7 @@ Status: Draft · Pass 0 · Updated 2026-09-10 · Linear: OPS-394
    jurisdiction is serialized JSON crossing system boundaries. So
    `scada.control.capabilities` (Sema) mirrors only the boundary-crossing
    subset (admin remote commands today; dispatch contracts someday; both
-   are rows in [`../../command-surface.md`](../../command-surface.md)). One
+   are rows in [`../../command-surface.md`](../../conventions/command-surface.md)). One
    capability vocabulary, two carriers, kept in correspondence — neither
    forced into the other. (Jessica, 2026-06-10: "not sure we want to force
    this into sema" — settled as wire-only unless revisited.)

@@ -7,17 +7,17 @@ specs those repos satisfy.
 
 > **Reference for humans — not a Claude read-path.** A Claude session is **not**
 > expected to read this README to do its work (it starts from `CLAUDE.md` /
-> [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) + [`active-claims.md`](active-claims.md)).
+> [`base-CLAUDE.md`](conventions/base-CLAUDE.md) + [`active-claims.md`](active-claims.md)).
 > So this file is human onboarding + a map of pointers — **nothing load-bearing
 > for Claude's behavior may live only here**; the operative rules live in
-> `GridWorks_CLAUDE.md` and [`designs-process.md`](designs-process.md). Because it
+> `base-CLAUDE.md` and [`designs-process.md`](conventions/designs-process.md). Because it
 > is unread by sessions, it drifts silently — when a pointer here goes stale, fix
 > it at the source and re-point.
 
 **This README is a human entry point — what's here and where to go.** For *how we
 work with Claude* and the wiki's conventions, see
-[`working-with-llms.md`](working-with-llms.md) (the authoring rules Claude
-follows live in [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md)). New to the repo?
+[`working-with-llms.md`](conventions/working-with-llms.md) (the authoring rules Claude
+follows live in [`base-CLAUDE.md`](conventions/base-CLAUDE.md)). New to the repo?
 See [Setup](#setup) for how this wiki is meant to sit in a GridWorks umbrella
 folder next to the code repos.
 
@@ -37,10 +37,10 @@ folder next to the code repos.
 | See what's actively being worked on across GridWorks | [`DESIGN_INDEX.md`](DESIGN_INDEX.md) |
 | Understand a domain's design / rebuild spec | that domain's `executor/primary.md` (see **Domains** below) |
 | **Run / spin up a service** (not just read about it) | that domain's `executor/` how-to sub-specs — e.g. run an LTN + SCADA: [`gridworks-scada/executor/running.md`](gridworks-scada/executor/running.md) |
-| Understand a ratified design that's queued / in flight | that domain's `designs/<slug>.md` (or `wiki/designs/` for cross-cutting); see [`designs-process.md`](designs-process.md) for the lifecycle |
-| Understand the conventions / how we work with Claude | [`working-with-llms.md`](working-with-llms.md) (+ [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) for the rules) |
+| Understand a ratified design that's queued / in flight | that domain's `designs/<slug>.md` (or `wiki/designs/` for cross-cutting); see [`designs-process.md`](conventions/designs-process.md) for the lifecycle |
+| Understand the conventions / how we work with Claude | [`working-with-llms.md`](conventions/working-with-llms.md) (+ [`base-CLAUDE.md`](conventions/base-CLAUDE.md) for the rules) |
 | Edit safely while other sessions are running | [`active-claims.md`](active-claims.md) — claim your area, start from a clean tree |
-| Look up a term or a legacy→current name | [`glossary.md`](glossary.md) |
+| Look up a term or a legacy→current name | [`glossary.md`](conventions/glossary.md) |
 | Rebuild / understand gridworks-base | [`gridworks-base/executor/primary.md`](gridworks-base/executor/primary.md) |
 | Find / understand the LTN (per-house transactive agent) | [`gridworks-ltn/executor/primary.md`](gridworks-ltn/executor/primary.md) — code currently lives in `gridworks-scada/gw_spaceheat/actors/ltn/`, not a standalone repo |
 | Understand Sema | [`sema/primary.md`](sema/primary.md) → the in-repo spec it points to |
@@ -59,15 +59,15 @@ Within each `wiki/<domain>/`:
 - `explorations/` — open architectural questions still under investigation.
 - `research/` (loose md) — raw notes, pre-spec thinking, principles.
 - `designs/<slug>.md` — ratified design-specs that haven't shipped yet
-  (lifecycle in [`designs-process.md`](designs-process.md); status tracked by
+  (lifecycle in [`designs-process.md`](conventions/designs-process.md); status tracked by
   Linear once wired).
 - `changelog.md` — one entry per commit; *why* + brief *what*, paired with the
   commit title.
 
 Cross-cutting / tooling design-specs live at the wiki root in
 [`designs/`](designs/), alongside meta convention docs like
-[`designs-process.md`](designs-process.md) and
-[`linear.md`](linear.md).
+[`designs-process.md`](conventions/designs-process.md) and
+[`linear.md`](conventions/linear.md).
 
 ## Domains
 
@@ -96,12 +96,12 @@ design area.
 ## Cross-cutting
 
 - [`DESIGN_INDEX.md`](DESIGN_INDEX.md) — L0 hub of active work: current `designs/` entries across all domains, open explorations, conventions. Read this every session.
-- [`designs-process.md`](designs-process.md) — the `designs/` lifecycle (status stamps, Pass discipline, fractal expansion, when to ship/distill to `executor/`).
-- [`linear.md`](linear.md) — how GridWorks uses Linear: the split, labels, the design↔issue bijection, Projects, cap-8.
-- [`working-with-llms.md`](working-with-llms.md) — how we work with Claude and the wiki conventions: how Claude operates, source precedence, the maturity-stamp dial, signaling vocabulary, the research→executor loop, memory-vs-wiki. The *why* behind the conventions.
-- [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) — the canonical `CLAUDE.md` for the umbrella directory: the rules Claude follows, incl. the wiki authoring conventions ("Wiki essentials") and source precedence (see Setup).
-- [`glossary.md`](glossary.md) — vocabulary + legacy→current naming (`atn`→LTN, `ASL`→Sema); defers to Sema for formal types.
-- [`active-claims-template.md`](active-claims-template.md) — the committed multi-session coordination protocol (your live working copy is the gitignored `active-claims.md`).
+- [`designs-process.md`](conventions/designs-process.md) — the `designs/` lifecycle (status stamps, Pass discipline, fractal expansion, when to ship/distill to `executor/`).
+- [`linear.md`](conventions/linear.md) — how GridWorks uses Linear: the split, labels, the design↔issue bijection, Projects, cap-8.
+- [`working-with-llms.md`](conventions/working-with-llms.md) — how we work with Claude and the wiki conventions: how Claude operates, source precedence, the maturity-stamp dial, signaling vocabulary, the research→executor loop, memory-vs-wiki. The *why* behind the conventions.
+- [`base-CLAUDE.md`](conventions/base-CLAUDE.md) — the canonical `CLAUDE.md` for the umbrella directory: the rules Claude follows, incl. the wiki authoring conventions ("Wiki essentials") and source precedence (see Setup).
+- [`glossary.md`](conventions/glossary.md) — vocabulary + legacy→current naming (`atn`→LTN, `ASL`→Sema); defers to Sema for formal types.
+- [`active-claims-template.md`](conventions/active-claims-template.md) — the committed multi-session coordination protocol (your live working copy is the gitignored `active-claims.md`).
 
 ## Setup
 
@@ -110,10 +110,12 @@ the sibling code repos, with the umbrella as the working root:
 
 ```
 GridWorks/                      ← umbrella (NOT a git repo); launch Claude here
-├── CLAUDE.md                   → symlink to wiki/GridWorks_CLAUDE.md
+├── CLAUDE.md                   → symlink to wiki/conventions/base-CLAUDE.md
 ├── wiki/                       ← this repo (github.com/thegridelectric/wiki)
-│   ├── GridWorks_CLAUDE.md     ← canonical umbrella CLAUDE.md (version-controlled)
-│   ├── README.md  working-with-llms.md  glossary.md  active-claims-template.md
+│   ├── README.md  DESIGN_INDEX.md  active-claims.md
+│   ├── conventions/            ← base-CLAUDE.md (the umbrella CLAUDE.md, version-controlled),
+│   │                             executor-CLAUDE.md, glossary, designs process, Linear, patterns
+│   ├── rulebook/               ← the no-code half: reasoning behind the executors
 │   └── <domain>/ …
 ├── gridworks-base/             ← sibling code repo
 ├── gridworks-scada/            ← sibling code repo
@@ -125,7 +127,7 @@ To set up a machine:
 
 1. Make the umbrella folder; clone the sibling repos **and this wiki** into it.
 2. Point the umbrella's `CLAUDE.md` at this repo's canonical copy:
-   `cd GridWorks && ln -s wiki/GridWorks_CLAUDE.md CLAUDE.md` (symlink preferred;
+   `cd GridWorks && ln -s wiki/conventions/base-CLAUDE.md CLAUDE.md` (symlink preferred;
    copy works too).
 3. **Wire up the hooks.** All ship as scripts under
    [`tools/`](tools/); each script's top-of-file comment explains what
@@ -219,8 +221,8 @@ To set up a machine:
 
 **Why a symlink:** the umbrella folder isn't version-controlled, so its
 `CLAUDE.md` can't be shared on its own. Keeping the canonical copy here as
-`GridWorks_CLAUDE.md` and symlinking makes it shareable and drift-free. Claude
+`base-CLAUDE.md` and symlinking makes it shareable and drift-free. Claude
 Code **auto-loads `CLAUDE.md`** every session (walking up parent directories);
 it does **not** auto-load `AGENTS.md` — so the canonical file must be a
-`CLAUDE.md`. (`GridWorks_CLAUDE.md` is just its version-controlled home; the
+`CLAUDE.md`. (`base-CLAUDE.md` is just its version-controlled home; the
 symlink gives it the name Claude reads.)

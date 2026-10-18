@@ -2,8 +2,8 @@
 
 Status: Accepted · Pass 2 · Updated 2026-10-04
 
-> Canonical at `wiki/GridWorks_CLAUDE.md`; symlink setup in
-> [`README.md`](README.md#setup). Paths are relative to the umbrella dir
+> Canonical at `wiki/conventions/base-CLAUDE.md`; symlink setup in
+> [`README.md`](../README.md#setup). Paths are relative to the umbrella dir
 > (parent of `wiki/` + the sibling code repos: `gridworks-base`,
 > `gridworks-scada`, `sema`, …). The wiki holds the durable thinking and the
 > **rebuild specifications** for each domain — start at
@@ -111,10 +111,11 @@ was loaded, not worked from memory. Ephemeral coordination (session names,
   the read-receipt is the list of words promoted, bottom-up, and
   `sema promote` is the gate.
 - **Executor:** before writing or editing any `wiki/<domain>/executor/`
-  doc, Read [`wiki/executor-CLAUDE.md`](wiki/executor-CLAUDE.md): the bar
-  (a rebuild from the executor plus the vocabulary alone), the order of a
-  hub and a spoke, pointers that do not rot, the adversarial pass, the
-  drift checks.
+  file, Read [`wiki/conventions/executor-CLAUDE.md`](executor-CLAUDE.md),
+  the recipe: the bar (a rebuild from the executor plus the vocabulary
+  alone), the tables, the prose rules, the trace iteration, the
+  adversarial pass. A session whose Focus is an executor starts with
+  `wiki/tools/build-executor.sh`, which appends the recipe.
 - **Scada:** before editing `gridworks-scada` (gwsproto above all), Read
   [`wiki/gridworks-scada/CLAUDE.md`](wiki/gridworks-scada/CLAUDE.md) and
   follow it.
@@ -571,7 +572,7 @@ issues assigned to me in a started state. Every design file carries a stamp;
 `executor/`; delete the design file; finalize the issue (strip the design
 link, short final-writeup comment, Done). **Designs are ephemeral, so
 NOTHING may link to or name a design file** (sole exception:
-[`DESIGN_INDEX.md`](DESIGN_INDEX.md)); reference other work by its **Linear
+[`DESIGN_INDEX.md`](../DESIGN_INDEX.md)); reference other work by its **Linear
 issue**, where relationship narrative (depends-on, sequencing, supersedes)
 also lives. Full convention: [`designs-process.md`](designs-process.md);
 Linear interface: [`linear.md`](linear.md).

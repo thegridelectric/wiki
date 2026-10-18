@@ -5,14 +5,14 @@ Status: Draft · Pass 0 · Updated 2026-06-06
 > the actor commits to, what it receives, structural commitments,
 > and operational boundaries with the other actors. See
 > [`primary.md`](primary.md) for the hub and
-> [`glossary.md`](glossary.md) for the canonical vocabulary.
+> [`glossary.md`](../../conventions/glossary.md) for the canonical vocabulary.
 
 ## Customer
 
 The homeowner enrolled in a TaAggregator's customer book with an
 installed heat-pump thermal storage system. As the owner of the
 TerminalAsset, the Customer is a **TaOwner** (see
-[`glossary.md`](glossary.md)) — that role-name is used in the
+[`glossary.md`](../../conventions/glossary.md)) — that role-name is used in the
 glossary and in CEP-side exclusivity rules; in this actors spec
 we use "Customer" for the broader homeowner identity that includes
 the TaOwner role plus the CEP-customer relationship.

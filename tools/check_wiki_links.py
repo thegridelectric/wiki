@@ -8,7 +8,7 @@ The following are intentionally NOT danglers and are skipped:
   - external links (http(s)://, mailto:, protocol-relative, pure #anchors)
   - cross-repo / out-of-wiki links (resolve to a path outside the wiki root)
   - `wiki/`-prefixed targets (authored relative to the umbrella dir, e.g. the
-    symlinked GridWorks_CLAUDE.md)
+    symlinked base-CLAUDE.md)
   - links immediately followed by an `(Open)` or `(TBD)` marker — the
     hub-and-spoke convention's planned-but-unwritten spokes
   - links inside inline code spans or fenced code blocks (examples/placeholders

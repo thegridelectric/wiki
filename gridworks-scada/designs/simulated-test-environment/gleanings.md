@@ -211,7 +211,7 @@ and assert it decodes clean. A green decode is a *guarantee* the two carriers ag
   (`make_imaginary_layout.py`) is the seed tooling (instance ids unique, device-type
   ids canonical/shared).
 - **Deferred canonization (NOT before the harness works):** add one or two lines to
-  `GridWorks_CLAUDE.md` defining **Verified as run against the test harness**, with a
+  `base-CLAUDE.md` defining **Verified as run against the test harness**, with a
   longer document about what full test-harness runs mean. Canonize only after the
   sprint finishes.
 - **Finish `gw1.scada.device.type.gt` — a spruce-untangle dependency.** The

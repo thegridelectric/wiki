@@ -8,7 +8,7 @@ green against the built service over the dev broker
 (`experiments/traces/`).
 
 > What this is: the alerter as the first instance of the table-shaped
-> executor convention (`executor-CLAUDE.md`). The pruned markdown in
+> executor convention (`conventions/executor-CLAUDE.md`). The pruned markdown in
 > `executor/` (four files, 448 lines) becomes the twelve tables, one
 > YAML file each; the tooling the convention lists as missing is built
 > here; and the trace for every clause is found by the convention's

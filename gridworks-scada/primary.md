@@ -4,9 +4,9 @@ Status: Draft · Pass 0 · Updated 2026-06-23
 
 Start here for the `gridworks-scada` domain. Wiki-wide conventions (folder
 structure, hub-and-spoke, living-spec discipline) live in
-[`../GridWorks_CLAUDE.md`](../GridWorks_CLAUDE.md); how-we-work-with-Claude
+[`../base-CLAUDE.md`](../conventions/base-CLAUDE.md); how-we-work-with-Claude
 (memory-vs-wiki, source precedence) is in
-[`../working-with-llms.md`](../working-with-llms.md). This file does not repeat
+[`../working-with-llms.md`](../conventions/working-with-llms.md). This file does not repeat
 them.
 
 > **Goal:** continuously clean up the SCADA until it is code that LLMs and
@@ -33,6 +33,6 @@ discovery effort over legacy code.
 
 ## Cross-references
 
-- Legacy naming (e.g. `atn`→LTN) is canon in [`../glossary.md`](../glossary.md).
+- Legacy naming (e.g. `atn`→LTN) is canon in [`../glossary.md`](../conventions/glossary.md).
 - Transport: DECIDED 2026-06-11 — the LTN SHALL be gwbase (rabbit-native); the scada↔LTN link mechanism gets redone. Findings + critique: [`executor/scada-ltn-link-state.md`](executor/scada-ltn-link-state.md) ↔ [`../gridworks-base/executor/primary.md`](../gridworks-base/executor/primary.md).
 - mTLS / connection authority: [`../gridworks-fleet-index-service/`](../gridworks-fleet-index-service/).

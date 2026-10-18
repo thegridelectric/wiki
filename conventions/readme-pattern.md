@@ -4,10 +4,10 @@ Status: Draft · Pass 0 · Updated 2026-10-18
 
 > What this is: how a GridWorks code repo's `README.md` is written. The
 > README is the one document in a repo for a person, it stands alone,
-> and it does not cite the wiki (`GridWorks_CLAUDE.md` "Repos do not
+> and it does not cite the wiki (`base-CLAUDE.md` "Repos do not
 > know about the wiki"). It is finalized before the domain's executor
 > is built, since the executor's Domain Summary is copied from it
-> (`executor-CLAUDE.md` "README first").
+> (`conventions/executor-CLAUDE.md`).
 
 ## Two parts, in this order
 

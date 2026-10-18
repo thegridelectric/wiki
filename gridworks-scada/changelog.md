@@ -5489,7 +5489,7 @@ the `Literal[0,1]`/`Literal[1,2]` shortcuts — covering `BitValueRange` (write.
 
 **Why:** the configs are the per-chip descriptors the board (Batch 3) composes; the `PascalCase` format
 keeps device/bus names wire-conformant rather than free `str`; axioms-as-methods is the standing rule
-(see `GridWorks_CLAUDE.md`) — value-range constraints belong in a numbered `check_axiom_n` that mirrors
+(see `base-CLAUDE.md`) — value-range constraints belong in a numbered `check_axiom_n` that mirrors
 the sema axiom, not buried in a `Literal`, so the gwsproto producer and the sema runtime enforce the
 same contract. Each type's emitted payload was confirmed against the sema runtime (`sema validate`)
 before its example was added schema-side. ([OPS-407](https://linear.app/gridworks/issue/OPS-407).)

@@ -12,7 +12,7 @@ Status: Draft · Pass 0 · Updated 2026-05-30
 > `alert_generator` consumer pattern). Once the design ratifies,
 > its distillate updates `executor/primary.md` and this file is
 > deleted per
-> [`../../designs-process.md`](../../designs-process.md).
+> [`../../designs-process.md`](../../conventions/designs-process.md).
 
 ## Motivation
 
@@ -348,5 +348,5 @@ flexibly per gwbase release planning.
   receive the lift into sema's `observability.problem-event/000`
 - `gridworks-infra/observability/` — source of the planning content
   + the canonical 10-alert reference
-- [`../../designs-process.md`](../../designs-process.md) —
+- [`../../designs-process.md`](../../conventions/designs-process.md) —
   design-spec lifecycle convention this design follows

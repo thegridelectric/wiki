@@ -4,7 +4,7 @@ Status: Draft · Pass 0 · Updated 2026-06-13
 
 > What this is: how design-specs live in the wiki across all domains.
 > Companion: [`linear.md`](linear.md) for the Linear interface. Aggregated
-> live view: [`DESIGN_INDEX.md`](DESIGN_INDEX.md).
+> live view: [`DESIGN_INDEX.md`](../DESIGN_INDEX.md).
 
 ## The design loop — behave this way on every design
 
@@ -42,7 +42,7 @@ repeated. Beats 1–2 are general to *any* design; beat 3 is where EDD specializ
    it appears — a design spoke, an OFI in the spec, an `executor/` fact, an
    experiments-logbook entry — so it survives the session without derailing the
    current move. Homes, not a phantom task list: reference only things the user
-   can open (GridWorks_CLAUDE "No phantom references").
+   can open (base-CLAUDE "No phantom references").
 2. **Refactor the knowledge — take a breath.** Periodically stop and consolidate;
    knowledge gets refactored like code. Reconcile the sediment a long conversation
    leaves (layered decisions, superseded sketches), route danglers into spokes,
@@ -66,14 +66,14 @@ else.** No one-line summary of the spoke, no "next tasks", no rationale, no
 convention reminder. One line, like this:
 
 ```
-**▶ Active spoke: [`build-plant.md`](build-plant.md)**
+**▶ Active spoke: [`build-plant.md`](../build-plant.md)**
 ```
 
 **NOT** like this — every clause here belongs in the spoke (or in this doc), not
 the hub:
 
 ```
-**▶ Active spoke: [`build-plant.md`](build-plant.md)** — build + prove the comms
+**▶ Active spoke: [`build-plant.md`](../build-plant.md)** — build + prove the comms
 loop (gwta plant emits `sim.plant.flux` ↔ scada SimSensor/SimRelay). Next tasks:
 the device-type upgrade, then Phase A…
 
@@ -136,7 +136,7 @@ section's capture → refactor → re-orient *rhythm* is general to all design w
 
 Right under the `Status:` stamp the hub **self-declares EDD-or-not** — a bold
 `**EDD: yes**` / `**EDD: no**` followed by the verifying clause (no separator
-hyphen), per GridWorks_CLAUDE "Experiment-Driven Design (EDD)" — the verification
+hyphen), per base-CLAUDE "Experiment-Driven Design (EDD)" — the verification
 bar before the plan.
 
 Write the hub so the **next agent can open it and immediately act**. Order it:
@@ -160,7 +160,7 @@ Write the hub so the **next agent can open it and immediately act**. Order it:
 **Keep ephemeral coordination OUT of the hub (and out of every design doc).** No
 session names (`warm-thorn`, `rosy-beaver`), no "another session" / "this
 session" / "this session owns X", no "BLOCKED" banner. Who-holds-what lives in
-[`active-claims.md`](active-claims.md); doing-vs-todo status lives in Linear.
+[`active-claims.md`](../active-claims.md); doing-vs-todo status lives in Linear.
 Two reasons: that state is stale the moment a claim clears, and a
 "do this now → BLOCKED" hub is *worse than none* — it stalls the next agent
 instead of enabling it. If the work is genuinely blocked, the next agent learns

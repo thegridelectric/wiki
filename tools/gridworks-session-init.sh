@@ -58,7 +58,7 @@ TODAY=$(date +%Y-%m-%d)
 # Bootstrap active-claims.md from the committed template (single source of
 # truth for the protocol bullets). The template lives next to the hook in the
 # wiki repo, so this works for any collaborator who clones the wiki.
-TEMPLATE="$GW/wiki/active-claims-template.md"
+TEMPLATE="$GW/wiki/conventions/active-claims-template.md"
 if [ ! -f "$ACTIVE_CLAIMS" ] || ! grep -q '^| Session ' "$ACTIVE_CLAIMS"; then
   mkdir -p "$(dirname "$ACTIVE_CLAIMS")"
   cp "$TEMPLATE" "$ACTIVE_CLAIMS"

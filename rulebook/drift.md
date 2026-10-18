@@ -60,7 +60,7 @@ A finding names a divergence; the domain's Status says which side is
 the suspect. In a Verified domain the executor is the contract and
 the code is corrected. In a Draft or Accepted domain the code wins
 and the executor is corrected. This is the umbrella's source
-precedence (`../GridWorks_CLAUDE.md` "Source precedence") applied to
+precedence (`../conventions/base-CLAUDE.md` "Source precedence") applied to
 one finding.
 
 ## Open

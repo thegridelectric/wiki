@@ -1,7 +1,7 @@
 #!/bin/bash
 # precheck-sema-aligned.sh — PreToolUse (Edit|Write) advisory. When a
 # .py file is edited in a sema-consuming repo, inject the sema-aligned
-# coding maxim once per day per repo (GridWorks_CLAUDE.md "Sema is
+# coding maxim once per day per repo (base-CLAUDE.md "Sema is
 # mandatory at every durable-data and inter-app boundary").
 #
 # A repo counts as sema-consuming when it carries a vendored snapshot
@@ -28,7 +28,7 @@ MARKER="${TMPDIR:-/tmp}/gw-sema-aligned-$(date +%Y%m%d)-$NAME"
 touch "$MARKER"
 
 cat <<EOF
-Sema-aligned coding (GridWorks_CLAUDE.md maxim) — this repo speaks sema:
+Sema-aligned coding (base-CLAUDE.md maxim) — this repo speaks sema:
 - durable data and inter-app messages ride generated snapshot classes,
   never hand-built dicts
 - vocabulary-shaped values take property formats (SpaceheatName,

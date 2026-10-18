@@ -5,7 +5,7 @@ Status: Draft · Pass 0 · Updated 2026-06-13
 > **Reference for humans — not an operative spec.** For humans (Jessica +
 > collaborators) to understand *how* we work with Claude on GridWorks and *why*
 > the wiki is built the way it is. This is the **rationale**; the operative rules
-> Claude actually follows live in [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) and
+> Claude actually follows live in [`base-CLAUDE.md`](base-CLAUDE.md) and
 > [`designs-process.md`](designs-process.md). A Claude session is **not** expected
 > to read this to do its work — so nothing load-bearing for Claude's behavior may
 > live only here. Written as Claude's own honest self-reflection on its operation,
@@ -53,7 +53,7 @@ Status: Draft · Pass 0 · Updated 2026-06-13
 ## How we steer it
 
 **Source precedence.** When sources conflict, Claude resolves them by an explicit
-hierarchy in [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) ("Source precedence").
+hierarchy in [`base-CLAUDE.md`](base-CLAUDE.md) ("Source precedence").
 In short: *your explicit instruction now* > *verified wiki specs + code/tests* >
 *converging/inferred wiki research* > *ad-hoc research* > *Claude's own earlier
 statements*.
@@ -61,7 +61,7 @@ statements*.
 **The dial is the maturity stamp.** A doc/section carries a status stamp —
 maturity (`Draft → Accepted → Verified`), pass count (`Pass N`), and freshness
 (`Updated` / `Reviewed`); the operative definition is in
-[`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) ("Status stamps"). A domain's
+[`base-CLAUDE.md`](base-CLAUDE.md) ("Status stamps"). A domain's
 authority rises as its maturity climbs; to make Claude trust the wiki more for a
 domain, mark it `Verified`; to demote a claim, mark it `Draft`. As the wiki earns
 semantic clarity you flip stamps and it *automatically* climbs the precedence —
@@ -71,7 +71,7 @@ docs-as-code freshness; the pass count is ours — see Prior art below.)
 
 **In-conversation signaling.** Two lightweight verbs tell Claude how much a
 statement should weigh (operative list in
-[`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md)):
+[`base-CLAUDE.md`](base-CLAUDE.md)):
 
 - **canonize** ("for the record", "ratify") → durable; Claude writes it into the
   wiki.
@@ -90,7 +90,7 @@ context for the rest of the session. And check coupling: route independent
 fan-out work to a `Workflow` (or a fresh lean session) rather than running it
 inline in an already-heavy context; reserve inline for tightly-coupled work that
 shares one mental model. A `PreToolUse` hook
-([`tools/spawn-economy-nudge.sh`](tools/spawn-economy-nudge.sh)) fires this
+([`tools/spawn-economy-nudge.sh`](../tools/spawn-economy-nudge.sh)) fires this
 reminder once per session on the first broad-looking spawn.
 
 ## The design loop & the EDD working rhythm → designs-process
@@ -102,7 +102,7 @@ design loop — behave this way on every design" (2026-06-13), so the behavior
 lives next to the hub layout it produces and is the one place a design session
 reads. That section also carries the rule that the **hub only points to the
 active spoke** (it never restates the "do this next"). EDD's verification bar
-itself stays in GridWorks_CLAUDE "Experiment-Driven Design (EDD)".
+itself stays in base-CLAUDE "Experiment-Driven Design (EDD)".
 
 ## Where new facts go: memory vs. the wiki
 
@@ -173,7 +173,7 @@ report.
   `explorations/`. Shipped designs distill into `executor/`. See
   [`designs-process.md`](designs-process.md) +
   [`linear.md`](linear.md) +
-  live view at [`DESIGN_INDEX.md`](DESIGN_INDEX.md).
+  live view at [`DESIGN_INDEX.md`](../DESIGN_INDEX.md).
 - Whether "looking for trouble" stays the name.
 - Validate by running one real walk before promoting past Draft.
 
@@ -191,7 +191,7 @@ Concretely, the apparatus pays off because:
   cross-language faithfulness, simulators, eventual rewrites), not overhead.
 
 The payoff is conditional on keeping specs in sync (the living-spec discipline
-in [`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md)) — a drifted spec is worse than
+in [`base-CLAUDE.md`](base-CLAUDE.md)) — a drifted spec is worse than
 none.
 
 ## Repos stand alone; the wiki is a supportive wrapper
@@ -203,14 +203,14 @@ specs) for Claude and for deep design work, but someone using a repo should
 never need to read the wiki to understand that repo. The operative rule and its
 two exemptions — the wiki's own `README.md`, and a repo's `CLAUDE.md` (which is
 Claude-facing and *may* point to the wiki) — are in
-[`GridWorks_CLAUDE.md`](GridWorks_CLAUDE.md) under "Write boundary."
+[`base-CLAUDE.md`](base-CLAUDE.md) under "Write boundary."
 
 ## Karan's commit rules (reference — not what we're doing yet)
 
 > These are conventions Karan uses with his Claude sessions, where Claude is
 > trusted to do its own commits and merges within guardrails. **We are
 > currently more conservative — Jessica does all commits; Claude only
-> *suggests* them** (see `GridWorks_CLAUDE.md` "Commit suggestions"). Kept here
+> *suggests* them** (see `base-CLAUDE.md` "Commit suggestions"). Kept here
 > as a reference for when/if we loosen that.
 
 **Plan before coding.** Before writing any code, analyze the current
@@ -252,7 +252,7 @@ not theoretical.)
 - **Lean carried context file** — the community caps `CLAUDE.md` well under a few
   hundred lines (some say <150); ours is ~120.
 - **2–5 parallel agents** as the sweet spot, coordinated by a shared file —
-  exactly our [`active-claims.md`](active-claims.md) layer. (`AGENTS.md` is the
+  exactly our [`active-claims.md`](../active-claims.md) layer. (`AGENTS.md` is the
   cross-tool variant of that shared file, but Claude Code only *auto-loads*
   `CLAUDE.md`.)
 - **Freshness** via "last reviewed" stamps + git-commit dates + flag-stale review

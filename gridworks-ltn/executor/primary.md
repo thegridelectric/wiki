@@ -139,7 +139,7 @@ matures.)
    dispatch contract), across from admin, and out to the homeowner. The
    LTN is the single writer of dispatch and mode to the scada; every
    other party's intent reaches the scada by the LTN translating it.
-   Pattern: [`../../command-surface.md`](../../command-surface.md).
+   Pattern: [`../../command-surface.md`](../../conventions/command-surface.md).
 
 ## Homeowner command surface
 

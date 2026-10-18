@@ -20,7 +20,7 @@ never part of it: the LTN stays the scada's one normal writer, and a
 homeowner's setpoint never comes here: it is a command on the surface
 the LTN offers the homeowner
 ([OPS-408](https://linear.app/gridworks/issue/OPS-408); the pattern every
-such surface follows: [`../../command-surface.md`](../../command-surface.md)).
+such surface follows: [`../../command-surface.md`](../../conventions/command-surface.md)).
 
 ## Motivation
 
@@ -63,7 +63,7 @@ Operation surface (per `gw_spaceheat/actors/scada.py:78-82, 287-487`):
 | `PushLayout` — hardware-layout reconfig | Defer |
 
 The method is the TypeName. There is no method slot in any routing
-key, on any carrier ([`../../api-pattern.md`](../../api-pattern.md)
+key, on any carrier ([`../../api-pattern.md`](../../conventions/api-pattern.md)
 "Route grammar", gwbase `transport.md` "Routing-key grammar").
 
 ### What admin is NOT
@@ -183,7 +183,7 @@ there so that only the carrier changes later.
 
 Operation contracts are typed request, typed response, idempotent
 where possible, one audit event per call, whatever the carrier
-([`../../command-surface.md`](../../command-surface.md) rule 10). See
+([`../../command-surface.md`](../../conventions/command-surface.md) rule 10). See
 [`../explorations/when-to-add-grpc.md`](../explorations/when-to-add-grpc.md)
 for the gRPC question.
 
@@ -192,7 +192,7 @@ for the gRPC question.
 Status: Verified · Pass 1 · Updated 2026-09-25 · Reviewed 2026-09-08@ea3365b5
 
 This is the scada's command surface toward admin, the first built to the
-cross-cutting pattern ([`../../command-surface.md`](../../command-surface.md)).
+cross-cutting pattern ([`../../command-surface.md`](../../conventions/command-surface.md)).
 
 The `gwa` TUI learns what it can operate from
 **`scada.control.capabilities`**, published by the scada on link-up
@@ -235,7 +235,7 @@ the cycler under five-v-boss) declares none, and the client matches
 its `single.machine.state` against an empty string, special-casing
 `relay.pin` (`watch/clients/relay_client.py:185`, `:264`). It renders,
 not by contract; the shape and its fix are in
-[`../../command-surface.md`](../../command-surface.md) "Rows and
+[`../../command-surface.md`](../../conventions/command-surface.md) "Rows and
 vocabularies".
 
 **What a row offers.** The panel shows a subset of the interface's
@@ -337,7 +337,7 @@ state report.
    Tailscale stops carrying admin. Design:
    [OPS-429](https://linear.app/gridworks/issue/OPS-429).
 4. **Read-only views**, when wanted, come through the public read
-   façade ([`../../api-pattern.md`](../../api-pattern.md)), no
+   façade ([`../../api-pattern.md`](../../conventions/api-pattern.md)), no
    session. A browser front for control is not planned.
 
 ## Open

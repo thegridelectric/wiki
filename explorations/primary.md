@@ -11,7 +11,7 @@ Status: Draft · Pass 0 · Updated 2026-06-07
 
 An *exploration* is an open question still being figured out — a curiosity /
 uncertainty surface, not a worry (this is the renamed `concern`; see
-[`glossary.md`](../glossary.md) "Where content lives"). It is not a ratified
+[`glossary.md`](../conventions/glossary.md) "Where content lives"). It is not a ratified
 plan (that's a `design`), not a settled pattern (that's `executor/`), and not
 workflow state (that's Linear). When clarity emerges, an exploration graduates
 into a design via `/grill-me`.

@@ -192,7 +192,7 @@ Two temporary directives were added 2026-06-12; remove each when its condition
 is met:
 
 1. **Plant simplicity** (in `wiki/gridworks-scada/CLAUDE.md`; moved out of
-   `GridWorks_CLAUDE.md` 2026-07-04) — "keep the terminalasset plant as simple
+   `base-CLAUDE.md` 2026-07-04) — "keep the terminalasset plant as simple
    as possible … and no simpler; when in doubt err simpler and leave a
    question." **Remove once the plant MVP (Phase A comms pipe + best-guess
    physics) is working.**

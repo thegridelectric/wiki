@@ -21,7 +21,7 @@ residential heating installations. It does five things:
 
 1. Tracks the state of a **DispatchContract** it can hold with its
    LeafTransactiveNode (LTN; legacy name `Atn`/`AtomicTNode` — see
-   [`../../glossary.md`](../../glossary.md)).
+   [`../../glossary.md`](../../conventions/glossary.md)).
 2. While the contract exists and is in `RemoteControl`, sends sensing data
    upstream: compressed state (~temperature) every ~5 min, async power-on-change,
    and diagnostics.

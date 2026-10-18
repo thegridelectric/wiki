@@ -55,7 +55,7 @@ grid map by agreeing on shared GNode aliases.
 layers of constraints we don't control (ISO-NE Tariff III.6.4,
 FERC Orders 745 / 2222, Maine MPUC Chapter 305 / 322) and makes
 specific GridWorks design choices within them. See
-[`glossary.md`](glossary.md) for vocabulary partitioned by
+[`glossary.md`](../../conventions/glossary.md) for vocabulary partitioned by
 ownership.
 
 ## The seven actors (one-line summary)
@@ -82,7 +82,7 @@ and what each commits to.
 
 ## Glossary
 
-See [`glossary.md`](glossary.md). Five sections:
+See [`glossary.md`](../../conventions/glossary.md). Five sections:
 
 1. **GridWorks vocabulary (active)** — GridWorks-coined and
    GridWorks-controlled terms. We define and refine these.
@@ -426,7 +426,7 @@ with worked example.
 
 Core (defines the architecture):
 
-- [`glossary.md`](glossary.md) — canonical terms, organized by ownership
+- [`glossary.md`](../../conventions/glossary.md) — canonical terms, organized by ownership
 - [`actors.md`](actors.md) — seven-actor definitions
 - [`cleared-market.md`](cleared-market.md) — market clearing mechanics
 - [`value-flow.md`](value-flow.md) — money flow, who pays whom, worked example

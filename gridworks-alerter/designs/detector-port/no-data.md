@@ -55,7 +55,7 @@ decodes green once the executor's seed snapshot is rebuilt from that.
 5. Watch one more week. The alerter's `NoData` is then the only no-data
    page, and the kind is Verified when the shadow week is clean and the
    trace replays green against the alerter (the bar in
-   `wiki/executor-CLAUDE.md`; the replay harness under
+   `wiki/conventions/executor-CLAUDE.md`; the replay harness under
    `experiments/traces/` is still to be written).
 
 ## What stays a page at scale

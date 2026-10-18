@@ -532,7 +532,7 @@ Locked design choices (not parameters):
 
 - [`design.md`](design.md) — this file. Overall design + temperature stack
   + cost ledger + parameter list.
-- [`glossary.md`](glossary.md) — definitions for k, CLSM, UA, LMTD, NTU,
+- [`glossary.md`](../../../conventions/glossary.md) — definitions for k, CLSM, UA, LMTD, NTU,
   the Δ-margins, hydronic-schematic labels, and project-specific names.
 - [`simulator-agent.md`](simulator-agent.md) — design for packaging the
   thermal-store model as a SEMA-conformant SCADA actor on the local MQTT

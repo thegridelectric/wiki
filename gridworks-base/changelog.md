@@ -357,7 +357,7 @@ what a downstream repo does with a hook goes stale here. The "ear-tap"
 metaphor and the `ear_tx` fabric entity stay: gwbase's own vocabulary.
 Comment-only plus fixture renames; no behavior change.
 
-**Why:** the canonized principle (GridWorks_CLAUDE.md "Repos do not know
+**Why:** the canonized principle (base-CLAUDE.md "Repos do not know
 about the wiki"): the only references to wiki files are in the wiki
 itself — the wiki points at code (`file:line`); code never points back.
 Supersedes the interim § → header-slug rewrite from earlier the same day,
@@ -506,7 +506,7 @@ new exchanges; tests provision the fabric from `gwbase.topology` directly.
 **What (planned):** removed unused `Optional` imports from `actor_base.py`,
 `orchestrator.py`, `tests/_stubs.py` (F401) + reformatted; changed the CI/`ci.sh`
 lint step to `uv run ruff check --no-fix .`. Also **removed the per-repo
-`CLAUDE.md`** (the umbrella `wiki/GridWorks_CLAUDE.md` is the only Claude-facing
+`CLAUDE.md`** (the umbrella `wiki/conventions/base-CLAUDE.md` is the only Claude-facing
 doc — no sub-repo CLAUDE.md) and moved the `fix=true` / run-`ci.sh` note into the
 README's "Environment gotchas".
 

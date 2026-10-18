@@ -154,7 +154,7 @@ holds ARE this state, informally; hack parity = commanding
 Bosses (LocalControl, the LTN↔Scada surface, admin) command
 GOVERNANCE, not postures. A homeowner's app is never a boss here: the
 LTN takes the setpoint on its own surface and commands governance
-([`../../../command-surface.md`](../../../command-surface.md) rule 7).
+([`../../../command-surface.md`](../../../conventions/command-surface.md) rule 7).
 The command is `SetGovernance`, of
 (circuit handle, event, `SetpointF?`), axiom: `SetpointF` present ⇔
 event is `SwitchToThermostatic`. Takeover works uniformly on every

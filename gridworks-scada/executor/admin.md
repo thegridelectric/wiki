@@ -16,7 +16,7 @@ Scada-side facts (the seam, not the domain):
   address, built from the layout's handles
   (`gw_spaceheat/actors/scada.py:1692`). The word and what the client
   reads from it: gridworks-admin executor "The capabilities contract";
-  the pattern it follows: [`../../command-surface.md`](../../command-surface.md).
+  the pattern it follows: [`../../command-surface.md`](../../conventions/command-surface.md).
 - Relay and command-node `single.machine.state` is forwarded to the
   admin link (`scada.py:1556`), as are relay and 0-10V `single.reading`.
 - The admin handlers live in `scada.py` (`AdminDispatch` /

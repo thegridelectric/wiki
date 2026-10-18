@@ -1,4 +1,4 @@
-"""Wiki health checks — enforce the conventions in GridWorks_CLAUDE.md.
+"""Wiki health checks — enforce the conventions in base-CLAUDE.md.
 
 Run from the wiki root:  `uv run pytest`  (or `pytest`).
 
@@ -154,7 +154,7 @@ DESIGN_FILE_TARGET_RE = re.compile(r"(^|/)designs/.+")
 
 @pytest.mark.parametrize("doc", _md_files(), ids=_rel)
 def test_no_links_to_designs(doc: Path) -> None:
-    """Per GridWorks_CLAUDE.md: designs are ephemeral — deleted on
+    """Per base-CLAUDE.md: designs are ephemeral — deleted on
     completion — so NOTHING may carry a markdown link to a design file.
     Banned everywhere, including design→design and hub→spoke links
     (Jessica, 2026-06-10: "ban them all" — simplicity over exceptions).

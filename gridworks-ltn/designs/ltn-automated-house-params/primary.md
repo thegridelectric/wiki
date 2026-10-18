@@ -55,7 +55,7 @@ enough" holds the values and where they are stored):
   layout is. The filename follows the on-disk grammar for sema instances.
 - **The LTN is control plane.** Nothing in this design reads the journal
   DB or the ear capture; the LTN stays up with the observability plane
-  down ([`glossary.md`](../../../glossary.md) "Control plane vs.
+  down ([`glossary.md`](../../../conventions/glossary.md) "Control plane vs.
   observability plane").
 - **Work stays on the LTN box unless it crosses the threshold:** more
   than ~30 s against the control period, a toolchain the box should not

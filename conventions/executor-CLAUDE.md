@@ -2,6 +2,12 @@
 
 Status: Draft · Pass 0 · Updated 2026-10-18
 
+The idea this recipe applies is EJ Alexandra's: every rule a row in a
+table with a schema, prose only in named fields, the running system a
+rendering of the tables (the Conceptual Model Completeness Conjecture
+and the Effortless Rulebook). Sema and the executors both grow from it;
+`../rulebook/cmcc.md` has the mapping.
+
 Before any executor work, and again when the executor is complete,
 ask the user whether they want an analysis of the repo README
 (`readme-pattern.md`); the Domain Summary is copied from it.
@@ -16,10 +22,6 @@ executor is better than a design: a design says what will change, the
 executor says what is, completely. The test is the metric; it is not
 written into the executor. The executor never names a language, never
 says "any implementation", never compares itself to another build.
-
-Two uses, and every table serves both: a rebuild from the executor
-alone, and a drift check of the code against it that runs, rather than
-reads, wherever it can.
 
 ## Sema first
 
@@ -204,12 +206,12 @@ For every prose field.
   sequence of a flow and nothing a row can hold.
 - Durable prose earns its place by telling the reader what they cannot
   see in the artifacts or bring as common knowledge
-  (`GridWorks_CLAUDE.md` "Wiki essentials").
+  (`base-CLAUDE.md` "Wiki essentials").
 - No legacy system. An executor never names a system the domain
   replaces and never compares itself to one: a rebuild has no such
   system in front of it, and a comparison describes two builds where
   the executor describes one. The wiki-wide allowance for legacy
-  comparison as rationale (`GridWorks_CLAUDE.md` "Wiki essentials")
+  comparison as rationale (`base-CLAUDE.md` "Wiki essentials")
   does not reach an executor; the comparison goes in the changelog.
 
 ## Finding the traces

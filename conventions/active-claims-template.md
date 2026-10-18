@@ -43,7 +43,7 @@ verbatim; deviation is a defect, not a stylistic choice. RFC 2119 keywords
   dir (or the same `wiki/<domain>/` or `experiments/<rung>/`), one SHALL
   block and wait; they MUST NOT coexist with a narrower path glob.
 - **Top-level wiki files require explicit per-file claims.** Files that sit
-  at the root of `wiki/` (e.g., `wiki/README.md`, `wiki/GridWorks_CLAUDE.md`,
+  at the root of `wiki/` (e.g., `wiki/README.md`,
   `wiki/glossary.md`, `wiki/working-with-llms.md`, `wiki/active-claims.md`
   itself) are NOT covered by any domain claim — they fall outside the
   per-domain pattern. To edit any such file, the specific file path MUST
@@ -77,4 +77,4 @@ verbatim; deviation is a defect, not a stylistic choice. RFC 2119 keywords
   in any Scope cell.
 - **Commits:** Human does all commits. You MUST stage only your own paths;
   you MUST NOT `git add -A` while other sessions may be live. (See
-  `GridWorks_CLAUDE.md` "Commit suggestions".)
+  `base-CLAUDE.md` "Commit suggestions".)

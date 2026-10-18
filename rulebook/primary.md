@@ -8,7 +8,7 @@ Status: Draft · Pass 0 · Updated 2026-10-18
 > rendering of it. This folder holds the reasoning behind the executor
 > recipe, the three patterns the recipe serves, and the survey of the
 > wider field. The recipe itself, the obligations a session follows
-> when it touches an executor, is `../executor-CLAUDE.md` and is
+> when it touches an executor, is `../conventions/executor-CLAUDE.md` and is
 > stated there once; this folder cites it by header and does not
 > restate it.
 
@@ -26,9 +26,10 @@ time, state, a second instance or a boundary that is not a word
 belongs to the executor.
 
 An executor is for an LLM: the reader that rebuilds the domain and
-the reader that checks the code against it. The person who wants to
-know what the domain does reads the repo README
-(`../readme-pattern.md`), which comes first.
+the reader that checks the code against it. Every table serves both
+uses, and a check that can run rather than read does. The person who
+wants to know what the domain does reads the repo README
+(`../conventions/readme-pattern.md`), which comes first.
 
 ## The three patterns
 
@@ -65,7 +66,7 @@ instance of the recipe is the alerter (OPS-605).
   trace spec that stands in for the Words rows' ReadAs until that
   table exists; at the port the script reads ReadAs and the line goes.
 - `wiki/tests/test_doc_health.py` and the hub line caps in
-  `GridWorks_CLAUDE.md` "Wiki essentials" assume markdown executors;
+  `base-CLAUDE.md` "Wiki essentials" assume markdown executors;
   the stamp becomes the Domain row's Status and Pass columns.
 - The effortless tooling is not reused (survey 2026-10-17): the CLI runs
   locally but every transpiler is hosted and closed, there is no

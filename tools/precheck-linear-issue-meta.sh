@@ -12,7 +12,7 @@
 #     Progress if starting now; priority e.g. Medium).
 #
 # The matcher in settings.json is the MCP tool name `mcp__linear__save_issue`.
-# See wiki/linear.md "Design lifecycle in Linear".
+# See wiki/conventions/linear.md "Design lifecycle in Linear".
 #
 # Override: ~/.claude/.bulk-stop-override(.<session>) silences this hook.
 
@@ -60,7 +60,7 @@ fully configured (the OPS-380 failure mode). Set on this create:
   • state     — Todo (ratified + queued) or In Progress (starting now;
                 a started state counts against cap-8)
   • priority  — Linear's Urgent/High/Medium/Low/No-priority (don't leave unset)
-See wiki/linear.md \"Design lifecycle in Linear\"."
+See wiki/conventions/linear.md \"Design lifecycle in Linear\"."
 
 jq -n --arg r "$reason" \
   '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: $r}}'

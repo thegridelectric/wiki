@@ -79,7 +79,7 @@ That is why it can land sooner.
    "changed" event returns as a server-sent events stream from the LTN's
    read façade, never by polling. Terms and rules:
    [`../gridworks-ltn/executor/primary.md`](../gridworks-ltn/executor/primary.md)
-   "Homeowner command surface", [`../command-surface.md`](../command-surface.md).
+   "Homeowner command surface", [`../command-surface.md`](../conventions/command-surface.md).
 
 ## Web-frontend auth (the passkey ceremony)
 

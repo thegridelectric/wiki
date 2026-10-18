@@ -43,7 +43,7 @@ Terms GridWorks coins and controls.
   customer-facing product term.
   - Sema: TBD (product / market-output concept; may not need a
     boundary type at all).
-- **[GNode (Grid Node)](../../glossary.md#gridworks-concepts)** —
+- **[GNode (Grid Node)](../../conventions/glossary.md#gridworks-concepts)** —
   in the EEM context: **primarily about the copper sub-tree** —
   GridWorks's hierarchical map of the physical electric grid, with
   an addressing sub-space layered on top. Specific GNodes the EEM
@@ -76,7 +76,7 @@ Terms GridWorks coins and controls.
   LTNs, CEPs, and TaValidators that meet the Participation
   Requirements.
   - Sema: TBD.
-- **[LTN (LeafTransactiveNode)](../../glossary.md#gridworks-concepts)**
+- **[LTN (LeafTransactiveNode)](../../conventions/glossary.md#gridworks-concepts)**
   — in the EEM context: the per-asset market-participating entity
   that bids in the Cleared Market on behalf of its TerminalAsset.
   Holds TaTradingRights delegated by the TaOwner via the SLA.
@@ -87,7 +87,7 @@ Terms GridWorks coins and controls.
   a TaAggregator's financial book. **An LTN is a GNode anchored to
   a leaf of the copper sub-tree — typically the location of the
   TerminalAsset's meter.**
-- **[MarketMaker](../../glossary.md#gridworks-concepts)** — in the
+- **[MarketMaker](../../conventions/glossary.md#gridworks-concepts)** — in the
   EEM context: a **market operator anchored at a copper-sub-tree
   constraint point**, with three structural properties:
   (a) **Runs internal markets at multiple timeframes** —
@@ -223,7 +223,7 @@ Terms GridWorks coins and controls.
   at scale. Working candidate: Ridgeline Energy / Dave Korn.
   - Sema: TBD (signed-attestation type for TaDeed signatures;
     audit-event types for discrepancy reports).
-- **[TerminalAsset](../../glossary.md#gridworks-concepts)** — in the
+- **[TerminalAsset](../../conventions/glossary.md#gridworks-concepts)** — in the
   EEM context: the physical asset that an LTN represents in the
   Cleared Market. For our Maine launch, TerminalAssets are
   heat-pump thermal storage systems behind Versant Rate A-1 bonus
@@ -238,7 +238,7 @@ continuity.
   2022 Algorand-grant vision for decentralized grid-balancing
   markets respecting Optimal Power Flow constraints. Long-term
   technical direction; not in the current architecture.
-- **[AtomicTNode](../../glossary.md#legacy--current-naming)** —
+- **[AtomicTNode](../../conventions/glossary.md#legacy--current-naming)** —
   2022-era name for the per-asset agent that has been replaced by
   LTN (LeafTransactiveNode).
 - **Representation Contract** — 2022-era name for the long-lasting
@@ -404,7 +404,7 @@ the UK Supplier.
   (Open) — per-role requirements + evidence mechanisms
 - [`heritage.md`](heritage.md) (Open) — TER Initiative, Redefining
   DR, VCharge lineage
-- [`wiki/glossary.md`](../../glossary.md) — top-level GridWorks
+- [`wiki/glossary.md`](../../conventions/glossary.md) — top-level GridWorks
   cross-repo glossary; primary canonical home for GNode, LTN,
   MarketMaker, TerminalAsset, SCADA, ShNode, and other foundational
   concepts.
@@ -412,7 +412,7 @@ the UK Supplier.
 ## Conventions
 
 - A bold term that is itself a hyperlink (like
-  **[GNode](../../glossary.md#gridworks-concepts)**) is a
+  **[GNode](../../conventions/glossary.md#gridworks-concepts)**) is a
   **cross-reference**: the primary canonical home is the link
   target; the entry here is an EEM-context-tailored summary.
 - A plain bold term (no link on the term itself) is **primary

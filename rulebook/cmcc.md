@@ -25,7 +25,7 @@ Draft.
 
 ## Where each primitive is
 
-| EJ's primitive | In the executor | `../executor-CLAUDE.md` |
+| EJ's primitive | In the executor | `../conventions/executor-CLAUDE.md` |
 |---|---|---|
 | Schema | Each table has a `schema[]`; one schema for every domain, the twelve tables | "The form", "The tables" |
 | Data | `data[]` rows; one instance per domain, one file per table | "The form" |
@@ -62,7 +62,7 @@ An executor conforms to the CMCC: every construct in it is one of the
 five. It is one instance of the shape; a one-to-one mapping back is
 the wrong test, since the constructs above have no counterpart.
 Conformance is mechanical and belongs to the columns checker. The
-adversarial pass (`../executor-CLAUDE.md` "Adversarial review") keeps
+adversarial pass (`../conventions/executor-CLAUDE.md` "Adversarial review") keeps
 to the rebuild question; its first step catches the CMCC failure in
 practice, a rule hiding in a Description or a Reason, by listing the
 questions a prose answer settled.

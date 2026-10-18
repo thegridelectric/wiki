@@ -5,9 +5,9 @@
 > folder across the wiki. Maturity / workflow state are NOT encoded
 > here — each file's own `Status:` line carries maturity; Linear
 > carries workflow (status / owner / priority). For the lifecycle
-> convention, see [`designs-process.md`](designs-process.md). For
+> convention, see [`designs-process.md`](conventions/designs-process.md). For
 > "what lives where" across designs / explorations / executor / Linear,
-> see [`glossary.md`](glossary.md) "Where content lives".
+> see [`glossary.md`](conventions/glossary.md) "Where content lives".
 
 ## Designs
 

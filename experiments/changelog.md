@@ -1058,7 +1058,7 @@ the earlier unsquashed commit.
 
 **Why:** journal-DB access for sessions and analysis scripts was
 discoverable only in `pull_readings.py`'s docstring. The README now names
-it, GridWorks_CLAUDE.md's "Journal DB first" maxim points here, and the
+it, base-CLAUDE.md's "Journal DB first" maxim points here, and the
 credential is gone from the Claude settings env block (single location).
 
 ## 2026-08-11 — ads-declared-rate spruce window: PASS + window harness (`45d50c4`)

@@ -20,7 +20,7 @@ Status: Accepted · Pass 2 · Updated 2026-06-22
   the wiki, nor vice versa.
 - **Status flows Linear → wiki**, never the reverse. A `designs/` file does
   not move when its Linear issue's status changes;
-  [`DESIGN_INDEX.md`](DESIGN_INDEX.md) aggregates by reading each design's
+  [`DESIGN_INDEX.md`](../DESIGN_INDEX.md) aggregates by reading each design's
   `Status:` line.
 
 ## Workspace facts
@@ -63,7 +63,7 @@ cap-8 is a discipline on **my own attention**, not a global design budget:
 - It spans **all** my issues — design and operational alike — because the
   scarce resource is my attention, not a design slot.
 - Query: `assignee = me AND state.type = started`.
-- Surfaced each turn by [`tools/precheck-cap-8.sh`](tools/precheck-cap-8.sh)
+- Surfaced each turn by [`tools/precheck-cap-8.sh`](../tools/precheck-cap-8.sh)
   (see Enforcement). When I move one of my issues into a started state, I
   surface the new count.
 
@@ -178,7 +178,7 @@ issue → ask the human for the metadata you can't decide (**priority**,
 create it in Ops with the `design` label + wiki link → stamp the id back onto
 the `Status:` line. The `designs/<slug>` file stays put; Linear is the
 authority on lifecycle from here. The
-[`tools/link-design-linear.sh`](tools/link-design-linear.sh) helper validates
+[`tools/link-design-linear.sh`](../tools/link-design-linear.sh) helper validates
 the wiki side and prints the exact paste.
 
 **Always set metadata on the create.** A `design` issue is created with its
@@ -235,23 +235,23 @@ is its triage. `tools/linear-snapshot.sh` surfaces violations.
 
 ## Enforcement (tools + hooks)
 
-- **[`tools/link-design-linear.sh`](tools/link-design-linear.sh)** — manual
+- **[`tools/link-design-linear.sh`](../tools/link-design-linear.sh)** — manual
   helper that wires a design to its issue: validates the wiki→Linear back-link
   and prints the `**Design:**` line to paste (it can't call Linear — the MCP is
   Claude-facing). It hardcodes the `thegridelectric/wiki` GitHub remote.
-- **[`tools/precheck-design-bijection.sh`](tools/precheck-design-bijection.sh)**
+- **[`tools/precheck-design-bijection.sh`](../tools/precheck-design-bijection.sh)**
   (`UserPromptSubmit` sweep + `PreToolUse` write-time slug guard) — wiki-side
   always: malformed slug, slug collisions, Accepted/Verified missing a Linear
   id. Linear-side with a `LINEAR_API_KEY`: wiki slug with no issue, or `design`
   issue with no wiki slug.
-- **[`tools/precheck-cap-8.sh`](tools/precheck-cap-8.sh)** (`UserPromptSubmit`)
+- **[`tools/precheck-cap-8.sh`](../tools/precheck-cap-8.sh)** (`UserPromptSubmit`)
   — surfaces the cap (warn 7, flag 8), advisory. Wiki-side fallback is an
   honor-system reminder; the live count needs a `LINEAR_API_KEY`.
-- **[`tools/precheck-linear-issue-meta.sh`](tools/precheck-linear-issue-meta.sh)**
+- **[`tools/precheck-linear-issue-meta.sh`](../tools/precheck-linear-issue-meta.sh)**
   (`PreToolUse` on the Linear `save_issue` MCP call) — **blocks** a `design`
   issue *create* that omits assignee, initial state, or priority. Updates and
   non-design issues pass through.
-- **[`tools/linear-snapshot.sh`](tools/linear-snapshot.sh)** (manual sync, not a
+- **[`tools/linear-snapshot.sh`](../tools/linear-snapshot.sh)** (manual sync, not a
   hook) — pulls the open Ops issues (state type ≠ completed/canceled) via the
   Linear GraphQL API and writes a compact, gitignored CSV
   `wiki/.linear-snapshot.csv` (`id,title,state,priority,labels,started_age_d,

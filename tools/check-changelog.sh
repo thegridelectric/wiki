@@ -114,7 +114,7 @@ done
 msg="Changelog discipline check found gaps:
 
 ${flags}
-Per wiki/GridWorks_CLAUDE.md (living-spec discipline): when the user lands a commit you MUST add the matching wiki/<domain>/changelog.md entry before considering the work done. Handle this BEFORE responding to the user's message. If a flagged commit genuinely does not warrant a changelog entry (e.g., pre-convention or unrelated to a wiki domain), say so explicitly to the user and move on."
+Per wiki/conventions/base-CLAUDE.md (living-spec discipline): when the user lands a commit you MUST add the matching wiki/<domain>/changelog.md entry before considering the work done. Handle this BEFORE responding to the user's message. If a flagged commit genuinely does not warrant a changelog entry (e.g., pre-convention or unrelated to a wiki domain), say so explicitly to the user and move on."
 
 jq -n --arg ctx "$msg" \
   '{hookSpecificOutput: {hookEventName: "UserPromptSubmit", additionalContext: $ctx}}'

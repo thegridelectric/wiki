@@ -4,7 +4,7 @@ Status: Draft · Pass 0 · Updated 2026-10-18
 
 > What this is: the third pattern, using an executor to build a new
 > version of the domain. The bar and the adversarial pass are in
-> `../executor-CLAUDE.md` ("The bar", "Adversarial review"); this
+> `../conventions/executor-CLAUDE.md` ("The bar", "Adversarial review"); this
 > spoke says what the rebuilder is given, what it is denied, and what
 > it hands back.
 
@@ -17,7 +17,7 @@ question in chat gets an answer that never reaches the executor.
 
 ## The README
 
-The repo README is written in two parts (`../readme-pattern.md`): the
+The repo README is written in two parts (`../conventions/readme-pattern.md`): the
 language-independent text first, one language-dependent section at
 the end. A port copies the README verbatim up to that section and
 rewrites only it.

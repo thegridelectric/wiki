@@ -49,7 +49,7 @@ Settled rules to anchor on now:
   - Serialized JSON field names use CamelCase/PascalCase, recursively (spec Principle 2).
   - Vocabulary names are \`left.right.dot\`; a message's \`TypeName\` VALUE is that dotted name, versioned types carry \`Version\` (\"000\") (Principles 1, 3).
   - Preserve TypeName/Version semantics; formats are immutable; enums are additive-only; historical versions are immutable; bump versions per spec.
-  - Adding/modifying a vocabulary word → read the spec spokes for its kind, summarize that kind's rules to the user, and WAIT for confirmation before editing (GridWorks_CLAUDE.md \"Domain protocol files\").
+  - Adding/modifying a vocabulary word → read the spec spokes for its kind, summarize that kind's rules to the user, and WAIT for confirmation before editing (base-CLAUDE.md \"Domain protocol files\").
   - EXCEPTION, promotion-only turn (staging → published, no schema edit): read only \`governance.md\` \"Promotion\" and \`registry/structure.md\` \"Status Field\"; the read-receipt is the list of words promoted, bottom-up; \`sema promote\` is the gate.
 
 (This reminder fires once per session while a sema claim is active.)"

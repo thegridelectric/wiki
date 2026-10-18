@@ -3,7 +3,7 @@
 Status: Draft · Pass 0 · Updated 2026-07-04
 
 > What this is: the operative rules for sessions editing the `gridworks-scada`
-> repo (gwsproto above all). Pointed to from `GridWorks_CLAUDE.md` "Domain
+> repo (gwsproto above all). Pointed to from `base-CLAUDE.md` "Domain
 > protocol files" — Read this BEFORE the first scada edit of a session. Lives
 > in the wiki (all LLM-facing material does); the code repo carries no
 > CLAUDE.md.

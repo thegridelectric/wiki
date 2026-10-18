@@ -3,7 +3,7 @@
 Status: Draft · Pass 0 · Updated 2026-10-18
 
 > What this is: the first pattern, describing an existing system as an
-> executor. The obligations are in `../executor-CLAUDE.md` ("README
+> executor. The obligations are in `../conventions/executor-CLAUDE.md` ("README
 > first", "Sema first", "The form", "The tables", "Prose rules",
 > "Finding the traces"); this spoke says why the recipe runs in that
 > order.

@@ -100,7 +100,7 @@ the `wiki/dev-stack/` recipes once that domain exists.
 8. **This database is observability plane, never a control dependency.**
    Production — SCADA leaves, LTNs, MarketMakers — never reads it to make
    a control decision and keeps running when it is down, slow, or
-   mid-migration. Canonical statement: [`glossary.md`](../../glossary.md)
+   mid-migration. Canonical statement: [`glossary.md`](../../conventions/glossary.md)
    "Control plane vs. observability plane".
 
 ## §5 — Schema reference (Open)
