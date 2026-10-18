@@ -110,6 +110,11 @@ was loaded, not worked from memory. Ephemeral coordination (session names,
   `governance.md` "Promotion" and `registry/structure.md` "Status Field";
   the read-receipt is the list of words promoted, bottom-up, and
   `sema promote` is the gate.
+- **Executor:** before writing or editing any `wiki/<domain>/executor/`
+  doc, Read [`wiki/executor-CLAUDE.md`](wiki/executor-CLAUDE.md): the bar
+  (a rebuild from the executor plus the vocabulary alone), the order of a
+  hub and a spoke, pointers that do not rot, the adversarial pass, the
+  drift checks.
 - **Scada:** before editing `gridworks-scada` (gwsproto above all), Read
   [`wiki/gridworks-scada/CLAUDE.md`](wiki/gridworks-scada/CLAUDE.md) and
   follow it.

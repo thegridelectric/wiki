@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-10-15 · Linear: OPS-597
+Status: Draft · Pass 0 · Updated 2026-10-18 · Linear: OPS-597
 
 **EDD: yes** verified when the weather service emits a solar channel for
 Millinocket on the dev broker from a live Open-Meteo pull, and the
@@ -47,88 +47,107 @@ Every word touched is `published`, so each change is a new version. The
 sema spec and registry are change-controlled: each item below is
 discussed before it is authored.
 
-1. `gw1.quantity` 003 adds `SolarIrradiance` (global horizontal, the
-   quantity a pyranometer reads).
-2. `gw1.unit` 003 adds `WattsPerSquareMeter`. Whole watts suffice; no
-   scaling factor. The same version is the chance to add the unscaled
-   units the enum lacks, so a reader of a value need not divide:
-   candidates `Fahrenheit`, `Celsius`, `Kilowatts`, `KilowattHours`,
-   `Gpm`, `MilesPerHour`, `Dollars`, `Percent`. Which of these go in is
-   chosen with the human; each needs a row in the projection below.
-3. `gw1.unit.quantity.projection` gets a new version whose table has a
-   row for every unit added, `WattsPerSquareMeter` to `SolarIrradiance`.
-   Its `000` still references `gw1.unit/001` and `gw1.quantity/001`, so
-   the new version also rebinds to the current enum versions.
-4. `gw.weather.channel.gt` 001 rebinds `Quantity` and `Unit` to the new
-   enum versions; a solar observation channel is then an instance of it.
-   `gw.weather.forecast.channel.gt` needs no change. The scada
-   snapshot's reverse-dependency index shows the rest of the ripple is
-   optional: `derived.channel.gt`, the two layout words and
-   `data.channel.gt` bind to older enum versions and stay there until
-   they want a new unit.
-5. `gw.weather.forecast.bundle.gt` 001 and `gw.weather.forecast` 001
-   gain the solar pair. Today both words name temperature and wind as
-   fixed field pairs. The choice is between a third optional pair
-   (`SolarForecastChannel`, `SolarObservationChannel`;
-   `SolarChannelName`, `SolarValues`) and a list of channel pairs. The
-   optional pair is the smaller change and keeps every existing bundle
-   valid; the list is the shape a fourth quantity would want. Decided
-   with the human before authoring.
+Done (published 2026-10-15): `gw1.quantity` 003 adds `Irradiance`,
+`gw1.unit` 003 adds `WattsPerSquareMeter`, `MilesPerHourX10` and
+`FahrenheitX10`, and `gw.weather.channel.gt` 001 binds both. The unit
+enum states the scale convention: a scaled unit has one decimal digit
+more precision than the accuracy of the best source that produces it.
+NWS delivers whole degrees and whole mph, so the weather records move to
+FahrenheitX10 and MilesPerHourX10; FahrenheitX100 stays the scada's own
+temperature unit.
+
+Authored as staging on sema `jm/weather-station` (2026-10-17; suite
+green, uncommitted at session close), on top of the list reshape
+committed as `63f9382`:
+
+1. `gw.weather.station.gt` 000, new: the observing instrument at a
+   place (Alias, DisplayName, LocationAlias, the ICAO/WBAN/GHCN/COOP
+   ids, Start, Id). The instrument is identity; the path readings
+   arrive by is provenance. `Alias = LocationAlias + "." + one segment`
+   (`us.me.millinocket.kmlt`), the radio channel observations go out on.
+2. `gw.weather.channel.gt` 002: `StationAlias` replaces `LocationAlias`;
+   `Name = StationAlias + "." + lowercase(Quantity)` plus optional
+   variant. New station or new unit, new channel: the X10 reissue is
+   `us.me.millinocket.kmlt.temperature` at FahrenheitX10 beside the
+   old X100 record under its old name.
+3. `gw.weather.location.gt` 001: purely the place; the four station
+   ids leave for the station record. Upgrade 000 to 001 drops them.
+4. `gw.weather.observation.reading` 000, new (ChannelName, Quantity,
+   Value) and `gw.weather.observation` 001: `StationAlias`,
+   ObservationTime, Interpolated, `ReadingList`. A quantity the
+   station did not report is absent. Upgrades from channel 001 and
+   observation 000 refuse: the old record does not name its station.
+5. `gw.weather.forecast.series` 000 and `gw.weather.forecast` 001
+   (`SeriesList`), `gw.weather.forecast.binding` 000 and
+   `gw.weather.forecast.bundle.gt` 002 (`BindingList`), per the list
+   reshape. Bundle `Name = LocationAlias + "." + exactly one segment`,
+   a short memorable handle that encodes nothing; the message drops
+   its bundle-naming axiom. One binding per quantity; no quantity is
+   mandatory.
+6. `gw.weather.create.cmd` 002 binds channel 002, location 001 and the
+   station record.
+
+**Names, decided 2026-10-17.** Two Millinocket bundles:
+`us.me.millinocket.bobcat` (temperature only, for the scada) and
+`us.me.millinocket.raccoon` (temperature, wind, irradiance, for the
+LTN). The last segment is a recipe: the same word at another location
+means the same quantities, units, forecasters, grid and schedule, with
+only the location and channel names differing; new units or a new
+forecaster is a new animal. Enforcement is the DB's unique name per
+location and the service's cross-record check once a second location
+exists; nothing is parsed out of a name. Observation channels name
+their station: `us.me.millinocket.kmlt.temperature` and
+`.windspeed` at X10; irradiance waits on the station decision below.
+Forecast channels keep `target + .forecast. + nws.hourly` /
+`openmeteo.hourly`.
+
 
 ## One bundle
 
-The solar channel joins the Millinocket bundle. A bundle shares one
-slice grid and one emission schedule, so the Open-Meteo pull is fitted
-to the NWS bundle's grid and slot, not the other way round: the fetcher
+The solar channel joins the Millinocket bundle as a new bundle record
+named `us.me.millinocket.forecast.hourly`: the bundle is now a
+multi-forecaster object, so its name keeps only the shape and each
+channel inside it names its own forecaster. The old
+`us.me.millinocket.forecast.nws.hourly` record keeps emitting on the 000
+message until its consumers move. The forecast channel records are
+unchanged and the new bundle embeds them as they are, with the
+existing temperature and wind observation records (the X10 reissue is
+an open item below). The irradiance pair is `us.me.millinocket.irradiance` (Quantity Irradiance, Unit
+WattsPerSquareMeter) and
+`us.me.millinocket.irradiance.forecast.openmeteo.hourly`.
+
+A bundle shares one slice grid and one emission schedule, so the
+Open-Meteo pull is fitted to the NWS bundle's grid and slot: the fetcher
 runs in the same emission cycle, reads the latest Open-Meteo run
 available at that slot, and resamples nothing, since both products are
-hourly. How a stale Open-Meteo run is handled at a slot (emit the last
-good values with the bundle's fidelity, or hold the slot) is decided in
-the fetcher and recorded here.
+hourly. Each series walks its own fidelity ladder, so an Open-Meteo
+outage marks irradiance Stored while temperature and wind stay Live, and
+the downgrade glitch is per series.
 
-## Cost of the enum bump
-
-Every referrer of `gw1.unit` and `gw1.quantity` binds to one enum
-version and accepts only that version's values, so the bump propagates
-exactly as far as the words that must speak the new values, and no
-further. Two closures, read from the scada snapshot's reverse-dependency
-index and the registry statuses:
-
-- **Solar only.** `gw1.unit` 003, `gw1.quantity` 003,
-  `gw.weather.channel.gt` 001, `gw.weather.forecast.bundle.gt` 001,
-  `gw.weather.forecast` 001. Five new versions, all weather words, no
-  layout touched. `gw1.unit.quantity.projection` stays at 000: the
-  weather words do not use it.
-- **Friendly units for derived channels.** Adds
-  `gw1.unit.quantity.projection` 001 (published, new version), which
-  `derived.channel.gt` depends on, so `derived.channel.gt` 003
-  (published, new version), which `gw.house0.layout`, `gw.nolan.layout`
-  and `layout.lite` depend on. Those three are staging, so they rebind
-  in place, but every layout gen, fixture and hand-written twin
-  regenerates. The same closure runs from `gw1.quantity` through
-  `data.channel.gt` 004 to the layouts and
-  `scada.control.capabilities`. This is a layout-stack wave.
-
-The scada twins add a second cost. `gwsproto` holds one `Unit` class and
-one `Quantity` class, both at 002, while `derived.channel.gt` 002 binds
-unit 001 and quantity 001 and `data.channel.gt` 003 binds quantity 000.
-The twin validates every word against the newest enum, so a derived
-channel naming a 002-only unit passes the scada and fails sema. The
-weather words are the only referrers bound to 002, which is why they
-decode correctly at the scada today. A bump to 003 moves the twins to
-003 and moves that looseness with it; the generated snapshot already
-holds every version (`enums/old_versions/`) and the proactor port is
-where the twins become per-version.
 
 ## The forecaster record
 
 Open-Meteo is a `Forecaster` with its own forecast channel for the
-Millinocket location, `Method` naming the API and model
-(`open-meteo.forecast.shortwave_radiation`, model named in
-`SourceLocator` with the coordinates). It is not a replacement for NWS
-on temperature and wind; those stay NWS until a skill score says
-otherwise. The observed series the solar channel targets is open (see
-below); until it is settled the channel targets the Old Town series.
+Millinocket location, model pinned rather than `best_match`, which does
+not document which model supplies radiation at a US point. The pin is
+`gfs_seamless`: HRRR at 3 km for the near hours and GFS beyond, both with
+global horizontal irradiance native to the model, hourly updates, and
+the full 48-hour horizon at every run (plain HRRR reaches 48 hours only
+on the four synoptic runs). Variable `shortwave_radiation`, W/m², the
+mean over the preceding hour. `Method` is
+`open.meteo.gfs.seamless.hourly`; `SourceLocator` holds the coordinates.
+Open-Meteo is not a replacement for NWS on temperature and wind. Those
+stay NWS: no published comparison for the Northeast exists, the indirect
+evidence favours the forecaster-edited NWS product, and the question is
+settled by our own backtest later (Previous Runs API against observed
+outdoor temperature in the journal DB).
+
+
+The `gfs_seamless` splice has no run time of its own, so the series
+stamp (`IrradianceSourceUpdatedTime`) is the GFS 0.13° run read from
+Open-Meteo's model metadata endpoint
+(`/data/ncep_gfs013/static/meta.json`, `last_run_initialisation_time`):
+that member serves the splice across the whole 72-hour horizon.
 
 ## Time alignment
 
@@ -148,28 +167,63 @@ checks the ranking holds against ERA5 at Millinocket.
 
 ## Do this next
 
-1. Settle the two vocabulary choices above with the human: the enum
-   additions, and optional pair versus list on the bundle and forecast
-   words.
-2. Author the words, staging, through the sema gate; regenerate the
-   service's snapshot.
-3. Add the Open-Meteo fetcher beside `nws.py` with the hour-end to
-   hour-start shift and a fixture test.
-4. Seed the solar observation and forecast channel records and the
-   bundle version for the Millinocket bundle in dev; emit on the dev
-   broker.
-5. Run the last-winter scoring pull; record the result in
-   `experiments/`.
+1. ✅ Author the three words, staging, through the sema gate;
+   regenerate the runtime and the service's snapshot (sema `26e1456`).
+2. ✅ The Open-Meteo fetcher beside `nws.py` with the hour-end to
+   hour-start shift and a fixture test; per-series ladder in the
+   scheduler; zeros at the template rung; the service schedules every
+   bundle it holds, so the NWS bundle keeps emitting 000 beside the
+   new one (weather branch `jm/solar-irradiance`, suite green).
+3. ✅ The irradiance pair and the `us.me.millinocket.forecast.hourly`
+   bundle minted in dev through `gwwf create` (2026-10-16); at the
+   14:01 UTC slot `d1.weather` emitted forecast 001 with all three
+   series Live (real NWS and Open-Meteo products) and the NWS bundle's
+   000 beside it, no glitch. The local dev DB is at migration
+   `a7e2c4d9b1f6` and holds both bundles.
+4. ✅ The words reshaped as lists (sema `63f9382`) and the station
+   record with channel 002, location 001, observation 001 authored
+   on sema `jm/weather-station` (2026-10-17, suite green,
+   uncommitted).
+5. Commit `jm/weather-station`; the pending sema changelog entry is
+   owed (its file was claimed by another session at close).
+6. Rewire the weather service on `jm/solar-irradiance` to the new
+   words: the bundle table's six channel columns become a membership
+   join table, a stations table joins locations to channels, the
+   observation stream publishes per station as a reading list, the
+   scheduler builds `SeriesList` from the bundle's bindings with each
+   forecast channel's Method choosing its adapter, and the forecasts
+   table keys source revision per series. Fixtures move to the
+   bobcat and raccoon names. The snapshot regenerates with
+   `--allow-staged` (done for the list reshape; redo for the station
+   words).
+7. Mint in dev through `gwwf create`: location 001, station `kmlt`,
+   the X10 channels and irradiance, the forecast channels, bobcat and
+   raccoon; watch one slot emit both bundles. Then the scada's
+   `weather_source.py` and the LTN move to forecast 001 and the new
+   bundle names in one deploy day, since the old 000 message and the
+   new word are mutually unreadable. Drop the old dev bundles after.
+8. Publish bottom-up through `sema promote`; the published-only
+   snapshot; the no-staging test.
+9. The last-winter scoring pull reads from the archive of OPS-603
+   (its step 2); record the result in `experiments/`.
+
 
 ## Open
 
-- **The observed series.** Old Town is 82 km away. Whether the fleet's
-  solar channel targets that station, an ERA5 series for Millinocket, or
-  nothing yet. A pyranometer at one house is the cheap way to a local
-  series; a purchase question.
-- **Licence.** Open-Meteo's free tier is non-commercial; the commercial
-  licence is reported at $29 a month (2026-10-15, not yet confirmed on
-  their portal). Dev and the scoring run stay on the free tier.
+- **The observed series.** Old Town is 82 km away. A closer candidate:
+  the Weather Underground personal station KMEMILLI18 in Millinocket has
+  a solar sensor, read by the scraper in `gridworks-house-parameters`
+  (`weather_scraper.py`: five-minute rows averaged to the hour, gaps of
+  up to five hours interpolated and flagged). Sensor quality is unknown;
+  a hobbyist pyranometer behind an HTML scrape is a research series, not
+  a fleet source. Whether the fleet's solar channel targets that station,
+  Old Town, an ERA5 series for Millinocket, or nothing yet is open. A
+  pyranometer at one house is the cheap way to a local series; a
+  purchase question.
+- **Licence.** Open-Meteo's free tier is non-commercial. Confirmed with
+  Open-Meteo (2026-10-15): the fleet runs on the free tier until
+  GridWorks is commercial, then $30 a month. Free-tier limits (10,000
+  calls a day) are far above one location at one call an hour.
 - **Specialist solar forecasters to investigate.** Solcast, SolarAnywhere
   and Tomorrow.io sell GHI/DNI/DHI forecasts on quote; none publishes an
   independent winter validation for the northeastern US. Investigate
@@ -180,6 +234,12 @@ checks the ranking holds against ERA5 at Millinocket.
   ECMWF IFS over HRRR under cloud, so score `ecmwf_ifs025` against the
   Open-Meteo default first; it is one more model name in the same
   Previous Runs call.
+- **The irradiance station.** The observed irradiance channel needs a
+  station record before it can be named: the Weather Underground
+  station in town (`kmemilli18`), Old Town, or an ERA5 cell are
+  different instruments and so different channels. Until one is
+  chosen the raccoon bundle's irradiance observation channel is the
+  open item; the forecast side does not wait on it.
 - **Consumers.** The LTN relays the bundle and the scada falls back to
   pulling it (`gw.operational.params` "WeatherBundleName"). Both decode
   the forecast word, so both move to the new version in the same wave;

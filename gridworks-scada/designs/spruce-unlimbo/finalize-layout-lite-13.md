@@ -1,6 +1,6 @@
 # Finalize `layout.lite/013` (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-10-04 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-10-18 · Linear: OPS-392
 
 > What this is: the spoke that takes `layout.lite/013` from staging to
 > published with its closure, so the spruce scada can send it on the
@@ -120,7 +120,11 @@ is the gate to connecting.
    The JournalKeeper change that takes 013 also adds `gw.scada.commit`
    to the types it journals (OPS-7): the scada announces its commit at
    boot right after `layout.lite`, and both reach the journal in one
-   JournalKeeper release.
+   JournalKeeper release. The same release adds the LTN's pings to the
+   types it journals (for better alerter traces: the NoData cause
+   clause reads whether the LTN is speaking, and today the journal has
+   only the LTN's hourly glitches, so that half of the rule cannot be
+   pulled from the archive).
 2. Decide the closure: publish 013 with the Krida pair in it, or cut a
    014 without them once the sema wave drops them from the House0 word
    (scada stopped reading them 2026-09-10).
@@ -153,3 +157,26 @@ is the gate to connecting.
   status finalized, regenerate, validate against the real layouts. The
   promote holds until the House0 word runs on all the House0 homes
   (`../spruce-settled/thermostat-and-zone-control.md` "Sequencing").
+
+## What the dashboard reads from 013
+
+Once `installations` leaves journaldb (OPS-473), `layout.lite` is the
+only layout the dashboard sees, and until `jm/spruce-unlimbo` merges it
+is the only layout word the fleet sends at all. Two readers depend on
+fields 013 as staged does not have:
+
+- **The real-time page's default sieg-loop toggle** reads a `sieg` flag
+  from the stored hardware layout, which is deleted. 013 offers
+  `HardwareLayoutTypeName`, and `gw.house0.layout` covers sieg and
+  no-sieg houses alike until `gw.house0.no.sieg` exists. The page needs
+  a handle that says whether the house has a sieg loop: a field on 013,
+  or the type-name split landing first.
+- **The web-backend summaries read `SystemMode`** (Heating, Off, ...)
+  from `layout.lite`. 012 has it; 013 as staged drops it, while the
+  web-backend's vendored 013 still has it. Either 013 keeps `SystemMode`
+  or the dashboard reads it from the snapshot's state list.
+
+A finalized 013 that answers both keeps the dashboard whole through the
+merge window; without them the toggle and the house table's mode column
+go dark.
+

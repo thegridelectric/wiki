@@ -6,9 +6,83 @@ the *why*.
 
 Newest at the top.
 
-## 2026-10-15 — spruce-radiant-slab: the two-stage least-squares fit; free float excludes fan coil calls; no assumed area or depth (OPS-601) <!-- pending commit -->
+<!-- pending commit -->
+## 2026-10-17 — spruce-radiant-slab: star_fit types what it already does (`jm/trace-decode-stance`)
 
-**What:** `sheets.py` fits G and C in two stages, each a least-squares
+**What:** `star_fit.py` opens the summary sheet as `wb.worksheets[0]`,
+types the fit's `a` as shared-or-per-zone (`float | dict[str, float]`),
+types the column list that mixes the shared marker with zone names,
+narrows by `isinstance` where each shape is used, and drops the two
+`type: ignore` comments. The fit and the workbook are unchanged.
+
+**Why:** pyright reported 24 errors on the file (openpyxl types `active`
+as possibly absent; the per-zone fit was passed through a `float` field
+under a type-ignore), so the repo gate was red for every commit.
+
+<!-- pending commit -->
+## 2026-10-17 — pull_trace decodes each body the way the domain reads it (`jm/trace-decode-stance`)
+
+**What:** `traces/pull_trace.py` reads a required `decode:` line from the
+trace spec (`as-sent` or `latest`) and passes the matching auto-upgrade
+choice to the snapshot codec; the oak trace spec declares `as-sent`.
+
+**Why:** the puller decoded with the codec's default, which upgrades to
+the latest version, while the alerter decodes every body at the version
+it was sent. The two readings disagreed on spruce's `report.event/003`,
+and the puller's refusals were read as the alerter's. A trace's refusals
+only mean something when the puller decodes as the service does, so the
+stance is declared in the spec (and later the executor's Words table),
+never chosen at the command line.
+
+## 2026-10-17 — Revert `f5cc071`: experiments may ship staging words on main · `63647b5`
+
+**What:** `git revert f5cc071` removes `tests/test_sema_snapshot_published.py`,
+the `tests/` folder, the pytest and pyyaml dev additions and the `ci.sh`
+line that ran the suite.
+
+**Why:** the published-only rule guards snapshots that ship to a box.
+Experiments are where a staging word is exercised before it is published,
+so its snapshot is built with `--allow-staged` by design and `main` is
+allowed to hold it. The test was written for the wrong repo.
+
+## 2026-10-17 — traces/pull_trace.py: materialise an executor trace from the journal · `ee93c46`
+
+**What:** `traces/pull_trace.py` reads a trace spec from a domain's executor
+(`wiki/<domain>/executor/traces/<name>/trace.yaml`: window, senders, which
+types keep their bodies, the tracked subtree) and writes the input under
+`traces/<domain>/<name>/`: `messages.jsonl`, one message per line ordered by
+arrival (`persisted_at`), with bodies only for the named types, each body
+decoded through a sema snapshot the script builds from the executor's own
+seed copy and, when the snapshot refuses it, the refusal recorded on the
+row. Once, it writes `forest.json` beside the spec: the latest journaled
+`g.node.forest` before the window, restricted to the subtree and its
+ancestors. `.gitignore` keeps the materialised input and the snapshot out.
+
+**Why:** an executor is judged by whether a rebuild, fed a recorded window,
+emits what the real service emitted. The wiki holds the spec and the
+expected output, which must be in git; the input is hundreds of kB of wire
+bodies that the journal already keeps, so it is pulled on demand. Ordering
+by arrival rather than by a message's own time is what the first trace
+taught: during an LTN stop the scada's reports queue and arrive together
+on the return. Decoding through a snapshot built from the seed copy proves
+the executor's claim that the seed alone reproduces the vocabulary.
+
+## 2026-10-17 — A test that main ships no staging word (OPS-473) · `f5cc071`
+
+`tests/test_sema_snapshot_published.py` reads the snapshot's own
+`definitions/registry.yaml`, where every word and version it ships has a
+status, and fails on `main` when one is not published; off `main` it reports
+the words and skips. Nothing outside the repo is read, so the test runs the
+same on a laptop and on GitHub (where a pull request is judged by its
+target branch). A regen with `--allow-staged` is the only way a staging
+word enters, and this is the gate that keeps such a snapshot off `main`.
+The repo gains its first `tests/` folder with it: pytest and pyyaml join
+the dev group and `ci.sh` runs the suite before the emitter check.
+
+## 2026-10-17 — add radiant floor slab · `5f164b8`
+
+spruce-radiant-slab: the two-stage least-squares fit; free float excludes
+fan coil calls; no assumed area or depth (OPS-601). **What:** `sheets.py` fits G and C in two stages, each a least-squares
 slope through the origin: G over C from the free float (floor fall per
 hour against floor minus air), then C from the charge (accumulated heat
 in to the zone against the floor's rise plus G over C times the
@@ -28,6 +102,19 @@ each is a fit a reader can check in cells. A fan coil on the same loop
 takes an unknown share of the metered heat, so its calls disqualify a
 row. Spruce's slab area and depth are not known, so no number stands
 in for them.
+
+Also in this commit: three more `gw.readings` pulls (`no.charge.apr`,
+`no.charge.may`, `no.charge.fall`) and `no-charge-spans.md`, every span
+of two hours or more with a slab zone not charged; `star-model.md` and
+`star_fit.py`, the one-lump star model fitted over all those spans at
+once with a solar gain term; `pull_irradiance.py` and
+`irradiance-kmemilli18.csv.gz`, the Millinocket personal weather
+station's five-minute irradiance as external evidence, gzipped under
+the 2 MB cap, the puller's record typed with the note naming the
+missing word (no sema word holds a station irradiance series: the
+observation word has temperature and wind only and `gw.readings`'
+channel projection has no irradiance quantity). A one-second scada
+CSV from April that nothing in the folder reads is not committed.
 
 ## 2026-10-15 — spruce-radiant-slab: dataset folder, the two-lump slab workbook through sema; snapshot follows data.channel.gt 004 (OPS-601) (`f6c75fd`)
 

@@ -1,6 +1,6 @@
 # vocabulary — the gw.weather.* words
 
-Status: Draft · Pass 0 · Updated 2026-08-13
+Status: Draft · Pass 0 · Updated 2026-10-16
 
 What this is: the current `gw.weather.*` word set for
 [gwwf](primary.md) — schemas, axioms, naming, units, time formats.
@@ -114,11 +114,12 @@ The bundle's Name is, verbatim, the broadcast radio channel (gwbase's
 term for the subscription slug — never "channel" unqualified, which
 is a data channel), and each message carries it as `BundleName`. A
 record fetched rarely (seed, record listing), never carted
-per-message — so it embeds all four channels as full subtypes
+per-message — so it embeds every channel as a full subtype
 (`TempForecastChannel` + `TempObservationChannel`,
-`WindSpeedForecastChannel` + `WindSpeedObservationChannel`) plus a
-top-level `LocationAlias`: one fetch hands a consumer the whole
-contract, and every cross-fact is an in-type axiom — shared grid,
+`WindSpeedForecastChannel` + `WindSpeedObservationChannel`, and on
+002 `IrradianceForecastChannel` + `IrradianceObservationChannel`)
+plus a top-level `LocationAlias`: one fetch hands a consumer the
+whole contract, and every cross-fact is an in-type axiom — shared grid,
 shared schedule, target binding (each forecast channel's
 `TargetChannelName` equals its paired observation channel's Name),
 quantity targeting, location consistency, and
@@ -126,7 +127,9 @@ quantity targeting, location consistency, and
 the observation↔forecast link explicit: the bundle slug EXTENDS the
 location alias that names the observation broadcasts for the same
 place. gwwf additionally enforces the embedded copies' agreement with
-its canonical records at creation and at boot. Bundles are
+its canonical records at creation and at boot; a bundle row loads at
+the version its columns fill (001 without the irradiance pair, 002
+with it) and the service emits every bundle it holds. Bundles are
 per-service — price forecasts get their own word in their own
 service, and a shadow challenger stands up its own (its emissions
 need a bundle to ride). `.gt`: the weather DB is the canonical seed.
@@ -185,16 +188,21 @@ The forecast message is the FLO-curated contract: hard-coded
 quantities, one message per BUNDLE per emission slot, structure
 declared on the channel records so the wire needs no Times list:
 
-    { BundleName, SourceUpdatedTime, MessageCreatedMs, Fidelity,
-      FirstSliceStart,
-      TempChannelName, TempValues, WindSpeedChannelName, WindSpeedValues }
+    { BundleName, SourceUpdatedTime, IrradianceSourceUpdatedTime,
+      MessageCreatedMs, FirstSliceStart,
+      TempChannelName, TempValues, TempFidelity,
+      WindSpeedChannelName, WindSpeedValues, WindSpeedFidelity,
+      IrradianceChannelName, IrradianceValues, IrradianceFidelity }
 
-Hard-coding the quantities (rather than a generic entry list) makes
-the type BE the FLO's input contract: adding a quantity is a version
-bump — the right ceremony for "the FLO's inputs changed." Axioms:
-value lists non-empty and equal length; channel names distinct; all
-three names carry "forecast" as an interior segment (decode-time
-protection against field swaps). Slice boundaries derive from the
+That is version 001, the message of a bundle with an irradiance pair;
+a bundle 001 emits version 000, the same message without the
+irradiance fields and with one `Fidelity`. Hard-coding the quantities
+(rather than a generic entry list) makes the type BE the FLO's input
+contract: adding a quantity is a version bump — the right ceremony
+for "the FLO's inputs changed." Axioms: value lists non-empty and
+equal length; channel names pairwise distinct; all four names have
+"forecast" as an interior segment (decode-time protection against
+field swaps). Slice boundaries derive from the
 single FirstSliceStart plus the bundle channels' shared
 SliceDurationSList. BundleName rides the payload because the routing
 key's radio channel does not survive archival — the archived message
@@ -205,12 +213,15 @@ API).
 
 **Forecast emission and degradation.** Consumers always need a
 forecast, so gwwf always emits on the bundle's schedule — the
-schedule contract is what makes a missing message mean a drop. Two
-clocks: `SourceUpdatedTime` is the ingested external service's
+schedule contract is what makes a missing message mean a drop. Three
+clocks: `SourceUpdatedTime` is the temperature and wind source's
 underlying data revision (for NWS the gridpoint `updateTime`, not
 `generatedAt`, which refreshes per render even when the data is hours
-older) and may hold unchanged across many emissions while the source
-sits on a package. `MessageCreatedMs` is gwwf's own emission stamp
+older), `IrradianceSourceUpdatedTime` the irradiance source's (for
+Open-Meteo the GFS 0.13° run time from the model metadata endpoint,
+since the `gfs_seamless` splice has no run time of its own); both may
+hold unchanged across many emissions while a source sits on a
+package. `MessageCreatedMs` is gwwf's own emission stamp
 and advances every send, so re-emissions of a held source revision
 are distinguishable sends of the same claim, each with the current
 sliding window (FirstSliceStart anchors to the next slice boundary;
@@ -219,10 +230,16 @@ source goes stale: (1) live product; (2) draw down the stored
 horizon — the service stores ~24 h beyond the broadcast horizon (NWS
 hourly gives ~156 h, so storing 72 costs nothing), keeping
 full-length forecasts through a day-long source outage; (3) a
-seasonal template. `Fidelity` (enum: live | stored | seasonal.template)
-marks the rung per message, keeping the claim honest — template
-messages are explicitly declared fill. Each downgrade transition
-raises a Glitch.
+seasonal template. Each series walks the ladder on its own, because
+the two sources fail independently: temperature and wind share the
+NWS product's rung, irradiance has the Open-Meteo product's, and at
+the template rung wind and irradiance are zeros (irradiance needs no
+template record; a location with no template skips the slot, since
+temperature has no fill). `TempFidelity`, `WindSpeedFidelity` and
+`IrradianceFidelity` (enum: live | stored | seasonal.template) mark
+each series' rung, keeping the claim honest — template values are
+explicitly declared fill. Each downgrade transition raises a Glitch
+naming the series.
 
 **Sent forecasts are the store's rows.** Every emitted message lands
 in the service DB (surrogate uuid key, never serialized), one row per
@@ -269,4 +286,7 @@ channel name mechanically.
 unreachable since it already carries GridWorks-specific
 scaled-integer units, so the gw prefix is semantically right.
 `gw1.quantity` takes the same posture: one fleet-wide quantity
-vocabulary, no weather-scoped enum (Temperature, WindSpeed).
+vocabulary, no weather-scoped enum (Temperature, WindSpeed,
+Irradiance). Irradiance is global horizontal irradiance in
+`WattsPerSquareMeter`, whole watts: a scaled-integer unit buys nothing
+at a quantity whose forecast skill is tens of W/m².

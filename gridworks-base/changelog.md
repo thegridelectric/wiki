@@ -10,6 +10,42 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-17 — A test that main ships no staging word (OPS-473, `ef1f80f`)
+
+The test no longer looks the snapshot's words up in a sema checkout or a
+registry index: the snapshot's own `definitions/registry.yaml` has the
+status of every word and version it ships, so it reads that and nothing
+outside the repo, and runs the same on a laptop and on GitHub (where a pull
+request is judged by its target branch). The earlier form self-skipped on
+GitHub, where no sema checkout exists.
+
+## 2026-10-17 — A test that main ships no staging word (OPS-473, `e4e6077`)
+
+`tests/test_sema_snapshot_published.py` looks every word in the
+snapshot's expanded seed up in the sema registry index
+(`SEMA_PUBLIC_REGISTRY`, else the sibling checkout's
+`indexes/public_registry.yaml`) and fails on `main` when one is not
+published; off `main` it reports the words and skips, and with no
+registry it skips. It reads the registry rather than the snapshot's own
+staging marker, so a hand-built snapshot with no marker is caught, as
+is a withdrawn word. A registry index with no status field (a sema
+checkout off `dev`) fails with a message saying so. The same test, with
+the same reading, guards web-backend's two snapshots.
+
+## 2026-10-16 — Vendored sema snapshot is published-only (OPS-473, `0b0af7d`)
+
+Branch `jm/published-only-snapshot`. `fis.connect.claims` 000 is published in
+sema, so `scripts/regen_sema_snapshot.sh` drops `--allow-staged` and the
+snapshot is rebuilt from sema `1c52df0`. The CLI's default guard now refuses
+any seed whose closure reaches an unpublished word, so a staging word cannot
+enter the vendored tree by accident. The regen removes
+`indexes/staging.yaml` and the dev-only banner in `src/gwbase/sema/README.md`
+(replaced by the generator's standard snapshot README) and flips the word's
+registry status to `published`. It also picks up sema-side changes since the
+2026-08-14 regen that touch no schema: the `non.empty.string` registry
+`created` stamp, and `g.node.gt` axiom error messages that now name the
+axiom and clause.
+
 ## 2026-10-15 — Orchestrator.dispatch_message unwraps gw bodies; process_message gains header; 0.6.0 (`d6d7c4d`)
 
 Branch `jm/unwrap-in-dispatch` (OPS-596). `Orchestrator.dispatch_message`

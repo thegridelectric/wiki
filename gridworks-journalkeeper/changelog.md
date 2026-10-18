@@ -10,6 +10,27 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-17 — test that main only has published sema words (OPS-473, `4a7505f`)
+
+The test no longer looks the snapshot's words up in a sema checkout or a
+registry index: the snapshot's own `definitions/registry.yaml` has the
+status of every word and version it ships, so it reads that and nothing
+outside the repo, and runs the same on a laptop and on GitHub (where a pull
+request is judged by its target branch). The earlier form self-skipped on
+GitHub, where no sema checkout exists.
+
+## 2026-10-17 — test that main only has published sema words (OPS-473, `695905c`)
+
+`tests/test_sema_snapshot_published.py` looks every word in the
+snapshot's expanded seed up in the sema registry index
+(`SEMA_PUBLIC_REGISTRY`, else the sibling checkout's
+`indexes/public_registry.yaml`) and fails on `main` when one is not
+published; off `main` it reports the words and skips, and with no
+registry it skips. It reads the registry rather than the snapshot's own
+staging marker, so a hand-built snapshot with no marker is caught, as
+is a withdrawn word. It is the test gwbase has, with this repo's
+snapshot path and release branch.
+
 ## 2026-10-15 — The alerter's words are journaled; gwbase 0.6.0; the body is opened by its routing category (`c28fb46`)
 
 Branch `jm/alerter-words-gwbase-0-6-0`. The seed vendors `gw.alert` and

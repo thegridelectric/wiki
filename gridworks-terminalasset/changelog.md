@@ -12,6 +12,16 @@ Newest at the top.
 
 ---
 
+## 2026-10-17 — A test that dev ships no staging word (OPS-473, `5c7a5ca`)
+
+`tests/test_sema_snapshot_published.py` reads the snapshot's own
+`definitions/registry.yaml`, where every word and version it ships has a
+status, and fails on `dev` when one is not published; off `dev` it reports
+the words and skips. Nothing outside the repo is read, so the test runs the
+same on a laptop and on GitHub (where a pull request is judged by its
+target branch). A regen with `--allow-staged` is the only way a staging
+word enters, and this is the gate that keeps such a snapshot off `dev`.
+
 ## 2026-10-09 — Track gwbase 0.5.15; the dev g.node.gt.json is written at 006 (`93f52d2, on `dev``)
 
 The floor was 0.5.2; the lock resolves to 0.5.15 so the simulated terminal asset runs on the same gwbase as the fleet. The self-minted dev identity was still a `g.node.gt` 004, which gwbase has rejected since 0.5.10 (it vendors 006 only); the record already carried every 006 field, so only the version string moves. As a `GridworksActor` it gains the alias self-heal; with `gnr_url` unset in the dev rung the lookup is off and the boot log says so (OPS-579).

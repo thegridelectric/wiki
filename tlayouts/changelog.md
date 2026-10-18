@@ -10,7 +10,61 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-14 — Beech disables dist-depth3-device <!-- pending commit -->
+## 2026-10-17 — temporarily take oak living room out of critical zone (`354c21c`)
+
+The living-room thermostat at oak is being held off (no heat call on its
+white wire) with the zone well under setpoint. A critical zone judged cold
+is what lets the cold latch bring in the oil boiler, so the living room
+comes off `critical_zone_list` in `gen_oak.py`; gear-rm and upstairs
+stay. The same edit was made by hand to the deployed
+`hardware-layout.json` on oak and oak2 (dated `-pre-drop-living-rm-critical`
+copies beside them), since `gen_oak.py` does not currently run against the
+laptop's scada venv (`FlowManifoldVariant` is a `main`-only gwsproto enum).
+
+## 2026-10-17 — make sure sema snapshots are published on main (OPS-473, `cade8d7`)
+
+The test no longer looks the snapshot's words up in a sema checkout or a
+registry index: the snapshot's own `definitions/registry.yaml` has the
+status of every word and version it ships, so it reads that and nothing
+outside the repo, and runs the same on a laptop and on GitHub (where a pull
+request is judged by its target branch). The earlier form self-skipped on
+GitHub, where no sema checkout exists.
+
+## 2026-10-17 — make sure sema snapshots are published on main (OPS-473, `648eead`)
+
+`tests/test_sema_snapshot_published.py` looks every word in the
+snapshot's expanded seed up in the sema registry index
+(`SEMA_PUBLIC_REGISTRY`, else the sibling checkout's
+`indexes/public_registry.yaml`) and fails on `main` when one is not
+published; off `main` it reports the words and skips, and with no
+registry it skips. It reads the registry rather than the snapshot's own
+staging marker, so a hand-built snapshot with no marker is caught, as
+is a withdrawn word. It is the test gwbase has, with this repo's
+snapshot path and release branch. On `main` it fails while the snapshot has
+staging words (89 on `jm/spruce` today). PyYAML joins the dev group.
+
+## 2026-10-16 — The snapshot regenerates onto sema 1c52df0: channel words at data.channel.gt 004 and derived.channel.gt 003 (`2cb606b`)
+
+What: `scripts/regen_sema_snapshot.sh` off sema `1c52df0`; the gens
+emit `data.channel.gt` 004 and `derived.channel.gt` 003 (enum
+reference bumps only, no field changes). The beech pair is regenerated
+and placed on both pis.
+
+Why: the scada seed pins those versions since 2026-10-15, and a layout
+at 003/002 fails its load (103 literal version errors). The 2026-10-16
+beech window could not open until the pair matched.
+
+## 2026-10-16 — beech in BufferOnly; accepts dispatch (`c3aa85d`)
+
+What: `operator_hold` goes false in `BEECH_OPS`; the pair is
+regenerated. BufferOnly and the rest of the ops word are unchanged.
+
+Why: the beta windows now exercise the dispatch contract itself: an
+LTN offer taken, then ended from admin (`InAdmin`) and by the cold
+watch. Held out of dispatch, every offer is refused with `OperatorHold`
+before any of that can run.
+
+## 2026-10-14 — Beech disables dist-depth3-device (`0e01a2c`)
 
 What: `dist-depth3-device` joins beech's `disabled_channel_names`; the
 pair is regenerated. The `micro-v` channel stays, so the fault remains

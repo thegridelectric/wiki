@@ -11,6 +11,59 @@ repo's git history.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-10-17 — The forecast as a list of series: snapshot on sema `63f9382`, bundles as binding lists (OPS-597)
+
+**What:** the vendored snapshot regenerates onto sema `63f9382` with
+staging words allowed (`regen_sema_snapshot.sh` passes
+`--allow-staged` until the forecast words publish), on
+`gw.weather.forecast` 001 with `SeriesList` and
+`gw.weather.forecast.bundle.gt` 002 with `BindingList`; the seed drops
+bundle 001. The service follows: the bundle table's six channel
+columns become a membership join table, the scheduler builds the
+series list from the bundle's bindings with each forecast channel's
+Method choosing its adapter, and the forecasts table keys a message's
+source revision per series. **Why:** which series a forecast holds is
+a fact of the bundle a subscriber designates, not of the schema.
+
+## 2026-10-17 — weather service provides irradiance (OPS-597)
+
+Irradiance in the Millinocket bundle: Open-Meteo fetcher, per-series fidelity, snapshot on forecast 001 and bundle 002. Commit `e6143ee`.
+
+**What:** the vendored snapshot regenerates onto sema `48eda7e`, published-only (the three solar words promoted there; `regen_sema_snapshot.sh` drops `--allow-staged`), with
+the seed pinning `gw.weather.forecast` at 000 and 001 and
+`gw.weather.forecast.bundle.gt` at 001 and 002, so a bundle without
+the irradiance pair keeps emitting the 000 message beside the new
+one; `gw.weather.create.cmd` 002 and the 003 unit and quantity enums
+come with the closure. `open_meteo.py` pulls `shortwave_radiation`
+from the pinned `gfs_seamless` model, shifts the hour-end labels to
+slice starts, checks coverage against the next hour boundary, and
+stamps the series with the GFS 0.13° run from the model metadata
+endpoint. The scheduler walks a fidelity ladder per series:
+temperature and wind from the NWS product, irradiance from the
+Open-Meteo product, each with its own stored product and downgrade
+glitch; at the template rung irradiance is zeros stamped with the
+bundle's Start. The actor schedules every bundle in the DB (one
+forecast stream per bundle, one observation stream per location) and
+wires each forecast channel's adapter from its Method and
+SourceLocator. A migration adds the bundle's nullable irradiance
+columns and the enum values of gw1.quantity and gw1.unit 003; a
+bundle row loads at the version its columns fill, a sent forecast
+decodes at the version it was sent at, the product cache is generic
+over the two product kinds, and the forecasts table's `fidelity` is
+the lowest rung among a message's series. The API returns both bundle
+and forecast versions. Fixtures gain the irradiance pair and the
+`us.me.millinocket.forecast.hourly` bundle beside the NWS one; tests
+cover the fetcher against a captured response, the independent
+ladders, the 000 path, and the store at both versions.
+`tests/test_sema_snapshot_published.py` (gwbase's test, one path changed) fails on `main` if any seed word is not published in the sema registry and only reports elsewhere. A `fidelity.py` module is the one home for the ladder rank and the DB column's rung; `IrradianceSource` groups a stream's irradiance fetch, scale and stored product into one optional field.
+
+**Why:** the LTN's house load model has a solar term with no fleet
+source. The series joins the one Millinocket bundle rather than a
+second stream, so a consumer decodes one message per slot; the two
+upstreams fail independently, so fidelity is declared per series. The
+old bundle keeps its 000 message until the scada and LTN move.
+
 ## 2026-10-09 — Track gwbase 0.5.15: user_id on every publish, alias self-heal (OPS-579, `cfefc8f`)
 
 gwbase 0.5.15 stamps `user_id` on every publish with the connection

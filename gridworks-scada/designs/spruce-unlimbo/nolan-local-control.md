@@ -216,6 +216,13 @@ the window's reports. Found: `dist-depth3` reads the 3.3 V pico rail
 `derived_generator.py` guards the estimate on `DispatchHold`, which is
 not the rule we want.
 
+Beech's second window (2026-10-16, hold off, `--ltn`) did not open:
+the scada pins `gw.weather.forecast.bundle.gt` 001 and the deployed
+forecaster still serves 000, so `provision_bundle` fails the boot on
+both pis. The window waits on the forecaster deploy; the scada is the
+side that has moved. Also found: the tlayouts snapshot lagged the
+scada's channel-word pins (003/002 against 004/003), fixed by a regen.
+
 **Do this next: the energy estimate does not depend on the dispatch
 hold.** Write the test that fails today (a House0 scada under
 `OperatorHold` with a fresh buffer and a forecast publishes

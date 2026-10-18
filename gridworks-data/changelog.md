@@ -10,7 +10,7 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-15 — retire installations: customers, installers and installations leave journaldb (branch `jm/retire-installations`) <!-- pending commit -->
+## 2026-10-15 — retire installations: customers, installers and installations leave journaldb (`4faa726` on `jm/retire-installations`)
 
 What: migration `e5a1c2d3f4b6` re-keys `user_installation_roles` from
 `installation_id` to a plain `ta_g_node_id` (mapped through the g_nodes

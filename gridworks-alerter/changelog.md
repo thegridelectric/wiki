@@ -4,6 +4,30 @@ One entry per commit in `thegridelectric/gridworks-alerter`,
 `thegridelectric/gridworks-alerts` and `thegridelectric/gridworks-alert-manager`
 (git = the what, this = the why).
 
+<!-- pending commit -->
+## 2026-10-17 — simplify: one store open in the CLI, one silences load, one Resolved builder, no unread accessors (`jm/simplify`)
+
+**What:** `cli.py` opens the store through one `open_store(settings)`
+and configures logging once; the actor's `read_silences` / `load_silences`
+pair becomes one `load_silences` returning the file's state (loaded,
+missing, unreadable), logged once per change; the two hand-built
+`Resolved` `Alert(...)` records in `no_data.py` and `prober.py` share
+one `resolved_of(firing, ...)` in `records.py`; `Store.latest_reading`,
+`HouseRecord.layout_received_ms` and the tap's `clock` /
+`last_reconcile` / `reconcile_due` go (nothing read them; the loop
+already waited on its stop event). Tests follow. `README.md` is
+rewritten: it opens with the alerter's summary as a person reads it,
+describes the two kinds, the store, the listener, silences and the tap
+as they are, and no longer names the legacy alerter, lists kinds not
+raised, restates the alert word's fields, or says the MQTT probe accepts
+any CONNACK (it requires an accepted one).
+
+**Why:** the alerter changes hands; the review before the handover found
+no bug but found the code doing more than the spec asks in these four
+places. No behaviour changes: a missing file still silences nothing, an
+unreadable file still leaves the last list standing, each state change is
+still logged once.
+
 ## 2026-10-15 — shorter better summaries for no data alerts (`380f754`)
 
 Branch `jm/short-summaries`. Every alert Summary and tap text is rewritten

@@ -21,7 +21,7 @@ Nothing here is Verified until that harness runs on the alerts box.
   `gw.alert` record when it starts (`Firing`) and one when it stops
   (`Resolved`). Detection is its whole job; who is told, how often and
   by what means belongs to whatever sits after it
-  (`executor/gwalerter.md`).
+  (`executor/primary.md`).
 - A tap process carries each record from the broker to a notifier.
   Today's notifier is Opsgenie, which pages the engineer on call.
 - Opsgenie is being phased out, so that path has an end date and
@@ -86,10 +86,10 @@ is to not build them.
 
 - The word: `gw.alert` with `Category`, `Kind`, `State` and `AlertId`
   is published (sema `632b58e`); its fields map onto Alertmanager's
-  intake one for one (`executor/gwalerter.md` "Alert words").
+  intake one for one (`executor/primary.md` "Alert words").
 - The tap: built and tested in `gridworks-alerter`
   (`src/gwalerter/tap.py`), with the label and annotation mapping in
-  `executor/gwalerter.md` "The tap". It keeps the open set across a
+  `executor/tap.md` "The tap". It keeps the open set across a
   restart, so a restart neither re-pages nor forgets.
 - The path, on the laptop: alerter to tap to a local Alertmanager to a
   webhook receiver, `Firing` and `Resolved`, with a tap restart while an

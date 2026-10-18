@@ -1,0 +1,45 @@
+# Trace spec: the first live NoData raise and resolve on hw1.
+# The input is materialised from the archive by experiments/traces/pull_trace.py
+# into experiments/traces/gridworks-alerter/<name>/messages.jsonl (gitignored);
+# this file, forest.json and the expected output below are the vector.
+name: 2026-10-15-oak-ltn-stop
+concern: no-data
+clauses_exercised: [NoData raise after the silence threshold, NoData resolve on the first arrival back]
+event: >
+  oak's LTN was stopped by hand at 18:46Z. The scada's reports reach the
+  broker through the LTN, so the last arrival from oak before the silence
+  was the 18:50:00Z report, arriving 18:50:09Z; reports created at 18:55
+  and 19:00 were buffered and arrived at 19:01:07Z and 19:01:12Z after the
+  LTN came back.
+
+window:
+  start: 2026-10-15T17:59:50Z   # the replayed alerter boots here; its last-heard floor is this instant. Opens on the LTN's 18:00:00Z glitch, the last thing the journal has from the LTN before the stop
+  end: 2026-10-15T19:01:20Z     # after the resolving arrival and the two layouts that follow it
+time: arrival                    # order and timestamp by journal persisted_at, never by the message's own time
+decode: as-sent                  # each body stays at the version it was sent, as the alerter reads it
+tracked_set:
+  roots: [hw1.isone.me.versant.keene]   # the replayed alerter's fleet roots
+  subtree: hw1.isone.me.versant.keene.oak
+  forest: forest.json            # the journaled g.node.forest before the window, restricted to the subtree and its ancestors
+senders:
+  - hw1.isone.me.versant.keene.oak.scada
+  - hw1.isone.me.versant.keene.oak
+bodies_for: [report.event, layout.lite]   # full body for these; every other type envelope only
+source: journal DB, gridworks.messages (persisted_at, from_alias, message_type_name, payload)
+
+expected_out:                    # gw.alert/000 records the alerter broadcast, from_alias hw1.alerts, journal timestamps
+  - t: 2026-10-15T19:00:06.438Z
+    State: Firing
+    Kind: NoData
+    AboutGNodeAlias: hw1.isone.me.versant.keene.oak.ta
+    Summary: "ltn silent for 10.1 minutes; scada does not send up reports with no ltn (hw1.isone.me.versant.keene.oak.ta)"
+  - t: 2026-10-15T19:01:04.418Z
+    State: Resolved
+    Kind: NoData
+    AboutGNodeAlias: hw1.isone.me.versant.keene.oak.ta
+    Summary: "data again after 11.0 minutes (hw1.isone.me.versant.keene.oak.ta)"
+tolerance: one detector tick (10 s) on each expected time
+not_in_journal:                  # supplied from Boundaries rows or the S3 eventstore by hand, not from the journal
+  - the routing key per message
+  - the Opsgenie create at 19:00:11Z and close at 19:01:11Z
+  - the LTN's pings and acks: JournalKeeper journals the LTN's glitches only (hourly), so "ltn speaking" in the cause clause cannot be exercised from the journal; the eventstore has them

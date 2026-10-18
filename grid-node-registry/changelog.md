@@ -10,6 +10,16 @@ git history.
 
 Newest at the top.
 
+## 2026-10-17 — A test that main ships no staging word (OPS-473) <!-- pending commit -->
+
+`tests/test_sema_snapshot_published.py` reads the snapshot's own
+`definitions/registry.yaml`, where every word and version it ships has a
+status, and fails on `main` when one is not published; off `main` it reports
+the words and skips. Nothing outside the repo is read, so the test runs the
+same on a laptop and on GitHub (where a pull request is judged by its
+target branch). A regen with `--allow-staged` is the only way a staging
+word enters, and this is the gate that keeps such a snapshot off `main`.
+
 ## 2026-10-10 — Snapshot broadcast runs inside gnr rabbit; gnr snapshot and its timer removed (`6b97e55`, merged `5c676df`)
 
 The periodic forest-snapshot broadcast (anti-entropy) is a thread inside

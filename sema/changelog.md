@@ -10,6 +10,89 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-17 — report.event 003 -> 004 upgrade propagates the report's id and created time (`23459d2`)
+
+**What:** the hand-written upgrade template for `report.event` 003 → 004
+sets `MessageId` from `Report.Id` and `TimeCreatedMs` from
+`Report.MessageCreatedMs` before validating as 004; the runtime is
+regenerated; a live spruce `report.event/003` (2026-10-17) joins the
+report.event fixtures with a test that it upgrades.
+
+**Why:** 004 reinstates the ReportIdentityPropagation and
+ReportCreatedTimePropagation axioms that 003 had dropped, so a 003 whose
+ids differ from its report's cannot pass 004 validation on a version
+bump alone; the upgrade has to rewrite the two fields whose meaning
+changed, as the spec's upgrade discipline requires. The 003 registry
+example happens to satisfy both axioms, so the snapshot round-trip gate
+never saw the case; spruce sends it on every report, and any consumer
+decoding with the codec's default auto-upgrade rejected every spruce
+report.event (found while materialising the alerter's first trace).
+
+## 2026-10-17 — improving the weather forecast structures (`63f9382`)
+
+`gw.weather.forecast` 001 and `gw.weather.forecast.bundle.gt` 002 as lists: the bundle declares its series.
+
+What: `gw.weather.forecast` 001 replaces its fixed temperature, wind
+and irradiance fields with `SeriesList`, an array of the new
+`gw.weather.forecast.series` 000 (ChannelName, Quantity, Values,
+Fidelity, SourceUpdatedTime); `gw.weather.forecast.bundle.gt` 002
+replaces its three fixed channel pairs with `BindingList`, an array of
+the new `gw.weather.forecast.binding` 000 (a forecast channel with the
+observed channel it targets). Both staging words are edited in place
+and restamped, with `gw.weather.create.cmd` 002 restamped behind the
+bundle; the axioms restate over the lists (one series per quantity
+replaces the fixed quantity targeting), each with a mutation test.
+Why: a forecast is a bundle of streams, and which streams it holds is
+a fact of the bundle a subscriber designates, not of the message
+schema, so a temperature-and-wind bundle and a bundle with irradiance
+speak the same word. The earlier publish of the fixed-field shape
+(`48eda7e`, 2026-10-17) was reset before it reached `main`. No
+temperature is mandatory: a consumer that needs one checks the
+bundle it designates. The binding word is not `.gt`: it is the
+bundle's membership in the weather DB, not a table of its own.
+
+## 2026-10-16 — snapshot: published-only means published versions; a seed passes over staging versions instead of failing on them (`64f110e`, merged to `dev` as `2c982b7`)
+
+What: in a published-only `sema snapshot prepare` (no `--allow-staged`),
+a seed target with `include_all_versions` expands to the word's
+published versions and a bare target to its latest published version;
+staging versions are passed over. An explicitly listed staging version
+still fails the build, as does any staging word a closure reaches. With
+`--allow-staged` the expansion is unchanged. The spec sentence is in
+`spec/snapshot.md` "Published-only by default"; the seed template says
+the same.
+
+Why: a consumer that ships to production keeps a published-only seed
+and never edits it at promotion time. Before this, a seed that reached a
+staging version failed outright, so the gridworks-web-backend snapshots
+were built with `--allow-staged` and web-api2 ran a staging snapshot,
+which the spec forbids outside dev brokers.
+
+## 2026-10-15 — Stage gw.weather.forecast 001, gw.weather.forecast.bundle.gt 002 and gw.weather.create.cmd 002: a solar irradiance series with per-series fidelity (`26e1456`)
+
+**What:** three staging versions. `gw.weather.forecast` 001 replaces
+the single Fidelity with TempFidelity, WindSpeedFidelity and
+IrradianceFidelity and adds IrradianceChannelName, IrradianceValues and
+IrradianceSourceUpdatedTime; its four axioms extend to the third
+series. `gw.weather.forecast.bundle.gt` 002 adds the required
+IrradianceForecastChannel and IrradianceObservationChannel pair and
+extends its five cross-channel axioms to it. `gw.weather.create.cmd`
+002 binds bundle 002 in its Record oneOf. The forecast and bundle
+upgrades refuse with the context-required error, since the old
+instances have no irradiance to bring forward; the create command lifts
+a bundle Record through the bundle's own upgrade. Indexes and runtime
+regenerated.
+
+**Why:** the LTN's house load model has a solar term and nothing in the
+fleet supplies it. NWS gridpoint has no irradiance, so the series comes
+from a second forecaster (Open-Meteo, model pinned) inside the one
+Millinocket bundle. Two upstreams fail independently, so one Fidelity
+per message cannot be true for both series; each series now declares
+its own rung. A required third pair rather than an optional one or a
+list: the 000 message and 001 bundle keep serving the old bundle
+through the transition, and a list is the shape a fourth quantity asks
+for. Published after a dev sample runs.
+
 ## 2026-10-15 — data.channel.gt 004 and spaceheat.telemetry.quantity.projection 001 on gw1.quantity 003; the scada's words no longer reach quantity 000 (`86e041c`)
 
 **What:** `spaceheat.telemetry.quantity.projection` 001 and

@@ -35,7 +35,7 @@ channel, the boot stamps, the relay-1 cycling. Nothing read it.
 ## The kinds
 
 Named for the condition a human acts on, following the gwalerter spec's
-table (`executor/gwalerter.md` "Alert kinds").
+table (`executor/primary.md` "Alert kinds").
 
 | Kind | Means | Evidence |
 | --- | --- | --- |
