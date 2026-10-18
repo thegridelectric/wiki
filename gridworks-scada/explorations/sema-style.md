@@ -61,4 +61,4 @@ hierarchies. See [[../principles]].
 ## Links
 
 `sema/spec/primary.md` · [[../../vision/where-meaning-lives-in-gridworks]] ·
-`gridworks-scada/CLAUDE.md` (Boundary protocol vs. runtime) · [[../principles]]
+`conventions/scada-CLAUDE.md` (gwsproto rules) · [[../principles]]

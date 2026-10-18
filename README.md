@@ -111,6 +111,7 @@ the sibling code repos, with the umbrella as the working root:
 ```
 GridWorks/                      ← umbrella (NOT a git repo); launch Claude here
 ├── CLAUDE.md                   → symlink to wiki/conventions/base-CLAUDE.md
+├── base.sh  scada.sh  build-executor.sh  → symlinks to wiki/tools/ (session launchers)
 ├── wiki/                       ← this repo (github.com/thegridelectric/wiki)
 │   ├── README.md  DESIGN_INDEX.md  active-claims.md
 │   ├── conventions/            ← base-CLAUDE.md (the umbrella CLAUDE.md, version-controlled),
@@ -129,6 +130,12 @@ To set up a machine:
 2. Point the umbrella's `CLAUDE.md` at this repo's canonical copy:
    `cd GridWorks && ln -s wiki/conventions/base-CLAUDE.md CLAUDE.md` (symlink preferred;
    copy works too).
+   Optionally link the session launchers beside it:
+   `for s in base scada build-executor; do ln -s wiki/tools/$s.sh $s.sh; done`.
+   Each starts Claude with that kind's protocol file appended
+   (`conventions/<kind>-CLAUDE.md`) and permissions skipped; add
+   `--include-sema` to append the sema protocol too (`build-executor.sh`
+   always includes it).
 3. **Wire up the hooks.** All ship as scripts under
    [`tools/`](tools/); each script's top-of-file comment explains what
    it does and why. Add to your `~/.claude/settings.json`

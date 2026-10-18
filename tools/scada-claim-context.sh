@@ -40,7 +40,7 @@ echo "$scope" | grep -Eq '(^|[^a-z-])(wiki/)?gridworks-scada/' || exit 0
 
 mkdir -p "$HOME/.claude" && : > "$marker"
 
-CTX="Your active-claims Scope includes gridworks-scada. Before editing the scada repo (gwsproto above all), you MUST read \`wiki/gridworks-scada/CLAUDE.md\` and follow it — the code repo carries no CLAUDE.md; the protocol lives in the wiki.
+CTX="Your active-claims Scope includes gridworks-scada. Before editing the scada repo (gwsproto above all), you MUST read \`wiki/conventions/scada-CLAUDE.md\` and follow it — the code repo carries no CLAUDE.md; the protocol lives in the wiki.
 
 Anchor rules (the file is authoritative):
   - Serialize gwsproto named-types with \`model_dump(by_alias=True)\` (snake-field types emit snake_case otherwise; decode tolerance hides the mistake).

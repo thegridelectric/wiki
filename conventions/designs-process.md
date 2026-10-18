@@ -103,6 +103,33 @@ multiple repos lives in the domain that bears the most change (e.g.,
 gwproto-shrink reshapes `gwproto`, with scada migration as downstream —
 owned by `gridworks-protocol`).
 
+## Focus shorthand
+
+How a session's Focus, stated as loose words, resolves to its anchor design.
+
+**Focus shorthand — design lookup.** A Focus stated as loose words that read
+like a design name resolves to a design file before anything else. Kebab-case
+the words; try both, take whichever hits:
+
+- **Cross-cutting:** whole phrase as slug in `wiki/designs/`
+  ("remove password access" → `wiki/designs/remove-password-access.md`).
+- **Per-domain:** first word a `wiki/` domain folder ⇒ remaining words as slug
+  in `wiki/<domain>/designs/` ("sema snapshot improvement" →
+  `wiki/sema/designs/snapshot-improvement.md`).
+- **Spoke:** the slug as a file inside a hub folder,
+  `wiki/<domain>/designs/<hub>/<slug>.md` ("basic sieg" →
+  `wiki/gridworks-scada/designs/spruce-unlimbo/basic-sieg.md`); the hub's
+  `primary.md` is the anchor.
+
+Don't assume the first word is a domain. Open the match as the session's
+anchor; if all miss, list candidates and ask — don't guess.
+
+**Focus names the active spoke when the design has one, else the design.**
+The active-claims Focus cell names the spoke being worked ("basic-sieg"); a
+design with no spokes is named by its own slug. The hub stays the session's
+anchor and altitude; when the work moves to another spoke, Focus moves with
+it.
+
 ## Folder shape
 
 A design entry is either:

@@ -1,14 +1,9 @@
 # GridWorks — working conventions for Claude
 
-Status: Accepted · Pass 2 · Updated 2026-10-04
+Status: Accepted · Pass 2 · Updated 2026-10-18
 
-> Canonical at `wiki/conventions/base-CLAUDE.md`; symlink setup in
-> [`README.md`](../README.md#setup). Paths are relative to the umbrella dir
-> (parent of `wiki/` + the sibling code repos: `gridworks-base`,
-> `gridworks-scada`, `sema`, …). The wiki holds the durable thinking and the
-> **rebuild specifications** for each domain — start at
-> [`wiki/README.md`](wiki/README.md). Coordination before editing is under
-> Multi-session.
+Paths are relative to the umbrella dir, the parent of `wiki/` and the sibling
+code repos. The wiki is the entry point: `wiki/README.md`.
 
 ## Bearings (held at every altitude)
 
@@ -57,28 +52,11 @@ Several Claude sessions edit GridWorks at once. You MUST read
 before extending into a new path. The SessionStart hook auto-claims your row;
 the normative protocol lives below the table in that file.
 
-**Focus shorthand — design lookup.** A Focus stated as loose words that read
-like a design name resolves to a design file before anything else. Kebab-case
-the words; try both, take whichever hits:
-
-- **Cross-cutting:** whole phrase as slug in `wiki/designs/`
-  ("remove password access" → `wiki/designs/remove-password-access.md`).
-- **Per-domain:** first word a `wiki/` domain folder ⇒ remaining words as slug
-  in `wiki/<domain>/designs/` ("sema snapshot improvement" →
-  `wiki/sema/designs/snapshot-improvement.md`).
-- **Spoke:** the slug as a file inside a hub folder,
-  `wiki/<domain>/designs/<hub>/<slug>.md` ("basic sieg" →
-  `wiki/gridworks-scada/designs/spruce-unlimbo/basic-sieg.md`); the hub's
-  `primary.md` is the anchor.
-
-Don't assume the first word is a domain. Open the match as the session's
-anchor; if all miss, list candidates and ask — don't guess.
-
-**Focus names the active spoke when the design has one, else the design.**
-The active-claims Focus cell names the spoke being worked ("basic-sieg"); a
-design with no spokes is named by its own slug. The hub stays the session's
-anchor and altitude; when the work moves to another spoke, Focus moves with
-it.
+**Focus shorthand resolves to a design file first.** Kebab-case the words
+and look in `wiki/designs/`, `wiki/<domain>/designs/` and hub folders; the
+lookup and the spoke-naming rule are in
+[`designs-process.md`](designs-process.md) "Focus shorthand". If all miss,
+list candidates and ask; don't guess.
 
 **On taking a design (or restructuring a hub): read the loop, summarize it
 back.** First read [`designs-process.md`](designs-process.md) §"The design
@@ -95,41 +73,22 @@ was loaded, not worked from memory. Ephemeral coordination (session names,
   human asks.** They are operative protocol and burden every future session;
   the human decides when one is warranted. LLM-facing material lives in the
   wiki.
-- **Sema:** before ANY sema edit, Read `sema/spec/primary.md`. Adding or
-  modifying a vocabulary word: first read the `sema/spec/registry/` and
-  `sema/spec/authoring/` spokes for the kind (format / enum / type) being
-  touched, then post a summary of that kind's registry, authoring,
-  dependency, and axiom/projection rules and WAIT for confirmation — the
-  summary proves the spec was read this session, not recalled.
-  **The sema spec (`sema/spec/`) is change-controlled: ANY change to the
-  spec — however small, additions included — requires discussion with the
-  human before editing.** Never fold a spec edit into another change; when a
-  task appears to force one, stop and raise it. Prefer moving rapidly beyond
-  an exceptional case over adding exception machinery to the spec.
-  A promotion-only turn (staging → published, no schema edit) reads only
-  `governance.md` "Promotion" and `registry/structure.md` "Status Field";
-  the read-receipt is the list of words promoted, bottom-up, and
-  `sema promote` is the gate.
+- **Sema:** before ANY sema edit, Read [`sema-CLAUDE.md`](sema-CLAUDE.md)
+  and follow it: spec first with a read-receipt, spec change-controlled,
+  registry rules. Any session kind takes it with `--include-sema`.
 - **Executor:** before writing or editing any `wiki/<domain>/executor/`
   file, Read [`wiki/conventions/executor-CLAUDE.md`](executor-CLAUDE.md),
   the recipe: the bar (a rebuild from the executor plus the vocabulary
   alone), the tables, the prose rules, the trace iteration, the
   adversarial pass. A session whose Focus is an executor starts with
-  `wiki/tools/build-executor.sh`, which appends the recipe.
+  `wiki/tools/build-executor.sh`, which appends it.
 - **Scada:** before editing `gridworks-scada` (gwsproto above all), Read
-  [`wiki/gridworks-scada/CLAUDE.md`](wiki/gridworks-scada/CLAUDE.md) and
-  follow it.
-
-## ⏳ Until the proactor port — sema words are FLAT (REVERT note)
-
-Sema vocabulary words do NOT inherit from one another: every type schema is
-flat, every field spelled out. The scada `gwsproto` base classes
-(`ComponentGt`, `ComponentAttributeClassGt`, `ChannelConfigBase`) *pretend*
-sema types inherit — a flaw, not a pattern to mirror. When authoring a sema
-type from a gwsproto class, **flatten** the base-class fields in and reference
-other sema words only by `$ref` composition. Do NOT fix the gwsproto
-inheritance now — the proactor port sweeps it up. (Added 2026-06-12; remove
-when that port regenerates gwsproto flat.)
+  [`scada-CLAUDE.md`](scada-CLAUDE.md) and follow it. A session whose
+  Focus is scada starts with `wiki/tools/scada.sh`, which appends it.
+- **Session scripts:** `wiki/tools/session.sh <base|executor|scada>
+  [--include-sema] [claude args]` starts a session with the matching
+  protocol file(s) appended and permissions skipped; `base.sh`,
+  `build-executor.sh` (always with sema) and `scada.sh` are its wrappers.
 
 ## Legacy first-pass code: vision, not how
 
@@ -152,66 +111,18 @@ distributed-trust principle it served — that principle is core vision.
   Quote only text actually read this session (or in a cited extraction);
   otherwise mark "quote not captured; read before citing" — never paraphrase
   inside quote marks.
-- **The scada's sema snapshot is the oracle for the hand-written gwsproto
-  twins.** `gridworks-scada/packages/gridworks-scada-protocol/sema_snapshot/`
-  is the scada's own vendored snapshot: every word it speaks, at the
-  version it speaks, seeded by `sema_seed_request.yaml` beside it and
-  regenerated by `scripts/regen_sema_snapshot.sh`. The conformance sweep
-  and every named-types test check the twins against it (shape, samples,
-  axioms by identity, every snapshot word mirrored). A word that changes
-  in sema reaches the scada by regenerating the snapshot in the same
-  wave and writing the twin the tests name; the twins stay hand-written
-  until the proactor refactor.
-- **Sema regen touches more than you changed** — bumping one type's version
-  rewrites the generated runtime of unchanged referrers (versionless class ref
-  rebinds; old version gets an explicit `XxxNNN` class). Expected, not a stray
-  diff.
-- **Sema `status` decides edit-in-place vs new version — check it first.**
-  `published` is IMMUTABLE: no functional change — fields, `$ref`/dependency
-  versions, axioms, constraints, `required`, enum values — ever; that takes a
-  NEW version (clarifying prose is fine). `staging` and `draft` are edited IN
-  PLACE; NEVER add a new version of a word whose latest is staging or draft —
-  a versioned staging word forks a mutable line that every mirror, fixture
-  and pin then has to be squashed back. Asked to change a published version
-  in place? Refuse and propose a new version. Asked for a new version of a
-  staging word? Refuse and edit in place. (Bootstrap allowance, sanctioned
-  per case and NOT in `sema/spec`: a version published before June 2026 MAY
-  be corrected in place when shipped wire data proves the schema wrong.)
-- **Every layout-word edit asks: did this expose a missing layout axiom?**
-  After each sema item on a layout or ops word, ask the human whether the
-  change surfaced an invariant the word does not yet state; capture it as
-  an axiom candidate before moving to the next item.
-- **Timestamps are real wall-clock, rounded to 5 minutes** — sema registry
-  `created` / `metadata.last_updated` use actual current UTC (`date -u`)
-  rounded to the nearest 5 min, never a placeholder. Same-sitting versions MAY
-  share the stamp; `created` unique only within a type; dependency ordering
-  allows equal stamps; `last_updated` ≥ every `created`.
-- **Dev broker = local `gw-dev-rabbit`** — one container, both faces: gwbase
-  actors over AMQP (`localhost:5672`), scada over MQTT (`localhost:1885`, TLS
-  off, Rabbit MQTT plugin — topic dots become slashes; payloads intact). Mgmt
-  UI `15672`. Creds live in each repo's `.env`; never hardcode them.
-- **A scada finds its files by their deployed names, in dev as on a box.**
-  Its config folder (`~/.config/gridworks/scada/`) holds
-  `hardware-layout.json`, `operational-params.json` and `ta-deed.json` side
-  by side, and the scada resolves them by default. Do NOT point a scada at
-  a fixture or gen-output file name through `*_PATHS__*` lines in a
-  `.env` or a template: a source with another name
-  (`tests/config/gw.nolan.*`, a tlayouts gen output) is renamed at the
-  copy, by `experiments/put_layout.sh` (`dev` seeds the laptop). Until
-  `jm/spruce-unlimbo` merges, a window scada reads the
-  `scada-experiment/` folder beside it; that folder goes away at the merge.
+- **Dev broker = local `gw-dev-rabbit`**, one container, both faces:
+  AMQP `localhost:5672` for gwbase actors, MQTT `localhost:1885` for the
+  scada (TLS off; topic dots become slashes), mgmt UI `15672`. Creds live
+  in each repo's `.env`; never hardcode them.
 - **Journal DB first; eventstore by hand.** Consumers read fleet
   emissions from the journal DB (readings tables + `gridworks.messages`
   payloads, decoded through the codec). The S3 eventstore is the deep
-  archive and carries MORE than the journal — message types
-  JournalKeeper does not journal, and windows beyond its retention.
-  Consult it by hand for those; keep no S3 fallback code in pull paths
-  until a consumer concretely needs an S3-only type. Session access to the
-  journal DB: `GJK_DB_URL` in `experiments/.env`. How to pull data — for
-  experiments and for quick spot-checks alike — is in
-  `experiments/spot-check-recipe.md` (report.event carries both state
-  machines and numeric channels; a spot-check reports back and leaves
-  nothing in the repo).
+  archive with more than the journal (unjournaled types, older windows):
+  consult it by hand, and keep no S3 fallback code in pull paths until a
+  consumer concretely needs an S3-only type. Session access is
+  `GJK_DB_URL` in `experiments/.env`; how to pull is
+  `experiments/spot-check-recipe.md`.
 - **HTTP surfaces follow the house API pattern** — writes ride rabbit, reads
   ride a public read-only façade; the party segment is the hyphenated
   GNodeAlias for GNode services (the service name for non-GNodes); bodies
@@ -223,231 +134,105 @@ distributed-trust principle it served — that principle is core vision.
   universe root (`d1.weather` → `hw1.weather`); market/copper nodes carry
   their place in the tree. Authority: gnr executor "Universes".
 - **No cross-service declarations in a repo.** A repo SHALL NOT state what
-  another service does with it ("JournalKeeper overrides this hook as a
-  permanent legacy_hack") — such claims go stale silently when the other
-  repo moves. The filter: is this a declaration that can go out of sync,
-  or an illustration? Illustrations ("e.g., journalkeeper") are fine;
-  declarations live in the wiki or in the repo whose behavior they
-  describe.
+  another service does with it; such claims go stale silently. Illustrations
+  ("e.g., journalkeeper") are fine; declarations live in the wiki or in the
+  repo whose behavior they describe.
 - **Sema is mandatory at every durable-data and inter-app boundary.**
   Whenever code uses or generates durable data, or communicates with
   another GridWorks app, it MUST speak sema: instances constructed and
-  decoded through the generated snapshot classes — never hand-built
-  dicts, never meaning read off database columns, filename conventions,
-  or hand-kept copies. The failure mode this rule counteracts: an LLM's
-  default Python idiom (dicts, bare `str`, `hasattr`) is prior gravity,
-  and it reasserts itself precisely where sema is the *medium* rather
-  than the subject — pullers, emitters, display tooling. Counter it
-  structurally, not by intention: vendor the snapshot BEFORE the first
-  consumer line; property formats, never bare `str`, wherever the value
-  is vocabulary-shaped; dispatch with `isinstance`, never `hasattr`;
-  narrow every codec decode (`expect=` or `assert isinstance`); pyright
-  in the repo's ci.sh (the sema-aligned hook reminds at write time).
-  Where no word covers a fact yet, hand-code it WITH a note naming the
-  missing word that retires it — and "no word" is a checked fact, not
-  an assumption: search the registry (`sema/definitions/`) first, since
-  a word that exists gets vendored into the snapshot seed, never noted
-  around. The tell that vocabulary is missing or unused: code that
-  scrapes or hand-maps instead of looking up.
+  decoded through the generated snapshot classes, never hand-built dicts,
+  never meaning read off database columns, filename conventions, or
+  hand-kept copies. The default Python idiom (dicts, bare `str`,
+  `hasattr`) reasserts itself where sema is the *medium* rather than the
+  subject (pullers, emitters, display tooling), so counter it
+  structurally: vendor the snapshot BEFORE the first consumer line;
+  property formats, never bare `str`, wherever the value is
+  vocabulary-shaped; dispatch with `isinstance`, never `hasattr`; narrow
+  every codec decode (`expect=` or `assert isinstance`); pyright in the
+  repo's ci.sh. Where no word covers a fact yet, hand-code it WITH a note
+  naming the missing word that retires it, and "no word" is a checked
+  fact: search `sema/definitions/` first. The tell that vocabulary is
+  missing or unused: code that scrapes or hand-maps instead of looking up.
 - **Sema gravity applies below the word layer.** Interior structures
-  with no word yet — kind-specific result files, analysis
-  intermediates, provenance records — follow the same discipline one
-  level down. Every record is a typed structure (`NamedTuple` or
-  equivalent) with a docstring saying what its fields hold; ad-hoc
-  dict records are the antipattern, and dict form appears once, at
-  the serialization boundary (`to_jsonable`/`to_dict`). Homogeneous
-  mappings of typed values are fine. Property formats attach wherever
-  a value is vocabulary-shaped — record fields, mapping keys, and
-  module constants alike (`dict[LeftRightDot, WindowReport]`;
-  constants validated through a `TypeAdapter` at load). Timestamps
-  take the coarsest sufficient time format (`UTCSeconds` when seconds
-  are enough), never bare epoch floats. A boundary validator SHALL
-  return the format type: validating and then returning `str` strips
-  the type at every call site. Each such record carries the note
-  naming the missing word that retires it.
+  with no word yet (result files, analysis intermediates, provenance
+  records) follow the same discipline one level down: every record is a
+  typed structure (`NamedTuple` or equivalent) with a docstring; dict
+  form appears once, at the serialization boundary. Property formats
+  attach wherever a value is vocabulary-shaped: record fields, mapping
+  keys, module constants (validated through a `TypeAdapter` at load).
+  Timestamps take the coarsest sufficient time format (`UTCSeconds` when
+  seconds are enough), never bare epoch floats. A boundary validator
+  returns the format type, not `str`. Each such record names the missing
+  word that retires it.
 - **Context is a budget: read sections, not files.** A file over ~300
-  lines is never read whole for orientation, even when the ask says
-  "read X": list its `##` headers, read the stamp, the "what this is"
-  line and the sections the Focus names (the active spoke's "Do this
-  next", the handoff paragraph, the step in question), and say which
-  sections were skipped. When asked to read a huge file end to end,
-  push back with its line count and the section list, and read the
-  sections the human picks. A reading session's context is spent on
-  every later turn; a whole-file `cat` of three spokes cost 250K in one
-  session (2026-09-06).
+  lines is never read whole for orientation, even when the ask says "read
+  X": list its `##` headers, read the stamp, the "what this is" line and
+  the sections the Focus names, and say which were skipped. Asked to read
+  a huge file end to end, push back with its line count and section list.
 - **Harness and log output comes back as a verdict, not a transcript.**
-  Run harnesses, smoke tests and suites with stdout to a file and
-  return ONE line (PASS/ABORT, counts, the file path). Grep a log for
-  a named pattern with a line cap (`| head -20`), never dump it; when a
-  finding needs the surrounding lines, quote the few that carry it. A
-  run that must be looked at closely is delegated to a subagent that
-  returns the conclusion.
+  Run suites and harnesses with stdout to a file and return ONE line
+  (PASS/ABORT, counts, the file path). Grep a log with a line cap, never
+  dump it. A run that must be read closely goes to a subagent that returns
+  the conclusion.
 - **No dead code, no assumed defaults** — when a refactor orphans a symbol,
   delete it in the same change. Do not introduce a default that hides a value
   the caller must declare — make it required, sourced from a `names` constant.
-- **Prod boxes run committed code only.** NEVER scp/edit uncommitted content
-  into a repo checkout on a deployed box — not even "the same file that's
-  about to be committed". The only path onto a box is land-in-git → push →
-  pull on the box. Hand-deploys dirty the prod tree, block the next pull,
-  and break the box-runs-a-pushed-SHA guarantee (gwbase executor
-  `service-deployment.md`).
-  A deployed box holds a **full clone** (never `--depth 1`/single-branch, so
-  a hotfix branch can be checked out on the box), normally on **`main`**; a
-  box off `main` is a deviation the platform-drift check surfaces, not one we
-  force.
-  Non-repo box state (a sudoers drop-in, a `.bashrc` line) is fine to place
-  directly but MUST be recorded in the box's instance-README.
+- **Prod boxes run committed code only.** NEVER scp/edit uncommitted
+  content into a repo checkout on a deployed box, not even "the same file
+  that's about to be committed". The only path onto a box is commit →
+  push → pull on the box; a hand-deploy dirties the prod tree and breaks
+  the box-runs-a-pushed-SHA guarantee (gwbase executor
+  `service-deployment.md`, which also covers full clones and the `main`
+  norm). Non-repo box state (a sudoers drop-in, a `.bashrc` line) is fine
+  to place directly but MUST be recorded in the box's instance-README.
 - **Box and journal-DB operations start in gridworks-infra.** Before
   deploying, restarting, migrating or picking a DB login, read the box's
   `gridworks-infra/<box>/instance-README.md` and, for the journal DB,
-  `gridworks-infra/databases/journaldb.md` (which login does what, where
-  its credentials live). Working it out from the box itself, the wiki or
-  `~/.ssh/config` is the miss this closes.
-- **A TLS cert belongs to one program.** Each client cert on a box is
-  the identity of the one service that is deployed to use it, and the
-  FIS gate leases that identity to one running instance: any other
-  process that presents the cert (a hand-rolled listener, a one-off
-  `gwalerter rabbit`, a test) supersedes the deployed service and it is
-  refused for the rest of its life (the alerts prober, 2026-10-09, blind
-  for a day). NEVER load a cert, or a `.env` that names one, into
-  anything but its own program without asking the human first; a
-  listener or experiment gets its own principal and cert, minted with
-  consent.
+  `gridworks-infra/databases/journaldb.md`. Not the box itself, the wiki
+  or `~/.ssh/config`.
+- **A TLS cert belongs to one program.** Each client cert on a box is the
+  identity of the one service deployed to use it; the FIS gate leases that
+  identity to one running instance, and any other process presenting the
+  cert supersedes the deployed service, which is then refused for life.
+  NEVER load a cert, or a `.env` that names one, into anything but its own
+  program without asking the human first; a listener or experiment gets its
+  own principal and cert, minted with consent.
 - **In-field pico firmware upgrades are allowed this year and will be
   retired before scaling.** Build nothing durable on the upgrade path (the
   `code-update` post): no sema word, spec or scada feature depends on it.
 
+- **Sema-typed JSON filenames** are dash-separated fields, each internally
+  LeftRightDot, ordered `<subject>-<condition?>-<type.name>-<version>.json`
+  (the S3 eventstore key grammar; a spaceheat.name subject swaps dashes to
+  dots). TypeName verbatim, dots preserved, never underscores; dot/underscore
+  conversion belongs at the code boundary only.
+
 ## Experiment-Driven Design (EDD) — the verification bar
 
-Confidence comes from **experiments in close-to-real-world conditions** — a
-real broker, real (or sped-up) timing — not from code analysis or in-process
-unit tests. In-code tests are necessary, not sufficient: they share a backdoor
-transport and a wall clock and go green while real-world behavior stays
-invisible. A spec reaches `Verified` only when an experiment tests it against
-reality. Keep the harness as a re-runnable reproducer (the evidence behind the
-stamp); distill findings into scoped Verified claims with `Reviewed` pointing
-at the experiment. Framework + conventions: the simulated-test-environment
-design (`wiki/gridworks-scada/`); working rhythm:
+Confidence comes from **experiments in close-to-real-world conditions** (a
+real broker, real or sped-up timing), not from code analysis or in-process
+unit tests, which share a backdoor transport and a wall clock and go green
+while real-world behavior stays invisible. A spec reaches `Verified` only
+when an experiment tests it against reality; the harness stays as the
+re-runnable reproducer and `Reviewed` points at it. Rhythm:
 [`working-with-llms.md`](working-with-llms.md#the-edd-working-rhythm--capture-refactor-re-orient).
 
-**Every design hub self-declares EDD-or-not** on one line directly under the
-`Status:` stamp — bold `**EDD: yes**` / `**EDD: no**` + the verifying clause,
-no separator hyphen:
-
-> **EDD: yes** the X harness *is* the verification; spokes reach Verified only
-> when an experiment runs against it (`experiments/…`).
-
+**Every design hub self-declares EDD-or-not** on the line under its
+`Status:` stamp: `**EDD: yes**` / `**EDD: no**` + the verifying clause.
 `yes` when confidence comes from an experiment; `no` for build-out work
-(migration, integration, refactor), verified by the suite + the key test —
-only the verification bar differs.
+(migration, integration, refactor), verified by the suite + the key test.
 
-**A field bug gets its local test first.** Every bug in the code unearthed
-in the process of running live in the field SHALL result in local tests
-that catch the same bug first, before applying the fix: test-driven design
-as part of EDD. The field window finds the bug; a local test reproduces it
-and fails; only then does the fix go in and turn the test green. Where no
-local test can reach the bug, the missing simulation is the first change (a
-settable sim pin, a sim driver value).
+**A field bug gets its local test first.** A bug found running live SHALL
+get a local test that reproduces it and fails before the fix goes in. Where
+no local test can reach the bug, the missing simulation (a settable sim
+pin, a sim driver value) is the first change.
 
 ## Commit suggestions
 
 Human does all `git commit`s; I suggest at logical units (path-scoped
 `git add` + a one-line message) and never `git add -A` while other sessions
-may be live (mirror my active-claims Scope).
-
-## ⏳ scada renovation — logical-unit commits SUSPENDED there (REMOVE when the epic merges)
-
-During the `jm/spruce-unlimbo` renovation, `gridworks-scada` changes land as
-large multi-concern commits: the work is too interdependent to carve (one
-file carries several concerns) and the branch is off `main`. The suite stays
-green at each landing and the changelog still records what/why. Scada only;
-every other repo keeps the logical-unit rule.
-
-**Scada is a statue: chip, don't sculpt.** In `gridworks-scada` every
-change is made with the utmost care unless the human has given a specific
-green light. Two things combine here to make my default gravity produce
-errors: an existing and rather unique codebase, and a set of ideas about
-how the human wants to change it that I do not fully understand. On top of
-those sit mistakes already in the code, including recent ones made when
-this care was not taken. So: remove only what demonstrably does not
-belong; for each change, state the problem it solves and how we really
-want to solve it before touching code; no drive-by refactors, renames, or
-"improvements" alongside the change at hand.
-The code on `dev` has run well for two years with a loose but solid test
-framework and tests for little of the functionality. We took a deep dive
-and are now finding our way back to the surface: every feature we create or
-touch gets a test, and a break in `pytest` is the rope — follow it up, fix
-what it reaches, and keep climbing rather than routing around it.
-
-**⏳ The single scada focus (set 2026-09-01; REMOVE when both sim houses
-run in dev):** get a simulated House0 and a simulated spruce working
-against tests with genuinely decent coverage — nothing else. CHALLENGE any
-scada work that does not serve this focus, including work Jessica floats.
-One clear exception: work that **clears out the pipes**, finding hidden
-crud on a path the fleet really runs that we would not otherwise easily
-find (a channel nothing sends on, a creator no actor claims, a reading
-dropped at a boundary). That work serves the focus without needing to be
-named by it, because it finds what tests written from today's
-understanding do not look for. It is not to be challenged, and it matters
-most on the paths that carry the core mission on the electric grid:
-metering, energy, the transactive boundary.
-Once green: run both in dev, then bring the four upstream data repos
-(gjk, gridworks-data, gridworks-web-backend, gridworks-web-frontend) to
-correct layout-sema ingestion IN DEV. No per-house "specials" upstream —
-the standing team rule (2024): data analysis never slows the production
-system, and hard-coded channel-name strings in data services are the named
-enemy of that rule.
-
-**Four more layouts arrive rapidly (fall 2026):** one simulated, three
-installed in Millinocket this fall. Two of the installs simplify the flow
-control manifold — no iso valve and no buffer tank; the third is a cement
-store-under-floor with no water tanks at all. Scada code SHALL NOT assume
-a buffer tank, an iso valve, or water store tanks exist; "shared" means
-every layout we can imagine has it, not both current families.
-
-**⏳ elm, fir and oak gens fail the House0 `SiegManifoldChannels` axiom
-(missing sieg-hot) by design (REMOVE when `gw.house0.no.sieg` exists).**
-Those three houses get a `gw.house0.no.sieg` word, written once House0
-is close to stable. Leave the gens as found; do not add a sieg-hot
-channel or relax the axiom.
-
-**Bring up unlimbo on spruce or beech = `experiments/spruce_window.sh` /
-`beech_window.sh`** (both call `house_window.sh <house>`), run from the
-laptop; the window pair reaches the box only through
-`experiments/put_layout.sh`. The full operational how-to — the two box
-layouts, the byte-identity gate, the tunnel, the spruce branch exception,
-and running a round — is `experiments/field-window-recipe.md`. Two rules hold
-at every window. Spruce runs production off `actual-spruce` (scada and layout
-both) while the window runs `jm/spruce-unlimbo` against the `jm/spruce`
-layout, so its two layouts are reasoned about separately. And the window kind
-sets its length: an *experiment* window at spruce displaces the winter hack
-(`NolanLocalControl` holding zones and the heat pump off), so keep it short
-and bounded; a *field-support* window runs long (hours, e.g. `on 360`)
-because it is what lets heat calls reach the heat pump while someone works on
-the equipment, bounded anyway so the winter hack auto-restores if the session
-ends.
-
-**Read the diff for context-dependent prose before suggesting a scada
-commit.** Docstrings, comments, gwsproto field descriptions and sema word
-prose SHALL state what is, now. Sweep every changed file for: transition
-narrative ("used to", "was X, now Y", "changed because", "no longer",
-"retired", dated asides); rationale that only makes sense against the
-old code; and enumerations of things that will move (the actors that read
-a field, the consumers of a message, the layouts that have a thing).
-Rewrite each to present tense and to the thing's own meaning; the why
-goes in the changelog entry, the list goes nowhere (the code is the
-list). A description that names the actor classes a flag switches on is
-the tell: it describes today's implementation, not the flag.
-
-**Periodic mypy sweep of scada `actors/` (no gate).** After any
-change that moves methods between actor base classes, and at each
-milestone, run `venv/bin/mypy --ignore-missing-imports
---follow-imports=silent actors` from `gw_spaceheat/` and read only the
-`has no attribute` lines, filtered against the runtime-injected
-`transitions` trigger names. A reader on a plain base of a name that
-moved to a tier is the defect this catches (`bd13a371` left two; one
-stopped the scada, one silently stalled the sieg valve). Not a CI gate:
-the trigger noise and the hand-derived gwsproto make one mostly noise.
+may be live (mirror my active-claims Scope). Code-repo commits are
+title-only; the diff is the authoritative what.
 
 **Run the repo's CI entrypoint before suggesting a code-repo commit** — the
 full gate (`ci.sh` or documented equivalent: lint, format, drift/codegen
@@ -461,47 +246,42 @@ run the tests.
 is exempt (main is normal). Check `git -C <repo> branch --show-current` before
 any first edit in a repo.
 
+**Read the diff for context-dependent prose before suggesting a commit.**
+Docstrings, comments, field descriptions and sema word prose SHALL state
+what is, now. Sweep every changed file for transition narrative ("used to",
+"was X, now Y", "no longer", dated asides), rationale that only makes sense
+against the old code, and enumerations of things that will move (the
+readers of a field, the consumers of a message). Rewrite each to present
+tense and to the thing's own meaning; the why goes in the changelog entry,
+the list goes nowhere (the code is the list).
+
 ## Working-tree hygiene
 
-Code-repo edits are organised into **clusters**: one pending changelog entry
-(`<!-- pending commit -->`) in `wiki/<domain>/changelog.md` = one cluster.
-Wiki changes are not cluster-checked. Changelogs are per-domain ONLY —
-cross-cutting wiki folders (`wiki/designs/`, `wiki/tests/`, `wiki/tools/`)
-SHALL NOT have one; wiki-convention changes live in git history. Enforced by
-hooks in `tools/` (`precheck-pending-changelog.sh`,
-`precheck-claim-on-dirty.sh`, `precheck-bulk-on-dirty-tree.sh`,
-`stop-cluster-coherence.sh`). If a hook fires: cache the in-flight plan to a
-scratch note, surface the state; disposition is the user's. Before more than
-~5 file edits in one cycle, ask whether to enable `bulk-on`; the user creates
-the `~/.claude/.bulk-stop-override(.<session>)` file — I MUST NOT create it.
+- One **cluster** of code-repo edits = one pending changelog entry
+  (`<!-- pending commit -->`) in `wiki/<domain>/changelog.md`. Wiki edits
+  are not cluster-checked; cross-cutting wiki folders have no changelog.
+- Hooks in `tools/` enforce this. When one fires: cache the in-flight plan
+  to a scratch note, surface the state; disposition is the user's.
+- Before more than ~5 file edits in one cycle, ask whether to enable
+  `bulk-on`; the user creates the override file, I MUST NOT.
 
 ## Linear
 
-**Keep Linear ↔ wiki in sync** — reconcile at session start and after
-Linear-UI edits: bijection sweep + `tools/linear-snapshot.sh`; routine in
-[`linear.md`](linear.md) "Keeping in sync". Renames touch both sides; the
-wiki file is the canonical slug.
-
-**Log hours on completion** — substantial task/design wraps get an hours note
-on the Linear issue (total + per-day) AND a Harvest entry (`hv` workflow).
-Confirm hours with the user before posting to Harvest — it's billable.
-
-**Labels: reflect on every create, not from memory.** Call
-`list_issue_labels` (Ops) each time; the live Linear set is the source of
-truth. Tag at minimum component/domain AND work-kind (single-axis tagging is
-the defect this rule prevents). The five axes + label semantics + when to
-coin a new label: [`linear.md`](linear.md).
-
-**No issue-to-issue relations.** I SHALL NOT add `blocks`/`blockedBy`/
-`relatedTo`/`duplicateOf` or any other relation, via MCP or otherwise; the
-human curates the graph (I MAY remove one when asked). Dependencies and
-context go in the issue description prose.
-
-**Shared-dependency work earns its own flat Linear issue.** Work depended on
-by two or more larger designs becomes its own issue + design — never a
-sub-issue; dependents name it in description prose. Scope it generously
-enough to absorb honest creep — one coherent closeable unit, not a litter of
-tiny issues.
+- **Keep Linear and wiki in sync** at session start and after Linear-UI
+  edits: bijection sweep + `tools/linear-snapshot.sh`
+  ([`linear.md`](linear.md) "Keeping in sync"). The wiki file is the
+  canonical slug.
+- **Log hours on completion**: an hours note on the issue (total +
+  per-day) AND a Harvest entry (`hv`). Confirm hours with the user before
+  posting to Harvest; it is billable.
+- **Labels: call `list_issue_labels` on every create**, never from memory.
+  Tag at minimum component/domain AND work-kind; axes and semantics in
+  [`linear.md`](linear.md).
+- **No issue-to-issue relations.** The human curates the graph; I MAY
+  remove one when asked. Dependencies go in the description prose.
+- **Shared-dependency work gets its own flat issue + design**, never a
+  sub-issue; dependents name it in prose. Scope it as one coherent
+  closeable unit.
 
 ## Status stamps
 
@@ -523,113 +303,74 @@ Exemptions + enforcement: `wiki/tests/test_doc_health.py`.
 
 ## Wiki essentials (the wiki's authoring conventions)
 
-**Structure** — each `wiki/<domain>/` holds `research/` (pre-spec, not
-normative), `executor/` (the faithful-rebuild spec — complete enough to
-rebuild the domain from docs alone), and `changelog.md` (one entry per
-corresponding code-repo commit; git = the *what*, changelog = the *why*).
+**Structure.** Each `wiki/<domain>/` holds `research/` (pre-spec, not
+normative), `executor/` (the faithful-rebuild spec: complete enough to
+rebuild the domain from docs alone) and `changelog.md` (one entry per
+code-repo commit; git is the *what*, the changelog the *why*). Every
+`executor/` hub is a short `primary.md` (≤ ~300L: overview, invariants,
+glossary, TOC); sub-specs one concern each (~300–500L); no doc over 1000L.
+A repo with code but a poor `executor/` gets its `primary.md` to that
+minimum first, the rest "Open".
 
-**Hub-and-spoke** — every `executor/` hub is `primary.md`, short
-(≤ ~250–300L): overview, cross-cutting invariants, glossary, TOC. Sub-specs
-one concern each (~300–500L). No doc exceeds 1000L — split it.
+**Living-spec discipline.** After each task, reconcile the relevant
+sub-spec with what you built; touch executor `primary.md` only for
+cross-cutting changes. A spec may say "Open": short and current beats long
+and speculative. **When the user commits, ALWAYS add the matching
+`changelog.md` entry before considering the work done**, verified against
+`git show`, not memory; date and title mirror the commit. Pending entries
+(`<!-- pending commit -->`) only when the next planned commit is in the
+code repo.
 
-**Living-spec discipline (while coding):**
+**Where content lives**: open questions → `explorations/`; settled
+patterns → `executor/`; ratified change plans → `designs/`; workflow
+state → Linear ([`glossary.md`](glossary.md) "Where content lives").
 
-- After each task, reconcile the relevant sub-spec with what you built —
-  resolve "Open" markers, fix divergences; touch executor `primary.md` only
-  for cross-cutting changes.
-- **When the user lands a commit, ALWAYS add the matching `changelog.md`
-  entry before considering the work done.**
-- A spec may say "Open" — short, honest, current beats long and speculative.
-- Holistic consistency pass at milestones.
+**Design-specs (`designs/`)** have one fixed location each
+(`wiki/<domain>/designs/<slug>.md` or `wiki/designs/<slug>.md`) and never
+move. **Linear is the authority on status.** On completion, distill into
+`executor/`, delete the design file, finalize the issue. **Designs are
+ephemeral, so NOTHING may link to or name a design file** (sole exception:
+[`DESIGN_INDEX.md`](../DESIGN_INDEX.md)); reference work by its Linear
+issue. Full convention: [`designs-process.md`](designs-process.md).
 
-**Commit + changelog convention:**
+**Implementation gate.** No code-repo edits in a design's scope until EVERY
+spoke is `Accepted` with `Pass ≥ 1`. Writing code against a Draft spec is
+the antipattern this prevents.
 
-- Code-repo commits are **title-only**; the diff is the authoritative what.
-- The changelog entry carries a brief what + the why; date + title mirror the
-  commit.
-- **Verify every changelog entry against the actual diff** (`git show`), not
-  memory.
-- Pending entries (`<!-- pending commit -->`) ONLY when the next planned
-  commit is in the code repo; wiki-only edits earn none.
+**Write boundary.** Code repos are authoritative for the *what*, `wiki/`
+for the *why* and specs. Confirm before editing a code repo's non-wiki
+files when the task is documentation.
 
-**Where to start** — a repo with substantial code but a poor `executor/`
-gets its `primary.md` to an acceptable minimum first (overview + invariants +
-glossary + TOC, rest "Open"); depth later.
+**Repos do not know about the wiki.** A code repo's README, comments,
+docstrings and configs SHALL NOT cite wiki paths, executor specs or design
+names; a repo README stands alone for a human. The wiki points at code
+(`file:line`); code never points back. Exempt: the wiki's own README and
+any `CLAUDE.md`.
 
-**Where content lives** — canonical disambiguation in
-[`glossary.md`](glossary.md) "Where content lives". The discriminator is
-clarity: open questions → `explorations/`; settled patterns → `executor/`;
-ratified change plans (full content) → `designs/`; workflow state → Linear.
+**Authoring.** Capture *why* and design intent, not a restatement of code;
+pin volatile specifics with `file:line`. One canonical doc: update it,
+don't duplicate; delete what's wrong. Open every doc with a one-line "what
+this is".
 
-**Design-specs (`designs/`)** — one fixed location per design
-(`wiki/<domain>/designs/<slug>.md` or cross-cutting `wiki/designs/<slug>.md`);
-files never move as status changes. **Linear is the authority on status**:
-designs are Ops-team issues tagged `design`, created with assignee, state,
-and priority set (hook-enforced). **cap-8** = personal WIP limit: at most 8
-issues assigned to me in a started state. Every design file carries a stamp;
-`Accepted` requires `Pass ≥ 1` and `· Linear: <id>` in the stamp
-(doc-health-enforced). **On completion:** distill the durable content into
-`executor/`; delete the design file; finalize the issue (strip the design
-link, short final-writeup comment, Done). **Designs are ephemeral, so
-NOTHING may link to or name a design file** (sole exception:
-[`DESIGN_INDEX.md`](../DESIGN_INDEX.md)); reference other work by its **Linear
-issue**, where relationship narrative (depends-on, sequencing, supersedes)
-also lives. Full convention: [`designs-process.md`](designs-process.md);
-Linear interface: [`linear.md`](linear.md).
+**Durable prose earns its place by teaching the reader something they
+cannot be presumed to bring or see.** Two kinds qualify: information that
+exists nowhere else (decisions, intent, constraints, operational facts)
+and GridWorks fundamentals (demand response as continuous transactive
+load, not event curtailment; meaning living in Sema). Not industry common
+knowledge, not what the artifacts in front of them already show. A
+restated fundamental converges on its canonical home, never forks it.
+Everything else: don't write it, delete it where found. Durable prose is
+loaded into every future session, so each word costs on every read.
 
-**Implementation gate** — no code-repo edits in a design's scope until EVERY
-spoke (`primary.md` + all sub-specs) is `Accepted` with `Pass ≥ 1`. Hub >
-spoke maturity is fine while drafting; the gate is where everything
-converges. Writing code against a Draft spec is the antipattern this
-prevents.
+**Headers are reference slugs.** In spec-grade docs (`executor/`,
+`sema/spec`) a `##` header is cited as `file.md "Header text"` and renaming
+one moves every reference in the same change. Get the name right by
+Accepted. No global section numbers.
 
-**Write boundary** — code repos are authoritative for the *what*; `wiki/` for
-*why* + specs. Confirm before editing a code repo's non-wiki files when the
-task is documentation.
-
-**Repos do not know about the wiki.** The only references to wiki files
-are in the wiki itself: a code repo's `README.md`, source comments,
-docstrings, and configs SHALL NOT cite wiki paths, executor specs, or
-design names. A repo's `README.md` additionally stands alone for a human.
-Exempt: the wiki's own README and any `CLAUDE.md` (Claude-facing). The
-wiki points at code (`file:line`); code never points back.
-
-**Authoring** — capture *why* + design intent, not a restatement of code; pin
-volatile specifics with `file:line`. One canonical doc — update it, don't
-duplicate; delete what's wrong. Open every doc with a one-line "what this is".
-
-**Durable prose earns its place by teaching the reader something they cannot
-be presumed to bring or see** — not industry common knowledge, not what the
-artifacts in front of them already show. Two kinds qualify: information that
-exists nowhere else (decisions, intent, constraints, operational facts), and
-GridWorks fundamentals (demand response as continuous transactive load, not
-event curtailment; meaning living in Sema). The measure is the reader, not
-the corpus: this is not DRY, though a restated fundamental converges on its
-canonical home, never forks it. Everything else: don't write it; delete it
-where found. And "omit needless words" — durable prose is loaded into every
-future session, so each word costs tokens on every read.
-
-**Headers are reference slugs.** In canonized locations (`executor/`,
-`sema/spec`, other spec-grade docs) a `##` header is a near-immutable
-reference slug: cite it as `file.md "Header text"`. Renaming one is a known
-major cost — every reference (wiki, designs, protocol files) moves in the
-same change. Get the name right by Accepted; deeper headers carry no such
-weight. No global section numbers.
-
-**Durable docs state what is, now.** Transition narrative — "retired X",
-"was Y, now Z", dated "settled/canonized" asides, build-step
-cross-references, or any mention of a thing that never shipped — does not
-belong in `executor/` or `explorations/`; the domain `changelog.md` and git
-history are its only homes. When work lands, rewrite the affected section to
-present tense and put the what/why of the change in the changelog entry. A
-design may track its own build status (✅/◐) while alive — designs are
-deleted on completion. Comparisons to *legacy* systems are rationale, not
-transition; those stay.
-
-**Sema-typed JSON files** — on-disk instance filenames are dash-separated
-fields, each field internally LeftRightDot (a spaceheat.name subject swaps
-dashes→dots), ordered `<subject>-<condition?>-<type.name>-<version>.json` —
-the S3 eventstore key grammar; parsing is a bare split on dash
-(`zone1.bedrooms.gw.microvolts-gw.channel.jump.stats-000.json`). TypeName
-verbatim, dots preserved — never underscores. Dot↔underscore belongs at the
-code boundary only (`g_node_gt.py` stays snake).
+**Durable docs state what is, now.** Transition narrative ("retired X",
+"was Y, now Z", dated asides, build-step cross-references, things that
+never shipped) does not belong in `executor/` or `explorations/`; the
+changelog and git history are its homes. When work merges, rewrite the
+section to present tense and put the what/why in the changelog entry. A
+live design may track its own build status. Comparisons to *legacy*
+systems are rationale, not transition; those stay.

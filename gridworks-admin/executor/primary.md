@@ -301,6 +301,9 @@ a later commit (`experiments/2026-09-21-spruce-secondary-pump-admin-dryrun/`):
 `CloseRelay`/`OpenRelay` on `secondary-pump-relay` each cross-checked
 against the gw108 0x21 relay register directly, not just the panel's own
 state report.
+The zone failsafe/ops pair on the gw108's 0x20 expander from the panel
+is being witnessed on spruce (`experiments/2026-10-18-spruce-upstairs-fancoil-window/`,
+verdict in its README).
 
 ## Identity and audit
 
