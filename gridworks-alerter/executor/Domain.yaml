@@ -1,0 +1,47 @@
+# Domain: the one hub row. Summary is copied verbatim from the repo
+# README (conventions/readme-pattern.md); the check is that the README
+# contains it.
+table: Domain
+schema:
+  - name: Name
+    kind: raw
+  - name: Summary
+    kind: raw
+    prose: true
+  - name: Repo
+    kind: raw
+  - name: InfraPointer
+    kind: raw
+  - name: Status
+    kind: raw
+    values: [Draft, Accepted, Verified]
+  - name: Pass
+    kind: raw
+  - name: ReconciledAt
+    kind: raw
+  - name: AxiomCount
+    kind: aggregation
+    formula: COUNTIF(Axioms.Concern, "")
+  - name: UnboundClauseCount
+    kind: aggregation
+    formula: COUNTIF(Clauses.HasTest, FALSE)
+  - name: IsPromotable
+    kind: calculated
+    formula: >-
+      AND(ALL(Words.InSeed), ALL(Clauses.HasTest), ALL(Concerns.HasBindings),
+      ALL(Bindings.Resolves), ALL(Vectors.Exists), ReadmeMatch)
+data:
+  - Name: gridworks-alerter
+    Summary: |
+      The alerter is the production system's alert generator: the primary place that decides a condition anywhere in the fleet or the platform needs a person, and says so. It listens to everything on the production rabbit broker, every message every service and every house sends, the moment it is sent, the same traffic the journal records. It keeps what it needs in a store of its own (what exists, the latest state of each thing, when each was last heard from, a few hours of readings, which alerts are open), so it reads nobody else's database and no analysis query can slow it down or raise an alert by mistake. Its kinds are about houses and the platform, and they grow with the platform.
+
+      A set of rules runs over that store every few seconds. Each rule is one alert kind, named for the condition a person acts on: no data from a house, a zone at freeze risk, a heat pump commanded on and drawing no power. When a condition starts to hold the alerter raises one alert; when it stops, it resolves that same alert. It never repeats itself. Which houses it watches is the registry's business: every house under the fleet's roots that is pending or active. A house in service that should not page right now, during a heat pump install or a visit, is silenced by name; its alerts are still recorded, just not paged.
+
+      It runs as three services on its own box, apart from the journal, so a journaling problem and an alerting problem are never one outage: the listener, which hears the broker, keeps the store and runs the rules; the tap, the only one that talks to the alert manager, which reads the store and nothing else; and the prober, which checks the broker's doors from outside, because the alerter cannot hear a broker outage on the broker. The tap needs no broker, so "broker down" still reaches a person. The box, who may log in and how it is operated are in `gridworks-infra/alerts/instance-README.md`.
+
+      The alerter raises and resolves. It does not decide who is woken: that is an alert manager's job, who is on call, how often an open alert re-notifies, how it escalates, when a person acknowledges it. The alert manager is Opsgenie. The alerter creates an alert there when a condition starts, closes it when the condition ends, and the person on call acknowledges in between. Every alert record is also published on the broker, so the journal keeps it and the alerts page can show it.
+    Repo: gridworks-alerter
+    InfraPointer: gridworks-infra/alerts/instance-README.md
+    Status: Draft
+    Pass: 0
+    ReconciledAt: 949e416

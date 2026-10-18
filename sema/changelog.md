@@ -10,6 +10,73 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-18 — promiting the new weather station words (OPS-597, `05a6f1c`)
+
+**What:** `sema promote` bottom-up over the ten staging weather words:
+`gw.weather.station.gt` 000, `channel.gt` 002, `location.gt` 001,
+`observation.reading` 000, `observation` 001, `forecast.series` 000,
+`forecast` 001, `forecast.binding` 000, `forecast.bundle.gt` 002,
+`create.cmd` 002. The diff is the flipped status lines, the hash pins
+and the regenerated public registry index.
+
+**Why:** the weather service and the journalkeeper ship on these
+words, and both are production services whose snapshots must be
+publication-grade.
+
+## 2026-10-18 — Examples for the alerter's words from the first live NoData (OPS-605, `d17a6af`)
+
+**What:** `gw.alert` 000, `gw.hack.alert.silences` 000,
+`gw.opsgenie.alert.create` 000 and `gw.opsgenie.alert.close` 000 get
+`examples:` blocks. The `gw.alert` examples are the oak Firing and
+Resolved records of 2026-10-15 as the journal has them, the Resolved
+with its Evidence cut to one channel; the silences example is the
+alerter's own broadcast; the two Opsgenie words are the oak Firing and
+Resolved put through the alerter's mapping, with a placeholder team id.
+The four published hash pins are rewritten; nothing else in the files
+changes.
+
+**Why:** the alerter executor's vectors of kind example point at these
+words and none had one. Adding an example to a published version is
+permitted (registry/types.md "Permitted Changes"); the pin rewrite is
+the sanctioned path for it and this diff is its record.
+
+## 2026-10-18 — Ruff clean: tests and tools formatted, generator imports typing names by use (`96c6a2b`)
+
+**What:** `ruff format` and `ruff check --fix` over `tests/` and the
+hand-written `src/sema/tools` and `src/sema/interfaces` modules; one
+unused local removed by hand. The runtime generator now adds `Self` and
+`Any` to a generated module's typing import only when the template uses
+them as names (`Self` as a word, `Any` in annotation position), so an
+axiom named NoSelfLoop no longer imports `Self` and an upgrade template
+that annotates `dict[str, Any]` gets its import; two generated modules
+change accordingly.
+
+**Why:** the suite was green with ruff red, which the umbrella CI rule
+treats as a failing gate; the generator's substring checks were the
+source of the two generated-file findings, so the fix is at the source
+and the regenerated runtime stays zero-diff.
+
+## 2026-10-18 — Station words: gw.weather.station.gt 000, channel 002, location 001, observation 001 and the lowercase.token format (`edbaa4d`)
+
+**What:** a new `gw.weather.station.gt` 000 (alias, display name,
+coordinates, optional ICAO / GHCN / Weather Underground ids, Start, Id);
+`gw.weather.channel.gt` 002 names its station instead of its location;
+`gw.weather.location.gt` 001 is purely the place and types Timezone as
+`iana.timezone.str`; `gw.weather.observation` 001 is a station's reading
+list (`gw.weather.observation.reading` 000); `gw.weather.forecast.bundle.gt`
+002 drops its station-location axiom; `gw.weather.create.cmd` 002 binds
+the new versions. A new published format `lowercase.token` (one lowercase
+alphanumeric segment) types the station alias. Upgrades from channel 001
+and observation 000 refuse: the old records do not name a station.
+
+**Why:** the instrument is the identity behind an observed series, and
+the location word conflated place with instrument. A station alias with
+no separator is the first segment of every channel name on it, so
+station aliases and bundle names (location plus one segment) cannot
+collide, and a station far from the place it serves (Old Town for
+Millinocket irradiance) needs no location prefix that would misplace it.
+The station-to-place pairing is the bundle's, checked by the service.
+
 ## 2026-10-17 — report.event 003 -> 004 upgrade propagates the report's id and created time (`23459d2`)
 
 **What:** the hand-written upgrade template for `report.event` 003 → 004

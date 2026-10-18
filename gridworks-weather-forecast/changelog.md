@@ -11,24 +11,115 @@ repo's git history.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-10-17 — The forecast as a list of series: snapshot on sema `63f9382`, bundles as binding lists (OPS-597)
+## 2026-10-18 — README to the pattern; legacy weather word out of the seed (`cd36dfd`, `jm/readme`)
 
-**What:** the vendored snapshot regenerates onto sema `63f9382` with
+**What:** the README rewritten in the README pattern's order: a summary
+for a person, what the service speaks, its three processes, the records,
+one pointer to gridworks-infra for operation, and one Development
+section with install, environment, tests and the CI entrypoint. The
+record broadcasts and the glitch word are named for the first time; the
+box facts and the schema-drop note leave for gridworks-infra and this
+changelog. The seed drops the legacy `weather` word and the snapshot is
+regenerated from sema `05a6f1c`; the three tests of that word's
+serialization go with it.
+
+**Why:** the executor's Domain Summary is copied from the README, so the
+README is finalized before the executor is built (OPS-607). The seed
+named a word the actor no longer publishes, which the executor's
+seed-versus-Words check would flag on day one.
+
+## 2026-10-18 — The moose bundle: 96-hour NWS temperature and wind for the scada (`21984ae`, PR #11, OPS-597)
+
+**Why.** The scada reads the 48 hours after the current one and the
+bobcat and raccoon bundles hold 48 slices from the current hour, one
+short, so a scada on either fell to its seasonal template at every
+pull. A forecast channel's grid is its identity, so the longer horizon
+is three new records in `dev-records/`: `kmlt.temperature` and
+`kmlt.windspeed` forecast channels at 96 hourly slices
+(`...forecast.nws.hourly96`) and `us.me.millinocket.moose` binding
+them, hourly at :01. Moose has no irradiance: the scada's load model
+reads temperature and wind, and raccoon stays the LTN's bundle. No
+service code changes; the fetchers take the slice count from the
+record.
+
+## 2026-10-18 — weather service provides irradiance; major refactor (`47d7adf`, PR #10, OPS-597)
+
+One squashed commit over four steps, newest first.
+
+**Snapshot on the published weather words.**
+
+**What:** the vendored snapshot regenerates from the published registry
+and the regen script drops its staging allowance, so the CLI's default
+guard refuses any seed whose closure reaches an unpublished word.
+
+**Why:** the ten station words promoted on 2026-10-18; a production
+service ships a publication-grade snapshot.
+
+**dev-records and dev-up/dev-down; a station without an ICAO id is forecast only.**
+
+**What:** `dev-records/` holds the dev record set with fixed Ids
+(Millinocket, stations `kmlt` and `kmemilli18`, the three observed
+channels, three forecast channels, the bobcat and raccoon bundles, the
+seasonal template) in referential order; `scripts/dev-up.sh` tears
+down any previous dev run, brings the compose Postgres up empty,
+migrates it, starts the actor and API as `d1.weather` under
+`scripts/dev.env` and `scripts/dev-g.node.gt.json`, and mints the set
+over the local broker, retrying the first create until the actor
+answers; `scripts/dev-down.sh` stops both and drops the volume. The
+actor builds no observation stream for a station with no IcaoId and
+logs a warning naming it; a layer-2 test boots the actor with the
+default NWS wiring on such a station and sees forecasts with no
+observations.
+
+**Why:** the dev loop starts from an empty database every time so the
+dev DB can never drift from the migration, and the records still enter
+over the bus so the dev run exercises the same path as production. The
+same files mint production by hand, so dev and prod share identities.
+The first dev mint of raccoon found the scheduler rebuild failing on
+`kmemilli18`: every station in a bundle was wired to the NWS feed, and
+the personal irradiance station has no ICAO id. Observed irradiance is
+an open item in the design, so the station's channels are forecast
+only until an observation path exists.
+
+**Service rebuilt on the station words from a fresh db schema.**
+
+**What:** the vendored snapshot regenerates onto sema `96c6a2b` with
 staging words allowed (`regen_sema_snapshot.sh` passes
-`--allow-staged` until the forecast words publish), on
-`gw.weather.forecast` 001 with `SeriesList` and
-`gw.weather.forecast.bundle.gt` 002 with `BindingList`; the seed drops
-bundle 001. The service follows: the bundle table's six channel
-columns become a membership join table, the scheduler builds the
-series list from the bundle's bindings with each forecast channel's
-Method choosing its adapter, and the forecasts table keys a message's
-source revision per series. **Why:** which series a forecast holds is
-a fact of the bundle a subscriber designates, not of the schema.
+`--allow-staged` until the weather words publish), latest versions
+only: `gw.weather.station.gt` 000, `gw.weather.channel.gt` 002
+(StationAlias), `gw.weather.location.gt` 001, `gw.weather.observation`
+001 (ReadingList), `gw.weather.forecast` 001 (SeriesList),
+`gw.weather.forecast.bundle.gt` 002 (BindingList) and
+`gw.weather.create.cmd` 002; no old version is in the seed. The
+migration chain is replaced by one initial migration matching the
+models: a `stations` table, a `bundle_bindings` table in place of the
+bundle's fixed channel columns, channels and last observations keyed
+by station, the forecast archive keyed by bundle name and the joined
+per-series source revisions. The scheduler runs one observation
+stream per station with a reading list, interpolating every channel
+both brackets report, and one forecast stream per bundle whose series
+each come off a product source chosen by the forecast channel's
+Method (the `ADAPTERS` table in the actor: NWS gridpoint hourly for
+temperature and wind, Open-Meteo for irradiance), bindings on one
+acquisition sharing one fetch; every series walks its own ladder and
+the template rung is the seasonal template for a temperature series
+and zeros for any other quantity. The NWS observation adapter scales
+each reading by its channel's Unit (`units.py`), so the X10 channels
+need no code. The API lists stations and serves the latest
+observation per station. Fixtures move to the `kmlt` and `kmemilli18`
+stations and the bobcat and raccoon bundles.
 
-## 2026-10-17 — weather service provides irradiance (OPS-597)
+**Why:** the instrument is the identity behind an observed series,
+and which series a forecast holds is a fact of the bundle a
+subscriber designates, not of the schema; a bundle may draw on
+stations away from its place, which the irradiance series needs.
+Nothing consumed the first words' observations and forecasts, so the
+service abandons them instead of converting: an old channel row does
+not say which station its readings were, and the record set is
+re-minted on a fresh schema. The published first words stay in the
+sema registry; a deploy drops and recreates the service DB.
 
-Irradiance in the Millinocket bundle: Open-Meteo fetcher, per-series fidelity, snapshot on forecast 001 and bundle 002. Commit `e6143ee`.
+**Weather service provides irradiance** (2026-10-17): Open-Meteo fetcher, per-series fidelity, snapshot on forecast 001 and bundle 002.
 
 **What:** the vendored snapshot regenerates onto sema `48eda7e`, published-only (the three solar words promoted there; `regen_sema_snapshot.sh` drops `--allow-staged`), with
 the seed pinning `gw.weather.forecast` at 000 and 001 and

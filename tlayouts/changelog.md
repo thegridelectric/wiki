@@ -10,6 +10,15 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-18 — Every house gen names the moose weather bundle (`d42da29`, OPS-597)
+
+**Why.** The weather service abandoned the
+`us.me.millinocket.forecast.nws.hourly96` bundle with its first word
+versions; `us.me.millinocket.moose` is its successor on the new words
+(96-hour NWS temperature and wind), and the scada's weather source now
+reads only those words. The ops word's `WeatherBundleName` is the one
+place a house says which bundle it pulls.
+
 ## 2026-10-17 — temporarily take oak living room out of critical zone (`354c21c`)
 
 The living-room thermostat at oak is being held off (no heat call on its

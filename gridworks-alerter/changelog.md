@@ -4,8 +4,33 @@ One entry per commit in `thegridelectric/gridworks-alerter`,
 `thegridelectric/gridworks-alerts` and `thegridelectric/gridworks-alert-manager`
 (git = the what, this = the why).
 
-<!-- pending commit -->
-## 2026-10-17 — simplify: one store open in the CLI, one silences load, one Resolved builder, no unread accessors (`jm/simplify`)
+## 2026-10-18 — the tap reads back what Opsgenie holds open (`babb87d`, `jm/opsgenie-readback`)
+
+**What:** each reconcile pass opens with a listing of the alerts
+Opsgenie holds open from this alerter (`GET /v2/alerts`, query
+`status:open AND source:"<alias>"`, paged by 100), each item read as
+`gw.opsgenie.alert`; the listed aliases are the told set. A listed alias
+the store neither holds open nor has resolved is closed with a fixed
+note; an alias the store holds open and unsilenced that the listing no
+longer has is created again. When the listing cannot be read the told
+set stands as creates and closes left it, empty at boot. The told set
+becomes a set of aliases; `Tap.close` takes the close word. Five tap
+tests added, the recording Opsgenie now holds and lists what it was
+told. README paragraph on the tap rewritten.
+
+**Why:** the seed named `gw.opsgenie.alert` and nothing spoke it; the
+word was made for this read-back when the Opsgenie words were created.
+Reading Opsgenie makes the reconcile real in both directions: a tap
+restart no longer re-creates every open alert on the strength of
+Opsgenie's alias dedup, a failed close heals on the next pass, and a
+close made by hand while the condition holds is undone, which is what
+"the alerter owns open and closed" means. Written against a Draft Pass 0
+executor on Jessica's say-so (the implementation gate asks for
+Accepted Pass 1); the executor's tap concern was updated first.
+
+## 2026-10-17 — various cleanups (`949e416`)
+
+Branch `jm/simplify`.
 
 **What:** `cli.py` opens the store through one `open_store(settings)`
 and configures logging once; the actor's `read_silences` / `load_silences`

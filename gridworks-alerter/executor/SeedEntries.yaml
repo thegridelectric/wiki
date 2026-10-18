@@ -1,0 +1,22 @@
+# SeedEntries: one row per word the seed copy names, scanned from
+# sema_seed_request.yaml beside this file. The check regenerates it and
+# expects no change.
+table: SeedEntries
+schema:
+  - name: Word
+    kind: raw
+  - name: Version
+    kind: raw
+data:
+  - {Word: report.event, Version: "002"}
+  - {Word: report.event, Version: "003"}
+  - {Word: report.event, Version: "004"}
+  - {Word: layout.lite, Version: "011"}
+  - {Word: layout.lite, Version: "012"}
+  - {Word: gw.alert, Version: "000"}
+  - {Word: gw.opsgenie.alert.create, Version: "000"}
+  - {Word: gw.opsgenie.alert.close, Version: "000"}
+  - {Word: gw.opsgenie.alert, Version: "000"}
+  - {Word: g.node.forest, Version: "002"}
+  - {Word: g.node.forest.request, Version: "000"}
+  - {Word: gw.hack.alert.silences, Version: "000"}

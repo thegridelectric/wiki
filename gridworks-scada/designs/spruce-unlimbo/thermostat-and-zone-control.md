@@ -1,6 +1,6 @@
 # Zone circuits and the thermostat model (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-10-08 · Linear: OPS-532
+Status: Draft · Pass 0 · Updated 2026-10-18 · Linear: OPS-532
 
 > What this is: how zones, zone-call circuits, thermostats, and their
 > relays are modeled in the layout, and the control model on top — the
@@ -11,6 +11,48 @@ Status: Draft · Pass 0 · Updated 2026-10-08 · Linear: OPS-532
 > reliable at launch is OPS-392. The model below is resolved, pending the
 > sema word-gate discussion before any vocabulary lands. Board facts:
 > `gw108-board.md`.
+
+## MVP first: hold a circuit off
+
+**The need (2026-10-18).** The owner at spruce wants the living-room fan
+coil (zone 5, circuit `zone5-living-rm-fancoil`) held off. Today only two
+things can do that: the winter hack, which energizes the zone's failsafe
+relay and leaves its scada relay open (`HELD_OFF_ZONES` in
+`starter-scripts/spruce_winter_hack.py`), and the admin panel for the
+length of a window. The window scada cannot: Nolan local control's boot
+posture puts every `ZoneCallCircuit` on its wall thermostat and opens its
+ops relay, and `gw.operational.params` has no per-circuit hold.
+`EnergizedStandbyRelays` is the only relay list in the word, applies only
+in Standby, and its axiom fixes it to empty for the Nolan family. So the
+moment spruce runs the branch for real, the hold is lost.
+
+**The MVP.** A circuit held off is declared in the ops word and honored
+by local control:
+
+- A field on `gw.operational.params` naming the circuits held off, each a
+  `spaceheat.name` of a `ZoneCallCircuit` in the layout (the assembly
+  step checks the names against the layout, as it does for
+  `EnergizedStandbyRelays`). The word's version bumps; the sema spec and
+  the gwsproto twin change in the same wave (`sema-CLAUDE.md`,
+  `gwsproto-conformance.md`).
+- Local control's boot posture and its enforcement between checks put a
+  held circuit's failsafe on `Scada` and its ops relay open, in every
+  family (`buffer_only_tou.py` `boot`, the House0 equivalent). Every
+  other circuit stays on its wall thermostat as now.
+- Admin can still take the pair for a window; the hold re-asserts when
+  admin releases, like the rest of the posture.
+- The spruce gen (`tlayouts/spruce_gen.py`, `jm/spruce`) names
+  `zone5-living-rm-fancoil`; the generated pair is placed with
+  `put_layout.sh spruce <change>`.
+- A test in the sim house: boot with one circuit held, read the pair;
+  change the param, read it released. Then a window on spruce reads the
+  zone 5 pair as 1/0 at boot with no admin action.
+
+The field's name and whether it sits on the top-level word or the family
+params is the one open decision; settle it at the sema spec, not here.
+
+**Do this next:** the sema change for the held-circuit field, with the
+read-receipt `sema-CLAUDE.md` asks for.
 
 ## Next move
 

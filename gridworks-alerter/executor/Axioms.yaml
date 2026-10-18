@@ -1,0 +1,288 @@
+# Axioms: one row per rule, numbered from 1 within their Concern; the hub
+# (Concern blank) is counted as one Concern and hub Axiom 1 is the sema
+# axiom. A clause is cited as Concern, Number and Label (no-data 3a).
+table: Axioms
+schema:
+  - name: Concern
+    kind: relationship
+    to: Concerns.Name
+    blank: hub
+  - name: Number
+    kind: raw
+  - name: Name
+    kind: raw
+  - name: Statement
+    kind: raw
+    prose: true
+  - name: Reason
+    kind: raw
+    prose: true
+  - name: ClauseCount
+    kind: aggregation
+    formula: COUNTIFS(Clauses.Concern, Concern, Clauses.Number, Number)
+  - name: UnboundClauseCount
+    kind: aggregation
+    formula: COUNTIFS(Clauses.Concern, Concern, Clauses.Number, Number, Clauses.HasTest, FALSE)
+data:
+  # -- hub -------------------------------------------------------------
+  - Concern: ""
+    Number: 1
+    Name: SemaBoundary
+    Statement: >-
+      Every instance that crosses the boundary SHALL be a listed word at
+      its listed version, encoded and decoded through the vendored
+      snapshot at the version it was sent; a body the snapshot refuses
+      SHALL be logged and dropped, and the listener SHALL go on
+      consuming.
+    Reason: Meaning comes from the vocabulary and one bad body is never an outage.
+  - Concern: ""
+    Number: 2
+    Name: StoreIsTheTruth
+    Statement: >-
+      Every transition SHALL be recorded in the store before it is
+      broadcast or paged; paging SHALL read the store alone; a restart
+      of any process SHALL neither re-raise an open alert nor forget
+      one.
+    Reason: Paging shares no database with analysis, so a heavy read elsewhere can neither slow a page nor fake one.
+  - Concern: ""
+    Number: 3
+    Name: TransitionsOnly
+    Statement: >-
+      One AlertId per condition: one Firing when it starts to hold,
+      rewritten under the same AlertId when its cause moves, one
+      Resolved with that AlertId and RaisedMs when it stops; the alerter
+      opens the alert in the alert manager and closes it, and a person
+      acknowledges and never has to close.
+    Reason: Repeat cadence and escalation are the alert manager's, and a human-owned close lets a second outage fold into a stale open alert and page nobody.
+  - Concern: ""
+    Number: 4
+    Name: NothingDurableOnTheBroker
+    Statement: >-
+      The listener's queue SHALL be deleted with its connection; nothing
+      SHALL queue for the alerter while it is down; what must survive a
+      restart SHALL live in the store.
+    Reason: The journal is the durable record of what the fleet said, and a queue that fills while the alerter is down would be a second outage.
+  - Concern: ""
+    Number: 5
+    Name: RulesReadTheStore
+    Statement: >-
+      Arrivals SHALL write the store as they come; a rule SHALL be a
+      query over the store evaluated every detector_tick_s while the
+      listener is consuming, or a clear in dispatch on the arrival that
+      ends the condition; nothing SHALL poll a house.
+    Reason: Raise latency is the threshold plus at most one tick, a clear waits for no tick, and a transition raised while the channel is down is never recorded and lost.
+  - Concern: ""
+    Number: 6
+    Name: LastHeardIsDerived
+    Statement: >-
+      Last-heard SHALL be a query over arrival times, never a kept
+      value and never a message's own time, floored at the moment the
+      listener started hearing.
+    Reason: A wrong clock cannot look alive and a fresh alerter gives every house a full threshold before paging.
+  - Concern: ""
+    Number: 7
+    Name: TheRegistryDecides
+    Statement: >-
+      The tracked set SHALL be the terminal assets of status Pending or
+      Active under the fleet roots in the registry's forest; a silence
+      SHALL be a named, recorded, broadcast list and never a hidden skip.
+    Reason: Membership is a registry fact edited where the registry is edited, and the fleet's readers see which houses are quiet on purpose from the journal.
+  # -- listener --------------------------------------------------------
+  - Concern: listener
+    Number: 1
+    Name: ArrivalsCountEverything
+    Statement: >-
+      Every message whose sender alias is under the fleet roots SHALL
+      overwrite that alias's arrivals row with its arrival time,
+      whatever its type and before any decode.
+    Reason: Whether a house's scada and LTN are speaking is read from here, and most of what they send is never journaled.
+  - Concern: listener
+    Number: 2
+    Name: TheStoreKeepsThreeWords
+    Statement: >-
+      a. A report.event SHALL be unrolled to one reading per value with
+      the scada's read time and the arrival time, and readings that
+      arrived more than readings_window_s ago SHALL leave the store on
+      each report. b. A layout.lite SHALL replace the scada's previous
+      layout, kept whole with its version. c. A g.node.forest SHALL be
+      projected by GNodeId. d. A message of any other type SHALL not be
+      decoded.
+    Reason: A detector that needs a window waits one window after a restart and reads nothing older.
+  - Concern: listener
+    Number: 3
+    Name: TheProjectionConverges
+    Statement: >-
+      a. The forest for the fleet roots SHALL be requested from the
+      registry's HTTP read at boot and projected. b. A forest whose
+      SendTimeMs is older than the row's SHALL not overwrite it. c. An
+      unreachable registry at boot SHALL be logged and the listener
+      SHALL run and converge from the forest broadcasts.
+    Reason: A rename keeps the node by id and the listener never depends on the registry being up.
+  - Concern: listener
+    Number: 4
+    Name: SilencesAreTheFile
+    Statement: >-
+      a. The silences file SHALL be read at boot and on every detector
+      tick, and a changed list SHALL replace the store's list and be
+      broadcast, as it is once at boot. b. A missing file SHALL silence
+      nothing. c. A file that does not decode SHALL leave the last
+      loaded list standing, logged once per change of state.
+    Reason: A house is silenced by adding its alias to the file and paged again by removing it, and the journal records every change.
+  - Concern: listener
+    Number: 5
+    Name: EveryRecordIsBroadcast
+    Statement: >-
+      a. Each alert record the rules return SHALL be broadcast on the
+      mic exchange keyed by its AboutGNodeAlias, else its Src. b. A
+      broadcast that fails SHALL be logged and not retried.
+    Reason: The store already holds the record, so the tap pages it whatever the broker did.
+  - Concern: listener
+    Number: 6
+    Name: ForgottenInstallsAreVisible
+    Statement: >-
+      A scada that reports for no tracked house SHALL be logged once per
+      boot.
+    Reason: A house outside the roots or missing from the registry is seen without being paged.
+  - Concern: listener
+    Number: 7
+    Name: AHouseIsItsTerminalAsset
+    Statement: >-
+      A scada's house SHALL be the terminal asset under the scada's
+      parent alias, and a House record's AboutGNodeAlias SHALL be that
+      alias as the projection holds it at raise time.
+    Reason: A rename never strands an alert.
+  # -- no-data ---------------------------------------------------------
+  - Concern: no-data
+    Number: 1
+    Name: SilenceRaises
+    Statement: >-
+      Every tracked house whose last-heard is older than
+      no_data_silence_s and that has no NoData alert open SHALL be
+      raised once, with empty Evidence.
+    Reason: Named for the condition a person acts on; a tuned threshold does not rename the kind.
+  - Concern: no-data
+    Number: 2
+    Name: DataResolves
+    Statement: >-
+      a. The first report.event or layout.lite from the house's scada
+      SHALL resolve the open NoData in dispatch, with the report's
+      readings as Evidence (empty for a layout). b. The Resolved Summary
+      SHALL name the return of data and the time since the last data.
+    Reason: A stopped report means the house's data is not reaching the cloud whichever side stopped it, and the held reports come up when it returns.
+  - Concern: no-data
+    Number: 3
+    Name: TheSummaryNamesTheCause
+    Statement: >-
+      The Firing Summary SHALL name the cause from whether the house's
+      scada and LTN have each been heard inside heard_period_s times
+      2.1, re-read every tick: a. the scada not speaking; b. the scada
+      speaking and the LTN not; c. both speaking; d. an open alert whose
+      cause moves SHALL be rewritten in the store and broadcast again
+      under its AlertId and RaisedMs.
+    Reason: >-
+      A silent scada is the house side, a silent LTN leaves reports safe
+      on the scada's disk, and two live parties with no reports is a
+      fault between them; the speaking window is far shorter than the
+      silence threshold, under which a scada dead for nine minutes would
+      still read as speaking.
+  - Concern: no-data
+    Number: 4
+    Name: BrokerDownHoldsNoData
+    Statement: >-
+      a. While a BrokerUnreachable alert is open the rule SHALL raise
+      nothing and rewrite nothing. b. When the last BrokerUnreachable
+      resolves, the last-heard floor SHALL move to that moment. c. An
+      open NoData SHALL stay open through the outage and resolve on the
+      house's first arrival.
+    Reason: >-
+      A broker outage looks like every house silent at once; the
+      listener's own hearing is a different hold, and the two diverge
+      when the MQTT door is down while the AMQP door is up, where only
+      the prober's alert keeps the fleet off paging.
+  # -- broker-unreachable ---------------------------------------------
+  - Concern: broker-unreachable
+    Number: 1
+    Name: TwoDoorsProbed
+    Statement: >-
+      Every probe_interval_s the prober SHALL check a. the AMQP door by
+      a round trip and b. the MQTT door by an accepted CONNACK, as a
+      client of each presenting its own identity and one instance id on
+      both; c. a refused CONNACK SHALL count as a failed probe.
+    Reason: A connect-only check passes through an alarm that blocks every publisher, and what refuses the prober at the gate refuses every scada.
+  - Concern: broker-unreachable
+    Number: 2
+    Name: ThreeFailuresRaise
+    Statement: >-
+      a. A door that has failed probe_failures_to_raise probes running
+      while the fleet is unheard, with no alert open on it, SHALL raise
+      one BrokerUnreachable with Subject the door as host:port. b. The
+      first successful probe of a door with an alert open SHALL resolve
+      it. c. Each door SHALL be its own alert.
+    Reason: The probe is made from the alerts box, so a network fault there looks the same as a broker fault and the summary says so.
+  - Concern: broker-unreachable
+    Number: 3
+    Name: TheFleetHeardOutranksTheProbe
+    Statement: >-
+      While anything has arrived from any alias inside heard_period_s,
+      a. a failing door SHALL be logged, its failure count reset and
+      nothing raised, and b. an open BrokerUnreachable SHALL resolve
+      with a summary naming the prober's own fault.
+    Reason: The broker is moving the fleet's data whatever the probe found.
+  - Concern: broker-unreachable
+    Number: 4
+    Name: NoBrokerPath
+    Statement: >-
+      The prober SHALL read no broker and SHALL write its records to the
+      store alone.
+    Reason: The fault it finds is the broker.
+  # -- tap -------------------------------------------------------------
+  - Concern: tap
+    Number: 1
+    Name: TheStoreAlone
+    Statement: >-
+      Every tap_reconcile_s the tap SHALL read the store's open alerts
+      and silenced aliases and nothing else, with no broker connection.
+    Reason: The alert that means the broker is down has to reach a person while the broker is down.
+  - Concern: tap
+    Number: 2
+    Name: OpenBecomesCreate
+    Statement: >-
+      a. An open alert about an unsilenced house, or about no house,
+      that the alert manager has not been told of SHALL become one
+      create whose Alias is the AlertId, Entity the AboutGNodeAlias
+      (else Subject, else Src), Priority P1, with the team as the one
+      responder. b. The headline SHALL be the house's short name and
+      the Summary, cut to the alert manager's limit. c. A Firing
+      rewritten for a moved cause SHALL not be sent again.
+    Reason: The alert manager folds duplicates on the alias, so a Firing told twice is one alert and a re-raise after a resolve a new one.
+  - Concern: tap
+    Number: 3
+    Name: TheAlerterCloses
+    Statement: >-
+      a. A told alert the store has resolved SHALL be closed with its
+      Resolved Summary as the note, whether or not the tap created it. b. A told alert about a house since
+      silenced SHALL be closed with the silenced note while the alert
+      stays open in the store. c. A house dropped from the silence list
+      with its alert still open SHALL be created on the next pass.
+    Reason: Open and closed in the alert manager mean the condition holds, and an alert that closed unacknowledged is the history of an outage nobody looked at.
+  - Concern: tap
+    Number: 4
+    Name: TheToldSetIsTheListing
+    Statement: >-
+      a. Each pass SHALL list the alerts the alert manager holds open
+      from this alerter, each read as a word, and that listing SHALL be
+      the told set. b. A listing that cannot be read SHALL leave the
+      told set as creates and closes left it, empty at boot. c. A listed
+      alias the store neither holds open nor has resolved SHALL be
+      closed with a fixed note. d. A told alias no longer listed while
+      its alert is open and unsilenced SHALL be created again.
+    Reason: A tap restart, a failed close and a close made by hand are all seen on the next pass, and the alerter owns open and closed.
+  - Concern: tap
+    Number: 5
+    Name: APostThatFails
+    Statement: >-
+      a. A post that fails to reach the alert manager SHALL be tried
+      three times two seconds apart, then logged and left for the next
+      pass. b. A post the alert manager refuses with an error status
+      SHALL be logged, not retried, and left for the next pass.
+    Reason: The store is the truth and the next pass reconciles against it.

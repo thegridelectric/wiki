@@ -219,7 +219,7 @@ House0 precedent (`layout_gen/relay.py`): per zone a
 gw108 realizes all of these.
 
 Both decisions settled in
-[`thermostat-and-zone-control.md`](thermostat-and-zone-control.md):
+[`thermostat-and-zone-control.md`](../spruce-unlimbo/thermostat-and-zone-control.md):
 the enum renames to `ZoneCallSource` (`WallThermostat | Scada`) —
 season-neutral, since the same relay pair carries spruce's cooling
 calls (House0's legacy `HeatcallSource` stands until that layout

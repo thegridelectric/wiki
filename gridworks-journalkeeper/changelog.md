@@ -10,6 +10,31 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-18 — gw.weather on the station words, latest versions only; older versions retired (`379501e`, PR #198, OPS-597)
+
+**What:** the seed takes every `gw.weather.*` word at its latest version
+only, adding `gw.weather.station.gt` and `gw.weather.seasonal.template.gt`
+(both id-keyed, receipt-time keyed on import), and the snapshot
+regenerates on sema `05a6f1c`, the registry with the weather words
+published, so the snapshot carries no staging index and the
+published-only test passes on `main`. `retired_versions.py` names the versions the journal
+refuses (channel.gt 000/001, create.cmd 000/001, forecast 000,
+bundle.gt 000/001, location.gt 000, observation 000); the live path
+drops them before decode with an info line and the importer counts them
+`retired`, a fourth outcome beside ok/degraded/failed in the summary and
+its JSON. The bundle persistor reads `BindingList` and creates one
+reading channel per binding's observation channel (`kmlt-temperature`).
+The live-AMQP test publishes the 001/002 samples, observations on the
+station alias.
+
+**Why:** the weather service abandoned its first words rather than
+converting them, so the journal stops carrying them: the 000 rows leave
+the journal DB and stay in the persistent store. Without the table a
+replayed 000 message would count as `degraded`, the summary's signal
+for "author a new word version", which is the opposite of the truth.
+The ten weather words promoted the same day, which was the gate for
+this snapshot to ship on `main`.
+
 ## 2026-10-17 — test that main only has published sema words (OPS-473, `4a7505f`)
 
 The test no longer looks the snapshot's words up in a sema checkout or a

@@ -1,6 +1,6 @@
 # Nolan local control (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-10-14 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-10-18 · Linear: OPS-392
 
 > What this is: what to check as Nolan local control runs in the beta
 > windows, and the brief for the adversarial review. What is built is
@@ -233,6 +233,106 @@ Then, on beech with the hold off for the window: the remaining
 refusals (`ServiceContractBroken`, `NoTaDeed`, `ScadaBlind`), the
 `InAdmin` termination and refusal through `gwa watch`, and a
 termination mid-contract.
+
+## The secondary loop belongs under hp-boss (field finding 2026-10-18)
+
+**What happened.** In the spruce window of 2026-10-18
+(`experiments/2026-10-18-spruce-upstairs-fancoil-window/`, round 2) the
+heat pump lost its call twice at the handover (the hack's exit opens it,
+Nolan's boot posture opens it again) and local control re-closed it a
+minute later. hp-watch then read the interrupted unit's ramp-down as
+HpDetectedOff, and local control did what the posture says for an off
+heat pump: secondary pump off, iso valve closed. Fifty seconds later the
+operator took admin, local control went dormant, and when the unit
+restarted on the re-closed call nothing put the pump and valve back. It
+ran six minutes into a loop with no sink, went thermo-off at 145 F
+leaving water, and sat for nineteen minutes until the operator restored
+the loop by hand. Under local control alone the posture would have
+healed itself at the restart; the admin takeover froze it.
+
+**The rule this breaks.** The secondary loop must be consistent with the
+heat pump in every top state, admin included. Today it is consistent
+only while local control is awake, because the pump and valves float
+with the tree and local control is the only thing that drives them.
+
+**The change.** House0 already has the pattern: sieg-loop is a fixed
+sub-boss under hp-boss owning its relays, keeping them consistent with
+the heat pump whoever is on top, with the operational params choosing
+its strategy. Nolan gets the counterpart, a secondary-loop boss under
+hp-boss owning the secondary pump relay, the iso valve relay and the
+charge valve relay, with one mode, `Buffer` or `Store`, that local
+control sets and that defaults to `Buffer`:
+
+- The pump follows the heat pump: on when the call is closed or the unit
+  is sensed on, off when the call is open and the unit is sensed off,
+  after a settle. The state "call closed, pump off" becomes unreachable,
+  and hp-watch's weak spots (the shutdown ramp, defrost) matter less
+  because the call is part of the decision.
+- The valves follow the mode, with the invariant that at least one
+  destination is open whenever the pump runs: `Buffer` is iso open and
+  charge closed; `Store` is charge open and iso closed. When the pump
+  stops the iso closes against the convection loop off the buffer top.
+- Local control decides the call and the mode; it no longer commands the
+  pump or the valves. Admin commands the heat pump through hp-boss and
+  the destination through the loop boss, and reaches none of the three
+  relays directly (an interior node keeps its subtree). The one use this
+  removes, the pump alone with the heat pump off as in the pump-speed
+  sweep, returns as a loop-boss override command if a window needs it.
+- Only the first form, pump and iso as direct children of hp-boss, was
+  considered and rejected: the iso valve follows the destination, not
+  the pump, so a store charge would run the pump against a closed iso
+  with no one holding the charge valve open.
+
+**What it costs.** A sema change in one wave: the Nolan layout word's
+handle axiom gains `auto.hp-boss.<loop-boss>` and its three relay
+handles, a mode enum for the loop boss, the tlayouts Nolan gen, the
+gwsproto twin, both `set_command_tree` rewrites, and the loop boss as a
+machine the scada reports. Build `Buffer` first; `Store` is a declared
+value until the store is in use (`SeasonalStorageMode` is `BufferOnly`
+at spruce and the hack holds the charge valve closed). The test is a
+window on spruce: take admin while the heat pump is running, read the
+pump and iso unchanged; open the call from the panel, read the pump stop
+and the iso close after the settle.
+
+## A zone is cold only after its warm-up allowance (field finding 2026-10-18)
+
+**What happened.** Oak started heating on 2026-10-17 with the upstairs
+zone 9 F under its 64 F setpoint (journal pull, `zone4-upstairs-temp`):
+56 F at 10:02, 59 F at 11:02, 64 F at 12:02, then held. A called zone
+warms at about 4 F an hour and takes two hours to close a 9 F gap. The
+cold watch latches after five minutes of cold passes, so a house that
+starts heating from a standby or a setpoint raise pages while it is
+doing exactly what it should.
+
+**The rule.** A warm-up starts at a setpoint raise, at a boot, and at
+the end of a backup or cold-override spell. From that moment each
+critical zone has an allowance of its deficit at the first pass divided
+by `WARM_UP_F_PER_H` (4.0, a named constant beside the other four at the
+top of `cold.py`; code, not a parameter, until a house shows it needs
+its own). Until the allowance runs out the zone is not cold, whatever
+it reads. After it, the judgment and the five-minute latch run as
+today, so a heat source failing in steady state still pages after five
+minutes. An 8 F raise gets two hours, a 2 F raise gets thirty minutes,
+a thermostat lowered counts at once.
+
+**Standby exit is a boot.** Leaving standby is new ops params and a
+restart, so the watch cannot see it as an event; every boot starts an
+allowance for every critical zone from its deficit at first reading.
+That covers standby exit and the ordinary restart into a cold house,
+which are the same situation to the watch. A restart during a genuine
+cold spell delays the page by the allowance, thirty minutes to an hour
+at 2 to 4 F under, and that is accepted.
+
+**What it retires.** The `executor/cold-house.md` "Open" item agreed
+2026-10-14 (judge a raise against the setpoint two hours earlier) goes:
+the allowance subsumes it and is sharper for small raises. The "cold
+with no call" item stays open; a disabled thermostat (oak's living room
+that day) is not reached by this rule.
+
+**Do this next.** Spec first: `cold-house.md` "The judgment" and "The
+latch" state the allowance and its three triggers. Then the local test
+that fails today, one per trigger (a raise, a boot into a cold house, a
+backup exit), before the change in `cold.py`.
 
 ## For the review
 

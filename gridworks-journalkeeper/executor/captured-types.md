@@ -46,7 +46,7 @@ back-fill (see [`s3-backfill.md`](s3-backfill.md)):
 | `gridworks.event.problem` | default | — | `message_id` | `time_created_ms` |
 | `new.command.tree` | default | — | `default_message_id` | `send_time_ms` |
 | `atn.bid` | default | — | `default_message_id` | persisted_at |
-| `gw.weather.*` (observation, forecast, channel/location/bundle records, create.cmd, cmd.ack/nack) | custom (bundle) / default | v000 (bundle fan-out); channel.gt, bundle.gt and create.cmd 001 decode and take the default path | `message_id` where the word has one, else `default_message_id` | word's created field, else persisted_at |
+| `gw.weather.*` (observation 001, forecast 001, station/channel 002/forecast-channel/bundle 002/location 001/seasonal-template records, create.cmd 002, cmd.ack/nack) | custom (bundle) / default | latest only; every older version is retired (`gjk/retired_versions.py`): refused before decode on both paths, counted `retired` by the importer | `id` where the record has one, else `default_message_id` | word's created field, else persisted_at |
 | `energy.instruction` | default | — | `default_message_id` | `send_time_ms` |
 | `scada.params` | default | — | `message_id` | `unix_time_ms` |
 | `heating.forecast` | default | — | `default_message_id` | `forecast_created_s` |

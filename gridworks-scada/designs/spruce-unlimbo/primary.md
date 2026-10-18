@@ -104,6 +104,10 @@ code. How a round runs and what the rounds have taught is
 - **`nolan-local-control.md`** — the field checks for the beta windows
   and the review brief; the built part is in
   `executor/local-control.md` and `executor/cold-house.md`
+- `thermostat-and-zone-control.md` — first the MVP: a circuit held off
+  through the ops word, applied to spruce's living-room fan coil; then
+  the zone / circuit / thermostat control model (the circuit FSM, the
+  governance machine, setpoint belief, the thermostat chunk)
 - ✅ DONE gwsproto-conformance (est 4h → 2h) — the scada vendors its
   own sema snapshot as the oracle, one version per word, every enum with
   a default (`executor/gwsproto-conformance.md`, `eb73e305`)

@@ -1,0 +1,769 @@
+# Clauses: one obligation each, in three kinds. Unconditional; a
+# transition, whose Condition is the guard; a failure, whose Condition is
+# the trigger and whose Obligation and Recovery are the observable
+# behaviour. Boundary names the Boundaries row the obligation crosses,
+# blank when internal. A store row a Condition reads is named in the
+# Condition text. <d> is minutes to one decimal.
+table: Clauses
+schema:
+  - name: Concern
+    kind: relationship
+    to: Concerns.Name
+    blank: hub
+  - name: Number
+    kind: relationship
+    to: Axioms.Number
+  - name: Label
+    kind: raw
+  - name: Kind
+    kind: raw
+    values: [unconditional, transition, failure]
+  - name: Condition
+    kind: raw
+    prose: true
+  - name: Obligation
+    kind: raw
+    prose: true
+  - name: Recovery
+    kind: raw
+    prose: true
+  - name: Boundary
+    kind: relationship
+    to: Boundaries.Name
+    blank: internal
+  - name: HasTest
+    kind: calculated
+    formula: COUNTIFS(Bindings.Concern, Concern, Bindings.Clause, Number & Label, Bindings.Kind, "test") > 0
+  - name: HasCounterexample
+    kind: calculated
+    formula: COUNTIFS(Vectors.Concern, Concern, Vectors.Clause, Number & Label, Vectors.Kind, "counterexample") > 0
+data:
+  # -- hub -------------------------------------------------------------
+  - Concern: ""
+    Number: 1
+    Label: a
+    Kind: unconditional
+    Boundary: ear-tap
+    Condition: ""
+    Obligation: >-
+      A body of a listed type is decoded through the vendored
+      snapshot at the version its envelope names and held at that version.
+    Recovery: ""
+  - Concern: ""
+    Number: 1
+    Label: b
+    Kind: failure
+    Boundary: log
+    Condition: >-
+      A body of a listed type that the snapshot refuses.
+    Obligation: >-
+      The body is dropped and logged with its type and sender;
+      nothing is written to the store for it beyond the arrivals row.
+    Recovery: >-
+      The next message is processed as if the bad one had not come.
+  - Concern: ""
+    Number: 2
+    Label: a
+    Kind: unconditional
+    Boundary: store
+    Condition: ""
+    Obligation: >-
+      A Firing, a rewritten Firing or a Resolved is in the alerts
+      table before it is broadcast or paged.
+    Recovery: ""
+  - Concern: ""
+    Number: 2
+    Label: b
+    Kind: unconditional
+    Boundary: store
+    Condition: ""
+    Obligation: >-
+      The tap decides what to create and close from the alerts and
+      silences tables and from nothing else.
+    Recovery: ""
+  - Concern: ""
+    Number: 2
+    Label: c
+    Kind: failure
+    Boundary: alerts-mic
+    Condition: >-
+      Any process is stopped and started again while an alert is
+      open.
+    Obligation: >-
+      No second Firing for the open condition is broadcast or created
+      and no open alert is lost.
+    Recovery: >-
+      The condition's Resolved goes out under the original AlertId
+      when it ends.
+  - Concern: ""
+    Number: 3
+    Label: a
+    Kind: transition
+    Boundary: alerts-mic
+    Condition: >-
+      A condition starts to hold.
+    Obligation: >-
+      One Firing with a fresh AlertId and RaisedMs the moment of the
+      raise.
+    Recovery: ""
+  - Concern: ""
+    Number: 3
+    Label: b
+    Kind: transition
+    Boundary: alerts-mic
+    Condition: >-
+      The cause of an open alert moves.
+    Obligation: >-
+      The Firing is rewritten under the same AlertId and RaisedMs
+      with the new Summary.
+    Recovery: ""
+  - Concern: ""
+    Number: 3
+    Label: c
+    Kind: transition
+    Boundary: alerts-mic
+    Condition: >-
+      A condition stops holding.
+    Obligation: >-
+      One Resolved with the Firing's AlertId and RaisedMs and its own
+      ResolvedMs.
+    Recovery: ""
+  - Concern: ""
+    Number: 3
+    Label: d
+    Kind: unconditional
+    Boundary: opsgenie-close
+    Condition: ""
+    Obligation: >-
+      Every alert the alerter opened in the alert manager is closed
+      by the alerter; acknowledgement is never read or written.
+    Recovery: ""
+  - Concern: ""
+    Number: 4
+    Label: a
+    Kind: unconditional
+    Boundary: ear-tap
+    Condition: ""
+    Obligation: >-
+      The listener's queue is declared auto-delete and exists only
+      while the listener is connected.
+    Recovery: ""
+  - Concern: ""
+    Number: 4
+    Label: b
+    Kind: failure
+    Boundary: ear-tap
+    Condition: >-
+      The listener is down while the fleet publishes.
+    Obligation: >-
+      Nothing is queued for it on the broker.
+    Recovery: >-
+      On start the listener converges from the store and live
+      traffic, with last-heard floored at the start.
+  - Concern: ""
+    Number: 5
+    Label: a
+    Kind: unconditional
+    Boundary: store
+    Condition: ""
+    Obligation: >-
+      Each arrival writes the store in dispatch before the next is
+      taken.
+    Recovery: ""
+  - Concern: ""
+    Number: 5
+    Label: b
+    Kind: unconditional
+    Boundary: ""
+    Condition: ""
+    Obligation: >-
+      The rules run every detector_tick_s while the listener is
+      consuming and skip the tick while it is not.
+    Recovery: ""
+  - Concern: ""
+    Number: 5
+    Label: c
+    Kind: unconditional
+    Boundary: alerts-mic
+    Condition: ""
+    Obligation: >-
+      A clear is recorded and broadcast in dispatch on the arrival
+      that ends the condition, before the next tick.
+    Recovery: ""
+  - Concern: ""
+    Number: 6
+    Label: a
+    Kind: unconditional
+    Boundary: alerts-mic
+    Condition: ""
+    Obligation: >-
+      A house's last-heard is the latest arrival time of a report or
+      layout from its scada; a message's own timestamps never move it.
+    Recovery: ""
+  - Concern: ""
+    Number: 6
+    Label: b
+    Kind: transition
+    Boundary: alerts-mic
+    Condition: >-
+      The listener starts consuming.
+    Obligation: >-
+      Last-heard for every house is floored at that instant; no
+      NoData raises until no_data_silence_s after it.
+    Recovery: ""
+  - Concern: ""
+    Number: 7
+    Label: a
+    Kind: unconditional
+    Boundary: store
+    Condition: ""
+    Obligation: >-
+      The tracked set is the g_nodes rows of class TerminalAsset,
+      status Pending or Active, whose alias is under a fleet root; a house
+      that must not page lives outside the roots.
+    Recovery: ""
+  - Concern: ""
+    Number: 7
+    Label: b
+    Kind: unconditional
+    Boundary: alerts-mic
+    Condition: ""
+    Obligation: >-
+      The silenced houses are the list in the silences snapshot,
+      broadcast whenever it changes; a silenced house's alerts are still
+      raised, stored, broadcast and resolved.
+    Recovery: ""
+  # -- listener --------------------------------------------------------
+  - Concern: listener
+    Number: 1
+    Label: a
+    Kind: unconditional
+    Boundary: store
+    Condition: ""
+    Obligation: >-
+      The sender's arrivals row holds the arrival time of its latest
+      message of any type, read off the envelope with the body undecoded.
+    Recovery: ""
+  - Concern: listener
+    Number: 2
+    Label: a
+    Kind: unconditional
+    Boundary: store
+    Condition: ""
+    Obligation: >-
+      A report's values are readings rows with the scada's read time
+      and the arrival time; rows that arrived more than readings_window_s
+      ago are deleted on each report.
+    Recovery: ""
+  - Concern: listener
+    Number: 2
+    Label: b
+    Kind: unconditional
+    Boundary: store
+    Condition: ""
+    Obligation: >-
+      The layouts row for the scada holds the latest layout whole
+      with its type name and version.
+    Recovery: ""
+  - Concern: listener
+    Number: 2
+    Label: c
+    Kind: unconditional
+    Boundary: store
+    Condition: ""
+    Obligation: >-
+      Each node of a forest is a g_nodes row by GNodeId, its alias
+      and status updated in place.
+    Recovery: ""
+  - Concern: listener
+    Number: 2
+    Label: d
+    Kind: unconditional
+    Boundary: ""
+    Condition: ""
+    Obligation: >-
+      A message of a type other than report.event, layout.lite and
+      g.node.forest is not decoded.
+    Recovery: ""
+  - Concern: listener
+    Number: 3
+    Label: a
+    Kind: unconditional
+    Boundary: registry-forest-read
+    Condition: ""
+    Obligation: >-
+      One forest request for the fleet roots at boot and its answer
+      projected before the broker is opened.
+    Recovery: ""
+  - Concern: listener
+    Number: 3
+    Label: b
+    Kind: failure
+    Boundary: store
+    Condition: >-
+      A forest with SendTimeMs older than the row it would write.
+    Obligation: >-
+      The row is left as it is.
+    Recovery: ""
+  - Concern: listener
+    Number: 3
+    Label: c
+    Kind: failure
+    Boundary: log
+    Condition: >-
+      The registry does not answer the boot request.
+    Obligation: >-
+      The failure is logged and the start goes on.
+    Recovery: >-
+      The projection converges from the forest broadcasts.
+  - Concern: listener
+    Number: 4
+    Label: a
+    Kind: transition
+    Boundary: alerts-mic
+    Condition: >-
+      The silences file's list differs from the store's, read at boot
+      and on each tick.
+    Obligation: >-
+      The silences table is replaced wholesale and the snapshot
+      broadcast with Src the alerter's alias, as it is once at boot
+      whatever the list.
+    Recovery: ""
+  - Concern: listener
+    Number: 4
+    Label: b
+    Kind: failure
+    Boundary: silences-file
+    Condition: >-
+      No file at silences_path.
+    Obligation: >-
+      The list is empty and every house pages; logged once.
+    Recovery: >-
+      A file appearing is read on the next tick.
+  - Concern: listener
+    Number: 4
+    Label: c
+    Kind: failure
+    Boundary: silences-file
+    Condition: >-
+      A file at silences_path that does not read or decode.
+    Obligation: >-
+      The last loaded list stands; logged once per change of state.
+    Recovery: >-
+      A file that decodes again is read on the next tick.
+  - Concern: listener
+    Number: 5
+    Label: a
+    Kind: unconditional
+    Boundary: alerts-mic
+    Condition: ""
+    Obligation: >-
+      Each record the rules return goes out as one broadcast keyed by
+      AboutGNodeAlias, else Src.
+    Recovery: ""
+  - Concern: listener
+    Number: 5
+    Label: b
+    Kind: failure
+    Boundary: log
+    Condition: >-
+      The broadcast is not sent.
+    Obligation: >-
+      Logged with the AlertId; not retried.
+    Recovery: >-
+      The tap pages the record from the store.
+  - Concern: listener
+    Number: 6
+    Label: a
+    Kind: failure
+    Boundary: log
+    Condition: >-
+      A report or layout from a scada with no tracked house.
+    Obligation: >-
+      Logged once per boot per scada; the message is stored and no
+      alert is raised or resolved for it.
+    Recovery: ""
+  - Concern: listener
+    Number: 7
+    Label: a
+    Kind: unconditional
+    Boundary: alerts-mic
+    Condition: ""
+    Obligation: >-
+      AboutGNodeAlias on a House record is the alias of the
+      TerminalAsset row under the scada's parent alias at raise time.
+    Recovery: ""
+  # -- no-data ---------------------------------------------------------
+  - Concern: no-data
+    Number: 1
+    Label: a
+    Kind: transition
+    Boundary: alerts-mic
+    Condition: >-
+      A tracked house's last-heard, floored, is at least
+      no_data_silence_s before now, no NoData is open on it and no
+      BrokerUnreachable is open.
+    Obligation: >-
+      One Firing of category House and kind NoData with
+      AboutGNodeAlias the house, Evidence empty and Summary per the cause,
+      within one tick.
+    Recovery: ""
+  - Concern: no-data
+    Number: 2
+    Label: a
+    Kind: transition
+    Boundary: alerts-mic
+    Condition: >-
+      A report.event or layout.lite arrives from the scada of a house
+      with NoData open.
+    Obligation: >-
+      One Resolved under that AlertId and RaisedMs, ResolvedMs the
+      arrival time, Evidence the report's ChannelReadingList (empty for a
+      layout), in dispatch.
+    Recovery: ""
+  - Concern: no-data
+    Number: 2
+    Label: b
+    Kind: unconditional
+    Boundary: summary-data-again
+    Condition: ""
+    Obligation: >-
+      <d> is the arrival time minus RaisedMs plus no_data_silence_s.
+    Recovery: ""
+  - Concern: no-data
+    Number: 3
+    Label: a
+    Kind: transition
+    Boundary: summary-scada-silent
+    Condition: >-
+      Nothing has arrived from the house's scada alias inside
+      heard_period_s times 2.1, whatever the LTN.
+    Obligation: >-
+      The Firing Summary is this form with <d> now minus the floored
+      last-heard.
+    Recovery: ""
+  - Concern: no-data
+    Number: 3
+    Label: b
+    Kind: transition
+    Boundary: summary-ltn-silent
+    Condition: >-
+      Something arrived from the scada alias inside heard_period_s
+      times 2.1 and nothing from the house's parent alias (the LTN).
+    Obligation: >-
+      The Firing Summary is this form with <d> now minus the floored
+      last-heard.
+    Recovery: ""
+  - Concern: no-data
+    Number: 3
+    Label: c
+    Kind: transition
+    Boundary: summary-both-speaking
+    Condition: >-
+      Something arrived from both the scada alias and the parent
+      alias inside heard_period_s times 2.1.
+    Obligation: >-
+      The Firing Summary is this form with <d> now minus the floored
+      last-heard.
+    Recovery: ""
+  - Concern: no-data
+    Number: 3
+    Label: d
+    Kind: transition
+    Boundary: alerts-mic
+    Condition: >-
+      The cause of an open NoData differs from the one its Summary
+      names, read on a tick.
+    Obligation: >-
+      The Firing is rewritten in the store and broadcast again under
+      the same AlertId and RaisedMs with the new Summary and <d>
+      recomputed.
+    Recovery: ""
+  - Concern: no-data
+    Number: 4
+    Label: a
+    Kind: transition
+    Boundary: alerts-mic
+    Condition: >-
+      A BrokerUnreachable alert is open on any door.
+    Obligation: >-
+      No NoData Firing and no rewrite goes out, however long any
+      house is silent.
+    Recovery: ""
+  - Concern: no-data
+    Number: 4
+    Label: b
+    Kind: transition
+    Boundary: alerts-mic
+    Condition: >-
+      The last open BrokerUnreachable resolves.
+    Obligation: >-
+      Last-heard is floored at the first tick after it; no NoData
+      raises until no_data_silence_s later.
+    Recovery: ""
+  - Concern: no-data
+    Number: 4
+    Label: c
+    Kind: unconditional
+    Boundary: alerts-mic
+    Condition: ""
+    Obligation: >-
+      A NoData open when a BrokerUnreachable opens stays open with
+      its Summary unchanged and resolves on the house's first arrival.
+    Recovery: ""
+  # -- broker-unreachable ---------------------------------------------
+  - Concern: broker-unreachable
+    Number: 1
+    Label: a
+    Kind: unconditional
+    Boundary: amqp-door
+    Condition: ""
+    Obligation: >-
+      One AMQP round trip per probe_interval_s.
+    Recovery: ""
+  - Concern: broker-unreachable
+    Number: 1
+    Label: b
+    Kind: unconditional
+    Boundary: mqtt-door
+    Condition: ""
+    Obligation: >-
+      One MQTT connect per probe_interval_s with the same instance id
+      the AMQP probe presents.
+    Recovery: ""
+  - Concern: broker-unreachable
+    Number: 1
+    Label: c
+    Kind: failure
+    Boundary: mqtt-door
+    Condition: >-
+      A CONNACK with a non-zero return code.
+    Obligation: >-
+      The probe counts as failed with the code as its reason.
+    Recovery: ""
+  - Concern: broker-unreachable
+    Number: 2
+    Label: a
+    Kind: transition
+    Boundary: summary-door-down
+    Condition: >-
+      A door's running failure count, counted only while the fleet is
+      unheard, reaches probe_failures_to_raise and no BrokerUnreachable is
+      open on that door.
+    Obligation: >-
+      One Firing of category PlatformService, kind BrokerUnreachable,
+      Subject the door's host:port, Evidence empty, Summary this form with
+      <d> the count times probe_interval_s and <n> the count, written to
+      the store.
+    Recovery: ""
+  - Concern: broker-unreachable
+    Number: 2
+    Label: b
+    Kind: transition
+    Boundary: summary-door-up
+    Condition: >-
+      A probe of a door with a BrokerUnreachable open succeeds.
+    Obligation: >-
+      One Resolved under that AlertId with Summary this form, <d> now
+      minus RaisedMs plus probe_failures_to_raise times probe_interval_s,
+      written to the store; the count resets.
+    Recovery: ""
+  - Concern: broker-unreachable
+    Number: 2
+    Label: c
+    Kind: unconditional
+    Boundary: store
+    Condition: ""
+    Obligation: >-
+      Failure counts and open alerts are kept per door; one door down
+      raises one alert.
+    Recovery: ""
+  - Concern: broker-unreachable
+    Number: 3
+    Label: a
+    Kind: transition
+    Boundary: log
+    Condition: >-
+      A probe fails and the store's latest arrival from any alias is
+      inside heard_period_s.
+    Obligation: >-
+      The failure is logged as fleet-heard, the door's count resets
+      to zero and nothing is raised.
+    Recovery: ""
+  - Concern: broker-unreachable
+    Number: 3
+    Label: b
+    Kind: transition
+    Boundary: summary-prober-fault
+    Condition: >-
+      A BrokerUnreachable is open on a door, its probe fails and the
+      fleet was heard inside heard_period_s.
+    Obligation: >-
+      One Resolved under that AlertId with Summary this form, <d> as
+      for a door up again, written to the store.
+    Recovery: ""
+  - Concern: broker-unreachable
+    Number: 4
+    Label: a
+    Kind: unconditional
+    Boundary: store
+    Condition: ""
+    Obligation: >-
+      The prober's only connections are the two probes and the store;
+      its records reach a person through the tap.
+    Recovery: ""
+  # -- tap -------------------------------------------------------------
+  - Concern: tap
+    Number: 1
+    Label: a
+    Kind: unconditional
+    Boundary: store
+    Condition: ""
+    Obligation: >-
+      One pass every tap_reconcile_s reading open alerts, silenced
+      aliases, Resolved records and display names from the store; no
+      broker connection is opened.
+    Recovery: ""
+  - Concern: tap
+    Number: 2
+    Label: a
+    Kind: transition
+    Boundary: opsgenie-create
+    Condition: >-
+      An open alert whose AboutGNodeAlias is not in the silenced list
+      (or is absent) and whose AlertId is not in the told set.
+    Obligation: >-
+      One create with alias the AlertId, description the Summary,
+      entity AboutGNodeAlias else Subject else Src, source Src, tags
+      [category, kind], details kind, category, subject and, for a house,
+      house (the short name) and about (the alias, with the display name
+      in parens when the projection has one), priority P1, the team as
+      responder; on success the AlertId joins the told set.
+    Recovery: ""
+  - Concern: tap
+    Number: 2
+    Label: b
+    Kind: unconditional
+    Boundary: opsgenie-headline
+    Condition: ""
+    Obligation: >-
+      The create's message is this form.
+    Recovery: ""
+  - Concern: tap
+    Number: 2
+    Label: c
+    Kind: unconditional
+    Boundary: opsgenie-create
+    Condition: ""
+    Obligation: >-
+      An AlertId in the told set is not created again while it stays
+      open and unsilenced, whatever its Summary now says.
+    Recovery: ""
+  - Concern: tap
+    Number: 3
+    Label: a
+    Kind: transition
+    Boundary: opsgenie-close
+    Condition: >-
+      An AlertId in the told set is not open in the store and the store
+      has its Resolved record.
+    Obligation: >-
+      One close of that alias with note the Resolved record's Summary
+      and source Src; on success the AlertId leaves the told set.
+    Recovery: ""
+  - Concern: tap
+    Number: 3
+    Label: b
+    Kind: transition
+    Boundary: silenced-note
+    Condition: >-
+      An AlertId in the told set is open in the store and its
+      AboutGNodeAlias is now in the silenced list.
+    Obligation: >-
+      One close of that alias with this note, <d> now minus RaisedMs;
+      the alert stays open in the store; on success the AlertId leaves the
+      told set.
+    Recovery: ""
+  - Concern: tap
+    Number: 3
+    Label: c
+    Kind: transition
+    Boundary: opsgenie-create
+    Condition: >-
+      A house leaves the silenced list while an alert about it is
+      open.
+    Obligation: >-
+      The alert is created on the next pass as in 2a.
+    Recovery: ""
+  - Concern: tap
+    Number: 4
+    Label: a
+    Kind: unconditional
+    Boundary: opsgenie-list
+    Condition: ""
+    Obligation: >-
+      Each pass opens with one listing of the alerts open from
+      service_alias, each item decoded as the word, and the told set
+      becomes the listed aliases; an item the word refuses is logged
+      and left out.
+    Recovery: ""
+  - Concern: tap
+    Number: 4
+    Label: b
+    Kind: failure
+    Boundary: log
+    Condition: >-
+      The listing does not reach the alert manager or is answered with
+      an error status.
+    Obligation: >-
+      Logged once per pass; the told set stands as the last listing,
+      creates and closes left it, empty at boot, so the first pass after
+      a boot with no listing creates every open unsilenced alert.
+    Recovery: >-
+      The next pass lists again.
+  - Concern: tap
+    Number: 4
+    Label: c
+    Kind: transition
+    Boundary: opsgenie-close
+    Condition: >-
+      A listed alias is neither open nor resolved in the store.
+    Obligation: >-
+      One close of that alias with source service_alias and note
+      "Closed by the alerter: not open in its store".
+    Recovery: ""
+  - Concern: tap
+    Number: 4
+    Label: d
+    Kind: transition
+    Boundary: opsgenie-create
+    Condition: >-
+      An alias created earlier is absent from the listing while its
+      alert is open in the store and its house unsilenced.
+    Obligation: >-
+      The alert is created again on that pass, as in 2a.
+    Recovery: ""
+  - Concern: tap
+    Number: 5
+    Label: a
+    Kind: failure
+    Boundary: opsgenie-create
+    Condition: >-
+      A post does not reach the alert manager.
+    Obligation: >-
+      The post is tried three times two seconds apart, each attempt
+      logged; the told set is not changed.
+    Recovery: >-
+      The next pass sends it again.
+  - Concern: tap
+    Number: 5
+    Label: b
+    Kind: failure
+    Boundary: log
+    Condition: >-
+      The alert manager answers a post with an error status.
+    Obligation: >-
+      Logged with the status and body; not retried in the pass; the
+      told set is not changed.
+    Recovery: >-
+      The next pass sends it again.

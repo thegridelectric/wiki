@@ -60,11 +60,6 @@ them exercises it (`experiments/`).
   before the fleet is on the production broker); returns here with the
   LTN work that can wait: each LTN with its FLO and parameters, and what
   the LTN takes from the scada
-- `thermostat-and-zone-control.md` — the zone / circuit / thermostat
-  control model deferred out of the launch: the circuit FSM, the
-  governance machine, setpoint belief, and the thermostat chunk (sim
-  thermostat, setpoint discovery, Hubitat/Honeywell); the launch-side
-  relay-actor enforcement is OPS-392
 - TO DO `async-local-control.md` — the local control evaluates on
   events (messages at receipt, timers armed when a time input is
   known), retiring the 60 s pass; after the simulated houses run

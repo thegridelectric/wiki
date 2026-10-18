@@ -1,0 +1,101 @@
+# Vectors: one fixture per clause, its kind set by the clause's. A row
+# with no Path is the work list ("Finding the traces"). An example of a
+# word is sema's by reference, Path <word>/<version>. Paths are relative
+# to this folder.
+table: Vectors
+schema:
+  - name: Concern
+    kind: relationship
+    to: Concerns.Name
+    blank: hub
+  - name: Idx
+    kind: raw
+  - name: Kind
+    kind: raw
+    values: [example, counterexample, trace]
+  - name: Path
+    kind: raw
+  - name: Clause
+    kind: relationship
+    to: Clauses.Number & Clauses.Label
+  - name: Exists
+    kind: calculated
+    formula: IF(Kind="example", WordHasExample(Path), FileExists(Path & "/trace.yaml"))
+data:
+  - {Concern: "", Idx: 1, Kind: trace, Clause: "1a", Path: "traces/2026-10-15-oak-ltn-stop"}
+  - {Concern: "", Idx: 2, Kind: counterexample, Clause: "1b", Path: ""}
+  - {Concern: "", Idx: 3, Kind: trace, Clause: "2a", Path: ""}
+  - {Concern: "", Idx: 4, Kind: trace, Clause: "2b", Path: ""}
+  - {Concern: "", Idx: 5, Kind: counterexample, Clause: "2c", Path: ""}
+  - {Concern: "", Idx: 6, Kind: trace, Clause: "3a", Path: "traces/2026-10-15-oak-ltn-stop"}
+  - {Concern: "", Idx: 7, Kind: trace, Clause: "3b", Path: ""}
+  - {Concern: "", Idx: 8, Kind: trace, Clause: "3c", Path: "traces/2026-10-15-oak-ltn-stop"}
+  - {Concern: "", Idx: 9, Kind: trace, Clause: "3d", Path: ""}
+  - {Concern: "", Idx: 10, Kind: trace, Clause: "4a", Path: ""}
+  - {Concern: "", Idx: 11, Kind: counterexample, Clause: "4b", Path: ""}
+  - {Concern: "", Idx: 12, Kind: trace, Clause: "5a", Path: ""}
+  - {Concern: "", Idx: 13, Kind: trace, Clause: "5b", Path: ""}
+  - {Concern: "", Idx: 14, Kind: trace, Clause: "5c", Path: "traces/2026-10-15-oak-ltn-stop"}
+  - {Concern: "", Idx: 15, Kind: trace, Clause: "6a", Path: "traces/2026-10-15-oak-ltn-stop"}
+  - {Concern: "", Idx: 16, Kind: trace, Clause: "6b", Path: ""}
+  - {Concern: "", Idx: 17, Kind: trace, Clause: "7a", Path: ""}
+  - {Concern: "", Idx: 18, Kind: trace, Clause: "7b", Path: ""}
+  - {Concern: "listener", Idx: 1, Kind: trace, Clause: "1a", Path: ""}
+  - {Concern: "listener", Idx: 2, Kind: trace, Clause: "2a", Path: ""}
+  - {Concern: "listener", Idx: 3, Kind: trace, Clause: "2b", Path: ""}
+  - {Concern: "listener", Idx: 4, Kind: trace, Clause: "2c", Path: ""}
+  - {Concern: "listener", Idx: 5, Kind: trace, Clause: "2d", Path: ""}
+  - {Concern: "listener", Idx: 6, Kind: trace, Clause: "3a", Path: ""}
+  - {Concern: "listener", Idx: 7, Kind: counterexample, Clause: "3b", Path: ""}
+  - {Concern: "listener", Idx: 8, Kind: counterexample, Clause: "3c", Path: ""}
+  - {Concern: "listener", Idx: 9, Kind: trace, Clause: "4a", Path: ""}
+  - {Concern: "listener", Idx: 10, Kind: counterexample, Clause: "4b", Path: ""}
+  - {Concern: "listener", Idx: 11, Kind: counterexample, Clause: "4c", Path: ""}
+  - {Concern: "listener", Idx: 12, Kind: trace, Clause: "5a", Path: "traces/2026-10-15-oak-ltn-stop"}
+  - {Concern: "listener", Idx: 13, Kind: counterexample, Clause: "5b", Path: ""}
+  - {Concern: "listener", Idx: 14, Kind: counterexample, Clause: "6a", Path: ""}
+  - {Concern: "listener", Idx: 15, Kind: trace, Clause: "7a", Path: "traces/2026-10-15-oak-ltn-stop"}
+  - {Concern: "no-data", Idx: 1, Kind: trace, Clause: "1a", Path: "traces/2026-10-15-oak-ltn-stop"}
+  - {Concern: "no-data", Idx: 2, Kind: trace, Clause: "2a", Path: "traces/2026-10-15-oak-ltn-stop"}
+  - {Concern: "no-data", Idx: 3, Kind: trace, Clause: "2b", Path: "traces/2026-10-15-oak-ltn-stop"}
+  - {Concern: "no-data", Idx: 4, Kind: trace, Clause: "3a", Path: ""}
+  - {Concern: "no-data", Idx: 5, Kind: trace, Clause: "3b", Path: "traces/2026-10-15-oak-ltn-stop"}
+  - {Concern: "no-data", Idx: 6, Kind: trace, Clause: "3c", Path: ""}
+  - {Concern: "no-data", Idx: 7, Kind: trace, Clause: "3d", Path: ""}
+  - {Concern: "no-data", Idx: 8, Kind: trace, Clause: "4a", Path: ""}
+  - {Concern: "no-data", Idx: 9, Kind: trace, Clause: "4b", Path: ""}
+  - {Concern: "no-data", Idx: 10, Kind: trace, Clause: "4c", Path: ""}
+  - {Concern: "broker-unreachable", Idx: 1, Kind: trace, Clause: "1a", Path: ""}
+  - {Concern: "broker-unreachable", Idx: 2, Kind: trace, Clause: "1b", Path: ""}
+  - {Concern: "broker-unreachable", Idx: 3, Kind: counterexample, Clause: "1c", Path: ""}
+  - {Concern: "broker-unreachable", Idx: 4, Kind: trace, Clause: "2a", Path: ""}
+  - {Concern: "broker-unreachable", Idx: 5, Kind: trace, Clause: "2b", Path: ""}
+  - {Concern: "broker-unreachable", Idx: 6, Kind: trace, Clause: "2c", Path: ""}
+  - {Concern: "broker-unreachable", Idx: 7, Kind: trace, Clause: "3a", Path: ""}
+  - {Concern: "broker-unreachable", Idx: 8, Kind: trace, Clause: "3b", Path: ""}
+  - {Concern: "broker-unreachable", Idx: 9, Kind: trace, Clause: "4a", Path: ""}
+  - {Concern: "tap", Idx: 1, Kind: trace, Clause: "1a", Path: ""}
+  - {Concern: "tap", Idx: 2, Kind: trace, Clause: "2a", Path: ""}
+  - {Concern: "tap", Idx: 3, Kind: trace, Clause: "2b", Path: ""}
+  - {Concern: "tap", Idx: 4, Kind: trace, Clause: "2c", Path: ""}
+  - {Concern: "tap", Idx: 5, Kind: trace, Clause: "3a", Path: ""}
+  - {Concern: "tap", Idx: 6, Kind: trace, Clause: "3b", Path: ""}
+  - {Concern: "tap", Idx: 7, Kind: trace, Clause: "3c", Path: ""}
+  - {Concern: "tap", Idx: 8, Kind: trace, Clause: "4a", Path: ""}
+  - {Concern: "tap", Idx: 9, Kind: counterexample, Clause: "4b", Path: ""}
+  - {Concern: "tap", Idx: 10, Kind: trace, Clause: "4c", Path: ""}
+  - {Concern: "tap", Idx: 11, Kind: trace, Clause: "4d", Path: ""}
+  - {Concern: "tap", Idx: 12, Kind: counterexample, Clause: "5a", Path: ""}
+  - {Concern: "tap", Idx: 13, Kind: counterexample, Clause: "5b", Path: ""}
+  - {Concern: "", Idx: 19, Kind: example, Clause: "1a", Path: "report.event/002"}
+  - {Concern: "", Idx: 20, Kind: example, Clause: "1a", Path: "report.event/003"}
+  - {Concern: "", Idx: 21, Kind: example, Clause: "1a", Path: "report.event/004"}
+  - {Concern: "", Idx: 22, Kind: example, Clause: "1a", Path: "layout.lite/011"}
+  - {Concern: "", Idx: 23, Kind: example, Clause: "1a", Path: "layout.lite/012"}
+  - {Concern: "", Idx: 24, Kind: example, Clause: "1a", Path: "g.node.forest/002"}
+  - {Concern: "", Idx: 25, Kind: example, Clause: "1a", Path: "g.node.forest.request/000"}
+  - {Concern: "", Idx: 26, Kind: example, Clause: "1a", Path: "gw.hack.alert.silences/000"}
+  - {Concern: "", Idx: 27, Kind: example, Clause: "1a", Path: "gw.alert/000"}
+  - {Concern: "", Idx: 28, Kind: example, Clause: "1a", Path: "gw.opsgenie.alert.create/000"}
+  - {Concern: "", Idx: 29, Kind: example, Clause: "1a", Path: "gw.opsgenie.alert.close/000"}
+  - {Concern: "", Idx: 30, Kind: example, Clause: "1a", Path: "gw.opsgenie.alert/000"}

@@ -1,0 +1,125 @@
+# Steps: start and stop steps per process, ordered by Idx. Blocks: the
+# next step waits for this one. Retried: repeats until it succeeds.
+# AbandonedOnStop: a stop interrupts it rather than waiting for it.
+table: Steps
+schema:
+  - name: Process
+    kind: relationship
+    to: Processes.Name
+  - name: Idx
+    kind: raw
+  - name: Text
+    kind: raw
+    prose: true
+  - name: Blocks
+    kind: raw
+  - name: Retried
+    kind: raw
+  - name: AbandonedOnStop
+    kind: raw
+data:
+  - Process: rabbit
+    Idx: 1
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      Open the store, applying any schema migration not yet applied.
+  - Process: rabbit
+    Idx: 2
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      Request the forest for the fleet roots from the registry's HTTP
+      read and project the answer; an unreachable registry is logged and
+      the start goes on.
+  - Process: rabbit
+    Idx: 3
+    Blocks: true
+    Retried: true
+    AbandonedOnStop: true
+    Text: >-
+      Connect to the broker, declare the auto-delete queue and bind
+      it to the ear exchange with "#" beside the class binding.
+  - Process: rabbit
+    Idx: 4
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      Floor last-heard at this instant, load the silences file and
+      broadcast the silences snapshot.
+  - Process: rabbit
+    Idx: 5
+    Blocks: false
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      Start the detector tick.
+  - Process: rabbit
+    Idx: 6
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      On stop, end the detector tick and wait for a tick in flight.
+  - Process: rabbit
+    Idx: 7
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      On stop, close the broker connection; the queue is deleted with
+      it.
+  - Process: rabbit
+    Idx: 8
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      On stop, close the store.
+  - Process: tap
+    Idx: 1
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      Open the store.
+  - Process: tap
+    Idx: 2
+    Blocks: false
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      Reconcile at once with an empty told set, then every
+      tap_reconcile_s.
+  - Process: tap
+    Idx: 3
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      On stop, finish the pass in flight, close the alert manager
+      client, close the store.
+  - Process: probe
+    Idx: 1
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      Open the store.
+  - Process: probe
+    Idx: 2
+    Blocks: false
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      Probe both doors at once, then every probe_interval_s.
+  - Process: probe
+    Idx: 3
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      On stop, finish the tick in flight and close the store.

@@ -1,0 +1,29 @@
+# Processes: one row per runnable. The three share one store on one box.
+table: Processes
+schema:
+  - name: Name
+    kind: raw
+  - name: Summary
+    kind: raw
+    prose: true
+  - name: StepCount
+    kind: aggregation
+    formula: COUNTIF(Steps.Process, Name)
+data:
+  - Name: rabbit
+    Summary: >-
+      The listener. Hears every message on the universe's broker, keeps
+      the store (projection, layouts, readings, arrivals, silences,
+      alerts), runs the house rules on a tick and broadcasts each alert
+      record.
+  - Name: tap
+    Summary: >-
+      The pager. Reads the store's open alerts and silenced houses and
+      tells the alert manager what to open and close. Has no broker
+      connection, so the alert that means the broker is down still
+      reaches a person.
+  - Name: probe
+    Summary: >-
+      The prober. Checks the broker's two doors from outside the broker
+      path as a client of each and writes BrokerUnreachable into the
+      store.

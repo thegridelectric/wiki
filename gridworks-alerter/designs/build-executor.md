@@ -16,11 +16,20 @@ green against the built service over the dev broker
 
 ## Where it stands
 
-- `executor/` holds the pruned markdown, the seed copy (byte-identical
-  to the repo's) and one trace, `traces/2026-10-15-oak-ltn-stop/`,
-  which `experiments/traces/pull_trace.py` materialises from the
-  journal, reading a `decode:` line in the trace spec.
+- `executor/` holds the twelve tables, one YAML file each, the seed
+  copy (byte-identical to the repo's) and one trace,
+  `traces/2026-10-15-oak-ltn-stop/`, which
+  `experiments/traces/pull_trace.py` materialises from the journal,
+  reading a `decode:` line in the trace spec. The port (Plan step 1)
+  is done: 7 hub axioms, 4 concerns (listener, no-data,
+  broker-unreachable, tap), 27 axioms, 65 clauses, 137 bindings. The
+  Settings table is written by hand from the settings class in the
+  shape the generator will emit, inherited keys included.
 - The repo README holds the Domain Summary verbatim.
+- An ad-hoc columns check (relationships, seed drift, bindings
+  resolving against the code, README match) passes except for the
+  missing `gw.opsgenie.alert` example. 8 clauses have no test binding;
+  54 vectors have no path.
 - Nothing in the convention's Open list exists: the columns checker,
   the markdown renderer, the settings generator, the replay harness.
 
@@ -56,6 +65,12 @@ green against the built service over the dev broker
 
 ## To-do
 
+- `gw.opsgenie.alert` 000 has no `examples:` in sema, so its Vectors
+  row of kind example does not exist. The real instance is one item of
+  the tap's listing on the alerts box; pull one once the read-back is
+  deployed and raise it through sema's change control.
+- Clauses with no test binding: hub 4a, 4b, 5b; listener 3c, 4c, 5b;
+  no-data 2b; tap 5b. Each needs a repo test named for it.
 - Traces for axiom 3 (NoData names its cause) clauses a and c: scada
   not speaking; scada and LTN both speaking. Clause b has the oak LTN
   stop. Neither a nor c can be pulled from the journal today, since
@@ -75,7 +90,8 @@ green against the built service over the dev broker
 
 - Whether the Clauses table needs a Reads column beside Boundary, so
   the store row a condition reads is a relationship the checker can
-  follow rather than a name in prose. The cause clauses read the
-  arrivals row; today that is prose.
+  follow rather than a name in prose. The port names the store row in
+  the Condition text (the cause clauses read arrivals); a Reads column
+  is a convention change and waits on the convention.
 - Whether a dev-broker induced trace counts toward Verified or only a
   field window does.

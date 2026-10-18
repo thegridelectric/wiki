@@ -1,0 +1,89 @@
+# Concerns: one row per spoke. Each belongs to the one process that
+# enforces its clauses. The hub (Concern blank on Axioms rows) holds
+# the invariants that span the processes.
+table: Concerns
+schema:
+  - name: Name
+    kind: raw
+  - name: Summary
+    kind: raw
+    prose: true
+  - name: Description
+    kind: raw
+    prose: true
+  - name: Process
+    kind: relationship
+    to: Processes.Name
+  - name: AxiomCount
+    kind: aggregation
+    formula: COUNTIF(Axioms.Concern, Name)
+  - name: BindingCount
+    kind: aggregation
+    formula: COUNTIF(Bindings.Concern, Name) + SUMIF(Clauses.Concern, Name, Clauses.BindingCount)
+  - name: HasBindings
+    kind: calculated
+    formula: BindingCount > 0
+data:
+  - Name: listener
+    Process: rabbit
+    Summary: >-
+      How the listener feeds the store from the broker and the registry,
+      applies the silences file, and broadcasts what the rules decide.
+    Description: >-
+      A message arrives; its sender's arrivals row is written before
+      anything else. If its type is one the store keeps, the body is
+      decoded at its sent version and written: a report as readings, a
+      layout as the scada's latest, a forest into the projection. A
+      report or layout then runs the clear in dispatch for its house.
+      On each tick the silences file is re-read and any change is
+      broadcast, then the rules run and each record they return is
+      broadcast.
+  - Name: no-data
+    Process: rabbit
+    Summary: >-
+      The NoData house alert: a tracked house has sent nothing for
+      longer than the silence threshold.
+    Description: >-
+      The rule runs on the tick over the store. Each tracked house's
+      last-heard is the latest report or layout arrival from its scada,
+      floored at the moment hearing started; a house silent past the
+      threshold with no NoData open is raised with the cause the arrivals
+      show. The cause is re-read every tick and the open record rewritten
+      when it moves. The first report or layout from the scada resolves
+      it in dispatch. While the prober holds BrokerUnreachable open the
+      rule does nothing, and the floor moves when the last one resolves.
+      An LTN stop pages about fourteen minutes after the stop rather
+      than ten: the scada's own link timeout lets one more report out
+      before its reports stop.
+  - Name: broker-unreachable
+    Process: probe
+    Summary: >-
+      The BrokerUnreachable platform alert: a door of the fleet's broker
+      refuses the prober while the fleet is unheard.
+    Description: >-
+      Every interval the prober checks each door as a client of it and
+      reads the store's latest arrival from any alias. A door that
+      succeeds resets its failure count and resolves any open alert on
+      it. A door that fails while the fleet was heard inside the heard
+      period resets its count and resolves any open alert as a prober
+      fault. A door that fails while the fleet is unheard counts one
+      failure, and the count reaching the threshold with no alert open
+      raises one. Records go into the store; the tap pages them. The
+      management listener is not probed: a third door that can be up
+      while both of the fleet's doors are shut.
+  - Name: tap
+    Process: tap
+    Summary: >-
+      Paging the store's open alerts through the alert manager, and
+      applying silences to what is paged.
+    Description: >-
+      Each pass lists what the alert manager holds open from this
+      alerter, each item read as a word, and that listing is the told
+      set; when the listing cannot be read the told set stands as the
+      pass's own creates and closes left it, empty at boot. It then
+      reads the store's open alerts and silenced aliases and compares.
+      An open alert about an unsilenced house (or about no house) not
+      in the told set is created; a told alert about a house since
+      silenced is closed with the silenced note; a told alert the store
+      does not hold open is closed, with its Resolved record's Summary
+      when the store has one and a fixed note when it has neither.

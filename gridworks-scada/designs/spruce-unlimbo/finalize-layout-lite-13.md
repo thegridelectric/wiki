@@ -156,7 +156,7 @@ is the gate to connecting.
 - `gw.nolan.layout` closes with the same epic-end promote: registry
   status finalized, regenerate, validate against the real layouts. The
   promote holds until the House0 word runs on all the House0 homes
-  (`../spruce-settled/thermostat-and-zone-control.md` "Sequencing").
+  (`thermostat-and-zone-control.md` "Sequencing").
 
 ## What the dashboard reads from 013
 

@@ -1,0 +1,194 @@
+# Boundaries: everything that crosses the edge and is not a word. Form is
+# the exact form, or OwnerExecutor points at the executor that owns it.
+# Reproduce says whether a rebuild matches the form byte for byte (exact)
+# or may change it (free); a trace diff is judged against this column.
+# Text rows are the summaries, headlines and notes a person reads;
+# <d> is a duration in minutes to one decimal ("10.1 minutes").
+table: Boundaries
+schema:
+  - name: Name
+    kind: raw
+  - name: Kind
+    kind: raw
+    values: [transport, http, file, store, api, setting, text]
+  - name: Form
+    kind: raw
+    prose: true
+  - name: OwnerExecutor
+    kind: raw
+  - name: Reproduce
+    kind: raw
+    values: [exact, free]
+data:
+  - Name: ear-tap
+    Kind: transport
+    OwnerExecutor: gridworks-base
+    Reproduce: exact
+    Form: >-
+      The listener's own queue (the Orchestrator tier's auto-delete queue
+      for transport class Alerter, alias <universe>.alerts) bound to the
+      ear exchange with routing key "#" beside the class binding the tier
+      makes. Every publish on the universe's broker reaches it; the
+      sender alias and type name are read off the routing envelope.
+  - Name: alerts-mic
+    Kind: transport
+    OwnerExecutor: gridworks-base
+    Reproduce: exact
+    Form: >-
+      The listener's broadcast on its own mic exchange, routing key
+      rjb.<alerter alias>.alerts.<type name>.<radio channel>, the radio
+      channel being AboutGNodeAlias when the record has one, else Src;
+      the silences snapshot goes out with no radio channel. The mic
+      exchange fans into the ear exchange.
+  - Name: registry-forest-read
+    Kind: http
+    OwnerExecutor: grid-node-registry
+    Reproduce: exact
+    Form: >-
+      POST <gnr_url>/gnr/g-node-forest-request with a
+      g.node.forest.request body (Roots the fleet roots, a fresh
+      RequestId); the 200 response body is a g.node.forest.
+  - Name: opsgenie-create
+    Kind: api
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: >-
+      POST <opsgenie_url>/v2/alerts, header "Authorization: GenieKey
+      <opsgenie_api_key>", JSON body {alias, message, description,
+      entity, source, tags: [category, kind], details: {kind, category,
+      subject, house?, about?}, priority: "P1", responders: [{type:
+      "team", id: <opsgenie_team_id>}]}, each field from the
+      gw.opsgenie.alert.create instance under its lower-case name.
+  - Name: opsgenie-list
+    Kind: api
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: >-
+      GET <opsgenie_url>/v2/alerts with the same header and query
+      parameters query='status:open AND source:"<service_alias>"',
+      limit=100, offset=<n>, paged by 100 until a page is short; each
+      item of the response's data array is read as a gw.opsgenie.alert
+      (alias, id, tinyId, message, status, acknowledged, count,
+      priority, source, tags, createdAt and lastOccurredAt as UTC ms,
+      report.acknowledgedBy, report.closedBy).
+  - Name: opsgenie-close
+    Kind: api
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: >-
+      POST <opsgenie_url>/v2/alerts/<alias>/close?identifierType=alias,
+      the same header, JSON body {source, note}.
+  - Name: amqp-door
+    Kind: transport
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: >-
+      One probe of the AMQP door as a client of probe_amqp: connect
+      (with a tls block, the prober's own cert plus claims as principal
+      <service_alias>.probe and the prober's instance id; without one,
+      the URL's credentials), declare an exclusive auto-delete queue,
+      publish one message to it through the default exchange, receive
+      that message back. Any other outcome, including a connect that
+      succeeds and a publish that does not come back, is a failed probe.
+      The door's name is host:port with no credential.
+  - Name: mqtt-door
+    Kind: transport
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: >-
+      One probe of the MQTT door at probe_mqtt_host:probe_mqtt_port: TLS
+      handshake when probe_mqtt_tls (trusting the probe CA when the tls
+      block names one, else the system store), CONNECT with the prober's
+      instance id as client id and no username or password, and a
+      CONNACK with return code 0. Any refused CONNACK is a failed probe.
+      The door's name is host:port.
+  - Name: silences-file
+    Kind: file
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: >-
+      The file silences_path names, in the alerter's config folder and
+      named by the sema file convention
+      (<service_alias>-gw.hack.alert.silences-000.json): one
+      gw.hack.alert.silences instance as JSON, read whole on every read.
+  - Name: store
+    Kind: store
+    OwnerExecutor: ""
+    Reproduce: free
+    Form: >-
+      One file on the box's disk shared by the three processes, holding:
+      g_nodes, one row per GNodeId with the g.node.gt of the latest
+      forest that named it and that forest's SendTimeMs; layouts, the
+      latest layout.lite per scada alias, whole, with its version;
+      readings, one row per value in each report.event (scada alias,
+      channel name, value, the scada's read time, the arrival time);
+      alerts, every gw.alert Firing record and, once it ends, its
+      Resolved record, by AlertId, indexed by category, AboutGNodeAlias
+      or Subject, and kind; silences, the aliases of the latest silences
+      snapshot; arrivals, the latest arrival time per sender alias under
+      the fleet roots, any type. Every write is atomic.
+  - Name: settings
+    Kind: setting
+    OwnerExecutor: gridworks-base
+    Reproduce: exact
+    Form: >-
+      Environment variables with prefix GWALERTER_, nested keys joined
+      by "__", read from the environment and a .env file; the Settings
+      table lists the keys.
+  - Name: summary-scada-silent
+    Kind: text
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: "scada silent for <d> (<AboutGNodeAlias>)"
+  - Name: summary-ltn-silent
+    Kind: text
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: "ltn silent for <d>; scada does not send up reports with no ltn (<AboutGNodeAlias>)"
+  - Name: summary-both-speaking
+    Kind: text
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: "no reports for <d>, scada and ltn both speaking (<AboutGNodeAlias>)"
+  - Name: summary-data-again
+    Kind: text
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: "data again after <d> (<AboutGNodeAlias>)"
+  - Name: summary-door-down
+    Kind: text
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: "Broker door <Subject> down <d>, <n> probes failed: <reason>"
+  - Name: summary-door-up
+    Kind: text
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: "Broker door <Subject> up again after <d>"
+  - Name: summary-prober-fault
+    Kind: text
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: "Fleet heard through the broker after <d> while door <Subject> refuses the probe: prober fault"
+  - Name: opsgenie-headline
+    Kind: text
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: >-
+      For a record with AboutGNodeAlias: "[<Short>] <Summary>", Short the
+      alias segment before ".ta" with its first letter upper-cased; else
+      the Summary. Cut to 130 characters.
+  - Name: silenced-note
+    Kind: text
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: "Silenced after <d> (<AboutGNodeAlias>)"
+  - Name: log
+    Kind: text
+    OwnerExecutor: ""
+    Reproduce: free
+    Form: >-
+      The process log: a dropped body with its type and sender; a scada
+      reporting for no tracked house; the silences file's state when it
+      changes; a send that was not sent; a failed probe with its reason;
+      an alert manager post refused or given up on.

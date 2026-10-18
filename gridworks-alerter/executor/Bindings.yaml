@@ -1,0 +1,162 @@
+# Bindings: pointers into the code and nowhere else. A symbol is
+# qualified with its File; a test binds a Clause by its test name; a
+# setting binds a Clause to a Settings Key; a cli binds a Concern to a
+# command. Clause is "<Number><Label>" within Concern, blank on a cli row.
+# File is relative to the repo root and is what the reconcile reads.
+table: Bindings
+schema:
+  - name: Concern
+    kind: relationship
+    to: Concerns.Name
+    blank: hub
+  - name: Clause
+    kind: relationship
+    to: Clauses.Number & Clauses.Label
+  - name: Kind
+    kind: raw
+    values: [symbol, test, setting, cli]
+  - name: TargetName
+    kind: raw
+  - name: File
+    kind: raw
+  - name: Resolves
+    kind: calculated
+    formula: IF(Kind="setting", COUNTIF(Settings.Key, TargetName) > 0, SymbolInFile(TargetName, File))
+data:
+  - {Concern: "", Clause: "1a", Kind: symbol, TargetName: "gwalerter.alerter_actor.AlerterActor.process_message", File: src/gwalerter/alerter_actor.py}
+  - {Concern: "", Clause: "1a", Kind: test, TargetName: "test_report_counts_at_its_sent_version", File: tests/test_actor.py}
+  - {Concern: "", Clause: "1a", Kind: test, TargetName: "test_layout_lite_011_is_stored_at_its_sent_version", File: tests/test_actor.py}
+  - {Concern: "", Clause: "1b", Kind: test, TargetName: "test_bad_body_is_dropped", File: tests/test_actor.py}
+  - {Concern: "", Clause: "2a", Kind: symbol, TargetName: "gwalerter.store.Store.raise_alert", File: src/gwalerter/store.py}
+  - {Concern: "", Clause: "2a", Kind: test, TargetName: "test_actor_broadcasts_firing_and_resolved", File: tests/test_no_data.py}
+  - {Concern: "", Clause: "2b", Kind: symbol, TargetName: "gwalerter.tap.Tap.reconcile", File: src/gwalerter/tap.py}
+  - {Concern: "", Clause: "2b", Kind: test, TargetName: "test_a_tap_with_no_broker_pages_what_the_store_holds", File: tests/test_tap.py}
+  - {Concern: "", Clause: "2c", Kind: test, TargetName: "test_restart_neither_re_raises_nor_forgets", File: tests/test_no_data.py}
+  - {Concern: "", Clause: "2c", Kind: test, TargetName: "test_a_restart_neither_re_raises_nor_forgets", File: tests/test_prober.py}
+  - {Concern: "", Clause: "3a", Kind: test, TargetName: "test_silent_house_raises_once_at_the_threshold", File: tests/test_no_data.py}
+  - {Concern: "", Clause: "3b", Kind: test, TargetName: "test_the_open_alert_summary_follows_the_cause", File: tests/test_no_data.py}
+  - {Concern: "", Clause: "3c", Kind: symbol, TargetName: "gwalerter.records.resolved_of", File: src/gwalerter/records.py}
+  - {Concern: "", Clause: "3c", Kind: test, TargetName: "test_arrival_resolves_with_the_arrival_as_evidence", File: tests/test_no_data.py}
+  - {Concern: "", Clause: "3d", Kind: symbol, TargetName: "gwalerter.tap.Tap.close", File: src/gwalerter/tap.py}
+  - {Concern: "", Clause: "3d", Kind: test, TargetName: "test_firing_creates_and_resolved_closes", File: tests/test_tap.py}
+  - {Concern: "", Clause: "4a", Kind: symbol, TargetName: "gwalerter.alerter_actor.AlerterActor.local_rabbit_startup", File: src/gwalerter/alerter_actor.py}
+  - {Concern: "", Clause: "5a", Kind: test, TargetName: "test_report_event_reaches_the_store", File: tests/test_actor.py}
+  - {Concern: "", Clause: "5b", Kind: symbol, TargetName: "gwalerter.alerter_actor.AlerterActor.run_detectors", File: src/gwalerter/alerter_actor.py}
+  - {Concern: "", Clause: "5b", Kind: setting, TargetName: "detector_tick_s", File: src/gwalerter/config.py}
+  - {Concern: "", Clause: "5c", Kind: symbol, TargetName: "gwalerter.alerter_actor.AlerterActor.clear_on_arrival", File: src/gwalerter/alerter_actor.py}
+  - {Concern: "", Clause: "5c", Kind: test, TargetName: "test_arrival_resolves_with_the_arrival_as_evidence", File: tests/test_no_data.py}
+  - {Concern: "", Clause: "6a", Kind: symbol, TargetName: "gwalerter.store.Store.houses", File: src/gwalerter/store.py}
+  - {Concern: "", Clause: "6a", Kind: test, TargetName: "test_last_heard_never_moves_backwards", File: tests/test_store.py}
+  - {Concern: "", Clause: "6a", Kind: test, TargetName: "test_a_heard_house_is_silent_from_its_last_arrival", File: tests/test_no_data.py}
+  - {Concern: "", Clause: "6b", Kind: symbol, TargetName: "gwalerter.alerter_actor.AlerterActor.hearing_resumed", File: src/gwalerter/alerter_actor.py}
+  - {Concern: "", Clause: "6b", Kind: test, TargetName: "test_boot_time_counts_as_heard", File: tests/test_no_data.py}
+  - {Concern: "", Clause: "6b", Kind: test, TargetName: "test_resumed_hearing_gives_each_house_one_threshold", File: tests/test_no_data.py}
+  - {Concern: "", Clause: "7a", Kind: symbol, TargetName: "gwalerter.store.Store.tracked_houses", File: src/gwalerter/store.py}
+  - {Concern: "", Clause: "7a", Kind: test, TargetName: "test_tracked_houses_are_pending_or_active_terminal_assets_under_the_roots", File: tests/test_forest.py}
+  - {Concern: "", Clause: "7a", Kind: setting, TargetName: "fleet_roots", File: src/gwalerter/config.py}
+  - {Concern: "", Clause: "7b", Kind: symbol, TargetName: "gwalerter.alerter_actor.AlerterActor.announce_silences", File: src/gwalerter/alerter_actor.py}
+  - {Concern: "", Clause: "7b", Kind: test, TargetName: "test_silences_file_is_loaded_at_init_and_rebroadcast_on_change", File: tests/test_actor.py}
+  - {Concern: "listener", Clause: "1a", Kind: symbol, TargetName: "gwalerter.store.Store.record_arrival", File: src/gwalerter/store.py}
+  - {Concern: "listener", Clause: "1a", Kind: test, TargetName: "test_actor_counts_every_envelope_under_the_roots", File: tests/test_no_data.py}
+  - {Concern: "listener", Clause: "2a", Kind: symbol, TargetName: "gwalerter.store.Store.record_report", File: src/gwalerter/store.py}
+  - {Concern: "listener", Clause: "2a", Kind: test, TargetName: "test_report_marks_house_heard_and_keeps_readings", File: tests/test_store.py}
+  - {Concern: "listener", Clause: "2a", Kind: test, TargetName: "test_readings_older_than_the_window_leave", File: tests/test_store.py}
+  - {Concern: "listener", Clause: "2a", Kind: setting, TargetName: "readings_window_s", File: src/gwalerter/config.py}
+  - {Concern: "listener", Clause: "2b", Kind: symbol, TargetName: "gwalerter.store.Store.record_layout", File: src/gwalerter/store.py}
+  - {Concern: "listener", Clause: "2b", Kind: test, TargetName: "test_layout_round_trips_and_survives_reopen", File: tests/test_store.py}
+  - {Concern: "listener", Clause: "2b", Kind: test, TargetName: "test_layout_lite_reaches_the_store", File: tests/test_actor.py}
+  - {Concern: "listener", Clause: "2c", Kind: symbol, TargetName: "gwalerter.store.Store.upsert_forest", File: src/gwalerter/store.py}
+  - {Concern: "listener", Clause: "2c", Kind: test, TargetName: "test_forest_broadcast_reaches_the_projection", File: tests/test_actor.py}
+  - {Concern: "listener", Clause: "2c", Kind: test, TargetName: "test_rename_keeps_the_node_by_id", File: tests/test_forest.py}
+  - {Concern: "listener", Clause: "2d", Kind: test, TargetName: "test_untracked_type_is_ignored", File: tests/test_actor.py}
+  - {Concern: "listener", Clause: "3a", Kind: symbol, TargetName: "gwalerter.registry_read.fetch_forest", File: src/gwalerter/registry_read.py}
+  - {Concern: "listener", Clause: "3a", Kind: symbol, TargetName: "gwalerter.cli.seed_projection", File: src/gwalerter/cli.py}
+  - {Concern: "listener", Clause: "3a", Kind: test, TargetName: "test_fetch_forest_posts_a_request_and_decodes_the_forest", File: tests/test_registry_read.py}
+  - {Concern: "listener", Clause: "3a", Kind: setting, TargetName: "gnr_url", File: src/gwalerter/config.py}
+  - {Concern: "listener", Clause: "3b", Kind: test, TargetName: "test_an_older_forest_does_not_overwrite", File: tests/test_forest.py}
+  - {Concern: "listener", Clause: "3c", Kind: symbol, TargetName: "gwalerter.cli.seed_projection", File: src/gwalerter/cli.py}
+  - {Concern: "listener", Clause: "4a", Kind: symbol, TargetName: "gwalerter.alerter_actor.AlerterActor.load_silences", File: src/gwalerter/alerter_actor.py}
+  - {Concern: "listener", Clause: "4a", Kind: symbol, TargetName: "gwalerter.alerter_actor.AlerterActor.refresh_silences", File: src/gwalerter/alerter_actor.py}
+  - {Concern: "listener", Clause: "4a", Kind: test, TargetName: "test_silences_file_is_loaded_at_init_and_rebroadcast_on_change", File: tests/test_actor.py}
+  - {Concern: "listener", Clause: "4a", Kind: setting, TargetName: "silences_path", File: src/gwalerter/config.py}
+  - {Concern: "listener", Clause: "4b", Kind: test, TargetName: "test_a_missing_silences_file_silences_nothing", File: tests/test_actor.py}
+  - {Concern: "listener", Clause: "4c", Kind: symbol, TargetName: "gwalerter.alerter_actor.AlerterActor.load_silences", File: src/gwalerter/alerter_actor.py}
+  - {Concern: "listener", Clause: "5a", Kind: symbol, TargetName: "gwalerter.alerter_actor.AlerterActor.emit", File: src/gwalerter/alerter_actor.py}
+  - {Concern: "listener", Clause: "5a", Kind: test, TargetName: "test_actor_broadcasts_firing_and_resolved", File: tests/test_no_data.py}
+  - {Concern: "listener", Clause: "5b", Kind: symbol, TargetName: "gwalerter.alerter_actor.AlerterActor.emit", File: src/gwalerter/alerter_actor.py}
+  - {Concern: "listener", Clause: "6a", Kind: symbol, TargetName: "gwalerter.alerter_actor.AlerterActor.note_untracked", File: src/gwalerter/alerter_actor.py}
+  - {Concern: "listener", Clause: "6a", Kind: test, TargetName: "test_untracked_scada_is_logged_once", File: tests/test_actor.py}
+  - {Concern: "listener", Clause: "7a", Kind: symbol, TargetName: "gwalerter.store.Store.tracked_house_of", File: src/gwalerter/store.py}
+  - {Concern: "listener", Clause: "7a", Kind: test, TargetName: "test_scada_resolves_to_its_tracked_house", File: tests/test_forest.py}
+  - {Concern: "no-data", Clause: "1a", Kind: symbol, TargetName: "gwalerter.no_data.NoDataRule.evaluate", File: src/gwalerter/no_data.py}
+  - {Concern: "no-data", Clause: "1a", Kind: test, TargetName: "test_silent_house_raises_once_at_the_threshold", File: tests/test_no_data.py}
+  - {Concern: "no-data", Clause: "1a", Kind: setting, TargetName: "no_data_silence_s", File: src/gwalerter/config.py}
+  - {Concern: "no-data", Clause: "2a", Kind: symbol, TargetName: "gwalerter.no_data.NoDataRule.on_arrival", File: src/gwalerter/no_data.py}
+  - {Concern: "no-data", Clause: "2a", Kind: test, TargetName: "test_arrival_resolves_with_the_arrival_as_evidence", File: tests/test_no_data.py}
+  - {Concern: "no-data", Clause: "2b", Kind: symbol, TargetName: "gwalerter.no_data.NoDataRule.on_arrival", File: src/gwalerter/no_data.py}
+  - {Concern: "no-data", Clause: "3a", Kind: symbol, TargetName: "gwalerter.no_data.NoDataRule.cause", File: src/gwalerter/no_data.py}
+  - {Concern: "no-data", Clause: "3a", Kind: test, TargetName: "test_the_summary_names_the_cause", File: tests/test_no_data.py}
+  - {Concern: "no-data", Clause: "3a", Kind: test, TargetName: "test_a_party_outside_the_window_is_silent", File: tests/test_no_data.py}
+  - {Concern: "no-data", Clause: "3a", Kind: setting, TargetName: "heard_period_s", File: src/gwalerter/config.py}
+  - {Concern: "no-data", Clause: "3b", Kind: symbol, TargetName: "gwalerter.no_data.NoDataRule.cause", File: src/gwalerter/no_data.py}
+  - {Concern: "no-data", Clause: "3b", Kind: test, TargetName: "test_the_ltn_line_teaches_why_the_scada_is_quiet", File: tests/test_no_data.py}
+  - {Concern: "no-data", Clause: "3c", Kind: symbol, TargetName: "gwalerter.no_data.NoDataRule.cause", File: src/gwalerter/no_data.py}
+  - {Concern: "no-data", Clause: "3c", Kind: test, TargetName: "test_the_summary_names_the_cause", File: tests/test_no_data.py}
+  - {Concern: "no-data", Clause: "3d", Kind: symbol, TargetName: "gwalerter.store.Store.update_alert", File: src/gwalerter/store.py}
+  - {Concern: "no-data", Clause: "3d", Kind: test, TargetName: "test_the_open_alert_summary_follows_the_cause", File: tests/test_no_data.py}
+  - {Concern: "no-data", Clause: "4a", Kind: symbol, TargetName: "gwalerter.no_data.NoDataRule.broker_unreachable", File: src/gwalerter/no_data.py}
+  - {Concern: "no-data", Clause: "4a", Kind: test, TargetName: "test_no_data_holds_while_the_broker_is_down_and_refloors_after", File: tests/test_no_data.py}
+  - {Concern: "no-data", Clause: "4b", Kind: test, TargetName: "test_no_data_holds_while_the_broker_is_down_and_refloors_after", File: tests/test_no_data.py}
+  - {Concern: "no-data", Clause: "4c", Kind: test, TargetName: "test_an_open_no_data_survives_the_broker_going_down", File: tests/test_no_data.py}
+  - {Concern: "broker-unreachable", Clause: "1a", Kind: symbol, TargetName: "gwalerter.prober.amqp_round_trip", File: src/gwalerter/prober.py}
+  - {Concern: "broker-unreachable", Clause: "1a", Kind: test, TargetName: "test_both_doors_answer_on_the_dev_broker", File: tests/test_prober.py}
+  - {Concern: "broker-unreachable", Clause: "1a", Kind: setting, TargetName: "probe_amqp", File: src/gwalerter/config.py}
+  - {Concern: "broker-unreachable", Clause: "1b", Kind: symbol, TargetName: "gwalerter.prober.mqtt_connack", File: src/gwalerter/prober.py}
+  - {Concern: "broker-unreachable", Clause: "1b", Kind: test, TargetName: "test_both_doors_present_one_instance_id", File: tests/test_prober.py}
+  - {Concern: "broker-unreachable", Clause: "1b", Kind: test, TargetName: "test_an_accepted_connack_is_the_open_door", File: tests/test_prober.py}
+  - {Concern: "broker-unreachable", Clause: "1b", Kind: setting, TargetName: "probe_mqtt_host", File: src/gwalerter/config.py}
+  - {Concern: "broker-unreachable", Clause: "1c", Kind: test, TargetName: "test_a_refused_connack_is_a_shut_door", File: tests/test_prober.py}
+  - {Concern: "broker-unreachable", Clause: "2a", Kind: symbol, TargetName: "gwalerter.prober.Prober.raise_alert", File: src/gwalerter/prober.py}
+  - {Concern: "broker-unreachable", Clause: "2a", Kind: test, TargetName: "test_three_failures_raise_once_and_a_success_resolves", File: tests/test_prober.py}
+  - {Concern: "broker-unreachable", Clause: "2a", Kind: setting, TargetName: "probe_failures_to_raise", File: src/gwalerter/config.py}
+  - {Concern: "broker-unreachable", Clause: "2a", Kind: setting, TargetName: "probe_interval_s", File: src/gwalerter/config.py}
+  - {Concern: "broker-unreachable", Clause: "2b", Kind: symbol, TargetName: "gwalerter.prober.Prober.resolve", File: src/gwalerter/prober.py}
+  - {Concern: "broker-unreachable", Clause: "2b", Kind: test, TargetName: "test_three_failures_raise_once_and_a_success_resolves", File: tests/test_prober.py}
+  - {Concern: "broker-unreachable", Clause: "2c", Kind: test, TargetName: "test_each_door_is_its_own_alert", File: tests/test_prober.py}
+  - {Concern: "broker-unreachable", Clause: "3a", Kind: symbol, TargetName: "gwalerter.prober.Prober.fleet_heard", File: src/gwalerter/prober.py}
+  - {Concern: "broker-unreachable", Clause: "3a", Kind: test, TargetName: "test_fleet_data_arriving_outranks_a_failing_probe", File: tests/test_prober.py}
+  - {Concern: "broker-unreachable", Clause: "3b", Kind: test, TargetName: "test_fleet_data_arriving_outranks_a_failing_probe", File: tests/test_prober.py}
+  - {Concern: "broker-unreachable", Clause: "4a", Kind: symbol, TargetName: "gwalerter.prober.Prober.tick", File: src/gwalerter/prober.py}
+  - {Concern: "broker-unreachable", Clause: "4a", Kind: test, TargetName: "test_the_tap_pages_a_store_written_alert", File: tests/test_prober.py}
+  - {Concern: "tap", Clause: "1a", Kind: symbol, TargetName: "gwalerter.tap.Tap.reconcile", File: src/gwalerter/tap.py}
+  - {Concern: "tap", Clause: "1a", Kind: test, TargetName: "test_a_tap_with_no_broker_pages_what_the_store_holds", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "1a", Kind: setting, TargetName: "tap_reconcile_s", File: src/gwalerter/config.py}
+  - {Concern: "tap", Clause: "2a", Kind: symbol, TargetName: "gwalerter.tap.to_opsgenie", File: src/gwalerter/tap.py}
+  - {Concern: "tap", Clause: "2a", Kind: symbol, TargetName: "gwalerter.tap.create_body", File: src/gwalerter/tap.py}
+  - {Concern: "tap", Clause: "2a", Kind: test, TargetName: "test_firing_maps_to_a_create_word_aliased_by_its_id", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "2a", Kind: test, TargetName: "test_a_service_alert_carries_no_house_details", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "2a", Kind: setting, TargetName: "opsgenie_team_id", File: src/gwalerter/config.py}
+  - {Concern: "tap", Clause: "2b", Kind: symbol, TargetName: "gwalerter.tap.house_short_name", File: src/gwalerter/tap.py}
+  - {Concern: "tap", Clause: "2b", Kind: test, TargetName: "test_headline_is_cut_to_opsgenie_limit", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "2b", Kind: test, TargetName: "test_short_name_is_the_segment_before_ta", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "2c", Kind: test, TargetName: "test_reconcile_tells_opsgenie_what_the_store_holds_open", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "3a", Kind: symbol, TargetName: "gwalerter.tap.to_opsgenie_close", File: src/gwalerter/tap.py}
+  - {Concern: "tap", Clause: "3a", Kind: test, TargetName: "test_resolved_maps_to_a_close_of_the_alias", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "3a", Kind: test, TargetName: "test_firing_creates_and_resolved_closes", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "3b", Kind: symbol, TargetName: "gwalerter.tap.silenced_note", File: src/gwalerter/tap.py}
+  - {Concern: "tap", Clause: "3b", Kind: test, TargetName: "test_silencing_a_paged_house_closes_its_page", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "3c", Kind: test, TargetName: "test_a_silenced_house_is_not_paged_until_lifted", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "4a", Kind: symbol, TargetName: "gwalerter.tap.OpsgenieClient.list_open", File: src/gwalerter/tap.py}
+  - {Concern: "tap", Clause: "4a", Kind: symbol, TargetName: "gwalerter.tap.listed_alert", File: src/gwalerter/tap.py}
+  - {Concern: "tap", Clause: "4a", Kind: test, TargetName: "test_the_told_set_is_what_opsgenie_lists", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "4a", Kind: test, TargetName: "test_listed_alert_reads_opsgenies_shape", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "4b", Kind: test, TargetName: "test_a_failed_listing_keeps_the_told_set", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "4c", Kind: test, TargetName: "test_an_alias_opsgenie_holds_that_the_store_does_not_is_closed", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "4d", Kind: test, TargetName: "test_a_close_made_by_hand_is_undone_while_the_condition_holds", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "5a", Kind: symbol, TargetName: "gwalerter.tap.OpsgenieClient.post", File: src/gwalerter/tap.py}
+  - {Concern: "tap", Clause: "5a", Kind: test, TargetName: "test_refused_post_is_retried_then_left_for_reconcile", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "5b", Kind: symbol, TargetName: "gwalerter.tap.OpsgenieClient.post", File: src/gwalerter/tap.py}
+  - {Concern: "listener", Clause: "", Kind: cli, TargetName: "gwalerter rabbit", File: src/gwalerter/cli.py}
+  - {Concern: "no-data", Clause: "", Kind: cli, TargetName: "gwalerter rabbit", File: src/gwalerter/cli.py}
+  - {Concern: "broker-unreachable", Clause: "", Kind: cli, TargetName: "gwalerter probe", File: src/gwalerter/cli.py}
+  - {Concern: "tap", Clause: "", Kind: cli, TargetName: "gwalerter tap", File: src/gwalerter/cli.py}

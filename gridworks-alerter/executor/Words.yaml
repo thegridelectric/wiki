@@ -1,0 +1,42 @@
+# Words: one row per crossing of the sema boundary, one word at one
+# version in one direction through one process. ReadAs blank on an
+# inbound row means the instance is held at the version it was sent.
+table: Words
+schema:
+  - name: Word
+    kind: raw
+  - name: Version
+    kind: raw
+  - name: Direction
+    kind: raw
+    values: [in, out, stored]
+  - name: ReadAs
+    kind: raw
+  - name: Process
+    kind: relationship
+    to: Processes.Name
+  - name: Crossing
+    kind: raw
+    values: [broker, http, file, store]
+  - name: InSeed
+    kind: lookup
+    formula: COUNTIFS(SeedEntries.Word, Word, SeedEntries.Version, Version) > 0
+data:
+  - {Word: report.event, Version: "002", Direction: in, ReadAs: "", Process: rabbit, Crossing: broker}
+  - {Word: report.event, Version: "003", Direction: in, ReadAs: "", Process: rabbit, Crossing: broker}
+  - {Word: report.event, Version: "004", Direction: in, ReadAs: "", Process: rabbit, Crossing: broker}
+  - {Word: layout.lite, Version: "011", Direction: in, ReadAs: "", Process: rabbit, Crossing: broker}
+  - {Word: layout.lite, Version: "012", Direction: in, ReadAs: "", Process: rabbit, Crossing: broker}
+  - {Word: layout.lite, Version: "011", Direction: stored, ReadAs: "", Process: rabbit, Crossing: store}
+  - {Word: layout.lite, Version: "012", Direction: stored, ReadAs: "", Process: rabbit, Crossing: store}
+  - {Word: g.node.forest, Version: "002", Direction: in, ReadAs: "", Process: rabbit, Crossing: broker}
+  - {Word: g.node.forest, Version: "002", Direction: in, ReadAs: "", Process: rabbit, Crossing: http}
+  - {Word: g.node.forest.request, Version: "000", Direction: out, ReadAs: "", Process: rabbit, Crossing: http}
+  - {Word: gw.hack.alert.silences, Version: "000", Direction: in, ReadAs: "", Process: rabbit, Crossing: file}
+  - {Word: gw.hack.alert.silences, Version: "000", Direction: out, ReadAs: "", Process: rabbit, Crossing: broker}
+  - {Word: gw.alert, Version: "000", Direction: out, ReadAs: "", Process: rabbit, Crossing: broker}
+  - {Word: gw.alert, Version: "000", Direction: stored, ReadAs: "", Process: rabbit, Crossing: store}
+  - {Word: gw.alert, Version: "000", Direction: stored, ReadAs: "", Process: probe, Crossing: store}
+  - {Word: gw.opsgenie.alert, Version: "000", Direction: in, ReadAs: "", Process: tap, Crossing: http}
+  - {Word: gw.opsgenie.alert.create, Version: "000", Direction: out, ReadAs: "", Process: tap, Crossing: http}
+  - {Word: gw.opsgenie.alert.close, Version: "000", Direction: out, ReadAs: "", Process: tap, Crossing: http}

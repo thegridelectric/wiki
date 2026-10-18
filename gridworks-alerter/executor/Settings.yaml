@@ -1,0 +1,42 @@
+# Settings: one row per configuration key, generated from the settings
+# class (gwalerter.config.AlerterSettings and what it inherits) and
+# checked in; the check is that regeneration changes nothing. Keys are
+# the environment names under the settings boundary's prefix.
+table: Settings
+schema:
+  - name: Key
+    kind: raw
+  - name: Type
+    kind: raw
+  - name: Default
+    kind: raw
+  - name: Required
+    kind: raw
+data:
+  - {Key: rabbit, Type: RabbitBrokerClient, Default: "", Required: true}
+  - {Key: service_alias, Type: LeftRightDot, Default: d1.alerts, Required: false}
+  - {Key: instance_id, Type: UUID4Str, Default: "", Required: false}
+  - {Key: service_name, Type: str, Default: alerter, Required: false}
+  - {Key: log_level, Type: str, Default: INFO, Required: false}
+  - {Key: log_rotate_bytes, Type: int, Default: 10000000, Required: false}
+  - {Key: log_rotate_count, Type: int, Default: 5, Required: false}
+  - {Key: prefetch_count, Type: int, Default: 100, Required: false}
+  - {Key: super_alias, Type: LeftRightDot, Default: "", Required: true}
+  - {Key: time_coordinator_alias, Type: LeftRightDot, Default: "", Required: true}
+  - {Key: fleet_roots, Type: "list[LeftRightDot]", Default: "", Required: true}
+  - {Key: gnr_url, Type: str, Default: "", Required: true}
+  - {Key: silences_path, Type: Path, Default: "", Required: true}
+  - {Key: readings_window_s, Type: int, Default: 14400, Required: false}
+  - {Key: no_data_silence_s, Type: int, Default: 600, Required: false}
+  - {Key: heard_period_s, Type: int, Default: 60, Required: false}
+  - {Key: detector_tick_s, Type: int, Default: 10, Required: false}
+  - {Key: opsgenie_url, Type: str, Default: "https://api.opsgenie.com", Required: false}
+  - {Key: opsgenie_api_key, Type: SecretStr, Default: "", Required: true}
+  - {Key: opsgenie_team_id, Type: str, Default: "", Required: true}
+  - {Key: tap_reconcile_s, Type: int, Default: 10, Required: false}
+  - {Key: probe_amqp, Type: RabbitBrokerClient, Default: "", Required: true}
+  - {Key: probe_mqtt_host, Type: str, Default: "", Required: true}
+  - {Key: probe_mqtt_port, Type: int, Default: 8883, Required: false}
+  - {Key: probe_mqtt_tls, Type: bool, Default: true, Required: false}
+  - {Key: probe_interval_s, Type: int, Default: 60, Required: false}
+  - {Key: probe_failures_to_raise, Type: int, Default: 3, Required: false}

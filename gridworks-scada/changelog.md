@@ -10,6 +10,30 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-18 — The scada reads weather forecast 001 on bundle 002; a missing wind series fills from the template with a warning glitch (`52a9eb0a`, OPS-597)
+
+**Why.** The weather service moved to station-based records and
+list-shaped words (forecast 001 with `SeriesList`, bundle 002 with
+`BindingList`, channel 002 with `StationAlias`) and now emits the
+`us.me.millinocket.raccoon` bundle. The scada's weather source read
+the fixed temperature-and-wind pair of forecast 000 and bundle 001,
+which the service no longer emits, so the scada moves to the new words
+in one step: the snapshot regenerated at the published versions, the
+twins rewritten (two new: `GwWeatherForecastSeries`,
+`WeatherForecastBinding`), and `weather_source.py` reading each series
+by Quantity through the bundle's bindings, with the X10 and W/m²
+units unscaled. One bundle may now bind any set of quantities, so the
+scada states what it reads: temperature and wind. A message without a
+wind series, or a bundle that binds no wind channel, is filled from
+the seasonal template with calm wind and the derived generator raises
+the Warning glitch `weather-series-missing`; a bundle that binds no
+temperature channel refuses at boot like a missing template. Config
+dir filenames take their version from the twin. Test ops params name
+moose, the 96-slice NWS temperature and wind pair the scada reads;
+the bundle fixture is the minted record and the forecast fixture is
+the first production moose message (2026-10-18 20:01 UTC).
+
+
 ## 2026-10-15 — Every gwsproto enum has a default and the sema ones match sema; the conformance report runs from the command line; thirteen axiom refusals go through the oracle (`eb73e305`)
 
 What: `test_every_enum_has_a_default` requires every gwsproto enum to

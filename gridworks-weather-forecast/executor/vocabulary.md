@@ -1,292 +1,95 @@
-# vocabulary — the gw.weather.* words
+# vocabulary — what the service does with the gw.weather.* words
 
-Status: Draft · Pass 0 · Updated 2026-10-16
+Status: Draft · Pass 0 · Updated 2026-10-18
 
-What this is: the current `gw.weather.*` word set for
-[gwwf](primary.md) — schemas, axioms, naming, units, time formats.
-All words are gw-prefixed: the channel/predictor structure is a
-GridWorks-specific way of organizing weather semantics (gw does not
-mean internal-only; other entities may adopt gw words).
+What this is: the service's own obligations around the `gw.weather.*`
+words, for [the hub](primary.md). The words' schemas and axioms are
+the sema registry's and are not repeated here; what a word means on
+its own is in its definition. This spoke states what takes more than
+one instance, a clock or the store to check.
 
-## gw.weather.location.gt — the place anchor
+## Records
 
-Resolution target for `LocationAlias`, and the join point for
-verifying a good match between a scada's actual (encrypted)
-location_id and its weather station — station-level geography is
-fine in the persistent store (PII holds at thousands-of-homes
-granularity). Carries coordinates, timezone, and the external-id
-bundle (ICAO station, WBAN / GHCN / COOP archive ids) that anchors
-the observed series and keys archive backfills. `.gt`: the locations
-table in the gridworks-weather DB is the seed.
+- **A station belongs to no location.** The bundle that serves a place
+  names the stations it draws on through its observed channels.
+- **A bundle's embedded channel copies equal the canonical records**,
+  checked at creation and at boot; a mismatch refuses the create.
+- **Method names the adapter.** The service keeps a table from Method
+  to the product it fetches and the quantities that product serves
+  (NWS gridpoint hourly: temperature and wind; Open-Meteo
+  `gfs_seamless` hourly: irradiance). Forecast channels on one
+  acquisition share one fetch and one stored product. SourceLocator is
+  the adapter's own encoding of its acquisition fact; nothing else
+  reads it.
+- **The Unit on a channel is what the adapter scales by.** A new unit
+  is a new channel.
+- **A later seasonal template for the same location supersedes by
+  Start.** The actor takes the latest Start at or before boot.
+- **Slice arithmetic derives from the record** (SliceDurationSList,
+  EmitPeriodS, EmitOffsetS). A time-varying grid is a record change.
 
-    Alias:                 left.right.dot
-    LatitudeMicrodegrees:  integer (×10⁶, ~0.11 m precision)
-    LongitudeMicrodegrees: integer
-    Timezone:              string (IANA name; hand-validated)
-    IcaoId / WbanId / GhcnId / CoopId: string, optional
-    Id:                    uuid4.str
+## Observations
 
-Provider-neutral by design: NWS forecasts are gridpoint-native, but
-the gridpoint is one forecaster's acquisition detail and lives on the
-NWS forecast channel as its `SourceLocator`. Challenger forecasters
-on other grids share the location and the observed series — the
-skill-scoring join point — precisely because location identity is not
-any provider's grid. Location identity is method-scoped even within
-one source: observations are station-native (ICAO), forecasts
-gridpoint-native, archives use WBAN/GHCN/COOP ids — per-method
-locators live on the entity whose acquisition they describe.
+- At each emission slot the service publishes the newest available
+  station observation with its true ObservationTime. A stale
+  observation is never re-published.
+- When the station has produced nothing new the slot stays silent.
+- On recovery the service replays the missed grid points as ordinary
+  observation messages, one per missed time, with values interpolated
+  between the bracketing real observations and marked `Interpolated`.
+  A channel is interpolated when both bracketing observations report
+  it. Gaps up to 3 h are filled; a longer gap stays a gap and raises a
+  glitch.
+- An observation older than 1 h at publish time raises a glitch.
 
-## gw.weather.channel.gt — the observed series
+## Forecasts
 
-One quantity per channel; the ground-truth series for a place. `.gt`:
-coupled bijectively with a table in the gridworks-weather DB. No
-Source/Method/SourceLocator: for observed data the acquisition path
-is provenance, not identity — one channel's readings arrive by
-several methods over its life (live API, archive backfill), with
-provenance per-reading via the reading→message link and the service
-DB. Station identity anchors in `gw.weather.location`.
+- The service always emits on the bundle's schedule, so a missing
+  message means a drop.
+- Each series' `SourceUpdatedTime` is its source's own data revision
+  (for NWS the gridpoint `updateTime`; for Open-Meteo the GFS run time
+  from the model metadata endpoint). A stamp may hold unchanged across
+  many emissions while a source sits on a package. `MessageCreatedMs`
+  is the service's own emission stamp and advances every send.
+- `FirstSliceStart` anchors to the next slice boundary; the forward
+  horizon never shrinks.
+- **Every slice is labelled by its start.** Open-Meteo's hourly
+  `shortwave_radiation` (global horizontal irradiance, W/m²) is the
+  mean over the preceding hour labelled by the hour's end, so the
+  Open-Meteo adapter shifts each value one hour back to the slice it
+  describes; a consumer never sees the source's labelling.
+- **The degradation ladder** when a source is stale: live product;
+  then the stored horizon (the service fetches and keeps 24 slices
+  beyond the bundle's grid); then the seasonal template. Each series walks
+  the ladder on its own, and series on one acquisition share a rung.
+  At the template rung a temperature series takes the template laid on
+  the bundle grid, each slice at its UTC month's value scaled to the
+  channel's unit; any other quantity is zeros stamped with the
+  bundle's Start. A location with no template skips the slot and
+  raises a glitch. Each downgrade raises a glitch naming the series.
+- **Sent forecasts are store rows**, one per send-distinct message,
+  keyed by the bundle name it was sent under and the joined per-series
+  source revisions. The read API serves the latest one per bundle.
 
-    Name:          left.right.dot   # us.me.millinocket.temperature
-    DisplayName:   string
-    Quantity:      enum gw1.quantity  # Temperature | WindSpeed
-    Unit:          enum gw1.unit      # FahrenheitX100, MilesPerHourX1000
-    LocationAlias: left.right.dot     # resolves to gw.weather.location
-    EmitPeriodS:   positive.int       # 3600
-    EmitOffsetS:   non-negative int   # 0 — top of hour; axiom: < EmitPeriodS
-    Id:            uuid4.str
+## Open
 
-## gw.weather.forecast.channel.gt — a named predictor
-
-One observed series, many named predictors. The asymmetry separating
-this word from the observed channel: for observations, acquisition is
-provenance (the temperature WAS the temperature); a forecast's
-producer is constitutive — "NWS's prediction" and "gw's bias-corrected
-prediction" are different claims that legitimately coexist, and
-better forecasts for the same location means new predictors competing
-against the same observed series. `.gt`, mirrored in the
-gridworks-weather DB.
-
-    Name:              left.right.dot  # us.me.millinocket.temperature.forecast.nws.hourly
-    TargetChannelName: left.right.dot  # names a gw.weather.channel.gt (axiom)
-    Forecaster:        left.right.dot  # us.nws.gridpoint | gw.bias.corrected.v1
-    Method:            left.right.dot  # api.weather.gov.gridpoint.hourly
-    SourceLocator:     string          # car.60.114
-    TotalSlices:             positive.int   # 48 — declared, axiom-held
-    SliceDurationSList:      [positive.int] # [3600] × 48; non-uniform allowed
-    ForecastDurationMinutes: positive.int   # 2880 — declared, axiom-held
-    EmitPeriodS:             positive.int
-    EmitOffsetS:              non-negative int
-    Id:                      uuid4.str
-
-Structure axioms:
-
-1. `TotalSlices = len(SliceDurationSList)`
-2. `sum(SliceDurationSList) = ForecastDurationMinutes × 60`
-3. every element of `SliceDurationSList` is a positive multiple of
-   300 s — the 5-minute quantum, aligned with the KMLT observation
-   cadence, real-time price intervals, and five-minute FLOs; it also
-   makes `ForecastDurationMinutes` always exact.
-
-`TotalSlices` and `ForecastDurationMinutes` are deliberately
-redundant: channel records are not carted per-message, so declared
-redundancy is cheap, consumers read totals without arithmetic, and
-the axioms carry the consistency. There is deliberately NO
-created-before-start axiom — hindcast channels are legal (a
-challenger forecaster backtesting against history emits predictions
-about the past for skill-scoring), and consumers read the structure
-fields instead of assuming forward-looking.
-
-Changing the time sequence (or any structural fact) is a NEW record
-(new Id), never a mutation. Distinct concurrent time-slice SHAPES are
-distinct channels — the slug's shape tail discriminates them (e.g.
-`nws.hourly`; a near-horizon 5-minute product coexists as its own
-channel, `nws.min5`, never succeeding the hourly one). Within a
-shape, the Name persists across structural tweaks, and records carry
-a validity start so an archived message resolves against the record
-active at its time (cf. `data.channel.gt.StartS`).
-
-## gw.weather.forecast.bundle.gt — the sign-up object
-
-The curated, subscribable set of forecast channels sharing one
-time-slice grid and one emission schedule, together with the observed
-channels they target — the unit a consumer designates and receives.
-The bundle's Name is, verbatim, the broadcast radio channel (gwbase's
-term for the subscription slug — never "channel" unqualified, which
-is a data channel), and each message carries it as `BundleName`. A
-record fetched rarely (seed, record listing), never carted
-per-message — so it embeds every channel as a full subtype
-(`TempForecastChannel` + `TempObservationChannel`,
-`WindSpeedForecastChannel` + `WindSpeedObservationChannel`, and on
-002 `IrradianceForecastChannel` + `IrradianceObservationChannel`)
-plus a top-level `LocationAlias`: one fetch hands a consumer the
-whole contract, and every cross-fact is an in-type axiom — shared grid,
-shared schedule, target binding (each forecast channel's
-`TargetChannelName` equals its paired observation channel's Name),
-quantity targeting, location consistency, and
-`Name = LocationAlias + ".forecast." + slug`. That last axiom makes
-the observation↔forecast link explicit: the bundle slug EXTENDS the
-location alias that names the observation broadcasts for the same
-place. gwwf additionally enforces the embedded copies' agreement with
-its canonical records at creation and at boot; a bundle row loads at
-the version its columns fill (001 without the irradiance pair, 002
-with it) and the service emits every bundle it holds. Bundles are
-per-service — price forecasts get their own word in their own
-service, and a shadow challenger stands up its own (its emissions
-need a bundle to ride). `.gt`: the weather DB is the canonical seed.
-
-## gw.weather.seasonal.template.gt — the last rung
-
-The design-cold temperature of each month at a location: `LocationAlias`,
-`TempByMonth` (twelve integers, January first, degrees Fahrenheit times
-100), `Start`, `Id`. One axiom, TwelveMonths. It carries no wind and no
-unit fields: a design-cold template plans for the cold case, not for a
-wind, and `gw1.unit` holds one temperature unit, so a unit field could
-take one value. The record is the SeasonalTemplate rung of the fidelity
-ladder: the scheduler lays it on the bundle grid, each slice at its UTC
-month's value scaled to the channel's unit, when the live product fails
-and the stored horizon is absent or exhausted; a location with no
-template glitches and skips the slot. A later record for the same
-location supersedes by `Start`; the actor takes the latest Start at or
-before boot. `.gt`: the weather DB is the canonical seed; the facade
-lists every template at `/seasonal-templates`.
-
-## The message words
-
-Two message words: `gw.weather.observation` and `gw.weather.forecast`.
-"Observation" over "current": the claim is archive-honest — the
-station observed these values at ObservationTime — matching NWS's
-noun for the product.
-
-One observation message per station observation, hard-coded
-quantities:
-
-    { LocationAlias, ObservationTime, Interpolated,
-      TempChannelName, TempValue, WindSpeedChannelName, WindSpeedValue? }
-
-Values are integers scaled per the channel's Unit. WindSpeedValue is
-optional — KMLT sometimes reports no wind; absence is absence, never
-a sentinel. Adding a quantity is a version bump. LocationAlias rides
-the payload (the radio channel does not survive archival) and anchors
-the LocationNaming axiom: both channel names begin with it —
-decode-time protection against field swaps.
-
-**Observation semantics.** At each emission slot gwwf publishes the
-newest available station observation with its true ObservationTime; a
-stale observation is never re-published (the data serves post-hoc
-calculation, and repeats pollute the series). When the station has
-produced nothing new, the slot stays silent; on recovery gwwf replays
-the missed grid points as ordinary observation messages — one per
-missed time — with fabricated values (interpolated between the
-bracketing real observations) marked `Interpolated: true`, and real
-late-arriving observations unmarked. Interpolation is bounded: gaps up
-to 3 h are filled; a longer gap stays a gap (archive backfill with
-real readings remains available for those; a nearby-station fallback
-is out of scope). An observation older than 1 h (tunable) at publish
-time raises a Glitch.
-
-The forecast message is the FLO-curated contract: hard-coded
-quantities, one message per BUNDLE per emission slot, structure
-declared on the channel records so the wire needs no Times list:
-
-    { BundleName, SourceUpdatedTime, IrradianceSourceUpdatedTime,
-      MessageCreatedMs, FirstSliceStart,
-      TempChannelName, TempValues, TempFidelity,
-      WindSpeedChannelName, WindSpeedValues, WindSpeedFidelity,
-      IrradianceChannelName, IrradianceValues, IrradianceFidelity }
-
-That is version 001, the message of a bundle with an irradiance pair;
-a bundle 001 emits version 000, the same message without the
-irradiance fields and with one `Fidelity`. Hard-coding the quantities
-(rather than a generic entry list) makes the type BE the FLO's input
-contract: adding a quantity is a version bump — the right ceremony
-for "the FLO's inputs changed." Axioms: value lists non-empty and
-equal length; channel names pairwise distinct; all four names have
-"forecast" as an interior segment (decode-time protection against
-field swaps). Slice boundaries derive from the
-single FirstSliceStart plus the bundle channels' shared
-SliceDurationSList. BundleName rides the payload because the routing
-key's radio channel does not survive archival — the archived message
-stays self-describing, and it is the join key to the bundle record.
-Shadow-running a challenger means standing up its own bundle;
-skill-scoring reads per-channel series out of bundle messages (or the
-API).
-
-**Forecast emission and degradation.** Consumers always need a
-forecast, so gwwf always emits on the bundle's schedule — the
-schedule contract is what makes a missing message mean a drop. Three
-clocks: `SourceUpdatedTime` is the temperature and wind source's
-underlying data revision (for NWS the gridpoint `updateTime`, not
-`generatedAt`, which refreshes per render even when the data is hours
-older), `IrradianceSourceUpdatedTime` the irradiance source's (for
-Open-Meteo the GFS 0.13° run time from the model metadata endpoint,
-since the `gfs_seamless` splice has no run time of its own); both may
-hold unchanged across many emissions while a source sits on a
-package. `MessageCreatedMs` is gwwf's own emission stamp
-and advances every send, so re-emissions of a held source revision
-are distinguishable sends of the same claim, each with the current
-sliding window (FirstSliceStart anchors to the next slice boundary;
-the forward horizon never shrinks). The degradation ladder when the
-source goes stale: (1) live product; (2) draw down the stored
-horizon — the service stores ~24 h beyond the broadcast horizon (NWS
-hourly gives ~156 h, so storing 72 costs nothing), keeping
-full-length forecasts through a day-long source outage; (3) a
-seasonal template. Each series walks the ladder on its own, because
-the two sources fail independently: temperature and wind share the
-NWS product's rung, irradiance has the Open-Meteo product's, and at
-the template rung wind and irradiance are zeros (irradiance needs no
-template record; a location with no template skips the slot, since
-temperature has no fill). `TempFidelity`, `WindSpeedFidelity` and
-`IrradianceFidelity` (enum: live | stored | seasonal.template) mark
-each series' rung, keeping the claim honest — template values are
-explicitly declared fill. Each downgrade transition raises a Glitch
-naming the series.
-
-**Sent forecasts are the store's rows.** Every emitted message lands
-in the service DB (surrogate uuid key, never serialized), one row per
-send-distinct message; `SourceUpdatedTime` remains how a consumer
-asks about the source claim and greps by eye in the archive.
-
-**Implementation note:** slice arithmetic and the recovery
-interpolation grid always derive from the channel record
-(SliceDurationSList, EmitPeriodS / EmitOffsetS) — nothing hardcodes
-3600 — so time-varying slices are a channel-record change, not a code
-change.
-
-**Time formats:** human-audited, low-arithmetic fields use
-`utc.iso8601.seconds` for archive readability — ObservationTime,
-FirstSliceStart, channel validity start — named without the `S`
-suffix, which connotes epoch seconds. (NWS `updateTime` is native
-ISO8601 — no conversion at the bind.)
-
-## Naming
-
-Observed channels: `<location-alias>.<quantity>[.<variant>]` — place
-first, source never in the name. The quantity segment is the
-lowercased Quantity value, held by axiom:
-`Name = LocationAlias + "." + lowercase(Quantity)` (+ variant). The
-variant suffix is reserved for semantically different series (e.g.
-tmy), not acquisition detail; interpolated fills live in the base
-series, marked on the message. Forecast channels:
-`TargetChannelName + ".forecast." + <forecaster-and-shape slug>`
-(`nws.hourly`), axiom-derived. Bundles: `location + ".forecast." +
-slug` (`us.me.millinocket.forecast.nws.hourly`) — the subscription
-unit; every forecast-family name carries "forecast" as an interior
-segment by axiom. Names are for humans and routing; facts come from
-the record — nothing is parsed out of a name. LRD names give
-per-segment wildcard subscription (`us.me.millinocket.#`).
-
-Name format: `left.right.dot` canonical (fleet-scoped identity,
-routing-key-ready). `spaceheat.name` and LRD are dash↔dot bijective
-(same segment grammar), so a spaceheat.name-shaped slot renders any
-channel name mechanically.
-
-## Units and quantities
-
-`gw1.unit`, expanded additively — a scada-pure gw1.unit is
-unreachable since it already carries GridWorks-specific
-scaled-integer units, so the gw prefix is semantically right.
-`gw1.quantity` takes the same posture: one fleet-wide quantity
-vocabulary, no weather-scoped enum (Temperature, WindSpeed,
-Irradiance). Irradiance is global horizontal irradiance in
-`WattsPerSquareMeter`, whole watts: a scaled-integer unit buys nothing
-at a quantity whose forecast skill is tens of W/m².
+- Two checks the markdown spec claimed and the code does not make: that
+  a bundle's stations pair with its location, and that the same handle
+  at two locations names the same recipe (quantities, units,
+  forecasters, grid, schedule). A create today refuses on validation, a
+  dangling reference, and an embedded-copy mismatch, and nothing else.
+  Either becomes a clause with a test, or the claim is dropped.
+- **The observed irradiance series.** The irradiance forecast channel
+  targets `kmemilli18`, the Weather Underground station in Millinocket
+  with a solar sensor, which has no observation stream (no ICAO id); a
+  hobbyist pyranometer behind an HTML scrape is a research series, not
+  a fleet source. Old Town's USCRN pyranometer is 82 km away; an ERA5
+  cell is a third instrument. Each is a different channel. A
+  pyranometer at one house is the cheap way to a local series.
+- **Specialist solar forecasters.** Solcast, SolarAnywhere and
+  Tomorrow.io sell GHI/DNI/DHI forecasts on quote with no published
+  winter validation for the northeastern US. Worth a quote once a
+  winter score shows irradiance forecast error dominating the load
+  regression. Published evidence favours ECMWF IFS over HRRR under
+  cloud, so `ecmwf_ifs025` is the first challenger to score; it is one
+  more model name in the same Open-Meteo call.

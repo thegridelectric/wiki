@@ -30,6 +30,10 @@ Deliberately **not** loaded from the archive:
 - The words the importer refuses because they carry no created time
   (`power.watts`, `atn.bid`, `latest.price`, the `gw.weather` cmd/ack/
   observation records); OPS-502 is the fix.
+- Retired word versions (`gjk/retired_versions.py`): the `gw.weather.*`
+  versions the weather service emitted before its station words. A
+  replay counts each as `retired` in the run summary and does not log
+  it as a reject; the eventstore keeps them.
 - The version-less proactor shapes that predate versioning
   (`gridworks.event.problem` with `TimeNS`, `snapshot.spaceheat:000`), and
   the proactor comm/lifecycle events (`gridworks.event.startup`,
