@@ -4,7 +4,58 @@ One entry per commit in `thegridelectric/gridworks-alerter`,
 `thegridelectric/gridworks-alerts` and `thegridelectric/gridworks-alert-manager`
 (git = the what, this = the why).
 
-## 2026-10-18 — the tap reads back what Opsgenie holds open (`babb87d`, `jm/opsgenie-readback`)
+## 2026-10-19 — Three silence kinds, the tap headline names the kind (`6ad12e3`, merged `890d802`, PR #12)
+
+One squashed commit, three clusters.
+
+**The kinds.** The no-data rule raises `ScadaSilent`, `LtnSilent` or
+`NoData` by which of the house's two parties is speaking, on `gw.alert`
+001; an open alert whose cause moves is rewritten under its `AlertId`
+with the new kind, and the store's kind column follows. The tap headline
+is `[house] [Kind] summary`. Opsgenie's listing is read through a model
+of its own shape and constructed as `gw.opsgenie.alert`. The README's
+kinds entry is the three kinds. Why: the cause was written into the
+Summary as prose and parsed back off its opening words to see whether
+it had moved. The cause is enum-shaped, so it is now the kind, which the
+tap can show and a manager can filter on. The listing had hand-built a
+sema-shaped dict with typed `TypeName` and `Version` literals; the
+generated class is the typed constructor.
+
+**The resolve from the store.** One definition of heard, in one method
+on the detector thread. A house's last-heard is the arrival of its
+latest report, as a query over the readings; the layout is out of that
+query. On each tick the rule first resolves any open silence alert
+whose house has a report arrived since the raise, with `ResolvedMs`
+that arrival and the report's readings regrouped from the store as
+evidence, then raises and rewrites as before. The actor's dispatch no
+longer calls into the rule; `on_arrival` and `clear_on_arrival` are
+gone, and the rule tests that drove them are tick tests. The store
+gains `report_readings`, the readings that arrived from a scada at one
+instant. Resolve latency is at most one tick. Why: the raise side and
+the resolve side had two definitions of heard. The raise read the
+store, where a layout counted; the resolve ran in dispatch on a report
+or a layout. A scada rebooting with no LTN got a fresh threshold from
+its layout and a resolve from it, then re-raised. One definition,
+readings only, ends that, and takes the rule off the dispatch path so
+it reads one place. The layout is kept for meaning (units, relay roles,
+critical zones); the fleet is moving from `layout.lite` to the sema
+layout words, so nothing new depends on it.
+
+**The docstrings.** The docstrings of the rule, the actor, the tap, the
+store and the prober, and the module docstrings of each, rewritten to
+the documentation convention: one or two sentences on what the caller
+gets, the precondition and the failure, in present tense. Rationale a
+reader cannot see from the code moves to a comment on the line it
+explains (the entity of an Opsgenie create, the tracked statuses, the
+probe's own principal). The store's `HouseRecord` names the sema
+liveness word that retires it. The seed request's header is the one
+paragraph a reader needs, and the regen script names the sema template
+it instances. Why: the docstrings narrated the code, listed callers and
+consumers, named setting keys and literal values, and in the prober's
+case declared what the tap does. All of that goes stale silently; the
+contract does not.
+
+## 2026-10-18 — the tap reads back what Opsgenie holds open (`babb87d`, merged `f894b1b`, PR #11)
 
 **What:** each reconcile pass opens with a listing of the alerts
 Opsgenie holds open from this alerter (`GET /v2/alerts`, query
@@ -28,7 +79,7 @@ close made by hand while the condition holds is undone, which is what
 executor on Jessica's say-so (the implementation gate asks for
 Accepted Pass 1); the executor's tap concern was updated first.
 
-## 2026-10-17 — various cleanups (`949e416`)
+## 2026-10-17 — various cleanups (`949e416`, merged `f894b1b`, PR #11)
 
 Branch `jm/simplify`.
 

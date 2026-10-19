@@ -48,8 +48,8 @@ its kind.
 
 - **The rule reads the store, never a house.** A kind is a function of
   the store's tables (`readings`, `layouts`, `arrivals`, `g_nodes`,
-  `alerts`) evaluated on the detector tick, or a clear in dispatch on
-  the arrival that ends the condition, as `NoData` does. Nothing polls.
+  `alerts`) evaluated on the detector tick, the raise and the resolve
+  both. Nothing polls and nothing runs in dispatch.
 - **Meaning comes from sema, never from a name.** A reading's unit and
   exponent come from its channel in the stored `layout.lite`; a
   relay's role from the layout's relay config; a zone's criticality

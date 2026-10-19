@@ -68,16 +68,15 @@ data:
     Statement: >-
       Arrivals SHALL write the store as they come; a rule SHALL be a
       query over the store evaluated every detector_tick_s while the
-      listener is consuming, or a clear in dispatch on the arrival that
-      ends the condition; nothing SHALL poll a house.
-    Reason: Raise latency is the threshold plus at most one tick, a clear waits for no tick, and a transition raised while the channel is down is never recorded and lost.
+      listener is consuming; nothing SHALL poll a house.
+    Reason: Raise and resolve latency is at most one tick past the condition, the rule reads one place, and a transition raised while the channel is down is never recorded and lost.
   - Concern: ""
     Number: 6
     Name: LastHeardIsDerived
     Statement: >-
-      Last-heard SHALL be a query over arrival times, never a kept
-      value and never a message's own time, floored at the moment the
-      listener started hearing.
+      Last-heard SHALL be a query over report arrival times, never a
+      kept value and never a message's own time, floored at the moment
+      the listener started hearing.
     Reason: A wrong clock cannot look alive and a fresh alerter gives every house a full threshold before paging.
   - Concern: ""
     Number: 7
@@ -157,28 +156,30 @@ data:
     Name: SilenceRaises
     Statement: >-
       Every tracked house whose last-heard is older than
-      no_data_silence_s and that has no NoData alert open SHALL be
+      no_data_silence_s and that has no silence alert open SHALL be
       raised once, with empty Evidence.
     Reason: Named for the condition a person acts on; a tuned threshold does not rename the kind.
   - Concern: no-data
     Number: 2
     Name: DataResolves
     Statement: >-
-      a. The first report.event or layout.lite from the house's scada
-      SHALL resolve the open NoData in dispatch, with the report's
-      readings as Evidence (empty for a layout). b. The Resolved Summary
-      SHALL name the return of data and the time since the last data.
+      a. A report.event from the house's scada arriving after the raise
+      SHALL resolve the open silence alert on the next tick, with ResolvedMs
+      the report's arrival and that report's readings, read from the
+      store, as Evidence. b. The Resolved Summary SHALL name the return
+      of data and the time since the last data.
     Reason: A stopped report means the house's data is not reaching the cloud whichever side stopped it, and the held reports come up when it returns.
   - Concern: no-data
     Number: 3
-    Name: TheSummaryNamesTheCause
+    Name: TheKindNamesTheCause
     Statement: >-
-      The Firing Summary SHALL name the cause from whether the house's
-      scada and LTN have each been heard inside heard_period_s times
-      2.1, re-read every tick: a. the scada not speaking; b. the scada
-      speaking and the LTN not; c. both speaking; d. an open alert whose
-      cause moves SHALL be rewritten in the store and broadcast again
-      under its AlertId and RaisedMs.
+      The Kind SHALL name the cause from whether the house's scada and
+      LTN have each been heard inside heard_period_s times 2.1, re-read
+      every tick: a. the scada not speaking is ScadaSilent; b. the scada
+      speaking and the LTN not is LtnSilent; c. both speaking is NoData;
+      d. an open alert whose cause moves SHALL be rewritten in the store
+      and broadcast again under its AlertId and RaisedMs with the new
+      Kind.
     Reason: >-
       A silent scada is the house side, a silent LTN leaves reports safe
       on the scada's disk, and two live parties with no reports is a
@@ -192,8 +193,8 @@ data:
       a. While a BrokerUnreachable alert is open the rule SHALL raise
       nothing and rewrite nothing. b. When the last BrokerUnreachable
       resolves, the last-heard floor SHALL move to that moment. c. An
-      open NoData SHALL stay open through the outage and resolve on the
-      house's first arrival.
+      open silence alert SHALL stay open through the outage and resolve
+      on the first tick after a report arrives.
     Reason: >-
       A broker outage looks like every house silent at once; the
       listener's own hearing is a different hold, and the two diverge
@@ -251,8 +252,8 @@ data:
       that the alert manager has not been told of SHALL become one
       create whose Alias is the AlertId, Entity the AboutGNodeAlias
       (else Subject, else Src), Priority P1, with the team as the one
-      responder. b. The headline SHALL be the house's short name and
-      the Summary, cut to the alert manager's limit. c. A Firing
+      responder. b. The headline SHALL be the house's short name, the
+      Kind and the Summary, cut to the alert manager's limit. c. A Firing
       rewritten for a moved cause SHALL not be sent again.
     Reason: The alert manager folds duplicates on the alias, so a Firing told twice is one alert and a re-raise after a resolve a new one.
   - Concern: tap

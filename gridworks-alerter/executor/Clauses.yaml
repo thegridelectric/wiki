@@ -115,7 +115,7 @@ data:
       The cause of an open alert moves.
     Obligation: >-
       The Firing is rewritten under the same AlertId and RaisedMs
-      with the new Summary.
+      with the new Kind and Summary.
     Recovery: ""
   - Concern: ""
     Number: 3
@@ -181,24 +181,14 @@ data:
       consuming and skip the tick while it is not.
     Recovery: ""
   - Concern: ""
-    Number: 5
-    Label: c
-    Kind: unconditional
-    Boundary: alerts-mic
-    Condition: ""
-    Obligation: >-
-      A clear is recorded and broadcast in dispatch on the arrival
-      that ends the condition, before the next tick.
-    Recovery: ""
-  - Concern: ""
     Number: 6
     Label: a
     Kind: unconditional
     Boundary: alerts-mic
     Condition: ""
     Obligation: >-
-      A house's last-heard is the latest arrival time of a report or
-      layout from its scada; a message's own timestamps never move it.
+      A house's last-heard is the latest arrival time of a report from
+      its scada; a message's own timestamps never move it.
     Recovery: ""
   - Concern: ""
     Number: 6
@@ -209,7 +199,7 @@ data:
       The listener starts consuming.
     Obligation: >-
       Last-heard for every house is floored at that instant; no
-      NoData raises until no_data_silence_s after it.
+      silence alert raises until no_data_silence_s after it.
     Recovery: ""
   - Concern: ""
     Number: 7
@@ -400,13 +390,13 @@ data:
     Kind: transition
     Boundary: alerts-mic
     Condition: >-
-      A tracked house's last-heard, floored, is at least
-      no_data_silence_s before now, no NoData is open on it and no
-      BrokerUnreachable is open.
+      A tracked house's last-heard, the latest report.event arrival
+      from its scada, floored, is at least no_data_silence_s before
+      now, no silence alert (ScadaSilent, LtnSilent or NoData) is open
+      on it and no BrokerUnreachable is open.
     Obligation: >-
-      One Firing of category House and kind NoData with
-      AboutGNodeAlias the house, Evidence empty and Summary per the cause,
-      within one tick.
+      One Firing of category House with AboutGNodeAlias the house,
+      Evidence empty, Kind and Summary per axiom 3, within one tick.
     Recovery: ""
   - Concern: no-data
     Number: 2
@@ -414,12 +404,12 @@ data:
     Kind: transition
     Boundary: alerts-mic
     Condition: >-
-      A report.event or layout.lite arrives from the scada of a house
-      with NoData open.
+      On a tick, a house with a silence alert open has a last-heard
+      later than the alert's RaisedMs.
     Obligation: >-
       One Resolved under that AlertId and RaisedMs, ResolvedMs the
-      arrival time, Evidence the report's ChannelReadingList (empty for a
-      layout), in dispatch.
+      last-heard, Evidence the readings of the report that arrived
+      then, read from the store, within one tick.
     Recovery: ""
   - Concern: no-data
     Number: 2
@@ -439,8 +429,8 @@ data:
       Nothing has arrived from the house's scada alias inside
       heard_period_s times 2.1, whatever the LTN.
     Obligation: >-
-      The Firing Summary is this form with <d> now minus the floored
-      last-heard.
+      The Kind is ScadaSilent and the Firing Summary is this form with <d>
+      now minus the floored last-heard.
     Recovery: ""
   - Concern: no-data
     Number: 3
@@ -451,8 +441,8 @@ data:
       Something arrived from the scada alias inside heard_period_s
       times 2.1 and nothing from the house's parent alias (the LTN).
     Obligation: >-
-      The Firing Summary is this form with <d> now minus the floored
-      last-heard.
+      The Kind is LtnSilent and the Firing Summary is this form with <d>
+      now minus the floored last-heard.
     Recovery: ""
   - Concern: no-data
     Number: 3
@@ -463,8 +453,8 @@ data:
       Something arrived from both the scada alias and the parent
       alias inside heard_period_s times 2.1.
     Obligation: >-
-      The Firing Summary is this form with <d> now minus the floored
-      last-heard.
+      The Kind is NoData and the Firing Summary is this form with <d>
+      now minus the floored last-heard.
     Recovery: ""
   - Concern: no-data
     Number: 3
@@ -472,12 +462,12 @@ data:
     Kind: transition
     Boundary: alerts-mic
     Condition: >-
-      The cause of an open NoData differs from the one its Summary
-      names, read on a tick.
+      The cause of an open silence alert differs from its Kind, read
+      on a tick.
     Obligation: >-
       The Firing is rewritten in the store and broadcast again under
-      the same AlertId and RaisedMs with the new Summary and <d>
-      recomputed.
+      the same AlertId and RaisedMs with the new Kind and Summary and
+      <d> recomputed; the store's kind follows.
     Recovery: ""
   - Concern: no-data
     Number: 4
@@ -487,7 +477,7 @@ data:
     Condition: >-
       A BrokerUnreachable alert is open on any door.
     Obligation: >-
-      No NoData Firing and no rewrite goes out, however long any
+      No silence Firing and no rewrite goes out, however long any
       house is silent.
     Recovery: ""
   - Concern: no-data
@@ -498,8 +488,8 @@ data:
     Condition: >-
       The last open BrokerUnreachable resolves.
     Obligation: >-
-      Last-heard is floored at the first tick after it; no NoData
-      raises until no_data_silence_s later.
+      Last-heard is floored at the first tick after it; no silence
+      alert raises until no_data_silence_s later.
     Recovery: ""
   - Concern: no-data
     Number: 4
@@ -508,8 +498,9 @@ data:
     Boundary: alerts-mic
     Condition: ""
     Obligation: >-
-      A NoData open when a BrokerUnreachable opens stays open with
-      its Summary unchanged and resolves on the house's first arrival.
+      A silence alert open when a BrokerUnreachable opens stays open
+      with its Kind and Summary unchanged and resolves on the first
+      tick after a report.event arrives from the house's scada.
     Recovery: ""
   # -- broker-unreachable ---------------------------------------------
   - Concern: broker-unreachable

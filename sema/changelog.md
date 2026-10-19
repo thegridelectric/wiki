@@ -10,6 +10,21 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-19 — adding LtnSilent and ScadaSilent to gw.house.alert.kind (`2ad3180`)
+
+**What:** `gw.house.alert.kind` 001 adds `ScadaSilent` and `LtnSilent`;
+`NoData` is the case where both the scada and its LTN are speaking and no
+reports arrive. `gw.alert` 001 is 000 with its `Kind` on enum 001, so the
+new kinds go on the wire. Both are promoted to published in the same
+commit, bottom-up, since the alerter ships on `gw.alert` and a box runs a
+published-only snapshot.
+
+**Why:** the alerter's no-data rule tells the three causes apart and was
+writing the cause into the alert's Summary as prose, then parsing it back
+off the opening words to see whether it had moved. The cause is
+enum-shaped. With three kinds the tap can show it as `[ShortAlias]
+[Kind]` and the rule looks it up instead of scraping it.
+
 ## 2026-10-18 — promiting the new weather station words (OPS-597, `05a6f1c`)
 
 **What:** `sema promote` bottom-up over the ten staging weather words:

@@ -1,6 +1,6 @@
 # Build the alerter executor
 
-Status: Draft · Pass 0 · Updated 2026-10-18 · Linear: OPS-605
+Status: Draft · Pass 0 · Updated 2026-10-19 · Linear: OPS-605
 
 **EDD: yes** the trace replay is the verification: the alerter executor
 reaches Verified when every clause has a vector and every trace replays
@@ -71,18 +71,31 @@ green against the built service over the dev broker
   deployed and raise it through sema's change control.
 - Clauses with no test binding: hub 4a, 4b, 5b; listener 3c, 4c, 5b;
   no-data 2b; tap 5b. Each needs a repo test named for it.
-- Traces for axiom 3 (NoData names its cause) clauses a and c: scada
+- Traces for no-data axiom 3 (the kind names the cause) clauses a and
+  c: scada
   not speaking; scada and LTN both speaking. Clause b has the oak LTN
   stop. Neither a nor c can be pulled from the journal today, since
   the LTN's pings are not journaled; they come from the eventstore by
   hand or are induced on the dev broker, and a field window replaces
   them once JournalKeeper journals the LTN's pings (OPS-392, the
   layout.lite 013 release).
+- Redo the oak LTN stop trace's expected output against the no-data
+  rule as it now stands: the Firing kind is `LtnSilent` on `gw.alert`
+  001, and the Resolved follows the 19:01:07Z report's arrival by at
+  most one tick, with that report's readings as evidence, since the
+  rule resolves from the store on the tick and a layout is no sign of
+  life. The two layouts at 19:01:16Z exercise nothing.
 - A restart trace for the store axiom: the oak LTN stop window with a
   `restart` event between the Firing and the Resolved; expected output
   has one Firing and one Resolved.
 - A counterexample for the sema axiom: a body the snapshot refuses,
   logged and dropped, the consumer still consuming.
+- A counterexample for tap 4b from the field: Opsgenie answers some
+  listings with a 429 rate limit at the ten-second cadence (first seen
+  2026-10-18 20:45Z, about one listing in seven on 2026-10-19), and the
+  told set stands as the clause says. The window is in the alerter-tap
+  journal on the box. The cadence itself is a follow-up: a longer
+  `tap_reconcile_s`, or a listing on every nth pass.
 - Vectors for the broker-unreachable concern: the prober's three
   failures with the fleet unheard, and the fleet-heard override.
 
@@ -95,3 +108,9 @@ green against the built service over the dev broker
   is a convention change and waits on the convention.
 - Whether a dev-broker induced trace counts toward Verified or only a
   field window does.
+- Whether ReadAs belongs on a stored Words row. The store on the box
+  has `gw.alert` records written at 000 that the codec reads back as
+  001, so Words has a stored row for 000 with ReadAs 001; the recipe
+  defines ReadAs for inbound rows only. Either the recipe's ReadAs
+  sentence widens to stored rows, or the row goes and the 000 records
+  are a changelog fact a rebuild is not told.

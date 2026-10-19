@@ -255,6 +255,10 @@ readers of a field, the consumers of a message). Rewrite each to present
 tense and to the thing's own meaning; the why goes in the changelog entry,
 the list goes nowhere (the code is the list).
 
+**Before proposing a code change, scan the docstrings in the changed files
+and the repo README against [`documentation.md`](documentation.md) and refactor
+what fails or went stale.**
+
 ## Working-tree hygiene
 
 - One **cluster** of code-repo edits = one pending changelog entry

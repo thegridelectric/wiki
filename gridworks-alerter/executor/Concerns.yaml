@@ -41,16 +41,18 @@ data:
   - Name: no-data
     Process: rabbit
     Summary: >-
-      The NoData house alert: a tracked house has sent nothing for
-      longer than the silence threshold.
+      The silence house alerts, ScadaSilent, LtnSilent and NoData: a
+      tracked house has sent no report for longer than the silence
+      threshold, the kind naming which party is quiet.
     Description: >-
-      The rule runs on the tick over the store. Each tracked house's
-      last-heard is the latest report or layout arrival from its scada,
-      floored at the moment hearing started; a house silent past the
-      threshold with no NoData open is raised with the cause the arrivals
-      show. The cause is re-read every tick and the open record rewritten
-      when it moves. The first report or layout from the scada resolves
-      it in dispatch. While the prober holds BrokerUnreachable open the
+      The rule runs on the tick over the store and nowhere else. Each
+      tracked house's last-heard is the latest report arrival from its
+      scada, floored at the moment hearing started; a layout is stored
+      for meaning and is no sign of life. A house silent past the
+      threshold with no silence alert open is raised with the kind the
+      arrivals show. The cause is re-read every tick and the open record
+      rewritten with the new kind when it moves. A report arriving after the raise resolves the alert
+      on the next tick. While the prober holds BrokerUnreachable open the
       rule does nothing, and the floor moves when the last one resolves.
       An LTN stop pages about fourteen minutes after the stop rather
       than ten: the scada's own link timeout lets one more report out

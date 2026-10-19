@@ -34,17 +34,15 @@ data:
   - {Concern: "", Clause: "2c", Kind: test, TargetName: "test_restart_neither_re_raises_nor_forgets", File: tests/test_no_data.py}
   - {Concern: "", Clause: "2c", Kind: test, TargetName: "test_a_restart_neither_re_raises_nor_forgets", File: tests/test_prober.py}
   - {Concern: "", Clause: "3a", Kind: test, TargetName: "test_silent_house_raises_once_at_the_threshold", File: tests/test_no_data.py}
-  - {Concern: "", Clause: "3b", Kind: test, TargetName: "test_the_open_alert_summary_follows_the_cause", File: tests/test_no_data.py}
+  - {Concern: "", Clause: "3b", Kind: test, TargetName: "test_the_open_alert_kind_follows_the_cause", File: tests/test_no_data.py}
   - {Concern: "", Clause: "3c", Kind: symbol, TargetName: "gwalerter.records.resolved_of", File: src/gwalerter/records.py}
-  - {Concern: "", Clause: "3c", Kind: test, TargetName: "test_arrival_resolves_with_the_arrival_as_evidence", File: tests/test_no_data.py}
+  - {Concern: "", Clause: "3c", Kind: test, TargetName: "test_a_report_in_the_store_resolves_on_the_tick", File: tests/test_no_data.py}
   - {Concern: "", Clause: "3d", Kind: symbol, TargetName: "gwalerter.tap.Tap.close", File: src/gwalerter/tap.py}
   - {Concern: "", Clause: "3d", Kind: test, TargetName: "test_firing_creates_and_resolved_closes", File: tests/test_tap.py}
   - {Concern: "", Clause: "4a", Kind: symbol, TargetName: "gwalerter.alerter_actor.AlerterActor.local_rabbit_startup", File: src/gwalerter/alerter_actor.py}
   - {Concern: "", Clause: "5a", Kind: test, TargetName: "test_report_event_reaches_the_store", File: tests/test_actor.py}
   - {Concern: "", Clause: "5b", Kind: symbol, TargetName: "gwalerter.alerter_actor.AlerterActor.run_detectors", File: src/gwalerter/alerter_actor.py}
   - {Concern: "", Clause: "5b", Kind: setting, TargetName: "detector_tick_s", File: src/gwalerter/config.py}
-  - {Concern: "", Clause: "5c", Kind: symbol, TargetName: "gwalerter.alerter_actor.AlerterActor.clear_on_arrival", File: src/gwalerter/alerter_actor.py}
-  - {Concern: "", Clause: "5c", Kind: test, TargetName: "test_arrival_resolves_with_the_arrival_as_evidence", File: tests/test_no_data.py}
   - {Concern: "", Clause: "6a", Kind: symbol, TargetName: "gwalerter.store.Store.houses", File: src/gwalerter/store.py}
   - {Concern: "", Clause: "6a", Kind: test, TargetName: "test_last_heard_never_moves_backwards", File: tests/test_store.py}
   - {Concern: "", Clause: "6a", Kind: test, TargetName: "test_a_heard_house_is_silent_from_its_last_arrival", File: tests/test_no_data.py}
@@ -91,19 +89,20 @@ data:
   - {Concern: "no-data", Clause: "1a", Kind: symbol, TargetName: "gwalerter.no_data.NoDataRule.evaluate", File: src/gwalerter/no_data.py}
   - {Concern: "no-data", Clause: "1a", Kind: test, TargetName: "test_silent_house_raises_once_at_the_threshold", File: tests/test_no_data.py}
   - {Concern: "no-data", Clause: "1a", Kind: setting, TargetName: "no_data_silence_s", File: src/gwalerter/config.py}
-  - {Concern: "no-data", Clause: "2a", Kind: symbol, TargetName: "gwalerter.no_data.NoDataRule.on_arrival", File: src/gwalerter/no_data.py}
-  - {Concern: "no-data", Clause: "2a", Kind: test, TargetName: "test_arrival_resolves_with_the_arrival_as_evidence", File: tests/test_no_data.py}
-  - {Concern: "no-data", Clause: "2b", Kind: symbol, TargetName: "gwalerter.no_data.NoDataRule.on_arrival", File: src/gwalerter/no_data.py}
+  - {Concern: "no-data", Clause: "1a", Kind: test, TargetName: "test_a_layout_is_no_sign_of_life", File: tests/test_no_data.py}
+  - {Concern: "no-data", Clause: "2a", Kind: symbol, TargetName: "gwalerter.no_data.NoDataRule.evaluate", File: src/gwalerter/no_data.py}
+  - {Concern: "no-data", Clause: "2a", Kind: test, TargetName: "test_a_report_in_the_store_resolves_on_the_tick", File: tests/test_no_data.py}
+  - {Concern: "no-data", Clause: "2b", Kind: symbol, TargetName: "gwalerter.no_data.NoDataRule.evaluate", File: src/gwalerter/no_data.py}
   - {Concern: "no-data", Clause: "3a", Kind: symbol, TargetName: "gwalerter.no_data.NoDataRule.cause", File: src/gwalerter/no_data.py}
-  - {Concern: "no-data", Clause: "3a", Kind: test, TargetName: "test_the_summary_names_the_cause", File: tests/test_no_data.py}
+  - {Concern: "no-data", Clause: "3a", Kind: test, TargetName: "test_the_kind_names_the_cause", File: tests/test_no_data.py}
   - {Concern: "no-data", Clause: "3a", Kind: test, TargetName: "test_a_party_outside_the_window_is_silent", File: tests/test_no_data.py}
   - {Concern: "no-data", Clause: "3a", Kind: setting, TargetName: "heard_period_s", File: src/gwalerter/config.py}
   - {Concern: "no-data", Clause: "3b", Kind: symbol, TargetName: "gwalerter.no_data.NoDataRule.cause", File: src/gwalerter/no_data.py}
   - {Concern: "no-data", Clause: "3b", Kind: test, TargetName: "test_the_ltn_line_teaches_why_the_scada_is_quiet", File: tests/test_no_data.py}
   - {Concern: "no-data", Clause: "3c", Kind: symbol, TargetName: "gwalerter.no_data.NoDataRule.cause", File: src/gwalerter/no_data.py}
-  - {Concern: "no-data", Clause: "3c", Kind: test, TargetName: "test_the_summary_names_the_cause", File: tests/test_no_data.py}
+  - {Concern: "no-data", Clause: "3c", Kind: test, TargetName: "test_the_kind_names_the_cause", File: tests/test_no_data.py}
   - {Concern: "no-data", Clause: "3d", Kind: symbol, TargetName: "gwalerter.store.Store.update_alert", File: src/gwalerter/store.py}
-  - {Concern: "no-data", Clause: "3d", Kind: test, TargetName: "test_the_open_alert_summary_follows_the_cause", File: tests/test_no_data.py}
+  - {Concern: "no-data", Clause: "3d", Kind: test, TargetName: "test_the_open_alert_kind_follows_the_cause", File: tests/test_no_data.py}
   - {Concern: "no-data", Clause: "4a", Kind: symbol, TargetName: "gwalerter.no_data.NoDataRule.broker_unreachable", File: src/gwalerter/no_data.py}
   - {Concern: "no-data", Clause: "4a", Kind: test, TargetName: "test_no_data_holds_while_the_broker_is_down_and_refloors_after", File: tests/test_no_data.py}
   - {Concern: "no-data", Clause: "4b", Kind: test, TargetName: "test_no_data_holds_while_the_broker_is_down_and_refloors_after", File: tests/test_no_data.py}

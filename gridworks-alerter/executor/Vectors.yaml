@@ -35,7 +35,6 @@ data:
   - {Concern: "", Idx: 11, Kind: counterexample, Clause: "4b", Path: ""}
   - {Concern: "", Idx: 12, Kind: trace, Clause: "5a", Path: ""}
   - {Concern: "", Idx: 13, Kind: trace, Clause: "5b", Path: ""}
-  - {Concern: "", Idx: 14, Kind: trace, Clause: "5c", Path: "traces/2026-10-15-oak-ltn-stop"}
   - {Concern: "", Idx: 15, Kind: trace, Clause: "6a", Path: "traces/2026-10-15-oak-ltn-stop"}
   - {Concern: "", Idx: 16, Kind: trace, Clause: "6b", Path: ""}
   - {Concern: "", Idx: 17, Kind: trace, Clause: "7a", Path: ""}

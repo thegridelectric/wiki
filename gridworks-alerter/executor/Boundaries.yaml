@@ -175,9 +175,9 @@ data:
     OwnerExecutor: ""
     Reproduce: exact
     Form: >-
-      For a record with AboutGNodeAlias: "[<Short>] <Summary>", Short the
-      alias segment before ".ta" with its first letter upper-cased; else
-      the Summary. Cut to 130 characters.
+      For a record with AboutGNodeAlias: "[<Short>] [<Kind>] <Summary>",
+      Short the alias segment before ".ta"; else the Summary. Cut to 130
+      characters.
   - Name: silenced-note
     Kind: text
     OwnerExecutor: ""

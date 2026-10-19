@@ -34,9 +34,10 @@ data:
   - {Word: g.node.forest.request, Version: "000", Direction: out, ReadAs: "", Process: rabbit, Crossing: http}
   - {Word: gw.hack.alert.silences, Version: "000", Direction: in, ReadAs: "", Process: rabbit, Crossing: file}
   - {Word: gw.hack.alert.silences, Version: "000", Direction: out, ReadAs: "", Process: rabbit, Crossing: broker}
-  - {Word: gw.alert, Version: "000", Direction: out, ReadAs: "", Process: rabbit, Crossing: broker}
-  - {Word: gw.alert, Version: "000", Direction: stored, ReadAs: "", Process: rabbit, Crossing: store}
-  - {Word: gw.alert, Version: "000", Direction: stored, ReadAs: "", Process: probe, Crossing: store}
+  - {Word: gw.alert, Version: "001", Direction: out, ReadAs: "", Process: rabbit, Crossing: broker}
+  - {Word: gw.alert, Version: "001", Direction: stored, ReadAs: "", Process: rabbit, Crossing: store}
+  - {Word: gw.alert, Version: "001", Direction: stored, ReadAs: "", Process: probe, Crossing: store}
+  - {Word: gw.alert, Version: "000", Direction: stored, ReadAs: "001", Process: rabbit, Crossing: store}
   - {Word: gw.opsgenie.alert, Version: "000", Direction: in, ReadAs: "", Process: tap, Crossing: http}
   - {Word: gw.opsgenie.alert.create, Version: "000", Direction: out, ReadAs: "", Process: tap, Crossing: http}
   - {Word: gw.opsgenie.alert.close, Version: "000", Direction: out, ReadAs: "", Process: tap, Crossing: http}
