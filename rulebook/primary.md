@@ -51,7 +51,7 @@ trying this approach, what works and what does not.
 
 ## Designs
 
-Improvements to the practice live in [`designs/`](designs/), one
+Improvements to the practice live in `designs/`, one
 file per design, under the wiki's design convention. The first
 instance of the recipe is the alerter (OPS-605).
 

@@ -1,10 +1,10 @@
 # no-dist-flow — a heat call ended with no distribution flow
 
-Status: Draft · Pass 0 · Updated 2026-10-16
+Status: Draft · Pass 0 · Updated 2026-10-19
 
 > What this is: the port of gwalert's `check_dist_pump`
-> (`alert_generator.py:827`) as `NoDistFlow`; the name follows the
-> condition (flow), not the suspect (pump).
+> (`alert_generator.py:827`) as `NoDistFlow`, named for the condition
+> a person acts on.
 
 ## gwalert today
 
@@ -29,14 +29,13 @@ power never gates the alert, only the message wording.
   `dist_flow_min_gpm` (0.5) from `flow_lookback_s` (300) before the call
   to its end; **resolves** when a call ends with flow seen.
 - **Layout:** a house with no distribution flow meter or no heat-call
-  channels has no `NoDistFlow`. The per-house whitewire thresholds go:
-  a heat call is the layout's heat-call channel in its on state, not a
-  watts guess.
+  channels has no `NoDistFlow`. A heat call is the layout's heat-call
+  channel in its on state, which retires the per-house whitewire
+  thresholds.
 - **Tests:** three dry calls fire; a wet call resolves; two do not fire;
   a short call does not count; no flow meter is absent.
 
 ## Do this next
 
 Confirm the heat-call channel and its unit in the layout word for each
-current family, then tests, rule, witness, shadow week, gwalert's check
-off.
+current family, then the pattern in the hub.

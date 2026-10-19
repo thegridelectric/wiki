@@ -20,7 +20,11 @@ green against the built service over the dev broker
   copy (byte-identical to the repo's) and one trace,
   `traces/2026-10-15-oak-ltn-stop/`, which
   `experiments/traces/pull_trace.py` materialises from the journal,
-  reading a `decode:` line in the trace spec. The port (Plan step 1)
+  reading a `decode:` line in the trace spec. That trace is retired:
+  its expected output predates the silence trio, its window has none
+  of the LTN's pings or acks, and spruce's 003 reports in the same
+  window needed a sema fix to decode. It is deleted when the first
+  replacement trace is in. The port (Plan step 1)
   is done: 7 hub axioms, 4 concerns (listener, no-data,
   broker-unreachable, tap), 27 axioms, 65 clauses, 137 bindings. The
   Settings table is written by hand from the settings class in the
@@ -71,23 +75,37 @@ green against the built service over the dev broker
   deployed and raise it through sema's change control.
 - Clauses with no test binding: hub 4a, 4b, 5b; listener 3c, 4c, 5b;
   no-data 2b; tap 5b. Each needs a repo test named for it.
-- Traces for no-data axiom 3 (the kind names the cause) clauses a and
-  c: scada
-  not speaking; scada and LTN both speaking. Clause b has the oak LTN
-  stop. Neither a nor c can be pulled from the journal today, since
-  the LTN's pings are not journaled; they come from the eventstore by
-  hand or are induced on the dev broker, and a field window replaces
-  them once JournalKeeper journals the LTN's pings (OPS-392, the
-  layout.lite 013 release).
-- Redo the oak LTN stop trace's expected output against the no-data
-  rule as it now stands: the Firing kind is `LtnSilent` on `gw.alert`
-  001, and the Resolved follows the 19:01:07Z report's arrival by at
-  most one tick, with that report's readings as evidence, since the
-  rule resolves from the store on the tick and a layout is no sign of
-  life. The two layouts at 19:01:16Z exercise nothing.
-- A restart trace for the store axiom: the oak LTN stop window with a
+- Traces for the silence trio, one per kind, from new instances made
+  for the purpose rather than the oak window: `ScadaSilent` (scada
+  not speaking), `LtnSilent` (scada speaking, LTN not), `NoData`
+  (both speaking, no reports). Each is induced on the dev broker, or
+  taken from a field window once a stop is run on purpose, and pulled
+  with `pull_trace.py`. The LTN's pings and acks are not journaled
+  today, so the `LtnSilent` and `NoData` inputs come from the
+  eventstore by hand until JournalKeeper journals them (OPS-392, the
+  layout.lite 013 release). Expected output on `gw.alert` 001: the
+  Firing kind names the party, the Resolved follows the first report
+  back by at most one tick with that report's readings as evidence,
+  and a layout is no sign of life. A kind change mid-window keeps the
+  `AlertId`.
+- A restart trace for the store axiom: one of those windows with a
   `restart` event between the Firing and the Resolved; expected output
   has one Firing and one Resolved.
+- Two decisions from the detector port to write as axioms before the
+  next kind is specified: **equipment is a layout fact** (a kind that
+  needs a store pump, a distribution flow meter or a thermostat fires
+  only for a house whose layout has that thing, and is absent for the
+  rest; no per-house tables), and **the scada judges what it can see,
+  the alerter relays it** (a condition the box can judge, a zone cold
+  or at freeze risk, is a Critical glitch there and pages as
+  `CriticalGlitch`; the alerter judges only what the box cannot see
+  from inside: silence, a reboot loop, a fleet-wide pattern).
+- gwalert's `check_no_data` still runs beside the silence trio, so a
+  silent house pages twice. Switching it off waits on a shadow week of
+  both outputs compared: every gwalert page should have an alerter
+  Firing earlier or within one tick. Then comment the call out of
+  `AlertGenerator.main` (the way `check_in_atn` already is), deploy by
+  pull and restart, note it in the changelog.
 - A counterexample for the sema axiom: a body the snapshot refuses,
   logged and dropped, the consumer still consuming.
 - A counterexample for tap 4b from the field: Opsgenie answers some

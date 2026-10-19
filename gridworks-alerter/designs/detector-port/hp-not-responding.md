@@ -1,6 +1,6 @@
 # hp-not-responding — heat pump commanded on, no power
 
-Status: Draft · Pass 0 · Updated 2026-10-16
+Status: Draft · Pass 0 · Updated 2026-10-19
 
 > What this is: the port of gwalert's `check_hp`
 > (`alert_generator.py:1023`) as `HpNotResponding` (gwalert's alias
@@ -36,7 +36,9 @@ Relay 6 is read with no presence check, so a house without it raises a
 
 ## Do this next
 
-Find in the layout word where the HP model and the relay roles are
-stated (if the model is not there, that is a sema word change,
-raised first); then tests, rule, witness, shadow week, gwalert's check
-off.
+Wait for `jm/spruce-unlimbo` in gridworks-scada to merge, then start
+with a review of how the heat pump's behaviour is captured in sema:
+the HP model, the relay roles, the power channels and the states the
+scada reports. Find where each is stated in the layout word; a fact
+not there is a sema word change and comes before the rule. Then
+tests, rule, witness, shadow week, gwalert's check off.

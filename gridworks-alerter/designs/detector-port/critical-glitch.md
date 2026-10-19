@@ -1,6 +1,6 @@
 # critical-glitch — the scada's own Critical glitch relayed
 
-Status: Draft · Pass 0 · Updated 2026-10-16
+Status: Draft · Pass 0 · Updated 2026-10-19
 
 > What this is: the port of gwalert's `check_for_glitches`
 > (`alert_generator.py:557`) as `CriticalGlitch`.
@@ -23,13 +23,12 @@ message. The house prefix `hw1.isone.me.versant.keene` is a constant.
   after `critical_glitch_hold_s` (7200, matching gwalert's
   de-duplication) with no repeat of the same summary, since a glitch is
   a moment and the alert is the hold. The dispatch refusal
-  (`AcceptsDispatch` false, OPS-392) is not this kind: it has a state to
-  resolve on and gets its own kind when it is specified.
+  (`AcceptsDispatch` false, OPS-392) has a state to resolve on, so it
+  is a kind of its own and is specified with the after-merge spokes.
 - **Layout:** none.
 - **Tests:** a Critical glitch fires; a Warning does not; a repeat
   inside the hold does not re-raise; the hold expiring resolves.
 
 ## Do this next
 
-Vendor `glitch`, then tests, rule, witness, shadow week, gwalert's
-check off.
+Vendor `glitch`, then the pattern in the hub.

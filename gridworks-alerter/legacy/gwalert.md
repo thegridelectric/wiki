@@ -5,7 +5,7 @@ Status: Draft · Pass 0 · Updated 2026-09-17
 > What this is: the legacy house-alert detector **gwalert**
 > (`thegridelectric/gridworks-alerts`, package `gwalert`) as it runs on
 > the `alerts` box, until gwalerter has taken over its detectors one at
-> a time (OPS-545). The hub is [`../executor/primary.md`](../executor/primary.md);
+> a time (OPS-545). The spec is [`../executor/`](../executor/) (`Concerns.yaml` is the index);
 > most detector depth is Open and the code is the authority for detail.
 
 ## What it is

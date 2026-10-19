@@ -1,9 +1,14 @@
 # zone-freeze-risk — a zone below the freeze-risk threshold
 
-Status: Draft · Pass 0 · Updated 2026-10-16
+Status: Draft · Pass 0 · Updated 2026-10-19
 
 > What this is: the port of gwalert's `check_zone_freezing`
 > (`alert_generator.py:783`) to the alerter as `ZoneFreezeRisk`.
+
+Wait on `jm/spruce-unlimbo` in gridworks-scada: that merge has the
+scada raise a zone under the freeze line as a Critical glitch, so the
+condition is judged on the box and paged through `critical-glitch.md`.
+This spoke is deleted when it merges.
 
 ## gwalert today
 
@@ -27,9 +32,6 @@ Skips houses in Standby. Missing data logs. Alias
 - **Layout:** a house with no zone temperature channel has no
   `ZoneFreezeRisk`. 40 F is not freezing; the name says risk and the
   kind's description states the number.
-- **The scada's zone-freezing glitch** judges the same condition on
-  the box. Decide here which pages: proposed, the alerter's kind pages
-  (it resolves; a glitch is a moment), and the glitch is evidence.
 - **Tests:** below threshold fires once; a reading back above resolves
   under the same `AlertId`; Standby suppresses; a house without a zone
   sensor is absent; a restart with the alert open neither re-raises nor
@@ -37,6 +39,5 @@ Skips houses in Standby. Missing data logs. Alias
 
 ## Do this next
 
-Tests first, then the rule as `zone_freeze_risk.py` beside `no_data.py`,
-the dev-broker witness, the shadow week, then comment gwalert's
-`check_zone_freezing` out of `main`.
+Nothing until the merge; then delete this spoke and switch gwalert's
+`check_zone_freezing` off once `CriticalGlitch` pages for it.

@@ -1,6 +1,6 @@
 # hp-running-onpeak — heat pump power in a weekday on-peak hour
 
-Status: Draft · Pass 0 · Updated 2026-10-16
+Status: Draft · Pass 0 · Updated 2026-10-19
 
 > What this is: the port of gwalert's `check_hp_on_during_onpeak`
 > (`alert_generator.py:1167`) as `HpRunningOnpeak`.
@@ -15,14 +15,13 @@ house. Alias `hp_onpeak_<hour>`.
 
 ## The port
 
-- **Reads:** the heat pump's power channels and model from the layout;
-  live readings only, never a window scan.
+- **Reads:** the heat pump's power channels and model from the layout,
+  and the live readings.
 - **Fires** when power exceeds `hp_on_kw` (1) inside an on-peak hour
   past its `onpeak_grace_s` (120); **resolves** when power drops below
-  or the hour ends. The on-peak schedule is a setting until the market
-  word that states it exists; it is the same schedule the LTN's
-  dispatch uses, and the day the market sets it, the alerter reads it
-  from the same word.
+  or the hour ends. The on-peak schedule comes from the tariff in the
+  house's operational params, the same schedule the LTN's dispatch
+  uses.
 - **Layout:** a house with no heat pump is absent.
 - **Tests:** power in peak fires once per hour; power off resolves;
   the grace holds; a weekend never fires; a monobloc reads the outdoor
@@ -30,5 +29,7 @@ house. Alias `hp_onpeak_<hour>`.
 
 ## Do this next
 
-Tests, rule, witness with a sped-up clock, shadow week, gwalert's check
-off.
+Wait for `jm/spruce-unlimbo` in gridworks-scada to merge: its
+operational params encode the tariff, and the on-peak schedule is read
+from there. Then the pattern in the hub, with the witness on a
+sped-up clock.

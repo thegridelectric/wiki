@@ -1,6 +1,6 @@
 # local-control-active — the house on local control
 
-Status: Draft · Pass 0 · Updated 2026-10-16
+Status: Draft · Pass 0 · Updated 2026-10-19
 
 > What this is: gwalert's disabled `check_in_atn`
 > (`alert_generator.py:1136`, commented out of `main`) as
@@ -17,8 +17,8 @@ to match.
 
 - Whether this is a page at all. The house running itself is by design
   the fallback when the LTN is away, and at a hundred homes a local
-  control fallback after an internet outage is a displayed fact, not a
-  3 a.m. page. The candidate page is the LTN side: an LTN that is up and
+  control fallback after an internet outage is a displayed fact
+  rather than a 3 a.m. page. The candidate page is the LTN side: an LTN that is up and
   not dispatching a house that accepts dispatch.
 - What states it: the `gw.house.operating.status` record and the scada's
   top state, both words the alerter can vendor.

@@ -1,9 +1,14 @@
 # zone-below-setpoint — a critical zone below its setpoint
 
-Status: Draft · Pass 0 · Updated 2026-10-16
+Status: Draft · Pass 0 · Updated 2026-10-19
 
 > What this is: the port of gwalert's `check_zone_below_setpoint`
 > (`alert_generator.py:702`) as `ZoneBelowSetpoint`.
+
+Wait on `jm/spruce-unlimbo` in gridworks-scada: that merge has the
+scada raise a critical zone below its setpoint as a Critical glitch,
+so the condition is judged on the box and paged through
+`critical-glitch.md`. This spoke is deleted when it merges.
 
 ## gwalert today
 
@@ -35,14 +40,11 @@ dropped.
   within tolerance or the setpoint drops. Not in Standby.
 - **Layout:** only zones with a setpoint source; a house with none has
   no `ZoneBelowSetpoint`. No per-house role table.
-- **The scada's critical-zone-cold glitch and `AcceptsDispatch`
-  refusal** (OPS-392) judge the same zones on the box. Decide here with
-  `zone-freeze-risk.md`: one side pages.
 - **Tests:** below tolerance fires; back in tolerance resolves; a raised
   setpoint inside the grace does not fire; phase `Unknown` never fires;
   a non-critical zone never fires; restart with the alert open.
 
 ## Do this next
 
-Name the setpoint-phase word, then tests, rule, witness, shadow week,
-gwalert's check off.
+Nothing until the merge; then delete this spoke and switch gwalert's
+`check_zone_below_setpoint` off once `CriticalGlitch` pages for it.

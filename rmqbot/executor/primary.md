@@ -239,6 +239,6 @@ recipes in `gridworks-infra/authority/` (outside the wiki write boundary).
 
 ## In-flight changes
 
-Tracked as designs in [`../designs/`](../designs/) and explorations in
+Tracked as designs in `../designs/` and explorations in
 [`../explorations/`](../explorations/); execution **order/priority lives in
 Linear**, not here.
