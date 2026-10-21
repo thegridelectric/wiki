@@ -10,21 +10,27 @@ Status: Accepted · Pass 1 · Updated 2026-10-21 · Linear: OPS-473
 
 ## Do this next
 
-Steps 1 to 3 of "The summary word" are built and green. gw_data is on
-`main` (`32c8164`, PR #14, 0.7.0 on PyPI) and sema `f8a5e50` is
-committed. Next: commit gjk `jm/house-status-projection`, whose lock
-holds gw_data 0.7.0 and whose CI is green. Then step
-4, the web-backend summaries endpoint building `gw.house.summary`
-through the codec from the `layouts` and `house_operating_status`
-projections, on `jm/retire-installations`; then step 5 on the frontend
-branch (its first commit, uncommitted and build green, goes in first).
-Open decision: whether gjk's weather persistors move to what gwwf sends
-now (channel and bundle 002, forecast, location and observation 001,
-four new words) as its own commit on the gjk branch or its own issue;
-the seed pins the weather words until then. Then the dev run.
+The dev run passed (dev-run spoke, 2026-10-21); step 8 of it, the
+dashboard by a person, is the one check left. Then the commits, in this
+order: web-backend `jm/retire-installations` (the summaries through the
+codec as `gw.house.summary`, the api snapshot regenerated from sema
+`65f489b` with `--allow-staged`, `BACKEND_API_PORT` and
+`BACKEND_RABBIT_TLS`); the frontend branch (its first commit, then the
+`gw.house.summary` and `gw.house.operating.status` mirrors and the
+Status column); the experiments folder. The merges wait on sema
+promoting `gw.house.summary`, `gw.dashboard.role`,
+`gw.house.operating.status` and `layout.bundle` (the published-only
+tests fail `main` on a staging word), and the operating-status word on
+the scada needs the `CreatedMs` rename in the scada's snapshot before
+the scada-sent path is live. Open decision: whether gjk's weather
+persistors move to what gwwf sends now (channel and bundle 002,
+forecast, location and observation 001, four new words) as its own
+commit on the gjk branch or its own issue; the seed pins the weather
+words until then.
 
 Done so far: gridworks-data merged to `main` (migrations `e5a1c2d3f4b6`
-and `d4a7c9e1b2f3`, `gw_data` 0.7.0 on PyPI). web-backend `jm/retire-installations`:
+and `d4a7c9e1b2f3`, `gw_data` 0.7.0 on PyPI); gjk `b49c94e` on
+`jm/house-status-projection` with the lock at 0.7.0. web-backend `jm/retire-installations`:
 `ddeee35` (the four query paths joining the `g_nodes` projection, the
 first test suite), `5de2bc3` and `7507f42` (both snapshots
 published-only from sema `1c52df0`), `a174a79` (the summaries join on

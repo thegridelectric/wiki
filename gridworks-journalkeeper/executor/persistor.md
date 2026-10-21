@@ -134,6 +134,8 @@ itself — it defines the channels the others write against.
   projects each sender's newest journaled `layout.lite`, decoded at the
   version it was sent, through the same `project`; run it after the
   migration that adds the table and whenever the table is suspect.
+  Verified on the dev run, with the replay guard and the derived
+  operating status: `experiments/2026-10-21-disentangle-dev-run/`.
 
 ## The point: `readings` is a lossy projection
 

@@ -121,7 +121,7 @@ distributed-trust principle it served — that principle is core vision.
   archive with more than the journal (unjournaled types, older windows):
   consult it by hand, and keep no S3 fallback code in pull paths until a
   consumer concretely needs an S3-only type. Session access is
-  `GJK_DB_URL` in `experiments/.env`; how to pull is
+  `DB_ANALYST_URL` in `experiments/.env`; how to pull is
   `experiments/spot-check-recipe.md`.
 - **HTTP surfaces follow the house API pattern** — writes ride rabbit, reads
   ride a public read-only façade; the party segment is the hyphenated

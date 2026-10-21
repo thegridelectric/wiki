@@ -1,6 +1,6 @@
 # dev-run — the design on the laptop's d1 stack
 
-Status: Accepted · Pass 1 · Updated 2026-10-20 · Linear: OPS-473
+Status: Accepted · Pass 1 · Updated 2026-10-21 · Linear: OPS-473
 
 > What this is: the fourth spoke of the disentangle-installations hub,
 > the experiment that verifies the whole design before anything merges
@@ -14,11 +14,10 @@ Status: Accepted · Pass 1 · Updated 2026-10-20 · Linear: OPS-473
 
 ## Do this next
 
-Runs once, with every moving part present, after the retire-installations
-frontend branch exists: sema `jm/layout-bundle`, gjk `jm/layouts-projection`
-(`d435ff0`), web-backend `jm/retire-installations` (`98df82a`) and the
-frontend branch, all nine steps of "The sequence" in one run. The harness
-and captures go in `experiments/2026-10-20-disentangle-dev-run/`.
+Step 8, the dashboard against the API, by a person: the runbook in
+`experiments/2026-10-21-disentangle-dev-run/` brings the stack back and
+names the login. Then the commits and merges in the retire-installations
+spoke's order.
 
 ## Why a dev run
 
@@ -111,19 +110,20 @@ then the rerun.
 
 ## Result
 
-Not yet run.
+Ran 2026-10-21: `experiments/2026-10-21-disentangle-dev-run/`. PASS on
+every unattended step (15 of 15 harness checks), the gateway seed and
+the not-reporting step; steps 1 and 2 ran from the operator CLIs; step 8
+is open. Two gaps found on the scada side: the `jm/spruce-unlimbo` scada
+sends `layout.lite` 013, which journalkeeper decodes as degraded until
+013 is promoted and the snapshots regenerate, and it sends the operating
+status with `UnixMs`, which the renamed word refuses; the harness
+published a 012 layout and a `CreatedMs` status as the scada to exercise
+both paths. web-backend needed two settings for the run,
+`BACKEND_API_PORT` and `BACKEND_RABBIT_TLS`.
 
 ## Open
 
-- Where the dev gnr runs for this run (a `d1` instance on the laptop or
-  a dev box) and whether `gnregistrar` can point at it; and where the
-  dev PII store runs (a loopback Postgres on the laptop is the natural
-  twin of the production box). Both are settled when the harness is
-  written.
-
-- Whether the dev broker's topology has the `ear_tx` fleet-stream
-  exchange the gateway binds. If not, the harness declares it for the
-  run, and the gap is a gridworks-base note.
-- The sim scada's alias is in `d1`; the gateway's status keys on the
-  short alias and web-backend's roles on the TA id, so no `hw1`
-  assumption is expected in the path. The run confirms it.
+- The gateway's websocket status message on a layout change (step 6)
+  was not captured; the row and the summary were.
+- The 24 h snapshot bound in the summaries query is fixed; the run
+  backdated the dev database's snapshot messages for step 9.

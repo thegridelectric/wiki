@@ -10,6 +10,25 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-21 — summaries are gw.house.summary instances built through the codec; the status projection joins in (OPS-473, `jm/retire-installations`) <!-- pending commit -->
+
+The v2 summaries endpoint returns `gw.house.summary` instances in the
+word's dict form, in place of a pydantic model of its own: the dashboard
+is one app and the backend another, so the boundary is sema. Each house
+joins its `house_operating_status` row, nested as `OperatingStatus`, the
+word verbatim; `Layout` is the `layouts` row decoded without upgrade and
+accepted when it is one of the versions the summary names (011, 012),
+else logged and left null. `SystemMode` and `MainAutoState` leave the
+response; the one state is the operating status. `Role` is the
+`gw.dashboard.role` enum from the roles table, an unknown value granting
+`Viewer`. The api snapshot is regenerated from sema `dev` `65f489b` with
+`--allow-staged` for the four staging words, so the published-only test
+skips off `main` and fails on it until they promote. `gw-data` pins
+0.7.0 for the status table. Two settings for a laptop run:
+`BACKEND_API_PORT` (8000 stays the scada's) and `BACKEND_RABBIT_TLS`
+(the dev broker speaks plain AMQP). Verified by the dev run,
+`experiments/2026-10-21-disentangle-dev-run/`.
+
 ## 2026-10-20 — summaries read the layout from the layouts projection; the gateway seeds it once at start (OPS-473, `a174a79` on `jm/retire-installations`)
 
 The v2 summaries endpoint takes each house's layout from

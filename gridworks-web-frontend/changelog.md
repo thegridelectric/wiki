@@ -10,6 +10,20 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-21 — the summary is gw.house.summary; the operating status replaces the system mode (OPS-473, `jm/retire-installations`) <!-- pending commit -->
+
+`src/sema/` mirrors `gw.house.summary` and `gw.house.operating.status`
+by hand until the sema TypeScript target exists; the summary type is
+`HouseSummary`, with the word's `TypeName`, `Version` and `SendTimeMs`,
+and a field the word allows to be null is optional, since the dict form
+omits it. The Houses table's Mode column becomes Status, read from the
+operating status as Standby or the service mode, then the top state;
+the Information page's Status section shows Standby (with the posture),
+service mode, top state and the status's own time. The role checks
+compare against the enum's `Admin` and `Owner`. The layout field is
+`Layout`. Verified by the dev run,
+`experiments/2026-10-21-disentangle-dev-run/`.
+
 ## 2026-10-21 — retire installations: the summary as the API returns it; Address and Contact not shown; Hardware and the sieg default from the layout (OPS-473, `jm/retire-installations` off `jds/v2_apis`) <!-- pending commit -->
 
 The dashboard follows the web-backend summaries once the `installations`,

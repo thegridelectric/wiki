@@ -7,6 +7,19 @@ the *why*.
 Newest at the top.
 
 <!-- pending commit -->
+## 2026-10-21 — disentangle-dev-run: the design on the laptop's d1 stack
+
+**Why.** The retire-installations spoke merges on an experiment, not on
+the three repos' unit suites. Cedar entered the dev registry and a dev
+PII store with scrambled person data; its layout and operating status
+went over the dev broker into journalkeeper's projections and out of
+web-backend as `gw.house.summary`. PASS, 15 of 15 harness checks plus
+the gateway seed and the not-reporting step; the dashboard step is
+open. Found that the `jm/spruce-unlimbo` scada sends `layout.lite` 013
+and the operating status with `UnixMs`, both ahead of or behind the
+snapshots journalkeeper and the summary word use.
+
+<!-- pending commit -->
 ## 2026-10-20 — beta-field-windows: oak's second window filed; emit_instances knows oak
 
 **Why.** Oak ran its first two windows on the branch; the second, on the
