@@ -10,6 +10,60 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-21 — Secondary pump commanded by hp boss in nolan (`a5f9cdb`)
+
+**What:** `gw.nolan.layout` 000 (staging, in place) axiom 30
+CommandNodeHandles pins `secondary-pump-relay` to
+`auto.hp-boss.secondary-pump-relay`; the axiom template, the runtime and
+the vanilla fixture follow, with a counterexample test for the relay
+declared flat.
+
+**Why:** at spruce on 2026-10-18 the heat pump restarted under admin with
+the secondary pump off and ran six minutes into a loop with no sink,
+because the pump floated with the tree and only local control drove it.
+The pump belongs to the heat pump whoever holds the tree, so hp-boss owns
+its relay as it owns the call relay. Only layouts with a heat exchanger
+have a secondary pump; House0 has none and its word is unchanged. The iso
+and charge valves stay floating: the admin panel keeps the iso open.
+
+## 2026-10-21 — Samsung hydrokit pair in gw1.device.type (`65f489b` on `jm/fir-samsung-device-type`)
+
+**What:** `gw1.device.type` 000 (staging, in place) gains
+`SamsungAM048TXMDCH` (outdoor unit) and `SamsungAM048CNBFCB` (indoor
+Hydro Kit); runtime enum regenerated.
+
+**Why:** fir runs a Samsung Hydrokit, and `fir_gen.py` declared the LG
+pair that beech and oak have because the make and model were never
+recorded. The scada's heat-pump signatures read the make off the device
+type, so fir's data must not pool with the LG set. Names follow the
+existing pattern: make prefix plus the nameplate designation verbatim.
+The scada and tlayouts snapshot regens and the fir gen correction
+follow in their own repos.
+
+## 2026-10-21 — Add gw.house.summary for backend -> frontend (`f8a5e50` on `jm/house-summary`)
+
+**What:** `gw.house.summary` 000, staging, owner gridworks-energy: one
+house as a dashboard login sees it (`Role`, `TaGNodeId`, `GNodeAlias`,
+`DisplayName`, `Layout` as a `oneOf` over `layout.lite` 011 and 012,
+`OperatingStatus` as a nested `gw.house.operating.status`,
+`LatestSnapshotTime`, the longest-running zone pair under axiom 1,
+`SendTimeMs`); its axiom template and seven runtime tests.
+`gw.dashboard.role` 000, versioned enum: `Admin`, `Owner`, `Viewer`,
+default `Viewer`. `gw.house.operating.status` 000 (staging, edited in
+place) renames `UnixMs` to `CreatedMs` in the schema, both examples and
+the registry summary. Runtime regenerated.
+
+**Why:** the dashboard is a separate app from the web backend, so the
+summaries response is an inter-app boundary and takes a word rather
+than a hand-built pydantic model (OPS-473). The summary nests the
+operating status because the concept of a system mode is retired with
+layout.lite 013; the status word is the one source of a house's
+high-level state. The time fields follow the sender-time rule in
+sema-CLAUDE: the status records a state change and may later be stored
+and re-sent, so it says `CreatedMs`; the summary is reassembled per
+request, so it says `SendTimeMs`. Both new words promote after the dev
+run.
+
 ## 2026-10-20 — add layout.bundle 000 (staging) (`c997534` on `jm/layout-bundle`)
 
 **What:** `layout.bundle` 000, staging: a set of terminal-asset layouts

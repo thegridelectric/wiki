@@ -10,6 +10,31 @@ repo's git history.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-10-21 — The secondary pump belongs to hp-boss (OPS-392)
+
+**What:** `secondary-pump-relay` is hp-boss's fixed relay. The layout
+dc declares its fixed sub-trees (`fixed_subtrees`: hp-boss with the
+call relay and, where the plant has one, the secondary pump; sieg-loop
+with the loop pair) and both `set_command_tree` rewrites walk that
+list. hp-boss subscribes to hp-watch and runs the pump: on while the
+heat pump is called or sensed running and while the watch does not
+know, off only with the call open and the unit sensed off; each pump
+command under its own id, the pump relay's report passed to the scada
+as it is. `NolanBufferOnlyTou` keeps the iso valve only, open with the
+call closed or the unit not sensed off. The gwsproto Nolan twin's axiom
+30 pins the handle; the Nolan test fixture moves the relay under
+hp-boss. The sema snapshot regenerated onto `a5f9cdb`; the gwsproto
+`DeviceType` twin gains fir's Samsung pair. Tests: the pump and report tests in `test_hp_boss.py`, the iso
+test in `test_local_control_nolan.py`, the tree, capabilities and
+live-chain tests updated.
+
+**Why:** at spruce on 2026-10-18 the heat pump restarted under admin
+with the secondary pump off and ran six minutes into a loop with no
+sink, because the pump floated with the tree and only local control
+drove it. The pump is the heat pump's whoever holds the tree. The
+valves stay floating: the admin panel keeps the iso open, its default.
+
 ## 2026-10-21 — The energy estimate does not depend on the dispatch hold (`b49f4e94`, OPS-392)
 
 **Why.** `compute_usable_energy_wh` returned nothing under

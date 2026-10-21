@@ -1,6 +1,6 @@
 # Nolan local control (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-10-20 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-10-21 · Linear: OPS-392
 
 > What this is: what to check as Nolan local control runs in the beta
 > windows, and the brief for the adversarial review. What is built is
@@ -133,15 +133,17 @@ test first:
    boot pulled the bundle record, the template and a Live forecast
    from the facade and kept them as sema files in the config dir.
 
-   **▶ Do this next.** Read the spruce window's record
-   (`experiments/2026-10-09-nolan-local-control-windows/` "Found") against the
-   table in "What to check in the field" and mark each row witnessed
-   or still open; the call, the band and the blind-band rows need a
-   longer window or an off-peak one. Then the maple window (both pis).
-   The cert window (`--cert`, the upstream link on spruce's own cert to
-   the prod broker; harness and box are ready) waits until
-   `layout.lite` 013 is published and `finalize-layout-lite-13.md` is
-   done: a window on the prod broker announces its layout to the fleet.
+   **▶ Do this next.** Commit the secondary-pump build on
+   `jm/spruce-unlimbo` and `jm/spruce` (the pending changelog entries
+   name the files), then the windows "What to check in the field" ends
+   with: the short spruce window first, to witness the pump staying on
+   under admin and stopping on the call opened from the panel; then
+   oak and beech. Fir's gen correction to the Samsung pair and its
+   pair regen are still to do before fir's first window. The cert
+   window (`--cert`, the upstream link on spruce's own cert to the prod
+   broker; harness and box are ready) waits until `layout.lite` 013 is
+   published and `finalize-layout-lite-13.md` is done: a window on the
+   prod broker announces its layout to the fleet.
 
 ### Shape
 
@@ -260,12 +262,23 @@ The energy estimate no longer depends on the dispatch hold: the two
 `test_usable_energy_does_not_depend_on_the_dispatch_hold`, and
 `executor/dispatch-gate.md` "The answer" states the rule.
 
-**Do this next**, on beech with the hold off for the window: the remaining
-refusals (`ServiceContractBroken`, `NoTaDeed`, `ScadaBlind`), the
-`InAdmin` termination and refusal through `gwa watch`, and a
-termination mid-contract.
+**Do this next, before any window (windows are held until more
+changes are in):**
 
-## The secondary loop belongs under hp-boss (field finding 2026-10-18)
+1. ✅ Fir's Samsung Hydrokit: `SamsungAM048TXMDCH` and
+   `SamsungAM048CNBFCB` in `gw1.device.type` (sema, 2026-10-21); the
+   snapshot regens, the fir gen correction and the fir pair follow.
+2. ✅ The secondary pump under hp-boss ("The secondary pump belongs to
+   hp-boss" below), built 2026-10-21; its spruce window is the test.
+
+Then the windows: oak (both pis, observe-only) to read all six flow
+channels from the first poll and no `unserved-post`, and re-read the
+204 W idle draw and relay 15; beech with the hold off for the
+remaining refusals (`ServiceContractBroken`, `NoTaDeed`,
+`ScadaBlind`), the `InAdmin` termination and refusal through
+`gwa watch`, and a termination mid-contract.
+
+## The secondary pump belongs to hp-boss (field finding 2026-10-18)
 
 **What happened.** In the spruce window of 2026-10-18
 (`experiments/2026-10-18-spruce-upstairs-fancoil-window/`, round 2) the
@@ -281,49 +294,35 @@ leaving water, and sat for nineteen minutes until the operator restored
 the loop by hand. Under local control alone the posture would have
 healed itself at the restart; the admin takeover froze it.
 
-**The rule this breaks.** The secondary loop must be consistent with the
-heat pump in every top state, admin included. Today it is consistent
-only while local control is awake, because the pump and valves float
-with the tree and local control is the only thing that drives them.
+**The rule this breaks.** The secondary pump must run whenever the heat
+pump does, in every top state, admin included. It did not, because the
+pump floated with the tree and local control was the only thing that
+drove it.
 
-**The change.** House0 already has the pattern: sieg-loop is a fixed
-sub-boss under hp-boss owning its relays, keeping them consistent with
-the heat pump whoever is on top, with the operational params choosing
-its strategy. Nolan gets the counterpart, a secondary-loop boss under
-hp-boss owning the secondary pump relay, the iso valve relay and the
-charge valve relay, with one mode, `Buffer` or `Store`, that local
-control sets and that defaults to `Buffer`:
+**The change (agreed 2026-10-21).** The secondary pump relay is hp-boss's
+fixed relay, as the call relay is: declared under `auto.hp-boss` in the
+Nolan word (axiom 30), kept under hp-boss by every tree rewrite, and
+run by hp-boss on its own call state and the hp-watch: on while the
+heat pump is called or sensed running and while the watch does not
+know, off only with the call open and the unit sensed off. No new
+actor, no new word: the relay already has its actor, and only a plant
+with a heat exchanger between the heat pump and the house has a
+secondary pump (Nolan today; a house1 layout later). House0 has none
+and its word is unchanged. The iso valve and the charge valve are not
+hp-boss's: local control opens the iso with the call and closes it
+with the unit sensed off and the call open, and under admin the
+operator keeps the iso open, which is its default. The pump alone with
+the heat pump off, as in the pump-speed sweep, is no longer reachable
+from admin; a window that needs it asks for an hp-boss override then.
 
-- The pump follows the heat pump: on when the call is closed or the unit
-  is sensed on, off when the call is open and the unit is sensed off,
-  after a settle. The state "call closed, pump off" becomes unreachable,
-  and hp-watch's weak spots (the shutdown ramp, defrost) matter less
-  because the call is part of the decision.
-- The valves follow the mode, with the invariant that at least one
-  destination is open whenever the pump runs: `Buffer` is iso open and
-  charge closed; `Store` is charge open and iso closed. When the pump
-  stops the iso closes against the convection loop off the buffer top.
-- Local control decides the call and the mode; it no longer commands the
-  pump or the valves. Admin commands the heat pump through hp-boss and
-  the destination through the loop boss, and reaches none of the three
-  relays directly (an interior node keeps its subtree). The one use this
-  removes, the pump alone with the heat pump off as in the pump-speed
-  sweep, returns as a loop-boss override command if a window needs it.
-- Only the first form, pump and iso as direct children of hp-boss, was
-  considered and rejected: the iso valve follows the destination, not
-  the pump, so a store charge would run the pump against a closed iso
-  with no one holding the charge valve open.
-
-**What it costs.** A sema change in one wave: the Nolan layout word's
-handle axiom gains `auto.hp-boss.<loop-boss>` and its three relay
-handles, a mode enum for the loop boss, the tlayouts Nolan gen, the
-gwsproto twin, both `set_command_tree` rewrites, and the loop boss as a
-machine the scada reports. Build `Buffer` first; `Store` is a declared
-value until the store is in use (`SeasonalStorageMode` is `BufferOnly`
-at spruce and the hack holds the charge valve closed). The test is a
-window on spruce: take admin while the heat pump is running, read the
-pump and iso unchanged; open the call from the panel, read the pump stop
-and the iso close after the settle.
+Built 2026-10-21 on `jm/spruce-unlimbo`: the layout dc's
+`fixed_subtrees`, both `set_command_tree` rewrites walking it, hp-boss
+subscribing to hp-watch and commanding the pump, local control keeping
+the iso only; pinned by the pump tests in `tests/actors/test_hp_boss.py`
+and the iso test in `tests/actors/test_local_control_nolan.py`. The
+test on the box is a window on spruce: take admin while the heat pump
+is running, read the pump unchanged; open the call from the panel,
+read the pump stop once the watch says off.
 
 ## A zone is cold only after its warm-up allowance (field finding 2026-10-18)
 

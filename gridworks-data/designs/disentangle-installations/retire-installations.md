@@ -10,16 +10,21 @@ Status: Accepted · Pass 1 · Updated 2026-10-21 · Linear: OPS-473
 
 ## Do this next
 
-Build "The summary word" below, in its order: the three sema items
-(`jm/` branch in sema; `gw.dashboard.role` needs the roles table's
-values first), the gw_data table, the journalkeeper projection with the
-deduction and the generic time read, web-backend, frontend. The
-frontend commit on `jm/retire-installations` (uncommitted, build green)
-goes in first; the summary-word frontend work follows on the same
-branch. Then the dev run.
+Steps 1 to 3 of "The summary word" are built and green. gw_data is on
+`main` (`32c8164`, PR #14, 0.7.0 on PyPI) and sema `f8a5e50` is
+committed. Next: commit gjk `jm/house-status-projection`, whose lock
+holds gw_data 0.7.0 and whose CI is green. Then step
+4, the web-backend summaries endpoint building `gw.house.summary`
+through the codec from the `layouts` and `house_operating_status`
+projections, on `jm/retire-installations`; then step 5 on the frontend
+branch (its first commit, uncommitted and build green, goes in first).
+Open decision: whether gjk's weather persistors move to what gwwf sends
+now (channel and bundle 002, forecast, location and observation 001,
+four new words) as its own commit on the gjk branch or its own issue;
+the seed pins the weather words until then. Then the dev run.
 
-Done so far: gridworks-data merged to `main` (migration `e5a1c2d3f4b6`,
-`gw_data` 0.5.0 on PyPI). web-backend `jm/retire-installations`:
+Done so far: gridworks-data merged to `main` (migrations `e5a1c2d3f4b6`
+and `d4a7c9e1b2f3`, `gw_data` 0.7.0 on PyPI). web-backend `jm/retire-installations`:
 `ddeee35` (the four query paths joining the `g_nodes` projection, the
 first test suite), `5de2bc3` and `7507f42` (both snapshots
 published-only from sema `1c52df0`), `a174a79` (the summaries join on
@@ -44,12 +49,12 @@ concept of a system mode is retired with layout.lite 013, so
 `SystemMode` and `MainAutoState` leave the summary and the frontend;
 the one state field is the house's operating status.
 
-1. **sema.** `gw.dashboard.role` enum, PascalCase values enumerated from
-   the roles table (`Admin`, `Owner`, and whatever else it holds).
+1. **sema.** `gw.dashboard.role` enum, PascalCase values from the roles
+   table (`Admin`, `Owner`, `Viewer`).
    `gw.house.operating.status` 000 is staging: rename `UnixMs` to
    `CreatedMs` in place (it records a state change and may later be
    stored and re-sent); it is published when the scada on
-   `jm/spruce-unlimbo` also sends it upstream. `house.summary/000`,
+   `jm/spruce-unlimbo` also sends it upstream. `gw.house.summary/000`,
    owner `gridworks-energy`: `Role`, `TaGNodeId` (`uuid4.str`),
    `GNodeAlias`, `DisplayName` (nullable), `Layout` (a `oneOf` over
    `layout.lite/011` and `/012`, widened by a version bump as layout
@@ -60,9 +65,11 @@ the one state field is the house's operating status.
    `LongestRunningZoneName`, `LongestRunningZoneStartTime` (nullable
    pair from the heat-call readings of the last day), `SendTimeMs`
    (the response is reassembled per request), `TypeName`, `Version`.
-   Nothing about a person. The name `house.summary` is the
-   recommendation; `ta.summary` and `installation.summary` were the
-   alternatives.
+   Nothing about a person. `gw.dashboard.role` is a versioned enum,
+   `Admin`, `Owner`, `Viewer`, default `Viewer` so an unknown role grants
+   the least. Both new words and the status rename are sema `f8a5e50` on
+   `jm/house-summary` off `jm/layout-bundle`; promotion follows the dev
+   run.
 2. **gw_data.** A `house_operating_status` projection table, one row per
    house keyed by the TA GNodeId, with the payload, `created_at` and a
    `source` column (`scada` or `derived`) for operators.
@@ -74,14 +81,18 @@ the one state field is the house's operating status.
    `TopState` and `LtnDispatching` from the snapshot's `top.state` and
    `gw1.main.auto.state`, `AcceptsDispatch` true in Auto and not
    Standby, `ScadaBlind` false since main checks no freshness,
-   `ValidationState` from the registry). Retiring main deletes the
-   deduction. With it, the sema message persistor reads `CreatedMs`,
+   `ValidationState` `UnValidated`, since no deed is in the journal and
+   the enum names that as the scada's own value before any deed).
+   Retiring main deletes the deduction. Built on gjk
+   `jm/house-status-projection` off `jm/layouts-projection`, snapshot
+   from sema `f8a5e50` with `--allow-staged`; gw_data table on
+   `jm/house-operating-status` (migration `d4a7c9e1b2f3`, 0.7.0). With it, the sema message persistor reads `CreatedMs`,
    else `SendTimeMs`, from any payload before its per-type table (the
    sender-time design, step 3).
-4. **web-backend.** The summaries endpoint builds `house.summary`
+4. **web-backend.** The summaries endpoint builds `gw.house.summary`
    instances through the codec, reading the status projection; the
    pydantic model goes.
-5. **frontend.** `src/sema/` mirrors `house.summary` and
+5. **frontend.** `src/sema/` mirrors `gw.house.summary` and
    `gw.house.operating.status` by hand until the sema TypeScript target
    exists (its own design in `wiki/sema/designs/`); the Houses table and
    the Status section read `Standby`, `ServiceMode` and `TopState` in

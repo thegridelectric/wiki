@@ -10,6 +10,25 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-21 — house_operating_status: the current operating status of each house (`32c8164`, PR #14, `gw_data` 0.7.0)
+
+**What:** a `house_operating_status` table, one row per TerminalAsset
+keyed on its GNodeId: the latest `gw.house.operating.status` word for
+the house, verbatim, with the scada alias, the word's name and version,
+the journaled message it came from, the sender's `CreatedMs` as
+`created_at`, and a `source` column that says whether the scada sent
+the row or gjk derived it from the layout and snapshot of a house still
+on the old scada code. Migration `d4a7c9e1b2f3`; `gw_data` 0.7.0. Both migration tests now
+walk to head and back below their own revision first, so they pass in
+any order.
+
+**Why:** the dashboard summary nests the operating status, and the
+status word is sent on change only, so a reader wants the latest row by
+key and never a window over `messages`; the same shape as `layouts`.
+The `source` column is for operators: the dashboard reads the payload
+either way, and retiring the old scada code deletes the derivation and
+leaves every row `scada` (OPS-473).
+
 ## 2026-10-20 — layouts: the current layout of each terminal asset (`0b938ca`, merged to `main` by PR)
 
 **What:** a `layouts` table, one row per TerminalAsset keyed on its

@@ -10,6 +10,32 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-21 — house operating status projection: one current status row per house, derived for the old scada code (`b49c94e` on `jm/house-status-projection`)
+
+**What:** `house_status_projection.py` writes `gridworks.house_operating_status`
+(gw_data 0.7.0): a live `gw.house.operating.status` upserts the house's
+row as `scada`, guarded on the word's `CreatedMs`; a house whose scada
+does not send the word gets a `derived` row built from its current
+layout and newest snapshot, through the snapshot's own
+`GwHouseOperatingStatus` class, and a scada row is never overwritten by
+a derived one. The derivation runs on each live `layout.lite` and
+`snapshot.spaceheat`, and `python -m gjk.rebuild_house_status` fills the
+table from the journal. The sema message persistor reads `CreatedMs`,
+else `SendTimeMs`, from any payload before its per-type table. The
+snapshot vendors `gw.house.operating.status` (staging, `--allow-staged`
+from sema `f8a5e50`); the published-only test reports it off `main`. The
+seed pins the gw.weather words to the versions the weather persistors
+implement, so a sema move does not drag in a bundle version the journal
+has no code for; the newer weather versions enter with that code. The
+test fixture is oak's real emission from the 2026-10-20 18:31 window.
+
+**Why:** the dashboard summary nests the operating status and the word is
+sent on change only, so readers want the latest row by key. Houses on
+the old scada code never send it; deriving their row from what they do
+send gives the dashboard one path for both fleets, and retiring the old
+code deletes the derivation (OPS-473). The generic time read is step 3
+of the sender-time design (OPS-472).
+
 ## 2026-10-20 — layouts projection: one current layout row per terminal asset (`d435ff0` on `jm/layouts-projection`)
 
 **What:** `layouts_projection.py` upserts each live `layout.lite` into

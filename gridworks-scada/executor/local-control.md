@@ -168,13 +168,17 @@ on-peak holds through the rest of the peak.
 - Zones on their thermostats (every failsafe relay de-energized, every
   scada zone relay open), charge valve closed, store pump off. These are
   commanded once, in the boot pass.
-- The secondary pump and iso valve follow the hp-watch state: on in
-  `HpDetectedOn` and `Unknown`, off in `HpDetectedOff`, the valve moving
-  in the same step as the pump. This follows the unit whatever closed
-  the call, so it is not a function of `HpCallOn`. The pump is commanded
-  the moment a state arrives, and each check derives it again and
-  commands only a change. A state that arrives while Dormant is kept and
-  commands nothing; the boot on wake commands the pump by it.
+- The iso valve is open while the call is closed and while the hp-watch
+  state is `HpDetectedOn` or `Unknown`, and closed only with the call
+  open and the state `HpDetectedOff`, against the convection loop off
+  the buffer top. It is commanded the moment the call or the state
+  changes, and only on a change. A state that arrives while Dormant is
+  kept and commands nothing; the boot on wake commands the valve by it.
+- The secondary pump is not this machine's. hp-boss owns its relay and
+  runs it on the same rule (called, or sensed on, or unknown), whoever
+  holds the tree (`control-hierarchy.md` "Fixed sub-trees vs floating
+  actuators"); the machine decides the call and the valve, so the pump
+  never runs against a closed iso under local control.
 
 **Boot** commands every actuator the machine is the direct boss of, in
 one pass: the postures above plus the call open.
@@ -230,7 +234,7 @@ and stops in under 62 s.
 
 **A held On is reported.** `HpDetectedOn` with every read between the
 lines for `HELD_ON_S` (600 s) means the unit has stopped and its standby
-draw sits above the off line, so the secondary pump is running between
+draw sits above the off line, so hp-boss keeps the secondary pump running between
 cycles. The watch raises one Warning glitch `hp-watch-held-on` per such
 spell, measured from the first between-read, and leaves the state
 alone; a read above the on line starts a new spell. The periodic report
@@ -273,8 +277,9 @@ subscription to nothing is a defect in the subscriber, found at boot.
   sends the node's latest state when it holds one, so a subscriber that
   starts after the publisher's first report still gets it.
 
-Subscribers today: `HpWatch` to `hp-odu-pwr`; `NolanBufferOnlyTou` to
-`hp-watch`; the sieg loop to `hp-boss`; the cold watch to `lc`.
+Subscribers today: `HpWatch` to `hp-odu-pwr`; `NolanBufferOnlyTou` and
+hp-boss (where the plant has a secondary pump) to `hp-watch`; the sieg
+loop to `hp-boss`; the cold watch to `lc`.
 
 ## The top state
 

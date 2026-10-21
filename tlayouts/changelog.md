@@ -10,6 +10,18 @@ repo's git history.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-10-21 — The Nolan gen declares the secondary pump under hp-boss (OPS-392)
+
+**What:** `nolan_sema_gen.py` gives `secondary-pump-relay` the handle
+`auto.hp-boss.secondary-pump-relay`, as the call relay has; the sema
+snapshot regenerated for `gw.nolan.layout` axiom 30; the spruce pairs
+regenerated.
+
+**Why:** hp-boss owns the secondary pump (gridworks-scada changelog,
+same date): a plant with a heat exchanger runs its pump whenever the
+heat pump runs, whoever holds the tree.
+
 ## 2026-10-21 — fix the three flow pico types (`1bdc455`, OPS-392)
 
 **Why.** Oak's two beta windows on 2026-10-20 never heard its three flow

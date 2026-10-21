@@ -98,14 +98,19 @@ other actuator's is `auto.<Name>`:
 | `standby` | `auto.lc.standby` | both |
 | `hp-boss` | `auto.hp-boss` | both |
 | `hp-scada-ops-relay` | `auto.hp-boss.hp-scada-ops-relay` | both |
+| `secondary-pump-relay` | `auto.hp-boss.secondary-pump-relay` | Nolan (the plant with a heat exchanger) |
 | `sieg-loop` | `auto.sieg-loop` | House0 (sieg word) |
 | `hp-loop-on-off-relay` | `auto.sieg-loop.hp-loop-on-off-relay` | House0 (sieg word) |
 | `hp-loop-keep-send-relay` | `auto.sieg-loop.hp-loop-keep-send-relay` | House0 (sieg word) |
 
 Some
 sub-bosses own **fixed** relays regardless of who is on top: `pico-cycler` always owns the vdc relay (pico-reboot is cross-cutting),
-`hp-boss` owns `hp-scada-ops-relay`, `sieg-loop` owns the loop relays. An interior node keeps its
+`hp-boss` owns `hp-scada-ops-relay` and, where the plant has one, `secondary-pump-relay`;
+`sieg-loop` owns the loop relays. An interior node keeps its
 subtree: a tree rewrite reparents the interior node and never reaches through it to its relays.
+The layout dc declares the owners and their relays as `fixed_subtrees`
+(`hydronic_layout.py`), and both rewrites walk that list, so a layout family with a
+different plant changes the list and not the rewrites.
 The pico-cycler hangs under **five-v-boss**, which hangs under the tree's root:
 `<root>.five-v-boss.pico-cycler.vdc-relay`, root `admin` while admin holds the tree, `auto` under
 local-control or leaf-ally (the shape both layout words declare; tlayouts `nolan_sema_gen.py`,
@@ -123,7 +128,16 @@ the `hp-boss` node with ActorClass HpBoss, the actor is constructed in every lay
 `set_command_tree` rewrites (`scada.py`, `actors/command_node.py`) place it under the boss with
 `hp-scada-ops-relay` under it, so the relay reports to hp-boss in every state and every layout and
 an operator commands the heat pump as `<boss>.hp-boss` with `TurnHpOnOff`, never the relay
-directly (`tests/actors/test_hp_boss.py`, `test_hp_boss_live.py`). Having a sieg loop is topology
+directly (`tests/actors/test_hp_boss.py`, `test_hp_boss_live.py`). Where the plant has a secondary
+pump (a heat exchanger between the heat pump and the house: Nolan) hp-boss owns its relay too and
+runs it: on while the heat pump is called or hp-watch senses it running and while the watch does
+not know, off only with the call open and the unit sensed off, whoever holds the tree. The pump is
+the heat pump's, so an admin session that opens the call stops the pump through hp-boss and a unit
+restarting under admin gets its pump back; neither admin nor local control reaches the pump relay.
+The iso and charge valves stay floating: local control opens the iso with the call and closes it
+with the unit sensed off and the call open, and under admin the operator keeps the iso open. Each
+pump command is its own minted id and the pump relay's full report goes to the scada as it is
+(`test_the_secondary_pump_follows_the_call_and_the_sensed_unit`). Having a sieg loop is topology
 (the layout word); how it is driven is operational: `SiegLoopStrategy` in the operational params
 selects hp-boss's **strategy**, not its existence. Under `StratProtect` TurnOn passes through
 `PreparingToTurnOn` and waits on `SiegLoopReady` (or `TURN_ON_ANYWAY_S`); under `HoldFullSend`
@@ -214,18 +228,18 @@ assembly, hardcoded to `H0N.*`. The pass-two direction (OPS-407) un-fuses them �
 ## The two `set_command_tree` locations
 
 `Scada(PrimeActor, ScadaInterface)` and `CommandNode` (`actors/command_node.py`) have **no shared
-ancestor**, yet both carry a `set_command_tree`, so the House0 special-casing is **copy-pasted** across the two. The intended
-refactor: the **handle-assignment** (pure topology structure) moves onto the layout dc — `HardwareLayout`
-base holds the shared sub-methods; each subclass's top-level assembly composes them over its present nodes
-(the per-layout partition). Both actors **delegate** to the layout (`self.layout.assign_command_tree(boss,
-actuator-scope)` — Scada passes all actuators, a sub-actor passes `my_actuators()`); the actor keeps only
-*when* to re-root and the `NewCommandTree` notify to the LTN. Composition, since the two can't share a base.
+ancestor**, yet both carry a `set_command_tree`. The per-layout knowledge they share is the layout
+dc's `fixed_subtrees`: each rewrite walks it, hangs every owner under the boss with its relays under
+the owner, and hangs every other actuator in its scope flat under the boss (Scada all actuators, a
+sub-actor `my_actuators()`). The scada's rewrite alone places five-v-boss under the tree's root. The
+remaining refactor is to move the walk itself onto the dc (`assign_command_tree(boss, scope)`) so
+the actor keeps only *when* to re-root and the `NewCommandTree` notify to the LTN.
 
 ## House0-specific vs generic (today)
 
 - **Generic:** the handle→boss arithmetic (`hardware_layout.py`), the `ActorClass`→actor factory
   (`actors/__init__.py`), message routing, `my_actuators` discovery, the HSM enum definitions.
-- **House0-specific:** all `H0N.*` names; the `sieg-loop` sub-tree; the pico-cycler-under-root
+- **House0-specific:** all `H0N.*` names; the `sieg-loop` entry of `fixed_subtrees`; the pico-cycler-under-root
   re-parenting; `house_0_layout.py` requiring a pico-cycler when pico actors are present. A minimal sim layout
   (`gw1.simple.sim.layout`: no pico-cycler, no sieg, single `hp-relay`) follows the `else` branches —
   except the call to `self.layout.vdc_relay`, which must become "if this layout has a pico-cycler-owned
