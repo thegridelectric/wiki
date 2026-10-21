@@ -1,6 +1,6 @@
 # tlayouts — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-09-18
+Status: Draft · Pass 0 · Updated 2026-10-19
 
 > What this is: the generators that author every GridWorks hardware layout
 > and its paired operational params as validated Sema words, and the repo
@@ -54,15 +54,19 @@ Drivers run from the scada venv
 coupling is the `gwsproto.names` constants the gens import. A driver's
 `main()` is the validation gate: it serializes both artifacts and decodes
 each back through the snapshot codec, which runs the word's axioms,
-before anything is written (`oak_gen.py:222`).
+before anything is written (`beech_gen.py:263`).
 
 The houses today: beech and maple (House0, deployment), spruce and
 honeysuckle (Nolan; honeysuckle is the bench), and the sim pairs
 orange-sim, willow-sim (House0) and spruce-sim (Nolan), which are the
 scada suite's fixtures. Oak, fir and elm have no siegenthaler loop and
-are authored as House0 fixtures that are not deployable: each carries a
-pretend `sieg` flow meter and `sieg-cold` thermistor so the House0 word
-validates (`oak_gen.py:204`), until a sieg-less layout word exists.
+are authored as House0 homes until a sieg-less layout word exists. Oak
+carries a fake sieg BTU meter (`sieg-btu`, on a pico that does not
+exist) whose node and four sieg channels are disabled, and runs its
+sieg loop on relays nothing at the house is wired to
+(`oak_gen.py:223`). Fir and elm are fixtures that are not deployable:
+each carries a pretend `sieg` flow meter and `sieg-cold` thermistor and
+fails the House0 word's `SiegManifoldChannels` axiom.
 
 ## Temporary authority
 
@@ -87,16 +91,25 @@ live record.
   node-bound component keeps its id when the rename is declared per house
   in the config's `renames` (new name, deployed name). Undeclared, the new name is minted and the
   channel's history splits at the id.
+- **An id is minted once per run.** A component key that neither the
+  reference nor the previous output holds is minted on its first lookup
+  and returned on every later one, so two emitters that name one
+  component (a Honeywell thermostat's node and its zone circuit) give it
+  one id (`layout_gen.py:470`,
+  `tests/test_component_id_stability.py:169`).
 - **A deployed house's ids come from its pi, then from the gen's previous
-  output.** The spruce, beech and maple drivers fetch the pi's running
+  output.** The spruce, beech, maple and oak drivers fetch the pi's running
   `hardware-layout.json` over rclone into `output/<house>/<house>.uploaded.json`
   (`LayoutIDMap.fetch_or_last_copy`; offline, the last fetched copy) as
   the reference, and pass their own last layout output as `previous`. A
   name the pi lacks keeps the id the previous output gave it, so two
   runs give identical bytes; a previous-output id the pi assigns to
-  another name is skipped (`LayoutIDMap.without_ids_of`). `output/` is
-  gitignored, so a minted id is durable only on the laptop that minted it
-  and on the box the layout was put to.
+  another name is skipped (`LayoutIDMap.without_ids_of`).
+- **The output folders a gen regenerates byte-identically are committed.**
+  `.gitignore` names them (beech, maple, oak, spruce, spruce-async1 and
+  the three sim pairs), each with its `<house>.uploaded.json` reference,
+  so a minted id is durable in git. Every other path under `output/` is
+  ignored.
 - **Every component is referenced by exactly one ShNode** (the second
   test in the same file).
 - **No assumed defaults.** A fact the word requires and the config does
@@ -134,8 +147,7 @@ live record.
 
 - **`FlowSpec`** — one standalone flow meter at a `position`, an open
   `SpaceheatName` the `<position>-flow` / `-hz` grammar composes
-  (`FlowNodeNames` / `FlowChannelNames`): `dist2` → `dist2-flow`, `sieg-send`
-  → `sieg-send-flow`. `node_name` is the name a deployed pico posts under
+  (`FlowNodeNames` / `FlowChannelNames`): `sieg-send` → `sieg-send-flow`. `node_name` is the name a deployed pico posts under
   when it is not the grammar's: its node and flow channel take that name,
   its Hz channel `<node_name>-hz`, and `<position>-flow` is an identity
   DerivedChannel over the flow channel (maple's `sieg-send`; a one-off for
@@ -165,13 +177,16 @@ live record.
   ops-params synthesis, the sim pairs.
 - The gens need the scada venv; tlayouts could depend on scada as a
   package once scada is one.
-- Minted ids have no durable home: a fresh laptop with no `output/` mints
-  every name the pi lacks again. The terminalasset registry is the
-  intended id authority ("Temporary authority").
+- Elm's and fir's output is not committed, so their minted ids have no
+  durable home until their gens validate. The terminalasset registry is
+  the intended id authority ("Temporary authority").
+- Nothing re-runs the gens and compares them with the committed output;
+  the comparison is by hand.
 - Nothing checks that a pi name absent from the gen output is retired
   rather than an undeclared rename; the comparison is by hand.
-- elm, fir and oak take no reference and mint every id on each run; they
-  take the pi-then-previous reference when their layouts go to a box.
+- elm and fir take no reference; they take the pi-then-previous
+  reference when their layouts go to a box. Oak declares no `renames`, so
+  32 of its 95 nodes take new ids where the pi uses an older name.
 - The ADS board component keys on a type key rather than a node
   (`hardware/thermistor.py:60`).
 - beech and maple write `hardware-layout.generated.json` and
@@ -203,5 +218,5 @@ live record.
 - **reference** — the prior layout a driver reads ids from.
 - **sim pair** — a simulated house whose layout and ops files are scada
   test fixtures; every device is a `SimDeviceType`.
-- **fixture house** — oak, fir, elm: real houses authored against a word
+- **fixture house** — fir, elm: real houses authored against a word
   that does not fit them, not deployable.

@@ -1,31 +1,44 @@
 # Sender-time: one name for the sender's clock
 
-Status: Draft · Pass 0 · Updated 2026-08-05
+Status: Accepted · Pass 1 · Updated 2026-10-21 · Linear: OPS-472
 
-> What this is: the standard for carrying time-as-the-sender-understands-it
-> in sema words — one field name, one format, applied as words naturally
-> version — plus the first adopter (`g.node.forest/001`) and the snapshot
-> upgrades it triggers.
+> What this is: the standard for the sender's clock in sema words:
+> `CreatedMs` by default, `SendTimeMs` for reassembled current-state
+> words, one format, applied as words naturally version. The first
+> adopter (`g.node.forest`) and the authoring rule are done; the
+> consumer rule remains.
 
 ## The standard — two times, not one
 
-A message has up to two sender-clock facts, and store-and-forward words
-prove they are different:
+A message has up to two sender-clock facts. `CreatedMs` is the default
+and every word has it; `SendTimeMs` is the exception.
 
+- **`CreatedMs`** — the sender's clock when the message content came
+  to be. Every word takes it from birth. A word whose content is a
+  state change, an observation or a record is complete with this one
+  field, whether it is sent at once or stored and re-sent later: the
+  content was created once, and that is its time. `glitch`, fire-and-forget
+  and never stored, already says `CreatedMs`; the persisted-event words
+  have the same fact under diverging names (`report.event` and `report`
+  both mean exactly this and spell it differently) and each converges
+  on `CreatedMs` at its natural next version.
 - **`SendTimeMs`** — the sender's clock at the moment the message is
-  assembled for sending. In-word `SendTimeMs` is ONLY for words that are
-  assembled fresh per send (current-state payloads like `g.node.forest`),
-  where assembly and send coincide. For persisted-until-acked events the
-  send happens hours after creation and re-sends repeat — and a persisted
-  artifact is immutable, so it cannot be re-stamped per transmission.
-  Per-transmission send time, if ever needed for those, is envelope
-  territory (transport metadata), not the word's.
-- **`CreatedMs`** — the sender's clock when the message content was
-  created. This is what the persisted-event words already carry under
-  diverging names (`report.event` and `report` both mean exactly this and
-  spell it differently; `glitch` already says `CreatedMs`). The standard
-  name is `CreatedMs` — the existing glitch precedent — converged on at
-  each word's natural next version.
+  assembled for sending, for a word whose assembly indicates no state
+  change: a reassembly of current state on each request or broadcast,
+  where a re-send rebuilds the message rather than repeating it
+  (`g.node.forest`, a dashboard summary). Such a word has no
+  `CreatedMs`, since nothing in it came to be at a moment.
+
+A word never has both. For a word created at one time and transmitted
+later, stored until acked and re-sent, the time of each transmission is
+transport metadata and belongs in the envelope; the stored word stays
+immutable with its `CreatedMs`.
+
+Two worked examples. `gw.house.operating.status` is assembled fresh on
+every change, but each instance records a state change and may one day
+be stored and re-sent as an event, so it takes `CreatedMs`. A
+house-summary response is rebuilt per request from projections and
+says nothing about when any state changed, so it takes `SendTimeMs`.
 
 Common to both:
 
@@ -54,33 +67,50 @@ analytics, for replayable captured runs, and for order-aware projections
 Published versions are immutable and a fleet-wide bump is a known
 cascade. The standard applies:
 
-1. **Now:** `g.node.forest/001` — optional `SendTimeMs`, stamped by gnr
-   at forest assembly. The registry is never simulated: gnr is a notary,
-   and notarization time is wall-clock even when the fleet described runs
-   simulated time — recorded as an invariant in the word's description.
-   The flip to **required** rides the `g.node.gt/006` sweep (OPS-488):
-   the forest bumps to 002 there anyway, and gnr, the sole emitter,
-   already stamps at every assembly site.
-2. **As words naturally version:** any word carrying a sender-clock field
-   under another name converges on the standard at its next version —
-   `CreatedMs` for creation time (the persisted-event words:
-   `report.event`'s and `report`'s divergent spellings both land here),
-   `SendTimeMs` only where assembly and send coincide. New words use the
-   standard from birth.
-3. **Convention home:** when ratified, the naming rule lands in the sema
-   authoring spec (change-controlled — that edit is part of this design's
-   completion, discussed per the spec-change protocol).
+1. **First adopter, done.** `g.node.forest/001` has optional
+   `SendTimeMs` and `/002` requires it. gnr stamps it at every forest
+   assembly (`src/gnr/db/authority.py`, the registry's wall clock: gnr
+   is a notary, and notarization time is wall-clock even when the fleet
+   described runs simulated time, recorded as an invariant in the word's
+   description). Journalkeeper's forest persistor takes it as the
+   message's created time for both versions.
+2. **As words naturally version:** any word with a sender-clock field
+   under another name converges on the standard at its next version:
+   `CreatedMs` for creation time (the persisted-event words,
+   `report.event`'s and `report`'s divergent spellings both end up
+   here; `gw.house.operating.status` renames `UnixMs` before it is
+   published), `SendTimeMs` only for the reassembled current-state
+   words. New words use the standard from birth. One published word
+   misfits: `energy.instruction/000` says `SendTimeMs` for what is a
+   command created at a moment. Nothing sends or handles it (checked
+   2026-10-21: a protocol class, two seed requests, a journalkeeper
+   table entry, three TODO comments), so it converges on `CreatedMs`
+   at whichever version revives it and no bump is forced now.
+3. **Consumers read the standard names first.** The journalkeeper's
+   sema message persistor takes `CreatedMs`, else `SendTimeMs`, from
+   any payload before consulting its per-type table, so a word on the
+   standard needs no table entry; the table shrinks to the legacy
+   spellings and goes when the last of them converges. The first
+   beneficiary is the latest-status projection for
+   `gw.house.operating.status`, and this step is built with that
+   projection rather than as its own issue. The dashboard frontend
+   reads the same two names and nothing else.
+4. **Convention home: `wiki/conventions/sema-CLAUDE.md` "Registry
+   rules".** The sema spec is the language-neutral standard and says
+   nothing about which field names a GridWorks word uses; that is our
+   own authoring rule, so it lives in the protocol file every sema
+   session loads. Written 2026-10-21.
 
-## Consumers needing upgraded snapshots (for the first adopter)
+## Build status
 
-- **grid-node-registry (gnr)** — emitter; vendored snapshot regen + stamp
-  `SendTimeMs` where `get_forest` assembles the broadcast/response.
-- **gridworks-journalkeeper (gjk)** — consumer; snapshot regen (seed
-  already `include_all_versions`), `persist_v001` on the forest
-  persistor; `SendTimeMs` becomes the message's `created_at`.
-- **Not affected:** gwbase (its snapshot predates the forest lineage and
-  does not carry it); the ear (lossless witness, no sema decode); web
-  (reads gnr's REST API, not a snapshot).
-- **Later:** the terminalasset-registry inherits the standard at birth;
-  the gw_data `sent_at` columns (OPS-443) give projections their
-  do-not-regress guard.
+- `g.node.forest/001` and `/002`, gnr stamping, journalkeeper
+  persisting: done.
+- `layout.bundle/000` (`SendTimeMs`), `glitch/000` and
+  `gw.opsgenie.alert/000` (`CreatedMs`): on the standard from birth.
+- The rule in `sema-CLAUDE.md`: done.
+- Open: the consumer rule in journalkeeper's sema message persistor
+  (step 3, built with the `gw.house.operating.status` projection); the
+  `UnixMs` rename in that word before it is published.
+- Not affected: gwbase (its snapshot predates the forest lineage); the
+  ear (lossless witness, no sema decode). The gw_data `sent_at` columns
+  give projections their do-not-regress guard.

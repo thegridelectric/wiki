@@ -10,6 +10,50 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-21 — The energy estimate does not depend on the dispatch hold (`b49f4e94`, OPS-392)
+
+**Why.** `compute_usable_energy_wh` returned nothing under
+`OperatorHold` or `ServiceContractBroken`, so a held house, the one an
+operator is watching, published no `usable-energy`. The estimate is a
+fact about the plant and the hold is a fact about dispatch. The guard
+keeps service mode, buffer freshness and the forecast and drops the two
+hold clauses; `executor/dispatch-gate.md` "The answer" says so. Test:
+a House0 scada under both holds with hot tanks and a forecast
+publishes `usable-energy`.
+
+## 2026-10-21 — A post no actor serves is a Warning glitch (`5a598be2`, OPS-392)
+
+**Why.** Oak's two beta windows on 2026-10-20 never heard its three
+flow picos: the oak gen had declared them hall while they are reed, so
+the actor registered only the hall routes and the reed posts got a
+silent 404. What a pico posts, and as which node, is known only once it
+posts, seconds after the cycler toggles the 5 V bus, so this cannot fail
+the boot; and a per-actor check would still assume the layout has the
+node name right. So the app registers one catch-all POST route after
+every actor's routes (`actors/unserved_post.py`): a post nothing serves
+is an `unserved-post` Warning glitch from the scada node, one per path
+per day, naming the path and whatever HwUid, TypeName and Version the
+body says, with a log line on every post. A served path still wins; a
+GET to an unknown path is unchanged. Tests: the catch-all is the last
+route; a reed post to a hall node and a post for a node the layout
+lacks each glitch once a day by path.
+
+## 2026-10-20 — A FromTHermostat zone is not cold right after a thermostat raise (`b3b71004`, OPS-392)
+
+**Why.** Oak started heating on 2026-10-17 with its upstairs zone 9 F
+under its setpoint and the cold watch paged after five minutes while the
+house warmed at the 4 F an hour a called zone manages. The judgment now
+gives a `FromThermostat` zone a warm-up allowance of its deficit (capped
+at 10 F) over `WARM_UP_F_PER_H` at three starts: a boot, a raise of the
+thermostat setpoint, and the pass after the local control leaves
+`InBackup` or `ColdOverride`, which the watch sees on its top-state
+subscription. Until it runs out the zone is not cold; after it the
+judgment and the five-minute latch run as before. A thermostat lowered
+counts at once and a `Learned` zone keeps its calling-under-the-record
+rule. `cold_critical_zones` and `is_system_cold` take the time of the
+pass, as the watch already does. Spec: `executor/cold-house.md` "The
+judgment".
+
 ## 2026-10-18 — The scada reads weather forecast 001 on bundle 002; a missing wind series fills from the template with a warning glitch (`52a9eb0a`, OPS-597)
 
 **Why.** The weather service moved to station-based records and

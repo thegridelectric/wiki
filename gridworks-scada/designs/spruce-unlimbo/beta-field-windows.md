@@ -1,6 +1,6 @@
 # Beta field windows
 
-Status: Draft · Pass 0 · Updated 2026-09-24 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-10-20 · Linear: OPS-392
 
 > What this is: the recurring field test of the `jm/spruce-unlimbo` code.
 > After roughly each spoke the branch runs in a bounded window on one house
@@ -33,8 +33,12 @@ One house per layout family per round:
   carries the siegenthaler loop; a loop left fully closed while the heat
   pump runs trips the heat pump, so relay positions are checked against
   the bus, not only against the log.
-- **one of fir / oak** for `gw.house0.no.sieg`, from the round after
-  `layout-word-axioms.md` "The `gw.house0.no.sieg` word" ships its word and gens.
+- **oak** for the sieg-less House0 houses, on `gw.house0.layout` with a
+  fake sieg surface (BTU pico disabled, loop on relays 14 and 15 that
+  nothing is wired to) until `layout-word-axioms.md` "The
+  `gw.house0.no.sieg` word" ships; `oak_window.sh`, both pis, as beech.
+  Fir follows once it has a gen. Oak has never had a window: its first is
+  observe-only.
 
 A round MAY skip a family the spoke could not have touched; the round's
 logbook line says which families ran.
@@ -63,7 +67,7 @@ logbook line says which families ran.
 ## The record
 
 Every round adds to one folder,
-`experiments/2026-09-18-beta-field-windows/`. Evidence files and instances
+`experiments/beta-field-windows/`. Evidence files and instances
 accumulate, named by house and window stamp. The README does not
 accumulate: it states what is known now and what is still a mystery, and
 each round rewrites it. A mystery a round resolves leaves the list and
@@ -120,9 +124,9 @@ read; the UnknownChannels logger lists beech's declared-disabled
 channels. The DEBUG-only checks were not observed. The reports stayed
 on the boxes (no LTN, so the upstream link never went active) and each
 window closed before its second report boundary, so the reporting
-cadence went unread. Open: whether `dist2-flow` should be live at
-beech, and whether one flatlined pico should keep power-cycling every
-pico on the bus.
+cadence went unread. The `dist2-flow` meter is no longer at beech and
+its gen names no such pico. Open: whether one flatlined pico should
+keep power-cycling every pico on the bus.
 
 1. **Run round five with `--debug`** once the params reporting and the
    disabled-channel logging are changed, at least 11 minutes each so

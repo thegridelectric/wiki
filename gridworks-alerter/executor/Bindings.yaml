@@ -149,6 +149,8 @@ data:
   - {Concern: "tap", Clause: "4a", Kind: symbol, TargetName: "gwalerter.tap.listed_alert", File: src/gwalerter/tap.py}
   - {Concern: "tap", Clause: "4a", Kind: test, TargetName: "test_the_told_set_is_what_opsgenie_lists", File: tests/test_tap.py}
   - {Concern: "tap", Clause: "4a", Kind: test, TargetName: "test_listed_alert_reads_opsgenies_shape", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "4a", Kind: test, TargetName: "test_the_listing_is_read_on_its_own_cadence", File: tests/test_tap.py}
+  - {Concern: "tap", Clause: "4a", Kind: setting, TargetName: "tap_listing_s", File: src/gwalerter/config.py}
   - {Concern: "tap", Clause: "4b", Kind: test, TargetName: "test_a_failed_listing_keeps_the_told_set", File: tests/test_tap.py}
   - {Concern: "tap", Clause: "4c", Kind: test, TargetName: "test_an_alias_opsgenie_holds_that_the_store_does_not_is_closed", File: tests/test_tap.py}
   - {Concern: "tap", Clause: "4d", Kind: test, TargetName: "test_a_close_made_by_hand_is_undone_while_the_condition_holds", File: tests/test_tap.py}

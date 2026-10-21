@@ -225,7 +225,10 @@ re-runnable reproducer and `Reviewed` points at it. Rhythm:
 **A field bug gets its local test first.** A bug found running live SHALL
 get a local test that reproduces it and fails before the fix goes in. Where
 no local test can reach the bug, the missing simulation (a settable sim
-pin, a sim driver value) is the first change.
+pin, a sim driver value) is the first change. A fault the scada can know
+before any relay actuates fails the boot. A fault it can only learn after
+actuation has begun (a pico's params arrive seconds after the cycler
+toggles the 5 V bus) is a glitch, and the test asserts the glitch.
 
 ## Commit suggestions
 

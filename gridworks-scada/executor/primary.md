@@ -1,6 +1,6 @@
 # gridworks-scada — Rebuild Specification (primary)
 
-Status: Draft · Pass 0 · Updated 2026-09-12
+Status: Draft · Pass 0 · Updated 2026-10-21
 
 The faithful-rebuild hub for `gridworks-scada`. Intended to grow into a
 language-agnostic account complete enough to rebuild the SCADA from these docs.
@@ -143,9 +143,11 @@ Normative across the domain — full statements in
   forget: published directly upstream, never acked or persisted, so one
   raised while the upstream link is down is lost. A problem event rides the
   acked, persisted event path and is kept for a report that must reach the
-  cloud. The glitch level says whose fault it is. **Warning** is a field condition the scada
-  sees and works around: a pico on older firmware, an open thermistor, a
-  flatlined or unknown pico, a garbled post. **Error** is the scada's own
+  cloud. The glitch level says whose fault it is. **Info** is a condition
+  the scada owns and handles on its own: a pico flatlined or zombied by
+  the cycler, whose state reports show the cycling. **Warning** is a field condition the scada
+  sees and works around: a pico on older firmware, an open thermistor, an
+  unknown pico, a post no actor serves, a garbled post. **Error** is the scada's own
   failure: an exception in a handler, a state machine in an impossible
   state, a layout/code mismatch found at runtime. Both show on the Morning
   reports page. **Critical** pages the person on call through the alerter

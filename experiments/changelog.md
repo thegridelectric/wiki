@@ -7,6 +7,12 @@ the *why*.
 Newest at the top.
 
 <!-- pending commit -->
+## 2026-10-20 — beta-field-windows: oak's second window filed; emit_instances knows oak
+
+**Why.** Oak ran its first two windows on the branch; the second, on the
+corrected pair, is the record (the first was dropped). The instance emitter
+needed oak's scada alias.
+
 ## 2026-10-17 — spruce-radiant-slab: star_fit types what it already does (`jm/trace-decode-stance`)
 
 **What:** `star_fit.py` opens the summary sheet as `wb.worksheets[0]`,

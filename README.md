@@ -82,6 +82,7 @@ design area.
 | [`flo/`](flo/) | FLO — the per-house bid optimizer (`gridflo`, private `gridworks-innovations/gridworks-flo/`); runs in-process in each LTN today, becoming its own service (OPS-514). Executor hub stub only. |
 | [`gridworks-weather-forecast/`](gridworks-weather-forecast/) | Weather service. Today: like-for-like port of `gjk/weather_service.py` (publishes `weather` v000). Eventually: forecasts (`weather.forecast`) for LTN forward-looking optimizers + observations under a renamed `gw.weather`-ish type. |
 | [`gridworks-web-backend/`](gridworks-web-backend/) | The fleet web page's two services: the read API over the journal DB and the realtime WebSocket gateway from the tap broker. |
+| [`gridworks-web-frontend/`](gridworks-web-frontend/) | The fleet dashboard in the browser, a GitHub Pages app over the web-backend API and gateway. Changelog only so far. |
 | [`gridworks-proactor/`](gridworks-proactor/) | The MQTT-native "live actor" + monitored-communication infra under the scada (first-pass spec) |
 | [`ear/`](ear/) | The universal audit tap / fundamental persistence mechanism |
 | [`shovel/`](shovel/) | Mirrors the audit tap onto the analytics broker, one way |

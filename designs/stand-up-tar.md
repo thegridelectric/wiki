@@ -1,6 +1,6 @@
 # Stand up TAR (the terminal-asset registry)
 
-Status: Draft · Pass 0 · Updated 2026-10-06 · Linear: [OPS-471](https://linear.app/gridworks/issue/OPS-471)
+Status: Draft · Pass 0 · Updated 2026-10-19 · Linear: [OPS-471](https://linear.app/gridworks/issue/OPS-471)
 
 **EDD: no** build-out — verified by the suite plus a deployed seed that round-trips
 layout + operational-params I/O and provisions a real SCADA from its record; not a
@@ -18,25 +18,19 @@ standalone experiment.
 
 ## ▶ Do this now (for the next Claude)
 
-Phase 1 is underway. State as of 2026-07-03:
+Phase 1 is built. `tlayouts` is a uv project with a vendored sema snapshot;
+the house gens emit the two sema artifacts on the snapshot types and decode
+both before writing; the scada reads the pair through
+`ops_and_sema_to_dc` (`gridworks-scada/gw_spaceheat/sema_to_dc.py`). The
+gens still import `gwsproto.names`, so they run from the scada venv.
 
-- ✅ **tlayouts uv scaffold + snapshot infra committed** (`tlayouts` `jm/spruce`, `0cdf17f`):
-  `pyproject.toml`, `tlayouts_seed_request.yaml` (gwsproto-mirroring `local_names`),
-  `build_tlayouts_snapshot.sh`. The generator runs and computes the closure.
-- ✅ **Board-resident relay Sema vocabulary** authored + green (`sema` `jm/sim-vocab`, `fae8d27`
-  + `11be3be`): `relay.control.config`, `i2c.relay.component.gt`, `gpio.relay.component.gt`,
-  `gw1.device.type/001`.
-- ⛔ **The snapshot build is blocked** — its round-trip gate rejects the stale layout
-  `examples:` (reshaped in place; `gw.house0.layout` fails 3399 runtime-decode errors).
-
-**The single next move rides [OPS-442](https://linear.app/gridworks/issue/OPS-442)
-(example-runtime-validation — Done):** the main sema suite now runtime-decodes every
-example, so regenerate the stale layout examples (`gw.house0.layout`, `gw.nolan.layout`,
-`gw1.simple.sim.layout`) to the reshaped shapes. That
-unblocks `./build_tlayouts_snapshot.sh`. **Then** Phase-1 step 2: port `layout_gen` +
-`house0_sema_gen` into `tlayouts` on `sema.runtime.types` (import swaps), emitting the two Sema
-JSON artifacts — at which point the *generated* reshaped layouts become the fresh examples
-(closing the loop). gwsproto relay types stay deferred to pass-two (see Open).
+The work now is step 1 of "The path here": tlayouts on GitHub as the
+interim record ([OPS-392](https://linear.app/gridworks/issue/OPS-392)).
+The output folders that regenerate byte-identically are committed with
+their pi references (beech, maple, oak, spruce and the sim pairs; 2026-10-19).
+**Next:** the drift test, a tlayouts `ci.sh` that re-runs every gen and
+fails unless the output equals the committed JSON. Elm and fir join the
+record once their gens validate.
 
 ## Why a separate repo/service (not folded into GNR, not in the scada venv)
 
@@ -105,6 +99,11 @@ backup, so a complete, current record MUST live upstream. That upstream is this 
   floors override any remote command). The **durable** record still lives here — a
   param write updates the seed *and* pushes to the SCADA — because provisioning,
   dashboards, analytics, and FLO all need params without round-tripping every house.
+
+- **Identity is the id.** A component, ShNode or channel keeps its UUID for
+  life; its name is a mutable attribute. A rename is recorded against the
+  id, as the grid-node-registry records an alias change against the
+  `GNodeId`. No id is derived from a name.
 
 So "authority at the SCADA" is **true for runtime effect and safety, false for the
 durable record.** The SCADA owns *what runs*; the seed owns *what is true across time
@@ -219,6 +218,11 @@ Drop (GNR-specific, not needed here):
 
 ## Open
 
+- **Who mints an id.** When commissioning or a rewiring adds a component,
+  ShNode or channel, either the registry mints its id and the gen asks for
+  it, or the gen mints it and the registry keeps what the committed
+  output names. Today the gen mints, and the id is durable once the
+  output is committed.
 - **Params authority: upstream vs edge.** Leaning upstream-durable + SCADA-runtime (§
   Source of truth). The edge-authoritative alternative (SCADA owns params, upstream is a
   published projection) stays open — decide against the resilience / customer-ownership

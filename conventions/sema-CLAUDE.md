@@ -50,6 +50,17 @@ to the spec.
   After each sema item on a layout or ops word, ask the human whether the
   change surfaced an invariant the word does not yet state; capture it as an
   axiom candidate before moving to the next item.
+- **The sender's clock has two names; pick by the word's lifecycle.**
+  `CreatedMs` (`utc.milliseconds`) is the default: the sender's clock when
+  the content came to be, for every word that records a state change, an
+  observation or a command, whether sent at once or stored until acked.
+  `SendTimeMs` is the exception, for a word reassembled from current state
+  on each request or broadcast, where a re-send rebuilds the message
+  (`g.node.forest`, a dashboard summary); such a word has no `CreatedMs`.
+  A word never has both; the time of a transmission is envelope metadata.
+  A new word uses these names from birth; a word with another spelling
+  converges at its next version. Optional on adoption; a later version MAY
+  require it.
 - **Word prose never restates the schema.** A description states the
   field's own meaning; requiredness, types and cross-cutting narrative
   belong to the schema and the spec.

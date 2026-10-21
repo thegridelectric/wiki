@@ -1,14 +1,15 @@
 # Disentangle installations from journaldb (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-10-15 · Linear: OPS-473
+Status: Accepted · Pass 1 · Updated 2026-10-20 · Linear: OPS-473
 
-**EDD: yes** onboarding cedar end to end *is* the verification: the
-pending TerminalAsset enters the registry, its customer enters the PII
-store minutes later, the dashboard shows the house, and nothing about a
-person touches the broker, the persistent store or journaldb. Run after
-the PII store is stood up and gw_data is refactored; each build step
-before it is checked by the suite plus row-level checks against the live
-database.
+**EDD: yes** two runs verify it. The dev run proves the mechanism on
+the laptop's `d1` stack before anything merges to `main`: a simulated
+scada's `layout.lite` goes over a real broker into a `layouts` row that
+the summaries and the gateway read, and no response has a person.
+Onboarding cedar end to end proves the path in production after launch:
+the pending TerminalAsset enters the registry, its customer enters the
+PII store minutes later, the dashboard shows the house, and nothing
+about a person touches the broker, the persistent store or journaldb.
 
 **▶ Active spoke: [`retire-installations.md`](retire-installations.md)**
 
@@ -79,14 +80,23 @@ declare them, production does not have them.
    web-backend and frontend branches; the tables go; roles re-key to the
    TA GNodeId; the dashboard's Address and Contact sections go dark
    until OPS-600.
-3. [`onboard-cedar.md`](onboard-cedar.md) — the EDD run: cedar enters the
-   registry and the store through the new path.
+3. [`latest-layout-projection.md`](latest-layout-projection.md) — gjk
+   keeps one current layout row per terminal asset in `layouts`, the
+   `g_nodes` pattern, filled by `layout.lite` now and by a staging
+   `layout.bundle` word (the layout twin of `g.node.forest`) from the
+   registry later; summaries, gateway and visualizer read it by key.
+4. [`dev-run.md`](dev-run.md) — the EDD run on the laptop's `d1`
+   stack: broker, database, gjk, API, gateway, frontend and a sim scada;
+   the gate before any branch merges to `main`.
+5. [`onboard-cedar.md`](onboard-cedar.md) — the production EDD run, after
+   launch: cedar enters the registry and the store through the new path.
 
 ## Out of scope, named by their own issues
 
-- The JSONB layout and params copies are deleted here; the richer home
-  for layouts is the terminalasset registry (OPS-471). Nothing here
-  waits on it.
+- The JSONB layout and params copies are deleted here; the durable home
+  for layouts is the terminalasset registry (OPS-471), and the
+  projection spoke is written so the registry becomes its writer when
+  it exists. Nothing here waits on it.
 - `alert_status` is dropped here; alert state belongs to the alerting
   rework (OPS-295).
 - Scrubbing partner engineering documents (interior photos, EXIF GPS,

@@ -114,6 +114,26 @@ itself — it defines the channels the others write against.
   same `project_forest`, writing no `messages` row; it is for standing up a
   journalkeeper against a fresh database. Verified on a dev universe:
   `experiments/2026-08-05-registry-projection-rig/`.
+- **`layout.lite`** → `layouts` (`layouts_projection.py`, `project`),
+  beside its channel sync. One row per terminal asset, keyed on the
+  TerminalAsset GNodeId looked up in `g_nodes` by the scada's alias with
+  `.scada` replaced by `.ta`; a scada whose terminal asset has no
+  `g_nodes` row is logged and not projected. The row holds the word
+  verbatim with its name and version, the sender, the journaled message
+  id and `sent_at` from `MessageCreatedMs`. The guard compares send times
+  only: an older send is skipped, and a lower word version with a later
+  send overwrites a higher one, so the row follows a house that moves
+  between scada branches. The projection runs through
+  `MessagePersistenceInfo.live_only_db_operations`, which the dispatch
+  seam calls for broker messages only, so the persistor's history fan-out
+  (`fanout_on_import = True`, the channel eras) still runs on replays
+  while the projection never does. A row whose `from_alias` is the
+  registry (`registry_alias`, unset until the terminalasset registry
+  sends layouts) is kept against any scada message, and a differing
+  scada payload is logged as a mismatch. `python -m gjk.rebuild_layouts`
+  projects each sender's newest journaled `layout.lite`, decoded at the
+  version it was sent, through the same `project`; run it after the
+  migration that adds the table and whenever the table is suspect.
 
 ## The point: `readings` is a lossy projection
 

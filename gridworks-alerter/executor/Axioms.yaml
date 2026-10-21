@@ -270,9 +270,11 @@ data:
     Number: 4
     Name: TheToldSetIsTheListing
     Statement: >-
-      a. Each pass SHALL list the alerts the alert manager holds open
-      from this alerter, each read as a word, and that listing SHALL be
-      the told set. b. A listing that cannot be read SHALL leave the
+      a. The first pass, and each pass once tap_listing_s has passed
+      since the listing was last read, SHALL list the alerts the alert
+      manager holds open from this alerter, each read as a word, and
+      that listing SHALL be the told set; a pass between reads the
+      store alone. b. A listing that cannot be read SHALL leave the
       told set as creates and closes left it, empty at boot. c. A listed
       alias the store neither holds open nor has resolved SHALL be
       closed with a fixed note. d. A told alias no longer listed while

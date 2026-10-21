@@ -2,14 +2,14 @@
 
 Status: Accepted · Pass 1 · Updated 2026-10-15 · Linear: OPS-473
 
-> What this is: the third spoke of the disentangle-installations hub and
-> the design's verification. Cedar (a new Millinocket house, Ridgeline's
+> What this is: the fifth spoke of the disentangle-installations hub and
+> the design's production verification. Cedar (a new Millinocket house, Ridgeline's
 > "House 5") enters the registry and gridworks-pii through the new path.
-> Runs after pii-store and retire-installations are live.
+> Runs after launch, once the design is deployed.
 
 ## Do this next
 
-Nothing until the two spokes before it are live. Then run the sequence
+Nothing until launch, with the design deployed. Then run the sequence
 below in one sitting and record the result here.
 
 ## The sequence

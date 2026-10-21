@@ -10,6 +10,31 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-20 — layouts projection: one current layout row per terminal asset (`d435ff0` on `jm/layouts-projection`)
+
+**What:** `layouts_projection.py` upserts each live `layout.lite` into
+`gridworks.layouts` (gw_data 0.6.0, locked from PyPI), keyed on the TerminalAsset GNodeId
+looked up in `g_nodes` by the scada's `.ta` alias, with the word's
+`MessageCreatedMs` as `sent_at` and an older send time skipped. A new
+seam on `MessagePersistenceInfo`, `live_only_db_operations`, runs only
+for broker messages, so the `layout.lite` persistor keeps its history
+fan-out (the channel sync, replays welcome) and adds a current-state
+projection that a persistent-store replay never touches.
+`python -m gjk.rebuild_layouts` fills or heals the table from the newest
+journaled `layout.lite` per sender, decoded at the version it was sent.
+Eight tests: the persistence-info contract, the live-only seam, the
+send-time guard with a lower version winning on a later send, an
+unregistered terminal asset skipped, a registry-written row kept, and
+the rebuild. gw_data pin to 0.6.0.
+
+**Why:** readers of a house's layout scanned the `messages` hypertable
+for the newest `layout.lite` with no honest time bound, since a scada
+sends it once per run. The row is a key lookup, written the way
+`g_nodes` is written from the registry's forest. The `layout.bundle`
+word the terminalasset registry will send is staging, and gjk ships
+published words only, so its persistor comes with the bundle's
+publication.
+
 ## 2026-10-18 — gw.weather on the station words, latest versions only; older versions retired (`379501e`, PR #198, OPS-597)
 
 **What:** the seed takes every `gw.weather.*` word at its latest version

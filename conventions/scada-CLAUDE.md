@@ -1,6 +1,6 @@
 # gridworks-scada — Claude protocol
 
-Status: Draft · Pass 0 · Updated 2026-10-18
+Status: Draft · Pass 0 · Updated 2026-10-19
 
 ## Scada is a statue: chip, don't sculpt
 
@@ -62,11 +62,13 @@ store-under-floor with no water tanks at all. Scada code SHALL NOT assume a
 buffer tank, an iso valve, or water store tanks exist; "shared" means every
 layout we can imagine has it, not both current families.
 
-**⏳ elm, fir and oak gens fail the House0 `SiegManifoldChannels` axiom
-(missing sieg-hot) by design (REMOVE when `gw.house0.no.sieg` exists).**
-Those three houses get a `gw.house0.no.sieg` word, written once House0 is
-close to stable. Leave the gens as found; do not add a sieg-hot channel or
-relax the axiom.
+**⏳ fir, elm and oak are being refactored to House0 layouts with fake
+sieg BTUs (REMOVE when `gw.house0.no.sieg` exists).** Each gen gets a
+sieg BTU meter on a pico that does not exist, with the meter node and its
+sieg channels disabled, and its sieg loop on relays nothing at the house is
+wired to; oak is done (`tlayouts/oak_gen.py`). Do not relax the
+`SiegManifoldChannels` axiom. The three houses move to a
+`gw.house0.no.sieg` word once House0 is close to stable.
 
 ## Field windows
 

@@ -1,6 +1,6 @@
 # Nolan local control (spoke)
 
-Status: Accepted · Pass 1 · Updated 2026-10-18 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-10-20 · Linear: OPS-392
 
 > What this is: what to check as Nolan local control runs in the beta
 > windows, and the brief for the adversarial review. What is built is
@@ -185,6 +185,7 @@ Each row is a claim to confirm in a window, read from the journal's
 | A contract ends by each termination case | A contract taken and ended by its duration, by the LTN, by the scada refusing mid-contract, and by an admin session (`InAdmin`): one terminating heartbeat to the LTN with the cause, the ally dormant after it, the next offer taken afterwards |
 | The Hubitat reports both thermostats | Beech's two Honeywell zones (`down`, `up`) have fresh setpoint and temperature readings in the window's capture; a zone with neither is the Hubitat gap round four saw |
 | Nothing unexpected in the data or the log | After each beech window, the capture and the scada log are read through for what no row above names: a reading that never arrives, a state that flaps, a glitch nobody expected, a reading dropped at a boundary |
+| A boot into a cold house pages nothing while it warms | A scada started with a `FromThermostat` critical zone under its setpoint logs `<zone> warming up: N minutes of allowance left` each minute and raises no `critical-zone-cold` until the allowance is out; the deficit over 4 F an hour matches N |
 | The elements never close | No `CloseRelay` to `buffer-top-elt-relay` / `buffer-bottom-elt-relay` in any window; `OpenRelay` to both at every boot. Spruce runs `UsesBackupWhenCold` false this winter: the radiant floor keeps the house from getting too cold, and with it false no path closes an element relay |
 
 Every box carries an `operational-params.json` older than the ops word
@@ -223,13 +224,43 @@ both pis. The window waits on the forecaster deploy; the scada is the
 side that has moved. Also found: the tlayouts snapshot lagged the
 scada's channel-word pins (003/002 against 004/003), fixed by a regen.
 
-**Do this next: the energy estimate does not depend on the dispatch
-hold.** Write the test that fails today (a House0 scada under
-`OperatorHold` with a fresh buffer and a forecast publishes
-`usable-energy`), drop the two `DispatchHold` clauses from the guard,
-keep ServiceMode, freshness and forecast, and rewrite the sentence in
-`executor/dispatch-gate.md` "The answer" that states the old rule.
-Then, on beech with the hold off for the window: the remaining
+Oak's first two windows (2026-10-20, `b3b71004`, both pis, observe-only;
+`experiments/beta-field-windows/runs/2026-10-20-1831-oak-second-window/`)
+passed: sane on-peak posture, no errors, all four Hubitat zones
+reporting, the deed and tank board-variant glitches cleared by the oak
+gen fix. **Found and fixed in tlayouts:** the branch did not hear
+oak's three flow picos (`pico_436531`, `pico_836d31`, `pico_974532`:
+missing from the first poll, zombied after five 5 V cycles) while
+`main` journals all six flow channels, because the oak gen left `kind`
+off its FlowSpecs and the default is hall; the picos are reed, so the
+actor registered only the hall routes and the reed posts got a silent
+404. The gen now says `kind="reed"`. **Open from them:** a wrong-kind
+pico posting to the scada was invisible; the app now registers a
+catch-all POST route after every actor's routes, so a post nothing
+serves (a pico of the wrong kind, a pico posting as a node the layout
+lacks) is an `unserved-post` Warning glitch naming the path and the
+posted identity, since what posts is known only after the 5 V bus
+cycles and the params arrive (to confirm at oak's next window);
+hp-odu-pwr near 204 W with the heat pump commanded off against the LG's
+26 W standby, the hp watch silent ("The heat-pump watch"); the fake
+sieg loop leaves relay 15 reading 1; `store-cold-pipe` in the disabled
+roster; `house_window.sh`'s end check knows no oak channel names.
+
+**Fir's heat pump is a Samsung, not an LG (2026-10-21).** `fir_gen.py`
+declares the LG pair that oak and beech have; fir runs a Samsung
+Hydrokit: outdoor unit AM048TXMDCH (208-230 V, 54,000 Btu/h heat,
+R-410A, nameplate photographed) and indoor unit AM048CNBFCB (Drive
+folder "Samsung HydroKit Assembly"). `gw1.device.type` has no value for
+either, so the fix is a sema enum addition, a fir gen correction and a
+regen, before fir's first window. The LG signatures draw on beech and
+oak only.
+
+The energy estimate no longer depends on the dispatch hold: the two
+`DispatchHold` clauses are out of the guard, the test is
+`test_usable_energy_does_not_depend_on_the_dispatch_hold`, and
+`executor/dispatch-gate.md` "The answer" states the rule.
+
+**Do this next**, on beech with the hold off for the window: the remaining
 refusals (`ServiceContractBroken`, `NoTaDeed`, `ScadaBlind`), the
 `InAdmin` termination and refusal through `gwa watch`, and a
 termination mid-contract.
@@ -329,10 +360,22 @@ the allowance subsumes it and is sharper for small raises. The "cold
 with no call" item stays open; a disabled thermostat (oak's living room
 that day) is not reached by this rule.
 
-**Do this next.** Spec first: `cold-house.md` "The judgment" and "The
-latch" state the allowance and its three triggers. Then the local test
-that fails today, one per trigger (a raise, a boot into a cold house, a
-backup exit), before the change in `cold.py`.
+**Agreed 2026-10-19.** The deficit is capped at 10 F, so the longest
+allowance is two and a half hours. The allowance applies to
+`FromThermostat` zones only. A `Learned` zone keeps today's rule: cold
+when it calls continuously for `COLD_LATCH_S` at `COLD_DELTA_F` or more
+under its recorded setpoint, which `cold.py` and
+`tests/actors/test_cold_handling.py` already cover. Spruce is the only
+house with `Learned` zones; oak's are `FromThermostat`, so oak's 10-17
+warm-up is the case this rule covers. Standby exit is left for later.
+
+**Built 2026-10-20.** `cold-house.md` "The judgment" states the
+allowance, the cap, the `FromThermostat` scope and the three starts;
+`cold.py` judges it (`warming_up`, `start_warm_up`), and the watch starts
+a warm-up when the top state leaves `InBackup` or `ColdOverride`. Pinned
+by the warm-up tests in `tests/actors/test_cold_handling.py` (a boot into
+a cold house, the first reading after a boot, the cap, a raise, a
+thermostat lowered, each cold-state exit). Not yet witnessed on a box.
 
 ## For the review
 
@@ -378,6 +421,16 @@ to be raised again.
 
 **Patched, confirm:**
 
+- **warm-up-allowance.** A `FromThermostat` zone is not cold inside its
+  warm-up allowance (2026-10-20): its deficit at the first pass after a
+  boot, a setpoint raise or a cold-state exit, capped at 10 F, over 4 F
+  an hour. Pinned by
+  `test_a_boot_into_a_cold_house_is_not_cold_for_its_deficit_over_four_degrees_an_hour`
+  and its neighbours (`tests/actors/test_cold_handling.py`). To
+  re-break: a raise read as two steps by the thermostat (each step its
+  own allowance from a smaller deficit); a zone whose temperature arrives
+  only after the setpoint moves; a restart during a real cold spell,
+  where the page waits out the allowance by design.
 - **cold-every-pass.** The watch says cold on every pass (`3fdfb362`,
   2026-10-07) the latch holds with the stores empty;
   `BreakServiceContract` once per spell, `HouseWarm` once after. A

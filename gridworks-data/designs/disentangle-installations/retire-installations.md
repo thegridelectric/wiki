@@ -1,6 +1,6 @@
 # retire-installations — the tables leave journaldb
 
-Status: Accepted · Pass 1 · Updated 2026-10-17 · Linear: OPS-473
+Status: Accepted · Pass 1 · Updated 2026-10-21 · Linear: OPS-473
 
 > What this is: the second spoke of the disentangle-installations hub.
 > `installations`, `customers` and `installers` are dropped from
@@ -10,31 +10,87 @@ Status: Accepted · Pass 1 · Updated 2026-10-17 · Linear: OPS-473
 
 ## Do this next
 
-gridworks-data is merged to `main` (migration `e5a1c2d3f4b6`, `gw_data`
-0.5.0 on PyPI). web-backend is on branch `jm/retire-installations` off
-`jds/tsdb_api`: `ddeee35` has the four query paths joining the `g_nodes`
-projection and the repo's first test suite. **Uncommitted on that branch,
-suite green (11 tests), pyright clean, ready to commit as one cluster**
-(its changelog entry is written): both snapshots regenerated published-only
-from sema `1c52df0`; the gateway seed pinned to `layout.lite` 011 and 012
-and the API seed rid of a withdrawn enum; 013 out of both layout unions
-(`LayoutLite | LayoutLite011`, versionless = 012) and the gateway's 013
-system-mode case gone; the API seed beside its snapshot (the root
-`sema_seed_request.yaml` is removed from the index); the regen script
-without `--allow-staged`; `tests/test_sema_snapshots_published.py`, which
-reads each snapshot's own registry and fails on `main` on any
-non-published word. Stage `api/sema`, `gateway/sema`, the two seeds, the
-regen script, the test, `api/v2/routers/installation_summaries.py`,
-`gateway/state.py`, `pyproject.toml` and `uv.lock`; title: "sema
-snapshots: published-only regen for both packages, the API seed beside
-its snapshot, and a test that main ships no staging word".
+Build "The summary word" below, in its order: the three sema items
+(`jm/` branch in sema; `gw.dashboard.role` needs the roles table's
+values first), the gw_data table, the journalkeeper projection with the
+deduction and the generic time read, web-backend, frontend. The
+frontend commit on `jm/retire-installations` (uncommitted, build green)
+goes in first; the summary-word frontend work follows on the same
+branch. Then the dev run.
 
-Then the frontend ("Frontend" below), branched off `jds/v2_apis`. Before
-cutover: Joe has agreed `jds/tsdb_api` and `jds/v2_apis` merge to `main`
-at deploy time; and the TA rows' `display_name` in gnr reads "Beech
-TerminalAsset", so rename in gnr or shorten in the frontend. The sema
-checkout on the laptop is moved between branches by other sessions; a
-regen here runs against `dev` and says which commit it used.
+Done so far: gridworks-data merged to `main` (migration `e5a1c2d3f4b6`,
+`gw_data` 0.5.0 on PyPI). web-backend `jm/retire-installations`:
+`ddeee35` (the four query paths joining the `g_nodes` projection, the
+first test suite), `5de2bc3` and `7507f42` (both snapshots
+published-only from sema `1c52df0`), `a174a79` (the summaries join on
+`layouts`, the gateway seed; recorded in the latest-layout-projection
+spoke). Before cutover: Joe has agreed `jds/tsdb_api` and `jds/v2_apis`
+merge to `main` at deploy time; the TA rows' `display_name` in gnr
+reads "Beech TerminalAsset", so rename in gnr or shorten in the
+frontend. The sema checkout on the laptop is moved between branches by
+other sessions; a regen here runs against `dev` and says which commit
+it used.
+
+## The summary word
+
+Decided 2026-10-21 in a grill on the backend–frontend boundary; this is
+the build to do next, in this order.
+
+The dashboard is a GitHub Pages app and the backend a service on a
+box, so every response is bytes from one app to another and sema is
+mandatory there. The summaries endpoint returns instances of a new
+word, and the frontend reads them by the word's field names. The
+concept of a system mode is retired with layout.lite 013, so
+`SystemMode` and `MainAutoState` leave the summary and the frontend;
+the one state field is the house's operating status.
+
+1. **sema.** `gw.dashboard.role` enum, PascalCase values enumerated from
+   the roles table (`Admin`, `Owner`, and whatever else it holds).
+   `gw.house.operating.status` 000 is staging: rename `UnixMs` to
+   `CreatedMs` in place (it records a state change and may later be
+   stored and re-sent); it is published when the scada on
+   `jm/spruce-unlimbo` also sends it upstream. `house.summary/000`,
+   owner `gridworks-energy`: `Role`, `TaGNodeId` (`uuid4.str`),
+   `GNodeAlias`, `DisplayName` (nullable), `Layout` (a `oneOf` over
+   `layout.lite/011` and `/012`, widened by a version bump as layout
+   words arrive; the reader branches on the instance's own `TypeName`
+   and `Version`), `OperatingStatus` (`gw.house.operating.status`,
+   nullable until the projection has a row), `LatestSnapshotTime`
+   (nullable; null means not reporting in the last day),
+   `LongestRunningZoneName`, `LongestRunningZoneStartTime` (nullable
+   pair from the heat-call readings of the last day), `SendTimeMs`
+   (the response is reassembled per request), `TypeName`, `Version`.
+   Nothing about a person. The name `house.summary` is the
+   recommendation; `ta.summary` and `installation.summary` were the
+   alternatives.
+2. **gw_data.** A `house_operating_status` projection table, one row per
+   house keyed by the TA GNodeId, with the payload, `created_at` and a
+   `source` column (`scada` or `derived`) for operators.
+3. **journalkeeper.** The latest-status projection: a house that sends
+   the word gets the word; a house whose latest layout is 012 or earlier
+   gets a row deduced from `layout.lite` and the latest snapshot
+   (`Standby` and `StandbyPosture` from `SystemMode`,
+   `SeasonalStorageMode` from the layout, `ServiceMode` Heating,
+   `TopState` and `LtnDispatching` from the snapshot's `top.state` and
+   `gw1.main.auto.state`, `AcceptsDispatch` true in Auto and not
+   Standby, `ScadaBlind` false since main checks no freshness,
+   `ValidationState` from the registry). Retiring main deletes the
+   deduction. With it, the sema message persistor reads `CreatedMs`,
+   else `SendTimeMs`, from any payload before its per-type table (the
+   sender-time design, step 3).
+4. **web-backend.** The summaries endpoint builds `house.summary`
+   instances through the codec, reading the status projection; the
+   pydantic model goes.
+5. **frontend.** `src/sema/` mirrors `house.summary` and
+   `gw.house.operating.status` by hand until the sema TypeScript target
+   exists (its own design in `wiki/sema/designs/`); the Houses table and
+   the Status section read `Standby`, `ServiceMode` and `TopState` in
+   place of the system mode; times are read as `CreatedMs` and
+   `SendTimeMs` and nothing else.
+
+The dev run covers the result. The gateway websocket messages (status,
+the snapshot envelope, the zone series) stay hand-built dicts for now;
+same gap, a later item.
 
 ## What survives, and where each field goes
 
@@ -86,20 +142,26 @@ base and merge target is `jds/v2_apis`. What the field change touches
 (`Address` city and state) goes; the Information page keeps its four
 sections, Address and Contact render "not shown" until OPS-600, Hardware
 shows `LayoutLite`, Status keeps the snapshot facts; the Real-time
-page's default sieg loop comes from `LayoutLite.Strategy` instead of
-`HardwareLayout.sieg`; the Parameters page starts from its defaults,
-since `SpaceheatParameters` is gone and operational params are not on
-the bus. `TaGNodeId` joins the `InstallationSummary` type; routes and
-pickers stay on `GNodeAlias`.
+page's default sieg loop is on when the layout has a `sieg-flow` data
+channel (`Strategy` is the house family, `House0` or `Nolan`, and does
+not say sieg); the Parameters page starts from its defaults, since
+`SpaceheatParameters` is gone and operational params are not on the
+bus. `TaGNodeId` joins the `InstallationSummary` type; routes and
+pickers stay on `GNodeAlias`; the real-time page's gateway key is the
+last segment of `GNodeAlias`, not the display name, so the registry's
+display names can read however gnr likes.
+
+Built on web-frontend `jm/retire-installations` off `jds/v2_apis`:
+build green, lint unchanged from the branch base.
 
 ## Cutover
 
 1. pii-store is seeded and verified (six customers, labels, no
    coordinates).
 2. gridworks-data migration applied to journaldb; web-backend and
-   frontend deployed from the branches in the same window. web-api2
-   deploys web-backend from `jds/tsdb_api`, so that is the branch base
-   and the merge target; whether it becomes `main` is decided then.
+   frontend deployed from `main` in the same window, after the dev run
+   passes and the branches merge (`jds/tsdb_api` is in `main` as of PR
+   #18; `jds/v2_apis` merges with the frontend branch).
 3. Row-level check: the dashboard lists six houses, every Status and
    Hardware section renders, no endpoint returns a contact or address.
 4. Operators look customers up with the CLI from here until

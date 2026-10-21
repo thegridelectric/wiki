@@ -1,6 +1,6 @@
 # Fleet deployment (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-10-09 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-10-19 · Linear: OPS-392
 
 > What this is: the actual rollout of `jm/spruce-unlimbo` onto the six
 > production boxes as `main` before the heating season — the ordered box
@@ -101,6 +101,10 @@ The cleanup, before the fleet swap:
    sim pairs comes out of `.gitignore`. The strays in `output/`
    (`*.generated.json`, `*.uploaded.json`, one-off experiments) are deleted
    or stay ignored; only the per-house directories are the record.
+   *Done 2026-10-19* for the folders that regenerate byte-identically
+   (beech, maple, oak, spruce, spruce-async1 and the three sim pairs),
+   each with its `<house>.uploaded.json` reference; elm and fir wait on
+   their gens.
 2. **A drift test holds JSON to generator.** tlayouts gets a `ci.sh` and a
    GitHub Action that re-run every gen and fail unless the output is
    byte-identical to the committed JSON and decodes through the vendored
@@ -135,8 +139,8 @@ their own previous output, then mint
 (`wiki/tlayouts/executor/primary.md` "Invariants"). With `output/`
 ignored, an id minted for a name the pi lacks lives on one laptop and on
 the box it was put to; a gen run from a fresh clone would mint it again.
-Step 1 closes that. fir and oak take the same reference before their
-layouts go to a box.
+Step 1 closes that. Oak takes the same reference; fir and elm take it
+before their layouts go to a box.
 
 **The LTN parameter API is the first step past this.** Operational params
 change far more often than layouts, and the LTN API for adjusting house

@@ -72,6 +72,8 @@ it exists. The candidate homes:
 | `COLD_LATCH_S = 300` | `hydronic/cold.py` | How long a critical zone is cold before the glitch and the dispatch refusal | ops word | open |
 | `STILL_COLD_IN_BACKUP_S = 3600` | `hydronic/cold.py` | How long cold in backup before the still-cold glitch | ops word | open |
 | `FREEZE_F = 40.0` | `hydronic/cold.py` | The zone temperature under which a zone is freezing | ops word | open |
+| `WARM_UP_F_PER_H = 4.0` | `hydronic/cold.py` | What a called zone warms at; sets the warm-up allowance after a boot, a setpoint raise or a cold-state exit | ops word | open |
+| `WARM_UP_DEFICIT_CAP_F = 10.0` | `hydronic/cold.py` | The largest deficit an allowance is computed from (two and a half hours) | ops word | open |
 
 ## Procedural doctors and monitors (`actors/procedural/`)
 

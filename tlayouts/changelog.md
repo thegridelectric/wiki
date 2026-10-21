@@ -10,6 +10,79 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-21 — fix the three flow pico types (`1bdc455`, OPS-392)
+
+**Why.** Oak's two beta windows on 2026-10-20 never heard its three flow
+picos (`pico_436531`, `pico_836d31`, `pico_974532`): missing from the
+first poll, flatlined, Zombie after five 5 V cycles, while `main`
+journals all six flow channels. The picos are EKM pulse meters on reed
+picos, as the uploaded layout says, but the oak gen's three `FlowSpec`
+lines gave no `kind`, and `kind` defaults to hall. The branch layout
+therefore declared hall picos, the actor registered only the hall
+routes, and the reed posts got a silent 404. With `kind="reed"` the
+regenerated components match the uploaded layout on every tuning value;
+only the three components change. The `FlowSpec` docstring drops its
+`dist2` example: that meter left beech some time ago and no gen names
+it.
+
+## 2026-10-20 — oak gen: registry GNode ids, Wiznet tank picos (`91f902dd`)
+
+**Why.** Oak's first beta window (2026-10-20) raised two warning
+glitches at boot. `ta-deed-wrong-asset`: the gen authored three GNode
+ids that are in no registry; gnr.electricity.works has the TA as
+`0a39d45d…`, the LTN as `b759f5bb…` and the scada as `fbbea6a1…`, which
+the deed on the box already names, so the gen takes the registry's ids
+(the other three houses' gens already match the registry). Four
+`PicoBoardVariant differs from the layout` glitches: the oak tank picos
+are Wiznet on Gw100 boards (`gridworks-infra/pico-fleet-firmware.md`),
+so the gen says `PicoWiznetEth2040` for them as beech's does.
+
+## 2026-10-19 — component ids now fixed, oak has a fake sieg BTU (`59ce33d`, OPS-392)
+
+**A component id minted in a run is minted once.** `component_id` returned a fresh uuid for a key absent from the
+reference and the previous output, and did not remember it. A Honeywell
+thermostat is looked up twice, for its node's component and for its
+zone circuit's `Thermostat.ComponentId`, so with no reference the two
+differed and the layout failed `ReadThermostatChannels`. Every House0
+house with Honeywells (beech, maple, oak, fir, elm) did this; beech and
+maple built only because their reference already had the thermostat
+ids. A minted id now goes into the gen's id map, the one place lookups
+read, so a run keeps one id map. The board's
+"never call it twice" workaround comment goes with it. The test builds
+beech with no reference and checks each circuit's thermostat against
+its stat node; it failed before the change. Beech, maple, spruce and the
+sim pairs regenerate byte-identically after it.
+
+**Oak is a House0 home with a fake sieg BTU meter and takes its ids from its pi.** Oak has no siegenthaler loop, and its gen failed the House0
+`SiegManifoldChannels` axiom (no `sieg-hot`), so it could not produce a
+layout for a beta window. One disabled sieg BTU meter (`sieg-btu`, pico
+`pico_000000`, which does not exist) now supplies `sieg-flow`, `sieg-hot`
+and `sieg-cold`; it replaces the pretend sieg flow pico and the pretend
+`sieg-cold` thermistor. The meter node is in `DisabledNodeNames`, so the
+scada neither watches its pico nor cycles picos for its absence; the
+pretend flow pico it replaces was enabled, and a window would have done
+both. The four sieg channels are disabled, `sieg-send-flow` included
+because `EnabledDerivedChannelsHaveLiveInputs` rejects an enabled derived
+channel on a disabled input. The sieg loop runs on relays 14 and 15,
+which nothing at oak is wired to. Ids come from the oak pi's running
+layout, then the gen's previous output, as at beech and maple, so a
+regen gives the same bytes. All four zones are `FromThermostat`, as
+`181df2d` set them; the old output from 09-20 predated that.
+
+**The record is committed.** `output/` was gitignored, so no deployed layout was in git and an
+id minted for a name the pi lacks lived only on one laptop and the box it
+was put to; a gen run from a fresh clone minted it again. `.gitignore`
+now ignores `output/*` and names the folders that are the record: beech,
+maple, oak, spruce, spruce-async1 and the three sim pairs, each checked by
+regenerating and comparing bytes before the commit. Each house folder
+includes its `<house>.uploaded.json`, the last fetched pi layout, which is
+the id reference a gen falls back to when the pi cannot be reached. Elm
+and fir stay out: their gens fail the House0 sieg axiom, so their output
+is stale and would not match its gen. Two strays that no gen writes were
+deleted (a house0 ops file in `spruce-async1/`, a 2024 `Users/...` copy
+that the unanchored `output` pattern had hidden). This is step 1 of the
+interim record (OPS-392, toward OPS-471); the drift test is next.
+
 ## 2026-10-18 — Every house gen names the moose weather bundle (`d42da29`, OPS-597)
 
 **Why.** The weather service abandoned the

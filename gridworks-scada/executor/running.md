@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-12
+Status: Draft · Pass 0 · Updated 2026-10-20
 
 # Running an LTN + SCADA from a checkout (cold start)
 
@@ -113,6 +113,10 @@ A branch scada run on a deployed box (a "window": stop the services, boot
 the branch against the real plant, restore) keeps staging vocabulary off
 the production broker through three layers, and a window holds all three.
 
+**No window on beech (2026-10-20).** Beech is unwell in the field. Do NOT
+run a beta window test on it until this line is removed; a round runs its
+House0 family on another box or skips it.
+
 1. **Status tier.** The broker rule reaches the words that cross the
    wire: those are published before a box speaks them to the production
    broker, and the closure words they `$ref` come with them. Words that
@@ -140,8 +144,8 @@ the production broker through three layers, and a window holds all three.
 Window protocol on top of the layers: stop everything on the bus
 (`gwspaceheat-restart.timer`, `gwspaceheat`, any hack service; the transient
 timer restores them). `experiments/house_window.sh <house> on|off|status`
-(called by `spruce_window.sh` and `beech_window.sh`) is that protocol for
-spruce and beech. It writes no layout: `on` refuses unless the box's
+(called by `spruce_window.sh`, `beech_window.sh`, `maple_window.sh` and
+`oak_window.sh`) is that protocol for those houses. It writes no layout: `on` refuses unless the box's
 window pair is byte-identical to the tlayouts gen output
 (`experiments/put_layout.sh <house> check`) and the box's unlimbo checkout
 is at the laptop's pushed scada head. It records which of the house's
@@ -157,8 +161,9 @@ root. Command senders run on the box itself from its `~/experiments` clone
 at a pushed SHA against `localhost:1883`; a window must not depend on a
 laptop tunnel, which can die silently. Stopping services, placing env
 files and restarting are the human's to run; a session preps the commands
-and the watch-list. `experiments/2026-09-18-beta-field-windows/` is the
-run that exercised `house_window.sh` on both spruce and beech.
+and the watch-list. `experiments/beta-field-windows/` is the practice folder: every window is
+a run under `runs/`, indexed in `runs.md`; spruce, beech and maple have run
+there; oak's first window ran 2026-10-20.
 
 ## Open
 

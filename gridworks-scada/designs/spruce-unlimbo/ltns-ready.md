@@ -1,6 +1,6 @@
 # LTNs ready (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-10-14 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-10-20 · Linear: OPS-392
 
 > What this is: the spruce-unlimbo spoke that gets the LTNs running
 > against the new scada code before the fleet is on the production
@@ -155,6 +155,20 @@ lookup:
   prints it in place of the value from the operating status.
 - Nothing reads `Thermostat.ComponentId` or `ThermostatKind`
   (`thermostat-and-zone-control.md` "Thermostat chunk").
+- **The fuel-substitution hard-code.** `LtnSettings.fuel_sub_usd_per_mwh`
+  (`ltn/config.py:46`, default 490, "hack until we account for COP
+  etc") is a tariff figure held in a setting: it was chosen to sit just
+  above the on-peak delivery price the old hand-built forecast served,
+  487.63 USD/MWh. The price forecast now serves the current Versant
+  Rate A-1 total-delivery table (`wiki/regulatory/versant/tariffs.md`
+  "Rate A-1": winter on-peak 612.10, shoulder 70.34, off-peak 64.26
+  USD/MWh), so the threshold no longer means what it meant.
+  `fuel_substitution` is off on every LTN, so nothing reads it today.
+  Remove both settings and `use_oil_as_fuel_substitute`
+  (`ltn/contract_handler.py:281`) rather than retune them; when fuel
+  substitution returns it takes the tariff from the served forecast's
+  `TariffAlias` and a COP-aware comparison, not a constant.
+
 
 ## Open
 

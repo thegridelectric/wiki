@@ -34,6 +34,7 @@ data:
   - {Key: opsgenie_api_key, Type: SecretStr, Default: "", Required: true}
   - {Key: opsgenie_team_id, Type: str, Default: "", Required: true}
   - {Key: tap_reconcile_s, Type: int, Default: 10, Required: false}
+  - {Key: tap_listing_s, Type: int, Default: 300, Required: false}
   - {Key: probe_amqp, Type: RabbitBrokerClient, Default: "", Required: true}
   - {Key: probe_mqtt_host, Type: str, Default: "", Required: true}
   - {Key: probe_mqtt_port, Type: int, Default: 8883, Required: false}

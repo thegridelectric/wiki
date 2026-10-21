@@ -48,9 +48,9 @@ asked, never stored. Every reader of "does this scada dispatch" reads
 it: the offer handler, the per-heartbeat check on a held contract, the
 stored-contract decision at restart, and `house_operating_status`, so
 the LTN's standing view and the per-offer answer come from one
-function. The derived generator reads the ops word's hold directly for
-its energy estimate: whether to estimate does not depend on the
-sensing.
+function. The derived generator does not read the hold: the energy
+estimate is a fact about the plant (service mode, a fresh buffer, a
+forecast) and a held house publishes it like any other.
 
 Ordered by permanence, most permanent first, so a log line names the
 reason that will still be true tomorrow:
@@ -186,3 +186,4 @@ dispatch and the scada refuses every offer.
 | `buffer_fresh` and `buffer_fresh_once` on both families; the energy passes wait for a fresh buffer | `tests/actors/test_readiness_events.py` |
 | Admin mid-contract: the LTN receives `TerminatedByScada` with `InAdmin`, an offer during the session is rejected with `InAdmin`, and after the timeout the scada is in LocalControl with no contract and takes the next offer | `tests/actors/test_dispatch_refusal_gate.py` |
 | The roster glitch names the dispatch clause for a disabled dispatch channel, and no clause for another | `tests/actors/test_ally_initialize.py` |
+| A held house publishes `usable-energy` | `tests/actors/test_derived_generator_house0.py` |

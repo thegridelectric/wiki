@@ -113,6 +113,9 @@ ecosystem adds actors and types**.
 - **`g_nodes`** / **`connectivity_edges`** — the projection of the
   grid-node-registry's `g.node.forest` broadcasts; gjk is their only writer
   (`persistor.md`).
+- **`layouts`** — one current layout row per terminal asset, the
+  projection of each scada's latest live `layout.lite`; gjk is its only
+  writer (`persistor.md`).
 
 ## Glossary
 
@@ -139,7 +142,8 @@ ecosystem adds actors and types**.
 
 `journal_keeper`, `sema_message_persistor`, `layout_lite_persistor`,
 `report_event_persistor`, `flo_params_house0_persistor`,
-`weather_forecast_persistor`, `message_persistence_info`, `pseudo_channels`,
+`weather_forecast_persistor`, `layouts_projection`, `rebuild_layouts`,
+`message_persistence_info`, `pseudo_channels`,
 `config`, `s3_message_importer`, `sema/` (the snapshot),
 `sema_seed_request.yaml`. Custom persistors today: `layout.lite`,
 `report.event`, `flo.params.house0`, `weather.forecast`.

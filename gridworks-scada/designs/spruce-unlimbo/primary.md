@@ -36,7 +36,7 @@ of each layout family: spruce, beech, and one of fir / oak once
 `gw.house0.no.sieg` exists. These rounds are the beta field test of the new
 code. How a round runs and what the rounds have taught is
 [`beta-field-windows.md`](beta-field-windows.md); the record is
-`experiments/2026-09-18-beta-field-windows/`.
+`experiments/beta-field-windows/`.
 
 - ✅ DONE krida-retirement (est 6h → ≈15h) —
   House0 relays onto per-relay components against the Krida board record,

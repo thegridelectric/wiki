@@ -1,6 +1,6 @@
 # hp-not-responding — heat pump commanded on, no power
 
-Status: Draft · Pass 0 · Updated 2026-10-19
+Status: Draft · Pass 0 · Updated 2026-10-20
 
 > What this is: the port of gwalert's `check_hp`
 > (`alert_generator.py:1023`) as `HpNotResponding` (gwalert's alias
@@ -16,6 +16,19 @@ house whose alias contains `maple`; a house in `houses_with_monobloc`
 (spruce, added by name when its layout arrives) has no indoor unit.
 Relay 6 is read with no presence check, so a house without it raises a
 `KeyError` that ends the rest of that cycle's checks.
+
+The check fires only while the house is under its LeafTransactiveNode.
+Since the move to the timeseries DB (2026-08-29) the relay table is
+built from `readings` rows alone, and the only reading that yields the
+`Scada` value the relay 5 gate requires is the `top-state` channel at
+`LeafTransactiveNode` (`enum_decode.py`, `map_top_state_for_relay5`);
+the failsafe relay's own RelayState channel reads `Energized` or
+`DeEnergized`. A house in LocalControl, Admin or Dormant fails the gate
+every cycle and prints "The HP should not be on". Observed at oak on
+2026-10-20: relay 6 closed at 02:39 under LocalControl, the outdoor
+unit stayed at standby power until 07:00, and the check printed that
+line at every five-minute cycle (OPS-609). The port keys on the command
+(relay 6 held closed), whoever gave it.
 
 ## The port
 

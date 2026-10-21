@@ -10,6 +10,40 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-20 — add layout.bundle 000 (staging) (`c997534` on `jm/layout-bundle`)
+
+**What:** `layout.bundle` 000, staging: a set of terminal-asset layouts
+sent together with the sender's clock, the layout twin of
+`g.node.forest`. `Layouts` is a `oneOf` union of the `layout.lite`
+versions the deployed fleet sends, 011 and 012; `SendTimeMs` is the
+sender-time standard; `Proof` is the optional distributed-authority
+seam. One axiom with its runtime template: each `FromGNodeAlias` appears
+once in a bundle.
+
+**Why:** gjk is getting a `layouts` projection table, one current row
+per terminal asset, written the way `g_nodes` is written from the
+forest. The bundle is the word the terminalasset registry sends when it
+exists, and the scada sends as its confirmation once the full layout
+words are published; its next version widens the union to those words.
+Staging until `layout.lite` 013 is finalized and the union is settled.
+
+## 2026-10-20 — add gw.stopgap.price.forecast (`bb9b7eb`)
+
+**What:** `gw.stopgap.price.forecast` 000, published: the hourly price
+forecast the stopgap price-forecast service serves to the LTN. Parallel
+`HourStartS`, `LmpList` and `DistList` lists under the names the LTN
+reads today, so the LTN code stands, plus `PNodeAlias` and `TariffAlias`
+so a consumer can check it is on the forecast's node and tariff. Three
+axioms with mutation tests: equal list lengths, hours strictly
+increasing, forecast created before the first hour.
+
+**Why:** the price service the FLOs read went with the PriceDb box; the
+stopgap that replaces it this heating season speaks sema at its one
+boundary from day one. Published rather than staging so the service
+vendors an ordinary snapshot. Named stopgap because the real
+price-forecast word (OPS-437) replaces it and nothing else may depend on
+it. OPS-610.
+
 ## 2026-10-19 — adding LtnSilent and ScadaSilent to gw.house.alert.kind (`2ad3180`)
 
 **What:** `gw.house.alert.kind` 001 adds `ScadaSilent` and `LtnSilent`;

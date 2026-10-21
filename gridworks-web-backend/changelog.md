@@ -10,7 +10,28 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-16 — sema snapshots: published-only regen for both packages, the API seed beside its snapshot, and a test that main ships no staging word (OPS-473) <!-- pending commit -->
+## 2026-10-20 — summaries read the layout from the layouts projection; the gateway seeds it once at start (OPS-473, `a174a79` on `jm/retire-installations`)
+
+The v2 summaries endpoint takes each house's layout from
+`gridworks.layouts`, a left join on the TerminalAsset GNodeId, in place
+of the window over `messages` that ranked every `layout.lite` ever
+journaled. The snapshot half of that window stays and is bounded to the
+last day: a snapshot arrives every few minutes, so an older one means the
+house is not reporting and `LatestSnapshotTime` is null. `LayoutLite` and
+`SystemMode` are null for a house with no layouts row yet, which keeps
+the house in the list. The gateway reads every layouts row once at start
+through the API's read-only journaldb URL (`BACKEND_TSDB_URL`, now in
+`template.env` and the README; the API already required it) and seeds
+each house's layout keyed by the row's `from_alias`, the scada alias a
+live message's header names, with no message counted; a read failure is
+logged and the live `layout.lite` fills the house in later. `gw_data` is
+pinned `>=0.6.0`, the version with `LayoutSql`. Tests: the fixture seeds
+a layouts row per house, oak's saying Standby against a Heating
+`layout.lite` in `messages` and beech's with no `layout.lite` in
+`messages` at all, and one test each proves the summaries and the
+gateway read the row.
+
+## 2026-10-20 — retiring installations / retiring installations continued (OPS-473, `5de2bc3` + `7507f42` on `jm/retire-installations`): sema snapshots published-only, the API seed beside its snapshot, a test that main ships no staging word
 
 The regen script builds both vendored snapshots, `api/sema` and
 `gateway/sema`, from their own seeds (`<package>/sema_seed_request.yaml`,

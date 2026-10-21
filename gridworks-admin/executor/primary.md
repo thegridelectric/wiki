@@ -302,7 +302,7 @@ a later commit (`experiments/2026-09-21-spruce-secondary-pump-admin-dryrun/`):
 against the gw108 0x21 relay register directly, not just the panel's own
 state report.
 Verified 2026-10-18 on the gw108's 0x20 expander as well
-(`experiments/2026-10-18-spruce-upstairs-fancoil-window/`): `SwitchToScada`
+(the 2026-10-18 spruce-upstairs-fancoil-window entry in `experiments/logbook.md`): `SwitchToScada`
 then `CloseRelay` on the zone 3 pair read back on both rows and opened
 the fan coil circuit, dist-flow 0 to 2.2 gpm.
 

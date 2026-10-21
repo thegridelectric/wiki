@@ -10,6 +10,22 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-20 — layouts: the current layout of each terminal asset (`0b938ca`, merged to `main` by PR)
+
+**What:** a `layouts` table, one row per TerminalAsset keyed on its
+GNodeId: the latest layout word the journal has seen for it, verbatim,
+with the sender, the word's name and version, the journaled message it
+came from and the sender's clock (`sent_at`). Model `LayoutSql`,
+migration `b7d2e4f6a8c1`, a migration test, `gw_data` 0.6.0. The
+retire-installations test now starts from an empty chain so it holds in
+any test order.
+
+**Why:** every reader of a house's layout scanned the `messages`
+hypertable for the newest `layout.lite`, with no honest time bound
+since a scada sends it once per run. The row is a key lookup. gjk
+writes it the way it writes `g_nodes` from the registry's forest, and
+the terminalasset registry's layout bundle fills it when that exists.
+
 ## 2026-10-15 — retire installations: customers, installers and installations leave journaldb (`4faa726` on `jm/retire-installations`)
 
 What: migration `e5a1c2d3f4b6` re-keys `user_installation_roles` from

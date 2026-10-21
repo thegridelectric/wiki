@@ -689,14 +689,18 @@ data:
   - Concern: tap
     Number: 4
     Label: a
-    Kind: unconditional
+    Kind: transition
     Boundary: opsgenie-list
-    Condition: ""
+    Condition: >-
+      No listing has been read since boot, or tap_listing_s has passed
+      since the last one was.
     Obligation: >-
-      Each pass opens with one listing of the alerts open from
+      The pass opens with one listing of the alerts open from
       service_alias, each item decoded as the word, and the told set
       becomes the listed aliases; an item the word refuses is logged
-      and left out.
+      and left out. A pass that does not meet the condition reads the
+      store alone and the told set stands as creates and closes left
+      it.
     Recovery: ""
   - Concern: tap
     Number: 4

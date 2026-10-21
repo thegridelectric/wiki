@@ -1,6 +1,6 @@
 # Cold house
 
-Status: Draft · Pass 0 · Updated 2026-10-05
+Status: Draft · Pass 0 · Updated 2026-10-20
 
 > What this is: how a scada judges that a house is cold, what it says when
 > it is, and how it stops taking dispatch until a person clears it. One
@@ -39,6 +39,28 @@ living room cold.
   much. A circuit that is not calling is never cold by this rule, so a
   thermostat turned down does not read as a cold house, and a thermostat
   turned up leaves the zone warmer than the record.
+
+**The warm-up allowance (`FromThermostat` only).** A zone that has just
+been asked to warm is not cold, whatever it reads, until it has had time
+to get there. A warm-up starts at three moments: a boot, a raise of the
+circuit's thermostat setpoint, and the pass after the local control
+leaves `InBackup` or `ColdOverride`. At the first pass after the start
+with both a setpoint and a temperature for the zone, the zone's deficit,
+the judged setpoint less the temperature capped at
+`WARM_UP_DEFICIT_CAP_F` (10 °F), divided by `WARM_UP_F_PER_H` (4 °F an
+hour, what a called zone warms at) is its allowance, and until that long
+has passed the zone is not cold. An 8 °F deficit gets two hours, a 2 °F
+raise thirty minutes, 10 °F or more two and a half hours. A thermostat
+lowered starts nothing and counts at once; a raise during on-peak is
+judged against the on-peak-start setpoint, so its deficit is what that
+setpoint says. After the allowance the judgment and the latch run as in
+steady state, so a heat source failing in steady state still pages after
+`COLD_LATCH_S`. Standby exit is new ops params and a restart, so the boot
+allowance covers it; a restart during a genuine cold spell delays the
+page by the allowance, which is accepted. A `Learned` zone has no
+allowance: its rule already counts a zone cold only while its thermostat
+calls under the record. The two constants are code beside the other
+four, until a house shows it needs its own.
 
 A critical zone with no temperature reading, or with no setpoint to
 judge against, is logged and skipped. The layout words guarantee the
@@ -85,8 +107,9 @@ local control's machine states at start
 (`MachineStateSubscribe(NodeName="lc")`): a top state of
 `InBackup` is backup, any other is not.
 
-When a critical zone has been cold for `COLD_LATCH_S` (five minutes)
-without a warm pass between, the watch does two things, once per cold
+A `FromThermostat` zone inside its warm-up allowance ("The judgment")
+is not cold to the latch. When a critical zone has been cold for
+`COLD_LATCH_S` (five minutes) without a warm pass between, the watch does two things, once per cold
 spell:
 
 1. It raises the Critical glitch `critical-zone-cold`, naming each cold
@@ -217,20 +240,14 @@ cold with the stores empty.
   floor temperature per critical zone on the ops word is the candidate.
 - **No record ever.** Before a `Learned` circuit's first learned setpoint
   there is nothing to judge against. The same floor is the stand-in.
-- **An off-peak raise is judged at once.** The on-peak-start memory
-  is refreshed off-peak, so a `FromThermostat` zone raised more than
-  `COLD_DELTA_F` off-peak reads cold on the next pass and pages after
-  `COLD_LATCH_S`, before the house has had time to warm. Agreed
-  2026-10-14: judge against the lower of the current setpoint and the
-  setpoint as it stood two hours earlier, at all times, so a raise
-  counts only after two hours and a thermostat lowered counts at once;
-  the local test that fails today comes first.
 - No test drives House0's `SystemCold` transition on a running scada.
 - No test runs the watch on a running scada in standby.
 
 ## Tests
 
-`tests/actors/test_cold_handling.py` covers the judgment, the record, the
+`tests/actors/test_cold_handling.py` covers the judgment, the warm-up
+allowance at each of its three starts with its cap and its absence for a
+lowered thermostat and for a `Learned` zone, the record, the
 latch, the glitches, `stores_empty` by seasonal storage mode, the break
 only with the stores empty, and the scada's handler with and without a
 contract, in process, on both families, with the Nolan fixture's

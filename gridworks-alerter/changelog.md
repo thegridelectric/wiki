@@ -4,6 +4,29 @@ One entry per commit in `thegridelectric/gridworks-alerter`,
 `thegridelectric/gridworks-alerts` and `thegridelectric/gridworks-alert-manager`
 (git = the what, this = the why).
 
+## 2026-10-20 — The tap reads Opsgenie's listing every tap_listing_s (`3b7968b`, merged `356abb7`, PR #13)
+
+`tap_listing_s` (default 300 s) sets how often the tap reads the listing
+of what Opsgenie holds open from this alerter; the first pass reads it,
+the passes between read the store alone and the told set stands as
+creates and closes left it. The store read stays at `tap_reconcile_s`,
+so a page still waits at most ten seconds. Spec: tap axiom 4a is now the
+cadence, clause 4a a transition on it, Settings and Bindings follow.
+Why: the listing was read every pass, 8,640 times a day, and on
+2026-10-20 Opsgenie rate-limited about one in eight of them (1,025
+refusals) while the houses were silent after the Millinocket power cut.
+The listing is for what a pass cannot see (a tap restart, a failed
+close, a close made by hand), none of which needs a ten-second answer.
+
+## 2026-10-20 — gwalert drops its no-data check (`38ad620`, merged `f717956`, gridworks-alerts PR #12)
+
+The legacy detector's `check_no_data`, its freshness query and the
+fields they shared are gone, with the test and the docs section. Why:
+the alerter's no-data rule has paged on silence since 2026-10-19, so on
+2026-10-20 each silent house was paged twice, and gwalert never closed
+its own pages, leaving four open. The box README's watch cue follows
+the log lines that remain.
+
 ## 2026-10-19 — Three silence kinds, the tap headline names the kind (`6ad12e3`, merged `890d802`, PR #12)
 
 One squashed commit, three clusters.
