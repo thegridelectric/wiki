@@ -193,8 +193,12 @@ mixes WaterTempCTimes1000 and CelsiusTimes100 values.
 - State channels emit the state's symbol, resolved through (enum name,
   version) from the row, so a column reads the same across versions.
 
-Rows under one name never overlap in time, so the union sorted by
-timestamp is unambiguous. The one assumption is the name-reuse rule above.
+A column is a channel's lineage: the rows joined by a shared name (a unit
+change mints a new Id under the name) or a shared `channel_id` (a rename
+keeps the Id under a new name), headed by the newest row's name. A request
+names a column by any name its lineage has had. Rows of one lineage never
+overlap in time, so the union sorted by timestamp is unambiguous. The one
+assumption is the name-reuse rule above.
 
 ## The experiment
 
@@ -220,14 +224,20 @@ then back, each with a few reports between. Assert:
    state the rule.
 5. ✅ web-backend: section 3 (`api/v2/readings_units.py`,
    `tests/test_readings_csv.py`). Rows with telemetry Unknown (spruce's
-   opto inputs, 2026-01-28 to 03-31) are left out of the csv.
+   opto inputs, 2026-01-28 to 03-31) are left out of the csv. With the
+   column, a csv column is a lineage: rows joined by a shared name or a
+   shared `channel_id`, headed by the newest row's name, so a rename is
+   one column and a request by any of its names gets it (`jm/csv-stitch-units`,
+   `gw-data` 0.8.0).
 6. ✅ gridworks-data: the `channel_id` column, migration `f7c3d1a2b4e5`
    with the csv its data step applies, `scripts/channel_id_backfill_map.py`
    (on `jm/channel-id`, `gw_data` 0.8.0); gjk: the sync keys rows by name
    and definition, writes `channel_id`, the uuid5 derivation is gone, the
    toggle test takes a rename (on `jm/channel-id-column`).
-7. Run on journaldb: regenerate the csv, `alembic upgrade head` as
-   `gw_admin`, deploy gjk on `gw_data` 0.8.0.
+7. ✅ journaldb is at `f7c3d1a2b4e5` (2026-10-23): the regenerated csv
+   matched the committed one byte for byte, 1465 rows got a `channel_id`,
+   348 pseudo rows and the 4 scale-conflict rows are NULL. Still to do:
+   deploy gjk on `gw_data` 0.8.0.
 
 Effort: 4 h, 90% interval 2–10 (agreed 2026-10-22). The lines below are the first-pass breakdown that quoted higher; the agreed figure stands.
 
@@ -243,8 +253,6 @@ The rekey migration is outside these lines: 3 (2–8) on its own.
 
 ## Open
 
-- Whether the csv offers knitting by `channel_id` (a rename as one
-  column) beside its by-name columns, once the column exists.
 - Whether the name-reuse rule (same name, same quantity) is checked in
   tlayouts or stated in the layout word's axioms.
 - OPS-542 lists the state enums the journal fans out versus the registry

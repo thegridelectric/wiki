@@ -10,26 +10,39 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-23 — readings csv: one column per name in one unit; states as symbols (`acef07b`, OPS-618)
+## 2026-10-23 — readings csv: use state machine enums, knit together . (`5767309`, PR #22, OPS-618)
 
-**What:** each readings csv column is in the unit of the name's newest
-`reading_channels` row, the unit the house sends now, and every older
-row's values convert into it (`api/v2/readings_units.py`: temperatures and
-flows convert pairwise through a reference unit, anything else converts
-only to itself), so a channel whose unit changed with a layout (hp-lwt in
-WaterTempCTimes1000, then CelsiusTimes100) is one column in one scale. A state channel's cell is
-the state's symbol, resolved through the row's (enum name, version); a row
-stamped "Enum" resolves through the newest vendored version. A bucket takes
-the mean of numeric readings and the last state. Rows of one name whose
-units do not reconcile, or a state enum the snapshot lacks, refuse the
-request (422) with the pair named. Rows with telemetry Unknown are left
-out. The api snapshot vendors every state enum, all versions. The
-first-bucket arithmetic uses the signed offset, so a look-back reading
-before the requested start no longer folds into the first row.
+**What:** a csv column is one channel across its layout changes: the
+`reading_channels` rows that share a name, or share a layout channel Id
+(`channel_id`), form one column (`api/v2/readings_units.py`, `lineages`).
+A unit change mints a new Id under the same name, a rename keeps the Id
+under a new name, and a state-machine pseudo row with no Id joins by name,
+so each is one column rather than two: oak's `vdc-relay1` and `vdc-relay`
+are one column headed `vdc-relay`. The column is headed by its newest row's
+name and in that row's unit, the unit the house sends now, and every older
+row's values convert into it (temperatures and flows convert pairwise
+through a reference unit; anything else converts only to itself), so
+hp-lwt in WaterTempCTimes1000, then CelsiusTimes100, is one column in one
+scale. A state channel's cell is the state's symbol, resolved through the
+row's (enum name, version); a row stamped "Enum" resolves through the
+newest vendored version. A bucket takes the mean of numeric readings and
+the last state. A request names a column by any name it has had;
+`all-data` is every column. The channel query takes every row of the house
+with a reading in the window and the request then picks columns, so a
+column asked for by one name comes whole; the readings stream is filtered
+by row id. Rows of one column whose units do not reconcile, or a state enum
+the snapshot lacks, refuse the request (422) with the pair named. Rows with
+telemetry Unknown are left out. The api snapshot vendors every state enum,
+all versions. The first-bucket arithmetic uses the signed offset, so a
+look-back reading before the requested start stays out of the first row.
+`gw-data` 0.8.0 for the `channel_id` column.
 
-**Why:** OPS-618 section 3. layout.lite 013 renames units and the fleet is
-flipping between 012 and 013; the csv joined by name and never read
-`unit`, so a column across the flip mixed two scales.
+**Why:** OPS-618 section 3. layout.lite 013 renames units and channels and
+the fleet is flipping between 012 and 013; the csv joined by name and never
+read `unit`, so a column across the flip mixed two scales and a rename was
+two columns. With `reading_channels.channel_id` the layout's Id is a column,
+so the rename's rows are knit by it rather than by a hash of the Id and the
+definition.
 
 ## 2026-10-22 — api snapshot carries the published synced-readings words; both services import under test (`45739eb`, OPS-473)
 

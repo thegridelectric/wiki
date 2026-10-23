@@ -10,6 +10,29 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-23 — tlayouts: maple's 4 tank picos are PicoWiznetEth2040 (`be8edfb`, OPS-392)
+
+Maple's first boot on the branch (03:12 ET) warned four times that a
+tank pico's `PicoBoardVariant` differs from the layout: buffer, tank1,
+tank2 and tank3 all posted `PicoWiznetEth2040` and the layout said
+`PicoWiznetEth2350`. The picos are the record of what is installed, so
+`maple_gen.py` now declares 2040 for the four and the pair is
+regenerated; the layout differs in those four lines only.
+
+## 2026-10-23 — pico identiy glitch summary names the posted and the layout board (`50b1b3c7`, OPS-392)
+
+The glitch summary, the line that reaches the log, now names the
+posted and the layout board; the journal's Details already did. The
+same commit changes `roll.sh back`:
+
+A forward roll keeps the box's file as `<stem>.<date>-pre-roll.json`
+before installing the committed pair, so a roll back has it. The roll
+back installs that same file again from the tlayouts remote, and the
+file it replaces is the committed file of the line rolled forward to, so
+after a roll back every pre-roll copy is a file git already has. `back`
+now removes the pre-roll copies the forward roll left (on the pi and in
+the LTN's folder) and keeps none of its own. The date-only stamp stays.
+
 ## 2026-10-23 — roll.sh rolls the pi and the LTN only; the second pi is outside the roll (`d6a75d6e`, OPS-392)
 
 The first roll of a House0 house (oak, 2026-10-23) would have stopped at

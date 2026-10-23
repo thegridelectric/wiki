@@ -11,10 +11,13 @@ Status: Draft · Pass 0 · Updated 2026-10-23 · Linear: OPS-392
 
 ## Do this next
 
-**Next move:** step 3, the LTN harness mode. Spruce runs
-`jm/spruce-unlimbo` on both halves since 2026-10-23 00:59 ET (scada
-and LTN at `044b0eef`, the pi's winter hack disabled) and the
-JournalKeeper digests it: see step 2.
+**Next move:** the fleet cutover is under way (2026-10-23 night): spruce and
+maple run `jm/spruce-unlimbo` on both halves; oak rolled forward at 01:42 ET
+and back to `td/generalized-flo` at ~03:07; fir is next, beech waits (sick),
+elm is offline. Before the next boot on the branch, fix OPS-619: the sieg
+loop's own atomic report for a strategy-chosen move has no event and the
+journal refuses the whole report.event (oak 01:45, maple 03:15). Then step 3,
+the LTN harness mode.
 
 1. ✅ Every LTN on the `ltn` box has `LTN_HA1_PARAMS` in its `.env`
    (2026-10-22): each house's value is the `Ha1Params` of the last

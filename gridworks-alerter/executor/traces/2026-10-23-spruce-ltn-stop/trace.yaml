@@ -40,3 +40,5 @@ expected_out:                    # gw.alert 001 records the alerter broadcast, f
     AboutGNodeAlias: hw1.isone.me.versant.keene.spruce.ta
     Summary: "data again after 10.9 minutes (hw1.isone.me.versant.keene.spruce.ta)"
 tolerance: one detector tick (10 s) on each expected time
+refused:                         # bodies the executor's snapshot does not take; the alerter logs and drops them and keeps consuming (hub Axiom 1)
+  - layout.lite 013, both of spruce's layouts in the window ("Unsupported version 013 for layout.lite"); the seed stops at 012

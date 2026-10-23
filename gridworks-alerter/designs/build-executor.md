@@ -17,9 +17,11 @@ green against the built service over the dev broker
 ## Where it stands
 
 - `executor/` holds the twelve tables, one YAML file each, the seed
-  copy (byte-identical to the repo's) and one trace,
+  copy (byte-identical to the repo's) and two traces from the field,
   `traces/2026-10-20-oak-silence/` (ScadaSilent moving to NoData under
-  one AlertId after the Millinocket power cut, from the field), which
+  one AlertId after the Millinocket power cut) and
+  `traces/2026-10-23-spruce-ltn-stop/` (LtnSilent raised and resolved
+  across a stop of the LTN run on purpose), which
   `experiments/traces/pull_trace.py` materialises from the S3
   eventstore: the key alone gives arrival, sender and type, bodies are
   fetched for the types the spec keeps, and the window's `gw.alert`
@@ -79,10 +81,8 @@ green against the built service over the dev broker
   deployed and raise it through sema's change control.
 - Clauses with no test binding: hub 4a, 4b, 5b; listener 3c, 4c, 5b;
   no-data 2b; tap 5b. Each needs a repo test named for it.
-- Traces for the silence trio, one per kind: `ScadaSilent` and the
-  kind change to `NoData` are in the oak trace; `LtnSilent` (scada
-  speaking, LTN not) waits on a stop of one LTN run on purpose (spruce,
-  2026-10-23) and a window pulled with `pull_trace.py`. Expected output
+- Traces for the silence trio: `ScadaSilent` and the kind change to
+  `NoData` are in the oak trace, `LtnSilent` in the spruce one. Expected output
   on `gw.alert` 001: the Firing kind names the party, the Resolved
   follows the first report back by at most one tick with that report's
   readings as evidence, and a layout is no sign of life. The
@@ -107,8 +107,14 @@ green against the built service over the dev broker
   Firing earlier or within one tick. Then comment the call out of
   `AlertGenerator.main` (the way `check_in_atn` already is), deploy by
   pull and restart, note it in the changelog.
-- A counterexample for the sema axiom: a body the snapshot refuses,
-  logged and dropped, the consumer still consuming.
+- The counterexample for the sema axiom is in the spruce trace: its
+  two `layout.lite` 013 bodies are refused by the seed snapshot (it
+  stops at 012), the alerter logged and dropped them and went on to
+  raise and resolve. The vector exists; the Vectors row for it does
+  not yet. Separately, a refused layout is a layout the alerter never
+  sees, so until the seed takes 013 every house on layout.lite 013 has
+  no layout at the alerter: raise the seed through sema's change
+  control before the detector port needs equipment facts.
 - A counterexample for tap 4b from the field: Opsgenie answers some
   listings with a 429 rate limit at the ten-second cadence (first seen
   2026-10-18 20:45Z, about one listing in seven on 2026-10-19), and the

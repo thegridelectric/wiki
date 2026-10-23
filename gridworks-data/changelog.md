@@ -10,7 +10,7 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-23 — reading_channels.channel_id: the layout's channel Id as a column (`jm/channel-id`, `gw_data` 0.8.0, OPS-618) <!-- pending commit -->
+## 2026-10-23 — reading_channels.channel_id: the layout's channel Id as a column (`b0cea6d`, PR #15, `gw_data` 0.8.0, OPS-618)
 
 **Why:** a row's primary key is a surrogate, and the readers need the
 lineage: a renamed channel (oak's `vdc-relay1` becomes `vdc-relay` in

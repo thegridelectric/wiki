@@ -10,7 +10,7 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-23 — Reading channels keyed by name and definition; channel_id written from the layout (`jm/channel-id-column`, OPS-618) <!-- pending commit -->
+## 2026-10-23 — Reading channels keyed by name and definition; channel_id written from the layout (`jm/channel-id-column`, OPS-618)
 
 **Why:** with `reading_channels.channel_id` (gw_data 0.8.0) the row's
 primary key is a surrogate and the layout's Id is a column, so the sync no
