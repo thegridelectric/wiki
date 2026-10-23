@@ -1,6 +1,6 @@
 # Control hierarchy — HSMs, the command tree, and the capability cover
 
-Status: Draft · Pass 0 · Updated 2026-10-05
+Status: Draft · Pass 0 · Updated 2026-10-22
 
 > What this is: how the SCADA's hierarchical state machines (HSMs) and the command tree work **together**
 > — the piece the executor lacked. The HSM decides *who is in control*; the command tree *enforces* it via
@@ -203,8 +203,33 @@ level against the held command.
 
 **Confirmation belongs to the relay actor, per board.** On both board families the relay
 writes through `I2cBus`, reads the pin back, commits its state only then, reports one
-`FsmFullReport` per TriggerId to its boss, and holds a failed command as the enforcement target
-retried every verify pass with a Critical glitch. hp-boss does not wait on the report: it would
+`FsmFullReport` per TriggerId to its boss, and holds a failed command as the enforcement target:
+one Critical glitch per failing streak, a retry at 2 s and 10 s (`Relay.RETRY_BACKOFF_S`), then
+every verify pass. Every failed assert also asks the bus actor to check the relay's expander for
+a reset now (`ExpanderCheckRequested`), so a reset met by an actuation is repaired and
+re-asserted inside a second; the bus heartbeat check is the backstop for a reset no actuation
+meets. A failed readback keeps the bus error text in the Critical and runs the register
+forensics the mismatch branch runs, so the one moment that can show a reset in the act shows it.
+`tests/actors/test_relay_i2c.py` proves the path on the sim bus: a power-on reset met by a
+command is found and re-asserted inside a second with no heartbeat, a transient fault is
+confirmed by the backoff retry with one Critical, the failure details name the bus error and the
+register pair, eight relays failing in one pass raise one check, and one garbled config read on
+a requested check is logged without a glitch. Witnessed on spruce 2026-10-22
+(`experiments/2026-10-22-spruce-i2c-feedback-window/`): five 0x21 resets met by iso-valve
+actuations, each repaired and the relay confirmed back 1.15 s after the dispatch. The Criticals
+themselves were not seen there: the scada forwards a glitch to the LTN on the upstream link
+only, with no box log line and no persisted event, and that window's link was refused.
+
+**Spruce's 0x21 resets follow the iso actuator's load.** The 2026-08-23 gw108 relay stress run
+(`experiments/2026-08-23-gw108-relay-stress/`) energized the iso-valve relay with no other 0x21
+coil on and reset the expander 35 times in 100; with one other coil on, 2 in 30; with two or more,
+0 in 90. The secondary-pump relay never reset it, and the same triplet on the bench board with
+nothing on the contacts never did. Command spacing makes no difference. The boot posture's iso
+open, with every other 0x21 coil just commanded off, is the one such energize the scada makes;
+the feedback above is what makes it survivable, and an `i2c-expander-reset` at spruce is read
+against the iso command that preceded it before anything else is blamed.
+
+hp-boss does not wait on the report: it would
 learn nothing about the heat pump, which answers a call minutes later. The honest on/off signal
 is the power channel. Witnessed on
 honeysuckle 2026-09-07 (`experiments/2026-09-07-hp-boss-admin-drive/`): the relay committed

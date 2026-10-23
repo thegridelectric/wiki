@@ -111,7 +111,7 @@ reading already counts against the channel.
 `SCADA_UNKNOWN_CHANNEL_LOGGING=true` has the scada log every 15 s the
 channels with no value and the channels past the bound
 (`ScadaData.unknown_channels`, `scada_data.py:293`).
-`experiments/house_window.sh` sets it for a window.
+Set it in the box's `.env` for a field log.
 
 ## Known gaps
 

@@ -10,6 +10,24 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-22 — market maker makes it to the mqtt topic exchange for mqtt-based LTN (OPS-615, `90734da`)
+
+A third MQTT bridge tap, `mmmic_tx → amq.topic (rjb.#)`, beside the time
+coordinator's and the registry's. The LeafTransactiveNode is MQTT-native
+and clears its dispatch contract against `latest.price`; until now it
+fabricated that price itself because no MarketMaker publication could
+reach it. With the tap, the stopgap MarketMaker's top-of-hour broadcast is
+heard on `rjb/<maker-alias>/mm/latest-price`. Broadcasts only, as with
+the other two taps; bids and acks stay on the AMQP fabric. Version 0.6.1
+so the hybrid definitions on the hw1 broker can be brought up to a
+released SHA.
+
+The same commit changes the release workflow: it built and published a
+developmental version to TestPyPI on every push to main that did not
+bump the version, with a token the repo does not have, so every such
+push ended in a failed run. It now builds and publishes only when the
+version changed; a push without a bump does nothing.
+
 ## 2026-10-17 — A test that main ships no staging word (OPS-473, `ef1f80f`)
 
 The test no longer looks the snapshot's words up in a sema checkout or a

@@ -1,6 +1,6 @@
 # retire-installations — the tables leave journaldb
 
-Status: Accepted · Pass 1 · Updated 2026-10-21 · Linear: OPS-473
+Status: Accepted · Pass 1 · Updated 2026-10-22 · Linear: OPS-473
 
 > What this is: the second spoke of the disentangle-installations hub.
 > `installations`, `customers` and `installers` are dropped from
@@ -10,37 +10,57 @@ Status: Accepted · Pass 1 · Updated 2026-10-21 · Linear: OPS-473
 
 ## Do this next
 
-The dev run passed (dev-run spoke, 2026-10-21); step 8 of it, the
-dashboard by a person, is the one check left. Then the commits, in this
-order: web-backend `jm/retire-installations` (the summaries through the
-codec as `gw.house.summary`, the api snapshot regenerated from sema
-`65f489b` with `--allow-staged`, `BACKEND_API_PORT` and
-`BACKEND_RABBIT_TLS`); the frontend branch (its first commit, then the
-`gw.house.summary` and `gw.house.operating.status` mirrors and the
-Status column); the experiments folder. The merges wait on sema
-promoting `gw.house.summary`, `gw.dashboard.role`,
-`gw.house.operating.status` and `layout.bundle` (the published-only
-tests fail `main` on a staging word), and the operating-status word on
-the scada needs the `CreatedMs` rename in the scada's snapshot before
-the scada-sent path is live. Open decision: whether gjk's weather
-persistors move to what gwwf sends now (channel and bundle 002,
-forecast, location and observation 001, four new words) as its own
-commit on the gjk branch or its own issue; the seed pins the weather
-words until then.
+Cutover ran 2026-10-23 03:10–03:25Z: journaldb migrated `c3e8f1a9d2b7` →
+`d4a7c9e1b2f3` (the three tables gone, roles re-keyed, `layouts` and
+`house_operating_status` created); gjk box on `main` `1c88ed5`; web-api2
+on web-backend `main` `6161e12` (the first deploy, `a53414d`, failed to
+import: the synced-readings router reads two words that were still
+staging and the published-only snapshot lacked them; sema `2272873`
+publishes them, web-backend `45739eb` regenerates and adds an import
+test). The API answers 401 unauthenticated, both units and gjk log no
+errors since restart. `layouts` was rebuilt from the journal at 03:35Z
+(`gjk.rebuild_layouts`: the six hw1 houses; two `d1` senders have no
+`g_nodes` row and are skipped) and the gateway restarted to seed from
+it; `house_operating_status` fills from the status word (spruce, on
+013) and the deduction for the rest as reports arrive. Remaining: the row-level check
+(step 4 below) once rows exist, and the experiments folder commit.
+
+Merged 2026-10-22: web-backend PR #20 (`a53414d`), frontend PR #8 into
+`jds/v2_apis` and PR #9 into `main` (`9c25a56`, the Pages deploy ran on
+that push at 03:08Z, so the live dashboard is the new frontend against
+the old backend until the cutover window below). Still to merge: gjk
+`jm/house-status-projection` into `main` (it contains
+`jm/layouts-projection`, is current with `main`, and its snapshot is
+published-only). Then the experiments folder commit. The
+scada-sent operating status is live once the scada's `CreatedMs` rename
+(`jm/spruce-unlimbo` `a9acd401`) reaches the boxes. web-backend `main`
+has PR #19 (`ceb7ca6`, 2026-10-22: time bounds on the summary query's
+layout and snapshot subqueries); the branch reads the layout from the
+`layouts` projection by key and already bounds snapshots to a day, so
+the merge of `main` (`92f4770`) kept the branch's query. Open decision:
+whether gjk's weather persistors move to what gwwf sends now (channel
+and bundle 002, forecast, location and observation 001, four new words)
+as its own commit on the gjk branch or its own issue; the seed pins the
+weather words until then.
 
 Done so far: gridworks-data merged to `main` (migrations `e5a1c2d3f4b6`
 and `d4a7c9e1b2f3`, `gw_data` 0.7.0 on PyPI); gjk `b49c94e` on
-`jm/house-status-projection` with the lock at 0.7.0. web-backend `jm/retire-installations`:
-`ddeee35` (the four query paths joining the `g_nodes` projection, the
-first test suite), `5de2bc3` and `7507f42` (both snapshots
-published-only from sema `1c52df0`), `a174a79` (the summaries join on
-`layouts`, the gateway seed; recorded in the latest-layout-projection
-spoke). Before cutover: Joe has agreed `jds/tsdb_api` and `jds/v2_apis`
-merge to `main` at deploy time; the TA rows' `display_name` in gnr
-reads "Beech TerminalAsset", so rename in gnr or shorten in the
-frontend. The sema checkout on the laptop is moved between branches by
-other sessions; a regen here runs against `dev` and says which commit
-it used.
+`jm/house-status-projection` with the lock at 0.7.0. sema `dev`:
+`gw.house.summary` accepts `layout.lite` 013 (`ad52942`),
+`gw.dashboard.role` and `gw.house.summary` published (`36dd41c`).
+web-backend `jm/retire-installations`: `ddeee35` (the four query paths
+joining the `g_nodes` projection, the first test suite), `5de2bc3` and
+`7507f42`, `a174a79` (the summaries join on `layouts`, the gateway seed;
+recorded in the latest-layout-projection spoke), `3d8a14f` (the
+summaries through the codec as `gw.house.summary`, both snapshots
+published-only from sema `36dd41c`, the summaries and the gateway
+reading `layout.lite` 011 through 013, `BACKEND_API_PORT` and
+`BACKEND_RABBIT_TLS`), `92f4770` (the merge of `main`). web-frontend
+`jm/retire-installations` `3d514bb` (houses keyed by `TaGNodeId`, the
+`gw.house.summary` and `gw.house.operating.status` mirrors, the Status
+column, the layout mirror through 013). Before cutover: the TA
+rows' `display_name` in gnr reads "Beech TerminalAsset", so rename in
+gnr or shorten in the frontend.
 
 ## The summary word
 
@@ -63,9 +83,9 @@ the one state field is the house's operating status.
    `jm/spruce-unlimbo` also sends it upstream. `gw.house.summary/000`,
    owner `gridworks-energy`: `Role`, `TaGNodeId` (`uuid4.str`),
    `GNodeAlias`, `DisplayName` (nullable), `Layout` (a `oneOf` over
-   `layout.lite/011` and `/012`, widened by a version bump as layout
-   words arrive; the reader branches on the instance's own `TypeName`
-   and `Version`), `OperatingStatus` (`gw.house.operating.status`,
+   `layout.lite/011`, `/012` and `/013`, widened by a version bump as
+   layout words arrive; the reader branches on the instance's own
+   `TypeName` and `Version`), `OperatingStatus` (`gw.house.operating.status`,
    nullable until the projection has a row), `LatestSnapshotTime`
    (nullable; null means not reporting in the last day),
    `LongestRunningZoneName`, `LongestRunningZoneStartTime` (nullable
@@ -73,9 +93,7 @@ the one state field is the house's operating status.
    (the response is reassembled per request), `TypeName`, `Version`.
    Nothing about a person. `gw.dashboard.role` is a versioned enum,
    `Admin`, `Owner`, `Viewer`, default `Viewer` so an unknown role grants
-   the least. Both new words and the status rename are sema `f8a5e50` on
-   `jm/house-summary` off `jm/layout-bundle`; promotion follows the dev
-   run.
+   the least. Both new words and the status rename are published on sema `dev`.
 2. **gw_data.** A `house_operating_status` projection table, one row per
    house keyed by the TA GNodeId, with the payload, `created_at` and a
    `source` column (`scada` or `derived`) for operators.
@@ -90,9 +108,8 @@ the one state field is the house's operating status.
    `ValidationState` `UnValidated`, since no deed is in the journal and
    the enum names that as the scada's own value before any deed).
    Retiring main deletes the deduction. Built on gjk
-   `jm/house-status-projection` off `jm/layouts-projection`, snapshot
-   from sema `f8a5e50` with `--allow-staged`; gw_data table on
-   `jm/house-operating-status` (migration `d4a7c9e1b2f3`, 0.7.0). With it, the sema message persistor reads `CreatedMs`,
+   `jm/house-status-projection`; gw_data table by migration
+   `d4a7c9e1b2f3` (0.7.0). With it, the sema message persistor reads `CreatedMs`,
    else `SendTimeMs`, from any payload before its per-type table (the
    sender-time design, step 3).
 4. **web-backend.** The summaries endpoint builds `gw.house.summary`
@@ -120,8 +137,8 @@ same gap, a later item.
   null still means every house. Forced into this spoke by the foreign
   key to `installations.id`. The table itself moves to web-backend's
   identity database under OPS-600.
-- **The Hardware section** reads the latest `layout.lite` from the
-  journal messages through the codec. Operational params are not on the
+- **The Hardware section** reads the house's `layouts` row (the
+  latest-layout-projection spoke) through the codec. Operational params are not on the
   bus (`scada.params` last journaled 2026-03), so the Status section
   loses its params field.
 - **address, customers, installers** are in gridworks-pii (pii-store),
@@ -139,22 +156,30 @@ The URL names a house by its alias; the role names it by its TerminalAsset
 GNodeId, the `g_nodes` row at `<alias>.ta`; a null role is every house.
 The data-access check and the hourly-electricity query resolve the alias
 to that row; the session's sys-admin test is an admin role with a null
-`ta_g_node_id`. The v2 summaries endpoint returns, per house: `Role`,
-`TaGNodeId`, `GNodeAlias` (the house alias), `DisplayName` (the TA row's,
-gnr owns it), `SystemMode`, `MainAutoState`, `LatestSnapshotTime`, the
-longest-running zone, and `LayoutLite` (the latest `layout.lite` from the
-journal, decoded through the codec). No address, contact, hardware layout
-or params field. The v1 `/login` is untouched. The test suite
+`ta_g_node_id`. The v2 summaries endpoint returns one `gw.house.summary` instance per
+house, built through the codec: `Role`, `TaGNodeId`, `GNodeAlias` (the
+house alias), `DisplayName` (the TA row's, gnr owns it), `Layout` (the
+`layouts` row, 011 through 013), `OperatingStatus` (the
+`house_operating_status` row), `LatestSnapshotTime`, the longest-running
+zone pair, `SendTimeMs`. No address, contact, hardware layout or params
+field. The gateway seeds from `layouts` at start and reads the same
+three layout versions; its status message's `system_mode` is null for a
+013 house. The v1 `/login` is untouched. The test suite
 (`tests/`) seeds two houses and three logins on a testcontainers
 TimescaleDB built from the `gw_data` models.
 
 ## Frontend
 
 The live dashboard is the `jds/v2_apis` branch, deployed to GitHub Pages
-by a hand-run workflow (`main` stops at the v1 routes and a retired
-host); it logs in through `/api/v2/sessions`, keys every house by
+by a hand-run workflow (last run 2026-09-16 at `d718d7f`; `main` stops
+at the v1 routes and a retired host). The same workflow also runs on
+every push to `main`, so a push to `main` redeploys the v1 site over the
+live one until the workflow is re-run from `jds/v2_apis` (it happened
+2026-08-24); it logs in through `/api/v2/sessions`, keys every house by
 `GNodeAlias`, and takes the house list from the summaries. The branch
-base and merge target is `jds/v2_apis`. What the field change touches
+base is the `jds/v2_apis` tip `d718d7f`; the merge target is `main`
+(Joe, 2026-10-22), which brings `jds/v2_apis` into `main` and makes
+the push-to-`main` deploy the right one. What the field change touches
 (checked 2026-10-16): the Installations table's Location column
 (`Address` city and state) goes; the Information page keeps its four
 sections, Address and Contact render "not shown" until OPS-600, Hardware
@@ -174,23 +199,31 @@ build green, lint unchanged from the branch base.
 ## Cutover
 
 1. pii-store is seeded and verified (six customers, labels, no
-   coordinates).
-2. gridworks-data migration applied to journaldb; web-backend and
-   frontend deployed from `main` in the same window, after the dev run
-   passes and the branches merge (`jds/tsdb_api` is in `main` as of PR
-   #18; `jds/v2_apis` merges with the frontend branch).
-3. Row-level check: the dashboard lists six houses, every Status and
-   Hardware section renders, no endpoint returns a contact or address.
-4. Operators look customers up with the CLI from here until
+   coordinates). Done 2026-10-15.
+2. The three branches merge to `main`: web-backend, gjk, and the
+   frontend (its merge carries `jds/v2_apis` into `main`; `jds/tsdb_api`
+   is in web-backend `main` as of PR #18).
+3. One window, in this order, since the old web-backend reads
+   `installations` and the new one joins `layouts` and
+   `house_operating_status`: `alembic upgrade head` on journaldb as
+   `gw_admin` from the laptop (`gridworks-infra/databases/journaldb.md`;
+   the retire migration fails rather than drop a role it cannot map to a
+   TerminalAsset); gjk pull and restart (`tools/box-deploy.sh gjk`), so
+   the projections fill; web-backend pull and restart on web-api2;
+   the frontend's Pages workflow, which runs on the push to `main`.
+4. Row-level check: the dashboard lists six houses, every Status and
+   Hardware section renders, no endpoint returns a contact or address;
+   `layouts` is rebuilt from the journal right after the migration
+   (`uv run python -m gjk.rebuild_layouts` on the gjk box; its
+   docstring says so), then kept current by live `layout.lite`, which
+   a scada sends once per run and again each time its upstream link
+   activates. The gateway seeds from `layouts` only at start, so it
+   restarts after the rebuild.
+5. Operators look customers up with the CLI from here until
    OPS-600.
 
 ## Open
 
-- The summaries take `SystemMode` from `layout.lite`, and the real-time
-  page its sieg default; both snapshots here are published-only, so 013
-  (staging, with neither `SystemMode` nor a sieg handle) enters only
-  when it is promoted. Raised on the spruce-unlimbo layout-lite spoke;
-  the summaries code follows whichever way 013 is finalized.
 - Side effect of this spoke, 2026-10-17: the same published-only test
   now guards the vendored snapshot in gwbase, journalkeeper,
   fleet-index-service, grid-node-registry (test written, not yet

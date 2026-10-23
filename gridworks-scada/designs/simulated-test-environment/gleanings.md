@@ -202,8 +202,8 @@ and assert it decodes clean. A green decode is a *guarantee* the two carriers ag
 - **A weather service on the dev broker** so a dev scada gets weather the
   way prod does. The scada's boot now provisions the forecast bundle and
   the seasonal template from the config folder or the weather facade, and
-  refuses to start without them; a dev window today runs on fixture
-  copies placed by hand (`experiments/field-window-recipe.md`), so the
+  refuses to start without them; a dev scada today runs on fixture
+  copies placed by hand (`experiments/put_layout.sh dev`), so the
   pull path, and any experiment that needs live forecasts, has no dev
   rehearsal. A full dev simulation runs `d1.weather` beside the scada,
   the LTN and the terminal asset.

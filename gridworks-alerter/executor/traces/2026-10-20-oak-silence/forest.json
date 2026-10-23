@@ -1,0 +1,81 @@
+{
+ "Edges": [],
+ "Nodes": [
+  {
+   "Alias": "hw1.isone",
+   "Status": "Pending",
+   "GNodeId": "3cb41a18-66a4-49e1-b2b8-0e9637c18650",
+   "Version": "006",
+   "TypeName": "g.node.gt",
+   "BaseClass": "MarketMaker",
+   "GNodeClass": "MarketMaker",
+   "DisplayName": "ISO NE Grid Operator"
+  },
+  {
+   "Alias": "hw1.isone.me",
+   "Status": "Pending",
+   "GNodeId": "0d0055e0-96c4-4d83-8f00-6a4d30265add",
+   "Version": "006",
+   "TypeName": "g.node.gt",
+   "BaseClass": "ConnectivityNode",
+   "GNodeClass": "ConnectivityNode",
+   "DisplayName": "Maine"
+  },
+  {
+   "Alias": "hw1.isone.me.versant",
+   "Status": "Pending",
+   "GNodeId": "faabaf9b-84e7-4cb2-8da3-7774b9bb9afb",
+   "Version": "006",
+   "TypeName": "g.node.gt",
+   "BaseClass": "ConnectivityNode",
+   "GNodeClass": "ConnectivityNode",
+   "DisplayName": "Versant"
+  },
+  {
+   "Alias": "hw1.isone.me.versant.keene",
+   "Status": "Pending",
+   "GNodeId": "e6adb372-62ad-412c-bb2d-77fc428e3aac",
+   "Version": "006",
+   "TypeName": "g.node.gt",
+   "BaseClass": "MarketMaker",
+   "GNodeClass": "MarketMaker",
+   "DisplayName": "Keene Constraint MarketMaker"
+  },
+  {
+   "Alias": "hw1.isone.me.versant.keene.oak",
+   "Status": "Pending",
+   "GNodeId": "b759f5bb-b70c-4052-8587-85e43d6a2290",
+   "Version": "006",
+   "TypeName": "g.node.gt",
+   "BaseClass": "LeafTransactiveNode",
+   "GNodeClass": "LeafTransactiveNode",
+   "DisplayName": "Oak Ltn"
+  },
+  {
+   "Alias": "hw1.isone.me.versant.keene.oak.scada",
+   "Status": "Pending",
+   "GNodeId": "fbbea6a1-0749-43d8-8136-ff795fe079a6",
+   "Version": "006",
+   "TypeName": "g.node.gt",
+   "BaseClass": "Logical",
+   "GNodeClass": "Scada",
+   "DisplayName": "Oak Scada"
+  },
+  {
+   "Alias": "hw1.isone.me.versant.keene.oak.ta",
+   "Status": "Pending",
+   "GNodeId": "0a39d45d-af42-4721-8cdc-51deeed4b80c",
+   "Version": "006",
+   "TypeName": "g.node.gt",
+   "BaseClass": "TerminalAsset",
+   "GNodeClass": "TerminalAsset",
+   "DisplayName": "Oak TerminalAsset"
+  }
+ ],
+ "Roots": [
+  "hw1.isone"
+ ],
+ "Version": "002",
+ "TypeName": "g.node.forest",
+ "SendTimeMs": 1792447336556
+}

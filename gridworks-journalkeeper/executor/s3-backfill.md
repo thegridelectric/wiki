@@ -63,21 +63,25 @@ payload's created time and `persisted_at` the S3 key time, and the read side
 
 ## The channel-era model — why layouts load first
 
-`reading_channels` rows carry no start date; a `(terminal_asset, name)` has
-one active row and any number of retired ones, each identified only by its
-`deactivated_date`. A channel's definition changes under one name across
-layouts (`buffer-depth1` is a `WaterTempCTimes1000` data channel through 2025
-and a `FahrenheitX100` derived channel from 2026), and the front end scales
-readings by the row's unit, so a reading must attach to the row of its era.
-`reading_channel_eras.channel_ids_at` picks, per name, the row with the
-earliest `deactivated_date` after the report time, else the active row.
+A reading attaches to the row of the channel the layout in force at its
+time names (`channel_resolver`): the newest `layout.lite` message at or
+before the report gives the name's definition (unit, unit type, channel
+type), and the era rule (`reading_channel_eras.channel_ids_at`: the row
+with the earliest `deactivated_date` after the report time, else the
+active row) picks among the rows of that name and definition. A report
+from before the first layout the journal has from its scada has no layout
+in force and takes the era rule over every row of the name. A channel's
+definition changes under one name across layouts (`buffer-depth1` is a
+`WaterTempCTimes1000` data channel through 2025 and a `FahrenheitX100`
+derived channel from 2026), and the front end scales readings by the
+row's unit, so the row has to be the right one.
 
 The live layout sync deactivates every active channel absent from the layout
 it is processing. Run on a 2024 layout against prod, that would retire a
 house's live channels. So a layout **older than the newest `layout.lite` in
 `messages`** for its house syncs **add-only**: nothing active is touched, and
-whatever it carries that is not active in the same definition becomes an era
-row retired at the earliest newer layout's time.
+a channel it declares with no row of its own becomes an era row retired at
+the earliest newer layout's time.
 
 Both mechanisms assume forward time order. Hence a load is two forward
 passes: **pass 1 `layout.lite` only**, over the whole span, so every era row

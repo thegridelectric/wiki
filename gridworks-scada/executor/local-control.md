@@ -168,17 +168,17 @@ on-peak holds through the rest of the peak.
 - Zones on their thermostats (every failsafe relay de-energized, every
   scada zone relay open), charge valve closed, store pump off. These are
   commanded once, in the boot pass.
-- The iso valve is open while the call is closed and while the hp-watch
-  state is `HpDetectedOn` or `Unknown`, and closed only with the call
-  open and the state `HpDetectedOff`, against the convection loop off
-  the buffer top. It is commanded the moment the call or the state
-  changes, and only on a change. A state that arrives while Dormant is
-  kept and commands nothing; the boot on wake commands the valve by it.
+- The iso valve is open, commanded in the boot pass with the rest of the
+  posture, and nothing closes it. The machine does not subscribe to
+  hp-watch.
 - The secondary pump is not this machine's. hp-boss owns its relay and
-  runs it on the same rule (called, or sensed on, or unknown), whoever
-  holds the tree (`control-hierarchy.md` "Fixed sub-trees vs floating
-  actuators"); the machine decides the call and the valve, so the pump
-  never runs against a closed iso under local control.
+  runs it on the watch alone (sensed on, or unknown), whoever holds the
+  tree (`control-hierarchy.md` "Fixed sub-trees vs floating actuators").
+  The call plays no part: we do not trust the plant's primary pump in
+  either direction, so the secondary pump runs on the heat pump's
+  measured power and never on what the scada asked of it. The machine
+  decides the call, and the iso is open, so the pump never runs against
+  a closed iso whoever holds the tree.
 
 **Boot** commands every actuator the machine is the direct boss of, in
 one pass: the postures above plus the call open.

@@ -14,9 +14,7 @@ Status: Accepted · Pass 1 · Updated 2026-10-21 · Linear: OPS-473
 
 ## Do this next
 
-Step 8, the dashboard against the API, by a person: the runbook in
-`experiments/2026-10-21-disentangle-dev-run/` brings the stack back and
-names the login. Then the commits and merges in the retire-installations
+The run is complete. The commits and merges in the retire-installations
 spoke's order.
 
 ## Why a dev run
@@ -113,15 +111,31 @@ then the rerun.
 Ran 2026-10-21: `experiments/2026-10-21-disentangle-dev-run/`. PASS on
 every unattended step (15 of 15 harness checks), the gateway seed and
 the not-reporting step; steps 1 and 2 ran from the operator CLIs; step 8
-is open. Two gaps found on the scada side: the `jm/spruce-unlimbo` scada
+passed by a person the same day (`captures/step8-*.png`): Cedar in the
+house list by display name, red because no snapshot is within the
+bound; Hardware from the `layouts` row; Status from the operating
+status the harness sent; Address and Contact dark; the real-time page
+connected to the gateway and drawn from the layout, every reading a
+dash; Parameters on the model's defaults. The sieg default check was not
+exercised: the harness's sample layout has no data channels, so the page
+reads no sieg loop. Two gaps found on the scada side: the `jm/spruce-unlimbo` scada
 sends `layout.lite` 013, which journalkeeper decodes as degraded until
-013 is promoted and the snapshots regenerate, and it sends the operating
-status with `UnixMs`, which the renamed word refuses; the harness
+013 is promoted and the snapshots regenerate, and, at the run's commit, it sent the
+operating status with `UnixMs`, which the renamed word refuses
+(`CreatedMs` on the branch since `a9acd401`, later that day); the harness
 published a 012 layout and a `CreatedMs` status as the scada to exercise
 both paths. web-backend needed two settings for the run,
 `BACKEND_API_PORT` and `BACKEND_RABBIT_TLS`.
 
 ## Open
+
+- The real-time page spins for a house whose scada is silent, though
+  the gateway's status frame already says no snapshot is loaded. A
+  frontend item outside this issue.
+- The dev universe seed (`gnr/dev_universe.py`) gives every node the
+  alias as its display name, so a reseed puts the alias back in the
+  house list. The seven TA rows were renamed in the dev registry on
+  2026-10-21 and resynced into `g_nodes` through the forest bootstrap.
 
 - The gateway's websocket status message on a layout change (step 6)
   was not captured; the row and the summary were.

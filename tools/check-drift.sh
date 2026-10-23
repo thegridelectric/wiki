@@ -96,7 +96,7 @@ check_house_params() {  # house source-file boxes...
   [ -f "$src" ] || return 0
   want=$(shasum -a 256 "$src" | cut -d' ' -f1)
   for box in "$@"; do
-    for dir in scada scada-experiment; do
+    for dir in scada; do
       got=$($SSH "$box" "sha256sum .config/gridworks/$dir/operational-params.json 2>/dev/null | cut -d' ' -f1" 2>/dev/null)
       [ -z "$got" ] || [ "$got" = "$want" ] || OUT="$OUT
   $box: $dir/operational-params.json differs from tlayouts output/$house/${src##*/} (not a pull + restart: compare the two and decide which side is right)"

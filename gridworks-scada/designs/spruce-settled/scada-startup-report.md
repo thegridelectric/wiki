@@ -17,9 +17,9 @@ journal.
   rides the acked event path: `gwproactor/links/link_manager.py`
   `generate_event` publishes only when the upstream link is `active` and
   persists the event otherwise, so with no LTN it stays on the box.
-- The commit a box runs is checked from the laptop when an experiment
-  window opens (`experiments/house_window.sh`), and is recorded nowhere
-  in the data the fleet emits.
+- The commit a box runs is checked from the laptop when a house rolls
+  (`scripts/roll.sh`), and is recorded nowhere in the data the fleet
+  emits.
 
 ## Decision: a plain report word, beside the deed
 

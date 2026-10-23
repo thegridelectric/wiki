@@ -1,6 +1,6 @@
 # tlayouts — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-10-19
+Status: Draft · Pass 0 · Updated 2026-10-22
 
 > What this is: the generators that author every GridWorks hardware layout
 > and its paired operational params as validated Sema words, and the repo
@@ -75,7 +75,26 @@ terminal-asset registry ([OPS-471](https://linear.app/gridworks/issue/OPS-471)),
 from which the LTN hands a scada both artifacts
 ([OPS-531](https://linear.app/gridworks/issue/OPS-531)). Until then this
 repo is the record: install facts, ops values and GNode identity live in
-the drivers as Python. Once the registry holds a house, that house's gen
+the drivers as Python, and the JSON a gen emits is committed beside it.
+
+`output/<house>/` is the committed record for a house: the layout and
+operational-params JSON the gen emits, and the `<house>.uploaded.json`
+reference the gen reads ids from. `.gitignore` admits only those
+folders; the strays in `output/` (`*.generated.json`, `*.uploaded.json`
+at the top, one-off experiments) are not the record. A gen and its JSON
+are one authority because a gen run from a clean checkout emits the
+committed file byte for byte; a difference is a defect in the gen or an
+uncommitted edit. Committing the JSON is also where a minted id lives:
+the gens take ids from the deployed layout, then from their own previous
+output, then mint, so an id minted for a name the pi lacks has its home
+in the committed output.
+
+Each scada branch has its tlayouts branch: scada `main` and
+`actual-spruce` read tlayouts `main` and `actual-spruce`; scada
+`jm/spruce-unlimbo` reads tlayouts `jm/spruce`. A box takes its files
+from a pushed SHA of the matching branch and from nowhere else.
+
+Once the registry holds a house, that house's gen
 runs at commissioning or a rewiring, its output is committed to the
 registry, ids come from the record, and the gen is never re-run over a
 live record.

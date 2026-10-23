@@ -1,6 +1,6 @@
 # Build the alerter executor
 
-Status: Draft · Pass 0 · Updated 2026-10-19 · Linear: OPS-605
+Status: Draft · Pass 0 · Updated 2026-10-23 · Linear: OPS-605
 
 **EDD: yes** the trace replay is the verification: the alerter executor
 reaches Verified when every clause has a vector and every trace replays
@@ -18,13 +18,15 @@ green against the built service over the dev broker
 
 - `executor/` holds the twelve tables, one YAML file each, the seed
   copy (byte-identical to the repo's) and one trace,
-  `traces/2026-10-15-oak-ltn-stop/`, which
-  `experiments/traces/pull_trace.py` materialises from the journal,
-  reading a `decode:` line in the trace spec. That trace is retired:
-  its expected output predates the silence trio, its window has none
-  of the LTN's pings or acks, and spruce's 003 reports in the same
-  window needed a sema fix to decode. It is deleted when the first
-  replacement trace is in. The port (Plan step 1)
+  `traces/2026-10-20-oak-silence/` (ScadaSilent moving to NoData under
+  one AlertId after the Millinocket power cut, from the field), which
+  `experiments/traces/pull_trace.py` materialises from the S3
+  eventstore: the key alone gives arrival, sender and type, bodies are
+  fetched for the types the spec keeps, and the window's `gw.alert`
+  records are printed as the expected output. The journal supplies the
+  forest only; it has no pings or acks, and it has journaled no
+  `gw.alert` since 10-18 (the keeper's alert persistor has a 000 method
+  and the alerter speaks 001). The port (Plan step 1)
   is done: 7 hub axioms, 4 concerns (listener, no-data,
   broker-unreachable, tap), 27 axioms, 65 clauses, 137 bindings. The
   Settings table is written by hand from the settings class in the
@@ -53,7 +55,9 @@ green against the built service over the dev broker
 4. **Settings generator.** From the alerter's settings class to the
    Settings table; the check is that regeneration changes nothing.
 5. **Pull script.** Read ReadAs from the Words table instead of the
-   trace spec's `decode:` line, and drop the line.
+   trace spec's `decode:` line, and drop the line. Reads the
+   eventstore for messages (done); the forest still comes from the
+   journal.
 6. **Replay harness.** `experiments/traces/`: replay a trace against
    the built service over the dev broker, clock driven from the trace,
    diff the wire-out within the Reproduce column's allowance. The
@@ -75,19 +79,16 @@ green against the built service over the dev broker
   deployed and raise it through sema's change control.
 - Clauses with no test binding: hub 4a, 4b, 5b; listener 3c, 4c, 5b;
   no-data 2b; tap 5b. Each needs a repo test named for it.
-- Traces for the silence trio, one per kind, from new instances made
-  for the purpose rather than the oak window: `ScadaSilent` (scada
-  not speaking), `LtnSilent` (scada speaking, LTN not), `NoData`
-  (both speaking, no reports). Each is induced on the dev broker, or
-  taken from a field window once a stop is run on purpose, and pulled
-  with `pull_trace.py`. The LTN's pings and acks are not journaled
-  today, so the `LtnSilent` and `NoData` inputs come from the
-  eventstore by hand until JournalKeeper journals them (OPS-392, the
-  layout.lite 013 release). Expected output on `gw.alert` 001: the
-  Firing kind names the party, the Resolved follows the first report
-  back by at most one tick with that report's readings as evidence,
-  and a layout is no sign of life. A kind change mid-window keeps the
-  `AlertId`.
+- Traces for the silence trio, one per kind: `ScadaSilent` and the
+  kind change to `NoData` are in the oak trace; `LtnSilent` (scada
+  speaking, LTN not) waits on a stop of one LTN run on purpose (spruce,
+  2026-10-23) and a window pulled with `pull_trace.py`. Expected output
+  on `gw.alert` 001: the Firing kind names the party, the Resolved
+  follows the first report back by at most one tick with that report's
+  readings as evidence, and a layout is no sign of life. The
+  eventstore's 10-20 to 10-22 windows (four houses at 14:20Z on 10-20,
+  spruce on 10-21 20:30Z and 10-22 12:05Z) are further vectors for the
+  same clauses if the replay wants more than one.
 - A restart trace for the store axiom: one of those windows with a
   `restart` event between the Firing and the Resolved; expected output
   has one Firing and one Resolved.

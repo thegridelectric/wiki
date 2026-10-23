@@ -1,182 +1,77 @@
 # Finalize `layout.lite/013` (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-10-18 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-10-23 · Linear: OPS-392
 
 > What this is: the spoke that takes `layout.lite/013` from staging to
-> published with its closure, so the spruce scada can send it on the
-> production broker. This is a before-merge item for the branch: spruce
-> stays off rmqbot until the word it sends on link-up is published.
-> Two segments: the first publishes the word the box sends today, enough
-> for the fleet to run under local control; the second, once the maple
-> and spruce LTNs run, is the `ltns-ready.md` spoke.
+> published with the JournalKeeper digesting it, so a scada on
+> `jm/spruce-unlimbo` can connect to the production broker, and gives
+> the LTNs what they need once the word stops sending them operational
+> parameters. The segment after the LTNs run on the new code is
+> `ltns-ready.md`; the merge to `main` is `deployment.md`.
 
-**To fold in: state machines and their states.** `layout.lite` and the
-layout words both need to carry the state machines the scada runs, each
-with its state enum (word and version) and so its possible states, so
-that JournalKeeper has a programmatic way to track them rather than
-hand-kept machine names. The machine-state enums
-(`gw1.nolan.lc.buffer.only.state`, `spruce.hack.hp.state`, and the
-rest) reach the journal as `SingleMachineState` values, and no layout
-names them. `spruce.hack.hp.state` is seeded into the tlayouts snapshot
-and the gwsproto closure mirror as the first of them.
+## Do this next
 
-## Two segments
+**Next move:** step 3, the LTN harness mode. Spruce runs
+`jm/spruce-unlimbo` on both halves since 2026-10-23 00:59 ET (scada
+and LTN at `044b0eef`, the pi's winter hack disabled) and the
+JournalKeeper digests it: see step 2.
 
-**Segment 1, basic functioning under local control.** The publish
-checklist below, on 013 as it is (or 014 without the Krida pair, the
-first Open item). The LTN's needs are not designed here: the word keeps
-carrying what the LTN reads today (`SeasonalStorageMode`,
-`BufferShortCycling`, `TotalStoreTanks`, `Ha1Params`) and the fix is
-only that a Nolan layout no longer crashes the builder.
-
-**Segment 2, after the LTNs work.** Lives in
-`ltns-ready.md`: what each LTN takes from the scada,
-the `flo.params` versions, and whether `layout.lite` is reshaped or
-replaced. **When segment 1 closes:** distill the publish outcome into
-the executor, then move anything still open in this spoke (the closure
-decision's leftovers, the `gw.nolan.layout` promote note) into
-`ltns-ready.md` "What the LTN takes from the scada", and delete this
-file. The scoreboard row covers segment 1; ltns-ready is estimated when
-it opens.
-
-## Where it stands
-
-- `layout.lite/013` is staging in sema (created 2026-09-08); gwsproto
-  pins `013` (`packages/gridworks-scada-protocol/src/gwsproto/named_types/layout_lite.py:47`).
-- The builder is House0-shaped and crashes on the Nolan layout ("The
-  first wire case" below).
-- Publishing 013 drags seven staging words into the published closure:
-  `gw1.actuation.authority/000`, `gw1.service.mode/000`,
-  `pico.tank.module.component.gt/012`, `sim.pico.tank.module.component.gt/001`,
-  `pico.flow.module.component.gt/001`, and the Krida pair
-  `i2c.multichannel.dt.relay.component.gt/004` + `relay.actor.config/003`.
-- The longer-term intent is to stop sending a third shape and send the
-  raw layout + ops words instead
-  (`../spruce-settled/publish-layouts-and-operational-params.md`). That
-  is segment 2's question; segment 1 only finalizes the word the box
-  sends today.
-
-## What `layout.lite` is standing in for
-
-`layout.lite` serves two temporary roles, and finalizing it is the moment
-to prepare for what replaces each.
-
-1. **Proof of liveness.** The scada's answer to `SendLayout` on link-up is
-   how the LTN knows the scada is there. That role is changing out very
-   shortly and should not shape the word.
-2. **A stand-in for the actual layout and operational params.** The LTN
-   learns scada parameters only through this word (`KeepBufferFull` at
-   `actors/ltn/ltn.py:774`), because it holds neither the layout word nor
-   the ops word. The direction is the other way round: the LTN provides
-   the scada with both its operational params and its layout, drawn from
-   their authority, the terminal-asset registry (the layout and
-   operational-params sibling of the grid-node registry,
-   [OPS-471](https://linear.app/gridworks/issue/OPS-471)). What the scada sends up is then likely a
-   confirmation that the layout and ops it runs are the correct ones,
-   checked against that authority, not the source of them.
-
-So segment 1 carries design work as well as the publish: what the
-authority holds, how the LTN hands a scada its layout and ops, and what
-the scada sends up so the two can be checked against each other. The
-adoption question (whole instance or partial update, restart or not) is
-in `../spruce-settled/publish-layouts-and-operational-params.md`
-"Parameters coming down from the LTN".
-
-**The LTN's timezone and on-peak hours are the first case.** The scada
-side reads its timezone from `ops.Tariff.TimezoneStr`. The LTN cannot: its
-three readers (`actors/ltn/ltn.py:474`, `actors/ltn/contract_handler.py:58`,
-and the LTN settings default `actors/ltn/config.py:44`) and its inline
-on-peak table (`actors/ltn/contract_handler.py:275`, weekdays 7 to 11 and
-16 to 19) stay on LTN settings until the LTN holds the ops word. A
-`Tariff` field on `layout.lite` is not the fix; it would extend the
-stand-in role this section retires.
-
-## The first wire case
-
-The LTN requests the layout with `SendLayout`; the scada answers with a
-`layout.lite` payload carrying every ShNode, every data channel, the
-tank, flow and relay components, and House0 ops fields
-(SeasonalStorageMode, BufferShortCycling, TotalStoreTanks). On a Nolan
-layout the builder crashes (`Trouble with SendLayout: 'NoneType' object
-has no attribute 'component'`, bench run 4, 2026-09-05; `scada.py`
-`layout_lite`). The crash is the small part: a fixed builder answers
-every request on hw1-1 with `layout.lite/013`, a staging word that drags
-the whole layout closure over the production broker in a House0-shaped
-payload. The broker rule reaches only the words that cross the wire
-(`executor/running.md` "Experiment window on a deployed box"), and this
-is the one wire word still staging; the layout and ops words behind it
-stay staging through the fleet move. So a Nolan scada either sends no
-layout until the word is published, or sends a published word whose
-closure is published too. Decided 2026-09-08: spruce stays off rmqbot
-and keeps sending `layout.lite`, because the journal on hw1-1 reads the
-layout to interpret the data channels; publishing 013 with its closure
-is the gate to connecting.
-
-## Do this next: the publish checklist (segment 1)
-
-1. Read what JournalKeeper and the data repos take from `layout.lite`
-   today (which fields, which nested words), so 013 carries exactly
-   that and nothing that forces a further reshape before publishing.
-   The JournalKeeper change that takes 013 also adds `gw.scada.commit`
-   to the types it journals (OPS-7): the scada announces its commit at
-   boot right after `layout.lite`, and both reach the journal in one
-   JournalKeeper release. The same release adds the LTN's pings to the
-   types it journals (for better alerter traces: the NoData cause
-   clause reads whether the LTN is speaking, and today the journal has
-   only the LTN's hourly glitches, so that half of the rule cannot be
-   pulled from the archive).
-2. Decide the closure: publish 013 with the Krida pair in it, or cut a
-   014 without them once the sema wave drops them from the House0 word
-   (scada stopped reading them 2026-09-10).
-3. Fix the builder for the Nolan layout; boot on the bench and on the
-   box and confirm the emitted instance validates (`sema validate`).
-4. Publishing is immutability: confirm every word in the closure is
-   finished (no in-place edit still planned on the branch), or it gets
-   a new version straight after promotion.
-5. Read `sema/spec` `governance.md` "Promotion" and
-   `registry/structure.md` "Status Field"; promote bottom-up with
-   `sema promote`, the read-receipt being the list of words promoted.
-6. Regenerate the scada's sema snapshot
-   (`gridworks-scada/scripts/regen_sema_snapshot.sh`) and run the
-   conformance test.
-7. Record the promotion in the sema changelog.
-
-## Open
-
-- Whether `014` goes first (no Krida pair) or `013` publishes as is.
-- Delete the unused Krida pair from gwsproto when the word stops carrying
-  it. `layout.lite`'s `I2cRelayComponent` field is the last reader of
-  `I2cMultichannelDtRelayComponentGt` and `RelayActorConfig`
-  (`named_types/layout_lite.py:44`); no scada code fills the field and
-  both layout words' component unions have dropped the type. When the
-  field goes (or is retyped), delete the two twins, the
-  `I2cMultichannelDtRelayComponent` dataclass, their exports, and
-  `tests/named_types/test_i2c_multichannel_dt_relay_component_gt.py` and
-  `test_relay_actor_config.py` in the same change.
-- `gw.nolan.layout` closes with the same epic-end promote: registry
-  status finalized, regenerate, validate against the real layouts. The
-  promote holds until the House0 word runs on all the House0 homes
-  (`thermostat-and-zone-control.md` "Sequencing").
-
-## What the dashboard reads from 013
-
-Once `installations` leaves journaldb (OPS-473), `layout.lite` is the
-only layout the dashboard sees, and until `jm/spruce-unlimbo` merges it
-is the only layout word the fleet sends at all. Two readers depend on
-fields 013 as staged does not have:
-
-- **The real-time page's default sieg-loop toggle** reads a `sieg` flag
-  from the stored hardware layout, which is deleted. 013 offers
-  `HardwareLayoutTypeName`, and `gw.house0.layout` covers sieg and
-  no-sieg houses alike until `gw.house0.no.sieg` exists. The page needs
-  a handle that says whether the house has a sieg loop: a field on 013,
-  or the type-name split landing first.
-- **The web-backend summaries read `SystemMode`** (Heating, Off, ...)
-  from `layout.lite`. 012 has it; 013 as staged drops it, while the
-  web-backend's vendored 013 still has it. Either 013 keeps `SystemMode`
-  or the dashboard reads it from the snapshot's state list.
-
-A finalized 013 that answers both keeps the dashboard whole through the
-merge window; without them the toggle and the house table's mode column
-go dark.
-
+1. ✅ Every LTN on the `ltn` box has `LTN_HA1_PARAMS` in its `.env`
+   (2026-10-22): each house's value is the `Ha1Params` of the last
+   `layout.lite` its scada sent to the journal (011 for the five
+   House0 houses, 012 for spruce; elm's dates from 2026-08-16, its
+   last boot), and each parses as `Ha1Params` in the checkout's venv.
+   Still owed: the `.env` line is non-repo box state and belongs in
+   `gridworks-infra/ltn/README.md` (the repo was mid-edit on `main`
+   when this went in); and `roll.sh` could refuse to roll an LTN whose
+   `.env` lacks the line, since no FLO runs without it.
+   A `layout.lite/013` instance built offline from the committed
+   `jm/spruce` pair by the scada's own builder (`layout_lite` in
+   `actors/scada.py`), `sema validate` clean, is at
+   `scratch/hw1.isone.me.versant.keene.spruce.scada-layout.lite-013.json`
+   for the journal work (OPS-473). Building it showed that tlayouts
+   reused a channel's id across a telemetry change (23 water
+   temperature channels, `WaterTempCTimes1000` to `CelsiusTimes100`);
+   tlayouts now keys a data channel's id on name and telemetry, and the
+   spruce layout is regenerated with fresh ids for those 23.
+2. ✅ The reality check (2026-10-23, 00:52–01:01 ET). `roll.sh spruce to
+   jm/spruce-unlimbo` moved the pi and the LTN to `044b0eef` and
+   installed the committed `jm/spruce` layout on the pi (byte-identical
+   to tlayouts `origin/jm/spruce`). The scada ran 00:57:39–00:58:24,
+   linked to the LTN in six seconds, and the journal took the 013
+   `layout.lite` (twice: the boot broadcast and the reply to the LTN's
+   request), the `gw.scada.commit`, a `gw.house.operating.status` and
+   four `unserved-post` warning glitches; no report.event. The layouts
+   projection moved from 012 to 013 and `reading_channels` keyed all 89
+   data channels by the layout's channel Id (89 active, 44 of the old
+   rows deactivated; 2 derived rows added) and added 38 `gjk.pseudo`
+   rows, one per declared machine, named `<node>-state`. Started for
+   good at 00:59:32; the 01:00 `report.event` (version 004, 79
+   channels, 38 states) digested into 276 readings over 119 channels
+   within three minutes. Three machine rows do not follow the
+   `<node>-state` naming from the declaration (`auto`, `la`, `lc` map
+   to `top`, `ltn-buffer-only`, `local-control-top`); whether that is
+   the journal's intended display naming is a JournalKeeper question
+   (OPS-618).
+   Found on the way, all roll-script matters: the pi unit-file check
+   matched the ltn unit (fixed, pending commit); the install prompt
+   needs a tty or a piped `yes`; and the roll does not touch the LTN's
+   own layout pair under `~/ltn-<house>/.config/gridworks/ltn/`, which
+   the branch's LTN loads through `load_layout` and rejects when it is
+   not sema-authored (the spruce LTN crash-looped until the committed
+   pair was copied in by hand). A roll to this branch owes the LTN the
+   same pair it gives the pi.
+3. The LTN harness mode (start for one hour at N watts, start for no
+   energy, terminate), with a test: it sends a `SlowDispatchContract`
+   with no FLO and no `Ha1Params`, and is what the branch runs against
+   until the generalized FLO merges. The commands reach the LTN as a
+   staging admin word sent over the broker, the shape of the scada's
+   admin words. Then roll spruce, both halves, to the branch and leave
+   it.
+4. Couple the fleet-drift hook to the line a house runs: a scada-branch
+   column in `gridworks-infra/fleet-inventory.md` that `roll.sh` writes
+   and `wiki/tools/check-fleet-drift.sh` reads, in place of its
+   per-house constants, which report a rolled house as drift until
+   edited.
+5. Distill into `executor/`, move what is still open into
+   `ltns-ready.md`, delete this file.

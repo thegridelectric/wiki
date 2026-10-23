@@ -230,6 +230,11 @@ before any relay actuates fails the boot. A fault it can only learn after
 actuation has begun (a pico's params arrive seconds after the cycler
 toggles the 5 V bus) is a glitch, and the test asserts the glitch.
 
+**A dev run reads the dev-stack recipe first.** A session that starts more
+than one service on the laptop reads `experiments/dev-stack-recipe.md`
+before the first start and, where the stack is wanting, leaves one item of
+OPS-614 better and says so at wrap.
+
 ## Commit suggestions
 
 Human does all `git commit`s; I suggest at logical units (path-scoped

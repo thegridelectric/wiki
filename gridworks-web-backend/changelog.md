@@ -10,20 +10,52 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-21 — summaries are gw.house.summary instances built through the codec; the status projection joins in (OPS-473, `jm/retire-installations`) <!-- pending commit -->
+## 2026-10-23 — readings csv: one column per name in one unit; states as symbols (`acef07b`, OPS-618)
+
+**What:** each readings csv column is in the unit of the name's newest
+`reading_channels` row, the unit the house sends now, and every older
+row's values convert into it (`api/v2/readings_units.py`: temperatures and
+flows convert pairwise through a reference unit, anything else converts
+only to itself), so a channel whose unit changed with a layout (hp-lwt in
+WaterTempCTimes1000, then CelsiusTimes100) is one column in one scale. A state channel's cell is
+the state's symbol, resolved through the row's (enum name, version); a row
+stamped "Enum" resolves through the newest vendored version. A bucket takes
+the mean of numeric readings and the last state. Rows of one name whose
+units do not reconcile, or a state enum the snapshot lacks, refuse the
+request (422) with the pair named. Rows with telemetry Unknown are left
+out. The api snapshot vendors every state enum, all versions. The
+first-bucket arithmetic uses the signed offset, so a look-back reading
+before the requested start no longer folds into the first row.
+
+**Why:** OPS-618 section 3. layout.lite 013 renames units and the fleet is
+flipping between 012 and 013; the csv joined by name and never read
+`unit`, so a column across the flip mixed two scales.
+
+## 2026-10-22 — api snapshot carries the published synced-readings words; both services import under test (`45739eb`, OPS-473)
+
+The synced-readings router reads `synced.readings.bundle` and
+`operating.state.sequence`; both were staging, so the published-only
+regen in `a53414d` left them out and the API failed to import on
+web-api2 at the retire-installations deploy. The two words are published
+(sema `2272873`) and the snapshot is regenerated from that commit. A
+new test imports both service entry modules, so a snapshot missing a
+word a router names fails the suite rather than the box.
+
+## 2026-10-22 — summaries are gw.house.summary instances through the codec; layouts 011 through 013; published-only snapshots (`3d8a14f`, OPS-473)
 
 The v2 summaries endpoint returns `gw.house.summary` instances in the
 word's dict form, in place of a pydantic model of its own: the dashboard
 is one app and the backend another, so the boundary is sema. Each house
 joins its `house_operating_status` row, nested as `OperatingStatus`, the
 word verbatim; `Layout` is the `layouts` row decoded without upgrade and
-accepted when it is one of the versions the summary names (011, 012),
-else logged and left null. `SystemMode` and `MainAutoState` leave the
+accepted when it is one of the versions the summary names (011 through
+013), else logged and left null. The gateway reads the same three
+versions; its status message's `system_mode` is null for a 013 house,
+since 013 retires the system mode. Both snapshots are published-only from
+sema `36dd41c`. `SystemMode` and `MainAutoState` leave the
 response; the one state is the operating status. `Role` is the
 `gw.dashboard.role` enum from the roles table, an unknown value granting
-`Viewer`. The api snapshot is regenerated from sema `dev` `65f489b` with
-`--allow-staged` for the four staging words, so the published-only test
-skips off `main` and fails on it until they promote. `gw-data` pins
+`Viewer`. `gw-data` pins
 0.7.0 for the status table. Two settings for a laptop run:
 `BACKEND_API_PORT` (8000 stays the scada's) and `BACKEND_RABBIT_TLS`
 (the dev broker speaks plain AMQP). Verified by the dev run,

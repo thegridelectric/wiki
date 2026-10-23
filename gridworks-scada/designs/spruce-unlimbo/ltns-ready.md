@@ -59,6 +59,16 @@ answered by what the running LTN actually reads:
   off it; `AcceptsDispatch`, `ServiceMode` and `SeasonalStorageMode`
   come from `gw.house.operating.status` (`ltn/ltn.py:767-776`).
 
+**State machines are keyed by ShNode `Name`, not handle** (2026-10-22).
+`layout.lite/013` lists the machines a running scada hosts in
+`StateMachines`, one entry per hosting node, each with the node's `Name`
+(`spaceheat.name`), its state enum and that enum's version. The report
+side still names a machine by `MachineHandle`, the boss chain, which moves
+when the tree changes (hp-boss went under the local control). A reader
+resolves a handle to its declaration by the handle's last dotted segment,
+which is the node's `Name`. A GNodeAlias plays no part: a scada's ShNodes
+have none of their own.
+
 ## What the scada takes from the LTN
 
 - **The weather forecast.** The LTN relays gwwf's `gw.weather.forecast`
@@ -66,8 +76,8 @@ answered by what the running LTN actually reads:
   pulling weather itself (gwwf `executor/delivery.md` "LTN relay is
   primary"; the scada keeps the last-received forecast on disk as the
   same word and falls back to the gwwf API only when the relay goes
-  quiet). Until the LTNs run, the scada's interim pull from gwwf is in
-  `../spruce-unlimbo/nolan-local-control.md`.
+  quiet). Until the LTNs run, the scada's interim pull from gwwf is
+  `executor/weather-forecast.md`.
 
 ## The FLO boundary
 
@@ -105,8 +115,8 @@ Two FLO inputs describe the heat pump's electrical envelope, and until
   and scales the stability penalty by it. The house states this fact once,
   as `HpMaxKwEl` in `gw.operational.params` (9.66 at most houses, 10.0 at
   beech and maple); the scada copies it into `ha1.params`, which its own
-  controllers read and which the LTN receives inside `layout.lite` and on
-  every `scada.params` change. The LTN now copies `ha1.params.HpMaxKwEl`
+  controllers read and which the LTN receives inside `layout.lite`. The
+  LTN now copies `ha1.params.HpMaxKwEl`
   into `HpMaxElecKw`. Before, the gwsproto twin's class default of 9.66
   filled the field at every house, so the FLO planned against 9.66 at
   beech and maple while the scada's controllers used 10.0. gridflo's own

@@ -140,8 +140,8 @@ interim until the tree hierarchies are encoded as a graph the tests
 walk, the plan in `command-tree-matrix.md`). The two House0 rows that failed on exactly
 these two relays pass with hp-boss commanding OpenRelay at start and
 the AllTanks exclusion gone. Nolan passes this criterion by readback
-adoption alone; commanding a boot posture there is the Nolan
-local-control rework's (`nolan-local-control.md`).
+adoption alone; the Nolan boot posture is `executor/local-control.md`
+"Standby".
 
 **4cii. The loop confirms its relay moves and reports every move in full.** ✅ built
 The loop's two relays answered it with a dispatch ack and a full report
@@ -614,8 +614,8 @@ none of them.
   loss at 0.05 C resolution (lwt 105.0 F and ewt 105.7 F at 14:40,
   falling together), and a same-water comparison of the two thermistors
   for calibrating hp-ewt against hp-lwt, since with the heat pump off
-  the two should read the same. The data is the box's persisted reports
-  for the day (`~/.local/share/gridworks/scada-experiment/event/`, the
-  14:35 slot onward) and the laptop capture
-  `scratch/broker-capture-20260928-134934.jsonl`; it earns an experiment
+  the two should read the same. The data is the laptop capture
+  `scratch/broker-capture-20260928-134934.jsonl` (the box's persisted
+  window reports for the day went with the window tooling on
+  2026-10-22); it earns an experiment
   folder when the offset and the loss slope are read off it.

@@ -1,0 +1,42 @@
+# Trace spec: spruce's LTN stopped on purpose, LtnSilent raised and resolved.
+# The input is materialised from the eventstore by experiments/traces/pull_trace.py
+# into experiments/traces/gridworks-alerter/<name>/messages.jsonl (gitignored);
+# this file, forest.json and the expected output below are the vector.
+name: 2026-10-23-spruce-ltn-stop
+concern: no-data
+clauses_exercised: [LtnSilent raise after the silence threshold with the scada speaking, LtnSilent resolve on the first report back]
+event: >
+  spruce's LTN unit (gwltn@spruce on the ltn box) was stopped by hand at
+  06:24:46Z and started again at about 06:35:50Z. The scada kept
+  speaking throughout (snapshots every 30 s); its reports go up through
+  the LTN, so the 06:25, 06:30 and 06:35 reports were buffered and
+  arrived together at 06:35:52Z to 06:35:55Z once the LTN was back.
+
+window:
+  start: 2026-10-23T06:14:00Z   # the replayed alerter boots here; its last-heard floor is this instant
+  end: 2026-10-23T06:36:30Z     # after the resolving arrival
+time: arrival                    # order and timestamp by the ear's persisted_ms, never by the message's own time
+decode: as-sent                  # each body stays at the version it was sent, as the alerter reads it
+tracked_set:
+  roots: [hw1.isone.me.versant.keene]   # the replayed alerter's fleet roots
+  subtree: hw1.isone.me.versant.keene.spruce
+  forest: forest.json            # the journaled g.node.forest before the window, restricted to the subtree and its ancestors
+senders:
+  - hw1.isone.me.versant.keene.spruce.scada
+  - hw1.isone.me.versant.keene.spruce
+bodies_for: [report.event, layout.lite]   # full body for these; every other type envelope only
+
+expected_out:                    # gw.alert 001 records the alerter broadcast, from_alias hw1.alerts, eventstore arrival times
+  - t: 2026-10-23T06:35:06.982Z
+    State: Firing
+    Kind: LtnSilent
+    AlertId: 0ab77ee6-5a59-4919-b2eb-9d3409aa3077
+    AboutGNodeAlias: hw1.isone.me.versant.keene.spruce.ta
+    Summary: "ltn silent for 10.0 minutes; scada does not send up reports with no ltn (hw1.isone.me.versant.keene.spruce.ta)"
+  - t: 2026-10-23T06:36:05.770Z   # one tick after the last of the three buffered reports arrived (06:35:55Z)
+    State: Resolved
+    Kind: LtnSilent
+    AlertId: 0ab77ee6-5a59-4919-b2eb-9d3409aa3077
+    AboutGNodeAlias: hw1.isone.me.versant.keene.spruce.ta
+    Summary: "data again after 10.9 minutes (hw1.isone.me.versant.keene.spruce.ta)"
+tolerance: one detector tick (10 s) on each expected time

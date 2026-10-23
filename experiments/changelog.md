@@ -6,10 +6,99 @@ the *why*.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-10-21 — disentangle-dev-run: the design on the laptop's d1 stack
+## 2026-10-23 — trace puller reads the eventstore <!-- pending commit -->
 
-**Why.** The retire-installations spoke merges on an experiment, not on
+**Why.** An executor trace needs every message a party put on the
+broker, and the journal does not have them: pings and acks are not
+journaled by design, and `gw.alert` 001 has not reached the journal
+since 10-18. The ear's archive has all of it, and its key grammar
+(`<from_alias>-<type>-<persisted_ms>-<ear>`) gives arrival, sender and
+type without a fetch, so `traces/pull_trace.py` lists the window's
+day prefixes in `gwdev`, keeps the spec's senders, fetches bodies only
+for the types the spec keeps, and prints the window's alerts about the
+tracked subtree as the expected output to copy into the spec. The
+forest still comes from the journal. boto3 joins the dependencies.
+First trace pulled this way: the alerter's `2026-10-20-oak-silence`.
+
+## 2026-10-22 — retire the window tooling (`2f959fd`, "various experiments")
+
+**Why.** A house runs the branch by `gridworks-scada/scripts/roll.sh`
+now (the spruce rehearsal of 2026-10-22 passed each way), so the laptop
+tooling that booted a second checkout on a box from a dev env file goes:
+`house_window.sh`, its four house wrappers, `window_boot.py` and
+`field-window-recipe.md`. `put_layout.sh` keeps only its `dev` mode, the
+one seeding of the laptop's config folders nothing else does; a box's
+files come from the committed tlayouts JSON through the roll. The dated
+window folders and `beta-field-windows/` stay as the record of the
+rounds; `spot-check-recipe.md` reads spruce by its line rather than its
+window.
+
+## 2026-10-22 — stopgap-mm (`2f959fd`, "various experiments")
+
+**Why.** The stopgap MarketMaker's two runs (OPS-615) as one folder: the
+dev rehearsal on the laptop broker and the verifying hour on hw1, which
+the design's EDD clause names. The published words are kept as sema
+instances and each run has its `gw.experiment.run`; the LTN logs are
+excerpts around the receive, the dev LTN's scratch config home, the
+broker firehose capture and the one-line maker log are not kept. Oak's
+LTN was the hw1 listener, so the stand-in subscriber script is the dev
+run's only. The analytics tap listener armed as a second hw1 witness
+died on the laptop's connection, twice; the README says so and the
+failed logs are not kept.
+
+## 2026-10-22 — admin drive tool, spruce i2c feedback window (`2f959fd`, "various experiments")
+
+**Why, admin_drive.py.** Every admin-driven window so far wrote its own
+driver, and the 2026-10-22 one crashed on a node-name import copied from
+the 2026-09-07 hp-boss drive (`gwsproto.data_classes.house_0_names`,
+which `main` has and `jm/spruce-unlimbo` does not). One top-level tool
+sends a step list through the real gwadmin client to a gwa config
+entry; its docstring names the `main` imports to swap. Excluded from
+pyright with the other scripts that need the scada venv.
+
+**Why, spruce-i2c-feedback-window.** Two 11 minute spruce windows of
+`aa3b0709`; the second met five expander 0x21 resets with iso-valve
+actuations and saw each repaired within 1.15 s (one at 3.6 s). The
+Criticals were unobservable with the upstream link refused. The folder
+keeps the run 2 box log, the driver log and the run word; run 1's log
+(nothing tested), the broker captures, the persisted events and a grep
+of the log were pruned, and the one-off driver went with the tool.
+
+## 2026-10-21 — spruce window, disentangle dev run (`0e2d50b`)
+
+**Why, pyyaml.** `traces/pull_trace.py` reads the trace spec with `yaml`,
+which the project did not declare, so `uv run traces/pull_trace.py`
+failed on import and pyright warned on every CI run.
+
+**Why, spruce-pump-on-power-window.** An 11 minute spruce window of
+`jm/spruce-unlimbo` at `a9acd401` plus the pump-rule fix, to read the
+secondary pump follow the heat pump's measured power under admin; the
+folder's README has the verdict.
+
+**Why, disentangle-dev-run step 8.** The dev run's one open step, the
+dashboard by a person, passed: Cedar by display name, Hardware from the
+`layouts` row, Status from the operating status, Address and Contact
+dark, the real-time page drawn from the layout with no readings,
+Parameters on defaults. The run instance's window and claim now include
+it. The runbook gains the one dev wiring the page needed, the gateway
+websocket base in the frontend `.env`, since vite proxies only `/api`.
+The README records what the step surfaced and does not own: the
+real-time page spins for a silent scada, and the dev universe seed names
+every node by its alias (the seven TA rows were renamed in the dev
+registry and resynced).
+
+## 2026-10-21 — cleaning up experiments, correctly pruning database access and using analyst (`e89dd25`)
+
+**Why, the analyst login.** The pull scripts read `GJK_DB_URL` from
+`experiments/.env`, which is the `gw_journalkeeper` login, so read-only
+analysis used a service's credentials. They now read `DB_ANALYST_URL`,
+the read-only `gw_analyst` login, which reads every journal table the
+scripts use. `GJK_DB_URL` stays only where it is journalkeeper's own
+setting: the importer runs in `2026-08-25-ops498-load/`, the registry
+rig's `run_journal_keeper.py` overrides, and the dev-run runbook's
+pointer to the journalkeeper `.env`.
+
+**Why, disentangle-dev-run.** OPS-473 merges on an experiment, not on
 the three repos' unit suites. Cedar entered the dev registry and a dev
 PII store with scrambled person data; its layout and operating status
 went over the dev broker into journalkeeper's projections and out of
@@ -19,14 +108,28 @@ open. Found that the `jm/spruce-unlimbo` scada sends `layout.lite` 013
 and the operating status with `UnixMs`, both ahead of or behind the
 snapshots journalkeeper and the summary word use.
 
-<!-- pending commit -->
-## 2026-10-20 — beta-field-windows: oak's second window filed; emit_instances knows oak
+The harness speaks sema: the seed gains `gw`, `gridworks.header` 001,
+`gw.house.operating.status` 000 and `gw.house.summary` 000 (snapshot
+regenerated from sema `dev`), so the envelope, the layout and the status
+are built through the classes and every summary is decoded strictly. A
+strict decode is the no-person-field check, since the word has none. The
+broker URL and the dev API login come from `experiments/.env`, the PII
+DSN from `gridworks-pii/.env`. Rerun on the same stack: 15 of 15.
 
-**Why.** Oak ran its first two windows on the branch; the second, on the
-corrected pair, is the record (the first was dropped). The instance emitter
-needed oak's scada alias.
+**Also in the commit.** `lg-hydrokit-signatures/`, the scripts and plan
+for the LG hydrokit's running, idle and defrost signatures; it has not
+run.
 
-## 2026-10-17 — spruce-radiant-slab: star_fit types what it already does (`jm/trace-decode-stance`)
+## 2026-10-21 — oak starts heating (`e042f46`)
+
+**Why.** The real-time view drew water flowing out of oak's buffer bottom
+while the faster distribution pump was returning water into it; the three
+screenshots from 10-17 are the evidence, now with a README. The logbook
+gains that entry and the 10-18 spruce fan-coil window, which found the fan
+coil working and zone 3's thermostat or its wire at fault. The layover
+README names the umbrella CLAUDE.md by its current file name.
+
+### star_fit types what it already does
 
 **What:** `star_fit.py` opens the summary sheet as `wb.worksheets[0]`,
 types the fit's `a` as shared-or-per-zone (`float | dict[str, float]`),
@@ -38,8 +141,7 @@ narrows by `isinstance` where each shape is used, and drops the two
 as possibly absent; the per-zone fit was passed through a `float` field
 under a type-ignore), so the repo gate was red for every commit.
 
-<!-- pending commit -->
-## 2026-10-17 — pull_trace decodes each body the way the domain reads it (`jm/trace-decode-stance`)
+### pull_trace decodes each body the way the domain reads it
 
 **What:** `traces/pull_trace.py` reads a required `decode:` line from the
 trace spec (`as-sent` or `latest`) and passes the matching auto-upgrade

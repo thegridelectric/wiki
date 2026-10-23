@@ -10,6 +10,23 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-23 — reading_channels.channel_id: the layout's channel Id as a column (`jm/channel-id`, `gw_data` 0.8.0, OPS-618) <!-- pending commit -->
+
+**Why:** a row's primary key is a surrogate, and the readers need the
+lineage: a renamed channel (oak's `vdc-relay1` becomes `vdc-relay` in
+layout 013 under the same Id) is two rows with two names, and a unit
+change under one name is two rows with two Ids. `channel_id` is the
+layout's channel Id for the row's (terminal asset, name, unit), NULL on a
+state-machine pseudo row and on a unit history gave no Id of its own.
+Migration `f7c3d1a2b4e5` adds the nullable indexed column and applies a
+map (row id to channel_id) from the csv beside it, failing loud on any
+non-pseudo row the csv does not cover. The map comes from
+`scripts/channel_id_backfill_map.py`: tlayouts `jm/spruce` first, then
+tlayouts `main`, then the newest journaled layout.lite that declares the
+pair, regenerated against the live table right before the migration runs.
+Of 1,817 rows, 918 have a `channel_id` other than their primary key: the
+rows minted before the Id rule, whose ids are uuid4s no layout names.
+
 ## 2026-10-21 — house_operating_status: the current operating status of each house (`32c8164`, PR #14, `gw_data` 0.7.0)
 
 **What:** a `house_operating_status` table, one row per TerminalAsset

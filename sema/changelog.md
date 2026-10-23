@@ -10,6 +10,115 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-22 — publish operating.state.sequence and synced.readings.bundle (`2272873`, OPS-473)
+
+web-backend `main`'s synced-readings router reads both words, and its
+snapshot is published-only, so the API on web-api2 could not import
+them after the retire-installations deploy. Every other dependency of
+the two was already published; they are promoted bottom-up.
+`synced.readings.bundle` is Joe's word, promoted on his behalf to
+restore production.
+
+## 2026-10-22 — publish gw.dashboard.role and gw.house.summary (`36dd41c`, OPS-473)
+
+The dashboard summaries move to web-backend's `main`, whose snapshot test
+admits published words only, so the summary word and the role enum it
+depends on are promoted first, bottom-up. The rest of the summary word's
+closure (`gw.house.operating.status`, `layout.lite` 011 through 013, the
+formats) was already published.
+
+## 2026-10-22 — gw.house.summary accepts layout.lite 013 (`ad52942`, OPS-473)
+
+`Layout` in `gw.house.summary/000` is a union of `layout.lite` 011, 012
+and 013, so a house whose scada sends the published 013 keeps its layout
+in the dashboard summaries. The word is staging, so the union widens in
+place and `created` moves to the revision time: the registry requires a
+version to be no older than any word it depends on, and 013 is newer
+than the summary word was. registry/structure.md now states that rule
+for draft and staging words (`created` is the latest revision time until
+publication); it had said first-added time, which types.md's ordering
+rule and practice both contradicted.
+
+## 2026-10-22 — publish layout.lite 013 with its closure (`4ff5377`, OPS-392)
+
+Twenty-four words go staging to published, bottom-up with `sema promote`:
+the closure of `layout.lite:013` (`gw.state.machine:000`,
+`spaceheat.node.gt:303`, `gw1.actor.class:014`, `data.channel.gt:004`,
+`derived.channel.gt:003`, `gw1.unit.quantity.projection:001`,
+`spaceheat.telemetry.quantity.projection:001`) and the six other words
+a branch scada emits with their closures (`scada.control.capabilities:002`,
+`new.command.tree:003`, `gw.house.operating.status:000`,
+`slow.contract.heartbeat:002`, `ta.deed:000`, `gw.scada.commit:000`,
+pulling in `gw.dispatch.refusal.reason`, `gw.standby.posture`,
+`gw.top.state`, `gw1.service.mode` and `ta.validation.state`), plus the
+five state enums a scada names in `StateMachines` that sit in no word's
+closure (`gw2.lc.top.state`, `zone.call.source`, `valve.open.or.closed`,
+`gw1.nolan.lc.buffer.only.state`, `spruce.hack.hp.state`): the
+JournalKeeper decodes machine states against their values. A scada on
+`jm/spruce-unlimbo` then speaks only published words to the JournalKeeper
+on the production broker. `gw.operational.params/000`
+stays staging: 013 has no `$ref` into it and it is about to change.
+The diff is the promotion record: the status flips, the hash pins, the
+public registry index. Three tests used the live registry as a fixture
+with `layout.lite` 013 as its staging example; they move to
+`pico.tank.module.component.gt` (012 staging), and the template seed
+lists `synced.readings.bundle:003` outright so the published-only
+refusal still has a staging word to name.
+
+## 2026-10-22 — add some more state machine enums (`a6af0af`, OPS-392)
+
+`aquastat.control.state`, `heat.pump.control`, `primary.pump.control`,
+`store.flow.relay` and `hp.loop.keep.send` join the registry as literal
+enums, born published: every unlimbo scada declares them in
+`layout.lite/013` `StateMachines`, the fleet has sent their values in
+`report.event` state lists since the relays went in, and a literal enum
+never changes, so there is nothing for staging to hold open. Values and
+spelling are gwsproto's; the default of each is the position the relay
+rests in de-energized, the fail-safe state a consumer can act on when it
+meets a value it does not know. With these, every enum the scada declares
+in `StateMachines` resolves in the registry. The matching event enums
+(`change.aquastat.control` and kin) are still absent; `relay.actor.config`
+names them in `EventType`.
+
+## 2026-10-22 — publishing layout.lite v013 (`67f575c`, OPS-392)
+
+`layout.lite/013` gains `StateMachines`, one `gw.state.machine` per
+machine a running scada hosts: the hosting node's `Name`, the state enum
+and its version. Reports name a machine by `MachineHandle`, the boss
+chain, which moves when the tree changes; the node `Name` is the handle's
+last dotted segment and the stable key. No wire message sends an enum
+version today, so consumers store list indices against an unversioned
+vendored enum. No `.gt`: a declaration inside a projection, not a table
+row. `sema.version` is the three-digit version format the declaration
+needs; born published since formats never stage. 013 takes the list in
+this commit, required, with axiom 5 (every `NodeName` an `ShNodes.Name`,
+no two entries on one node); its `created` moves to this edit because a
+version's stamp is no earlier than its dependencies'.
+
+`TankModuleComponents`, `FlowModuleComponents` and `TMap` leave 013 in
+the same edit, with their four structural dependencies. No consumer
+reads them off the projection: the JournalKeeper finds pico-backed
+nodes by actor class in `ShNodes`, the LTN reads channels and the
+store-tank count, the dashboard reads neither, and the branch scada
+already sends no `TMap`. The hardware layout is the source for pico
+components and calibration. With them gone, 013's closure no longer
+reaches the three pico component words or the calibration pair, so
+they stay staging. The axiom 5 template also gains the
+`@model_validator` decorator it was missing, so the runtime now runs
+it. `I2cRelayComponent` leaves too: the relay component is read off the
+hardware layout, the projection has no reader, and its two staging
+words (`i2c.multichannel.dt.relay.component.gt:004`,
+`relay.actor.config:003`) drop out of the closure. `KeepBufferFull`, `Ha1Params` and `TotalStoreTanks` leave with
+them: operational parameters are not layout, the LTN is their only
+reader and gets them from its own settings and its own hardware layout
+until it holds the ops word, and a Nolan layout with no store tanks
+cannot fill a positive tank count. 013 now refs `spaceheat.node.gt`,
+`data.channel.gt`, `derived.channel.gt` and `gw.state.machine` only.
+`MessageCreatedMs` becomes `CreatedMs`, the default sender-clock name
+(sema-CLAUDE "Registry rules"), since 013 is the word's natural next
+version.
+The promotions are the next commit.
+
 ## 2026-10-21 — Secondary pump commanded by hp boss in nolan (`a5f9cdb`)
 
 **What:** `gw.nolan.layout` 000 (staging, in place) axiom 30

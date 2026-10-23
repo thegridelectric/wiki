@@ -1,12 +1,12 @@
 # Spruce un-limbo (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-10-15 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-10-22 · Linear: OPS-392
 
 **EDD: yes** bench (honeysuckle) and box harness runs are the verification;
 spokes reach Verified only when an experiment runs against the real bus or a
 real broker.
 
-**▶ Active spoke: [`nolan-local-control.md`](nolan-local-control.md)**
+**▶ Active spoke: [`finalize-layout-lite-13.md`](finalize-layout-lite-13.md)**
 
 > What this is: the hub for getting `jm/spruce-unlimbo`, the branch that
 > runs the Nolan layout at spruce, onto the whole fleet as `main` before
@@ -18,8 +18,8 @@ Three layout families, five houses at launch:
 
 - **spruce** — `gw.nolan.layout`; runs `jm/spruce-unlimbo` today.
 - **maple, beech** — `gw.house0.layout` (siegenthaler loop).
-- **fir, oak** — House0 with no sieg loop, `gw.house0.no.sieg`; the word
-  and gens are a launch item (`layout-word-axioms.md` "The `gw.house0.no.sieg` word").
+- **fir, oak** — `gw.house0.layout` with a fake sieg BTU meter (node and
+  channels disabled); `gw.house0.no.sieg` comes after launch.
 
 Elm is the sixth box and not a launch house: its Arctic heat pump is a
 monobloc with an exchanger and a secondary pump, so it leaves the House0
@@ -31,12 +31,11 @@ the merge (`../spruce-settled/fall-layouts.md`).
 In priority order. Launch items are the ones the six-box deploy cannot
 go without.
 
-After roughly each spoke the branch runs in a bounded window on one house
-of each layout family: spruce, beech, and one of fir / oak once
-`gw.house0.no.sieg` exists. These rounds are the beta field test of the new
-code. How a round runs and what the rounds have taught is
-[`beta-field-windows.md`](beta-field-windows.md); the record is
-`experiments/beta-field-windows/`.
+Before `scripts/roll.sh` existed the branch ran in bounded windows on
+one house of each layout family, the beta field test of the new code;
+the record is `experiments/beta-field-windows/` and what the rounds
+taught is in executor `running.md` "Rolling a house between lines". A
+house runs the branch by a roll now.
 
 - ✅ DONE krida-retirement (est 6h → ≈15h) —
   House0 relays onto per-relay components against the Krida board record,
@@ -100,9 +99,14 @@ code. How a round runs and what the rounds have taught is
 - ✅ DONE design estimating (est 5h → 1.5h) — the estimates for the
   remaining spokes, one at a time
 - ✅ DONE beta-field-windows axiom decisions (est 0.5h → 0.25h) — the
-  axiom decisions recorded in `beta-field-windows.md`
-- **`nolan-local-control.md`** — the field checks for the beta windows
-  and the review brief; the built part is in
+  axiom decisions recorded in the beta-field-windows spoke, since retired
+- ✅ DONE nolan-local-control (est 29h → 52h) — the Nolan heating
+  machine, the heat-pump watch and the relay feedback proven in the
+  beta windows; distilled into `executor/local-control.md` and
+  `executor/control-hierarchy.md` "Confirmation belongs to the relay
+  actor, per board"
+- `field-checks.md` — the claims a beta window confirms, and which
+  windows have confirmed which; the built part is in
   `executor/local-control.md` and `executor/cold-house.md`
 - `thermostat-and-zone-control.md` — first the MVP: a circuit held off
   through the ops word, applied to spruce's living-room fan coil; then
@@ -115,9 +119,11 @@ code. How a round runs and what the rounds have taught is
   before the fleet is on the production broker: a local run first,
   and from it the minimal LTN updates so reports are acked and the
   LTNs do not crash; FLO quality waits
-- `finalize-layout-lite-13.md` (est 4h) — `layout.lite/013` and its closure from
-  staging to published so spruce can send it on the production broker;
-  `gw.nolan.layout` closes with the same promote
+- **`finalize-layout-lite-13.md`** (est 4h) — `layout.lite/013` edited in
+  place (ops fields and the Krida field out), the ScadaParams path
+  removed, the LTN settings block on every house plus a harness mode,
+  JournalKeeper digesting 013, the publish, and the branch under the box
+  service with the roll script both ways
 - `first-data-catch.md` (est 4h) — the branch on the production broker: the
   gates, the JournalKeeper release that takes `layout.lite/013`,
   `gw.scada.commit` and the heat-call guard, and the day of fleet data
@@ -141,7 +147,7 @@ code. How a round runs and what the rounds have taught is
 - ✅ DONE contract-refusal (est 1.5h) — one derived refusal reason,
   answered to the LTN at the offer with `slow.contract.rejection`; the
   deed checked for content and in flight; the field checks are rows in
-  `nolan-local-control.md`
+  `field-checks.md`
 - `operational-params-cleanup.md` (est 6.5h) — the Nolan ops word sheds
   the House0 store knobs once the strategy selectors land; the tunables
   still in scada settings move to the ops surface
@@ -169,9 +175,9 @@ code. How a round runs and what the rounds have taught is
   every machine the scada reports; the journal makes a channel of each
   by one rule, no hand-kept map; which transitions earn an asynchronous
   report
-- `deployment.md` (est 5h) — the fleet rollout to all six boxes as `main`:
-  precondition gates, per-family order and verification, rollback to the
-  prior SHA, and the post-launch tlayouts loop for updating a deployed
+- `deployment.md` (est 5h) — the merge to `main` across the fleet:
+  precondition gates, per-family order and verification, roll-back by the
+  roll script, and the post-launch tlayouts loop for updating a deployed
   layout or ops
 
 `gleanings.md` holds parked notes off the build path.

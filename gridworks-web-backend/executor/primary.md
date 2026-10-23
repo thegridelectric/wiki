@@ -1,6 +1,6 @@
 # gridworks-web-backend — rebuild spec
 
-Status: Draft · Pass 0 · Updated 2026-10-11
+Status: Draft · Pass 0 · Updated 2026-10-23
 
 > Faithful-rebuild hub for gridworks-web-backend: the two services behind
 > the fleet web page, the read API over the journal DB and the realtime
@@ -53,6 +53,19 @@ Both read their configuration from one `.env` with the `BACKEND_` prefix
 - **The browser contract is the sema wire form.** What the gateway pushes
   to a browser is the decoded word's `to_dict()`: PascalCase keys,
   `TypeName` and `Version` present.
+
+## The readings csv
+
+`/api/v2/installations/{id}/readings.download` is one column per channel
+name. A name's `reading_channels` rows differ in unit when a layout changed
+how the quantity is expressed or a state machine's enum version changed, so
+a column is in the unit of the name's newest row, the unit the house sends
+now, with every older row's values converted into it (temperatures and
+flows convert pairwise; other units only to themselves), and a state cell
+is the state's symbol in the row's enum version (`api/v2/readings_units.py`). A bucket is the mean of its numeric readings
+and the last of its states. Rows of one name whose units do not reconcile,
+or a state enum the snapshot does not vendor, refuse the request rather
+than mix scales in a column; rows with telemetry Unknown are left out.
 
 ## Glossary
 

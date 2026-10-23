@@ -10,15 +10,32 @@ git history.
 
 Newest at the top.
 
-## 2026-10-17 — A test that main ships no staging word (OPS-473) <!-- pending commit -->
+## 2026-10-22 — gnr prepping for dev harness structure (`7eff734`, merged `eb2be53`): seed-dev, one display-name rule, read API off 8000 in the dev template, a test that main ships no staging word
 
-`tests/test_sema_snapshot_published.py` reads the snapshot's own
-`definitions/registry.yaml`, where every word and version it ships has a
-status, and fails on `main` when one is not published; off `main` it reports
-the words and skips. Nothing outside the repo is read, so the test runs the
-same on a laptop and on GitHub (where a pull request is judged by its
-target branch). A regen with `--allow-staged` is the only way a staging
-word enters, and this is the gate that keeps such a snapshot off `main`.
+**Why.** The OPS-473 dev run showed the `d1` registry's seven older
+TerminalAsset rows in the dashboard by their full alias, because the dev
+universe seed names every node by its alias, while `gnr create` defaults
+to the title-cased last segment ("Ta" for a TerminalAsset) so the
+operator typed "Cedar" by hand. One rule now serves both: a physical
+node's house name from its alias, with the class appended for the scada
+and the LTN. The seed itself was reachable only from the test suite;
+`gnr seed-dev` loads it from the CLI, refuses a database holding any
+non-`d1` node, and wipes only on `--wipe`. The dev template's read API
+port moves off 8000, which the laptop keeps for scada live tests; the
+code default and deployed `.env` files are unchanged. First commit under
+the dev-stack contract design (OPS-614).
+
+**Why, the published-only test.** `tests/test_sema_snapshot_published.py`
+(written 2026-10-17 under OPS-473, the same test journalkeeper and
+web-backend have) reads the snapshot's own `definitions/registry.yaml`,
+where every word and version it ships has a status, and fails on `main`
+when one is not published; off `main` it reports the words and skips.
+Nothing outside the repo is read, so the test runs the same on a laptop
+and on GitHub, where a pull request is judged by its target branch. A
+regen with `--allow-staged` is the only way a staging word enters, and
+this is the gate that keeps such a snapshot off `main`. It reads YAML, so
+`pyyaml` joins the dev group rather than arriving by accident through
+another package.
 
 ## 2026-10-10 — Snapshot broadcast runs inside gnr rabbit; gnr snapshot and its timer removed (`6b97e55`, merged `5c676df`)
 

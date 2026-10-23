@@ -161,6 +161,12 @@ deployed with the migration.
 
 ## Open
 
+- The dashboard's Parameters page opens on hard-coded defaults in the
+  frontend model (DD power 12 kW, DD RSWT 180 F, intermediate RSWT
+  130 F) while the house's `layout.lite` row has the scada's own
+  `Ha1Params` (cedar in the dev run: 9 kW, 160 F, 100 F). The page has
+  the layout since OPS-473 and could read them from it; Ha1Params is
+  itself on its way out, so the fix waits for whatever replaces it.
 - Which families the three catch boxes cover; a family not among them needs
   a simulated asset (or a later box) to meet the bar.
 - Whether the stage 1 additions to `layout.lite` 013 belong in its

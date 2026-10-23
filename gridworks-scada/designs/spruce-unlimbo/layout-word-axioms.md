@@ -64,8 +64,7 @@ maple gens reference them.
 - `LayoutLite` carries no disabled lists
   (`named_types/layout_lite.py:39-40`), so the LTN cannot tell disabled
   from missing: `finalize-layout-lite-13.md`.
-- Porting the older axioms to sema runtime tests:
-  `beta-field-windows.md` "Do this next".
+- Porting the older axioms to sema runtime tests (open).
 - The pico params words with `FirmwareCommit` (`async.btu.params/110`,
   `tank.module.params/210`, `flow.hall.params/210`) are staged ahead of
   the firmware; gwsproto stays at the field's 100 / 200 / 200 and the
@@ -166,8 +165,8 @@ instance filenames, distinct from the fixture.
 
 ## The closing windows
 
-The spoke ends with a window on spruce, beech and maple
-(`beta-field-windows.md`, `experiments/field-window-recipe.md`): each
+The spoke ends with a roll of spruce, beech and maple
+(`scripts/roll.sh`): each
 boots its regenerated pair with the live command tree unchanged, and
 beech, with `dist-btu` in its disabled lists, shows nothing reported for
 a disabled name and one `disabled-roster` Warning. Spruce's window

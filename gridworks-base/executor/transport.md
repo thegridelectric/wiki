@@ -294,15 +294,18 @@ tiny internal exchange the seed-store capture consumes with a plain `#`.
 The slice is defined in the fabric, in git, never in a tap's runtime
 binding.
 
-Plus the **MQTT bridge taps**: `timemic_tx → amq.topic (rjb.#)` and
-`gnrmic_tx → amq.topic (rjb.#)` — the two declared exceptions to
-"broadcasts are subscriber-bound". MQTT-native actors (scada) cannot bind
+Plus the **MQTT bridge taps**: `timemic_tx → amq.topic (rjb.#)`,
+`gnrmic_tx → amq.topic (rjb.#)` and `mmmic_tx → amq.topic (rjb.#)` — the
+three declared exceptions to "broadcasts are subscriber-bound". MQTT-native actors (scada) cannot bind
 queues on the AMQP fabric, so the time coordinator's sim timesteps and the
 registry's `g.node.forest` broadcasts (how every GNode passively hears an
 ancestor rename; forests carry aliases + immutable ids only, never
-coordinates, so crossing is safe) reach the MQTT plugin's exchange in the
-static fabric, where an MQTT subscriber sees e.g.
-`rjb/d1-tc/time/sim-timestep`. Broadcasts only (`rjb.#`); direct traffic
+coordinates, so crossing is safe) and a MarketMaker's `latest.price`
+broadcasts (how an MQTT-native LeafTransactiveNode hears the market it
+clears against; a price is a public fact) reach the MQTT plugin's exchange
+in the static fabric, where an MQTT subscriber sees e.g.
+`rjb/d1-tc/time/sim-timestep` or
+`rjb/hw1-isone-me-versant-keene/mm/latest-price`. Broadcasts only (`rjb.#`); direct traffic
 stays on the AMQP fabric. Declared in `topology.py` like every other reach
 grant — the broker, not the actor, decides what MQTT-world may hear.
 

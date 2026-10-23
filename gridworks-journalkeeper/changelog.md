@@ -10,6 +10,119 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-23 — Reading channels keyed by name and definition; channel_id written from the layout (`jm/channel-id-column`, OPS-618) <!-- pending commit -->
+
+**Why:** with `reading_channels.channel_id` (gw_data 0.8.0) the row's
+primary key is a surrogate and the layout's Id is a column, so the sync no
+longer derives a uuid5 for an Id another name holds: a declared channel is
+the row of its name and definition in any era, reactivated when retired,
+new when absent, and `channel_id` is written from the layout on every
+sync, so a rename's rows share it. The resolver routes a report's name
+through the layout in force to a definition and the era rule picks among
+that definition's rows; a report with no layout in force (before the first
+journaled layout from its scada) takes the era rule by name. The toggle
+experiment adds a rename under the Celsius Id and asserts the third row's
+`channel_id`.
+
+## 2026-10-23 — Reading channels keyed by the layout's channel Id; state channels track the enum version (`jm/channel-identity-v013`, OPS-618)
+
+**What:** a `reading_channels` row's `id` is the channel's Id in the layout
+(`channel_resolver.declared_rows`), and a pseudo channel's the uuid5 of its
+definition (`pseudo_channel_id`); a layout that names an Id a retired row
+holds reactivates it and retires the other active row of the name, so a
+house moving between 012 and 013 layouts reuses two rows per changed
+channel instead of minting one per flip. An Id a row of another definition
+already holds (history: renames, synth channels become derived, a unit
+change) keys the later definition by the uuid5 of Id and definition
+(`row_id_for`). Readings resolve through the layout in force at the
+report's time (the `layouts` row for a live report, the newest layout
+message before it on back-fill), with the era rule as the fallback for
+rows minted before this change; the rekey that retires the fallback is a
+later step of OPS-618. State-machine channels take the enum version a 013
+layout declares as `unit`, values index that version's list, a declared
+version the snapshot lacks gets no channel and a tally
+(`unvendored_machines`), and a state outside the enum is refused and
+tallied (`refused_states`) in place of the sha256 fallback.
+
+**Why:** the fleet is about to move between pre-013 and 013 layouts, where
+`hp-lwt` and its kin change telemetry under the same name and every state
+machine arrives with an enum and version; a channel whose telemetry or
+enum version changes is a different channel, and the identity has to come
+from the layout, which is what the Id is for. The toggle experiment is
+`tests/test_channel_identity_toggle.py` against real TimescaleDB.
+
+## 2026-10-22 — layout.lite 013, state channels come from StateMachines (`1c3c69e` on `jm/house-status-projection`, OPS-392)
+
+**What:** the snapshot regenerates from sema `4ff5377` with `layout.lite`
+013 and every enum a scada declares in `StateMachines`; the seed no
+longer needs the staged allowance, since 013, its closure and
+`gw.house.operating.status` are published. `LayoutLite` is 013;
+012 moves to `old_versions` and keeps its persist path and the derived
+operating status (013 has no mode fields, and a scada on 013 sends the
+status word itself, so `project_live` derives nothing from it).
+`layout_created_ms` reads `CreatedMs` from 013 and `MessageCreatedMs`
+before it, for the layouts row's `sent_at` and the channel sync's era
+time. For a 013 layout, `ReportEventPersistor.get_pseudo_channels`
+makes one enum pseudo channel per declared machine, typed by the
+vendored enum of the declared name (`ENUMS_BY_NAME`); a machine whose
+enum the snapshot lacks gets no channel and its states stay in
+`messages`. The channel is named `<node>-state`, with the names the
+four handle-mapped machines had before kept for the same node and enum
+(`top-state`, `local-control-top-state`, the two local-control and the
+two LTN mode names) so the stream continues across a roll, and the
+pico channels keep `<node>-pico-state`. A report's machine.states row
+projects into the hosting node's channel (the handle's last segment)
+when that channel's `unit_type` is the row's enum; otherwise it falls
+through to the handle map, which a house on 011 or 012 still uses.
+Stored values stay the enum index. Tests:
+`tests/test_state_machine_channels.py` on real emissions of the sim
+House0 and sim Nolan houses (`tests/data/sample_messages/ops392/`).
+
+`gw.scada.commit` joins the seed and the capture set, journaled by the
+default path at its own `MessageCreatedMs`, so the row dedupes between
+the rabbit path and an S3 import (`tests/test_scada_commit.py`).
+
+The heat-call guard: `ReportEventPersistor.get_pseudo_channels` makes a
+`heat-call` pseudo channel only when neither a DataChannel nor a
+DerivedChannel of that name is declared (before, only `data_channels`
+was checked, so a 013 house with a derived heat-call got a second row
+of the same name from the pseudo pass), and
+`collect_zone_heat_call_readings` synthesizes nothing from a report that
+carries heat-call readings of its own (before, synthetic and reported
+rows interleaved). A house whose layout declares no heat-call keeps the
+synthesis from its whitewire-pwr readings, and backfills are unchanged
+(`tests/test_heat_call_guard.py`, on the willow1 013 layout and a beech
+011 layout and report).
+
+**Why:** 013 declares the machines a scada hosts, so the journal no
+longer keeps a handle map that the branch's handles (`auto.lc` sending
+`gw2.lc.top.state`, `s` sending `gw.top.state`) had already outgrown.
+The scada announces its commit at boot right after `layout.lite`, and a
+scada on 013 reports its own heat-call channels, so both reach the
+journal in the release that digests 013.
+
+## 2026-10-21 — Merge remote-tracking branch 'origin/main' into jm/house-status-projection: the gw.weather words at the station versions the weather service emits (`4279d8c` on `jm/house-status-projection`)
+
+**What:** merges `main` (PR #198, the latest-only gw.weather snapshot with
+`retired_versions.py`) into the house-status branch, which had been cut
+before it. The seed conflict resolves to `main`'s weather block: every
+`gw.weather.*` word at its latest version only (observation 001,
+forecast 001, channel.gt 002, bundle.gt 002, location.gt 001,
+create.cmd 002, station.gt and seasonal.template.gt 000, cmd.ack/nack
+000), the same set and versions `gwwf` vendors. The branch's pin of the
+weather words to the 000/001 versions is gone with it. The snapshot
+regenerates with `--allow-staged` on sema `a5f9cdb` (dev), so
+`gw.house.operating.status` stays in; the regen drops the `gw.alert`
+000 sample the merge brought in, since the seed takes `gw.alert` at its
+latest version only. The scada-era `weather.forecast` and
+`heating.forecast` stay in the seed: both still arrive daily from the
+fleet.
+
+**Why:** the journal DB holds only the station-word versions of the
+weather words (the older rows left on 2026-10-18), and the journalkeeper
+must speak exactly what the weather service speaks; a branch pinned to
+the abandoned versions would have reintroduced them on merge.
+
 ## 2026-10-21 — house operating status projection: one current status row per house, derived for the old scada code (`b49c94e` on `jm/house-status-projection`)
 
 **What:** `house_status_projection.py` writes `gridworks.house_operating_status`

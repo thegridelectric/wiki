@@ -38,9 +38,8 @@ if [ -f "$dismissed" ] && [ "$dismissed" -nt "$marker" ]; then
   exit 0
 fi
 
-# A README in a dated experiment folder, written after the run started —
-# or the field-window record, which experiments/field-window-recipe.md keeps
-# in the undated beta-field-windows/ folder (only the last run is kept).
+# A README in a dated experiment folder, written after the run started,
+# or a run record under the undated beta-field-windows/ folder.
 newer=$(find "$UMBRELLA/experiments" -maxdepth 2 \( -path '*/20[0-9][0-9]-*' -o -path '*/beta-field-windows/*' \) -name README.md -newer "$marker" 2>/dev/null | head -1)
 if [ -n "$newer" ]; then
   rm -f "$marker"

@@ -1,6 +1,6 @@
 # Zone circuits and the thermostat model (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-10-18 · Linear: OPS-532
+Status: Draft · Pass 0 · Updated 2026-10-22 · Linear: OPS-532
 
 > What this is: how zones, zone-call circuits, thermostats, and their
 > relays are modeled in the layout, and the control model on top — the
@@ -351,6 +351,14 @@ are cosmetic legacy for the proactor port.
 
 ## Open
 
+- **zone-setpoints-never-valued (spruce).** In the 2026-10-09 and
+  2026-10-21 windows the four `zone<n>-…-set` channels had no value for
+  the whole window, named on the unknown-channels line every 15 s; the
+  cold watch logged "No recorded setpoint" each minute for three zones
+  and the derived generator sat in `SuspectZoneAboveSetpoint`. Open since
+  10-09 and the one spruce item left from the beta windows; why the
+  learner never values them at spruce is to be read against the belief
+  model above.
 - Falling-edge learning semantics for a cooling call (the edge
   relates to the setpoint from the other side; the learner needs the
   circuit's mode in hand).

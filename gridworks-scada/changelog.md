@@ -10,17 +10,289 @@ repo's git history.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-10-21 — The secondary pump belongs to hp-boss (OPS-392)
+## 2026-10-23 — roll.sh rolls the pi and the LTN only; the second pi is outside the roll (`d6a75d6e`, OPS-392)
+
+The first roll of a House0 house (oak, 2026-10-23) would have stopped at
+the second pi: the roll compared what scada2 senses against the target
+line's committed layout, and that compare was written for the main-shaped
+file (components keyed to attribute classes). The `gw.house0.layout`
+word has no Cacs, so the compare crashed and the roll read the crash as
+"what scada2 senses differs" and refused. The decision is to take the
+second pi out of the roll altogether: scada2 stays on its own line and
+its file is not compared. `roll_compare.py` keeps the layout and ops
+modes; the sensed mode and its tests go.
+
+## 2026-10-23 — more tweaking the rollout script (`f4892edd`, OPS-392)
+
+The spruce roll showed the LTN crash-looping on the branch because
+its own layout pair, under `~/ltn-<house>/.config/gridworks/ltn/`,
+was still the old file; the roll had verified only the pi's. `check`
+now reports each checkout's distance behind the pushed tip of its
+branch and fails when a box is behind, when the pi's and the LTN's
+SHAs differ, or when the LTN's pair differs from the committed JSON;
+`to` verifies and on a y installs the LTN's pair before restarting
+its unit. `forward` is `to jm/spruce-unlimbo`, the one line a house
+rolls forward to. The pair check is one function for pi and LTN.
+
+## 2026-10-23 — roll.sh checks only the unit files a pi installs (`adb443b5`, OPS-392)
+
+The first spruce roll to `jm/spruce-unlimbo` refused before any
+checkout: the pi-side unit-file check named `service/*.service`, which
+matched the new `gwltn@.service`, the ltn box's unit. The pi installs
+three units (`service/install`), and the check now names exactly those.
+No test: the roll scripts are a temporary hack until deployment is
+redone.
+
+## 2026-10-22 — snapshot takes the five relay state enums; the machine store keys by node (`044b0eef`, OPS-392)
+
+The snapshot is regenerated from sema `4ff5377` (013 and its closure
+published), so the conformance
+sweep checks the twins of `aquastat.control.state`, `heat.pump.control`,
+`primary.pump.control`, `store.flow.relay` and `hp.loop.keep.send`
+against the oracle, and the five leave the no-word allowlist in
+`test_gwsproto_sema_conformance.py`.
+
+The scada's machine store keys every path by the hosting node, the
+handle's last segment. `process_single_machine_state` keyed
+`recent_machine_states` by the whole handle, so a command-tree change
+inside a report window (admin taking the tree and releasing it) split
+one relay's states across two StateList rows, and the LTN, which reads
+the last row naming `hp-scada-ops-relay`, could take its heat-pump
+belief from the stale one. The enum-conflict check now runs per node on
+both paths. Test: `tests/actors/test_machine_state_store_keys.py`.
+
+## 2026-10-22 — layout.lite 13; published (`e38efebe`, OPS-392)
+
+`LayoutLite` matches `layout.lite/013` as finished in sema: the pico
+component lists, `TMap`, `I2cRelayComponent`, `KeepBufferFull`,
+`Ha1Params` and `TotalStoreTanks` are gone, and `MessageCreatedMs` is
+`CreatedMs`. The builder in `actors/scada.py` fills only the layout
+facts. The Krida pair leaves gwsproto with its field: the two twins,
+the `I2cMultichannelDtRelayComponent` dataclass, their exports, their
+two named-types tests and their two seed entries; relays read
+`i2c.relay.component.gt`, not the Krida word. The LTN takes
+`ha1_params` (the `ha1.params` word as JSON in `LTN_HA1_PARAMS`) and
+`keep_buffer_full` from `LtnSettings`, and its store-tank count from
+its own hardware layout; `LayoutLiteDc.total_store_tanks` counts the
+tank reader nodes in `ShNodes`. Tests: `tests/actors/test_ltn_settings.py`
+and the rewritten `tests/named_types/test_layout_lite.py`. Every LTN
+box's `.env` needs `LTN_HA1_PARAMS` before it rolls to the branch. The
+snapshot is regenerated from sema `67f575c`, and the Krida allowlist
+lines leave `test_axiom_coverage.py`.
+
+`StateMachines` is filled: a `GwStateMachine` twin, the `sema.version`
+format, axiom 5 on `LayoutLite`, and `actors/state_machines.py`, which
+derives the declaration from what selects each machine rather than from
+running actors: the actor class of each node (scada, hp-boss, five-v
+boss, pico cycler, sieg loop, hp-watch, local control's top machine),
+a relay config's `StateType`, the pico roster (one `single.pico.state`
+per pico-backed node), and the ops word's selection of the leaf-ally
+machine and the local control's normal-node machine (none under
+standby), plus `gw1.main.auto.state` on `auto`. `hp.loop.keep.send`
+gets its `enum_version`. Tests: `tests/actors/test_state_machines.py`
+checks the declaration names each node once and conforms to the
+snapshot on willow, orange and nolan in and out of standby, and boots
+willow and nolan to check every machine the actors report is declared
+with its enum; `test_gw_state_machine.py` and the axiom 5 rejections in
+`test_layout_lite.py`. The seed adds the five relay state enums the
+declaration names, and `HpLoopKeepSend` gets the `Sema:` docstring the
+other twins have.
+
+## 2026-10-22 — total_energy docstring: dp and lmp only (`11c5659d`, OPS-392)
+
+Mirror of `c510772e` on `td/generalized-flo`. The `PriceForecast.total_energy`
+docstring claimed to sum a reg component the sum never included. On
+`td/generalized-flo` the reg lists are dead and Thomas removed them too; on
+`jm/spruce-unlimbo` they fill `RegPriceForecast` in `flo.params.house0`, so
+only the docstring changes here.
+
+## 2026-10-22 — roll.sh moves the LTN with the scada; LTN runs as gwltn@<house> (`a133c702`, OPS-392)
+
+A house's LTN and scada run on exactly the same branch at the same
+pushed SHA. The spruce rehearsal moved the pi alone and the
+`actual-spruce` LTN never acked a branch Report, so the link flapped for
+as long as the pair stood. `scripts/roll.sh` gets an ltn leg: `check`
+reports the LTN checkout beside the pis and fails when the two are on
+different lines; `to` moves `~/ltn-<house>/gridworks-scada` on the ltn
+box under the same guards as a pi's checkout and restarts its unit
+before the pi's service. The LTN's REPL-in-tmux start retires: it stood
+in for the web page's real-time view, and `service/gwltn@.service` runs
+`LtnApp.main` with the dashboard off. Tests:
+`tests/test_misc/test_roll_ltn.py`, a stub `ssh` standing in for the
+boxes.
+
+## 2026-10-22 — listen to real market maker (`9daaee08`, OPS-615)
+
+The same change as `2647b3d8` below, applied to the spruce-unlimbo
+epic branch. One difference: this branch builds the bid's slot name
+inside the private `gridflo` package, so the maker alias it bids on is
+set there; the in-repo `flo.py` is a stub that raises on construction
+and keeps its old constant untouched.
+
+## 2026-10-22 — LTN hears latest.price from Market Maker; fake market maker deleted (`2647b3d8`, OPS-615, on `jm/td-flo-latest-price` off `td/generalized-flo`)
+
+**What:** the LTN's scada link subscribes to the MarketMaker's broadcast
+topic, `rjb/<maker-alias>/mm/latest-price`, and the LTN codec decodes
+the bare `latest.price` word that arrives there into a message for
+`process_latest_price`. The maker's alias is a setting,
+`market_maker_alias` (`LTN_MARKET_MAKER_ALIAS`), default
+`hw1.isone.me.versant.keene`, and names the slot the LTN bids on. The
+`fake_market_maker` task, `send_latest_price`, `get_real_time_price`,
+`read_forecasted_price_for_now` and the `P_NODE` constant go. A live
+test publishes the word on the topic through mosquitto and waits for the
+contract handler to hold it.
+
+**Why:** a cleared price is a market fact and the MarketMaker states it;
+the stopgap maker (gridworks-marketmaker) now publishes one
+`latest.price` per hour on its mic exchange, and gwbase 0.6.1 bridges
+that broadcast to the MQTT side. With the LTN listening, every house
+clears the hour against the same published price and the series is
+journaled, where the fake maker gave each house its own fetched number
+that reached no one else. The alias `hw1.isone.ver.keene` was never
+registered; the maker's registered alias replaces it.
+
+## 2026-10-22 — the ScadaParams path taken out (`9b2b4d44`, OPS-392)
+
+**What:** `scada.params` leaves the scada's vocabulary: the gwsproto
+twin, its named-types test and the seed line go, the snapshot is
+regenerated without it. The scada drops the dispatch case,
+`process_scada_params` and `update_env_variable`; the derived generator
+drops its re-run trigger; the LTN drops `process_scada_params`,
+`send_new_params` and the nine `set_*` setters that fed it.
+`airtable_pat` goes from the settings and `.env-template`. A test
+shows the scada's decoder rejects a `scada.params` message while a
+`send.layout` on the same path decodes.
+
+**Why:** the path rewrote `SCADA_ALPHA` and eight siblings into a
+hard-coded box `.env` that nothing reads: `ha1_params` is built from the
+ops word's `HeatingCurve`. With it gone, `.env` is connection settings
+only, and the LTN's one source of `Ha1Params` is `layout.lite` until the
+settings block replaces it.
+
+## 2026-10-22 — roll script - toggling between the spruce-unlimbo branch and the old summer code (`eea7f97c`, OPS-392)
+
+**What:** `scripts/roll.sh <house> check | to <scada-branch> | back`
+runs from the laptop: it maps the scada branch to its tlayouts branch,
+reads the committed pair from the tlayouts remote, fast-forwards the
+first pi's checkout to the pushed SHA, verifies the box's layout byte
+for byte and (on `jm/spruce-unlimbo`) the ops file outside its
+`DispatchHold` block, installs the committed file only on a y with the
+box's kept as a dated pre-roll copy, swaps spruce's winter hack with
+the line, sets the stored events aside as
+`event.<date>-pre-roll-to-<branch>/`, and restarts the service. It
+stops before the checkout when requirements or unit files differ. A
+second pi is left alone: its checkout does not move, its service is not
+restarted, and its layout is compared on the part scada2 senses (the
+`s2` node and its hierarchy, their components and cacs, the channels
+those nodes capture), a difference there stopping the roll. Every `ssh`
+takes `-n`. `scripts/roll_compare.py` holds the match rules and the
+sensed-part projection, with tests.
+
+**Why:** the branch runs under the box service for long stretches now,
+and roll-back to `main` (or `actual-spruce`) has to be as trustworthy
+as roll-forward. What makes either trustworthy is that the box runs the
+layout its line's tlayouts branch has committed, and that only pushed
+JSON and pushed SHAs reach a box. A second pi's file is a copy of the
+house file from whenever it was last placed, and the primary's side of
+it drifts without meaning anything to scada2: byte-for-byte comparison
+read maple2, oak2 and fir2 as stale when only oak2 differed in what it
+senses. The first live roll (spruce, 2026-10-22) found the last two
+rules: driven through a pipe, the inner `ssh` calls swallowed the
+answers meant for the install prompts; and the branch scada's first
+`report.event` went unacked by the `actual-spruce` LTN, so the link
+flapped every five seconds and kept flapping after the roll back, the
+old scada resending the same stored event. An event one line wrote is
+not the other line's to deliver.
+
+## 2026-10-22 — sieg-loop derived channel strategy is a spaceheat name (`9956250a`, OPS-392)
+
+**What:** `layout_gen/layout_db.py` names the `hp-keep-seconds-x-10`
+derived channel's `Strategy` `integrate-relay-motion`; a test builds a
+layout with the sieg loop on, writes it and loads it.
+
+**Why:** `DerivedChannelGt.Strategy` is a `SpaceheatName`, and the
+string "Integrate relay motion" fails it, so a layout gen with the sieg
+loop on could not run on `main` at all. Maple is the only sieg-on house
+on `main`, so its gen has been unrunnable since the channel was added
+and its deployed layout predates the channel. On a `jm/` branch off
+`main`, not on `jm/spruce-unlimbo`: `main` is the roll-back line for the
+House0 boxes and its gens have to run.
+
+## 2026-10-22 — improving relay feedback (`aa3b0709`)
+
+A failed I2C actuation checks its expander now and retries soon; the
+Nolan iso valve stays open.
+
+Why: in the 2026-10-21 spruce window expander 0x21 reset during the boot
+posture, and the scada took a minute to notice and the secondary-pump
+relay forty seconds to recover, because the only detector was the bus
+actor's 60 s heartbeat and the only retry the 300 s verify pass. The
+relay that met the fault told the bus nothing, and the failed readback
+dropped its error text, so the moment that could have shown the reset
+left no evidence.
+
+- A relay whose `_assert_pin` fails (write error, readback error,
+  readback mismatch) sends its bus actor `ExpanderCheckRequested`; the
+  bus runs the config-register check for that one expander at once (the
+  same confirm re-read as the heartbeat, one check in flight per
+  address) and `ExpanderReinitialized` re-asserts every relay on it. A
+  reset met by an actuation is now found and repaired inside a second.
+- The relay retries a failed command on its own at 2 s and 10 s
+  (`RETRY_BACKOFF_S`) before the verify pass owns it; one Critical per
+  failing streak as before; a newer command ends the retries.
+- The readback-failed branch keeps the bus error text and takes the
+  register forensics, as the mismatch branch already did.
+- Tests: `tests/actors/test_relay_i2c.py` (requested check, backoff
+  retry, superseded retry, readback error and forensics, debounce, the
+  garbled-read guard on a requested check).
+
+A relay write spacing for the gw108 rev B board was built and dropped
+the same day: the 2026-08-23 relay stress run had already shown that
+spacing does not prevent the 0x21 reset.
+
+**The Nolan iso valve stays open.** `NolanBufferOnlyTou` commands
+`OpenValve` to `iso-valve-relay` in the boot posture and nothing closes
+it. The idle-closed rule (closed with the call open and hp-watch saying
+off, "against the convection loop off the buffer top") goes, with
+`iso_wanted`, `enforce_iso`, `iso_open`, the machine's hp-watch
+subscription and `on_hp_watch_state`, whose only reader it was.
+**Why:** the rule was an experiment against the buffer-top convection
+loop and did not solve it, and in the 2026-10-21 spruce window it left
+the iso closed under admin while the heat pump ran, since local
+control stops enforcing in Dormant and hp-boss does not hold the
+valve. With the store unused at spruce the iso is open. Tests:
+`tests/actors/test_local_control_nolan.py` (boot posture and the wake
+re-boot assert `ISO_OPEN`; the follow-the-watch, dormant-state and
+subscribe tests are gone with the rule; `test_hp_watch_live.py` no
+longer reads the machine's hp-watch state).
+
+## 2026-10-21 — secondary pump reports to HpBoss (`a9acd401`, OPS-392)
+
+One commit, two concerns (logical-unit commits are suspended on
+`jm/spruce-unlimbo`).
+
+*HouseOperatingStatus takes CreatedMs.*
+
+**What:** the gwsproto `HouseOperatingStatus` twin's sender-clock field
+is `CreatedMs`, matching `gw.house.operating.status` 000 in the
+regenerated snapshot (sema `f8a5e50`); the scada's builder, its
+changed-field compare and the two tests follow.
+
+**Why:** the snapshot regen for the secondary-pump wave brought the
+word's sender-time rename into the oracle, and the conformance sweep
+refuses a twin whose shape drifts from it. The journalkeeper reads the
+same word from its own snapshot and converges on its next regen.
+
+*The secondary pump belongs to hp-boss.*
 
 **What:** `secondary-pump-relay` is hp-boss's fixed relay. The layout
 dc declares its fixed sub-trees (`fixed_subtrees`: hp-boss with the
 call relay and, where the plant has one, the secondary pump; sieg-loop
 with the loop pair) and both `set_command_tree` rewrites walk that
-list. hp-boss subscribes to hp-watch and runs the pump: on while the
-heat pump is called or sensed running and while the watch does not
-know, off only with the call open and the unit sensed off; each pump
-command under its own id, the pump relay's report passed to the scada
+list. hp-boss subscribes to hp-watch and runs the pump on the watch
+alone: on while the unit is sensed running and while the watch does
+not know, off while it is sensed off, the call playing no part; each
+pump command under its own id, the pump relay's report passed to the scada
 as it is. `NolanBufferOnlyTou` keeps the iso valve only, open with the
 call closed or the unit not sensed off. The gwsproto Nolan twin's axiom
 30 pins the handle; the Nolan test fixture moves the relay under
@@ -32,8 +304,13 @@ live-chain tests updated.
 **Why:** at spruce on 2026-10-18 the heat pump restarted under admin
 with the secondary pump off and ran six minutes into a loop with no
 sink, because the pump floated with the tree and only local control
-drove it. The pump is the heat pump's whoever holds the tree. The
+drove it. The pump is the heat pump's whoever holds the tree, and it
+runs on the unit's measured power as the original Nolan local control
+ran it: we do not trust the primary pump in either direction, so the
+call says nothing about whether the secondary pump should run. The
 valves stay floating: the admin panel keeps the iso open, its default.
+Tests: the pump test in `test_hp_boss.py` and the admin chain in
+`test_hp_watch_live.py`.
 
 ## 2026-10-21 — The energy estimate does not depend on the dispatch hold (`b49f4e94`, OPS-392)
 

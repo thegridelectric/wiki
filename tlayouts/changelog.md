@@ -10,8 +10,83 @@ repo's git history.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-10-21 — The Nolan gen declares the secondary pump under hp-boss (OPS-392)
+## 2026-10-22 — a data channel's id follows its telemetry; fir and elm take oak's fake sieg (`a701eb8`, OPS-392)
+
+**What:** `LayoutIDMap` records each data channel's `TelemetryName` beside
+its id and hands the id out only for a channel of the same telemetry
+(`channel_id_for`); `LayoutGen.channel_id` takes the telemetry and every
+emitter passes it. `tests/test_channel_id_stability.py`. Every gen
+that builds is rerun: spruce and spruce-async1 (23 channels each),
+beech (23), maple (28) and oak (27) get fresh ids for the channels
+whose telemetry differs from the pi's layout, all of them temperatures
+now in `CelsiusTimes100` that the pi reports as `WaterTempCTimes1000`,
+`AirTempFTimes1000` or `AirTempCTimes1000`; nothing else in those files
+changes. spruce-sim picks up `secondary-pump-ct` in
+`DisabledChannelNames`, which the gen already said. The fir and elm gens
+take oak's fake-sieg pattern: a `sieg-btu` BTU meter on a pico that does
+not exist (`pico_000001` fir, `pico_000002` elm; oak keeps
+`pico_000000`), the meter node and its `sieg-flow`, `sieg-hot`,
+`sieg-cold` and `sieg-send-flow` channels disabled, in place of the
+pretend ADS `sieg-cold` channel and `sieg` flow meter that failed axiom 8
+(`SiegManifoldChannels`, no `sieg-hot`). Their outputs stay fixtures
+(gitignored, ids minted each run).
+
+**Why:** the id lookup keyed on the name alone, so a channel whose
+telemetry changed kept the id of the channel it replaced, and a reader
+joining readings by id across the two layouts would mix values in
+different units under one identity. A channel with new telemetry is a
+new channel. Derived channels still key on name alone; an output-unit
+change there has the same shape and is not handled yet.
+
+## 2026-10-22 — oak: eGauge pump and white-wire channels report on a 1 W change (`4209a3a`, OPS-392)
+
+**What:** `gen_oak.py` sets `AsyncCaptureDelta=1` on the eight
+non-metering eGauge channels (the three pumps, the oil boiler, the four
+zone white wires); `output/oak/hardware-layout.json` regenerated.
+
+**Why:** oak2 has run these channels at 1 W since its file was last
+placed, and the gen's default of 2 W is what the committed record said.
+The box's value is the one wanted, so the record moves to it; the
+regenerated file's sensed part matches oak2's file exactly, and the
+primary oak pi's file now differs from the record by these eight values
+until it is rolled.
+
+## 2026-10-22 — spruce: disable secondary-pump-ct (`786dfed`, OPS-392)
+
+**Why.** The secondary-btu pico's CT channel posts a constant (168, 1.67 V)
+whatever the secondary pump draws, seen again in the 2026-10-21 window,
+and the scada has no reader for the signal yet. Disabled in the spruce
+roster until one exists; the channel stays declared. Both spruce outputs
+regenerated.
+
+## 2026-10-22 — main: commit the layouts the House0 boxes run (`4a113cf`, OPS-392)
+
+**What:** `output/<house>/hardware-layout.json` for beech, maple, oak and
+fir; `.gitignore` admits those folders (and elm's, whose box was
+unreachable on 2026-10-22). Beech, oak and fir are the files their gens
+emit and are byte-identical to the files on the boxes. Maple is its
+gen's output and is ahead of the box by the sieg loop's
+`hp-keep-seconds-x-10` derived channel and the `Strategy` and
+`SynthChannels` keys; `gen_maple.py` reads its ids from this committed
+file so a re-run is byte-identical. `main` held no JSON before this.
+
+**Why:** `main` is the roll-back line for every House0 box while
+`jm/spruce-unlimbo` runs under the service. A roll back verifies the
+box's layout against the committed JSON of the matching tlayouts
+branch, so the branch has to hold what the boxes run, and a gen and its
+JSON are one authority only if the gen reproduces the file. Maple's gen
+needs the scada `main` fix of the same date to run.
+
+## 2026-10-22 — actual-spruce: spruce's layout under its output folder (`17279a6`, OPS-392)
+
+**What:** `spruce.json` moves to `output/spruce/hardware-layout.json`
+(it is byte-identical to the file on the box); `.gitignore` admits the
+folder.
+
+**Why:** the roll script reads every branch's record at
+`output/<house>/`; `actual-spruce` is spruce's roll-back line.
+
+## 2026-10-21 — secondary pump reports to HpBoss (`edaad57`, OPS-392)
 
 **What:** `nolan_sema_gen.py` gives `secondary-pump-relay` the handle
 `auto.hp-boss.secondary-pump-relay`, as the call relay has; the sema

@@ -165,10 +165,11 @@ no glitch; the scada's next operating status says it accepts dispatch.
 
 **The scada is a second writer of its params file.** The file on a box
 can therefore differ from its tlayouts source, and a push of the source
-would clear the latch unseen. `experiments/put_layout.sh` compares the
-box's file with the source before it pushes and shows a difference for a
-person to decide; the session-start drift check reports each house whose
-box params differ from tlayouts.
+would clear the latch unseen. `scripts/roll.sh` compares the box's
+params with the committed source outside the `DispatchHold` block and
+installs the source only on a `y` after showing the difference; the
+session-start drift check reports each house whose box params differ
+from tlayouts.
 
 ## The other two glitches
 

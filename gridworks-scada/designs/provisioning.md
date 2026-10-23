@@ -27,5 +27,5 @@ spruce-unlimbo work under OPS-392 until it has its own issue).
 
 - The full provisioning sequence (deed, layout, ops params, weather
   records, broker credentials) in one ordered list.
-- Who runs the step: `experiments/put_layout.sh` today; the provisioning
-  tool it becomes.
+- Who runs the step: `scripts/roll.sh` today (`experiments/put_layout.sh
+  dev` on the laptop); the provisioning tool it becomes.

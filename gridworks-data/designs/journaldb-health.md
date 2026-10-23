@@ -53,10 +53,10 @@ rebuild re-applies them:
   tight so a stray scan dies in seconds whichever credential ran it.
   (`gw_visualizer` keeps write access: the web backend updates
   `users.last_login`.)
-- Laptops hold only the `gw_analyst` credential (`GJK_DB_URL` in
-  `experiments/.env`); the writer credential lives on gjk and the loader
-  box. Which role a session's queries run as is then decided by the
-  environment, not by remembering to pick the right one.
+- Data analysis on a laptop logs in as `gw_analyst` (`DB_ANALYST_URL`
+  in `experiments/.env`). A laptop may also hold `GJK_DB_URL`, the
+  journalkeeper login; analysis scripts do not read it. Which role a session's queries run as is then
+  decided by the variable the script reads.
 - Application names on every connection (`application_name` in the JK
   and loader DSNs) so `pg_stat_activity` says who a session is.
 
@@ -77,8 +77,8 @@ summary line first, details after. Checks and starting thresholds:
 | growth | `pg_database_size` and per-hypertable size, compared with the previous run's stored value | > 2 × the trailing weekly rate |
 
 Thresholds are constants at the top of the script, not arguments; the
-script takes only the DSN (from the environment, the same `GJK_DB_URL`
-convention the experiments repo uses).
+script takes only the DSN (from the environment, `DB_ANALYST_URL` as in
+the experiments repo).
 
 ## 3. Where it runs
 

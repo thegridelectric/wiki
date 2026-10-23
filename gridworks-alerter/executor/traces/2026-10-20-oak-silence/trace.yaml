@@ -1,0 +1,46 @@
+# Trace spec: oak after the 2026-10-20 Millinocket power cut, ScadaSilent moving to NoData.
+# The input is materialised from the eventstore by experiments/traces/pull_trace.py
+# into experiments/traces/gridworks-alerter/<name>/messages.jsonl (gitignored);
+# this file, forest.json and the expected output below are the vector.
+name: 2026-10-20-oak-silence
+concern: no-data
+clauses_exercised: [ScadaSilent raise after the silence threshold, kind change to NoData under the same AlertId, NoData resolve on the first report back]
+event: >
+  Power was cut in Millinocket on the morning of 2026-10-20. oak's scada
+  went quiet at 14:10Z while its LTN kept pinging; when the scada came
+  back it spoke without sending reports until 16:10Z.
+
+window:
+  start: 2026-10-20T14:00:00Z   # the replayed alerter boots here; its last-heard floor is this instant
+  end: 2026-10-20T16:11:00Z     # after the resolving arrival
+time: arrival                    # order and timestamp by the ear's persisted_ms, never by the message's own time
+decode: as-sent                  # each body stays at the version it was sent, as the alerter reads it
+tracked_set:
+  roots: [hw1.isone.me.versant.keene]   # the replayed alerter's fleet roots
+  subtree: hw1.isone.me.versant.keene.oak
+  forest: forest.json            # the journaled g.node.forest before the window, restricted to the subtree and its ancestors
+senders:
+  - hw1.isone.me.versant.keene.oak.scada
+  - hw1.isone.me.versant.keene.oak
+bodies_for: [report.event, layout.lite]   # full body for these; every other type envelope only
+
+expected_out:                    # gw.alert 001 records the alerter broadcast, from_alias hw1.alerts, eventstore arrival times
+  - t: 2026-10-20T14:20:10.101Z
+    State: Firing
+    Kind: ScadaSilent
+    AlertId: 85a35659-b55b-470f-b396-b319a3a2a2b5
+    AboutGNodeAlias: hw1.isone.me.versant.keene.oak.ta
+    Summary: "scada silent for 10.1 minutes (hw1.isone.me.versant.keene.oak.ta)"
+  - t: 2026-10-20T16:08:05.058Z
+    State: Firing
+    Kind: NoData                 # the cause moved, the AlertId stays
+    AlertId: 85a35659-b55b-470f-b396-b319a3a2a2b5
+    AboutGNodeAlias: hw1.isone.me.versant.keene.oak.ta
+    Summary: "no reports for 117.8 minutes, scada and ltn both speaking (hw1.isone.me.versant.keene.oak.ta)"
+  - t: 2026-10-20T16:10:11.354Z
+    State: Resolved
+    Kind: NoData
+    AlertId: 85a35659-b55b-470f-b396-b319a3a2a2b5
+    AboutGNodeAlias: hw1.isone.me.versant.keene.oak.ta
+    Summary: "data again after 119.9 minutes (hw1.isone.me.versant.keene.oak.ta)"
+tolerance: one detector tick (10 s) on each expected time

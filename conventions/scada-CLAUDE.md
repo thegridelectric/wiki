@@ -70,7 +70,15 @@ wired to; oak is done (`tlayouts/oak_gen.py`). Do not relax the
 `SiegManifoldChannels` axiom. The three houses move to a
 `gw.house0.no.sieg` word once House0 is close to stable.
 
-## Field windows
+**The Nolan iso valve is NOT under hp-boss.** `NolanBufferOnlyTou` owns
+`iso-valve-relay`: the boot posture commands it open and nothing closes
+it. hp-boss's fixed sub-tree is the call relay and the secondary pump
+only. Do not move the iso under hp-boss, and do not add a rule that
+closes it: the idle-closed rule (closed with the call open and the heat
+pump sensed off) was an experiment against the buffer-top convection
+loop that did not solve it, removed 2026-10-22.
+
+## Deployed names and rolling
 
 **A scada finds its files by their deployed names, in dev as on a box.**
 Its config folder (`~/.config/gridworks/scada/`) holds
@@ -79,25 +87,20 @@ by side, and the scada resolves them by default. Do NOT point a scada at
 a fixture or gen-output file name through `*_PATHS__*` lines in a
 `.env` or a template: a source with another name
 (`tests/config/gw.nolan.*`, a tlayouts gen output) is renamed at the
-copy, by `experiments/put_layout.sh` (`dev` seeds the laptop). Until
-`jm/spruce-unlimbo` merges, a window scada reads the
-`scada-experiment/` folder beside it; that folder goes away at the merge.
+copy. On the laptop `experiments/put_layout.sh dev` does the copy; on a
+box only `scripts/roll.sh` does, from the committed tlayouts JSON of the
+line the house moves to.
 
-Bring up unlimbo on spruce or beech with `experiments/spruce_window.sh` /
-`beech_window.sh` (both call `house_window.sh <house>`), run from the
-laptop; the window pair reaches the box only through
-`experiments/put_layout.sh`. The full how-to is
-`experiments/field-window-recipe.md`. Two rules hold at every window:
-
-- Spruce runs production off `actual-spruce` (scada and layout both) while
-  the window runs `jm/spruce-unlimbo` against the `jm/spruce` layout, so
-  its two layouts are reasoned about separately.
-- The window kind sets its length. An *experiment* window at spruce
-  displaces the winter hack (`NolanLocalControl` holding zones and the heat
-  pump off), so keep it short and bounded. A *field-support* window runs
-  long (hours, e.g. `on 360`) because it lets heat calls reach the heat
-  pump while someone works on the equipment, bounded anyway so the winter
-  hack auto-restores if the session ends.
+**A deployed house moves between scada lines only by `scripts/roll.sh`**
+(`<house> check | to <branch> | back`, run from the laptop), which moves
+the pi and the house's LTN together and verifies the layout pair both
+ways; the how-to is executor `running.md` "Rolling a house between
+lines". Spruce runs `actual-spruce` with the tlayouts `actual-spruce`
+layout and rolls to `jm/spruce-unlimbo` with the tlayouts `jm/spruce`
+layout, so its two layouts are reasoned about separately, and `check`
+says which line it is on. Do NOT boot a branch scada on a box by any
+other path: no second checkout, no env file naming another broker, no
+window harness.
 
 ## gwsproto rules
 

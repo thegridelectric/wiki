@@ -42,34 +42,34 @@
    "DisplayName": "Keene Constraint MarketMaker"
   },
   {
-   "Alias": "hw1.isone.me.versant.keene.oak",
+   "Alias": "hw1.isone.me.versant.keene.spruce",
    "Status": "Pending",
-   "GNodeId": "b759f5bb-b70c-4052-8587-85e43d6a2290",
+   "GNodeId": "fde9fa11-2235-4af3-8d05-ea196587d733",
    "Version": "006",
    "TypeName": "g.node.gt",
    "BaseClass": "LeafTransactiveNode",
    "GNodeClass": "LeafTransactiveNode",
-   "DisplayName": "Oak Ltn"
+   "DisplayName": "Spruce Ltn"
   },
   {
-   "Alias": "hw1.isone.me.versant.keene.oak.scada",
+   "Alias": "hw1.isone.me.versant.keene.spruce.scada",
    "Status": "Pending",
-   "GNodeId": "fbbea6a1-0749-43d8-8136-ff795fe079a6",
+   "GNodeId": "9024e45e-f49e-42fa-b863-b3b951ec80f6",
    "Version": "006",
    "TypeName": "g.node.gt",
    "BaseClass": "Logical",
    "GNodeClass": "Scada",
-   "DisplayName": "Oak Scada"
+   "DisplayName": "Spruce Scada"
   },
   {
-   "Alias": "hw1.isone.me.versant.keene.oak.ta",
+   "Alias": "hw1.isone.me.versant.keene.spruce.ta",
    "Status": "Pending",
-   "GNodeId": "0a39d45d-af42-4721-8cdc-51deeed4b80c",
+   "GNodeId": "9f84ef0e-ca5d-4d7d-bd0f-f8ee99feae61",
    "Version": "006",
    "TypeName": "g.node.gt",
    "BaseClass": "TerminalAsset",
    "GNodeClass": "TerminalAsset",
-   "DisplayName": "Oak TerminalAsset"
+   "DisplayName": "Spruce TerminalAsset"
   }
  ],
  "Roots": [
@@ -77,5 +77,5 @@
  ],
  "Version": "002",
  "TypeName": "g.node.forest",
- "SendTimeMs": 1792015336462
+ "SendTimeMs": 1792681591198
 }

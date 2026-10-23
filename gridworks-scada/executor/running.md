@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-10-20
+Status: Draft · Pass 0 · Updated 2026-10-22
 
 # Running an LTN + SCADA from a checkout (cold start)
 
@@ -107,63 +107,111 @@ current caveats:
   rejected loudly by the now-v001 literal and ignored — harmless; clear
   `~/.local/share/gridworks/scada/event/` remnants if the noise bothers.
 
-## Experiment window on a deployed box
+## Rolling a house between lines
 
-A branch scada run on a deployed box (a "window": stop the services, boot
-the branch against the real plant, restore) keeps staging vocabulary off
-the production broker through three layers, and a window holds all three.
+`scripts/roll.sh <house> check | forward | to <scada-branch> | back`,
+run from the laptop, is the one way a deployed house moves between
+scada lines; `forward` is `to jm/spruce-unlimbo`, and the roll-back
+path is the same script as the roll-forward.
 
-**No window on beech (2026-10-20).** Beech is unwell in the field. Do NOT
-run a beta window test on it until this line is removed; a round runs its
-House0 family on another box or skips it.
+A house's LTN and scada run on exactly the same branch, at the same
+pushed SHA. The LTN is a checkout of this repo on the `ltn` box
+(`~/ltn-<house>/gridworks-scada`, run by the systemd unit
+`gwltn@<house>` from `service/gwltn@.service`;
+`gridworks-infra/ltn/README.md`), and a roll moves it with the pi:
+`to` and `back` fast-forward both checkouts and restart the LTN's unit
+before the pi's service, and `check` compares both against the line's
+record. The unit runs `LtnApp.main` with the dashboard off
+(`LTN_DASHBOARD__PRINT_GUI=false`); the tests are
+`tests/test_misc/test_roll_ltn.py`, with a stub `ssh` for the boxes.
+The lines today are `main` for beech, elm, fir and maple,
+`td/generalized-flo` for oak and `jm/spruce-unlimbo` for spruce
+(its roll-back line is `actual-spruce`). On this branch the LTN
+loads the same layout ⊕ operational-params pair as the scada, from
+`~/ltn-<house>/.config/gridworks/ltn/`, and the roll verifies and
+installs it there as it does on the pi. `check` fails when either box
+is behind the pushed tip of its line or the two SHAs differ. A scada
+paired with an LTN on another line has every Report go un-acked, and
+its link flaps for as long as the pair stands
+(`experiments/2026-10-22-spruce-roll-rehearsal/`).
 
-1. **Status tier.** The broker rule reaches the words that cross the
-   wire: those are published before a box speaks them to the production
-   broker, and the closure words they `$ref` come with them. Words that
-   only live in the layout file on the box may stay staging. The check is
-   by hand: every gwsproto schema pin and every word in the scada's sema
-   snapshot (`packages/gridworks-scada-protocol/sema_snapshot/`, its
-   `indexes/staging.yaml` lists the staging words) against the registry's
-   status; `gwsproto_sema_conformance.py` has no release-gate flag.
-2. **Credential-structural.** The window scada keeps the box's real
-   identity but boots from `~/envs/dev.env`: dev-broker credentials only,
-   upstream host a localhost tunnel (`ssh -f -N -R 1885:localhost:1885
-   <box>`), never prod credentials, so staging-typed payloads physically
-   cannot reach the prod broker. The universe guardrail would refuse a
-   prod identity on localhost at a real boot; the harness runs inside its
-   test-boot exemption.
-3. **Paths-structural.** Boot through the window harness
-   (`WindowScadaApp`, `experiments/2026-08-10-ads-declared-rate/
-   window_boot.py`): its `paths_name()` override is the only paths-root
-   override that survives app construction, and it refuses to boot if the
-   event or log dirs resolve outside `~/.config/gridworks/scada-experiment/`.
-   Env-only overrides (`SCADA_PATHS__NAME`) are silently discarded. This
-   keeps the window's un-acked events out of the deployed scada's
-   persister.
+Each scada branch has a tlayouts branch, and that branch's committed
+`output/<house>/` JSON is the record of what the house runs
+(`wiki/tlayouts/executor/primary.md` "Temporary authority"): `main` and
+`actual-spruce` read tlayouts `main` and `actual-spruce`,
+`jm/spruce-unlimbo` reads `jm/spruce`, and `td/generalized-flo` (the FLO
+work, which changes the LTN and not the layout) reads `main`. The script
+reads the record from the tlayouts *remote* after a fetch, so only
+pushed JSON reaches a box whatever the laptop's checkout is doing, and
+moves each pi's `~/gridworks-scada` only by fast-forward to the pushed
+SHA of the branch. A dirty or diverged box checkout refuses.
 
-Window protocol on top of the layers: stop everything on the bus
-(`gwspaceheat-restart.timer`, `gwspaceheat`, any hack service; the transient
-timer restores them). `experiments/house_window.sh <house> on|off|status`
-(called by `spruce_window.sh`, `beech_window.sh`, `maple_window.sh` and
-`oak_window.sh`) is that protocol for those houses. It writes no layout: `on` refuses unless the box's
-window pair is byte-identical to the tlayouts gen output
-(`experiments/put_layout.sh <house> check`) and the box's unlimbo checkout
-is at the laptop's pushed scada head. It records which of the house's
-plant services were running, stops those, and the box starts exactly
-those again when the window scada exits, whether by the minutes bound, a
-crash or `off`. Before restarting the deployed scada, remember its
-persister replays every un-acked event in its event dir to whatever broker
-it connects to (`start_reupload` on link-up): verify the deployed event dir
-(`~/.local/share/gridworks/scada/event/`) holds nothing window-born and
-archive-then-delete anything that is. One shutdown event once rode a
-deployed scada's startup reupload to prod and S3 through a shared paths
-root. Command senders run on the box itself from its `~/experiments` clone
-at a pushed SHA against `localhost:1883`; a window must not depend on a
-laptop tunnel, which can die silently. Stopping services, placing env
-files and restarting are the human's to run; a session preps the commands
-and the watch-list. `experiments/beta-field-windows/` is the practice folder: every window is
-a run under `runs/`, indexed in `runs.md`; spruce, beech and maple have run
-there; oak's first window ran 2026-10-20.
+The pair is verified before the service restarts. A layout matches byte
+for byte. On `jm/spruce-unlimbo` the operational-params file matches
+outside its `DispatchHold` block, which the scada writes itself (the
+cold latch sets `ServiceContractBroken` in
+`actors/scada.py` `process_break_service_contract`; an operator hold
+sets `OperatorHold`); the other lines do not read the ops word and the
+file is left alone. The rules are `scripts/roll_compare.py`, with tests
+in `tests/test_misc/test_roll_compare.py`. A pi whose file differs shows
+the differing paths and takes the committed file only on a `y`, with
+its own kept as `<stem>.<date>-pre-roll.json`. Every house but spruce
+has a second pi, `<house>2`, whose `gwspaceheat2` reads
+`~/.config/gridworks/scada2/`. A second pi is left alone by a roll: its
+checkout does not move and its service is not restarted, and its layout
+is compared on the part scada2 senses (the `s2` node and its hierarchy,
+their components and cacs, the channels those nodes capture); a
+difference there stops the roll, and the fix is made by hand.
+
+Stored events do not cross lines. The scada persists every event it has
+not had acked (`~/.local/share/gridworks/scada/event/`) and re-sends
+them on each link-up; an event one line's scada wrote is never acked by
+the other line's LTN, and the link flaps on it at every ack timeout,
+sending a `layout.lite` on each return to active. So the roll stops the
+service, sets the event folder's contents aside as
+`event.<date>-pre-roll-to-<branch>/`, and starts it. Verified on spruce
+2026-10-22 (`experiments/2026-10-22-spruce-roll-rehearsal/`), which is
+also where a branch scada paired with the other line's LTN was seen to
+flap for as long as it ran.
+
+Two guards stop the roll before the checkout: a difference in
+`gw_spaceheat/requirements/` between the SHAs (the venv is rebuilt by
+hand on the box with `tools/mkenv.sh`), and a difference in `service/`
+unit files (root reinstalls them with `service/install`). Spruce's
+winter hack (`spruce-winter-hack.service`) is the plant controller on
+`actual-spruce`: the script disables it when spruce leaves that line and
+enables it when spruce returns, so a reboot never runs two controllers.
+
+`back` goes to the house's line: `actual-spruce` for spruce,
+`td/generalized-flo` for the houses in the script's `THOMAS_LTN` list
+(oak), `main` for the rest.
+
+The `main` and `actual-spruce` layout gens run from the laptop's `main`
+worktree of the scada repo, `GridWorks/scada-main`
+(`environment.md`).
+
+**No roll to beech (2026-10-20).** Beech is unwell in the field. Do NOT
+roll it until this line is removed.
+
+A roll puts words on the production broker, so every word that crosses
+the wire is published before a box speaks it, with the closure words it
+`$ref`s; a word that only lives in the layout file on the box may stay
+staging. The check is by hand: every gwsproto schema pin and the scada's
+sema snapshot (`packages/gridworks-scada-protocol/sema_snapshot/`, its
+`indexes/staging.yaml` lists the staging words) against the registry's
+status; `gwsproto_sema_conformance.py` has no release-gate flag.
+
+Reading a house after a roll, learned in the beta field windows of
+2026-09 and 2026-10 (record: `experiments/beta-field-windows/`):
+
+- Start the bus capture before the first actuation and run it past the
+  last expected one, and prove the subscriber connects before anything
+  is switched on; a capture that starts late witnesses nothing.
+- Two clocks: the box clocks run about 70 s behind the laptop. Event
+  filenames are UTC, log lines are box-local ET, and a timeline written
+  on the laptop is laptop time. Say which clock every stamp is on.
+- A layout's `DataChannels` and `DerivedChannels` together are the
+  names a report can have; count channels against both lists.
 
 ## Open
 

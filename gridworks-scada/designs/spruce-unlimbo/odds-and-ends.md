@@ -221,9 +221,9 @@ before touching it.
   channel set whole and the values absent. But nothing distinguishes
   "known and accepted absence" from a component that went missing on a
   later layout regen, or a future derived channel authored against a
-  disabled component's input without anyone noticing (the open question
-  in `beta-field-windows.md` "Open" — disabled-component channels as
-  control input, deferred until a house0-no-sieg or slab layout exists).
+  disabled component's input without anyone noticing (an open question,
+  disabled-component channels as control input, deferred 2026-09-20
+  until a house0-no-sieg or slab layout exists).
   A window or a journal read has no record that the silence is expected.
 - **Change.** Once per day (not per boot, not per report cycle — the set
   is static for a run and a field window is short), the scada enumerates

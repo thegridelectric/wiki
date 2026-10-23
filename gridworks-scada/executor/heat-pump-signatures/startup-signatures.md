@@ -1,6 +1,6 @@
 # Start-up signatures
 
-Status: Draft · Pass 0 · Updated 2026-09-21
+Status: Draft · Pass 0 · Updated 2026-10-22
 
 > What this is: what a heat pump start looks like in the scada's channels,
 > per heat pump model, with the Siegenthaler loop open and closed: the
@@ -98,6 +98,20 @@ about a second apart during a ramp, in steps well under 300 W.
   before the start, 0–3.3 °F. Lift 2 °F above that comes 15–26 s after
   the crossing in 20 restarts with a warm loop, and 83–133 s after it in
   11 first starts of a charge from a cold loop.
+- The stop, one measurement (spruce 2026-10-21 under admin,
+  `experiments/2026-10-21-spruce-pump-on-power-window/`): the call
+  closed at 16:27:08 and `hp-odu-pwr` crossed 500 W 31 s later; the
+  call opened at 16:28:05 with the unit at 1.5 kW and still ramping, and
+  the unit kept climbing for 4 min 24 s to 3.73 kW, then fell to 53 W
+  inside 3 s (16:32:29 to 16:32:32), 4 min 27 s after the call opened.
+  So a Samsung called off young finishes a minimum run with the draw
+  still rising, and the fall itself is a step: the watch read off at
+  the 80 W line within a second of the step. A planner must not
+  expect the unit off at the call; the lead in `HP_TRAITS`
+  (`actors/hp_boss/sensing.py`, "the Samsung lead is provisional") is
+  the value this measures. Whether the minimum run is fixed or depends
+  on run age is open: the spruce journal also shows stops within a
+  minute of the call opening on older runs.
 
 ## Loop closed against loop open
 

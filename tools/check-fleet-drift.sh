@@ -12,10 +12,15 @@
 # Checks per checkout: on its expected branch and even with origin
 # (fetches first), clean tree, and the running process started AFTER the
 # checkout's last commit (a pull without a restart runs the old code).
+# A first pi is also checked for the event sets roll.sh puts aside at
+# each roll (~/.local/share/gridworks/scada/event.*-pre-roll-to-*/):
+# more than SET_ASIDE_MAX of them, or more than SET_ASIDE_MB in all, is
+# flagged so they get pruned by hand.
 # Houses: repo ~/gridworks-scada, systemd unit gwspaceheat on the first
-# pi and gwspaceheat2 on the second (SECOND_PIS names the houses that
-# have one). LTNs: ~/ltn-<house>/
-# gridworks-scada on the two LTN boxes, process = the python whose
+# pi. A second pi (SECOND_PIS names the houses that have one) is checked
+# only for reachability and an active gwspaceheat2: its checkout is not
+# rolled with the house, so its commit is not drift. LTNs: ~/ltn-<house>/
+# gridworks-scada on the one LTN box, process = the python whose
 # working directory is under that folder (the tmux REPL).
 
 MARKER="$HOME/.cache/gw-fleet-drift-check-$(date +%G-W%V)"
@@ -29,12 +34,15 @@ SSH="ssh -o BatchMode=yes -o ConnectTimeout=8"
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
-# Expected branch per checkout. Spruce is the one house off main: its pi
-# runs actual-spruce and its LTN runs jm/spruce (fleet-inventory.md).
+# Expected branch per checkout (gridworks-infra/fleet-inventory.md).
+# Spruce's pi and LTN run actual-spruce; oak's pi and LTN run
+# td/generalized-flo (the FLO work). All LTNs run on the one box, ltn.
 # elm and elm2 are offline; add elm back to HOUSES and SECOND_PIS when they return.
-HOUSES="beech:main oak:main fir:main maple:main spruce:actual-spruce"
+HOUSES="beech:main oak:td/generalized-flo fir:main maple:main spruce:actual-spruce"
 SECOND_PIS="beech oak fir maple"
-LTN_BOXES="ltn:maple:main,oak:main ltn2:beech:main,elm:main,fir:main,spruce:jm/spruce"
+SET_ASIDE_MAX=2
+SET_ASIDE_MB=20
+LTN_BOXES="ltn:beech:main,elm:main,fir:main,maple:main,oak:td/generalized-flo,spruce:actual-spruce"
 
 # The remote fragment: prints one line per finding, nothing when clean.
 # $1 repo dir, $2 expected branch, $3 process start epoch (0 = not running).
@@ -58,7 +66,18 @@ check_pi() {  # host unit branch
     sa=\$(systemctl is-active $unit 2>/dev/null)
     [ \"\$sa\" = active ] || echo \"$unit: \$sa\"
     check_repo ~/gridworks-scada $branch \$se
+    cd ~/.local/share/gridworks/scada 2>/dev/null && {
+      n=\$(ls -d event.*-pre-roll-to-* 2>/dev/null | wc -l | tr -d ' ')
+      mb=\$(du -sm event.*-pre-roll-to-* 2>/dev/null | awk '{s+=\$1} END {print s+0}')
+      [ \"\$n\" -le $SET_ASIDE_MAX ] && [ \"\$mb\" -le $SET_ASIDE_MB ] || echo \"set-aside events: \$n folders, \$mb MB (prune the old event.*-pre-roll-to-* folders)\"
+    }
   " 2>/dev/null) || r="unreachable"
+  [ -n "$r" ] && printf '%s\n' "$r" | sed "s/^/    /;1s/^/  $host:\n/" > "$TMP/$host"
+}
+
+check_pi2() {  # host unit
+  local host="$1" unit="$2" r
+  r=$($SSH "$host" "sa=\$(systemctl is-active $unit 2>/dev/null); [ \"\$sa\" = active ] || echo \"$unit: \$sa\"" 2>/dev/null) || r="unreachable"
   [ -n "$r" ] && printf '%s\n' "$r" | sed "s/^/    /;1s/^/  $host:\n/" > "$TMP/$host"
 }
 
@@ -81,7 +100,7 @@ check_ltn_box() {  # host house:branch,...
 for hb in $HOUSES; do
   h=${hb%%:*}; b=${hb#*:}
   check_pi "$h" gwspaceheat "$b" &
-  case " $SECOND_PIS " in *" $h "*) check_pi "${h}2" gwspaceheat2 "$b" & ;; esac
+  case " $SECOND_PIS " in *" $h "*) check_pi2 "${h}2" gwspaceheat2 & ;; esac
 done
 for bs in $LTN_BOXES; do
   check_ltn_box "${bs%%:*}" "${bs#*:}" &
