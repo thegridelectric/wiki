@@ -10,6 +10,46 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-25 — main beech: four BTU picos replace the primary BTU and the hall flows <!-- pending commit, branch jm/update-beech off main -->
+
+**What:** the same pico swap as the `jm/spruce` entry below, in main's
+`gen_beech.py` and `output/beech/hardware-layout.json`: primary-btu
+`pico_286e35`, dist-btu `pico_328036` (dist-flow, dist-swt, dist-rwt),
+store-btu `pico_9c7736` (store-flow, store-hot-pipe, store-cold-pipe),
+sieg-btu `pico_579030` (sieg-flow, sieg-hot, sieg-cold). Out: the old
+primary-btu pico, the three hall flow picos and their `-hz` channels,
+the `Pico Flow Hall` cac, the two ADS store-pipe terminals, and the
+commented-out dist and sieg tank-module blocks. The gen takes its ids
+from the committed `output/beech/hardware-layout.json` (the maple
+pattern) instead of the pi's live layout, which is now a `jm/spruce`
+sema layout and no id reference for main. Main's BTU component word has
+no board or MicroPython fields, so those facts live only on `jm/spruce`.
+
+**Why:** beech rolls back to main by `scripts/roll.sh beech back`, which
+verifies the box against this file; the layout the box would fall back
+to must name the picos that are in the house. Every kept node,
+component, channel and GNode keeps its id.
+
+## 2026-10-25 — beech: four BTU picos replace the primary BTU, the hall flows and the pipe tank modules <!-- pending commit -->
+
+**What:** `beech_gen.py` declares four pico BTU meters, one per loop:
+primary-btu `pico_286e35` (primary-flow, hp-lwt, hp-ewt), dist-btu
+`pico_328036` (dist-flow, dist-swt, dist-rwt), store-btu `pico_9c7736`
+(store-flow, store-hot-pipe, store-cold-pipe) and sieg-btu `pico_579030`
+(sieg-flow, sieg-hot, sieg-cold), the first three Pico W boards on
+MicroPython 1.23.0 and the sieg meter the one Wiznet. Out of the layout:
+the old primary-btu `pico_7a4d2b`, the three hall flow picos, the dist
+and sieg pipe-thermistor tank modules with their identity deriveds and
+disabled lists, and the two ADS store-pipe channels the store meter now
+reads. `BtuSpec` gains an optional `micropython`, emitted as the word's
+`MicropythonVersion`; `tests/test_btu_micropython_version.py`.
+
+**Why:** the picos were swapped on site 2026-10-25 and beech moves to
+`jm/spruce-unlimbo`, whose roll verifies the box against this branch's
+committed JSON. Every kept node, component and channel keeps its id; the
+four pipe temperatures that were deriveds become data channels with
+fresh ids.
+
 ## 2026-10-22 — a data channel's id follows its telemetry; fir and elm take oak's fake sieg (`a701eb8`, OPS-392)
 
 **What:** `LayoutIDMap` records each data channel's `TelemetryName` beside

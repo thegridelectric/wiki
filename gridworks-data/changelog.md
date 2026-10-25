@@ -10,6 +10,24 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-25 — reading_channels.channel_type: from TypeNames and `gjk.pseudo` to gw.channel.kind values (`jm/channel-type-synth-to-derived` 70900cb, OPS-542)
+
+**Why:** the column held three sema TypeNames and the marker `gjk.pseudo`,
+which covered four different things; the journalkeeper now writes
+`gw.channel.kind` values. The rows already in the journal are renamed by
+the hand-run script `src/gw_data/db/scripts/misc/channel_type_to_kind.sql`:
+the TypeNames one to one (a `synth.channel.gt` row is a DerivedChannel,
+the list's name before layout.lite 007), `gjk.pseudo` split by unit type
+(outside `gw1.unit` is StateMachine) and by the persistors' names under
+it, and the weather GNode's observed rows taking WeatherObserved and the
+record's Id as `channel_id`. It opens a transaction, prints the before and
+after distributions and any uncovered row, and leaves COMMIT to the
+operator; it runs on `tsdb_tap` first, then once on production, both
+operators consenting. There is one journal DB, and a data rewrite that
+runs once is a script, not an alembic step (alembic is for schema); the
+alembic revision `a9e2c4d6f8b1` committed earlier today as `c0c0620` is
+reverted.
+
 ## 2026-10-23 — reading_channels.channel_id: the layout's channel Id as a column (`b0cea6d`, PR #15, `gw_data` 0.8.0, OPS-618)
 
 **Why:** a row's primary key is a surrogate, and the readers need the

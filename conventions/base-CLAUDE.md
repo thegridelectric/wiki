@@ -85,10 +85,17 @@ was loaded, not worked from memory. Ephemeral coordination (session names,
 - **Scada:** before editing `gridworks-scada` (gwsproto above all), Read
   [`scada-CLAUDE.md`](scada-CLAUDE.md) and follow it. A session whose
   Focus is scada starts with `wiki/tools/scada.sh`, which appends it.
-- **Session scripts:** `wiki/tools/session.sh <base|executor|scada>
-  [--include-sema] [claude args]` starts a session with the matching
-  protocol file(s) appended and permissions skipped; `base.sh`,
-  `build-executor.sh` (always with sema) and `scada.sh` are its wrappers.
+- **Backend and frontend:** before editing `gridworks-web-backend`,
+  `gridworks-web-frontend` or the words between them, Read
+  [`backend-CLAUDE.md`](backend-CLAUDE.md) and follow it: the seam is
+  sema, nothing the scada reported is lost, no name matching in the
+  browser. A session whose Focus is the web stack starts with
+  `wiki/tools/backend.sh`, which appends it.
+- **Session scripts:** `wiki/tools/session.sh
+  <base|executor|scada|backend> [--include-sema] [claude args]` starts a
+  session with the matching protocol file(s) appended and permissions
+  skipped; `base.sh`, `build-executor.sh` (always with sema), `scada.sh`
+  and `backend.sh` are its wrappers.
 
 ## Legacy first-pass code: vision, not how
 

@@ -21,32 +21,35 @@ Status: Draft · Pass 0 · Updated 2026-10-22
 
 The default path stores the message in `messages` and stops. A **custom
 persistor** additionally fans selected fields into `readings` (and, for
-layouts, maintains `reading_channels`). Four custom persistors today:
-`layout.lite`, `report.event`, `flo.params.house0`, `weather.forecast`.
+layouts, maintains `reading_channels`). The custom persistors today:
+`layout.lite`, `report.event`, `flo.params.house0`, `weather.forecast`,
+`gw.weather.forecast.bundle.gt`, `gw.weather.observation`, `g.node.forest`,
+and the alert, house-status and snapshot projections.
 
-## The channel model — two rigorous kinds, one not
+## The channel model — the kind is the row's fact
 
-`reading_channels` rows carry a `channel_type`, and there are **three** kinds —
-and this is the crux:
+`reading_channels.channel_type` holds a `gw.channel.kind` value: what kind
+of thing the row records, named by the list that declared it. The
+journalkeeper writes it from the vendored enum, never a literal.
 
-| kind | `channel_type` | backed by a Sema type? | source |
+| kind | declared by | row's `channel_id` | unit vocabulary |
 |---|---|---|---|
-| **DataChannel** | `data.channel.gt` | **yes — rigorous** | `layout.lite.data_channels` |
-| **DerivedChannel** | `derived.channel.gt` | **yes — rigorous** | `layout.lite.derived_channels` |
-| **PseudoChannel** | `gjk.pseudo` (a literal, not a Sema type) | **no** | hand-declared in persistor code |
+| **DataChannel** | `layout.lite.DataChannels` | the channel's Id | `spaceheat.telemetry.name` |
+| **DerivedChannel** | `layout.lite.DerivedChannels` (`SynthChannels` before 007) | the channel's Id | `gw1.unit` (`spaceheat.telemetry.name` before 007) |
+| **StateMachine** | `layout.lite.StateMachines` (the handle map before 013) | none | the state enum; `unit` its version |
+| **HeatCallSynth** | the journal, for a house whose layout declares no heat-call channel | none | `gw1.unit` |
+| **WeatherForecast** | the journal, from the scada's legacy `weather.forecast` | none | `gw1.unit` |
+| **WeatherObserved** | the weather GNode's `gw.weather.channel.gt` | the record's Id | `gw1.unit` |
+| **FloParams** | the journal, from `flo.params.house0` | none | `gw1.unit` |
 
-So channel meaning lives in **two different places** depending on the channel:
-
-- For **data / derived** channels, meaning is **explicit in Sema**
-  (`data.channel.gt` / `derived.channel.gt`) and arrives in the `layout.lite`
-  message. `LayoutLitePersistor` just mirrors those into `reading_channels`.
-- For **pseudo** channels (price, weather, machine-states), there is **no
-  rigorous Sema channel type**. The channel's name/unit/meaning is declared
-  *in persistor code* (`PseudoChannel(...)` literals) and registered at import.
-  This is a deliberate convenience, but it means **the meaning of a pseudo
-  channel is encoded in gjk rather than in Sema** — the one place the
-  ecosystem otherwise insists meaning must be explicit (see
-  `wiki/vision/where-meaning-lives-in-gridworks.md`).
+A kind the layout declares has its meaning in Sema, and the row mirrors the
+word. A kind the journal declares (`HeatCallSynth`, `WeatherForecast`,
+`FloParams`) has its name and unit in persistor code (`PseudoChannel(...)`
+literals, registered at import), the one place the ecosystem otherwise
+insists meaning be explicit (`wiki/vision/where-meaning-lives-in-gridworks.md`).
+`WeatherObserved` sits between: the row is the record's index, and the
+station and the rest of the record are read from the journaled record by
+the row's `channel_id`, never from the name.
 
 `LayoutLitePersistor` is the channel registry keeper: it syncs all three kinds
 into `reading_channels` and writes no readings itself; it defines the
@@ -74,13 +77,21 @@ not vendor gets no channel and is tallied (`unvendored_machines`).
 - **`report.event`** → `readings`, three sub-paths:
   - **channel readings** — `report.channel_reading_list` → readings keyed to
     *existing* `reading_channels` through the layout in force at the
-    report's time (`channel_resolver`: the `layouts` row when the report is
-    at or after its send time, else the newest `layout.lite` message at or
-    before it), which maps each name to its Id; a name whose row predates
-    the Id rule resolves by the era rule (`reading_channel_eras`). **A name
-    with no row is skipped** and tallied in `dropped_readings`. A machine
-    state the channel's enum version lacks is refused and tallied in
-    `refused_states`.
+    report's time (`channel_resolver`: the newest `layout.lite` message from
+    the scada at or before the report; the `layouts` row is a cache the
+    resolver reads and logs once when it names another message), which
+    maps each name to the row of its declared definition in the era that
+    contains the report; a report with no layout in force resolves by the
+    era rule alone (`reading_channel_eras`). **A name with no row is
+    skipped** and tallied in `dropped_readings`. A machine state the
+    channel's enum version lacks is refused and tallied in
+    `refused_states`. The row a name resolves to holds the layout's Id for
+    that name as its `channel_id` (none on a pseudo row); a disagreement is
+    tallied in `channel_id_mismatches` by (asset, channel, declared Id, row
+    Id), the readings still written, and a live report journals one
+    `glitch` (Warning, node `channel-resolver`, the journalkeeper's own
+    alias) per key per UTC day with the count, so the alerter's reports
+    see it.
   - **zone heat-call synthesis** — for every `*-whitewire-pwr` channel whose
     layout declares no matching `*-heat-call` channel, a `heat-call` pseudo
     channel is invented and each whitewire-pwr reading derives a 0/1 heat-call
@@ -128,7 +139,18 @@ not vendor gets no channel and is tallied (`unvendored_machines`).
   this projects a handful of first-step scalars.
 - **`weather.forecast`** → 2 pseudo channels (`forecast-ws`, `forecast-oat`),
   again only the **first** array element; the rest of the forecast horizon is
-  dropped from `readings`.
+  dropped from `readings`. The row is per house, since the scada fetched
+  the forecast for itself; it retires with the word.
+- **`gw.weather.forecast.bundle.gt`** → one `WeatherObserved` row per
+  observed channel the bundle binds, `channel_id` the record's Id, unit
+  the record's, create-if-absent. No readings.
+- **`gw.weather.observation`** → `readings` on those rows at the
+  observation's time: each reading names its channel record, resolved
+  through the journaled `gw.weather.channel.gt` from the same weather
+  GNode to the row with that `channel_id`. An `Interpolated` observation
+  writes none; the message row keeps it. The forecast words
+  (`gw.weather.forecast`) write no readings: the latest forecast per
+  bundle is a query over `messages`.
 - **`g.node.forest`** → `g_nodes` / `connectivity_edges`
   (`g_node_forest_persistor.py`, `project_forest`). The registry's forest
   broadcasts (deltas and gnr's periodic snapshots) upsert these two tables,

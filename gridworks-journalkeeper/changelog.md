@@ -10,6 +10,68 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-25 — the row's kind from gw.channel.kind; observed weather readings (`jm/synth-rows-as-derived` 7892401, OPS-542)
+
+**Why:** `channel_type` held three TypeNames and one marker, `gjk.pseudo`,
+that covered four different things, so a reader told a state row by
+exclusion and a heat-call row by substring. Every writer now sets the
+column from the vendored `gw.channel.kind`: DataChannel and DerivedChannel
+in the resolver, StateMachine, HeatCallSynth, WeatherForecast, FloParams
+and WeatherObserved on the pseudo channels, which each say their kind.
+The snapshot vendors the staging enum (`ALLOW_STAGED=1` on the regen
+script; a dev-only snapshot until the laptop EDD run promotes the word).
+The bundle persistor writes `channel_id` from the record's Id on observed
+rows, and a new `WeatherObservationPersistor` writes a
+`gw.weather.observation`'s values to those rows at ObservationTime,
+resolving each reading's channel name through the journaled record;
+interpolated observations write none. The rows already in the journal are
+renamed by the hand-run script in gridworks-data
+(`src/gw_data/db/scripts/misc/channel_type_to_kind.sql`), tried on
+`tsdb_tap` first.
+
+## 2026-10-25 — synth-era rows take the derived channel type (`jm/synth-rows-as-derived` fbc61fd, OPS-542)
+
+**Why:** a synth channel is a derived channel declared by a layout.lite
+before 007, where the list is of `synth.channel.gt`; from 007 it is of
+`derived.channel.gt`. `gw.channel.kind` has one value, DerivedChannel,
+for both, and the `channel_type` column follows: `synth_channel_row`
+writes the derived TypeName, so a re-run of the S3 port files
+`required-energy` and `usable-energy` under the same type as every later
+layout and `same_definition` keeps one lineage per name. The journal's
+existing synth rows are renamed by gridworks-data migration
+`a9e2c4d6f8b1`, which runs before this code sees the database.
+
+## 2026-10-24 — check channel ids (`jm/channel-id-check` 131b454, merged 46dedd5, OPS-542)
+
+Every report checks its rows' `channel_id` against the layout in force;
+a drift is a daily Warning glitch.
+
+**What:** `channel_resolver.resolve` returns a `Resolution`: the row each
+name goes to and the channel Id the layout in force declares for it. The
+report persistor compares the row's `channel_id` to that Id for every
+channel of every report (a pseudo row holds none), tallies a disagreement
+by (asset, channel, declared Id, row Id) in `channel_id_mismatches`, and on
+a live report journals one `glitch` (Warning, node `channel-resolver`)
+per key per UTC day under the journalkeeper's own alias, its details
+naming both Ids and the readings tallied since the process started. The
+S3 importer's run summary lists the tally. The layout in force is the
+newest `layout.lite` message from the scada at or before the report; the
+`layouts` row is read as a cache and a row that names another message is
+logged once. The resolver remembers the newest layout per scada, so a
+later report only looks for a layout between the two times.
+`ReportEventPersistor` takes the service alias. The integration test
+`tests/test_channel_id_check.py` drifts a row by hand and asserts the
+tally, one glitch a day, and none on back-fill.
+
+**Why:** the resolver routes a report's names through the layout in force
+to a (name, definition) row, and `channel_id` on that row is written by the
+layout sync; nothing checked that the two agreed. A row whose Id drifts
+from its layout is a bookkeeping fault that would otherwise show up only
+in the csv endpoint's lineage. Journaled as a glitch, it reaches the
+alerter's reports. The projection-first lookup resolved a live report
+through a stale `layouts` row whenever the live path had missed the
+layout and the back-fill brought it.
+
 ## 2026-10-23 — Reading channels keyed by name and definition; channel_id written from the layout (`jm/channel-id-column`, OPS-618)
 
 **Why:** with `reading_channels.channel_id` (gw_data 0.8.0) the row's

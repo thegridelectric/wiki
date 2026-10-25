@@ -3,6 +3,19 @@
 One entry per `starter-scripts` commit (git = the what, this = the why).
 Entries before 2026-08-23 live in git history only.
 
+## 2026-10-25 — btu_meter.py prints the pico ADC volts behind each thermistor reading <!-- pending commit -->
+
+The async btu pico sends only a beta-formula temperature, so a shorted
+or open thermistor shows up as an absurd number (a short on beech's
+store-cold-temp read 258 C) and nobody can tell from the API log what
+the ADC saw. The multichannel-snapshot handler now inverts the pico's
+own divider math (3.3 V, 5.6 k fixed, 10 k NTC, beta 3977) for every
+CelsiusTimes100 channel and appends the implied ADC millivolts and
+thermistor ohms to the line. 258 C is 17 mV and 29 ohm: the short is
+real, and the pico's below-1-mV guard is just too tight to call it one.
+The inversion is exact only for the default beta; a pico with an
+app_config ThermistorBeta override reads slightly off.
+
 ## 2026-10-02 — snap_ads.py reads the 12 multipurpose channels by terminal number (`b42c41e`)
 
 `snap_ads.py` is rewritten as a hand tool: one pass over the three

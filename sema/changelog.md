@@ -10,6 +10,38 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-25 — gw.channel.kind and gw.house.control.mode, staging (`7be48ad`, OPS-542)
+
+**What:** two versioned string enums at `000`, staging, owner
+gridworks-energy, default `Unknown`. `gw.channel.kind` names what kind of
+thing a reading channel records, by the declaring list: DataChannel and
+DerivedChannel (the layout's lists; a derived channel is of
+`derived.channel.gt` from layout.lite 007 and of `synth.channel.gt`
+before it, one value for both), StateMachine (the layout's
+`gw.state.machine`), and the journal service's own HeatCallSynth,
+WeatherForecast (the first slice of the forecast a house's scada fetched,
+one value per forecast), WeatherObserved (an observed series a weather
+GNode declares as a `gw.weather.channel.gt`, one quantity at one station
+in the record's unit) and FloParams. `gw.house.control.mode` is who
+decides what a house's plant does: LocalControl, Ltn, Admin, a projection
+across the scada's top-level machines. Runtime regenerated and indexes
+rebuilt; the regen also adds `LayoutLite` (013) to
+`GwHouseSummary.layout`, drift the committed runtime had against the
+registry. `tests/test_snapshot_cli.py` has three failures that fail on
+clean `dev` too and are unrelated.
+
+**Why:** the journal's `reading_channels.channel_type` holds three sema
+TypeNames and one marker, `gjk.pseudo`, that covers four different things
+the journalkeeper invents, so a reader tells a state-machine row by
+exclusion (a unit type outside the unit vocabularies) and a heat-call row
+by substring; the kind is a fact the writer knows and the reader needs
+declared. The observed weather rows had no kind at all: the forecast value
+is for the legacy per-house series, and the observed series is the ground
+truth forecasts are scored against. The browser's top state strip shows
+LocalControl, LTN and Admin, a projection across two machines
+(`gw.top.state`, `gw1.main.auto.state`) it rebuilds by name; the mode
+becomes a word the backend derives and sends (OPS-542).
+
 ## 2026-10-22 — publish operating.state.sequence and synced.readings.bundle (`2272873`, OPS-473)
 
 web-backend `main`'s synced-readings router reads both words, and its

@@ -10,6 +10,60 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-24 — readings bundle: state sequences from every state row, by enum version <!-- pending commit -->
+
+**What:** the bundle's `OperatingStateSequenceList` is built from every
+state-machine row of the house with readings in the window, picked by a
+unit type outside the unit vocabularies, and each stored position resolves
+to its symbol through the row's (enum, version) with `Enum` resolving
+through the newest vendored version (`readings_units.state_value`, the
+csv's rule). The rows of one name feed one sequence; a change is detected
+on the symbol; a row whose enum the snapshot does not vendor, or a position
+outside its enum, gives no point. Times are `UtcIso8601Millis`, and a
+second change at the same millisecond replaces the first. The enum lookup
+by name alone (`SEMA_ENUM_LOOKUP`) goes. The bundle test covers a machine
+whose rows span the `Enum` stamp and a version, changing state twice in
+one second.
+
+**Why:** the query took rows with `unit = 'Enum'` only, the stamp the
+journalkeeper gave state channels before 013; a 013 layout declares each
+machine's enum version and the journalkeeper writes it as the row's unit,
+so every 013-era state reading was invisible to the browser's state strip
+and the heat-pump-on highlights, and a position was read through whatever
+version the snapshot vendored newest rather than the row's. Second-level
+times failed the word's strictly-increasing axiom on spruce's boot, where
+`hp-watch-state` changed twice inside one second. Against `tsdb_tap`,
+oak's 013 era answers 32 machines where it answered one, spruce's window
+38 (OPS-542).
+
+## 2026-10-24 — readings bundle: knit a channel's rows into one series (`64eef54`, OPS-542)
+
+**What:** the visualizer's bundle (`synced.readings.bundle`) is one series
+per channel lineage, as the csv is one column: the `reading_channels` rows
+that share a name or a layout channel Id form one series in the newest
+row's unit, with every older row's values converted into it. The lineage
+and conversion rules move to `api/v2/readings_units.py`, shared by both
+routers (the csv's `select_columns` goes there too); each conversion is an
+affine map (`Affine`), and the bundle's query joins the readings to a
+VALUES table of (row, series, slope, intercept) so a reading is converted
+before TimescaleDB's time-weighted average and a lineage's rows average
+together. The request picks series by any name a lineage has had, in the
+request's order, which replaces the post-query regex match. A state row is
+no series: the bundle word labels a series with a unit vocabulary, so a
+requested state channel is left out. `tests/test_synced_readings_bundle.py`
+covers the flip, a window inside the new era, a rename, a state row and
+irreconcilable units; the test app gains the bundle router and the
+`timescaledb_toolkit` extension.
+
+**Why:** the bundle grouped by (name, unit, unit type), so a window within
+thirty minutes of a unit change (the query reaches back that far for the
+average's starting value) got two series of one name and failed the
+word's `ChannelDefinitionBijection` axiom with a 500. On the night of
+2026-10-23 the three houses each changed unit and changed back, and the
+visualizer page erred on every window touching those hours. Run against
+`tsdb_tap` with oak's and spruce's readings for that night, all eight
+recipe windows answer 200 with one series per name (OPS-542).
+
 ## 2026-10-23 — readings csv: use state machine enums, knit together . (`5767309`, PR #22, OPS-618)
 
 **What:** a csv column is one channel across its layout changes: the

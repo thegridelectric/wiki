@@ -1,6 +1,6 @@
 # gridworks-web-backend — rebuild spec
 
-Status: Draft · Pass 0 · Updated 2026-10-23
+Status: Draft · Pass 0 · Updated 2026-10-24
 
 > Faithful-rebuild hub for gridworks-web-backend: the two services behind
 > the fleet web page, the read API over the journal DB and the realtime
@@ -54,18 +54,33 @@ Both read their configuration from one `.env` with the `BACKEND_` prefix
   to a browser is the decoded word's `to_dict()`: PascalCase keys,
   `TypeName` and `Version` present.
 
-## The readings csv
+## The readings csv and bundle
 
-`/api/v2/installations/{id}/readings.download` is one column per channel
-name. A name's `reading_channels` rows differ in unit when a layout changed
-how the quantity is expressed or a state machine's enum version changed, so
-a column is in the unit of the name's newest row, the unit the house sends
-now, with every older row's values converted into it (temperatures and
-flows convert pairwise; other units only to themselves), and a state cell
-is the state's symbol in the row's enum version (`api/v2/readings_units.py`). A bucket is the mean of its numeric readings
-and the last of its states. Rows of one name whose units do not reconcile,
-or a state enum the snapshot does not vendor, refuse the request rather
-than mix scales in a column; rows with telemetry Unknown are left out.
+`/api/v2/installations/{id}/readings.download` (the csv) and
+`/api/v2/installations/{id}/synced.readings.bundle` (the visualizer's
+series) are one column or series per channel lineage: the
+`reading_channels` rows joined by a shared name or a shared layout channel
+Id (`api/v2/readings_units.py`). A name's rows differ in unit when a layout
+changed how the quantity is expressed or a state machine's enum version
+changed, so a lineage is in the unit of its newest row, the unit the house
+sends now, with every older row's values converted into it (temperatures
+and flows convert pairwise as affine maps on a reference unit; other units
+only to themselves). A request names a lineage by any name it has had. Rows
+of one lineage whose units do not reconcile refuse the request (422) rather
+than mix scales; rows with telemetry Unknown are left out.
+
+The csv converts in Python: a bucket is the mean of its numeric readings
+and the last of its states, and a state cell is the state's symbol in the
+row's enum version; a state enum the snapshot does not vendor refuses the
+request. The bundle converts inside its query, before TimescaleDB's
+time-weighted average, so the rows of a lineage average together whatever
+the window; a state row is no series, since the bundle word labels a series
+with a unit vocabulary (`synced.readings.bundle` axiom 5), and states reach
+the browser through `OperatingStateSequenceList`: one sequence per state
+channel name, built from every state row of the house (a unit type outside
+the unit vocabularies), each position resolved to its symbol through the
+row's (enum, version), a change detected on the symbol, times to the
+millisecond.
 
 ## Glossary
 

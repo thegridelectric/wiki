@@ -10,6 +10,47 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-25 — minor (`8251eb89`)
+
+Landed under the title "minor": roll.sh stops the restart timer with
+the service and starts it after.
+
+**What:** `scripts/roll.sh` stops `<svc>-restart.timer` together with the
+scada service before setting the stored events aside, and starts the
+timer after the service, the order `gwstop` and `gwstart` use;
+`tests/test_misc/test_roll_ltn.py` asserts the commands for one pi and
+for a house with a second pi.
+
+**Why:** the timer fires at every quarter hour and would start the
+service on its own while the roll still has the event folder half
+moved. Stopping only the service left that window open.
+
+## 2026-10-23 — roll.sh includes the second pi with the first (`e127ad63`)
+
+**What:** `scripts/roll.sh` puts a house's second pi (`<house>2`, scada2)
+back inside the roll, on the same footing as the first pi: `check` reports
+it and fails when it is on another line or SHA than the first pi; `to`
+guards it the same way (clean tree, pushed target, unit files under
+`service2/`, requirements diff), checks it out, verifies and installs the
+committed pair byte for byte in `~/.config/gridworks/scada2/`, and after
+the LTN restarts, stops gwspaceheat2, sets its events aside from
+`~/.local/share/gridworks/scada2/event/` and starts it. The ta.deed check
+stays with the first pi. spruce has one pi. `tests/test_misc/test_roll_ltn.py`
+gains the two-pi house (maple).
+
+**Why:** the 013 cutover of oak and maple (2026-10-23, 01:42 and 03:15
+windows) journaled dist-swt, hp-lwt and the other ADS temperatures ten
+times too large. The first pi ran `jm/spruce-unlimbo` with the jm/spruce
+layout, which declares those channels `CelsiusTimes100`, and its
+layout.lite v013 said so; the second pi, which reads the ADS board, stayed
+on `main` at `a70c10ea` with a layout declaring `WaterTempCTimes1000`, and
+sent 56 C as 56041. SyncedReadings name the channel and give the value
+with no encoding, so the first pi had nothing to check and reported the
+values under its own declaration. The emitter code is right
+(`5a30da67`): a producer encodes by its channel's declared telemetry. The
+roll that moved the first pi and the LTN alone (`d6a75d6e`, the same
+night) is what let the two pis diverge.
+
 ## 2026-10-23 — tlayouts: maple's 4 tank picos are PicoWiznetEth2040 (`be8edfb`, OPS-392)
 
 Maple's first boot on the branch (03:12 ET) warned four times that a

@@ -2,11 +2,12 @@
 # session.sh — start a Claude session with the protocol file(s) for a
 # session kind appended to its system prompt.
 #
-#   session.sh <base|executor|scada> [--include-sema] [claude args...]
+#   session.sh <base|executor|scada|backend> [--include-sema] [claude args...]
 #
 # base      appends nothing beyond the project CLAUDE.md
 # executor  appends wiki/conventions/executor-CLAUDE.md
 # scada     appends wiki/conventions/scada-CLAUDE.md
+# backend   appends wiki/conventions/backend-CLAUDE.md
 # --include-sema  also appends wiki/conventions/sema-CLAUDE.md
 #
 # Runs claude from the umbrella directory (the parent of wiki/) with
@@ -27,7 +28,8 @@ case "$kind" in
   base) ;;
   executor) files+=("$conv/executor-CLAUDE.md") ;;
   scada) files+=("$conv/scada-CLAUDE.md") ;;
-  *) echo "session.sh: kind must be base, executor or scada (got '$kind')" >&2; exit 2 ;;
+  backend) files+=("$conv/backend-CLAUDE.md") ;;
+  *) echo "session.sh: kind must be base, executor, scada or backend (got '$kind')" >&2; exit 2 ;;
 esac
 if [ "${1:-}" = "--include-sema" ]; then
   files+=("$conv/sema-CLAUDE.md"); shift
