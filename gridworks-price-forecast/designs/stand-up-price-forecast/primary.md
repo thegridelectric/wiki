@@ -1,6 +1,6 @@
 # stand-up-price-forecast
 
-Status: Draft · Pass 0 · Updated 2026-09-16 · Linear: OPS-437
+Status: Draft · Pass 0 · Updated 2026-10-26 · Linear: OPS-437
 
 **EDD: yes** the bar is real-broker price-forecast delivery in
 production, consumed by a real LTN FLO and/or the MarketMaker —
@@ -80,6 +80,17 @@ broker, same bar as the weather standup.
   path — this decides whether the weather word-shape (one
   observation word + one forecast word + a bundle) is even the right
   model, or whether price needs something structurally different.
+  Settled 2026-10-26: it does not. The price-forecast service provides
+  lists of numbers with a method of discovery, as the weather service
+  does for its forecasts. Every cleared and actual price comes from the
+  MarketMaker, which is the authority on actual. A reader that wants
+  actual prices over a window (the visualizer's price panel, which today
+  draws only the stopgap's forecast ahead of its window; web-backend
+  executor `visualizer.md` "Price forecast") reads them from the
+  MarketMaker, and the forecast service never serves a cleared price.
+- **The next step is a significant grill**, before any word or route:
+  the questions above plus the forecast-service and MarketMaker split
+  of the price vocabulary.
 
 ## Spokes
 

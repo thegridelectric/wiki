@@ -3,6 +3,14 @@
 One entry per `starter-scripts` commit (git = the what, this = the why).
 Entries before 2026-08-23 live in git history only.
 
+## 2026-10-25 — zone3_watch.py: the zone 3 heat call and dist flow from the snapshot <!-- pending commit -->
+
+For troubleshooting the zone 3 opto-coupler and zone relays on spruce: one
+line per scada snapshot showing the raw whitewire opto level, the scada's
+derived heat call and the distribution flow, so a call the opto misses, a
+call the scada does not derive, or a call that moves no water can each be
+seen at a glance. Read-only, on the local broker like `snap_watch.py`.
+
 ## 2026-10-25 — btu_meter.py prints the pico ADC volts behind each thermistor reading <!-- pending commit -->
 
 The async btu pico sends only a beta-formula temperature, so a shorted

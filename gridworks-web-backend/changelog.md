@@ -10,7 +10,50 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-24 — readings bundle: state sequences from every state row, by enum version <!-- pending commit -->
+## 2026-10-25 — price forecast route for the visualizer (`cd793d3`, OPS-623)
+
+**What:** `GET /api/v2/price-forecast/latest`, behind the login dependency,
+reads the stopgap price service's latest-forecast route at
+`BACKEND_PRICE_FORECAST_URL` (a required setting), decodes
+`gw.stopgap.price.forecast` through the vendored snapshot and answers the
+word's dict form; a service that answers anything but 200, or cannot be
+reached, is a 503. The word joins the api seed. Four route tests with the
+fetch stubbed.
+
+**Why:** the visualizer's price panel called the old price service's
+visualizer path from the browser, and that path went with the PriceDb box;
+the stopgap serves one word on two paths and the browser's call failed as a
+NetworkError. The backend serves the word so the browser reads a sema word
+from one place, in the plot slot OPS-611 later fills with the as-seen
+series from FLO params. The route and the stopgap word retire together with
+OPS-437.
+
+## 2026-10-25 — bundle and messages answer in wire form (`f543829`, OPS-542)
+
+**What:** the readings bundle route returns `SyncedReadingsBundle.to_dict()`
+and the messages route returns each decoded word's `to_dict()`, so both
+answer in sema wire form.
+
+**Why:** the model objects were handed to FastAPI's encoder, which wrote a
+null field as `null` where the wire form leaves it out; the browser reads
+the words the way every consumer does (OPS-542).
+
+## 2026-10-25 — readers: pick state rows by channel kind (`c4e7ced`, OPS-542)
+
+**What:** the api snapshot vendors `gw.channel.kind`; `ChannelUnit` takes
+the row's `channel_type` as `kind` (`ChannelUnit.from_row`), and the csv,
+the bundle's series and the bundle's state sequences take a row as a state
+machine when its kind is `StateMachine`. `UNIT_VOCABULARIES` goes.
+
+**Why:** a state row was told by its unit type falling outside the two
+unit vocabularies, an inference from a column that names something else.
+The journal now writes every row's kind from the enum, so the readers read
+it. Against `tsdb_tap` (renamed rows), the eight recipe windows answer 200
+with the same series, oak's 013 era 32 machines and spruce 04:30–07:30 38,
+as before the change, and the csv gives state symbols beside the numeric
+columns (OPS-542).
+
+## 2026-10-25 — readings bundle: state sequences from every state row, by enum version (`3ab988b`, OPS-542)
 
 **What:** the bundle's `OperatingStateSequenceList` is built from every
 state-machine row of the house with readings in the window, picked by a

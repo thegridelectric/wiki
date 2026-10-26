@@ -1,12 +1,14 @@
 # Spruce un-limbo (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-10-22 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-10-26 · Linear: OPS-392
 
 **EDD: yes** bench (honeysuckle) and box harness runs are the verification;
 spokes reach Verified only when an experiment runs against the real bus or a
 real broker.
 
-**▶ Active spoke: [`finalize-layout-lite-13.md`](finalize-layout-lite-13.md)**
+**▶ Active spoke: [`main-changes.md`](main-changes.md)** (the swap that
+makes the branch `main`; `finalize-layout-lite-13.md` stays the cutover
+record)
 
 > What this is: the hub for getting `jm/spruce-unlimbo`, the branch that
 > runs the Nolan layout at spruce, onto the whole fleet as `main` before
@@ -169,8 +171,11 @@ house runs the branch by a roll now.
 - `odds-and-ends.md` (est 3h) — small launch items, one problem / change / test
   each (the panel's unobserved row offers every command; hp-boss
   reports its state at start; the LTN Dst-routing test)
-- `main-changes.md` (est 1.5h) — the commits `main` took after the branch point,
-  each carried or dismissed before the branch becomes `main`
+- **`main-changes.md`** — the commits `main` took after the branch point,
+  each with a verdict (done 2026-10-25: all present or superseded), the
+  swap order with `legacy` as the old `main`, and the gates: for the
+  swap itself, and for rolling a House0 house onto the new `main`
+  (OPS-619, fir repaired)
 - `report-all-machine-states.md` — the layout and `layout.lite` declare
   every machine the scada reports; the journal makes a channel of each
   by one rule, no hand-kept map; which transitions earn an asynchronous
@@ -181,6 +186,17 @@ house runs the branch by a roll now.
   layout or ops
 
 `gleanings.md` holds parked notes off the build path.
+
+**After the swap** the spokes still open here are what is left before
+the layout words and the operational-params words go from staging to
+published (`../spruce-settled/publish-layouts-and-operational-params.md`
+is that step): the ones that shape a word (`layout-word-axioms.md`,
+`operational-params-cleanup.md`, `control-strategy-selection.md`,
+`report-all-machine-states.md`, the `-set` axiom in
+`cold-house-derived-setpoint.md`, the sieg surface in `basic-sieg.md`)
+are the publish gate; the ones that do not (`command-tree-matrix.md`,
+`relay-actor-enforcement.md`, `sensor-freshness.md`, `odds-and-ends.md`)
+move to `../spruce-settled/` at the swap.
 
 Every family ships a sim pair (layout ⊕ ops, all sim device types) that
 the suite boots; the next level, a simulated terminal asset per family on

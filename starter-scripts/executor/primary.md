@@ -76,6 +76,7 @@ hand-copies).
 | `hp_state.py` | no | named relays: commanded vs pin level |
 | `snap_watch.py` | no | snapshot channel ages — watch picos come back |
 | `spruce_snap.py` | no | a line every 30s or on power change: hp-ewt/hp-lwt/store-hot-pipe/store-cold-pipe/buffer-depth1/buffer-depth3 (F) and secondary-flow (GPM) from the snapshot, secondary-pump/hp-odu/hp-ctrl-box power (W) straight off the eGauge — field support while the heat pump is worked on |
+| `zone3_watch.py` | no | a line per snapshot: zone 3 whitewire opto (raw GPIO, 0 = calling), the scada's derived zone 3 heat call, and dist-flow (GPM), each with its reading age and a * when it moved; needs the scada running |
 | `sick_spruce.py` | 0x20/0x21 | restore cooling posture by hand (hack stopped) |
 | `charge_valve_test.py` | 0x21 | 2026-08-16 charge-valve leg test (superseded by on-site result, below) |
 | `program_dac_eeprom.py` | DAC EEPROM | one-time power-on defaults |

@@ -1,6 +1,6 @@
 # gridworks-web-backend — rebuild spec
 
-Status: Draft · Pass 0 · Updated 2026-10-24
+Status: Draft · Pass 0 · Updated 2026-10-26
 
 > Faithful-rebuild hub for gridworks-web-backend: the two services behind
 > the fleet web page, the read API over the journal DB and the realtime
@@ -15,7 +15,10 @@ web-api2 box (gridworks-infra `platform-inventory.md`), both behind nginx:
 - **`api/`** (`python -m api`, port 8000): the public read-only façade
   over the journal DB, read as `gw_visualizer`. Hourly rollups, channel
   readings, installation summaries and the CSV export the web-frontend
-  draws from.
+  draws from, and the stopgap price service's latest forecast
+  (`gw.stopgap.price.forecast`) forwarded for the price panel from the
+  route `BACKEND_PRICE_FORECAST_URL` names; the forward retires with the
+  stopgap word (OPS-437).
 - **`gateway/`** (`python -m gateway`, port 8100): the realtime WebSocket
   gateway, a very small part of the backend. Its one job is the live
   system graph on a house page, drawn from snapshots. One consumer on the
@@ -50,9 +53,12 @@ Both read their configuration from one `.env` with the `BACKEND_` prefix
   queues named `web.gateway.<uuid>`, and publishes nowhere. A
   server-named `amq.gen-*` queue would fall outside the login's
   configure permission.
-- **The browser contract is the sema wire form.** What the gateway pushes
-  to a browser is the decoded word's `to_dict()`: PascalCase keys,
-  `TypeName` and `Version` present.
+- **The browser contract is the sema wire form.** What the api answers
+  with a word (`summaries`, `synced.readings.bundle`, `messages`) and what
+  the gateway pushes to a browser is the word's `to_dict()`: PascalCase
+  keys, `TypeName` and `Version` present, a null field left out. The
+  frontend types each word in `src/sema/*.d.ts`, written by hand to the
+  word and named by it; no emitter produces them yet.
 
 ## The readings csv and bundle
 
@@ -77,10 +83,15 @@ time-weighted average, so the rows of a lineage average together whatever
 the window; a state row is no series, since the bundle word labels a series
 with a unit vocabulary (`synced.readings.bundle` axiom 5), and states reach
 the browser through `OperatingStateSequenceList`: one sequence per state
-channel name, built from every state row of the house (a unit type outside
-the unit vocabularies), each position resolved to its symbol through the
-row's (enum, version), a change detected on the symbol, times to the
-millisecond.
+channel name, built from every state row of the house, each position
+resolved to its symbol through the row's (enum, version), a change detected
+on the symbol, times to the millisecond.
+
+A row's kind is its `channel_type`, a `gw.channel.kind` value read through
+the vendored enum (`readings_units.ChannelUnit.kind`): a `StateMachine`
+row's unit type is the state enum and its unit the enum version; every
+other row's unit type names the vocabulary of its unit. The readers pick
+state rows by the kind and never by what the unit type is not.
 
 ## Glossary
 
@@ -95,9 +106,11 @@ millisecond.
 
 ## Spokes
 
-None yet. Candidates: the API surface (routes and the readings and
-rollup queries behind them) and the gateway (consumer, house state,
-browser messages).
+- [`visualizer.md`](visualizer.md): the visualizer page, one section per
+  plot: what it shows, its word and its route.
+
+Candidates: the API surface (routes and the readings and rollup queries
+behind them) and the gateway (consumer, house state, browser messages).
 
 ## Open
 
@@ -108,3 +121,7 @@ browser messages).
 - The web-frontend's expectations of the gateway's message types
   (`status`, `mqtt_message`, `zone_whitewire_series`) are written down
   nowhere but the two codebases.
+- Routes that answer in no word: `alerts` (alert-manager's rows through a
+  pydantic model), `hourly.electricity` without `dl` (positional
+  `[ts, kwh, usd_per_mwh]` arrays), the gateway's envelopes. The cleanup
+  follows a TypeScript emitter in sema (OPS-542's seam audit names each).

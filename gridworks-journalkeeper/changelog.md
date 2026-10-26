@@ -10,7 +10,7 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-25 — the row's kind from gw.channel.kind; observed weather readings (`jm/synth-rows-as-derived` 7892401, OPS-542)
+## 2026-10-25 — the row's kind from gw.channel.kind; observed weather readings (`b888a2c`, PR #203 `0557703`, OPS-542)
 
 **Why:** `channel_type` held three TypeNames and one marker, `gjk.pseudo`,
 that covered four different things, so a reader told a state row by
@@ -28,6 +28,11 @@ interpolated observations write none. The rows already in the journal are
 renamed by the hand-run script in gridworks-data
 (`src/gw_data/db/scripts/misc/channel_type_to_kind.sql`), tried on
 `tsdb_tap` first.
+The snapshot vendors the word as published (sema `7b9fe15`), after the
+branch ran as production code against the renamed `tsdb_tap` on the tap
+broker; the regen script's unstaged path, which failed under macOS bash
+3.2 on an empty argument array, is fixed in the same commit. Deployed
+2026-10-25 17:28 ET in one window with the rename on production.
 
 ## 2026-10-25 — synth-era rows take the derived channel type (`jm/synth-rows-as-derived` fbc61fd, OPS-542)
 

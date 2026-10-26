@@ -10,9 +10,9 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-25 — gw.channel.kind and gw.house.control.mode, staging (`7be48ad`, OPS-542)
+## 2026-10-25 — gw.channel.kind and gw.house.control.mode (`7b9fe15`, OPS-542)
 
-**What:** two versioned string enums at `000`, staging, owner
+**What:** two versioned string enums at `000`, published, owner
 gridworks-energy, default `Unknown`. `gw.channel.kind` names what kind of
 thing a reading channel records, by the declaring list: DataChannel and
 DerivedChannel (the layout's lists; a derived channel is of
@@ -27,8 +27,17 @@ decides what a house's plant does: LocalControl, Ltn, Admin, a projection
 across the scada's top-level machines. Runtime regenerated and indexes
 rebuilt; the regen also adds `LayoutLite` (013) to
 `GwHouseSummary.layout`, drift the committed runtime had against the
-registry. `tests/test_snapshot_cli.py` has three failures that fail on
-clean `dev` too and are unrelated.
+registry. `published_hashes.yaml` is pinned for the two, and the rewrite
+also pins seven published enums that had no pin (`gw.dashboard.role`,
+`gw.dispatch.refusal.reason`, `gw.standby.posture`, `gw.top.state`,
+`gw1.nolan.lc.buffer.only.state`, `gw1.service.mode`,
+`gw2.lc.top.state`). The words were staged first and published in the
+same commit after the gate: the journalkeeper branch run as production
+code against the renamed `tsdb_tap` on the tap broker (2026-10-25,
+20:21–21:00 UTC), forty reports resolved through the renamed rows with no
+duplicate row opened, the 21:00 kmlt observation written to the observed
+rows. Five failures in `tests/runtime` and `tests/test_snapshot_cli.py`
+fail on clean `dev` too and are unrelated.
 
 **Why:** the journal's `reading_channels.channel_type` holds three sema
 TypeNames and one marker, `gjk.pseudo`, that covers four different things
