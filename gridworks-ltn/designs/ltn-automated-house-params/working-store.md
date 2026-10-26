@@ -1,6 +1,6 @@
 # working-store
 
-Status: Draft · Pass 0 · Updated 2026-10-06 · Linear: OPS-531
+Status: Draft · Pass 0 · Updated 2026-10-26 · Linear: OPS-531
 
 > What this is: a spoke of [`primary.md`](primary.md). The LTN's small
 > SQLite working store: what it holds, how hourly rows are reduced from
@@ -40,8 +40,13 @@ Per hour, from the SCADA's channels:
 
 Per hour, from weather: outside air temperature, wind speed, solar
 irradiance. The LTN already fetches temperature and wind forecasts.
-Observed weather and solar irradiance have no source on the LTN's path
-yet; the estimation work used open-meteo for irradiance.
+Observed temperature and wind have no source on the LTN's path yet.
+Observed irradiance has no measured source anywhere until the weather
+service's observed channel gets one (OPS-621, waiting on a Wunderground
+key or a GridWorks pyranometer); the first-pass fit takes Open-Meteo's
+past hours as its solar column, fetched by the LTN itself, as the
+estimation work did. That column is a model output and is never
+published as an observation.
 
 Open:
 

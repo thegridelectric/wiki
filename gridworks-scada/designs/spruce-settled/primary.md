@@ -6,7 +6,7 @@ Status: Draft · Pass 0 · Updated 2026-10-14 · Linear: [OPS-532](https://linea
 verification; a spoke reaches Verified only when a run against one of
 them exercises it (`experiments/`).
 
-> What this is: the work that comes AFTER `jm/spruce-unlimbo` is
+> What this is: the work that comes AFTER scada `main` is
 > deployed on spruce. Everything a launch needs stays in
 > `../spruce-unlimbo/`; what makes the deployed line good over the
 > season collects here. Opened 2026-09-10 to receive the first such

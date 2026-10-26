@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-10-22
+Status: Draft · Pass 0 · Updated 2026-10-26
 
 # Running an LTN + SCADA from a checkout (cold start)
 
@@ -111,7 +111,7 @@ current caveats:
 
 `scripts/roll.sh <house> check | forward | to <scada-branch> | back`,
 run from the laptop, is the one way a deployed house moves between
-scada lines; `forward` is `to jm/spruce-unlimbo`, and the roll-back
+scada lines; `forward` is `to main`, and the roll-back
 path is the same script as the roll-forward.
 
 A house's LTN and scada run on exactly the same branch, at the same
@@ -124,9 +124,11 @@ before the pi's service, and `check` compares both against the line's
 record. The unit runs `LtnApp.main` with the dashboard off
 (`LTN_DASHBOARD__PRINT_GUI=false`); the tests are
 `tests/test_misc/test_roll_ltn.py`, with a stub `ssh` for the boxes.
-The lines today are `main` for beech, elm, fir and maple,
-`td/generalized-flo` for oak and `jm/spruce-unlimbo` for spruce
-(its roll-back line is `actual-spruce`). On this branch the LTN
+The lines are `main` (the spruce-unlimbo line), `legacy` (the line the
+House0 houses ran before it, with the winter's fixes),
+`td/generalized-flo` (oak's LTN work) and `actual-spruce` (spruce's
+winter hack). `forward` goes to `main`; `back` goes to the house's
+roll-back line. On `main` the LTN
 loads the same layout ⊕ operational-params pair as the scada, from
 `~/ltn-<house>/.config/gridworks/ltn/`, and the roll verifies and
 installs it there as it does on the pi. `check` fails when either box
@@ -137,17 +139,17 @@ its link flaps for as long as the pair stands
 
 Each scada branch has a tlayouts branch, and that branch's committed
 `output/<house>/` JSON is the record of what the house runs
-(`wiki/tlayouts/executor/primary.md` "Temporary authority"): `main` and
-`actual-spruce` read tlayouts `main` and `actual-spruce`,
-`jm/spruce-unlimbo` reads `jm/spruce`, and `td/generalized-flo` (the FLO
-work, which changes the LTN and not the layout) reads `main`. The script
+(`wiki/tlayouts/executor/primary.md` "Temporary authority"): `main`,
+`legacy` and `actual-spruce` read the tlayouts branch of the same name,
+and `td/generalized-flo` (the FLO work, which changes the LTN and not
+the layout) reads `legacy`. The script
 reads the record from the tlayouts *remote* after a fetch, so only
 pushed JSON reaches a box whatever the laptop's checkout is doing, and
 moves each pi's `~/gridworks-scada` only by fast-forward to the pushed
 SHA of the branch. A dirty or diverged box checkout refuses.
 
 The pair is verified before the service restarts. A layout matches byte
-for byte. On `jm/spruce-unlimbo` the operational-params file matches
+for byte. On `main` the operational-params file matches
 outside its `DispatchHold` block, which the scada writes itself (the
 cold latch sets `ServiceContractBroken` in
 `actors/scada.py` `process_break_service_contract`; an operator hold
@@ -182,12 +184,12 @@ winter hack (`spruce-winter-hack.service`) is the plant controller on
 `actual-spruce`: the script disables it when spruce leaves that line and
 enables it when spruce returns, so a reboot never runs two controllers.
 
-`back` goes to the house's line: `actual-spruce` for spruce,
+`back` goes to the house's roll-back line: `actual-spruce` for spruce,
 `td/generalized-flo` for the houses in the script's `THOMAS_LTN` list
-(oak), `main` for the rest.
+(oak), `legacy` for the rest.
 
-The `main` and `actual-spruce` layout gens run from the laptop's `main`
-worktree of the scada repo, `GridWorks/scada-main`
+The `legacy` and `actual-spruce` layout gens run from the laptop's
+`legacy` worktree of the scada repo, `GridWorks/scada-legacy`
 (`environment.md`).
 
 **No roll to beech (2026-10-20).** Beech is unwell in the field. Do NOT

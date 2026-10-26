@@ -21,7 +21,7 @@ restore the board. Everything runs on the spruce pi from
 `~/starter-scripts` with `venv/bin/python` — the alias `st` (in
 `bash_aliases_spruce`) activates that venv and `cd`s there; MQTT creds
 come from `~/starter-scripts/.env` via `starter_settings.py`
-(pydantic-settings; nothing hardcoded). Working branch `jm/spruce`; the
+(pydantic-settings; nothing hardcoded). Working branch `dev`; the
 only path onto the box is commit → push → `git pull` on spruce (no
 hand-copies).
 

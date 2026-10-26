@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-10-22
+Status: Draft · Pass 0 · Updated 2026-10-26
 
 # SCADA dev/test environment — how it's built and maintained (pre-uv)
 
@@ -54,16 +54,15 @@ Args: `mkenv.sh [requirements-file] [install_admin] [install_flo]`.
   packaged console-script, so it doesn't survive a venv copy/move.
 - **No root uv project** (above) — IDE/tooling that assumes `uv` at the root
   will mis-resolve; point them at `gw_spaceheat/venv`.
-- **The laptop keeps a `main` worktree with its own venv.**
-  `GridWorks/scada-main` is a git worktree of the canonical checkout on
-  `main` (`git -C gridworks-scada worktree list` shows both), built with
-  its own `tools/mkenv.sh` run from inside it. It exists because the
-  canonical checkout is on the development branch and a venv binds to one
-  checkout: the tlayouts `main` and `actual-spruce` gens import
-  `layout_gen` and `gwsproto` at `main`, so they run with
-  `PYTHONPATH=scada-main/gw_spaceheat` and `scada-main/gw_spaceheat/venv/bin/python`.
-  A worktree move breaks its venv (absolute paths inside); rebuild after
-  moving.
+- **The laptop keeps a `legacy` worktree with its own venv.**
+  `GridWorks/scada-legacy` is a git worktree of the canonical checkout
+  on `legacy` (`git -C gridworks-scada worktree list` shows both),
+  built with its own `tools/mkenv.sh` run from inside it. A venv binds
+  to one checkout, and the tlayouts gens for the houses on `legacy`
+  and for `actual-spruce` import `layout_gen` and `gwsproto` at that
+  line, so they run with `PYTHONPATH=scada-legacy/gw_spaceheat` under
+  `scada-legacy/gw_spaceheat/venv/bin/python`. A moved worktree needs
+  its venv rebuilt (absolute paths inside).
 
 ## Running tests / experiments
 

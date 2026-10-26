@@ -1,6 +1,6 @@
 # Harmonize the visualizer with the new main
 
-Status: Draft · Pass 0 · Updated 2026-10-25 · Linear: OPS-542
+Status: Draft · Pass 0 · Updated 2026-10-26 · Linear: OPS-542
 
 **EDD: yes** the day of fleet data from the spruce-unlimbo first data catch
 is the verification; a claim reaches Verified only when that data reads the
@@ -10,7 +10,7 @@ real services (`experiments/`).
 > What this is: the data side of the spruce-unlimbo launch (OPS-392): the
 > readers (JournalKeeper, the web-backend, the web-frontend) work across
 > layout eras on the data the fleet now produces, with the gate for
-> merging `jm/spruce-unlimbo` into `main`: no errors on the visualizer
+> the spruce-unlimbo line's merge into `main` (merged 2026-10-26): no errors on the visualizer
 > page over any window, and George happy with the time series. Kept out
 > of spruce-unlimbo because it is a different set of repos with its own
 > verification; the launch's deployment spoke points here by Linear id.
@@ -97,3 +97,7 @@ Short pointers; the durable facts live where they point.
 
 - Which families the three catch boxes cover; a family not among them needs
   a simulated asset (or a later box) to meet the bar.
+- Seam findings sweep to OPS-622. A name the browser matches, a channel
+  the journalkeeper recognizes by string, a fact the layout should
+  declare: each goes into the comb-through list in OPS-622's design and
+  nowhere else. This design records only what the caught night shows.

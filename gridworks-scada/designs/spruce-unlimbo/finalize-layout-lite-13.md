@@ -1,6 +1,6 @@
 # Finalize `layout.lite/013` (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-10-23 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-10-26 · Linear: OPS-392
 
 > What this is: the spoke that takes `layout.lite/013` from staging to
 > published with the JournalKeeper digesting it, so a scada on
@@ -78,3 +78,9 @@ the LTN harness mode.
    edited.
 5. Distill into `executor/`, move what is still open into
    `ltns-ready.md`, delete this file.
+
+## Open
+
+- Seam findings sweep to OPS-622's comb-through and nowhere else; the
+  stage 1 additions to `layout.lite` 013 that OPS-622 specifies ship
+  here before 013 publishes.

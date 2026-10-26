@@ -72,9 +72,9 @@ now.)
   a loop. Counts arrivals of the layout word whatever its version, so
   it does not wait on the merge.
 
-### After `jm/spruce-unlimbo` merges
+### On scada `main` since 2026-10-26
 
-That gridworks-scada branch ships `layout.lite` 013 and the new layout
+Scada `main` (`50da8d28`) ships `layout.lite` 013 and the new layout
 words (the hydronic layout, the water store, the zone call circuits),
 the heat pump's behaviour in sema, operational params with the tariff,
 and the scada's own Critical glitches for a cold critical zone and a

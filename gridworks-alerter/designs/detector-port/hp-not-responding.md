@@ -49,8 +49,7 @@ line at every five-minute cycle (OPS-609). The port keys on the command
 
 ## Do this next
 
-Wait for `jm/spruce-unlimbo` in gridworks-scada to merge, then start
-with a review of how the heat pump's behaviour is captured in sema:
+Start with a review of how the heat pump's behaviour is captured in sema:
 the HP model, the relay roles, the power channels and the states the
 scada reports. Find where each is stated in the layout word; a fact
 not there is a sema word change and comes before the rule. Then

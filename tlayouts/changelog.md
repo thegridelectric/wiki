@@ -10,7 +10,7 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-25 — main beech: four BTU picos replace the primary BTU and the hall flows <!-- pending commit, branch jm/update-beech off main -->
+## 2026-10-25 — beech: 4 BTU picos replace the primary BTU and the hall flows (`ce1926d`, legacy)
 
 **What:** the same pico swap as the `jm/spruce` entry below, in main's
 `gen_beech.py` and `output/beech/hardware-layout.json`: primary-btu
@@ -30,7 +30,7 @@ verifies the box against this file; the layout the box would fall back
 to must name the picos that are in the house. Every kept node,
 component, channel and GNode keeps its id.
 
-## 2026-10-25 — beech: four BTU picos replace the primary BTU, the hall flows and the pipe tank modules <!-- pending commit -->
+## 2026-10-25 — new btu picos at beech (`a3630bd`)
 
 **What:** `beech_gen.py` declares four pico BTU meters, one per loop:
 primary-btu `pico_286e35` (primary-flow, hp-lwt, hp-ewt), dist-btu

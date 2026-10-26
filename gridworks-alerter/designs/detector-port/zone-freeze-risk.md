@@ -5,10 +5,10 @@ Status: Draft · Pass 0 · Updated 2026-10-19
 > What this is: the port of gwalert's `check_zone_freezing`
 > (`alert_generator.py:783`) to the alerter as `ZoneFreezeRisk`.
 
-Wait on `jm/spruce-unlimbo` in gridworks-scada: that merge has the
-scada raise a zone under the freeze line as a Critical glitch, so the
-condition is judged on the box and paged through `critical-glitch.md`.
-This spoke is deleted when it merges.
+Scada `main` (merged 2026-10-26, `50da8d28`) raises a zone under the
+freeze line as a Critical glitch, so the condition is judged on the box
+and paged through `critical-glitch.md`. This spoke is deleted once
+`main` is on the boxes.
 
 ## gwalert today
 

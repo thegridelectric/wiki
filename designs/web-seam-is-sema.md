@@ -1,6 +1,6 @@
 # The web seam is sema
 
-Status: Draft · Pass 0 · Updated 2026-10-25 · Linear: [OPS-622](https://linear.app/gridworks/issue/OPS-622)
+Status: Draft · Pass 0 · Updated 2026-10-26 · Linear: [OPS-622](https://linear.app/gridworks/issue/OPS-622)
 
 **EDD: no** build-out across the journalkeeper, the web-backend, the
 web-frontend and sema, verified by each repo's suite and a page check
@@ -54,7 +54,7 @@ layout gives them nothing else to look up: the functional names
 channels, the state-machine handles) live in python in
 `gwsproto.names`, and in sema only as literals inside the axioms of the
 staging full-layout words. tlayouts has the same problem from the other
-side: `jm/spruce` imports `gwsproto.names` from gridworks-scada to spell
+side: tlayouts `main` imports `gwsproto.names` from gridworks-scada to spell
 the names it writes. One fix serves both: the names become sema.
 
 The cleanup goes in two stages:
@@ -273,6 +273,49 @@ vocabulary as a checked fact, which is the fix for the user-typed selectors
 and the depth patterns. The state identity above, the depth ordinal and
 the heat-call naming are separate gaps from the regexes themselves.
 
+### The real-time page
+
+The real-time page (`RealTimeStatusPage.tsx` and the diagram under it)
+decides three different things from one test, whether the house alias
+contains "spruce". Each is a fact the layout word states, and the page
+reads each from the layout once the plant families are settled:
+
+- **The plant family drawn.** The two-tank diagram with the exchanger
+  column is the Nolan plant. `layout.lite` 013 has
+  `HardwareLayoutTypeName`; spruce's is `gw.nolan.layout`, and elm's
+  becomes `gw.house0.no.sieg` (OPS-628). The families share some of the
+  picture: elm has the exchanger and the secondary loop; it has no fan
+  coils and no radiant floor. The diagram therefore keys its parts on
+  layout facts rather than on a family switch, and the family name is
+  only the default geometry. This waits until elm is integrated and the
+  no-sieg family is real in the fleet; a cleanup made against spruce alone
+  would bake in a two-way switch that the third family breaks.
+- **The secondary loop.** Present when the layout has a `secondary-flow`
+  channel, read the way `layoutHasSiegLoop` reads `sieg-flow`. The
+  secondary pump row, the secondary animation input and the flow table
+  key on it. The six-segment heat-pump header (secondary leg to the store
+  or to the buffer) is positioned around the exchanger column, so it
+  follows the exchanger, which the diagram draws from the family's
+  geometry.
+- **The zone table.** The gateway's `thermostat_names_from_layout` runs a
+  regex over channel names and turns `zone1-bedrooms-gw-temp` into a
+  thermostat named `bedrooms-gw`; the browser then filters names ending in
+  `-gw`. Every stored layout since 011 has `ZoneList` with the zone names,
+  so the gateway reads `ZoneList` and the browser's filter goes. The
+  spruce branch of the table also reads zone temperature and heat-call by
+  name match; it goes with the family cleanup above.
+
+The realtime seam itself is unit-less: `single.reading` 000 sends
+ChannelName and Value, and the browser divides flows by 100 and converts
+temperatures by hand. The word that fixes it names the channel by Id and
+the reader looks the unit up in the layout, the same lineage-by-Id rule the
+bundle readers follow; which word is a sema question with the spec first.
+
+The hourly functions in the journal DB have the same gap one layer down,
+unit literals per channel (`unit='GpmTimes100'`), which a derived channel
+in the `gw1.unit` enum (`GpmX100`) slips past; that is OPS-630, not this
+design.
+
 ### The house's control mode
 
 The top strip shows LocalControl, LeafTransactiveNode and Admin, a
@@ -318,14 +361,28 @@ backend or the browser:
   130 F) while the house's `layout.lite` row has the scada's own
   `Ha1Params` (cedar in the dev run: 9 kW, 160 F, 100 F). The page has
   the layout since OPS-473 and could read them from it; Ha1Params is
-  itself on its way out, so the fix waits for whatever replaces it.- Whether the stage 1 additions to `layout.lite` 013 belong in its
-  finalize spoke under OPS-392 or here.- Whether the simulated fourth fall layout (OPS-532) is exercised here too.- The state enums the journal fans out versus the registry. Sema deleted
+  itself on its way out, so the fix waits for whatever replaces it.- Settled 2026-10-26: this design states what `layout.lite` 013 must
+  declare (stage 1 under "Functional names"); OPS-392 ships those edits
+  before 013 publishes, since that work owns the staging-to-published
+  move. Seam findings from OPS-392 and OPS-542 sweep into this design's
+  comb-through ("The browser's patterns") and nowhere else.
+- The functional-name vocabulary is shared by tlayouts, the
+  journalkeeper and the browser, so it gets its own flat issue and
+  design; this design names it in prose when that issue exists.
+- Where the name-reuse rule (a channel name is reused only for the same
+  quantity) is checked: in tlayouts, or stated as an axiom of the layout
+  word. The web-backend's lineage-by-name rests on it and nothing
+  enforces it today. From OPS-618.
+- On the replaced-enum item above: the journalkeeper's refusal tally
+  (`refused_states`, keyed by asset, enum and version) already answers
+  how a replaced enum reaches the journal; what stays open is the hole
+  in the readings for that machine. From OPS-618.- Whether the simulated fourth fall layout (OPS-532) is exercised here too.- The state enums the journal fans out versus the registry. Sema deleted
   `gw1.local.control.standby.top.state` on 2026-10-06 (`f234cfd`,
   `replaced_by: gw2.lc.top.state`) while the enum was still vendored in
   JournalKeeper's snapshot and bound to the `local-control-standby-state`
   pseudo channel; the 2026-10-15 gjk regen had to drop both to build.
   Deleting a published enum a consumer vendors is the pattern to look at
   here: which `gw1.*` state enums the gjk pseudo channels still name,
-  which the scada on `jm/spruce-unlimbo` reports, and how a replaced enum
+  which the scada on `main` reports, and how a replaced enum
   reaches the journal without a hole (readings for that machine stop at
   the deletion; none in the 60 days before it).

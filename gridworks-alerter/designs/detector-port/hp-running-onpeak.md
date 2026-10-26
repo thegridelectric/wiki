@@ -29,7 +29,6 @@ house. Alias `hp_onpeak_<hour>`.
 
 ## Do this next
 
-Wait for `jm/spruce-unlimbo` in gridworks-scada to merge: its
-operational params encode the tariff, and the on-peak schedule is read
-from there. Then the pattern in the hub, with the witness on a
-sped-up clock.
+Scada `main`'s operational params encode the tariff, and the on-peak
+schedule is read from there. The pattern in the hub, with the witness
+on a sped-up clock.

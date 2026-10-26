@@ -1,6 +1,6 @@
 # gridworks-scada — Claude protocol
 
-Status: Draft · Pass 0 · Updated 2026-10-19
+Status: Draft · Pass 0 · Updated 2026-10-26
 
 ## Scada is a statue: chip, don't sculpt
 
@@ -17,20 +17,6 @@ refactors, renames, or "improvements" alongside the change at hand.
 Every feature we create or touch gets a test, and a break in `pytest` is
 the rope: follow it up, fix what it reaches, and keep climbing rather than
 routing around it.
-
-## ⏳ Until spruce-unlimbo merges — work on `jm/spruce-unlimbo` (REMOVE when the epic is done)
-
-Scada work goes on `jm/spruce-unlimbo`, the epic integration branch; the
-layout-pipeline rework lives there and downstream work depends on it. Cut a
-topic branch only for genuinely parallel or experimental work, off
-`jm/spruce-unlimbo` (never `dev`/`main`), and fold it back promptly. Do NOT
-stack topic branch on topic branch.
-
-**Logical-unit commits are SUSPENDED on this branch.** Changes merge as
-large multi-concern commits: the work is too interdependent to carve (one
-file has several concerns) and the branch is off `main`. The suite stays
-green at each commit and the changelog still records what/why. Scada only;
-every other repo keeps the logical-unit rule.
 
 ## ⏳ The single scada focus (set 2026-09-01; REMOVE when both sim houses run in dev)
 
@@ -96,7 +82,7 @@ line the house moves to.
 the pi and the house's LTN together and verifies the layout pair both
 ways; the how-to is executor `running.md` "Rolling a house between
 lines". Spruce runs `actual-spruce` with the tlayouts `actual-spruce`
-layout and rolls to `jm/spruce-unlimbo` with the tlayouts `jm/spruce`
+layout and rolls to `main` with the tlayouts `main`
 layout, so its two layouts are reasoned about separately, and `check`
 says which line it is on. Do NOT boot a branch scada on a box by any
 other path: no second checkout, no env file naming another broker, no

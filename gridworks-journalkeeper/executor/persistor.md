@@ -1,6 +1,6 @@
 # gjk persistors — what the custom persistors do
 
-Status: Draft · Pass 0 · Updated 2026-10-22
+Status: Draft · Pass 0 · Updated 2026-10-26
 
 > Sub-spec of [`primary.md`](primary.md): the persistor stack in depth, with
 > emphasis on the **channel model** and the fact that the `readings` fan-out is
@@ -105,7 +105,8 @@ not vendor gets no channel and is tallied (`unvendored_machines`).
     `SemaEnumPseudoChannel`s. For a house whose layout is `layout.lite`
     013 or later, the channels come from the layout's `StateMachines`
     declaration: one channel per declared machine, typed by the vendored
-    enum of the declared name (`ENUMS_BY_NAME`), named `<node>-state`
+    enum at the declared name and version (the snapshot's current and
+    `old_versions` enums, keyed by both), named `<node>-state`
     (the pico channels `<node>-pico-state`; the four machines the handle
     map named before keep those names for the same node and enum, so a
     stream continues across a roll). A declared enum the snapshot lacks
@@ -115,24 +116,21 @@ not vendor gets no channel and is tallied (`unvendored_machines`).
     the hand-kept `STATE_CHANNELS` map by machine handle still applies
     (with `auto.h→auto.lc`, `a.aa→ltn.la` rewrites), and a row whose
     enum it lacks is logged as unexpected and dropped. Each state string
-    is converted to an **integer**
-    — its positional index in the enum's declaration order, stable because
-    sema enum evolution is append-only (CI-enforced in the sema repo:
-    cross-version prefix test + runtime-order test). The value↔int contract
-    this creates on the `readings` table is specified in
-    `wiki/gridworks-data/executor/primary.md` "Enum channel values".
-    A state string the local sema snapshot does not recognize falls back to
-    **sha256-of-string as an integer** — which cannot work as written: the
-    hash (~10^77) overflows the `BigInteger` column (max ~9.2e18), so the
-    insert errors rather than stores, and even conceptually the hash is
-    one-way. Open: replacement behavior under discussion (skip the reading
-    and warn; the string survives in `messages`).
-    So a richly-typed machine-state stream — which *also* has
-    rigorous Sema types (`machine.states` / `single.machine.state`) — is
-    re-expressed as integer readings on invented channels. Two
-    non-aligned representations of the same fact; the readings one is lossy
-    (enum→int). Open: storing the state string against the declared enum
-    name and version, a `gw_data` schema change.
+    is converted to an **integer**: its position in the value list of the
+    enum version the channel row declares in `unit`. A `machine.states`
+    row names its enum without a version; the version is the one the
+    layout in force declares for that machine, the same lookup as the
+    channel's. The value↔int contract this creates on the `readings`
+    table is specified in `wiki/gridworks-data/executor/primary.md`
+    "Enum channel values". A state string the declared version does not
+    list, or a declared (enum, version) the snapshot does not vendor,
+    writes no reading and is tallied (`refused_states`, keyed by
+    terminal asset, enum and version) in the run summary and the live
+    log; the string survives in `messages`, and re-vendoring the
+    snapshot is the fix. The machine-state stream, which also has its
+    own sema types (`machine.states` / `single.machine.state`), is thus
+    re-expressed as integer readings on pseudo channels: a lossy
+    projection (enum→int) beside the full record in `messages`.
 - **`flo.params.house0`** → 3 pseudo channels (`buffer-available-kwh`,
   `lmp-usd-per-mwh`, `total-usd-per-mwh`), taking only the **first** element of
   the forecast arrays (`lmp_forecast[0]`, …). The flo params object is large;

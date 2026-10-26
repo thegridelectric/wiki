@@ -47,7 +47,7 @@ Anchor rules (the file is authoritative):
   - gwsproto sema-type docstrings are exactly \`Sema: <schema_url>\` — nothing else.
   - Mirror sema axioms as \`check_axiom_<n>\` @model_validator methods; never capture a bound with a \`Literal\` (it silently drops the axiom).
   - Validate hand-written gwsproto types via \`sema validate <payload.json>\` against the canonical runtime.
-  - Branch discipline: scada layout work lands on \`jm/spruce-unlimbo\`; check the temporary directives at the top of the file before cutting any branch.
+  - Branch discipline: scada work goes on a \`jm/<topic>\` branch cut from \`main\`.
 
 (This reminder fires once per session while a gridworks-scada claim is active.)"
 

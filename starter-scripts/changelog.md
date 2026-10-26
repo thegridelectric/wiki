@@ -3,7 +3,7 @@
 One entry per `starter-scripts` commit (git = the what, this = the why).
 Entries before 2026-08-23 live in git history only.
 
-## 2026-10-25 — zone3_watch.py: the zone 3 heat call and dist flow from the snapshot <!-- pending commit -->
+## 2026-10-25 — zone3_watch on spruce (`93c4c8d`)
 
 For troubleshooting the zone 3 opto-coupler and zone relays on spruce: one
 line per scada snapshot showing the raw whitewire opto level, the scada's
@@ -11,7 +11,7 @@ derived heat call and the distribution flow, so a call the opto misses, a
 call the scada does not derive, or a call that moves no water can each be
 seen at a glance. Read-only, on the local broker like `snap_watch.py`.
 
-## 2026-10-25 — btu_meter.py prints the pico ADC volts behind each thermistor reading <!-- pending commit -->
+## 2026-10-25 — minor adjustment to btu meter print (`6209392`)
 
 The async btu pico sends only a beta-formula temperature, so a shorted
 or open thermistor shows up as an absurd number (a short on beech's
@@ -39,7 +39,7 @@ on the second pi (beech2's bus scans `0x48 0x49 0x4b`; beech's shows
 only the Krida and DFRobot boards), so the docstring says to run it
 there with that pi's scada stopped.
 
-## 2026-10-01 — start_api.sh runs from the venv; oak_krida.py deleted <!-- pending commit -->
+## 2026-10-02 — note about stopping scada first when starting the api (`1da8a3d`)
 
 `start_api.sh` calls `venv/bin/uvicorn` from its own directory instead of
 a bare `uvicorn`; run as a script on a box the bare name is not on PATH and

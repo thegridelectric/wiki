@@ -10,6 +10,72 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-26 — add arctic device type (`79affff`, OPS-628)
+
+**What:** `gw1.device.type` 000 (staging, edited in place) appends
+`ArcticMAHRW030ZA`: the Arctic Heat Pumps R32 high-temperature monobloc,
+model MAHRW 030ZA/(BEH2)-R32, compressor-bearing, category-level data on
+its hp.device.type.gt record. `gw.house0.no.sieg` 000 (staging, edited in
+place) axiom 38 requires `secondary-pump-running` with Strategy
+`circulator-running` instead of `pump-running`; axiom template, runtime
+and fixture follow. Runtime regenerated; suite green.
+
+**Why:** elm's hp-odu component names this unit so hp-boss finds the
+Arctic `HP_TRAITS` row at load and runs the secondary pump from
+hp-watch sensing, as at spruce. The value is the make prefix plus the
+base model number, the enum's convention for heat pumps; an Arctic
+monobloc of another model gets its own value. The strategy is for the
+circulator pumps: named `pump-running` it reads as the heat pump, which
+gets its own strategy once the Arctic signature is measured.
+
+## 2026-10-26 — gw.house0.no.sieg (`51c7893`, OPS-628)
+
+**What:** `gw.house0.no.sieg` 000, staging, owner gridworks-energy: the
+House0 word for a home with no Siegenthaler loop (elm, fir, oak), a copy
+of `gw.house0.layout` 000 with the sieg surface neither required nor
+mentioned: no `sieg-loop` command node, no SiegManifoldChannels axiom,
+no `hp-loop-on-off-relay` or `hp-loop-keep-send-relay` in
+RequiredActuators, ActuatorChannels or CommandNodeHandles, and
+PrimaryFlowSource SHALL be Measured. RequiredActuators names
+`secondary-pump-relay`, which hp-boss owns beside the call relay.
+RequiredSensing adds `secondary-flow`, `secondary-lwt`, `secondary-ewt`
+and `secondary-pump-pwr`, the Nolan names for the house side of a heat
+exchanger. Axiom 38, SecondaryPumpRunningChannel, requires exactly one
+DerivedChannel `secondary-pump-running` with Strategy `pump-running`,
+input `["secondary-pump-pwr"]` (a PowerW DataChannel), Unitless output
+and `Parameters.ThresholdW` a positive integer. 38 axioms numbered from
+1; dependencies identical to the House0 word. `gw.nolan.layout` 000 and
+the new word no longer name "SiegLoop" among the command-node
+ActorClasses in ActuatorLeaves (both staging, edited in place, `created`
+advanced). Axiom templates authored from the House0 one; runtime
+regenerated (`GwHouse0NoSieg`; the regen also brings `gw_channel_kind.py`
+level with its definition, drift the committed runtime had); indexes
+rebuilt. Mutation tests under `tests/runtime/gw_house0_no_sieg/` mirror
+the House0 ones on a fixture derived from the House0 vanilla fixture:
+sieg nodes and channels out, the BTU pico kept as `secondary-btu`,
+`primary-flow` measured, a `secondary-pump-relay` under hp-boss, the
+pump node, its power channel and the derived channel.
+`tests/test_snapshot_cli.py` chooses a staging type version from the
+registry at test time instead of assuming the template seed names one;
+the template-seed test asserts a published closure has no dev-only
+markers, and a new test covers the markers on a staging closure.
+
+**Why:** elm comes back this fall on an Arctic R32 monobloc through a
+plate heat exchanger, so the house side has a secondary pump and no sieg
+loop at all; fir and oak are authored today as House0 with a fake sieg
+surface, and this word lets a sieg-less home say what it is. The word
+does not forbid sieg names, because a layout word states what a plant
+has, and the House0 word already means has-a-loop; for the same reason
+neither sieg-less word mentions the loop's actor class, even in a shared
+definition. A plant with a heat exchanger is observed on both sides, and
+the names match Nolan so one BTU-meter pattern serves both families.
+`secondary-pump-running` is the pump's heat-call: whether the pump
+answered its relay becomes a layout fact the actors read, computed by the
+derived generator from the power reading, with the BTU meter's CT to join
+as an input once one reads correctly. The snapshot tests had assumed
+`synced.readings.bundle:003` was staging; it published on 2026-10-22 and
+the three tests failed from then on.
+
 ## 2026-10-25 — gw.channel.kind and gw.house.control.mode (`7b9fe15`, OPS-542)
 
 **What:** two versioned string enums at `000`, published, owner

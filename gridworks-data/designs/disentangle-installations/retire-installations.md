@@ -33,7 +33,7 @@ the old backend until the cutover window below). Still to merge: gjk
 `jm/layouts-projection`, is current with `main`, and its snapshot is
 published-only). Then the experiments folder commit. The
 scada-sent operating status is live once the scada's `CreatedMs` rename
-(`jm/spruce-unlimbo` `a9acd401`) reaches the boxes. web-backend `main`
+(scada `main`, `a9acd401`) reaches the boxes. web-backend `main`
 has PR #19 (`ceb7ca6`, 2026-10-22: time bounds on the summary query's
 layout and snapshot subqueries); the branch reads the layout from the
 `layouts` projection by key and already bounds snapshots to a day, so
@@ -80,7 +80,7 @@ the one state field is the house's operating status.
    `gw.house.operating.status` 000 is staging: rename `UnixMs` to
    `CreatedMs` in place (it records a state change and may later be
    stored and re-sent); it is published when the scada on
-   `jm/spruce-unlimbo` also sends it upstream. `gw.house.summary/000`,
+   `main` also sends it upstream. `gw.house.summary/000`,
    owner `gridworks-energy`: `Role`, `TaGNodeId` (`uuid4.str`),
    `GNodeAlias`, `DisplayName` (nullable), `Layout` (a `oneOf` over
    `layout.lite/011`, `/012` and `/013`, widened by a version bump as

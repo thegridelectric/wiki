@@ -6,9 +6,9 @@ Status: Draft · Pass 0 · Updated 2026-10-14 · Linear: OPS-532
 > [OPS-595](https://linear.app/gridworks/issue/OPS-595) and the order
 > in which the fleet's btu and tank picos get the new build. The
 > firmware is done and bench-verified on all three boards; its eight
-> words are published. Nothing here starts until `jm/spruce-unlimbo` is
-> on the boxes, because the pico handlers on that branch differ from
-> `main`'s by about 400 lines each and the work is written once.
+> words are published. Nothing here starts until scada `main` is on
+> the boxes, because its pico handlers differ from `legacy`'s by about
+> 400 lines each and the work is written once.
 
 ## Why the order is fixed
 
@@ -73,4 +73,4 @@ gwsproto does not have yet.
 
 ## Do this next
 
-Step 1, the heartbeat route, once `jm/spruce-unlimbo` is on the boxes.
+Step 1, the heartbeat route, once scada `main` is on the boxes.

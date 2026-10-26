@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-10-17 · Linear: OPS-603
+Status: Draft · Pass 0 · Updated 2026-10-26 · Linear: OPS-603
 
 **EDD: yes** verified when a request over the weather façade returns
 last winter's Open-Meteo forecasts as issued and a station's actuals for
@@ -36,7 +36,10 @@ eventstore once, and the read requests that return them.
   only. The emitted forecasts are all kept (`forecasts` table).
 - JournalKeeper persists `gw.weather.observation` and
   `gw.weather.forecast` into the journal DB (`sema_message_persistor.py`).
-  Fleet actuals exist there from 2026-08-13 for the one location.
+  Fleet actuals exist there from 2026-10-25, when the service went live,
+  for the one location: `kmlt` temperature and windspeed under
+  `hw1.isone.weather`; the `kmemilli18` irradiance channel has no
+  reading yet (OPS-621).
 - Open-Meteo serves forecasts as issued (Previous Runs API) and
   reanalysis actuals (Historical Weather API, ERA5) at any coordinates;
   both free tier, non-commercial, CC BY 4.0. NWS publishes no archive

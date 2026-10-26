@@ -4,11 +4,11 @@ Status: Draft · Pass 0 · Updated 2026-09-27
 
 > What this is: what `SiegLoop` does in the field today and where it falls
 > short, read from the code and from maple's journal. The code is
-> `gw_spaceheat/actors/sieg_loop.py` on scada `origin/main` @ `54f74302`
-> (620 lines), which maple and beech run. `jm/spruce-unlimbo` @ `8f76cf68`
-> carries the same logic; its diff in this file is mechanical (base class,
+> `gw_spaceheat/actors/sieg_loop.py` on scada `legacy` @ `54f74302`
+> (620 lines), which maple and beech run. `main` @ `8f76cf68`
+> has the same logic; its diff in this file is mechanical (base class,
 > typed temperatures, `ActuationAuthority` for `SystemMode`). Line numbers
-> below are `main`'s unless marked. The branch's reshaping of the loop
+> below are `legacy`'s unless marked. The branch's reshaping of the loop
 into a package with a selectable strategy and a command surface is
 "The package on the branch".
 
@@ -146,9 +146,9 @@ Most consequential first.
     layouts have no `hp-lwt` or `hp-ewt`, so no test reaches the start-up
     path.
 
-## The package on the branch
+## The package on `main`
 
-On `jm/spruce-unlimbo` the loop is the package `actors/sieg_loop/`. The
+On `main` the loop is the package `actors/sieg_loop/`. The
 facade `SiegLoop` (`__init__.py`) owns the valve, the tick and the
 hp-boss subscription, and hands each event to one strategy, which decides
 what the valve does.

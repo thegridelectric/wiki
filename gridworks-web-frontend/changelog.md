@@ -10,6 +10,53 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-26 — front-end fixes from the OPS-588 sweep (`4038ca7`, OPS-588)
+
+**What:** Thomas's `td/dev` branch squash-merged as PR #14 (the title is
+GitHub's default, "Td/dev (#14)"); the branch keeps the fourteen commits.
+Deployed to GitHub Pages by the `main` push. Per sub-issue:
+
+- OPS-591 "Network Error": the API interceptor surfaces the server's
+  `detail` string, or the HTTP status, where axios said only "Network
+  Error". The request timeout goes from 5 s to 10 s so a slow login is
+  not cut off.
+- OPS-562 / OPS-625 auto-refresh: the button works again, keeps the
+  user's start time and advances only the end time to now, every 30 s.
+  The hook reads its callbacks through refs so a re-render does not
+  restart the timer, which was the once-a-second refresh.
+- OPS-593 secondary loop panel: the fixed temperature range widens to
+  0 to 260 F so spruce's secondary temperatures are on the axis. A fixed
+  range; autoscale is the open item.
+- OPS-568 heat pump panel: same range change on the heat pump panel.
+- OPS-604 / OPS-567 sieg flow: with a sieg loop in the layout, primary
+  flow is `sieg-send` at or above 0.5 gpm, not `primary-flow`; buffer
+  water no longer animates when only the sieg loop runs.
+- OPS-627 maple heat pump animation: heat pump power is the sum of the
+  indoor and outdoor units with a missing reading read as zero, so one
+  missing channel no longer hides the animation.
+- OPS-560 spruce real-time: a secondary pump row in the flow table and
+  a split heat pump header whose secondary leg animates toward the store
+  or the buffer by the charge relay. Keyed on the house being spruce;
+  the layout-keyed version waits for elm (OPS-622 "The real-time page").
+- OPS-626 gw-temp zones: thermostat names ending `-gw` are filtered in
+  the browser. The gateway derives them from channel names while every
+  layout since 011 has `ZoneList`; the gateway fix is the durable one.
+- OPS-624 secondary EWT/LWT on the visualizer: Thomas's sub-issue closed
+  with a data check and no code change here.
+- Real-time header shows "Connecting..." until the first status message
+  for the selected house arrives, instead of the previous house's data.
+- The five `useRef` calls in `VisualizerPage.tsx` move above the session
+  guard, with the other hooks; a hook below an early return trips the
+  rules-of-hooks lint and is undefined behaviour in React when the guard
+  flips. The auto-refresh hook and one effect below the guard predate
+  this branch and wait for a change that hoists the functions they close
+  over.
+
+**Why:** the first pass over the operations issues George filed against
+the web app since September, taken as one hot fix so the fleet has it for
+the elm bring-up. The per-house and name-matching patterns it adds are
+recorded in OPS-622 for the comb-through rather than cleaned here.
+
 ## 2026-10-25 — price plot axis reaches the forecast (`0af0813`, OPS-623)
 
 **What:** the price plot's x-axis range ends 48 hours past the window end,

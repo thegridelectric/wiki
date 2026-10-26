@@ -73,7 +73,11 @@ sends now, with every older row's values converted into it (temperatures
 and flows convert pairwise as affine maps on a reference unit; other units
 only to themselves). A request names a lineage by any name it has had. Rows
 of one lineage whose units do not reconcile refuse the request (422) rather
-than mix scales; rows with telemetry Unknown are left out.
+than mix scales; rows with telemetry Unknown are left out. Rows of one
+lineage never overlap in time, so their union sorted by timestamp is one
+series. Lineage by name rests on one rule the layouts keep: a name is
+reused only for the same quantity, so `hp-lwt` is a temperature in every
+layout that declares it.
 
 The csv converts in Python: a bucket is the mean of its numeric readings
 and the last of its states, and a state cell is the state's symbol in the

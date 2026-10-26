@@ -89,9 +89,8 @@ the gens take ids from the deployed layout, then from their own previous
 output, then mint, so an id minted for a name the pi lacks has its home
 in the committed output.
 
-Each scada branch has its tlayouts branch: scada `main` and
-`actual-spruce` read tlayouts `main` and `actual-spruce`; scada
-`jm/spruce-unlimbo` reads tlayouts `jm/spruce`. A box takes its files
+Each scada branch has its tlayouts branch of the same name: `main`,
+`legacy` and `actual-spruce`. A box takes its files
 from a pushed SHA of the matching branch and from nowhere else.
 
 Once the registry holds a house, that house's gen

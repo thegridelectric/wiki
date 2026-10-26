@@ -47,7 +47,7 @@ stopped at 01:44:29 ET and the 01:45 report failed; maple reached
 journal's runtime enforces `fsm.atomic.report/001` axiom 2 (EventEnum,
 Event, FromState and ToState present if and only if ReportType is Event)
 and refuses the whole `report.event`, so every house on
-`jm/spruce-unlimbo` loses the five-minute report in which its valve
+`main` loses the five-minute report in which its valve
 finished a move the strategy chose. On `HoldFullSend` that is the boot
 move; on `StratProtect` it would be every automatic move.
 

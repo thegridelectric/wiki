@@ -15,8 +15,8 @@ Status: Accepted · Pass 1 · Updated 2026-10-20 · Linear: OPS-473
 ## The problem
 
 A scada sends `layout.lite` once per run, when its upstream link first
-activates (`gw_spaceheat/actors/scada.py:1384` on `jm/spruce-unlimbo`,
-`:1189` on `main`), and otherwise only on a `send.layout` request. A
+activates (`gw_spaceheat/actors/scada.py:1384` on `main`,
+`:1189` on `legacy`), and otherwise only on a `send.layout` request. A
 healthy house can run for months between sends, so there is no time
 window a reader may safely put on the query.
 
@@ -55,8 +55,8 @@ bundle word and builds the table and its writer.
 `layout.bundle`, staging, version 000:
 
 - `Layouts`: a list whose items are `oneOf`, by `$ref`, the `layout.lite`
-  versions the deployed fleet sends: 011 (`main`) and 012
-  (`actual-spruce`). `jm/spruce-unlimbo` sends 013, staging today; it
+  versions the deployed fleet sends: 011 (`legacy`) and 012
+  (`actual-spruce`). `main` sends 013, staging today; it
   joins the `oneOf` once it is finalized and published.
 - `SendTimeMs`: the sender's clock when the bundle is assembled, the
   sender-time standard, exactly as on the forest. One bundle-level send
@@ -128,7 +128,7 @@ The rules the writer applies:
 - **The guard compares `sent_at` only.** A write with an older send time
   than the row's is skipped and logged. A lower word version with a
   later send time overwrites a higher one: a house that runs
-  `jm/spruce-unlimbo` for a window and goes back to `actual-spruce`
+  `main` for a window and goes back to `actual-spruce`
   sends 013 then 012, and the row follows the house. A version-ordered
   guard would freeze a house at its newest ever version during exactly
   those windows.
@@ -153,7 +153,7 @@ vendored snapshot has `layout.lite` 001 through 012. The journal keeper
 logs a codec failure and drops a message it cannot decode
 (`journal_keeper.py:205`), so a 013 send is not journaled and the row
 stays at the house's last 011 or 012. The order is: finalize 013,
-publish it, regenerate gjk's snapshot, then connect `jm/spruce-unlimbo`
+publish it, regenerate gjk's snapshot, then connect `main`
 houses to the production broker.
 
 ## Readers

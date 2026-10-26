@@ -190,15 +190,14 @@ Drop (GNR-specific, not needed here):
 
 **Phase 1 — the authoring repo (start here; the current `tlayouts` repo is the vehicle).**
 
-1. **`tlayouts` → uv project + vendored sema snapshot.** Pull `jm/spruce` into a proper
-   uv project (`pyproject.toml`); vendor a sema snapshot (`*_seed_request.yaml` +
-   `build_*_snapshot.sh`, mirror GNR) of the layout/ops/component/channel/`g.node.gt`
-   words. Leaves the "gw_spaceheat on path + scada venv active" hackiness behind.
-2. **Port `layout_gen` onto `sema.runtime.types`.** Move `layout_gen` + `house0_sema_gen`
-   into `tlayouts`, swapping `gwsproto.named_types` imports for `sema.runtime.types`
-   (PascalCase kwargs unchanged). Output is **two sema JSON artifacts** per home
-   (`gw.house0.layout.json`, `gw.house0.operational.params.json`) in `output/` — no dc,
-   no gwsproto.
+1. **`tlayouts` is a uv project with a vendored sema snapshot** (done, tlayouts `main`:
+   `pyproject.toml`, `src/tlayouts/sema_seed_request.yaml`, `scripts/regen_sema_snapshot.sh`).
+2. **Port the gens off `gwsproto`.** `layout_gen`, `house0_sema_gen` and `nolan_sema_gen`
+   are in `src/tlayouts/` and emit the **two sema JSON artifacts** per home
+   (`gw.house0.layout.json`, `gw.house0.operational.params.json`) in `output/`. They
+   still import `gwsproto.names` from gridworks-scada for the names they write; the
+   remaining port is the names becoming sema (OPS-622) and the gens building on
+   `sema.runtime.types` (PascalCase kwargs unchanged), so no gwsproto at all.
 3. **Default-ops synthesis** (in `tlayouts`). Synthesize a valid initial
    `operational-params` from **defaults** (per-channel capture tuning by channel/device
    kind — lift today's hardcoded capture periods into a defaults table).

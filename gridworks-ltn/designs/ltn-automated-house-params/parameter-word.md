@@ -18,7 +18,7 @@ authoring gate with a registry search first.
 ## Today's path, as read 2026-10-14
 
 The spoke's first draft named `ha1.params` as the SCADA's authored copy.
-The code on `jm/spruce-unlimbo` has moved on; this is the path now:
+The code on scada `main` has moved on; this is the path now:
 
 - **Authored home:** `gw.operational.params` on disk beside the layout.
   The house parameters sit in two sub-words, `heating.curve/000`

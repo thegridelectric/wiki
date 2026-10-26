@@ -14,6 +14,21 @@ below was read against the branch on 2026-10-25: present in another
 form, superseded by the renovation, or to take now. None is to take
 now.
 
+## Do this next
+
+The gates for the swap hold (2026-10-26: the merge of `legacy` is on
+the branch at `988ebab4`, the suite is green, CI is green at
+`1615d363`). Push the branch tip as `main`, then on tlayouts push
+`legacy` and force-push `jm/spruce` as `main`; `roll.sh` already names
+the post-swap lines. Then the `td/generalized-flo` merge with its
+author. Elm runs `legacy` in MonitorOnly since 2026-10-26 10:06 ET
+(its `.env`, `SCADA_SYSTEM_MODE=MonitorOnly`); its broker link waits
+on a FIS principal for its cert (`fis principal create --kind GNode
+--g-node-id 5896d71d-3f6d-40c4-849a-127e7ffd2912 --display-name elm`
+on the fis box, then restart the scada); the username lines are out of
+its `.env` already, and the cert inventory row for elm is still owed
+(`record elm --host elm`).
+
 ## The commits on `main`, with verdicts
 
 Eleven non-merge commits, none on the branch by patch-id
@@ -78,7 +93,16 @@ order:
 
 - The table above complete (done 2026-10-25).
 - The suite green on the branch tip before the merge (2026-10-25,
-  `8251eb89`: 1668 passed, 5 skipped) and again on the merged tip.
+  `8251eb89`: 1668 passed, 5 skipped) and again on the merged tip
+  (`988ebab4` + the roll change: 1670 passed). A third run with
+  `gridflo` hidden, as on the CI runner, failed one live test:
+  `test_secondary_scada.py::test_scada2_resends_readings_when_link_goes_active`
+  timed out at its one-second wait for scada2's re-sent readings. It
+  passed in both full runs the same day, so it reads as timing under
+  load; if CI hits it, the wait in the test widens.
+- CI green on the branch (`ci.yaml` on Python 3.12, `pyyaml` declared;
+  `1615d363`). Every run since 2026-08-11 had failed before the tests
+  ran.
 - A roll-back line named per family: `legacy` for the House0 houses,
   `actual-spruce` for spruce, and `roll.sh back` knowing both.
 
