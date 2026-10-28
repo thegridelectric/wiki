@@ -10,12 +10,145 @@ repo's git history.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-10-26 — gw.house0.no.sieg twin, the hazel sim pair, secondary-pump names shared (OPS-628)
+## 2026-10-28 — The pump doctors zero their 0-10 V output from the command node <!-- pending commit --> (jm/pump-doctor-dispatch, OPS-628)
 
-**What:** the snapshot takes `gw.house0.no.sieg` 000 (and, from sema
-`jm/arctic`, the Arctic DeviceType and the Nolan word's command classes
-without SiegLoop). `House0NoSiegLayout` is the hand-written twin, 38
+Why the doctors stopped working: `06dcfc3a` (2026-09-13) deleted the
+scada's analog-dispatch rebuild as uncalled, and the doctors were its one
+in-process caller. Their zeroing dispatch, addressed to the scada, fell
+to the dispatcher's default case, which raises inside the scada's own
+message loop, and the proactor stopped (elm, 2026-10-28 04:15 ET, eight
+boots). `f0fa7e3a` addressed the output instead, but with the host's own
+node (`lc`) as wire source against a FromHandle of `auto.lc.n`, so the
+output dropped it as `bad_sender` and the zeroing step did nothing.
+
+The fix is one host method, `set_010_level(dfr_node, volts_times_ten,
+command_node)` on `House0Hydronic` beside `set_010_defaults` (which now
+loops over it): it authors the dispatch from the command node and sends
+it with the command node as wire source, the form every relay helper
+already uses. Both doctors call it; the unused `primary_scada` leaves
+the `ProceduralHost` protocol and the test double. The new test
+(`test_pump_doctors.py`) delivers the doctor's dispatch through the
+scada's router the way the proactor does, and asserts the scada's handler
+did not raise, the output took the zero and acked the command node, and
+no glitch came from the output; it fails on the raise against the
+pre-patch doctors and on `bad_sender` against `f0fa7e3a`. The account of
+why the legacy form worked and what the procedures are inside the
+command tree is the new executor `procedural-interrupts.md`.
+
+## 2026-10-28 — test: a tank pico's params post is answered with the ops word's micro-volt delta <!-- pending commit --> (jm/pico-capture-delta, OPS-628)
+
+The failing test first. `api_tank_module.py` answers a params post with
+`CapturePeriodS` from the operational word's `capture.tuning` and
+`AsyncCaptureDeltaMicroVolts` from the component, so the delta in the
+ops word never reaches a pico. The test boots the orange sim pair with
+tank1's micro-volt tunings at 3000 µV against a component at 2000 µV
+and asserts the answer says 3000. It fails on 2000 until the actor
+reads the tuning.
+
+## 2026-10-28 — Fix pump doctors (`f0fa7e3a`, main via PR #590, OPS-628)
+
+The dist and store pump doctors sent their AnalogDispatch to the scada
+instead of to the 0-10 V node, and the scada raises on a payload it does
+not expect, which stopped the proactor. At elm the dist-flow startup
+check tripped at 04:15 ET on 2026-10-28 and the scada crashed eight
+times in a row until the service was stopped by hand; this commit sends
+the dispatch to `dist-010v` and `store-010v`. The dispatch still names
+the command node as its FromHandle, which the 0-10 V actor refuses as a
+`bad_sender` glitch; that is open.
+
+## 2026-10-27 — gw.house0.no.sieg set up for elm (`e55faa2d`, main via PR #589 `3abba580`, OPS-628)
+
+The `jm/arctic` line squashed to one commit and merged to `main`. The
+six entries below, from `4b0f6b95` through `6f8dd3b9`, are its history:
+their hashes are the branch's, which no longer exists, and their why
+stands for this commit. Elm runs this on `main` from tonight; fir and
+oak move to the no.sieg word once elm has heated its buffer from the
+Arctic under local control.
+
+## 2026-10-27 — local control on a no-sieg plant: relay init asks the layout (`6f8dd3b9`, jm/arctic, OPS-628)
+
+Elm's first boot on `jm/arctic` (16:11 ET) left local control dead:
+House0's relay initialization named the sieg loop's on/off relay in the
+set it leaves alone, and a `gw.house0.no.sieg` layout raises when asked
+for it, on every ActuatorsReady and SyncedReadings. The scada ran on
+with hp-boss sensing the unit, so no heat call could ever come; elm
+rolled back to legacy at 16:17. The excluded set is now the two relays
+local control switches itself plus every relay in the layout's
+`fixed_subtrees`, the same answer the scada and the command tree read,
+so no sieg name is in local control. The loader selects the House0
+machines for the two House0 words by name, with the fall-through
+raising, so a new word fails loudly at boot. Test
+`test_no_sieg_buffer_only_initializes_relays` on the hazel pair,
+BufferOnly as elm runs: it reproduced the DcError before the fix.
+Also in this commit: `oil_boiler` and `oil_boiler_pwr` join the
+hydronic spaceheat names. The House0 backup's node and power channel
+were spelled as strings in every House0 gen and in the LTN dashboard;
+the name now has one home.
+
+## 2026-10-27 — roll.sh: a branch off main is on the main line (`f0bb68bd`, jm/arctic, OPS-628)
+
+A scada branch not in the line table now rolls onto a house with the
+tlayouts `main` pair, the ops word and the deed, so a bring-up branch
+(elm on `jm/arctic`) is tried on the box by the one roll path instead
+of a merge to `main` per field iteration. The tlayouts branch follows
+the house's line, and the scada branch name plays no part in choosing
+it: a layout change the branch needs goes to tlayouts `main` first. `tl_branch` maps every other
+branch to `main` and `reads_ops` follows it; the unreachable "no
+tlayouts branch" refusals go. Test
+`test_to_a_branch_off_main_reads_the_main_record`.
+
+## 2026-10-27 — hp-boss energizes secondary-pump-hack-relay with the pump on gw.house0.no.sieg (`961b9406`, jm/arctic, OPS-628)
+
+**Why.** At elm the secondary pump's feed still passes through the
+contacts of Krida 12, the House0 primary-pump failsafe, which is not
+wired out yet; de-energized, it leaves the pump on its heat-pump side and
+closing Krida 11 reaches nothing. The no.sieg word now requires
+`secondary-pump-hack-relay` under hp-boss (axioms 9a and 32), the
+layout class gives it to hp-boss as a third fixed relay on that word
+alone, and `enforce_pump` sends it every command the pump relay gets,
+each under its own id, forwarding its report as the pump's. Removed in
+one change when the relay is wired out.
+
+
+## 2026-10-27 — roll.sh compares runtime requirements only (`267dc7d8`, jm/roll-runtime-requirements, OPS-628)
+
+**What:** the roll's requirements guard reads `RUNTIME_REQS`
+(`requirements/base.txt`, `requirements/drivers.txt`, the packages'
+`pyproject.toml`) in place of the whole `requirements/` folder, on the
+LTN and on each pi.
+
+**Why:** `legacy` and `main` differ only by pyyaml in `test.in`,
+`test.txt` and `dev.txt`, which the sema conformance checker imports and
+the scada does not, and that difference stopped elm's roll to `main`
+with a venv rebuild on every roll in either direction. A house moves
+between lines without touching its venv unless what the box runs
+changed.
+
+## 2026-10-27 — no.sieg twin without hp-idu; the Arctic HP_TRAITS row (`d54c6806`, jm/arctic, OPS-628)
+
+**What:** the snapshot takes sema `10faa2b` (`gw.house0.no.sieg` without
+`hp-idu`; the Arctic value's monobloc prose). `House0NoSiegLayout`'s
+`check_axiom_7`, `_10`, `_11` and `_31` follow, and the axiom 10 and 11
+tests mutate hp-odu. The hazel pair in `tests/config/` is regenerated
+without its hp-idu node and channel. `HP_TRAITS` gains
+`ArcticMAHRW030ZA`: on above 700 W, off below 400 W, call-open lead
+120 s; `tests/actors/test_hp_traits.py` checks each row's lines against
+the unit's measured standby and first-running samples. `scripts/roll.sh`
+knows the no.sieg pair's committed filenames
+(`gw.house0.no.sieg.json`, `gw.house0.no.sieg.operational.params.json`).
+
+**Why:** the word stopped naming an indoor unit, so the twin must not
+require one. The Arctic lines sit between the measured standby draw at
+elm (up to 66 W with the crankcase heater on) and the first running
+sample (1131 W); the lead is the Samsung value until the stop lag is
+measured.
+
+## 2026-10-27 — gw.house0.no.sieg twin, the hazel sim pair, secondary-pump names shared (`4b0f6b95`, jm/arctic, OPS-628)
+
+**What:** the snapshot takes `gw.house0.no.sieg` 000 and
+`gw.house0.no.sieg.family.params` 000 (and, from sema `jm/arctic`, the
+Arctic DeviceType and the Nolan word's command classes without
+SiegLoop). `House0NoSiegLayout` is the hand-written twin, 39
 `check_axiom_<n>` methods; `tests/named_types/test_gw_house0_no_sieg.py`
 rejects each on the hazel sim pair (`tests/config/gw.house0.no.sieg.hazel.*`,
 generated by tlayouts `hazel_sim_gen.py`). `command_tree_axioms` takes the
@@ -26,15 +159,34 @@ to the shared hydronic names classes; `has_secondary_pump` and
 `secondary_pump_relay` on the runtime layout read the node, not the
 family. The loader pairs the new word with House0FamilyParams; the
 runtime layout gains `is_house0_no_sieg`, and the House0 relay accessors
-elm has take either House0 word.
+elm has take either House0 word. The derived generator gains the
+`circulator-running` strategy (`handle_circulator_running`): one PowerW
+input, `Parameters.ThresholdW`, 1 above the threshold and 0 at or below
+it, emitted on change and on the period boundary; the runtime layout's
+strategy check admits it with the same shape. Tests: the handler on the
+hazel pair in `test_derived_generator_house0.py`, and a sim-meter test in
+`test_power_meter.py` beside the willow heat-call one. The runtime
+layout gains `has_sieg_loop` (a sieg-loop node is in the layout); hp-boss
+waits for the loop's ready signal on a turn-on only where the layout has
+a loop and the ops strategy is StratProtect. `test_hp_boss.py` runs on
+the hazel pair as well, and the hazel fixture has an hp-watch node. `House0NoSiegFamilyParams` is
+the twin of `gw.house0.no.sieg.family.params` (KeepBufferFull,
+SeasonalStorageMode), admitted by the ops word's FamilyParams and
+checked by the conformance sweep. The loader pairs `gw.house0.no.sieg`
+with it, and the hazel ops fixture names it, as the tlayouts gen emits
+it.
 
 **Why:** elm comes back as the first House0 home with a heat exchanger
 and an Arctic heat pump, on a word that stops requiring the sieg surface
 (OPS-628 step 1). `is_house0` keeps meaning exactly `gw.house0.layout`
 so elm can get its own code later if it needs it; the sieg and
-primary-pump accessors stay House0-only. The runtime layout still
-refuses the pair at load: `circulator-running` is not a derived-generator
-strategy yet (step 3).
+primary-pump accessors stay House0-only. `circulator-running` is the
+first of the design's on-or-off derived channels, so the pump's running
+state is a layout fact rather than a threshold in actor code (step 3). The sieg-less word
+shares House0FamilyParams, whose SiegLoopStrategy hp-boss read as "a
+loop protects the start": on hazel a turn-on sat in PreparingToTurnOn
+waiting for a sieg loop that does not exist. Whether a plant has a loop
+is the layout's fact; the strategy only says how a loop runs.
 
 ## 2026-10-26 — patch requirements and gridflo stub for CI (`1615d363`, OPS-392)
 

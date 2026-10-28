@@ -142,7 +142,15 @@ Each scada branch has a tlayouts branch, and that branch's committed
 (`wiki/tlayouts/executor/primary.md` "Temporary authority"): `main`,
 `legacy` and `actual-spruce` read the tlayouts branch of the same name,
 and `td/generalized-flo` (the FLO work, which changes the LTN and not
-the layout) reads `legacy`. The script
+the layout) reads `legacy`. Any other scada branch is on the `main`
+line: a branch off `main` tried on a house reads the house's tlayouts
+`main` pair, the ops word with it, and needs the deed. The layout line
+follows the house, so a layout change the branch needs goes to
+tlayouts `main` first; the `main` scada never loads it unless
+the house is rolled `forward`, which is deliberate. The trial is visible
+as the branch in `check` and in the fleet drift report, `back` returns
+the house to its roll-back line, and once the branch merges, `forward`
+fast-forwards the house to `main` on the same pair. The script
 reads the record from the tlayouts *remote* after a fetch, so only
 pushed JSON reaches a box whatever the laptop's checkout is doing, and
 moves each pi's `~/gridworks-scada` only by fast-forward to the pushed
@@ -176,10 +184,14 @@ service, sets the event folder's contents aside as
 also where a branch scada paired with the other line's LTN was seen to
 flap for as long as it ran.
 
-Two guards stop the roll before the checkout: a difference in
-`gw_spaceheat/requirements/` between the SHAs (the venv is rebuilt by
-hand on the box with `tools/mkenv.sh`), and a difference in `service/`
-unit files (root reinstalls them with `service/install`). Spruce's
+Two guards stop the roll before the checkout: a difference in the
+runtime requirements between the SHAs (`requirements/base.txt`,
+`requirements/drivers.txt` and the packages' `pyproject.toml`; the venv
+is rebuilt by hand on the box with `tools/mkenv.sh`), and a difference
+in `service/` unit files (root reinstalls them with `service/install`).
+The test and dev requirements are not compared: nothing the box runs
+imports them, and a house rolls between lines without touching its
+venv. Spruce's
 winter hack (`spruce-winter-hack.service`) is the plant controller on
 `actual-spruce`: the script disables it when spruce leaves that line and
 enables it when spruce returns, so a reboot never runs two controllers.

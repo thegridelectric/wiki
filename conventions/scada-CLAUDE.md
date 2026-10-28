@@ -64,6 +64,19 @@ closes it: the idle-closed rule (closed with the call open and the heat
 pump sensed off) was an experiment against the buffer-top convection
 loop that did not solve it, removed 2026-10-22.
 
+## ⏳ Layout words and operational params stay on the box (REMOVE when the layout words are published)
+
+`gw.house0.layout`, `gw.house0.no.sieg`, `gw.nolan.layout` and
+`gw.operational.params` are staging words. A deployed scada reads them
+from its config folder and NEVER sends them, or any instance of them,
+to the production broker: what it says about its layout on the broker is
+`layout.lite`, and nothing more. No new message, report, glitch or
+snapshot field may embed a staging layout word or the operational
+params, and a harness or listener on the production broker never asks a
+scada for them. This holds until the words have stabilized against the
+installed fleet; then they are published, the scada sends the published
+layout word, and `layout.lite` is retired.
+
 ## Deployed names and rolling
 
 **A scada finds its files by their deployed names, in dev as on a box.**

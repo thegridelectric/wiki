@@ -3,6 +3,29 @@
 One entry per `starter-scripts` commit (git = the what, this = the why).
 Entries before 2026-08-23 live in git history only.
 
+## 2026-10-27 — elm_hack.py: watch the secondary flow on legacy (`7c7fb63`, dev, OPS-628)
+
+**What:** `elm_hack.py` subscribes to the scada's snapshot on the pi's
+local broker and prints one line per snapshot: `secondary-flow` in gpm,
+the reading's age, and the state of the house-side pump relay (Krida 11,
+`admin.relay11` in the legacy layout). Read-only; the same settings and
+topic as `snap_watch.py`.
+
+**Why:** elm runs the legacy line until the `main` roll, and the legacy
+LTN dashboard has no row for a flow named `secondary-flow`, so the field
+has no view of the exchanger's house-side flow. This is that view until
+the `main` layout gives it a proper home.
+
+## 2026-10-27 — hack for updating secondary spruce flow meter (`3a08dad`, dev, OPS-628)
+
+`api/layout_hack.py`'s `ActorNameByHwUid` maps pico_3e9a28 to
+`secondary-flow`, and the flow-hall params handler sets both
+FlowNodeName and ActorNodeName from the map before replying, so a listed
+pico saves the new names at its next boot. Elm's hall pico on the house
+side of the heat exchanger has called itself `primary-flow` since
+install; the scada's own params reply can only confirm a name, never
+change one.
+
 ## 2026-10-25 — zone3_watch on spruce (`93c4c8d`)
 
 For troubleshooting the zone 3 opto-coupler and zone relays on spruce: one

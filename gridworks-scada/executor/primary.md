@@ -187,6 +187,7 @@ Normative across the domain — full statements in
 | Heat pump signatures (start-up, running, idle and defrost in the scada's channels, per heat pump model) | [`heat-pump-signatures/primary.md`](heat-pump-signatures/primary.md) | Draft |
 | Heat pump comms (call contact and Modbus from the vendor side, per heat pump model) | [`heat-pump-comms/primary.md`](heat-pump-comms/primary.md) | Draft |
 | The Siegenthaler loop actor as it runs (what it does, what maple shows, where it falls short) | [`sieg-loop.md`](sieg-loop.md) | Draft |
+| Procedural interrupts (the pump doctors inside the command tree: a procedure sends as the current command node, never through the scada) | [`procedural-interrupts.md`](procedural-interrupts.md) | Draft |
 
 ## Open (top-level)
 

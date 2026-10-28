@@ -1,6 +1,6 @@
 # gridworks-web-backend — rebuild spec
 
-Status: Draft · Pass 0 · Updated 2026-10-26
+Status: Draft · Pass 0 · Updated 2026-10-27
 
 > Faithful-rebuild hub for gridworks-web-backend: the two services behind
 > the fleet web page, the read API over the journal DB and the realtime
@@ -96,6 +96,24 @@ the vendored enum (`readings_units.ChannelUnit.kind`): a `StateMachine`
 row's unit type is the state enum and its unit the enum version; every
 other row's unit type names the vocabulary of its unit. The readers pick
 state rows by the kind and never by what the unit type is not.
+
+## The house list and the summaries
+
+The houses the api serves are the TerminalAsset rows of the journal's
+`g_nodes` projection, keyed by the TA GNodeId and named by the
+registry's `display_name`. A URL names a house by its alias, resolved to
+the `g_nodes` row at `<alias>.ta`. A login's role
+(`user_installation_roles`) keys on the same id; a null key is every
+house, and an unknown role grants `Viewer`. The summaries route answers
+one `gw.house.summary` per house the login may see
+(`api/v2/routers/installation_summaries.py`), assembled per request and
+stored nowhere: the role, the ids and display name, the house's
+`layouts` row decoded at the version it was sent, its
+`house_operating_status` row, the latest snapshot time within a day, and
+the longest-running zone from the day's heat-call readings. The gateway
+seeds its layouts from the same table at start. No response names a
+person: address and contact live in `gridworks-pii` and return to the
+dashboard with OPS-600.
 
 ## Glossary
 

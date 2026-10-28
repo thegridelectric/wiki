@@ -10,6 +10,59 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-27 — no.sieg requires secondary-pump-hack-relay under hp-boss (`6edd076`, jm/hack-relay, OPS-628)
+
+**Why.** Elm's secondary pump feed still passes through the contacts of
+the unwired primary-pump failsafe relay, so the scada must energize that
+relay with the pump. The staging word states it in place: axiom 9a lists
+`secondary-pump-hack-relay` with the plant relays and axiom 32 gives it
+the handle `auto.hp-boss.secondary-pump-hack-relay`. The runtime axiom
+template, the generated runtime and the vanilla fixture follow; two
+tests reject a layout without it or with it outside hp-boss. No new
+axiom.
+
+
+## 2026-10-27 — no.sieg drops hp-idu (`10faa2b`, jm/arctic, OPS-628)
+
+**What:** `gw.house0.no.sieg` 000 (staging, in place) stops naming
+`hp-idu`: axiom 7 RequiredSensing without `hp-idu-pwr`; axiom 10
+RequiredHeatpumpEquipment requires `hp-odu` alone; axiom 11 admits
+`hp-odu` or `hp-ctrl-box` as the command node; axiom 31 joins on the
+component `hp-odu` binds. `created` and the registry's `last_updated`
+move to 2026-10-27T12:30Z. The axiom template, runtime, the axiom 7
+mutation cases and the vanilla fixture (no `hp-idu` node, component or
+power channel) follow. `gw1.device.type` 000:
+the `ArcticMAHRW030ZA` description says two compressors in one outdoor
+unit, no indoor unit and no indoor control box, the remote on/off dry
+contact (CN33) on the unit.
+
+**Why:** a home on this word has a heat exchanger between the heat pump
+and the house (the secondary surface says so), so the heat pump is one
+unit on the far side of it and the word has no indoor unit to name; a
+required node and channel that can bind nothing would have forced a
+disabled placeholder into every such layout. `primary-pump-pwr` stays required: elm keeps the
+channel disabled until a CT goes on the unit's pump conductor.
+
+## 2026-10-26 — gw.house0.no.sieg.family.params; the ops word admits it; the no.sieg word requires hp-watch (`049ed10`, OPS-628)
+
+**What:** new word `gw.house0.no.sieg.family.params` 000 (staging):
+KeepBufferFull and SeasonalStorageMode, all required, the House0 family
+without a SiegLoopStrategy. `gw.operational.params` 000 (staging, in
+place) takes it as a third FamilyParams branch, and axiom 4
+PostureRelaysPerFamily gains clause d: on this family NoHeatingOrCooling
+energizes exactly hp-failsafe-relay and aquastat-ctrl-relay.
+`gw.house0.no.sieg` 000 (staging, in place) gains axiom 39 HpWatchNode,
+worded as the Nolan word's. Templates, runtime, fixture (an hp-watch node
+on the vanilla no.sieg home) and mutation tests for clause d and axiom
+39 follow; `created` and `last_updated` move to 2026-10-26T23:30Z.
+
+**Why:** the sieg-less House0 word shared House0FamilyParams, so a
+sieg-less home named a SiegLoopStrategy nothing runs, and the scada's
+hp-boss read it as a loop to wait for. The family now says only what the
+plant has. hp-watch is required because hp-boss runs the secondary pump
+from its sensed running state; a home on this word without the node
+cannot run its pump.
+
 ## 2026-10-26 — add arctic device type (`79affff`, OPS-628)
 
 **What:** `gw1.device.type` 000 (staging, edited in place) appends

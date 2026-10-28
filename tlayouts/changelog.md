@@ -10,6 +10,205 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-28 — beech gen spells names from gwsproto; the pair is gw.house0.layout.json <!-- pending commit --> (jm/beech-main, OPS-628)
+
+Beech's generator takes elm's shape: names and enum values from
+gwsproto and the snapshot, zones composed from one list, the pair
+written as `gw.house0.layout.json` and `gw.house0.operational.params.json`
+(the names `roll.sh` looks for on `main`). The sieg loop stays on
+HoldFullSend. The sieg-btu pico records MicroPython 1.26.1 from the
+2026-10-25 census; every other field of the pair is unchanged.
+`zone<N>-<zone>-gw-temp` and `sieg-btu` keep literal names: gwsproto
+has no member for either yet.
+
+## 2026-10-27 — tweaking elm's settings (`1a2a44f`, main, OPS-628)
+
+First Arctic run under scada command (20:28 ET, from Admin). The
+secondary pump drew 10 to 13 W on register 9002 while `secondary-flow`
+read 5.3 to 5.9 gpm, so the 20 W `ThresholdW` on `secondary-pump-running`
+never saw the pump answer; 5 W fits the signal the meter shows. The
+compressor sat at a reported 2126 W for the whole run because the 300 W
+capture delta hides everything inside that band; 100 W shows the ramp.
+The house-side pump's DAC default goes from 3.5 V to 4.0 V for more flow
+through the exchanger.
+
+## 2026-10-27 — elm gen spells names and enum values from gwsproto and the snapshot (`816451d`, main, OPS-628)
+
+A name-by-name audit of elm's running (legacy) layout against the
+no.sieg one, after the Krida address, found three more values that came
+in with `472fee6` from oak's template and one that moved: the ADS open
+voltage is 5.0 (oak's is 5.05); the oil-boiler and whitewire eGauge
+capture deltas are 2 W; the hp-odu nameplate is 9660 W, the Arctic's
+`hp_max_kw_el`; and the secondary pump's CT is on register 9002, the
+one the primary pump's held, while `primary-pump-pwr` (disabled,
+required by the word) keeps 9008, which stays in the eGauge table for
+the CT that attaches later. Krida 7's thermistor-common relay stays out
+(relay 2 does the job) and relay 12 is NormallyOpen as the hack relay.
+
+The Krida address, in the same commit (`main` was squashed to
+`816451d` before the push):
+The first roll of elm onto the no.sieg layout with local control alive
+(19:55 ET) could not write a zone relay: the layout put the second Krida
+board at 0x23 and the board answers at 0x21, as the legacy layout the
+house runs has it. The address came from `472fee6` (2026-09-17), when
+oak, fir and elm were authored from one template and oak's second board
+really is at 0x23. `elm_gen.py` names 0x21 and the pair is regenerated
+with that one change. `fir_gen.py` has the same 0x23 against a legacy
+0x21.
+
+And the names pass, which the commit is titled for:
+`elm_gen.py` had 27 dashed string literals where the vocabulary has a
+name: node and channel names that exist on `HydronicSpaceheatNodeNames`
+and `HydronicSpaceheatChannelNames`, the four zone whitewire channels
+the zone name classes compose, `oil-boiler` (added to gwsproto in the
+same wave), and enum values (`ServiceMode`, `SeasonalStorageMode`,
+`StandbyPosture`, `ZoneEmitterType`, `ZoneSetpointSource`,
+`ThermostatKind`, `PrimaryPumpOwner`, `RefrigerantCycle`,
+`PrimaryFlowSource`) typed as strings. Each now reads the constant or
+the snapshot enum; the zones, their stat device ids and whitewire
+registers are three lists the names compose from. The gate was the
+regenerated pair byte-identical to the committed one (md5 before and
+after). The remaining literals are the g-node ids and the Hubitat
+token. `test_elm_no_sieg.py` catches up with the committed gen: the
+primary flow is measured on pico_5a5127 and `store-flow` is the
+disabled node. The other House0 gens take the same pass later, each
+under its own byte-identical check.
+In the same commit, the four tank modules are PicoRaspberryWifi2040:
+elm's buffer and three store-tank picos posted that board at the first
+`jm/arctic` boot and the layout said Unknown, one warning glitch each.
+The gen names the board and the pair is regenerated; the hall flow
+picos post no board, so Unknown stays for them.
+
+## 2026-10-27 — secondary_pump_hack_relay_idx: the relay 12 stand-in at elm and hazel (`797d52f`, jm/arctic, OPS-628)
+
+**Why.** The no.sieg word requires `secondary-pump-hack-relay` under
+hp-boss until elm's primary-pump failsafe contacts are wired out of the
+secondary pump's feed. The House0 gen takes its Krida position as a
+third no.sieg axis beside the pump relay's, checked with the other two,
+and emits it as a normally-open relay under hp-boss; elm and hazel sit
+it on 12.
+
+
+## 2026-10-27 — elm on gw.house0.no.sieg (`7e51e44`, jm/arctic, OPS-628)
+
+**What:** `elm_gen.py` authors elm on the sieg-less word: hp-odu alone as
+`ArcticMAHRW030ZA`, the unit owns the primary pump (the Krida 11/12
+primary-pump relays and `primary-010v` leave), `secondary-pump-relay` on
+Krida 11 under hp-boss, an hp-watch node, `secondary-pump-running` at
+20 W over `secondary-pump-pwr` (eGauge register 9008, the one
+`hp-idu-pwr` held). `secondary-flow` is the hall pico pico_3e9a28;
+`secondary-lwt` and `secondary-ewt` are ADS terminals 3 and 4, disabled
+until wired; `primary-flow`, `hp-lwt` and `hp-ewt` sit on `primary-btu`,
+a disabled meter on a pico that does not exist; `primary-pump-pwr` keeps
+register 9002, disabled. The DAC output on Dfr1 B that drives the
+house-side pump is `secondary-010v`. The pair is written to
+`output/elm/gw.house0.no.sieg.json` and its ops word, and `output/elm/`
+is tracked.
+
+**Why:** OPS-628 step 4. The word requires every channel of the hp side
+and the secondary surface; elm measures the secondary flow and nothing
+else there yet, so the unmeasured channels exist disabled where their
+sensors will go (ADS for the secondary thermistors, a BTU for the hp
+side) rather than as a second fake flow meter beside the real one.
+
+## 2026-10-27 — elm: registry g-node ids, BufferOnly, the deed; hp-lwt and hp-ewt live on the ADS (`268a3cf`, jm/arctic, OPS-628)
+
+**What:** `elm_gen.py` takes the three g-node ids (elm, elm.ta,
+elm.scada) from the registry's records at gnr.electricity.works; the
+authored ids did not match it. The ops word selects BufferOnly with
+Standby off. `output/elm/ta-deed.json` is elm's hand-authored `ta.deed`
+(ValidatedRealAssetAndGps, validator `hw1.validator.gridworks`, TaId the
+registry's elm.ta id), validated with `sema validate`; the roll to
+`main` needs it beside the layout on the first pi.
+`elm_gen.py` keeps `hp-lwt` and `hp-ewt` on ADS terminals 3
+and 4, enabled; `secondary-lwt` and `secondary-ewt` take terminals 9 and
+10, disabled until wired. `primary-flow` sits on a hall pico that does
+not exist (`pico_000002`), disabled with `primary-flow-hz`, in place of
+the `primary-btu` placeholder. `elm.uploaded.json` is refreshed from the
+pi, which now runs the legacy layout with `secondary-flow`. The elm test
+checks the terminals and that neither hp channel is disabled.
+
+**Why:** a deed binds only the layout's own terminal asset, so the
+layout's ids must be the registry's; spruce's already are. BufferOnly
+because elm's primary loop is suspected of a leak and a low-pressure
+fault, so the stores stay out of the season's operation for now. The
+two thermistors are wired and reading air, and are about to
+go back on the unit's leaving and entering pipes, so the layout keeps
+them live where the legacy layout has them. A BTU placeholder needs
+three channels; with the thermistors on the ADS, the unmeasured primary
+flow is a placeholder flow pico, as fir and oak author theirs.
+
+## 2026-10-27 — legacy elm has correct secondary-flow (`b982150`, legacy, OPS-628)
+
+**What:** `gen_elm.py` on legacy names pico_3e9a28's node `secondary-flow`
+(the legacy `H0N` has no name for it, so the gen spells the string). The
+node, its hall component and its two channels (`secondary-flow`,
+`secondary-flow-hz`) take new ids; nothing else in the layout changes.
+`output/elm/hardware-layout.json` is the committed record of the layout
+elm runs on `legacy`, the first for elm, so `scripts/roll.sh elm to
+legacy` can verify and install it.
+
+**Why:** OPS-628. Elm's plate heat exchanger puts that pico on the house
+side, where the secondary pump runs, so the name `primary-flow` would
+report the wrong loop while elm waits on `legacy` for the `main` roll.
+The rename on the pico itself is the starter-scripts
+`ActorNameByHwUid` entry (`3a08dad`), applied by `pico_cycle_census.sh`
+on the pi once this layout is on the box. The legacy scada's two readers
+of `primary-flow` (`flowing_from_hp_to_house`, `primary_flow_gpm`) see a
+missing channel and answer false or None, which only the sieg loop and
+the dashboard's flow row use; neither matters at elm on `legacy`.
+
+## 2026-10-27 — WIP house0.no.sieg (`1eaf9de`, jm/arctic, OPS-628)
+
+**What:** the snapshot takes `gw.house0.no.sieg` 000 as sema `10faa2b`
+has it (no `hp-idu` in axioms 7, 10, 11 and 31). `hazel_sim_gen.py`
+drops its hp-idu part, the `hp-idu-pwr` meter channel and hp-idu from
+the transactive about-nodes, so the pair has no hp-idu node; the
+regenerated pair is copied to the scada fixtures. The House0 gen's
+`hp_parts` message says hp-odu always, hp-idu on a split system.
+
+**Why:** a home on the no.sieg word has a heat exchanger and one unit
+beyond it, so the sim home that stands for elm has no indoor unit to
+meter.
+
+## 2026-10-26 — fix tank1 pico at elm (`68399a5`, legacy)
+
+**What:** `gen_elm.py` on legacy: tank1's pico is `pico_1d2c34`
+(was `pico_287d2b`).
+
+**Why:** the tank module at elm was replaced; the legacy layout the
+house runs names the pico that is actually on the tank.
+
+## 2026-10-27 — hazel sim gen, house0 gen declares its word (`6784efb`, jm/arctic, OPS-628)
+
+**What:** the tlayouts snapshot takes `gw.house0.no.sieg` 000 and the
+Nolan word's command classes without SiegLoop; `hazel_sim_gen.py` is
+the sieg-less House0 sim home (secondary pump on Krida 11, running
+threshold 20 W). `House0SemaGenConfig` declares `word`
+(`gw.house0.layout` or `gw.house0.no.sieg`) in place of a
+`has_sieg_loop` flag; `has_sieg_loop` is a property read from the word,
+and `HOUSE0_WORDS` maps the word to the sema type the gen builds. Every
+House0 gen names its word; the eight outputs are unchanged. `elm_gen.py`
+and `fir_gen.py` take their ids from the pi's running layout and then
+their previous output, as beech and oak do. On the sieg-less word the
+House0 gen emits an hp-watch node, since hp-boss runs the secondary pump
+from hp-watch's sensed running state, and its ops artifact names
+`gw.house0.no.sieg.family.params` (KeepBufferFull, SeasonalStorageMode):
+`sieg_loop_strategy` is None on a sieg-less home and a strategy on a
+`gw.house0.layout` home, and the gen refuses the other pairing. The
+snapshot takes the family word, the ops word's third branch and the
+no.sieg word's HpWatchNode axiom. The hazel pair is regenerated and
+copied to the scada fixtures.
+
+**Why:** whether a plant has a Siegenthaler loop is a fact of its
+layout word, so a home declares the word and nothing else. Fir and oak
+(and elm until its Arctic layout) stay on `gw.house0.layout` with the
+sieg surface disabled: the loop is in the word, and the house has not
+built it yet. Elm and fir had no id reference at all, so every node,
+channel and component id was minted fresh on each run: two runs of the
+same gen disagreed on every id, and a layout rolled to the box would
+have broken every reading's continuity with the next roll.
+
 ## 2026-10-25 — beech: 4 BTU picos replace the primary BTU and the hall flows (`ce1926d`, legacy)
 
 **What:** the same pico swap as the `jm/spruce` entry below, in main's

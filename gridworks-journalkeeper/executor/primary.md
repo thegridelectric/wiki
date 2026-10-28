@@ -116,6 +116,10 @@ ecosystem adds actors and types**.
 - **`layouts`** — one current layout row per terminal asset, the
   projection of each scada's latest live `layout.lite`; gjk is its only
   writer (`persistor.md`).
+- **`house_operating_status`** — one current operating-status row per
+  terminal asset: the latest `gw.house.operating.status` its scada sent,
+  or a row derived from its layout and snapshot until it does; gjk is
+  its only writer (`persistor.md`).
 
 ## Glossary
 
@@ -142,7 +146,7 @@ ecosystem adds actors and types**.
 
 `journal_keeper`, `sema_message_persistor`, `layout_lite_persistor`,
 `report_event_persistor`, `flo_params_house0_persistor`,
-`weather_forecast_persistor`, `layouts_projection`, `rebuild_layouts`,
+`weather_forecast_persistor`, `layouts_projection`, `rebuild_layouts`, `house_status_projection`, `rebuild_house_status`,
 `message_persistence_info`, `pseudo_channels`,
 `config`, `s3_message_importer`, `sema/` (the snapshot),
 `sema_seed_request.yaml`. Custom persistors today: `layout.lite`,

@@ -191,6 +191,23 @@ not vendor gets no channel and is tallied (`unvendored_machines`).
   migration that adds the table and whenever the table is suspect.
   Verified on the dev run, with the replay guard and the derived
   operating status: `experiments/2026-10-21-disentangle-dev-run/`.
+- **`gw.house.operating.status`** → `house_operating_status`
+  (`house_operating_status_persistor.py`, `house_status_projection.py`).
+  One row per terminal asset keyed on the TerminalAsset GNodeId, the
+  word verbatim with `created_at` from its `CreatedMs` and a `source`
+  column for operators: `scada` when the house sent the word, `derived`
+  when the row is deduced from the house's `layouts` row and its newest
+  `snapshot.spaceheat` (Standby and its posture from the layout's system
+  mode, the storage mode from the layout, ServiceMode Heating, TopState
+  and LtnDispatching from the snapshot's state channels, AcceptsDispatch
+  true in Auto and not Standby, ScadaBlind false, ValidationState
+  UnValidated), built through the word's own class so a derived row is a
+  valid instance. A scada row is guarded on `CreatedMs`; a derived row
+  never overwrites a scada row. The deduction serves a scada that does
+  not send the word and is deleted when every scada does. Live messages
+  only, the same seam as `layouts`; `python -m gjk.rebuild_house_status`
+  derives every house from its layout and snapshot, then projects each
+  sender's newest journaled word over it, writing no `messages` row.
 
 ## The point: `readings` is a lossy projection
 

@@ -10,6 +10,19 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-26 — visualizer hooks above the guard; temperature axes autoscale (`992e798`, OPS-588)
+
+**What:** the auto-refresh hook and the house-change effect in
+`VisualizerPage.tsx` move above the session guard with the other hooks.
+The heat pump and secondary loop panels' temperature axes take the
+offset range form the Storage panel uses (20 °F either side of the data,
+clamped to 0 to 260) in place of a fixed 0 to 260.
+
+**Why:** the two hooks were the last below an early return, which the
+rules-of-hooks lint flags and React does not define. The fixed range was
+the OPS-568 and OPS-593 stopgap for data that fell off the old 30 to 70
+axis; autoscaling fits whichever house is plotted.
+
 ## 2026-10-26 — front-end fixes from the OPS-588 sweep (`4038ca7`, OPS-588)
 
 **What:** Thomas's `td/dev` branch squash-merged as PR #14 (the title is

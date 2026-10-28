@@ -6,6 +6,18 @@ the *why*.
 
 Newest at the top.
 
+## 2026-10-27 — elm-arctic-field-check harness, queued (OPS-628) <!-- pending commit -->
+
+**Why.** The Arctic bring-up design's confidence comes from elm's first
+watched run on the branch scada, and the run has to be watched from the
+first minute. `future/elm-arctic-field-check/` queues it: a README with
+the seven pass criteria and the protocol, and `field_check.py`, which
+reads elm's report.event state machines and channels, glitches and
+problem events off the journal for an ET window and prints one PASS /
+FAIL / NO-DATA line per criterion. Smoke-run on today's legacy window:
+the query path works and the glitch listing surfaced the LTN's hourly
+price-forecast error.
+
 ## 2026-10-23 — trace puller reads the eventstore <!-- pending commit -->
 
 **Why.** An executor trace needs every message a party put on the

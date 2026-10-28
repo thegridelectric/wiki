@@ -6,7 +6,7 @@ the roles that access it, the alembic-managed migration story, and the
 boundary application services see (a database URL + a small set of
 SQLAlchemy model classes).
 
-> Status: Draft · Pass 0 · Updated 2026-10-26
+> Status: Draft · Pass 0 · Updated 2026-10-27
 >
 > Acceptable-minimum bootstrap. Items marked "Open" are unwritten on
 > purpose; raise them when a real decision arrives.
@@ -36,11 +36,11 @@ It owns:
 - Three roles: `gw_admin` (full ownership, migrations only),
   `gw_writer` (insert/update/delete on tables; granted to app services),
   `gw_reader` (select-only; for analytics tools).
-- 12 tables today: `alembic_version`, `connectivity_edges`, `customers`,
-  `g_nodes`, `installations`, `installers`, `messages`,
-  `position_points`, `reading_channels`, `readings`,
-  `user_installation_roles`, `users`. See
-  `src/gw_data/db/models/` for the authoritative definitions.
+- The tables: `alembic_version`, `connectivity_edges`, `g_nodes`,
+  `house_operating_status`, `layouts`, `messages`, `reading_channels`,
+  `readings`, `user_installation_roles`, `users`. See
+  `src/gw_data/db/models/` for the authoritative definitions. (Open:
+  `cached_hourly_data` exists in the live database with no model here.)
 - TimescaleDB hypertable + compression policy on `readings` (2-week
   threshold, segmented by channel ID).
 
@@ -102,6 +102,15 @@ the `wiki/dev-stack/` recipes once that domain exists.
    a control decision and keeps running when it is down, slow, or
    mid-migration. Canonical statement: [`glossary.md`](../../conventions/glossary.md)
    "Control plane vs. observability plane".
+9. **Nothing about a person.** The database holds no name, address,
+   contact or coordinate. The people behind a house live in the private
+   store `gridworks-pii` (`wiki/gridworks-pii/executor/primary.md`), and
+   the one link between a house and a person is the TerminalAsset
+   GNodeId: `user_installation_roles.ta_g_node_id` (a plain column, no
+   foreign key; null means every house), and the keys of `layouts` and
+   `house_operating_status`. The house list a reader needs is the
+   TerminalAsset rows of `g_nodes`; a house's display name comes from the
+   registry.
 
 ## §5 — Schema reference (Open)
 
@@ -122,6 +131,11 @@ Notable today:
   (`DataChannelSql`) — `about_node_name`, `captured_by_node_name`,
   `telemetry_name`, `start_s`, `in_power_metering` do not survive here.
   Open: are those fields needed and missing, or genuinely obsolete?
+- `LayoutSql` (`layout.py`) and `HouseOperatingStatusSql`
+  (`house_operating_status.py`) — one row per terminal asset keyed on
+  `ta_g_node_id`, the word verbatim in `payload` with its name and
+  version, the sender's time as the do-not-regress guard; written only by
+  the journalkeeper (`wiki/gridworks-journalkeeper/executor/persistor.md`).
 
 **Enum channel values.** `readings.value` is `BigInteger` for every
 channel. For a state-machine channel (`channel_type` StateMachine),

@@ -19,6 +19,17 @@ against `tsdb_tap`.
 **▶ Do this next.** The TypeScript emitter design in sema, then the
 build order at the end of "The state seam".
 
+## Open now: spruce pump power
+
+Spruce's `dist-pump-pwr` has readings to 2026-10-25 21:00 UTC and none
+since, averaging 15 W over the week before; `primary-pump-pwr` and
+`store-pump-pwr` have no readings in the same week (OPS-594, checked
+2026-10-26 on the journal). The channel rows are one lineage across the
+layout change, so this is the scada or a pico not reporting, a spruce
+question for OPS-392, and only a seam question if the readers turn out
+to drop a row of the lineage. Resolve it before the comb-through
+treats the real-time page's flow table as a reader fault.
+
 ## The three repos
 
 The fleet emits, JournalKeeper writes the journal DB, the web-backend reads a
