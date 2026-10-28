@@ -1,6 +1,6 @@
 # sema — Claude protocol
 
-Status: Draft · Pass 0 · Updated 2026-10-18
+Status: Draft · Pass 0 · Updated 2026-10-28
 
 ## Read the spec first, and prove it
 
@@ -64,3 +64,27 @@ to the spec.
 - **Word prose never restates the schema.** A description states the
   field's own meaning; requiredness, types and cross-cutting narrative
   belong to the schema and the spec.
+
+## The TypeScript runtime is a work in progress
+
+sema generates a Python runtime today (`src/sema/runtime/`, from
+`src/sema/tools/runtime_generation/`). A TypeScript runtime, generated
+the same way, is being built so a browser vendors its snapshot as the
+backend does: one zod schema per word with its inferred type, PascalCase
+wire names, `Sema: <schema_url>` as the only docstring, axioms as named
+refinements, zod enums for enums, and formats as zod refinements from
+`definitions/formats/`. Vitest and zod are sema's dependencies for it.
+
+- The work happens on the `jm/ts` branch of `sema`. That branch SHALL
+  NOT add, edit or version anything under `definitions/`; a word it
+  needs that the registry lacks is raised with the human and added on
+  its own branch under the registry rules above.
+- The branch's job is accurate and stylistically correct TypeScript
+  generation: the generator, its templates, the TypeScript round-trip
+  over `samples/`, and Vitest tests of the output in sema's own suite.
+- Its acceptance fixture is the hand-written zod snapshot in
+  `gridworks-web-frontend/src/sema/`: the generator is done for a word
+  when its output for that word matches the hand-written schema and the
+  frontend's tests pass on the generated file.
+- Until the generator produces a word, that word's TypeScript is written
+  by hand in the consumer, to the style above.

@@ -1,6 +1,6 @@
 # Control hierarchy — HSMs, the command tree, and the capability cover
 
-Status: Draft · Pass 0 · Updated 2026-10-22
+Status: Draft · Pass 0 · Updated 2026-10-28
 
 > What this is: how the SCADA's hierarchical state machines (HSMs) and the command tree work **together**
 > — the piece the executor lacked. The HSM decides *who is in control*; the command tree *enforces* it via
@@ -98,14 +98,15 @@ other actuator's is `auto.<Name>`:
 | `standby` | `auto.lc.standby` | both |
 | `hp-boss` | `auto.hp-boss` | both |
 | `hp-scada-ops-relay` | `auto.hp-boss.hp-scada-ops-relay` | both |
-| `secondary-pump-relay` | `auto.hp-boss.secondary-pump-relay` | Nolan (the plant with a heat exchanger) |
+| `secondary-pump-relay` | `auto.hp-boss.secondary-pump-relay` | the words with a heat exchanger: Nolan, `gw.house0.no.sieg` |
+| `secondary-pump-hack-relay` | `auto.hp-boss.secondary-pump-hack-relay` | `gw.house0.no.sieg` only, until elm's relay 12 is wired out (`hardware-layout.md` "The sieg-less House0 word") |
 | `sieg-loop` | `auto.sieg-loop` | House0 (sieg word) |
 | `hp-loop-on-off-relay` | `auto.sieg-loop.hp-loop-on-off-relay` | House0 (sieg word) |
 | `hp-loop-keep-send-relay` | `auto.sieg-loop.hp-loop-keep-send-relay` | House0 (sieg word) |
 
 Some
 sub-bosses own **fixed** relays regardless of who is on top: `pico-cycler` always owns the vdc relay (pico-reboot is cross-cutting),
-`hp-boss` owns `hp-scada-ops-relay` and, where the plant has one, `secondary-pump-relay`;
+`hp-boss` owns `hp-scada-ops-relay` and, where the plant has one, `secondary-pump-relay` (and on `gw.house0.no.sieg` the hack relay it commands in step with it);
 `sieg-loop` owns the loop relays. An interior node keeps its
 subtree: a tree rewrite reparents the interior node and never reaches through it to its relays.
 The layout dc declares the owners and their relays as `fixed_subtrees`

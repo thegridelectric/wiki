@@ -6,17 +6,24 @@ the *why*.
 
 Newest at the top.
 
-## 2026-10-27 — elm-arctic-field-check harness, queued (OPS-628) <!-- pending commit -->
+## 2026-10-28 — elm-arctic-field-check: harness and the record of the first runs (OPS-628) <!-- pending commit -->
 
 **Why.** The Arctic bring-up design's confidence comes from elm's first
-watched run on the branch scada, and the run has to be watched from the
-first minute. `future/elm-arctic-field-check/` queues it: a README with
-the seven pass criteria and the protocol, and `field_check.py`, which
-reads elm's report.event state machines and channels, glitches and
-problem events off the journal for an ET window and prints one PASS /
-FAIL / NO-DATA line per criterion. Smoke-run on today's legacy window:
-the query path works and the glitch listing surfaced the LTN's hourly
-price-forecast error.
+watched run on the bring-up scada, and the run has to be watched from
+the first minute. `2026-10-27-elm-arctic-field-check/` is the folder:
+a README with the seven pass criteria and the protocol, and
+`field_check.py`, which reads elm's report.event state machines and
+channels, glitches and problem events off the journal for an ET window
+and prints one PASS / FAIL / NO-DATA line per criterion. Smoke-run on
+the 2026-10-27 legacy window: the query path works and the glitch
+listing surfaced the LTN's hourly price-forecast error. The folder is
+dated to the first roll of elm to `jm/arctic` (2026-10-27 20:17 ET),
+and its README is where the run entries live: the 2026-10-26 traits
+measurement, eGauge glitches, admin-run wiring and failsafe
+observations on the legacy layout, the three 2026-10-27 rolls, and the
+first night under local control on `main`. Those entries moved out of
+the design `elm-arctic-bring-up`, which had become a logbook and a spec
+in one file; the harness has not yet run on a window.
 
 ## 2026-10-23 — trace puller reads the eventstore <!-- pending commit -->
 

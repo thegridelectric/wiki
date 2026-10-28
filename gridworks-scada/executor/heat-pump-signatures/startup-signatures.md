@@ -1,6 +1,6 @@
 # Start-up signatures
 
-Status: Draft · Pass 0 · Updated 2026-10-22
+Status: Draft · Pass 0 · Updated 2026-10-28
 
 > What this is: what a heat pump start looks like in the scada's channels,
 > per heat pump model, with the Siegenthaler loop open and closed: the
@@ -112,6 +112,26 @@ about a second apart during a ramp, in steps well under 300 W.
   the value this measures. Whether the minimum run is fixed or depends
   on run age is open: the spruce journal also shows stops within a
   minute of the call opening on older runs.
+
+## Arctic MAHRW030ZA (elm)
+
+An R32 high-temperature monobloc with two compressors outdoors and no
+indoor unit, so `hp-odu-pwr` is the whole unit. Measured 2026-10-26,
+three runs on the eGauge (300 W capture delta), on the legacy layout
+(`experiments/2026-10-27-elm-arctic-field-check/`): standby 0 to 22 W,
+with a step to 64 to 66 W at 19:58 under no call that looks like a
+crankcase heater or a standby mode change; the first running sample
+1131 to 2675 W, so both crossings pass the 400 to 700 W band within one
+second; steady state 4.2 to 5.8 kW; start about 65 s after the call
+closes (66 to 69 s over the first night under local control,
+2026-10-28), power below 400 W about 52 s after it opens (59 to 71 s
+that night); no defrost seen. One call of 2026-10-28 04:54 took 6 min to
+start, a minimum-off timer on the unit being the guess. The code's
+`HP_TRAITS` row is 700 W on, 400 W off; the on line is unverified at
+low load because minimum modulation in mild weather is unseen. The
+eGauge at elm has emitted single-sample saturation glitches (odu 32767
+with idu mirrored negative), so a read above the on line wants
+persistence (OPS-629).
 
 ## Loop closed against loop open
 

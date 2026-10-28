@@ -1,6 +1,6 @@
 # Local control
 
-Status: Draft · Pass 0 · Updated 2026-10-07
+Status: Draft · Pass 0 · Updated 2026-10-28
 
 > What this is: how a scada chooses its local control, what standby is,
 > the Nolan heating machine and the heat-pump watch it follows, the
@@ -191,8 +191,8 @@ runs 001 and 002).
 
 ## The heat-pump watch
 
-`HpWatch` (`actors/hp_watch.py`) runs on Nolan layouts only, at the
-`hp-watch` node. It reports `spruce.hack.hp.state`: `Unknown`,
+`HpWatch` (`actors/hp_watch.py`) runs on every layout with a heat
+exchanger (Nolan and `gw.house0.no.sieg`), at the `hp-watch` node. It reports `spruce.hack.hp.state`: `Unknown`,
 `HpDetectedOn`, `HpDetectedOff`.
 
 Running is sensed, not assumed: the unit can run its own schedule and
@@ -209,13 +209,19 @@ destratifies the buffer.
 **The node.** ActorClass `HpWatch`, ActorHierarchyName `s.hp-watch`, no
 Handle, outside the command tree. The watch reports under its own node,
 so sensing stays out of hp-boss, the command node. `gw.nolan.layout`
-axiom 32 (HpWatchNode) requires it in every Nolan layout; House0
-layouts do not carry it. It runs whichever local control is selected.
+axiom 32 (HpWatchNode) requires it in every Nolan layout and
+`gw.house0.no.sieg` requires it too; `gw.house0.layout` has no such
+node. It runs whichever local control is selected. hp-boss owns the
+secondary pump wherever the layout has one and runs it from the watch:
+on while the unit is sensed running or unknown, off while sensed off.
 
 **The lines are hard-coded by heat-pump device type**: `HP_TRAITS` in
 `actors/hp_boss/sensing.py`, one `HpTraits` row per supported heat pump
 (on line, off line, call-open lead). Spruce's Samsung AE055FCYDCG is
-500 W on, 80 W off, 120 s lead. A Nolan layout whose heat pump has no
+500 W on, 80 W off, 120 s lead. Elm's Arctic MAHRW030ZA (DeviceType
+`ArcticMAHRW030ZA`) is 700 W on, 400 W off, 120 s lead, the Samsung
+lead until the unit's stop lag is measured; the evidence is
+`heat-pump-signatures/startup-signatures.md` "Arctic MAHRW030ZA (elm)". A Nolan layout whose heat pump has no
 row stops the scada at load (`check_hp_traits`, `sema_to_dc.py`). It is
 a scada check and not a layout axiom: adding a heat pump is a code
 change, not a word change.
@@ -378,6 +384,21 @@ hour.
   is inert while FSV 2091 is 0
   (`heat-pump-comms/samsung-ae055feymcg.md`).
 - Backup for a Nolan house is not built.
+- An `hp-running` derived channel on its own `hp-running` strategy (a
+  sibling of `circulator-running`, since a heat pump's signature may
+  need more than a threshold), input `hp-odu-pwr`, required by the
+  layout words: hp-watch does this job today in code, from `hp-odu-pwr`
+  with a per-model `HP_TRAITS` row; as a derived channel it becomes a
+  layout fact, and it is the slot the Arctic unit fills once its start,
+  defrost and stop signature is measured at elm.
+- `secondary-pump-running` wants persistence: at elm it flickers 1, 0, 1
+  inside 2 s on some pump starts, because startup power dips to 1 W
+  against the 5 W threshold. The threshold itself, and the eGauge capture
+  deltas for the pumps, come from a journal-DB table of every pump power
+  channel in every house (lowest plainly-on power, jitter around zero
+  while off), not from guesses.
+- Every boot hp-boss closes the pump pair for about 2 s before hp-watch's
+  first report (seen at elm, 2026-10-28).
 
 ## Tests
 

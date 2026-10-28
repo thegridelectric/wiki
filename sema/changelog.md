@@ -10,6 +10,22 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-28 — The tank module's capture delta leaves the component word <!-- pending commit --> (jm/capture-delta, OPS-628)
+
+`pico.tank.module.component.gt` 012 and `sim.pico.tank.module.component.gt`
+001 (both staging, edited in place) drop `AsyncCaptureDeltaMicroVolts`:
+how often a pico reports is an operational setting, so it is authored in
+`gw.operational.params` on the depth's temperature channel in
+CelsiusTimes100, and the scada translates it to the micro-volt threshold
+the pico is told, matched at 130 °F. The ops word's `extended_description`
+states the pair rule (one trigger per depth, the micro-volt channel states
+no delta) and that the scada refuses a micro-volt delta at assembly; the
+grouping of six channels into one pico is a layout fact, so the rule is an
+assembly check, not an axiom. `tank.module.params` 210 is published and
+keeps its micro-volt field. Registry `created` moves forward on the two
+components and on the three staging layout words that depend on them;
+runtime and public registry regenerated.
+
 ## 2026-10-27 — no.sieg requires secondary-pump-hack-relay under hp-boss (`6edd076`, jm/hack-relay, OPS-628)
 
 **Why.** Elm's secondary pump feed still passes through the contacts of

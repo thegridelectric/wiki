@@ -10,6 +10,69 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-28 — the real-time page converts through the layout's units <!-- pending commit --> (OPS-622)
+
+**What:** `src/sema/displayReadings.ts` converts a snapshot's readings
+through the unit the house's `layout.lite` declares for each channel,
+via the resolver and the shared unit table; a channel the layout does
+not declare, or whose unit has no table row, keeps its raw value and is
+shown with a raw marker. The page parses the summary's layout with
+`AnyLayoutLite` once and the system diagram, the thermostat table and
+the power, resistive and pump tables all read the converted readings.
+`tempValueToFahrenheit` and every hand divide on the page are gone.
+`siegLoop.ts` becomes `plantLoops.ts` and gains the secondary loop,
+present when the layout declares `secondary-flow`; the pump table's
+Secondary row keys on it. Tests cover the conversion on elm 013 and
+beech 011, the raw marker, both loop lookups and the primary-flow
+decision in GPM.
+
+**Why:** elm's 013 layout declares temperatures in CelsiusTimes100 where
+the page assumed WaterTempCTimes1000, so hp-ewt displayed 37.4 F in place
+of 86 F; the unit is the layout's fact, read from it. The secondary pump
+row was keyed on the house being spruce, and elm has one too.
+
+## 2026-10-28 — layout.lite words, the shared unit table and the layout unit resolver (`f21a0f2`, OPS-622)
+
+**What:** `src/sema/` gains zod schemas for `layout.lite` 013 with its
+five axioms, `data.channel.gt` 004, `derived.channel.gt` 003,
+`spaceheat.node.gt` 303, `gw.state.machine` 000, the two unit-to-quantity
+projection words, the enums they reference, and readers of `layout.lite`
+011 and 012 over the channel words those versions name. `units.ts` is
+the one table from a declared unit to a display value and hover format,
+keyed by the telemetry-name and unit enums; the visualizer converts
+through it. `layoutUnits.ts` resolves a channel name to its declared
+unit in a house's layout. Tests parse elm's 013 and beech's 011 layouts
+from the journal, exercise the axioms, and check that every temperature,
+flow, power and energy value of both enums has a row.
+
+**Why:** the real-time page needs the unit a house declares for each
+channel, and the one conversion table, before it can stop deciding units
+by channel name. The layout words are the next piece of the hand-written
+snapshot the TypeScript emitter reproduces.
+
+
+## 2026-10-28 — sema snapshot in typescript; added zod and vitest (`c3ead2e`, OPS-622)
+
+**What:** Vitest runs under `npm test` and in the Pages workflow before
+the build. `src/sema/` gains zod schemas, with their inferred types, for
+`snapshot.spaceheat` 003, `single.reading` 000 and
+`single.machine.state` 000, the enums `spaceheat.telemetry.name` 007,
+`gw1.unit` 003 and `relay.closed.or.open` 000, and the five property
+formats they use. Tests parse an elm snapshot captured off the house
+broker and the registry example, round-trip them unchanged, and reject a
+wrong TypeName or Version, a missing or undeclared field, a string where
+an integer is required, a non-integer reading and an enum value outside
+the enum, each naming the failing path.
+
+**Why:** the real-time page converts readings by matching channel names,
+which shows elm's `CelsiusTimes100` temperatures at a tenth of their
+value. The fix converts through the unit the house's `layout.lite`
+declares, and the words the page reads come first, typed and validated
+in the browser the way the backend's snapshot classes are. These
+hand-written schemas are the fixture the sema TypeScript emitter will
+reproduce.
+
+
 ## 2026-10-26 — visualizer hooks above the guard; temperature axes autoscale (`992e798`, OPS-588)
 
 **What:** the auto-refresh hook and the house-change effect in

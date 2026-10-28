@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-25
+Status: Draft · Pass 0 · Updated 2026-10-28
 
 # The hardware layout
 
@@ -343,6 +343,9 @@ breaks leaked House0 assumptions — and each becomes a **Sema layout type**:
 - **`gw.nolan.layout`** — the gw108 one-off (Spruce). The gw108 board does room
   temp + whitewire sensing.
 - **`gw1.simple.sim.layout`** — the deliberately-simplest fake-physics sim plant.
+- **`gw.house0.no.sieg`** — a House0 home with no Siegenthaler loop and a
+  plate heat exchanger between the heat pump and the house (elm; fir and
+  oak are sieg-less too and move to it once elm runs on it). Below.
 
 The `gw`/`gw1` prefix is deliberate vocabulary namespacing (`gw1.actor.class`,
 `gw1.unit`, `gw.nolan.layout` leave room for other orgs' own words).
@@ -361,6 +364,93 @@ as a DataChannel OR a DerivedChannel, its node is not required, and a
 BTU-sourced or derived flow has no `-hz` channel (House0 axiom 8 does not
 require `sieg-flow-hz`). The sim pairs cover one pattern each (orange
 measures primary, willow sums).
+
+### The sieg-less House0 word — `gw.house0.no.sieg`
+
+Registered as `staging`, a copy of `gw.house0.layout` 000 with the id,
+title, TypeName const, description and registry summary changed, the
+dependencies identical and the axioms renumbered from 1. The sieg
+surface is gone from the word: no `sieg-loop` command node, no node with
+ActorClass SiegLoop, no SiegManifoldChannels axiom, no
+`hp-loop-on-off-relay` or `hp-loop-keep-send-relay` in RequiredActuators
+or the handle axiom, and `PrimaryFlowSource` is "Measured" (the
+DerivedSiegSum value has nothing to sum). The word stops requiring the
+sieg surface; it does not forbid it. Every other axiom keeps the House0
+wording verbatim.
+
+What the exchanger adds, in Nolan's names:
+
+- RequiredActuators names `secondary-pump-relay` (ActorClass Relay) and
+  the handle axiom puts it under hp-boss, as `gw.nolan.layout` axioms 5
+  and 30 do. The relay is a property of a plant with a heat exchanger,
+  so the constant is on `HydronicSpaceheatNodeNames` beside
+  `secondary_pump`, and the layout accessor `secondary_pump_relay`
+  returns the node wherever the layout has one. `secondary-010v` stays
+  Nolan: elm's secondary pump is driven at a fixed DAC level under the
+  Nolan name until the shared vocabulary has one (axiom 30 forbids
+  `primary-010v` on a unit-owned pump).
+- RequiredSensing adds the house side of the exchanger: `secondary-flow`,
+  `secondary-lwt`, `secondary-ewt` (one pico BTU meter, `secondary-btu`,
+  as at spruce) and `secondary-pump-pwr`.
+- A SecondaryPumpRunningChannel axiom requires exactly one DerivedChannel
+  `secondary-pump-running`, Strategy `circulator-running`, input
+  `["secondary-pump-pwr"]`, Unitless, with `Parameters.ThresholdW`: 1
+  while the pump draws more than the threshold, 0 otherwise. It is the
+  pump's heat-call, the signal hp-boss reads to know the pump answered
+  the relay. The BTU pico's CT (`secondary-pump-ct`) joins as a second
+  input once a CT reads correctly on a BTU meter. The strategy sits in
+  the derived generator beside `heat-call`: one power input, emits 1 or
+  0 on change and on the period; the name says circulator so it is never
+  read as the heat pump.
+- A monobloc has no indoor unit and no indoor control box, so the layout
+  has no `hp-idu` node and no `hp-idu-pwr` channel; the word names
+  neither. The unit runs its own primary pump (`PrimaryPumpOwner`
+  HeatPump), so the primary-pump relays leave the layout.
+- The word requires an hp-watch node, and hp-boss runs the secondary pump
+  from hp-watch sensing the way it does at spruce
+  (`local-control.md` "The heat-pump watch").
+
+**The hack relay, `secondary-pump-hack-relay`.** At elm the secondary
+pump's feed goes through the contacts of Krida 12, the House0
+primary-pump failsafe (double throw: de-energized on its heat-pump side,
+energized on its scada side), which is not yet wired out. With 12
+de-energized, closing the pump relay reaches nothing. Until the rewire
+the word requires a normally-open relay on that position under hp-boss
+(axiom 9a lists it with the plant relays, axiom 32 gives it the handle
+`auto.hp-boss.secondary-pump-hack-relay`; no new axiom), the layout
+exposes it as `secondary_pump_hack_relay` guarded by `is_house0_no_sieg`,
+`fixed_subtrees` puts it under hp-boss on that word alone, and hp-boss's
+`enforce_pump` sends it the same open or close as the pump relay, each
+under its own minted id. The word "hack" marks it for removal: when 12 is
+wired out, the node, the tlayouts axis
+(`secondary_pump_hack_relay_idx`), the two axiom lines and the layout
+property leave in one change.
+
+**Downstream of the word in the scada.** `sema_seed_request.yaml` names
+it; the snapshot is regenerated; the hand-written twin
+`House0NoSiegLayout` mirrors every axiom as `check_axiom_<n>`; the
+conformance sweep and `tests/named_types/test_gw_house0_no_sieg.py`
+check it (the coverage test finds a word's tests by
+`test_<type_name>_axiom_<n>`, so file and test names follow the
+TypeName); the loader pairs the word with House0FamilyParams. The test
+fixture is the hazel sim pair, generated by tlayouts `hazel_sim_gen.py`
+from the orange skeleton in elm's shape; `has_sieg_loop` on the House0
+generator picks the word, and every gen declares it. The runtime layout
+keeps `is_house0` meaning exactly `gw.house0.layout` and adds
+`is_house0_no_sieg`; only the relay accessors read either flag (vdc,
+store pump, tstat-common, hp-failsafe, aquastat-ctrl take both words;
+the sieg and primary-pump accessors stay House0-only). Local control,
+leaf ally and the state machines choose by "is it Nolan", so a no.sieg
+house takes the House0 code with no change.
+
+**The eGauge is read from the first pi in every house.** The second pi
+was given the eGauge to spare the first pi's load, and the load is not
+there (every box is a Pi 4B under 0.1 load average with the scada at 1
+to 7 % CPU), while the hop through the second pi and the broker delays
+`hp-odu-pwr`, the signal hp-watch times the pumps from. Elm's `main`
+layout reads the eGauge from the first pi; the other houses move as each
+takes its sema-word layout. The second pi keeps the Hubitat and the ADS
+board.
 
 ### The zone invariant — temp, set, heat-call exist in every layout
 
@@ -816,3 +906,42 @@ the level, 4 W at 2 V to 48 W at 10 V, up and down).
 - **Strategy-name semantics need a sema home** (also noted in the hacky-bits
   above) — a versioned `strategy` enum/type so a rename is a lookup, not an
   inference.
+- **The runtime layout should ask the plant what it has, and stop asking
+  which word it is.** `hydronic_layout.py` branches on `is_house0` /
+  `is_nolan` / `is_house0_no_sieg` in 15 places (the relay accessors list
+  the words that have each relay), plus hp-boss's `pump_hack` and the
+  loader; `has_sieg_loop`, `has_secondary_pump` and `fixed_subtrees` are
+  the other idiom, derived from node presence, and elm's first boot death
+  (2026-10-27, the sieg relay accessor) was a reader on the first idiom.
+  The move is the accessors to `required_node` or `has_<part>` +
+  `required_node`, the hack-relay guard to node presence (the next
+  heat-exchanger word has the same pump), and the loader keyed by the
+  FamilyParams type. The buffer tank is the meaning question under it:
+  `SeasonalStorageMode` is `BufferOnly | AllTanks` and the House0 machines
+  read buffer temps without asking, so the two no-buffer layouts need a
+  sema answer (a storage posture whose name does not say buffer, or a
+  capability the machines read) before any machine is written for them.
+- **A sema wave on the House0 words after elm runs**, in one change:
+  `secondary-pump-running` (and its input) required out of
+  DisabledChannelNames, the way axiom 6 guards the transactive channel,
+  since a layout that disables it leaves hp-boss running the pump open
+  loop with nothing to say so; `primary-pump-pwr` no longer required when
+  `PrimaryPumpOwner` is `HeatPump` (on a unit-owned pump it can only be
+  disabled on a register nothing reads); a `circulator-running`-style
+  derived channel for every signal power channel (the pumps, the
+  elements), each required by its word, so on-or-off is a layout fact the
+  actors read rather than a threshold in code.
+- **The scada should name a pico from the layout by HwUid**: answer any
+  flow-module params post by looking the pico up by HwUid and replying
+  with the layout's node name. The layout is the authority on names, and
+  the feature retires the starter-scripts `ActorNameByHwUid` map (the
+  `UPDATE LAYOUT!!` hack in `api_flow_module.py` points the same way).
+- **The thermostat operating-state channels** (`zoneN-<label>-state`,
+  Hubitat attribute `thermostatOperatingState`, telemetry
+  `ThermostatState`, Unitless, polled at 5 s) are in every legacy House0
+  layout and in none of the sema-word ones: the House0 gen's
+  `hardware/hubitat_zone.py` emits temperature and setpoint only. They
+  stay: add the attribute, its data channel and tuning there, a `state`
+  name on the zone channel class in gwsproto, and check that the main
+  line's Hubitat poller takes a non-numeric attribute. Every House0 gen
+  regenerates.

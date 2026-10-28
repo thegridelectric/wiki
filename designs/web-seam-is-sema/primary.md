@@ -1,6 +1,6 @@
 # The web seam is sema
 
-Status: Draft · Pass 0 · Updated 2026-10-26 · Linear: [OPS-622](https://linear.app/gridworks/issue/OPS-622)
+Status: Draft · Pass 0 · Updated 2026-10-28 · Linear: [OPS-622](https://linear.app/gridworks/issue/OPS-622)
 
 **EDD: no** build-out across the journalkeeper, the web-backend, the
 web-frontend and sema, verified by each repo's suite and a page check
@@ -10,14 +10,22 @@ against `tsdb_tap`.
 > readers worked across layout eras and were published. The three data
 > repos stop deciding meaning by channel-name strings and read it from
 > the layout word; every structure the backend serves to the browser is a
-> word on both sides, typed in the browser by a generated snapshot. It
-> waits on the TypeScript emitter in sema (its own design) and on the
-> functional-name vocabulary below.
+> word on both sides, typed in the browser by a generated snapshot. The
+> TypeScript emitter in sema is a spoke of this design; the functional-name
+> vocabulary below is the other dependency.
 
-## Do this next
+**▶ Active spoke: [`realtime-units.md`](realtime-units.md)**
 
-**▶ Do this next.** The TypeScript emitter design in sema, then the
-build order at the end of "The state seam".
+## Spokes
+
+1. **[`realtime-units.md`](realtime-units.md)**: the real-time page
+   converts through the unit the house's `layout.lite` declares, on
+   hand-written zod schemas for the words it reads, tested under Vitest.
+2. [`typescript-emitter.md`](typescript-emitter.md): sema's TypeScript
+   runtime, generated on its `jm/ts` branch, which regenerates the
+   hand-written schemas and the rest of the browser's snapshot.
+3. The state seam build order at the end of "The state seam" (no spoke
+   yet).
 
 ## Open now: spruce pump power
 
@@ -222,9 +230,11 @@ a page reads and drifts from the word.
   `flo.download` (xlsx). `sessions` is an OAuth2 token on purpose.
 - The legacy `backend_api.py` routes have no caller in the frontend.
 
-The structural fix is a TypeScript emitter in sema, so the browser vendors
-its snapshot the way the backend does; until then the `.d.ts` are
-reconciled by hand against the backend's generated classes.
+The structural fix is a TypeScript emitter in sema
+(`typescript-emitter.md`), so the browser vendors its snapshot the way the
+backend does; until then the `.d.ts` are reconciled by hand against the
+backend's generated classes, and the words the real-time page reads are
+hand-written as zod schemas first (`realtime-units.md`).
 
 ### The exception table and the handle map are one relic
 
@@ -318,9 +328,11 @@ reads each from the layout once the plant families are settled:
 
 The realtime seam itself is unit-less: `single.reading` 000 sends
 ChannelName and Value, and the browser divides flows by 100 and converts
-temperatures by hand. The word that fixes it names the channel by Id and
-the reader looks the unit up in the layout, the same lineage-by-Id rule the
-bundle readers follow; which word is a sema question with the spec first.
+temperatures by hand. `single.reading` keeps naming the channel by name:
+it is the scada's word, and the reader resolves the name against the
+house's most recent `layout.lite` to get the unit. The `realtime-units.md`
+spoke builds that lookup. A backend-to-browser word that names the
+channel by Id is open; nothing in this design needs it yet.
 
 The hourly functions in the journal DB have the same gap one layer down,
 unit literals per channel (`unit='GpmTimes100'`), which a derived channel
@@ -362,8 +374,8 @@ backend or the browser:
 2. web-frontend: strips by (node, enum) and the control-mode sequence; the
    regex notes from the comb-through become the layout and
    operational-parameter asks. The types come from the TypeScript emitter
-   (its own sema design) once it exists; until then they are kept by hand
-   to the words.
+   (the `typescript-emitter.md` spoke) once it exists; until then they are
+   kept by hand to the words, as the `realtime-units.md` spoke starts.
 
 ## Open
 

@@ -10,7 +10,7 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-28 — The pump doctors zero their 0-10 V output from the command node <!-- pending commit --> (jm/pump-doctor-dispatch, OPS-628)
+## 2026-10-28 — The pump doctors zero their 0-10 V output from the command node. Used Claude Fable 5.1 (`9dc764b8`, jm/pump-doctor-dispatch, OPS-628)
 
 Why the doctors stopped working: `06dcfc3a` (2026-09-13) deleted the
 scada's analog-dispatch rebuild as uncalled, and the doctors were its one

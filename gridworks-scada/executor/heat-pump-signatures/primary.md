@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-10-01
+Status: Draft · Pass 0 · Updated 2026-10-28
 
 # Heat pump signatures
 
@@ -29,6 +29,7 @@ code per model, keyed on the heat pump `DeviceType` the layout binds to
 | Mitsubishi Ecodan | maple | measured | in start-up | standby only | measured |
 | LG | beech | measured | in start-up | standby only | Open |
 | Samsung AE055FEYMCG | spruce | measured | measured | measured | Open |
+| Arctic MAHRW030ZA | elm | measured, three runs | in start-up | standby only | Open |
 
 "In start-up" and "standby only" mean the numbers sit in
 `startup-signatures.md` and have not been broken out.
@@ -47,5 +48,5 @@ code per model, keyed on the heat pump `DeviceType` the layout binds to
   constants still outside it; the running / stopped power pair does not
   handle defrost. Where it converges, and what the layout names:
   `control-hierarchy.md` "The heat-pump surface".
-- Elm's Arctic high-temp monobloc (MAHRW030ZA (BEH2)-R32) has no
-  `DeviceType` value and no signature yet.
+- The Arctic's minimum modulation in mild weather, its stop lag, and
+  whether its two compressors show as two steps in the start.

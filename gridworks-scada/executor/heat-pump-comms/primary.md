@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-25
+Status: Draft · Pass 0 · Updated 2026-10-28
 
 # Heat pump comms
 
@@ -35,6 +35,7 @@ real unit.
 | Model | Site | Doc | Status |
 | --- | --- | --- | --- |
 | Samsung EHS mono AE055 (control box AE055FEYMCG) | spruce | [`samsung-ae055feymcg.md`](samsung-ae055feymcg.md) | Draft |
+| Arctic MAHRW030ZA R32 high-temperature monobloc | elm | [`arctic-mahrw030za.md`](arctic-mahrw030za.md) | Draft |
 
 ## Open
 
