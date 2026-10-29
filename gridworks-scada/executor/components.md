@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-25
+Status: Draft · Pass 0 · Updated 2026-10-28
 
 # Components, device types, and the config list
 
@@ -248,6 +248,25 @@ layout says the pico should run with. The exchange settles three things.
   only. The flow actor accepts `flow.hall.params` 200 and 101, since
   deployed flow firmware posts 101, and checks identity on 200 alone;
   `flow.reed.params` has no version that carries identity.
+
+- **What the tank pico's threshold is.** A tank pico reads one voltage
+  per depth and reports the depth's temperature channel and micro-volt
+  channel together, so the pair has one asynchronous trigger, authored
+  on the temperature channel (`tankN-depthM-device`, CelsiusTimes100) in
+  the operational word; the micro-volt channel's tuning states no delta.
+  The pico compares micro-volts, so the actor answers the params post
+  with the divider drop across that delta at 130 °F through the
+  component's `ThermistorBeta` (`actors/api_tank_module.py`
+  `micro_volt_capture_delta`): one authored number means the same thing
+  at the middle of the tank range on every module. The pico has one
+  threshold for its depths, so the assembly step
+  (`sema_to_dc.py` `check_tank_capture_deltas`) refuses a micro-volt
+  tuning that states a delta, a temperature channel without one, or
+  depths that disagree, disabled or not. The fleet authors 14 (0.14 °C), about
+  3900 µV at beta 3977. The post says what the pico runs, so the
+  actor sends an Info `Glitch` naming each capture value (period,
+  samples, averages, threshold) on which the post and the answer differ;
+  a fresh pico's first post differs by design.
 
 A pico does not always make the boot post. On a power cycle some picos
 resume readings with no params post, a different set on each boot, so a

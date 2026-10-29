@@ -10,7 +10,57 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-28 — The tank module's capture delta leaves the component word <!-- pending commit --> (jm/capture-delta, OPS-628)
+## 2026-10-29 — gw.house.summary 001 names the scada's commit (`4300024`, OPS-622)
+
+`gw.house.summary` 001, staging, adds the optional `ScadaCommit`
+(`git.commit`): the commit the house's scada announced for its current
+run with `gw.scada.commit`, absent for a scada that announced none, so
+the dashboard's Houses table can show which code each house runs. The
+000 to 001 upgrade adds nothing. The runtime test suite takes a 001
+fixture, the dirty-suffix and short-hash cases and the upgrade. The
+announcement's time is left out: the operating status already dates the
+run.
+
+## 2026-10-29 — Circulators in the layout words (OPS-628)
+
+A layout declares its circulator pumps instead of a consumer inferring
+them from node names. `gw.circulator.role` (versioned enum: `Unknown`,
+`Dist`, `Primary`, `Store`, `Secondary`) and `gw.circulator` (the pump
+node, its role, its running channel, and the optional flow, power and CT
+channels and 0-10 V node; axiom `InputDeclared`: a power or a CT channel
+is present; no relays) enter at staging. `gw.hydronic` gains the required
+`Circulators` list and axiom `CirculatorDistinctness` (no two share a
+pump node), edited in place as a staging word. Each layout word gets
+`CirculatorRunningChannels`: every circulator's running channel is a
+`circulator-running` derived channel reading the declared power or CT
+input, which on `gw.house0.no.sieg` replaces the secondary-pump special
+case (axiom 38). The `ThresholdW` clause leaves the axiom; the threshold
+moves to the operational params in a later change. Fixtures for all three
+layout words gain their circulator lists and running channels, with
+mutation tests per clause.
+
+## 2026-10-29 — adding typescript enum generation (OPS-622)
+
+`src/sema/tools/ts_generation/formats.py` emits `formats.ts`, one zod
+schema per format from the schema's own keywords with no per-format
+template, plus `formats.test.ts` from each format's examples and
+counterexamples; `FORMAT_REFINEMENTS` names the one rule keywords cannot
+state (`market.slot.name`'s 300-second grid). `enums.py` emits one
+file per enum version (newest plain, older `<Class><NNN>`) on the
+generated `enums/semaEnum.ts` base, the counterpart of `gw_str_enum.py`:
+an unknown value of the right primitive decodes to the version's
+default, the wrong primitive is rejected, and an integer enum maps its
+value-description names to its integers. A generated `enums.test.ts`
+proves the rule for every enum;
+`generate_runtime.py` runs the stages over a seed. `ts/` is the Node lane
+(zod, Vitest, TypeScript, Prettier as the single source of style),
+`ts/runtime/` the committed TypeScript runtime,
+`scripts/regenerate_runtime_ts.sh` its regen, and
+`tests/test_ts_generation.py` the whole-tree drift guard plus the
+Vitest run. Nothing under `definitions/` changes. First stage of the emitter
+that lets the browser vendor its snapshot as the Python consumers do.
+
+## 2026-10-28 — The tank module's capture delta leaves the component word (`2c9625b`, dev, OPS-628)
 
 `pico.tank.module.component.gt` 012 and `sim.pico.tank.module.component.gt`
 001 (both staging, edited in place) drop `AsyncCaptureDeltaMicroVolts`:

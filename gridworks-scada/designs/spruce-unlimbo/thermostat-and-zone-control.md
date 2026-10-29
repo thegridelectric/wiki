@@ -1,6 +1,6 @@
 # Zone circuits and the thermostat model (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-10-22 · Linear: OPS-532
+Status: Draft · Pass 0 · Updated 2026-10-28 · Linear: OPS-532
 
 > What this is: how zones, zone-call circuits, thermostats, and their
 > relays are modeled in the layout, and the control model on top — the
@@ -359,6 +359,13 @@ are cosmetic legacy for the proactor port.
   10-09 and the one spruce item left from the beta windows; why the
   learner never values them at spruce is to be read against the belief
   model above.
+- **The Honeywell operating-state channel on House0 layouts.** Beech's
+  legacy layout polls `thermostatOperatingState` into `zone1-down-state`
+  and `zone2-up-state`; the main beech layout (tlayouts `beech_gen.py`)
+  has no state channel and is left that way for now. Decide whether a
+  `HoneywellViaHubitat` circuit declares a `-state` channel, given that
+  `-state` is conditional on thermostat type and the relay pair is the
+  zone authority.
 - Falling-edge learning semantics for a cooling call (the edge
   relates to the setpoint from the other side; the learner needs the
   circuit's mode in hand).

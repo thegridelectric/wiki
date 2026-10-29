@@ -10,7 +10,48 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-28 — the real-time page converts through the layout's units <!-- pending commit --> (OPS-622)
+## 2026-10-29 — local names drop the gw and gw1 prefixes (OPS-622) <!-- pending commit -->
+
+The snapshot's local names follow the scada's seed request: a leading
+`gw1` or `gw` segment is dropped, so `Unit` not `Gw1Unit`, `ServiceMode`
+not `Gw1ServiceMode`, `HouseSummary` not `GwHouseSummary`. Seventeen
+files move and every importer follows; `sema_seed_request.yaml` declares
+the rule under `local_names.strip_prefixes` so the generator emits the
+same names. No existing export in the repo collides with a bare name.
+Typecheck, 72 tests and lint unchanged.
+
+## 2026-10-29 — the browser's sema snapshot: generated formats and enums, every word a zod schema (`59b2920`, OPS-622)
+
+`src/sema/formats.ts` and `src/sema/enums/` are the files sema's
+TypeScript generator emits from `sema_seed_request.yaml`, the browser's
+seed request. Every enum is built on the generated `semaEnum.ts` base,
+so an unknown value decodes to the enum's default as the spec requires
+and as the Python runtime does; the hand tests that expected a rejection
+now expect the default, and the hand `single.machine.state` axiom tests
+enum membership by `.options`. The formats regain the `minLength` and
+36-character bounds the hand file had dropped, and gain `pascal.case`
+and the two ISO 8601 formats.
+
+The seven hand-typed `.d.ts` interfaces in `src/sema/` and the
+`index.ts` that re-exported them are gone. Six words get zod schemas in
+`src/sema/types/`, in the generator's style with their axioms as named
+refinements: `channel.readings.list.item`, `operating.state.sequence`,
+`synced.readings.bundle` 003, `gw.house.operating.status`,
+`gw.house.summary` (its `Layout` is `AnyLayoutLite`) and
+`gw.stopgap.price.forecast`, with the seven enums they reference. The
+three fetches that returned a cast now parse: the summaries response
+through `parseHouseSummaries` in `SessionContext.ts`, which warns and
+drops a house whose summary fails so one seam fault does not blank the
+dashboard; the readings bundle and the price forecast through `.parse`,
+whose failure reaches the page's existing error path. The real-time
+page's own layout parse goes, since the summary's layout is already the
+word. The `layout.lite` 011 and 012 readers gain the deployment fields
+the information page shows (`Strategy`, `SeasonalStorageMode`,
+`TotalStoreTanks`), and the page reads them only from those versions.
+Two new test files cover the words with the registry examples and one
+failing case per axiom. Typecheck green, 72 tests green, lint unchanged.
+
+## 2026-10-28 — the real-time page converts through the layout's units (`774d6dc`, OPS-622)
 
 **What:** `src/sema/displayReadings.ts` converts a snapshot's readings
 through the unit the house's `layout.lite` declares for each channel,
@@ -24,7 +65,8 @@ the power, resistive and pump tables all read the converted readings.
 present when the layout declares `secondary-flow`; the pump table's
 Secondary row keys on it. Tests cover the conversion on elm 013 and
 beech 011, the raw marker, both loop lookups and the primary-flow
-decision in GPM.
+decision in GPM. Checked on the page against elm's live snapshot through
+the dev stack (`experiments/2026-10-28-realtime-units-elm-check/`).
 
 **Why:** elm's 013 layout declares temperatures in CelsiusTimes100 where
 the page assumed WaterTempCTimes1000, so hp-ewt displayed 37.4 F in place

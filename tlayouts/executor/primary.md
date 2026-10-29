@@ -1,6 +1,6 @@
 # tlayouts — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-10-22
+Status: Draft · Pass 0 · Updated 2026-10-28
 
 > What this is: the generators that author every GridWorks hardware layout
 > and its paired operational params as validated Sema words, and the repo
@@ -145,10 +145,13 @@ live record.
   other two, and `emit_primary_flow` derives the third
   (`layout_gen.py:676`).
 - **Async capture deltas are in the channel's encoding.** Temperature
-  channels are `CelsiusTimes100`: tank depths and the sieg-cold sim
-  sensor capture at 200 (2 °C), ADS pipe temps at 50
-  (`hardware/tank_module.py:79`, `hardware/thermistor.py:87`,
-  `house0_sema_gen.py:369`).
+  channels are `CelsiusTimes100`: tank depths capture at
+  `TANK_CAPTURE_DELTA_C_X100` (14, 0.14 °C), the one trigger of the
+  depth's temperature and micro-volt pair, which the scada translates
+  to the pico's micro-volt threshold at 130 °F; the micro-volt tuning
+  states no delta. The sieg-cold sim sensor captures at 200 (2 °C), ADS
+  pipe temps at 50 (`hardware/tank_module.py:68`,
+  `hardware/thermistor.py:87`, `house0_sema_gen.py:369`).
 - **The board is a config axis.** gw108 rev B is the default
   (`layout_gen.py:232`); beech, maple, oak, fir, elm and the House0 sim
   pairs declare the Krida record, the sim pairs with its sim twin.

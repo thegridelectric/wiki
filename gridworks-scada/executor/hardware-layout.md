@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-10-28
+Status: Draft · Pass 0 · Updated 2026-10-29
 
 # The hardware layout
 
@@ -392,16 +392,22 @@ What the exchanger adds, in Nolan's names:
 - RequiredSensing adds the house side of the exchanger: `secondary-flow`,
   `secondary-lwt`, `secondary-ewt` (one pico BTU meter, `secondary-btu`,
   as at spruce) and `secondary-pump-pwr`.
-- A SecondaryPumpRunningChannel axiom requires exactly one DerivedChannel
-  `secondary-pump-running`, Strategy `circulator-running`, input
-  `["secondary-pump-pwr"]`, Unitless, with `Parameters.ThresholdW`: 1
-  while the pump draws more than the threshold, 0 otherwise. It is the
-  pump's heat-call, the signal hp-boss reads to know the pump answered
-  the relay. The BTU pico's CT (`secondary-pump-ct`) joins as a second
-  input once a CT reads correctly on a BTU meter. The strategy sits in
-  the derived generator beside `heat-call`: one power input, emits 1 or
+- The layout declares its circulator pumps: `Hydronic.Circulators` is a
+  list of `gw.circulator` (pump node, `gw.circulator.role` Dist, Primary,
+  Store or Secondary, its `<pump>-running` channel, and the optional flow
+  channel, power channel, CT channel and 0-10 V node; no relays), and no
+  two entries share a pump node. The CirculatorRunningChannels axiom on
+  every layout word requires each circulator's running channel to be a
+  DerivedChannel on Strategy `circulator-running` from
+  `derived-generator`, Unitless, reading the declared power channel, else
+  the CT channel: 1 while the input exceeds `Parameters.ThresholdW`, 0
+  otherwise. It is the pump's heat-call; `secondary-pump-running` is the
+  signal hp-boss reads to know the pump answered the relay. The strategy
+  sits in the derived generator beside `heat-call`: one input, emits 1 or
   0 on change and on the period; the name says circulator so it is never
-  read as the heat pump.
+  read as the heat pump. A running channel whose input is disabled is
+  disabled with it (elm's `primary-pump-running` over the unit-owned
+  pump's unread register).
 - A monobloc has no indoor unit and no indoor control box, so the layout
   has no `hp-idu` node and no `hp-idu-pwr` channel; the word names
   neither. The unit runs its own primary pump (`PrimaryPumpOwner`
@@ -928,9 +934,9 @@ the level, 4 W at 2 V to 48 W at 10 V, up and down).
   loop with nothing to say so; `primary-pump-pwr` no longer required when
   `PrimaryPumpOwner` is `HeatPump` (on a unit-owned pump it can only be
   disabled on a register nothing reads); a `circulator-running`-style
-  derived channel for every signal power channel (the pumps, the
-  elements), each required by its word, so on-or-off is a layout fact the
-  actors read rather than a threshold in code.
+  derived channel for the elements, required by its word, the way the
+  pumps' running channels are; and the running threshold on the
+  operational params instead of `Parameters.ThresholdW`.
 - **The scada should name a pico from the layout by HwUid**: answer any
   flow-module params post by looking the pico up by HwUid and replying
   with the layout's node name. The layout is the authority on names, and

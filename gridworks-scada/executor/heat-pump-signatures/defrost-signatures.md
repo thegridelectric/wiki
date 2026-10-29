@@ -7,6 +7,9 @@ reads, per heat pump model, so that code deciding "the heat pump is off" or
 "the heat pump has lift" can tell a defrost from either. One section per
 model as each is measured.
 
+The Arctic at elm is in
+[`defrost-signatures/arctic-high-temp.md`](defrost-signatures/arctic-high-temp.md).
+
 A defrost is the heat pump running its cycle in reverse to melt ice off the
 outdoor coil. It takes that heat from the water loop: leaving water comes
 back colder than entering water, and electrical power falls far under its

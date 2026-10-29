@@ -3,6 +3,14 @@
 One entry per `starter-scripts` commit (git = the what, this = the why).
 Entries before 2026-08-23 live in git history only.
 
+## 2026-10-28 — the pico API for tank modules mirrors params back (`2004217`, dev, OPS-628)
+
+The tank params handler answered every post with
+`AsyncCaptureDeltaMicroVolts = 2000`, so observing a pico with the API
+reset the threshold the scada had given it. It now answers the posted
+values, setting only the capture offset, so a capture run with the scada
+stopped shows what each pico runs and leaves it running that.
+
 ## 2026-10-27 — elm_hack.py: watch the secondary flow on legacy (`7c7fb63`, dev, OPS-628)
 
 **What:** `elm_hack.py` subscribes to the scada's snapshot on the pi's

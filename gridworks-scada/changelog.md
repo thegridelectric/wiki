@@ -10,6 +10,26 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-29 — Circulators in the layout words (jm/circulators, OPS-628) <!-- pending commit -->
+
+The layout now declares its pumps instead of a consumer inferring them
+from node names. gwsproto mirrors sema's `gw.circulator.role` enum
+(`CirculatorRole`) and `gw.circulator` type (`Circulator`, axiom
+`InputDeclared`), `Hydronic` gains the required `Circulators` list and
+axiom 5 `CirculatorDistinctness`, and the three layout twins get
+`CirculatorRunningChannels` through one shared helper
+(`type_helpers/circulator_axioms.py`): every circulator's running channel
+is a `circulator-running` DerivedChannel from `derived-generator` reading
+the declared power channel, else the CT channel. On `House0NoSiegLayout`
+it replaces axiom 38's secondary-pump special case; `House0Layout` gets
+axiom 39 and `NolanLayout` axiom 36. `HydronicSpaceheatChannelNames`
+names the four `<pump>-running` channels. The sema snapshot is regenerated
+with the two new words pinned, the four test layout pairs are regenerated
+from tlayouts with their circulator lists and running channels, and the
+power-meter test now expects the pump power channels among the meter's
+derived inputs. `ThresholdW` stays a parameter the running channel reads
+until the operational params carry the threshold.
+
 ## 2026-10-28 — The pump doctors zero their 0-10 V output from the command node. Used Claude Fable 5.1 (`9dc764b8`, jm/pump-doctor-dispatch, OPS-628)
 
 Why the doctors stopped working: `06dcfc3a` (2026-09-13) deleted the
@@ -35,15 +55,39 @@ pre-patch doctors and on `bad_sender` against `f0fa7e3a`. The account of
 why the legacy form worked and what the procedures are inside the
 command tree is the new executor `procedural-interrupts.md`.
 
-## 2026-10-28 — test: a tank pico's params post is answered with the ops word's micro-volt delta <!-- pending commit --> (jm/pico-capture-delta, OPS-628)
+## 2026-10-28 — A tank pico's params post that differs from the answer sends an Info glitch (`13041021`, jm/more-patches, OPS-628)
 
-The failing test first. `api_tank_module.py` answers a params post with
-`CapturePeriodS` from the operational word's `capture.tuning` and
-`AsyncCaptureDeltaMicroVolts` from the component, so the delta in the
-ops word never reaches a pico. The test boots the orange sim pair with
-tank1's micro-volt tunings at 3000 µV against a component at 2000 µV
-and asserts the answer says 3000. It fails on 2000 until the actor
-reads the tuning.
+A pico posts at boot the capture values it runs and is answered with the
+layout's; nothing compared the two, so a pico still on an old threshold
+was invisible. The tank actor now sends an Info glitch naming each of
+CapturePeriodS, Samples, NumSampleAverages and AsyncCaptureDeltaMicroVolts
+that the post and the answer disagree on, with both values in the
+details. A fresh pico's first post differs by design (the firmware
+defaults), which is why the level is Info. The answered values come from
+one place, `answered_params`, used by the handler and the check.
+
+## 2026-10-28 — The tank pico's capture delta is authored in temperature and translated at 130 °F (`6ecb3b04`, main via PR #592 `7627d030`, OPS-628)
+
+**Why.** The component words lost `AsyncCaptureDeltaMicroVolts` in sema
+(`2c9625b`): how often a pico reports is operational, and a human gets a
+tenth of a degree right where a micro-volt count means nothing without
+the module's beta. The scada now reads the delta from the ops word's
+`tankN-depthM-device` tunings (CelsiusTimes100) and answers a tank pico's
+params post with the divider drop across it at 130 °F through the
+component's beta, so one authored number means the same thing on every
+module. The assembly step refuses a micro-volt tuning that states a
+delta, a temperature channel without one, or depths that disagree,
+since the pico has one threshold. The snapshot is regenerated,
+the two twins and their tests lose the field, the four fixture pairs
+author 14 (about 3900 µV at beta 3977, near the 2000 µV the fleet runs)
+and no micro-volt delta. tlayouts follows on its own branch.
+
+Also removed: `tests/test_misc/test_roll_ltn.py` and
+`tests/test_misc/test_roll_compare.py`, the tests of the temporary
+`scripts/roll.sh` and its compare rules. The script stays until the
+layout words are published; its tests were a third of the suite's slow
+tail (six of the twenty-five slowest tests, about 50 s) for a tool that
+is leaving.
 
 ## 2026-10-28 — Fix pump doctors (`f0fa7e3a`, main via PR #590, OPS-628)
 

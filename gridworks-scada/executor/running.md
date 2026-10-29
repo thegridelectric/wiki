@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-10-26
+Status: Draft · Pass 0 · Updated 2026-10-28
 
 # Running an LTN + SCADA from a checkout (cold start)
 
@@ -122,9 +122,8 @@ pushed SHA. The LTN is a checkout of this repo on the `ltn` box
 `to` and `back` fast-forward both checkouts and restart the LTN's unit
 before the pi's service, and `check` compares both against the line's
 record. The unit runs `LtnApp.main` with the dashboard off
-(`LTN_DASHBOARD__PRINT_GUI=false`); the tests are
-`tests/test_misc/test_roll_ltn.py`, with a stub `ssh` for the boxes.
-The lines are `main` (the spruce-unlimbo line), `legacy` (the line the
+(`LTN_DASHBOARD__PRINT_GUI=false`). The script is temporary and has no
+tests. The lines are `main` (the spruce-unlimbo line), `legacy` (the line the
 House0 houses ran before it, with the winter's fixes),
 `td/generalized-flo` (oak's LTN work) and `actual-spruce` (spruce's
 winter hack). `forward` goes to `main`; `back` goes to the house's
@@ -162,8 +161,7 @@ outside its `DispatchHold` block, which the scada writes itself (the
 cold latch sets `ServiceContractBroken` in
 `actors/scada.py` `process_break_service_contract`; an operator hold
 sets `OperatorHold`); the other lines do not read the ops word and the
-file is left alone. The rules are `scripts/roll_compare.py`, with tests
-in `tests/test_misc/test_roll_compare.py`. A pi whose file differs shows
+file is left alone. The rules are `scripts/roll_compare.py`. A pi whose file differs shows
 the differing paths and takes the committed file only on a `y`, with
 its own kept as `<stem>.<date>-pre-roll.json`. Every house but spruce
 has a second pi, `<house>2`, whose `gwspaceheat2` reads

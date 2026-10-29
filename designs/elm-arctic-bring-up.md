@@ -26,8 +26,8 @@ Elm runs on scada `main` with the committed tlayouts pair since
 `experiments/2026-10-27-elm-arctic-field-check/`. **Next: run step 7's
 harness on the journal window 2026-10-27 22:49 to 2026-10-28 07:00 ET**,
 so the pass criteria are a re-runnable verdict and not a one-off read,
-and record the run in the folder's README. Then the tank capture delta
-below, then energy metering.
+and record the run in the folder's README. Then the merge and roll of the
+tank capture delta below, then energy metering.
 
 ## The plant at elm
 
@@ -96,22 +96,36 @@ one authored number means the same thing at the middle of the tank range
 on every module. The pair has one trigger: the micro-volt channel's
 tuning states no delta, the ops word says so, and the scada refuses one
 at assembly. The component word loses `AsyncCaptureDeltaMicroVolts`; the
-params word keeps it, since it is what the pico is told. Authored 8
-(0.08 °C), which answers 4000 µV, judged above the module's noise; the
-pump-power and noise table in Open is the measurement that confirms or
-moves it. Temperature rather than microvolts because a human gets a
+params word keeps it, since it is what the pico is told. Authored 14
+(0.14 °C), which answers about 3900 µV through the module's 5.65 kΩ
+divider at beta 3977, judged above the module's noise; the pump-power
+and noise table in Open is the measurement that confirms or moves it. Temperature rather than microvolts because a human gets a
 tenth of a degree right and checks it against a thermometer. The
 firmware applies the threshold it is answered with
 (`tank_module_3_main.py:354`, strictly greater, on 1000-sample reads
 averaged 10 or 30 times) and is unchanged.
 
-The scada side, on `jm/tank-capture-delta` with bulk-on: regenerate the
-snapshot, drop the field from the two twins and four fixture pairs,
-author 8 on the temperature tunings and no delta on the micro-volt ones,
-add the translation in `api_tank_module.py` and the assembly checks in
-`sema_to_dc.py` (no micro-volt delta; the three temperature deltas
-present and equal), with their tests. tlayouts the same on a branch once
-its `jm/beech-main` tree is dealt with.
+The scada side is `6ecb3b04` on scada `jm/tank-capture-delta`:
+snapshot regenerated, the two twins and the four fixture pairs without
+the field, the fixtures stating 14 on the temperature tunings and no
+micro-volt delta, `check_tank_capture_deltas` in `sema_to_dc.py` (no
+micro-volt delta; the three temperature deltas present and equal,
+disabled or not) and `micro_volt_capture_delta` in `api_tank_module.py`,
+each with its tests. The tlayouts side is built on its own
+`jm/tank-capture-delta` and awaits its commit: `hardware/tank_module.py`
+states 14 and no micro-volt delta, and the elm, beech, spruce and sim
+pairs are regenerated. Both go to the boxes together: a box takes the
+new pair only with the new scada, since the old scada requires the
+component field and the new scada refuses the old pair's micro-volt
+deltas. Both are on main and elm rolled to them 2026-10-28 18:32 ET.
+The tank picos post params only at boot, so they run the old 2000 µV
+until cycled. Captured 2026-10-28 18:45 ET through the starter-scripts
+API (`2004217`, which mirrors a pico's params back) after one bus cycle
+with the scada stopped: buffer, tank1, tank2 and tank3 each posted
+AsyncCaptureDeltaMicroVolts 3882, CapturePeriodS 60, Samples 1000,
+NumSampleAverages 30. The Info glitch on a post that differs from the
+answer is scada `13041021` on `jm/more-patches`. **Next:** merge that
+branch and pull elm; then energy metering.
 
 The ops word has no structure that groups a pico's six channels, so
 every rule about the group is an assembly check. A per-component tuning
@@ -142,6 +156,47 @@ not a transcript:
 The harness is the reproducer the design's `EDD: yes` names. A failing
 check gets its local test first, per the field-bug rule.
 
+## Circulators in the layout words
+
+Each circulator a layout has gets a required running channel: a
+`<pump>-running` derived channel on the `circulator-running` strategy,
+reading 1 while its input exceeds a threshold. Elm's
+`secondary-pump-running` (gw.house0.no.sieg Axiom 38) is the first case.
+The rule covers all three layout words (`gw.house0.layout`,
+`gw.house0.no.sieg`, `gw.nolan.layout`).
+
+- **A `gw.circulator` word, listed in `gw.hydronic` as `Circulators`**,
+  the way `ZoneCallCircuits` lists the zone circuits. A circulator is
+  declared, so a consumer (the scada, the web frontend) finds the pumps
+  and their channels by reading the list. Inferring them from node names
+  is the name matching the web seam rules out.
+- **First-pass fields:** `PumpNodeName`, `Role` (an enum: `Dist`,
+  `Primary`, `Store`, `Secondary`), `RunningChannelName`, and the
+  optional `PowerChannelName`, `CtChannelName` and `ZeroTenNodeName`.
+  The input is the eGauge power channel or the pump CT on the loop's BTU
+  meter, the way a heat call reads an opto-coupler or the eGauge; the
+  power channels are optional so a house without a pump CT on the
+  eGauge still has a running channel.
+- **No relays in the first pass.** Relay control differs by pump: the
+  primary pump has a failsafe DoubleThrow (heat pump or scada) and a
+  scada ops relay, the store pump has one on/off relay, and the dist pump
+  has none because the zone control box runs it from the zone calls.
+  LocalControl and hp-boss already address those relays by name, and
+  running-or-not and the frontend display need none of them. The later
+  version adds `FailsafeRelayNode` and `OpsRelayNode` (the zone circuit
+  names, with failsafe implying ops) and a `Controller` enum that
+  replaces `PrimaryPumpOwner`; the version bump is the accepted cost of
+  a smaller first word. Elm's `secondary-pump-hack-relay` stays out of
+  the word because the hack wiring is temporary.
+- **The threshold lives in the operational params**, one value per input
+  kind (watts for a power channel, the CT's own unit for a CT channel).
+  No debounce: off jitter is −1..1 W with rare single samples near 5 W,
+  and the slowest running circulator draws 4–8 W, so 4 W separates them.
+  A pump's first second reads 1–2 W (beech admin test, 2026-10-28: store
+  7 → 2 → 22 W, dist 5 → 1 → 10 W), which gives one brief extra
+  on-off-on that nothing acts on. The fleet table behind these numbers is
+  on OPS-636.
+
 ## Open
 
 Field work at elm:
@@ -162,11 +217,12 @@ Field work at elm:
 
 Measurement and build still to do:
 
-- A table, from the journal DB, of every pump power channel in every
-  house: the lowest power that is plainly "on", and the jitter around
-  zero while the pump is off. The `circulator-running` threshold, the
-  eGauge capture deltas for the pumps and the tank capture delta's
-  noise margin come from this table.
+- `gw.circulator`, `gw.circulator.role` and `gw.hydronic.Circulators` are
+  in sema at staging with the running-channel axiom on all three layout
+  words, mirrored in gwsproto, and every tlayouts gen declares its
+  circulators with a `<pump>-running` channel each (OPS-628,
+  2026-10-29). Still to do: the operational params' threshold field,
+  which takes the `ThresholdW` parameter off the running channel.
 - Energy metering at elm: the eGauge reports power only today; the run
   wants watt-hours for the heat pump and the pumps so a cycle's
   electricity is a journal fact and not an integral over captured

@@ -29,7 +29,7 @@ code per model, keyed on the heat pump `DeviceType` the layout binds to
 | Mitsubishi Ecodan | maple | measured | in start-up | standby only | measured |
 | LG | beech | measured | in start-up | standby only | Open |
 | Samsung AE055FEYMCG | spruce | measured | measured | measured | Open |
-| Arctic MAHRW030ZA | elm | measured, three runs | in start-up | standby only | Open |
+| Arctic MAHRW030ZA | elm | measured, three runs | in start-up | standby only | measured, six defrosts ([`defrost-signatures/arctic-high-temp.md`](defrost-signatures/arctic-high-temp.md)) |
 
 "In start-up" and "standby only" mean the numbers sit in
 `startup-signatures.md` and have not been broken out.

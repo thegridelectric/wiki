@@ -1,6 +1,6 @@
 # gridworks-web-backend — rebuild spec
 
-Status: Draft · Pass 0 · Updated 2026-10-27
+Status: Draft · Pass 0 · Updated 2026-10-28
 
 > Faithful-rebuild hub for gridworks-web-backend: the two services behind
 > the fleet web page, the read API over the journal DB and the realtime
@@ -130,6 +130,8 @@ dashboard with OPS-600.
 
 - [`visualizer.md`](visualizer.md): the visualizer page, one section per
   plot: what it shows, its word and its route.
+- [`realtime.md`](realtime.md): the real-time page: the words it reads,
+  a reading's unit from the layout, what the layout decides on the page.
 
 Candidates: the API surface (routes and the readings and rollup queries
 behind them) and the gateway (consumer, house state, browser messages).

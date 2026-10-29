@@ -14,16 +14,17 @@ against `tsdb_tap`.
 > TypeScript emitter in sema is a spoke of this design; the functional-name
 > vocabulary below is the other dependency.
 
-**▶ Active spoke: [`realtime-units.md`](realtime-units.md)**
+**▶ Active spoke: [`typescript-emitter.md`](typescript-emitter.md)**
 
 ## Spokes
 
-1. **[`realtime-units.md`](realtime-units.md)**: the real-time page
-   converts through the unit the house's `layout.lite` declares, on
-   hand-written zod schemas for the words it reads, tested under Vitest.
-2. [`typescript-emitter.md`](typescript-emitter.md): sema's TypeScript
-   runtime, generated on its `jm/ts` branch, which regenerates the
-   hand-written schemas and the rest of the browser's snapshot.
+1. ✅ DONE realtime-units: the real-time page converts through the unit
+   the house's `layout.lite` declares, on hand-written zod schemas for
+   the words it reads, tested under Vitest (gridworks-web-frontend
+   PR 16; gridworks-web-backend executor `realtime.md`).
+2. **[`typescript-emitter.md`](typescript-emitter.md)**: sema's
+   TypeScript runtime, generated on its `jm/ts` branch, which regenerates
+   the hand-written schemas and the rest of the browser's snapshot.
 3. The state seam build order at the end of "The state seam" (no spoke
    yet).
 
@@ -234,7 +235,7 @@ The structural fix is a TypeScript emitter in sema
 (`typescript-emitter.md`), so the browser vendors its snapshot the way the
 backend does; until then the `.d.ts` are reconciled by hand against the
 backend's generated classes, and the words the real-time page reads are
-hand-written as zod schemas first (`realtime-units.md`).
+hand-written zod schemas in `gridworks-web-frontend/src/sema/`.
 
 ### The exception table and the handle map are one relic
 
@@ -330,8 +331,8 @@ The realtime seam itself is unit-less: `single.reading` 000 sends
 ChannelName and Value, and the browser divides flows by 100 and converts
 temperatures by hand. `single.reading` keeps naming the channel by name:
 it is the scada's word, and the reader resolves the name against the
-house's most recent `layout.lite` to get the unit. The `realtime-units.md`
-spoke builds that lookup. A backend-to-browser word that names the
+house's most recent `layout.lite` to get the unit (gridworks-web-backend
+executor `realtime.md`). A backend-to-browser word that names the
 channel by Id is open; nothing in this design needs it yet.
 
 The hourly functions in the journal DB have the same gap one layer down,
@@ -375,7 +376,7 @@ backend or the browser:
    regex notes from the comb-through become the layout and
    operational-parameter asks. The types come from the TypeScript emitter
    (the `typescript-emitter.md` spoke) once it exists; until then they are
-   kept by hand to the words, as the `realtime-units.md` spoke starts.
+   kept by hand to the words, as the real-time page's are.
 
 ## Open
 

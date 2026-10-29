@@ -10,7 +10,79 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-28 — beech gen spells names from gwsproto; the pair is gw.house0.layout.json <!-- pending commit --> (jm/beech-main, OPS-628)
+<!-- pending commit -->
+## 2026-10-29 — Circulators in the layout words (jm/circulators, OPS-628)
+
+Every gen declares its circulator pumps (`circulators`, a list of
+`CirculatorSpec`: node, role, running threshold, power or CT channel,
+flow channel and 0-10 V node) and the shared gen emits
+`Hydronic.Circulators` and one `<pump>-running` channel per pump on the
+`circulator-running` strategy. The House0 gen's
+`secondary_pump_running_threshold_w` axis and `emit_secondary_pump_running`
+leave: the secondary pump is one circulator among the others. A running
+channel whose declared input is disabled is disabled with it, so elm's
+`primary-pump-running` (over the unit-owned pump's unread register) and
+spruce's dist, primary and store running channels (their eGauge registers
+are disabled) are declared and disabled rather than live over nothing.
+Thresholds are 4 W on the deployed homes, the fleet value from OPS-636,
+and 20 W on the hazel sim, its existing value. The sema snapshot is
+regenerated; every output is regenerated, and the four sim pairs copied
+into the scada's `tests/config`. Elm's secondary pump 0-10 V output
+comes down to 3.3 V (`PowerOnVoltsTimesTen` 40 → 33).
+
+## 2026-10-29 — change elm's IntermediateRswtF (`505dc05`, main)
+
+Elm's heating curve now uses 120 °F at the intermediate point
+(`IntermediateRswtF` 100 → 120), at 1.5 kW. On 2026-10-29 the setting
+was raised to 120 °F by a hand edit on the pi, and the gen adopts that
+value so the authored params match what elm runs. With this change the
+regenerated `gw.house0.no.sieg.operational.params.json` is identical to
+the pi's `operational-params.json`.
+
+## 2026-10-28 — update pump thresholds (`c06412c`, main, OPS-636)
+
+A week of pump power across the fleet (OPS-636) puts off jitter at −1..1 W
+with rare single samples near 5 W, and the slowest running circulators at
+4–8 W. Two settings follow from it.
+
+Elm's secondary pump counts as running above 4 W (`ThresholdW` 5 → 4).
+Its pump runs at 12–13 W, so 5 W already worked; 4 W is the value
+proposed as the fleet default, tried first on the one house that has a
+`secondary-pump-running` channel. `elm.uploaded.json` is the gen's fresh
+fetch of the elm pi's running layout, which no longer states
+`AsyncCaptureDeltaMicroVolts`.
+
+Beech's dist, primary and store pump power capture on a 4 W change. On
+the legacy layout they capture on 1 W, so a pump at rest toggling
+between −1 and 0 W sends a sample each second (275k a week from dist
+alone); 4 W sits above that jitter and below the 7–15 W beech's
+circulators draw when running. The beech main layout was checked
+against the legacy one the pi runs: GNodeIds (which also match the
+registry), eGauge registers, relay indices and wiring, pico ids and
+calibrations, Hubitat, the DFRobot outputs (0x5E A/B, 0x5F A) and the
+ADS terminals and thermistor types agree. The intended changes are the
+sieg loop on HoldFullSend, relay 7 (`thermistor-common-relay`) removed,
+temperature capture deltas restated in the new units, the zone
+failsafe event `change.zone.call.source`, and no Honeywell
+operating-state channels (`zone1-down-state`, `zone2-up-state`), whose
+place on a House0 layout is an open question on OPS-532.
+
+## 2026-10-28 — The tank pico's capture delta is authored in temperature (`9c99cc6`, main, OPS-628)
+
+The tank-module generator follows sema `2c9625b` and scada `6ecb3b04`:
+the component words have no `AsyncCaptureDeltaMicroVolts`, every depth
+temperature tuning states `TANK_CAPTURE_DELTA_C_X100` (14, 0.14 °C,
+about 3900 µV at 130 °F on the module's divider) and the micro-volt
+tunings state no delta, since the scada translates the temperature
+delta to the pico's threshold and refuses a micro-volt one at assembly.
+Snapshot regenerated; the elm, beech and spruce pairs and the orange
+and willow sim pairs regenerated, each differing from its predecessor
+in those lines alone; the sim pairs match the scada fixtures byte for
+byte. A box takes the new pair only with a scada at `6ecb3b04` or
+later: the old scada requires the component field, and the new scada
+refuses the old pair's micro-volt deltas.
+
+## 2026-10-28 — WIP beech layotu (`bf5f753`, main, OPS-628)
 
 Beech's generator takes elm's shape: names and enum values from
 gwsproto and the snapshot, zones composed from one list, the pair
