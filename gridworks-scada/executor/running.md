@@ -162,8 +162,10 @@ cold latch sets `ServiceContractBroken` in
 `actors/scada.py` `process_break_service_contract`; an operator hold
 sets `OperatorHold`); the other lines do not read the ops word and the
 file is left alone. The rules are `scripts/roll_compare.py`. A pi whose file differs shows
-the differing paths and takes the committed file only on a `y`, with
-its own kept as `<stem>.<date>-pre-roll.json`. Every house but spruce
+the differing paths and takes the committed file only on a `y`. The
+box's own file is not kept, since the committed JSON of the line it
+came from is its record, and any `<stem>.<date>-pre-roll.json` an
+earlier roll left is removed. Every house but spruce
 has a second pi, `<house>2`, whose `gwspaceheat2` reads
 `~/.config/gridworks/scada2/`. A second pi is left alone by a roll: its
 checkout does not move and its service is not restarted, and its layout
@@ -176,17 +178,26 @@ not had acked (`~/.local/share/gridworks/scada/event/`) and re-sends
 them on each link-up; an event one line's scada wrote is never acked by
 the other line's LTN, and the link flaps on it at every ack timeout,
 sending a `layout.lite` on each return to active. So the roll stops the
-service, sets the event folder's contents aside as
-`event.<date>-pre-roll-to-<branch>/`, and starts it. Verified on spruce
+service, removes the event folder's contents and any
+`event.<date>-pre-roll-to-*` folder an earlier roll set aside, and
+starts it; the journal has every event the LTN acked, and an unacked
+event of the line being left is lost with the line. Verified on spruce
 2026-10-22 (`experiments/2026-10-22-spruce-roll-rehearsal/`), which is
 also where a branch scada paired with the other line's LTN was seen to
 flap for as long as it ran.
 
 Two guards stop the roll before the checkout: a difference in the
 runtime requirements between the SHAs (`requirements/base.txt`,
-`requirements/drivers.txt` and the packages' `pyproject.toml`; the venv
-is rebuilt by hand on the box with `tools/mkenv.sh`), and a difference
-in `service/` unit files (root reinstalls them with `service/install`).
+`requirements/drivers.txt` byte for byte, and the packages'
+`pyproject.toml` outside their version line and their pins on the
+sibling editable packages, `scripts/roll_compare.py reqs`; the venv is
+rebuilt by hand on the box with `tools/mkenv.sh`), and a difference in
+`service/` unit files (root reinstalls them with `service/install`).
+The requirements comparison runs on the laptop's checkout after a
+fetch, since a box runs only pushed SHAs. The package rule is what lets
+a house roll between `main` and `legacy`, whose gwsproto and admin
+packages differ by release only (1.3.0 and 1.3.1 against 1.2.3 and
+1.2.5).
 The test and dev requirements are not compared: nothing the box runs
 imports them, and a house rolls between lines without touching its
 venv. Spruce's

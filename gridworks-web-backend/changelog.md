@@ -10,6 +10,26 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-10-29 — the house summary states the scada's commit and where it stands against main (`6c877d2`, OPS-622)
+
+**What:** the summaries query joins the newest `gw.scada.commit` each
+house's scada announced and the route fills `ScadaCommit` on
+`gw.house.summary` 002, plus `ScadaCommitStanding`: GitHub's compare of
+`main...<commit>` on `BACKEND_SCADA_REPO` (a required setting), as
+`gw.commit.standing`. `-dirty` is Dirty without asking; identical is
+OnMainHead, behind is BehindMain, ahead or diverged is OffMain; a 404 or
+an unreachable GitHub is Unknown. One call per distinct commit across the
+fleet, cached five minutes in the process. A scada that announced none
+leaves both fields out. The api snapshot takes 002 and the enum, both
+published. Tests: beech announces twice and the
+newer hash wins with its standing; oak announces none; the resolver's
+mapping, Unknown on outage, and the cache across requests.
+
+**Why:** the dashboard's Houses card shows a green check for a scada on
+main's head and the short hash otherwise, so the fleet's running code is
+read off the page rather than off each box. The browser renders the
+standing the backend derived; it does not compare hashes itself.
+
 ## 2026-10-25 — price forecast route for the visualizer (`cd793d3`, OPS-623)
 
 **What:** `GET /api/v2/price-forecast/latest`, behind the login dependency,

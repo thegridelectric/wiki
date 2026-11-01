@@ -10,9 +10,44 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-29 — gw.house.summary 001 names the scada's commit (`4300024`, OPS-622)
+## 2026-10-29 — Add gw.commit.standing (`0116c4f`, OPS-622)
 
-`gw.house.summary` 001, staging, adds the optional `ScadaCommit`
+**What:** `gw.commit.standing` 000, a versioned enum: Unknown (default),
+OnMainHead, BehindMain, OffMain, Dirty. `gw.house.summary` 002 adds
+optional `ScadaCommitStanding` on it, with axiom 2: absent when
+`ScadaCommit` is absent. Axiom templates, the 001→002 upgrade, a v002
+fixture and tests; 000's upgrade now returns the 001 class, so its test
+chains two upgrades. Both words promoted to published in the same squash,
+bottom-up, pins recorded, so the web backend's api snapshot stays
+published-only on `main`.
+
+**Why:** the dashboard shows a green check for a scada on main's head
+and the short hash otherwise. The backend asks GitHub where each
+announced commit stands and sends the answer as data, so the browser
+renders a standing rather than comparing hashes itself. Unknown is the
+default because an unrecognized standing asserts nothing.
+
+## 2026-10-29 — gw.command.interface 001 and scada.control.capabilities 003: AdminMayTake (`37c124e`, OPS-613)
+
+**What:** `gw.command.interface` 001 adds the required boolean
+`AdminMayTake`; `scada.control.capabilities` 003 moves its
+interfaces to 001 and its cover axiom admits an owned relay whose
+interface has `AdminMayTake` true, with clause c tying the flag to a
+relay node. Upgrade and axiom templates, regenerated runtime, mutation
+tests for both new versions. Both are published in the same commit,
+bottom-up, with their content-hash pins.
+
+**Why:** the admin panel builds a row's buttons from the interface
+entries, and the cover rule gave an owned relay none, so the secondary
+circulator under hp-boss could not be asked for from the panel. The flag
+is the declared exception: the scada lists the circulator's interface
+while hp-boss still owns it, and the panel offers the relay pair without
+knowing the plant. Both prior versions are published, so each change is
+a new version.
+
+## 2026-10-29 — gw.house.summary 001 names the scada's commit (`45b79da`, OPS-622)
+
+`gw.house.summary` 001, published, adds the optional `ScadaCommit`
 (`git.commit`): the commit the house's scada announced for its current
 run with `gw.scada.commit`, absent for a scada that announced none, so
 the dashboard's Houses table can show which code each house runs. The

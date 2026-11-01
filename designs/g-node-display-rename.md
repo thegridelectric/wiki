@@ -1,6 +1,6 @@
 # A command that changes a GNode's display name
 
-Status: Draft · Pass 0 · Updated 2026-10-29
+Status: Draft · Pass 0 · Updated 2026-10-29 · Linear: OPS-640
 
 **EDD: yes** the verification is one real change on the production
 registry: the command sets beech's TerminalAsset display name, the

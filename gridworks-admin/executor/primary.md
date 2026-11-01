@@ -203,20 +203,26 @@ layout.lite's version and broke the TUI until it was upgraded;
 capabilities is the stable, control-focused projection the admin
 depends on across layout churn. The client never reads `layout.lite`.
 
-**The word, `001` (staging;
-`sema/definitions/types/scada.control.capabilities/001.yaml`).**
+**The word, `003` (staging;
+`sema/definitions/types/scada.control.capabilities/003.yaml`).**
 `RelayNodes`, `DacNodes` and `CommandNodes` as `spaceheat.node.gt`,
 `ControlChannels` as `data.channel.gt`, and `CommandInterfaces`, one
-`gw.command.interface/000` per commandable node: `ActorName`,
-`EventType` (an enum word), `StateType` (an enum word) and `Commands`,
-the `{Event, ToState}` pairs the node takes. Axiom 4,
-CommandInterfacesCoverTheTree, is **the cover rule read off handles**:
-an interface exists for exactly the relays and command nodes whose
-handle does not extend a command node's handle. A relay owned by an
-interior command node (`vdc-relay` under the pico-cycler,
+`gw.command.interface/001` per commandable node: `ActorName`,
+`EventType` (an enum word), `StateType` (an enum word), `Commands`,
+the `{Event, ToState}` pairs the node takes, and `AdminMayTake`,
+whether admin may take the node out from under its owner for an admin
+session. Axiom 4, CommandInterfacesCoverTheTree, is **the cover rule
+read off handles**: an interface exists for exactly the relays and
+command nodes whose handle does not extend a command node's handle,
+plus the relays whose interface has `AdminMayTake` true. A relay owned
+by an interior command node (`vdc-relay` under the pico-cycler,
 `hp-scada-ops-relay` under hp-boss) keeps its state row and no
-interface; the operator commands it through its owner. DAC nodes take
-an analog value and carry no interface. The scada builds the cover from
+interface; the operator commands it through its owner. The secondary
+pump under hp-boss is the flagged case: it is listed with the relay
+pair while owned, and the scada moves it under admin on the first
+event (scada executor `control-hierarchy.md` "Fixed sub-trees vs
+floating actuators"). DAC nodes take an analog value and have no
+interface. The scada builds the cover from
 its live handles (`gw_spaceheat/actors/scada.py:1692`
 `control_capabilities`); relay vocabulary comes from each relay's own
 config, interior nodes' from `Scada.COMMAND_NODE_INTERFACES`

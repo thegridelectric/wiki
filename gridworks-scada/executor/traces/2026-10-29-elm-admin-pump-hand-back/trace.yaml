@@ -1,0 +1,61 @@
+# Trace spec: elm, the admin panel takes the secondary pump from under hp-boss and TurnOn hands it back.
+# The admin link runs on the pi's own broker and is not journaled, so the input is recorded live by
+# experiments/2026-10-29-elm-admin-pump-override/trace.py (both directions of the link) into
+# experiments/traces/gridworks-scada/<name>/messages.jsonl (gitignored), in the puller's shape;
+# traces/pull_trace.py cannot rebuild this one from the archive. This file and the expected output
+# below are the vector.
+name: 2026-10-29-elm-admin-pump-hand-back
+concern: admin-secondary-pump-override
+clauses_exercised: [admin takes a takeable relay on its first event with hp-boss HpOff, the hack relay moves on its own event, TurnOn to hp-boss returns every taken relay and starts the unit with hp-boss driving the pump from hp-watch, release rebuilds the tree under auto]
+event: >
+  Field window on elm, scada main at d8c8f3a1, the operator on the gwadmin 1.3.0
+  panel (gwa watch elm) with the Arctic unit idle at 16 W. The operator closed
+  the secondary-pump-relay row and the secondary-pump-hack-relay row, pressed
+  TurnOn on the hp-boss row, then TurnOff twelve seconds later, before the unit
+  drew power, and released. The pump closing again once hp-watch senses the
+  unit running is not in this window.
+
+window:
+  start: 2026-10-29T23:11:59Z    # the recorder's first snapshot: everything under auto.lc.n, hp-boss HpOff
+  end: 2026-10-29T23:13:31Z      # the snapshot after release
+time: arrival                    # order and timestamp by arrival at the recorder (the laptop's clock, seconds ahead of the box)
+decode: as-sent
+source: admin-link capture       # recorded on the pi's broker, hw1.isone.me.versant.keene.elm.scada <-> admin
+senders:
+  - admin
+  - hw1.isone.me.versant.keene.elm.scada
+bodies_for: [admin.dispatch, gw.dispatch.ack, gw.dispatch.nack, single.machine.state, snapshot.spaceheat, admin.release.control]
+
+expected_out:                    # single.machine.state the scada sends admin; the handle says who owns the machine
+  - t: 2026-10-29T23:12:25.561Z  # CloseRelay -> admin.secondary-pump-relay, acked from admin.secondary-pump-relay
+    MachineHandle: admin.secondary-pump-relay
+    State: RelayClosed
+  - t: 2026-10-29T23:12:32.532Z  # CloseRelay -> admin.secondary-pump-hack-relay, acked
+    MachineHandle: admin.secondary-pump-hack-relay
+    State: RelayClosed
+  - t: 2026-10-29T23:12:46.303Z  # TurnOn -> admin.hp-boss, acked from admin.hp-boss; no nack
+    MachineHandle: admin.hp-boss
+    State: HpOn
+  - t: 2026-10-29T23:12:46.312Z  # handed back: under hp-boss again, opened from the watch's HpDetectedOff
+    MachineHandle: admin.hp-boss.secondary-pump-relay
+    State: RelayOpen
+  - t: 2026-10-29T23:12:46.312Z
+    MachineHandle: admin.hp-boss.secondary-pump-hack-relay
+    State: RelayOpen
+  - t: 2026-10-29T23:12:46.319Z
+    MachineHandle: admin.hp-boss.hp-scada-ops-relay
+    State: RelayClosed
+  - t: 2026-10-29T23:12:58.026Z  # TurnOff -> admin.hp-boss
+    MachineHandle: admin.hp-boss
+    State: HpOff
+  - t: 2026-10-29T23:12:58.058Z
+    MachineHandle: admin.hp-boss.hp-scada-ops-relay
+    State: RelayOpen
+  - t: 2026-10-29T23:13:07.418Z  # admin.release.control at 23:13:07.163Z; the tree under auto.lc.n, the pump hp-boss's
+    MachineHandle: auto.lc.n.hp-boss.secondary-pump-relay
+    State: RelayOpen
+  - t: 2026-10-29T23:13:07.423Z
+    MachineHandle: auto.lc.n.hp-boss.secondary-pump-hack-relay
+    State: RelayOpen
+not_in_window: [a take refused Busy while hp-boss is HpOn, the pump closing once hp-watch senses the unit running]
+tolerance: 1 s on each expected time

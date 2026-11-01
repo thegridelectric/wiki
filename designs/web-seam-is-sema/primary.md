@@ -1,6 +1,6 @@
 # The web seam is sema
 
-Status: Draft · Pass 0 · Updated 2026-10-28 · Linear: [OPS-622](https://linear.app/gridworks/issue/OPS-622)
+Status: Draft · Pass 0 · Updated 2026-10-29 · Linear: [OPS-622](https://linear.app/gridworks/issue/OPS-622)
 
 **EDD: no** build-out across the journalkeeper, the web-backend, the
 web-frontend and sema, verified by each repo's suite and a page check
@@ -25,7 +25,9 @@ against `tsdb_tap`.
 2. **[`typescript-emitter.md`](typescript-emitter.md)**: sema's
    TypeScript runtime, generated on its `jm/ts` branch, which regenerates
    the hand-written schemas and the rest of the browser's snapshot.
-3. The state seam build order at the end of "The state seam" (no spoke
+3. **[`houses-table.md`](houses-table.md)**: the Houses card against
+   the seam rules and its commit column, on `gw.house.summary` 001.
+4. The state seam build order at the end of "The state seam" (no spoke
    yet).
 
 ## Open now: spruce pump power

@@ -104,8 +104,8 @@ check_house_params() {  # house source-file boxes...
   done
 }
 check_house_params spruce gw.nolan.operational.params.json spruce
-check_house_params beech operational-params.generated.json beech beech2
-check_house_params maple operational-params.generated.json maple maple2
+check_house_params beech gw.house0.operational.params.json beech beech2
+check_house_params maple gw.house0.operational.params.json maple maple2
 
 if [ -n "$OUT" ]; then
   printf '%s\n' "$OUT" > "$MARKER"

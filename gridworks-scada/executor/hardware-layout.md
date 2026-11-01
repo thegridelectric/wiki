@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-10-29
+Status: Draft · Pass 0 · Updated 2026-11-01
 
 # The hardware layout
 
@@ -431,6 +431,35 @@ under its own minted id. The word "hack" marks it for removal: when 12 is
 wired out, the node, the tlayouts axis
 (`secondary_pump_hack_relay_idx`), the two axiom lines and the layout
 property leave in one change.
+
+**Elm's layout on the word** (tlayouts `elm_gen.py`; deployed by
+`scripts/roll.sh` from `output/elm/gw.house0.no.sieg.json` and its
+operational params). Four zones (living-kitchen, bedrooms, garage,
+master-bedrm), a buffer and three store tanks on pico tank modules,
+three hall flow picos, a Hubitat, an eGauge, two Krida relay boards and
+two DFRobot DACs; no BTU meters. The plate exchanger between the Arctic
+monobloc and the house gives the house side its secondary pump; the
+unit runs its own primary pump from its 240 VAC pump output (field
+terminals 3 and 4). `hp-scada-ops-relay` is Krida 6, the call across
+the unit's CN33 dry contact; `hp-failsafe-relay` is Krida 5, double
+throw between the scada's contact and the aquastat path.
+`secondary-pump-relay` is Krida 11, normally open, on the secondary
+pump's contactor; the hack relay is Krida 12. `hp-odu` names DeviceType
+`ArcticMAHRW030ZA`, which is how hp-boss finds the unit's `HP_TRAITS`
+row. Hall pico `pico_3e9a28` is `secondary-flow` and `pico_5a5127`, on
+the unit's loop, is `primary-flow`, both named on the pico through the
+starter-scripts API; `store-flow` is unmeasured, a hall pico that does
+not exist, disabled with its channels. `hp-lwt` and `hp-ewt` are ADS
+terminals 3 and 4; `secondary-lwt` and `secondary-ewt` are terminals 9
+and 10, disabled until their thermistors are wired. `secondary-pump-pwr`
+is eGauge register 9002; `primary-pump-pwr` is register 9008, disabled
+with `primary-pump-running` until a CT is on the unit's pump conductor.
+The four circulators are declared in `Hydronic.Circulators`, each with
+its `<pump>-running` channel at 4 W; the house-side pump is driven at
+3.3 V on Dfr1 B as `secondary-010v`. The unit's control surface, its
+settings and the bench questions are
+`heat-pump-comms/arctic-mahrw030za.md`; the bring-up record and the
+field harness are `experiments/2026-10-27-elm-arctic-field-check/`.
 
 **Downstream of the word in the scada.** `sema_seed_request.yaml` names
 it; the snapshot is regenerated; the hand-written twin

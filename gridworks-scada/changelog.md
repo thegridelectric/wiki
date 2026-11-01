@@ -10,7 +10,140 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-29 — Circulators in the layout words (jm/circulators, OPS-628) <!-- pending commit -->
+## 2026-10-31 — Cleaning up after bid (`7328a0f8`, td/bruce)
+
+**What:** when the LTN's bid-runner thread exits, success or failure,
+the LTN clears its FLO params and its sent-bid flag along with the
+runner.
+
+**Why:** a bid hour left its params and flag set, so the next hour
+started from the last hour's state. The cleanup is the one place the
+runner's exit is known.
+
+## 2026-10-31 — Hack SCADA MQTT publish so FLO/bid cannot kill LTN (`e1392b6a`, td/bruce)
+
+**What:** the LTN's gw-wrapped copies to the scada over MQTT (the FLO
+next-hour plans and the forwarded payloads) go through one best-effort
+method that takes the message type off the payload, logs a failed
+publish and goes on.
+
+**Why:** a publish that raised stopped the FLO run and the bid with it.
+The copy to the scada is a courtesy on the interim path (OPS-387) and
+must never cost the bid.
+
+## 2026-10-31 — Add weather service to LTN (`dcbdc1d9`, td/bruce)
+
+**What:** the LTN app builds its own clock and weather source from its
+settings (`clock_source`, `weather_source`, the GWWF URL and pull
+timeout, with the operational params for the bundle), and the LTN
+actor reads the forecast and the clock from whichever app it runs in
+rather than asserting a scada app.
+
+**Why:** the LTN runs on its own box and needs the forecast pair to run
+FLO there; until now it could only get weather through a scada app's
+source.
+
+## 2026-10-30 — patch roll back to legacy (`9abbe159`, main via PR #599 `c1e7ef06`)
+
+**What:** `scripts/roll_compare.py reqs` compares two editable
+packages' `pyproject.toml` outside their version line and their pins on
+the sibling editable packages (checked once against the two lines'
+files and a bumped third-party pin; the check is not kept in the repo);
+`roll.sh`'s requirements guard
+runs on the laptop's checkout between the box's SHA and the pushed
+target and uses it for `packages/*/pyproject.toml`. An installed layout
+or ops file is no longer copied to `<stem>.<date>-pre-roll.json`, and a
+roll removes the event folder's contents instead of setting them aside
+as `event.<date>-pre-roll-to-<branch>/`; both kinds of copy an earlier
+roll left are removed.
+
+**Why:** `back` to `legacy` stopped at the requirements guard on every
+house: gwsproto 1.3.0 and admin 1.3.1 on `main` against 1.2.3 and
+1.2.5 on `legacy`, a release bump that changes nothing a venv of
+editable installs resolves. The set-aside events and layout copies had
+become the fleet drift report's standing item (three to four folders a
+house) and no one reads them: the committed tlayouts JSON is the record
+of a line's pair and the journal has every acked event.
+
+## 2026-10-29 — BufferOnly usable energy is one tank of water (`485fb1fe`, main via PR #598 `6106170b`)
+
+**What:** `compute_usable_energy_wh` sizes each layer from the vessels
+the storage mode discharges: the store tanks in AllTanks, the buffer
+alone in BufferOnly. A test on a two-tank house asserts the buffer-only
+estimate is half the all-tanks one.
+
+**Why:** the layer mass was `GALLONS_PER_TANK × store tanks ÷ layers`
+whatever the mode, so a three-tank house in BufferOnly counted its
+buffer as 360 gallons and usable energy ran about three times high
+(fir read 41 kWh from a 128 F buffer top on 2026-10-29). The same
+formula sat in the legacy line. Required energy and the LTN's FLO
+params already counted one tank in BufferOnly.
+
+## 2026-10-29 — gridworks-admin 1.3.1 pins gridworks-scada-protocol>=1.3.0 (`a9343909`, merged to main in `78a06838`)
+
+**What:** `packages/gridworks-admin` requires `gridworks-scada-protocol>=1.3.0`,
+moves to 1.3.1 and refreshes its lock (which had recorded gwsproto 1.2.1).
+
+**Why:** the second half of the gwa fix: admin 1.3.0 resolved the March
+gwsproto 1.2.3 from PyPI and died on `gwsproto.names`. With gwsproto
+1.3.0 published, the pin makes the dependency honest so
+`uv tool upgrade gridworks-admin` resolves a gwsproto that has what
+admin imports.
+
+## 2026-10-29 — Bump gridworks-scada-protocol to 1.3.0 (`7ad7cf60`, merged to main in `b9a460c9`)
+
+**What:** `packages/gridworks-scada-protocol` version 1.2.3 → 1.3.0
+(pyproject and its lock). Follow-up commit: `packages/gridworks-admin`
+pins `gridworks-scada-protocol>=1.3.0`, moves to 1.3.1 and refreshes
+its lock.
+
+**Why:** `uv tool upgrade gridworks-admin` fails at import
+(`No module named 'gwsproto.names'`). Admin 1.3.0 merged and published
+today against the repo's gwsproto, but CI publishes gwsproto only
+when its version changes, and the version stayed 1.2.3 since the
+March release while the package gained `names`, many enums and the
+hydronic layout. The PyPI resolve pulls the March 1.2.3, which admin
+cannot import. The bump ships the current vocabulary; the admin pin
+then makes the dependency honest.
+
+## 2026-10-29 — Admin's TurnOn to hp-boss hands the secondary pump back (`d8c8f3a1`, OPS-613)
+
+**What:** `admin_returns` beside `admin_takes` in `scada.py`: a TurnOn
+addressed to hp-boss while admin has a taken relay moves every taken
+relay back under hp-boss, publishes the tree, sends hp-boss `WakeUp`
+and then forwards the TurnOn. hp-boss's Busy refusal stays as the
+guard; its test now reaches it directly, and a new test covers the
+hand-back and the start.
+
+**Why:** found on elm the same evening: with the pump taken, the
+panel's TurnOn was refused Busy whatever the pump was doing, and the
+only way to the heat pump was release and re-take. The operator's
+TurnOn says they want hp-boss driving the pump, so the scada does
+that for them.
+
+## 2026-10-29 — admin can indepedently control secondary pump (`c7b3ae8f`, merged to main in `0a59e6ca`, OPS-613)
+
+**What:** the scada snapshot moves to `gw.command.interface` 001 and
+`scada.control.capabilities` 003 and the gwsproto twins follow
+(`AdminMayTake`, axiom 4 clause c). The layout names the relays admin
+may take (`admin_may_take`: the secondary pump, and the hack relay on
+`gw.house0.no.sieg`); the capabilities cover lists them with a flagged
+interface while owned; `process_admin_dispatch` moves such a relay to
+`admin.<name>` on the first event when hp-boss last reported `HpOff`
+and nacks Busy otherwise; hp-boss nacks `TurnOn` and commands the pump
+nothing while the pump is not under it, and re-enforces from hp-watch
+on the `WakeUp` the scada sends at admin's exit. gwadmin 1.3.0: the
+pump row offers the relay pair with no row-logic change. Tests in
+`test_hp_boss.py`, the panel row file, the named-types twins and the
+live chain in `test_hp_watch_live.py`.
+
+**Why:** the pump followed hp-watch in every top state, so the
+circulator alone with the heat pump off was unreachable from the panel
+and a secondary-loop field session had to stop the scada. The move
+keeps the call relay and its turn-on strategy under hp-boss, which is
+the only thing that can refuse a TurnOn while the circulator is away.
+
+## 2026-10-29 — add new gw.circulator word to the layout (`ab44b5c2`, jm/circulators, OPS-628)
 
 The layout now declares its pumps instead of a consumer inferring them
 from node names. gwsproto mirrors sema's `gw.circulator.role` enum
@@ -55,7 +188,7 @@ pre-patch doctors and on `bad_sender` against `f0fa7e3a`. The account of
 why the legacy form worked and what the procedures are inside the
 command tree is the new executor `procedural-interrupts.md`.
 
-## 2026-10-28 — A tank pico's params post that differs from the answer sends an Info glitch (`13041021`, jm/more-patches, OPS-628)
+## 2026-10-28 — A tank pico's params post that differs from the answer sends an Info glitch (`13041021` on jm/more-patches, cherry-picked as `00fb7ceb` to jm/circulators, OPS-628)
 
 A pico posts at boot the capture values it runs and is answered with the
 layout's; nothing compared the two, so a pico still on an old threshold

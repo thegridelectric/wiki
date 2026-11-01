@@ -10,7 +10,29 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-29 — local names drop the gw and gw1 prefixes (OPS-622) <!-- pending commit -->
+## 2026-10-29 — the Houses card shows each scada's commit, a check when it is main's head (OPS-622) <!-- pending commit -->
+
+**What:** `gw.house.summary` 002 as a zod schema with `ScadaCommit` on the
+`git.commit` format and `ScadaCommitStanding` on the new `CommitStanding`
+enum (`gw.commit.standing`), axiom 2 as a refinement; 000 and 001 kept
+whole under `old_versions`; `AnyHouseSummary` is the union the session
+parses, so either deploy order of backend and browser parses, with
+`scadaCommit` and `scadaCommitStanding` accessors over the union. The
+Houses card's last column shows a green check for OnMainHead (the full
+hash as the tooltip), else the short hash with any `-dirty` suffix, tinted
+red for Dirty; sortable and filterable by hash; an empty cell for a house
+whose summary names no commit. The Status column reads `<control mode> /
+<SeasonalStorageMode>`: Admin, Ltn or LocalControl in the words of
+`gw.house.control.mode`, derived in the browser from TopState and
+LtnDispatching until the operating status carries the enum, then
+BufferOnly or AllTanks.
+
+**Why:** the fleet's running code is read off the dashboard rather than
+off each box, and a glance separates the houses on main's head from the
+rest. The browser renders the standing the backend sends and does not
+compare hashes itself.
+
+## 2026-10-29 — local names drop the gw and gw1 prefixes (`20494c4`, OPS-622)
 
 The snapshot's local names follow the scada's seed request: a leading
 `gw1` or `gw` segment is dropped, so `Unit` not `Gw1Unit`, `ServiceMode`
@@ -20,7 +42,7 @@ the rule under `local_names.strip_prefixes` so the generator emits the
 same names. No existing export in the repo collides with a bare name.
 Typecheck, 72 tests and lint unchanged.
 
-## 2026-10-29 — the browser's sema snapshot: generated formats and enums, every word a zod schema (`59b2920`, OPS-622)
+## 2026-10-29 — the browser's sema snapshot: generated formats and enums, every word a zod schema (`20494c4`, OPS-622)
 
 `src/sema/formats.ts` and `src/sema/enums/` are the files sema's
 TypeScript generator emits from `sema_seed_request.yaml`, the browser's

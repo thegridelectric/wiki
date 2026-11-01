@@ -1,12 +1,157 @@
 # LTNs ready (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-10-20 · Linear: OPS-392
+Status: Draft · Pass 0 · Updated 2026-11-01 · Linear: OPS-392
 
 > What this is: the spruce-unlimbo spoke that gets the LTNs running
 > against the new scada code before the fleet is on the production
 > broker, and settles what the LTN takes from the scada. Until launch it
 > lives here; the LTN work that can wait moves back to spruce-settled
 > (OPS-532) when this spoke closes.
+
+## Before td/bruce becomes main (do this next, on a PR)
+
+td/bruce is current main plus Thomas's FLO commits re-applied on top; it
+supersedes td/generalized-flo and the paused merge worktree. Fix these on
+a PR against it, in this order:
+
+  - REVERT the best-effort publish wrapper which swallows every exception.
+     On oak it skips HeatPumpWaterTankParams each run because the payload has no TypeName, so the scada never receives it. That is a non-sema payload at an inter-app boundary.
+  - add flo.next.hour.plans v000 and v001 to sema
+
+  - Fix this: load_operational_params is cast through Any to accept LtnSettings. It works because LtnSettings extends the scada paths
+    settings, but the cast hides the type.
+
+  -add back the test.
+  - Tests are gone. test_ltn.py on td/bruce has zero tests (227 lines, one sample-params helper). Main has one. Running it
+    collects nothing.
+
+  - Restore the FLO-boundary shape main had, which the branch removed
+    (the note to Thomas below has the particulars):
+    - the LTN imports one callable from `bruce` and nothing else; the
+      asset build, `find_shortest_path`, `trim_graph_for_waiting`,
+      `generate_bid`, `get_next_node_at_price` and the reads off
+      `initial_node.next_node` move behind that callable in the FLO
+      repo, so the three child workers in `ltn.py` each make one call
+      on bytes;
+    - the response is `bid.recommendation` again, built on the FLO
+      side with the slot name, bidder alias, units and forecast price,
+      and complete over prices: each PQ pair also states the next-hour
+      plan its edge leads to (expected storage kWh at hour 1, the hourly
+      heat pump kWh plan), so the LTN answers the cleared price by
+      picking its segment and the plans worker, `get_next_node_at_price`
+      and the plan phase leave the LTN side;
+    - the request is a sema word the LTN builds through its snapshot;
+      `HeatPumpWaterTankParams` in its current forms is the candidate,
+      with its house-fact and tuning-knob split settled in this spoke;
+    - optimal-flexibility vendors its own sema snapshot and decodes and
+      encodes through it.
+
+  - Refactor `wiki/flo/designs/flo-as-a-service.md` (OPS-514) from
+    gridflo to bruce: the `Graph` over an `Asset`, the transition-matrix
+    cache in place of the supergraph cache, the three-call lifecycle
+    with the plan at clearing price, and the request word that replaces
+    `flo.params.house0`. The interaction is one request and one reply,
+    with the plan per PQ pair inside the recommendation (decided
+    2026-11-01, above); the design's "three calls or one" question
+    closes on that, and the executor question (resident worker pool
+    versus a per-invocation function) is then only about the
+    five-minute-cadence reuse and the measured build cost, with no
+    per-site state the service must keep between calls. The opening
+    measurement moves to a bruce build from oak's real params. Take it
+    to Pass 1 before any build session starts.
+
+HeatPumpWaterTankParams becomes a sub-word of operational params, authored
+in tlayouts and rolled with roll.sh until ops params are published; the
+LTN does not send it to the scada. Pointers: the wrapper is commit
+`e1392b6a` (`gw_spaceheat/actors/ltn/ltn.py`, `_message_for_scada_publish`);
+the cast is in `gw_spaceheat/ltn_app.py` (`dcbdc1d9`); the word bump is
+`packages/gridworks-scada-protocol/src/gwsproto/named_types/flo_next_hour_plans.py`
+(`73b45e23`). The HeatPumpWaterTankParams model is not defined in
+gridworks-scada; ltn.py imports it from the private `bruce` package,
+`optimal-flexibility/src/bruce/graph_optimizer/assets/heat_pump_water_tank/params.py`
+(sibling clone of github.com/thdfw/optimal-flexibility, on `main`); the LTN decodes it at ltn.py
+lines 112 and 136 on td/bruce. Evaluate it there when writing the
+sub-word.
+
+### Note to Thomas: the FLO boundary on td/bruce
+
+What works: the bruce optimizer builds, bids and plans on oak, and the
+three-child-process split from main (build, bid, plans, each in its own
+forked process with the trimmed graph pickled between them) came through
+the port intact. That was the hard part.
+
+The line the branch crosses is the FLO boundary ("The FLO boundary"
+below): the LTN hands the FLO one serialized sema message and gets one
+sema message back, so the FLO can run as a service for many LTNs with
+nothing shared but the words. Main had both halves in place; td/bruce
+removes both.
+
+- **Request side.** `flo.params.house0/007` is no longer built. The
+  bytes handed to the build child are
+  `HeatPumpWaterTankParams.model_dump_json()`, a pydantic class in the
+  private bruce package, snake_case, with no `TypeName`. The publish to
+  the scada skips it every run for that reason.
+- **Response side.** `BidRecommendation` is no longer returned. The bid
+  child sends back a bare list of `{"price_mwh", "quantity_kwh"}` dicts,
+  and the LTN assembles the market slot name, bidder alias, units and the
+  x1000 conversion itself. The FLO's answer has no name, and the market
+  facts that were in the FLO's reply now live in LTN code.
+
+The pickle between phases is unchanged from main and stays: it is one
+process's memory handed to its own child.
+
+What we ask, in order:
+
+1. **optimal-flexibility vendors a sema snapshot.** It has none today.
+   The snapshot holds the words the optimizer speaks: the request word and
+   the response word. How: `sema/README.md` "Vocabulary Snapshots" and
+   "Vocabulary Selection and Snapshot Generation"; copy
+   `sema/template_seed_request.yaml` and `sema/template_regen_snapshot.sh`
+   into the repo and fill in the seed. The scada's
+   `packages/gridworks-scada-protocol/sema_seed_request.yaml` and
+   `scripts/regen_sema_snapshot.sh` are a filled-in instance to copy
+   from.
+2. **The response comes back as a sema word.** `bid.recommendation` is
+   registered in sema beside `bid` (today it exists only as a gwsproto
+   twin) and the bid child returns an instance of it, built through the
+   snapshot class, with the slot name, bidder alias and units filled by
+   the FLO as on main. Since `generate_bid` takes a forecast price and
+   clips to the bid price bounds, the word should record the forecast
+   price the recommendation was built against.
+3. **The request is a sema word.** `HeatPumpWaterTankParams` is
+   registered in sema in its current forms (floats stay floats) as the
+   per-run request the LTN sends. Its house facts keep coming from
+   `gw.operational.params`; its tuning knobs become a sub-word of that
+   word; which field is which is settled in this spoke. The LTN
+   constructs it through the snapshot class and the optimizer decodes it
+   through its own.
+
+**For the LTN executor (draft, moves there when this spoke closes).**
+The FLO is a sibling repo installed into the LTN's venv as an editable
+package. That is a stepping stone: the FLO's destination is a service on
+the broker that runs FLOs for many LTNs, and the sibling install exists
+so the LTN can run today with the same shape it will have then. Three
+bright lines keep the transition to a one-line change:
+
+- The LTN imports nothing from the FLO repo except the one callable it
+  invokes. Every call across it is a remote procedure call in all but
+  transport: bytes in, bytes out, no shared objects, no reaching into
+  the FLO's graph, state or settings from the LTN side.
+- The bytes in each direction are a sema word, serialized with
+  `by_alias`: a request word the LTN builds from its own snapshot and a
+  response word the FLO builds from its own. The two repos share no
+  Python types; they share the vocabulary.
+- The market facts in the response (slot name, bidder alias, units,
+  the price it was built against) are the FLO's to state. The LTN
+  copies them into its bid and adds nothing of its own.
+- The FLO never sees the real-time price. The recommendation is
+  complete over prices: every PQ pair states the plan its edge leads
+  to, and the LTN reads the cleared price's segment off the
+  recommendation it already holds. One request, one reply, no FLO state
+  between them.
+
+When the service exists, the callable's transport changes from a child
+process to the broker and nothing else in the LTN moves.
 
 ## Launch note
 

@@ -88,23 +88,20 @@ sieg-loop keep their subtrees (`admin.hp-boss.hp-scada-ops-relay`,
 `new.command.tree`. On release or timeout `AutoWakesUp` rebuilds the
 LocalControl tree and wakes LocalControl and the pico cycler.
 
-## The two places admin does not address an actuator directly
+## The relays admin does not address directly
 
-- **hp-scada-ops-relay.** The client rewrites a command for this relay
-  to `ToHandle admin.hp-boss` with `TurnHpOnOff` events
-  (`relay_client.py`, `_send_set_command`), and the scada rewrites it
-  straight back to a `change.relay.state` event on
-  `admin.hp-scada-ops-relay` (`scada.py:462-482`). The pair exists for
-  the sieg-loop tree, where the relay's handle is
-  `admin.hp-boss.hp-scada-ops-relay` and a direct `admin.<name>` would
-  fail the immediate-boss check. On a Nolan layout the relay sits
-  directly under admin and the round trip is a no-op.
-- **vdc-relay.** Addressed directly under admin, unlike every other
-  boss; the pico cycler's own tree is bypassed while admin holds the
-  house.
-
-These are what the command-tree augmentations replace with declared
-delegation.
+- **hp-scada-ops-relay.** Owned by hp-boss under every root. The panel's
+  hp-boss row sends `TurnHpOnOff` events to `admin.hp-boss`, and hp-boss
+  commands the relay at `admin.hp-boss.hp-scada-ops-relay`.
+- **vdc-relay.** Owned by the pico-cycler under five-v-boss. The panel's
+  five-v-boss row sends `RebootPicos`, forwarded to the cycler, and the
+  5 V hold, which five-v-boss runs on the relay itself.
+- **secondary-pump-relay** is the one owned relay admin takes: its row
+  offers the relay pair, and the first event moves it from under hp-boss
+  to `admin.secondary-pump-relay` for the session, with hp-boss `HpOff`
+  as the gate. The hp-boss row's `TurnOn` hands it back before the heat
+  pump starts; release and timeout return it too (scada executor
+  `control-hierarchy.md` "Fixed sub-trees vs floating actuators").
 
 ## Tests
 

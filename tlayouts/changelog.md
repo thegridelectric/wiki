@@ -10,8 +10,110 @@ repo's git history.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-10-29 — Circulators in the layout words (jm/circulators, OPS-628)
+## 2026-10-29 — fix heating params for fir, maple, oak (`41e99ad`)
+
+**What:** the fir, maple, oak and spruce gens set each house's heating
+curve from its pi's `SCADA_*` heat-load lines, and fir, maple and oak
+their COP curve from the pi's COP lines (spruce's `.env` sets no COP
+values, so its COP curve stays at the fleet baseline). Maple also sets
+`uses_backup_when_cold=False` (its `.env` has
+`SCADA_OIL_BOILER_BACKUP=False`). The regenerated ops params (fir,
+maple, oak, spruce and spruce-async1) change in those fields; the
+uploaded copies refresh from the running pis, which now serve the
+layout words instead of the legacy layouts.
+
+Per house, `.env` value → what had been rolled:
+- fir: alpha 7.5 / beta -0.13 / gamma 0.0022 (5.5 / -0.10 / 0);
+  intermediate RSWT 94 F (100); design day 7.5 kW (5.5); max EWT 165 F
+  (170); COP 1.1 / 0.01 / min 1.1 at 0 F (1.02 / 0.0257 / 1.4 at 15 F).
+- maple: alpha 6.6 / beta -0.09 / gamma 0.0007; intermediate RSWT 105 F;
+  design day 6.6 kW at 145 F (5.5 at 150); COP 1 / 0.02 / min 1 at 0 F;
+  backup when cold False (True).
+- oak: alpha 7.6 / beta -0.13 / gamma 0.0024; design day 7.6 kW at
+  140 F; max EWT 161 F; COP 1.5 / 0.015 / min 1.5 at 0 F.
+- spruce: alpha 8.6 / beta -0.14 / gamma 0.0029; intermediate 3.6 kW at
+  105 F (1.5 at 100); design day 8.6 kW at 140 F; max EWT 166 F.
+
+**Why:** the same gap as beech: the gens had the legacy code defaults
+(the fleet stub) where each pi's `.env` set the house's tuned values,
+so the roll to main changed every house's heat-load model and COP
+without anyone deciding to. Maple's backup flag is the one behavioral
+flip: the rolled scada would go to the boiler when cold where the
+legacy line ran the heat pump. Elm is left as is: its pi's `.env` no
+longer has the heating lines, and the gen's values are taken as
+correct.
+
+## 2026-10-29 — beech heating and COP curves batch the beech .env (`3e88b92`)
+
+**What:** `beech_gen.py` sets the heating curve (alpha 8.6, beta -0.14,
+gamma 0.005, intermediate 3.6 kW at 125 F, design day 8.6 kW at 155 F,
+max EWT 166 F), the COP curve (intercept 1.8, OAT coeff 0.012, min 1.8
+at 0 F) and `hp_max_kw_el=9.66`; the regenerated ops params change in
+those fields. `beech.uploaded.json` picks up the three
+`*-pump-running` derived channels the running pi now has.
+
+**Why:** the legacy line read these from the beech pi's `SCADA_*`
+`.env` lines, and the gen had the legacy code defaults (the fleet
+stub) instead of beech's tuned values. The roll to main therefore
+changed beech's heat-load model and COP without anyone deciding to.
+`hp_max_kw_el` is the legacy code default the `.env` left in place.
+
+## 2026-10-29 — fir, maple and oak are BufferOnly (`87e665c`)
+
+**What:** the three gens set `seasonal_storage_mode=BufferOnly`, and
+the regenerated ops params change in that one field. In the same
+commit `fir_gen.py` names the board of each tank pico (buffer, tank1
+and tank2 `PicoWiznetEth2040`, tank3 `PicoRaspberryWifi2040`); fir's
+layout changes in those four fields.
+
+**Why:** the legacy line read the storage mode from the box's `.env`,
+and every legacy box ran `BufferOnly`; main reads it from the ops word,
+and the committed params said `AllTanks` for these three houses. On the
+roll to main the energy model switched from the buffer to the cold
+store tanks: maple's usable energy fell from 1475 Wh to a flat 665 Wh,
+oak's from 3.3 kWh to 0 with required energy 1.8 kWh, fir's to 0
+against 1.8 kWh, so the LTN saw an empty store. Beech and elm were
+BufferOnly already. The fir pico boards come from the identity glitches
+of the first boot on main; the three flow modules stay `Unknown` since
+the flow actor runs no identity check.
+
+## 2026-10-29 — fix fir's krida addresses (`865da2c`)
+
+**What:** `fir_gen.py` names the Krida boards at 0x20 and 0x21; the
+regenerated `output/fir/gw.house0.layout.json` changes in that one
+value.
+
+**Why:** fir's first roll to main failed every zone relay write
+(Critical glitch `i2c-relay-actuation-failed`, "[Errno 5]
+Input/output error", "not a TCA9555 on this bus"): the gen had oak's
+second-board address, 0x23. The legacy layout and a probe of the fir
+pi's bus both say 0x21. Oak alone has a board at 0x23.
+
+## 2026-10-29 — clean up fir, maple and oak (`d419d8e`, OPS-392)
+
+The three gens are authored as beech's is: node and channel names from
+the gwsproto name classes, enum values from the snapshot enums, zones
+composed from one list with the stat device ids and whitewire registers
+beside it. Fir's three GNodeIds were none of the registry's and none of
+the fir pi's; they are now the registry's (which the pi also has, and
+which fir's deed names as its TaId). Fir's primary flow pico is the one
+the pi's running layout names, `pico_994b32`; the gen had the id from the
+December 2024 census. The three houses take beech's circulator cutoff:
+the pump running threshold and the pump power channel's async delta are
+4 W. Maple's outputs take the names the other House0 gens emit
+(`gw.house0.layout.json`, `gw.house0.operational.params.json`), and
+`output/fir/` is tracked. Each house's deed sits beside its layout:
+fir's and oak's copied from their boxes (issued 2026-10-04), maple's
+authored today with the registry TaId and placed on the maple pi. The
+legacy comparison for each house found no other hardware id that
+differs; the remaining differences are the word migration itself.
+
+## 2026-10-29 — slow down elm's secondary pump (`4162ce9`, main, OPS-628)
+
+Elm's secondary pump 0-10 V output comes down from 4.0 V to 3.3 V
+(`PowerOnVoltsTimesTen` 40 → 33) on the house side of the heat exchanger.
+
+## 2026-10-29 — Add new gw.circulator word to layout (`6529500`, jm/circulators, OPS-628)
 
 Every gen declares its circulator pumps (`circulators`, a list of
 `CirculatorSpec`: node, role, running threshold, power or CT channel,
@@ -27,8 +129,7 @@ are disabled) are declared and disabled rather than live over nothing.
 Thresholds are 4 W on the deployed homes, the fleet value from OPS-636,
 and 20 W on the hazel sim, its existing value. The sema snapshot is
 regenerated; every output is regenerated, and the four sim pairs copied
-into the scada's `tests/config`. Elm's secondary pump 0-10 V output
-comes down to 3.3 V (`PowerOnVoltsTimesTen` 40 → 33).
+into the scada's `tests/config`.
 
 ## 2026-10-29 — change elm's IntermediateRswtF (`505dc05`, main)
 

@@ -1,6 +1,6 @@
 # Zone circuits and the thermostat model (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-10-28 · Linear: OPS-532
+Status: Draft · Pass 0 · Updated 2026-11-01 · Linear: OPS-532
 
 > What this is: how zones, zone-call circuits, thermostats, and their
 > relays are modeled in the layout, and the control model on top — the
@@ -348,6 +348,20 @@ at the epic's end, freezes the finished shape.
 No channel renames now — deployed names and UUIDs keep journal
 continuity; the chain-flavored prefixes (`zone2-living-rm-gw-temp`)
 are cosmetic legacy for the proactor port.
+
+## Top-up through the living-room fan coil
+
+The living room has two circuits, the radiant slab (`living-rm`) and the
+fan coil (`living-rm-fancoil`). The slab is slow: on the first freezing
+night of the season (2026-10-31 ET) its floor sensor sat under the room
+air at 23:00 and took until about 02:00 to pass it, while the room fell
+from 68.9 F to 65.4 F and the cold-watch raised `critical-zone-cold` at
+03:27:55 ET with the buffer at 130 F. The fan coil circuit never called.
+Use the fan coil to top the living room up when the slab is behind: a
+call on `living-rm-fancoil` commanded by the zone control, or a learned
+threshold under which the fan coil joins the call. The slab-as-storage
+side of the same night is a scada design of its own, Linear
+OPS-648.
 
 ## Open
 

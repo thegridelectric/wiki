@@ -10,6 +10,19 @@ repo's git history.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-10-30 — README: dev broker starts clean each run; adding an exchange
+
+Two README additions, both prompted by onboarding a new developer to the
+dev broker. The first says what `arm.sh` / `x86.sh` do to state: the
+`docker rm -fv` discards RabbitMQ's anonymous volume, so queues and
+messages from the last run are gone and the fabric comes back from the
+baked definitions. The second is the end-to-end recipe for putting a
+routing class on the fabric (the two tables in `gwbase.topology`,
+regenerate, `ci.sh`, merge, CI pushes the image, restart the broker),
+which until now was spread across "How to commit changes" and the GHCR
+section with no single path to follow.
+
 ## 2026-10-22 — market maker makes it to the mqtt topic exchange for mqtt-based LTN (OPS-615, `90734da`)
 
 A third MQTT bridge tap, `mmmic_tx → amq.topic (rjb.#)`, beside the time

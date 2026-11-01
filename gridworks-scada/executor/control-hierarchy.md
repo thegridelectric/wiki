@@ -112,6 +112,30 @@ subtree: a tree rewrite reparents the interior node and never reaches through it
 The layout dc declares the owners and their relays as `fixed_subtrees`
 (`hydronic_layout.py`), and both rewrites walk that list, so a layout family with a
 different plant changes the list and not the rewrites.
+
+The one exception is the secondary circulator under admin. The layout
+names the relays admin may take from their owner for an admin session
+(`admin_may_take`: the secondary pump, and on `gw.house0.no.sieg` the
+hack relay with it), and the capabilities word lists each with an
+interface flagged `AdminMayTake` while it is still owned. The panel's
+first relay event to such a relay asks for the move: with hp-boss last
+reported `HpOff` the scada writes the handle to `admin.<name>`,
+publishes the tree and forwards the event (`scada.py` `admin_takes`);
+otherwise it nacks the dispatch Busy. The call relay stays under
+hp-boss, and hp-boss reads the move off the pump node's handle: while
+the pump is not its own it commands the pump nothing and nacks `TurnOn`
+Busy, since the heat pump runs only with hp-boss driving the pump from
+hp-watch. The relay returns three ways: release and timeout rebuild
+the tree from `fixed_subtrees`, and the panel's `TurnOn` to hp-boss
+while admin has the pump hands it back first (`scada.py`
+`admin_returns`: the taken relays go under hp-boss, the tree is
+published, then the TurnOn is forwarded). In each case the scada sends
+hp-boss `WakeUp` so it re-enforces the pump from the watch's current
+state. The field window is
+`traces/2026-10-29-elm-admin-pump-hand-back/trace.yaml`
+(`actors/hp_boss/hp_boss.py` `pump_is_mine`, `wake_up`). Tests:
+`tests/actors/test_hp_boss.py` (the move, the refusal, the return) and
+the live chain in `tests/actors/test_hp_watch_live.py`.
 The pico-cycler hangs under **five-v-boss**, which hangs under the tree's root:
 `<root>.five-v-boss.pico-cycler.vdc-relay`, root `admin` while admin holds the tree, `auto` under
 local-control or leaf-ally (the shape both layout words declare; tlayouts `nolan_sema_gen.py`,
