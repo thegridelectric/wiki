@@ -6,8 +6,7 @@ Status: Accepted · Pass 0 · Updated 2026-11-01
 > (`optimal-flexibility` for the bruce optimizer; the FLO service repo when
 > it exists). Git is the what; this file is the why.
 
-<!-- pending commit -->
-## 2026-11-02 · optimal-flexibility · the previous plan lines up from the path's second step (jm/flo-as-service)
+## 2026-11-02 · optimal-flexibility · the previous plan lines up from the path's second step (`6b0ae89`, fork PR #1, tag `v0.1.0+gw2`)
 
 **Why.** `PreviousOptimalPath` starts at the slot that cleared and the
 request that hands it on starts at the slot after, so the path's step 0

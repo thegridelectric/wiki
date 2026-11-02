@@ -7,22 +7,225 @@ price clears at :00, the scada takes the contract, and both boxes' logs
 are clean through it; the first one ran on oak 2026-11-02 02:57 ET.
 
 > What this is: the LTNs running against the new scada code and bidding
-> through the bruce FLO. It settles what the LTN takes from the scada and
-> gives back, the FLO boundary (sema words at every edge), and how a slot
-> runs. It is the write-up for Thomas and Olly while the branch rolls out;
-> the durable parts distill into `executor/` and the design goes when it
-> closes. The LTN work that can wait goes back to spruce-settled (OPS-532).
+> through the bruce FLO, on `main` since PR #600 (2026-11-02). Written
+> for Thomas and Olly: how the pieces fit, the recommended next step,
+> the checklist of what changed, and what the LTN's seam with the FLO
+> had to become to pass the bar for an application seam, sema words at
+> every edge. The durable parts are in the LTN executor
+> (`flo-boundary.md`) and this design goes when it closes.
 
-## Before td/bruce becomes main (do this next, on a PR)
+## How to keep working on it
 
-td/bruce is current main plus Thomas's FLO commits re-applied on top; it
-supersedes td/generalized-flo and the paused merge worktree. The work
-goes on `jm/flo-tuning-ops`, a PR against it, which squash-merges to
-main when the list below is done. Each commit of ours gets its scada
-changelog entry as it goes in; Thomas's existing commits get none, the
-squash commit's entry covers the branch as a whole.
+Everything below is as of `c7f893b9` on scada `main` and `v0.1.0+gw2` on
+the bruce fork. Thomas wrote the optimizer and the transition-matrix
+caching that makes a 48-hour graph solve in seconds on a two-CPU box;
+the LTN side wraps it in one call. Read this section first, then "One
+call and response" and "The FLO boundary" below.
 
-**Done**
+The next step is FLO-as-a-service ([OPS-514](https://linear.app/gridworks/issue/OPS-514/flo-as-a-service)): the same `flo.params` goes to the `hw1.flo` service over the
+broker and the same `flo.recommendation` comes back, and the LTN drops
+the import. It is the natural step now for three reasons. The seam is
+already the service's seam: one word out, one word back, no FLO state
+held in the LTN between them, so the only thing that changes is the
+transport of one callable. The service already exists: `gridworks-flo`
+runs on the flo box, bound to the hw1 broker as its own principal. And
+the measurement behind that design settled the
+hosting questions: a build does not need to stay resident between runs,
+and the matrix cache is the only thing a box keeps. The cutover is oak
+on the service beside in-process for a day with the bids compared, then
+the rest.
+
+### The four facts
+
+The contract itself is the LTN executor's `flo-boundary.md`. The four
+things to hold onto while working:
+
+1. **bruce is installed from a tag on the GridWorks fork**
+   (`tools/mkenv.sh`, `BRUCE_TAG`, `v0.1.0+gw2` today). A box has no
+   checkout of bruce; the sibling checkout is a laptop option for
+   developing it (`editable_flo`). The fork's `main` is five commits
+   ahead of `thdfw/optimal-flexibility`; which repo is the one we all
+   work on is the Tuesday question under "Changing bruce and shipping
+   it".
+2. **bruce reads nothing from a `.env`.** The installed package has no
+   repo root for its loader to find one in; the only environment it
+   sees is the LTN process's, and the only variables it reads are the
+   matrix controls and its log level.
+3. **The LTN's FLO facts come from the layout pair** on the ltn box,
+   the ops word and the layout, and the hold from the scada's operating
+   status. What the LTN's own `.env` still supplies is plumbing, and a
+   `LTN_MONITOR_ONLY` line there is dead.
+4. **The boundary is one call**, `_flo_worker` in `actors/ltn/ltn.py`:
+   `flo.params` bytes in, `bruce.service.recommend_bytes`,
+   `flo.recommendation` bytes out, exit.
+
+### Why the FLO is one call
+
+td/bruce ran the FLO as three calls across the hour: build and solve at
+about :05, pickle the trimmed graph, re-measure the store and bid at
+:57, then a third call for the next hour's plans after the price. Each
+piece of state held between the calls went wrong in the field on oak or
+beech between 2026-10-31 and 11-02:
+
+- The stability gates compared the store at :05 with what the previous
+  plan expected at :00, 55 minutes apart, so the penalty read the wrong
+  "now".
+- The previous run was lost whenever the main loop's tick beat the
+  price to the top of the hour, about one hour in twelve.
+- The fall-back hour of 2026-11-01 left a `BidRunner` with no
+  `flo_params` for five hours: slot arithmetic on local wall-clock
+  hours, and a two-phase state that could not recover. The slot start
+  is now whole hours of UTC seconds, with the fall-back and
+  spring-forward instants as tests.
+- `stop` could not reach a run blocked in a wait, so four restarts hit
+  systemd's kill and two of them cost the hour's bid.
+- The LTN copied bruce's own loop to drive the phases, and bruce kept an
+  allow-list of which fields may change between them.
+
+With one call at the bid minute all five went in one change, and the
+LTN's seam became the one a FLO service wants: a word out, a word
+back, nothing of bruce's held in between. The lesson for new work: when
+a feature seems to need state held in the LTN between calls, put it in
+the words or in the FLO instead. The timings and the full argument are
+in "One call and response".
+
+### The last hour
+
+The one thing that does survive an hour is the previous run. After the
+price clears, the LTN picks the cleared pair off the recommendation it
+already holds, takes that pair's `flo.optimal.path` and saves it as
+`previous_run.json` in the LTN's data dir. The next request attaches it as
+`PreviousOptimalPath` when the path's first step ends at the request's
+start; bruce lines the previous plan up from the path's second step,
+because step 0 is the slot that cleared, and feeds it to the stability
+penalty. The open question, decided before the FLO words leave staging:
+whether the previous path stays the LTN's to hand back or becomes the
+FLO's own memory per house once the FLO is a service that keeps the
+graph.
+
+### Running and testing
+
+- Scada: `tools/mkenv.sh` builds the venv with bruce from the tag. From
+  `gw_spaceheat/`, `pytest tests/actors/test_ltn.py` runs a round trip
+  against bruce in the venv and skips when bruce is absent;
+  `test_flo_request.py`, `test_ltn_clearing.py`, `test_bid_runner.py`
+  and `test_market.py` cover the request, the clearing rule, the stop
+  and the slot. `tests/named_types/test_flo_*.py` are the oracle tests
+  for the words.
+- bruce: in `optimal-flexibility`, `uv run pytest`;
+  `tests/test_recommend.py` is the boundary, `tests/test_generate_bid.py`
+  the sweep. The tests cache the nine-sensor, 120-gallon matrix on first
+  run.
+- The LTN on a box is the systemd unit `gwltn@<house>` on the `ltn` box;
+  `ltn-logs <house>` tails it. Idle on a hold reads "Main loop idle:
+  accepts_dispatch=False"; a run reads the FLO answer time and the pairs.
+- A useful next piece of test infrastructure: the LTN, its scada and
+  the FLO against a simulated plant in dev, where a slot runs in
+  sped-up time and the contract's effect on the plant is measured. The
+  simulated terminal assets in `gridworks-terminalasset` are the
+  starting point; the live oak slot is the only end-to-end run so far.
+
+### Where to take it next
+
+The FLO box is yours to work on: the `flo-thomas` and `flo-olly` keys
+open the `flo` login (`gridworks-infra/flo/instance-README.md` is the
+box; `authority/ssh-access.md` the roster). The next steps are one
+piece of work with two halves that fit together, and they are a good
+thing to do as a pair:
+
+1. **Launch FLO-as-a-service** ([OPS-514](https://linear.app/gridworks/issue/OPS-514/flo-as-a-service)). The service `gridworks-flo` already runs on the box, bound
+   to the hw1 broker, answering `flo.params` with `flo.recommendation`.
+   What remains is the LTN edge: the one callable's transport changes
+   from the child process to a broker round trip, same timeout, same
+   no-FLO fallback, and nothing else in the LTN moves. Then the cutover:
+   oak on the service beside in-process for a day with the bids
+   compared, then the rest. The one-call seam
+   above is what makes this a one-seam change.
+2. **Shrink the graph in memory** ([OPS-655](https://linear.app/gridworks/issue/OPS-655/graph-as-arrays)). bruce holds its graph as
+   Python `Node` and `Edge` objects, about a kilobyte each: a three-tank
+   house builds 1.56 M nodes and 2.96 M edges, 1.85 GB at peak and 43 s,
+   to reach a sub-second solve. The graph is a dynamic program over a
+   fixed state space, so the same answer comes from two arrays,
+   `pathcost[t, state]` and `best_action[t, state]`, filled by a backward
+   pass over the transition matrix and a per-step cost array: tens of
+   megabytes, no node or edge objects, no pickled trimmed graph. That is
+   the first and big win, roughly a 95 percent cut in peak memory. What
+   is there today, what replaces it and the plan are on the issue and
+   its design.
+
+### Changing bruce and shipping it
+
+1. Branch on the fork (`thegridelectric/optimal-flexibility`), PR on
+   the fork, merge to its `main`.
+2. Tag it `v0.1.0+gwN` (upstream version plus a GridWorks suffix, as the
+   scada pins the proactor) and push the tag.
+3. On a scada `jm/<topic>` branch off `main`, move `BRUCE_TAG` in
+   `tools/mkenv.sh`, rebuild the venv, run the tests above, PR to scada
+   `main`.
+4. Roll (below). The same fork branch goes upstream to Thomas's repo by
+   a separate PR.
+
+To settle on Tuesday: which repo we all work on, `thdfw/optimal-flexibility`
+or the GridWorks fork that the boxes install from, and the license. The
+upstream has no LICENSE file; the proposal is MIT on whichever repo
+becomes the one. `FLO_REPO` in
+`bruce/service.py`, recorded in every recommendation, follows the
+answer at the next tag.
+
+A change to a word at the boundary starts in sema, then both snapshots
+regenerate: the scada's `scripts/regen_sema_snapshot.sh` and bruce's
+`scripts/regen_sema_snapshot.sh`. The FLO words are published at 000;
+the ops word is staging and never crosses the production broker.
+
+### Layouts and the roll
+
+A house's layout and ops word are the committed JSON under
+`tlayouts/output/<house>/` on the tlayouts branch named like the scada
+branch; `main` scada reads tlayouts `main`, and any other branch off
+`main` reads tlayouts `main` too. A box takes the pair from a pushed
+tlayouts SHA and from nowhere else: no hand edits on a box, no scp of a
+local file. To change a house's ops word, edit its gen
+(`tlayouts/<house>_gen.py`), run it
+(`../gridworks-scada/gw_spaceheat/venv/bin/python oak_gen.py` from
+`tlayouts/`), commit the regenerated `output/<house>/` JSON to tlayouts
+`main`, push, then roll. A gen run from a clean checkout emits the
+committed file byte for byte; a difference is a defect.
+
+`scripts/roll.sh` in the scada repo, run from the laptop, is the one way
+code or a pair reaches a house. It moves the pi (and the second pi) and
+the house's LTN together to a pushed SHA, verifies the layout and ops
+word on every box against the committed tlayouts JSON, offers to
+install the committed file where a box differs, and restarts the LTN,
+then the scada. Trying a branch off `main` on oak, which keeps the
+tlayouts `main` pair:
+
+```
+# on the laptop, from gridworks-scada/
+git push origin jm/my-topic                  # a box moves only to a pushed SHA
+scripts/roll.sh oak check                    # what oak, oak2 and the LTN run now
+scripts/roll.sh oak to jm/my-topic           # both pis + LTN to the branch tip,
+                                             #   pair verified (y installs), restart
+scripts/roll.sh oak check                    # all three on jm/my-topic @ same SHA,
+                                             #   pair matches tlayouts main
+scripts/roll.sh oak forward                  # back to main when the trial is done
+```
+
+The weekly drift report shows the trial branch on oak until `forward`.
+Never pull or restart on a box by hand: a pi that moves without its LTN
+has every Report un-acked and its link flaps until they match again.
+The how-to with the roll-back lines is scada executor `running.md`
+"Rolling a house between lines".
+
+## The checklist that went to main (PR #600, kept as the record)
+
+td/bruce was current main plus Thomas's FLO commits re-applied on top;
+it superseded td/generalized-flo and the paused merge worktree. The work
+went on `jm/flo-tuning-ops`, a PR against it, squash-merged to main as
+`c7f893b9` on 2026-11-02 with the two unchecked items below still open.
+Each commit of ours has its scada changelog entry; Thomas's commits have
+none, and the squash commit's entry is the branch as a whole.
+
+**Completed**, each with its test
 
 - [x] The FLO boundary words are in sema and published (`03a949d`):
   `flo.params` with `Tuning` a oneOf over `flo.tuning.bruce` and
@@ -39,7 +242,11 @@ squash commit's entry covers the branch as a whole.
   `recommend_bytes` and `params_from_request` on bruce's own snapshot,
   with `tests/test_recommend.py`; `generate_bid` sweeps from the ceiling
   down and keeps every quantity change (`jm/bid-descends-from-price-max`,
-  PR 1 to Thomas).
+  PR 1 to Thomas). What the sweep fixed in the field: every bid of oak's
+  first day on td/bruce (2026-10-31 to 11-01, read off the box log and
+  the journal in `experiments/oaks-first-ltn/`) was one pair at the
+  floor, because the deployed sweep dropped every quantity decrease.
+  The forked sweep has run on oak since the roll.
 - [x] The LTN builds `flo.params` from the ops word, the layout's water
   store, the operating status and the forecast, and refuses a
   seasonal fill (`actors/ltn/flo_request.py`, `a30145f3`). The FLO child
@@ -53,8 +260,6 @@ squash commit's entry covers the branch as a whole.
   refused when the message is built.
 - [x] `tools/mkenv.sh` installs bruce from the fork at the tag; the
   sibling editable install is the laptop's option.
-
-**To do**, in this order, each with its test
 
 - [x] The clearing rule is a pure function picking the lowest-priced
   pair at or above the cleared price (`cleared_quantity_x1000` in
@@ -128,8 +333,7 @@ squash commit's entry covers the branch as a whole.
   1000 Wh is a zero contract), the scada took it and went to the leaf
   ally with the heat pump off. No error, glitch or warning on either
   box's proactor log through the slot. Beech's LTN idles with the hold.
-  **Do this next:** squash to main with the open items below still
-  open.
+  Squashed to main as `c7f893b9` (#600) with the two items below open.
 - [x] Retire the `MarketTypeName` twin and the unread `market.maker.ack`
   twin (`213ac3a0`): the twin's slot-name check is already the
   maker-agnostic sema pattern and reads no enum; the only reader of
@@ -146,37 +350,20 @@ squash commit's entry covers the branch as a whole.
   scada's Nolan test fixture run bruce with the hold off so a simulated
   Nolan can bid in tests. The table grows a row per FLO; the LTN's
   selector stays a plain TypeName dispatch.
-- [ ] roll.sh moves the triple, code SHA, layout and operational params,
-  to both boxes and verifies it on both. The ops instance names the
-  FLO (its `FloTuning` TypeName), the LTN must read it, and a staging
-  word never crosses the production broker, so the LTN box gets its
-  own `operational-params.json` beside its layout from the same roll
-  that places the pi's. `check` reports the triple on the pi and the
-  LTN; the weekly drift check reads the ops hash as it reads the
-  branch. The need is already visible: oak's scada sat six commits
+**Still open**
+
+- [ ] The weekly drift check reads the ops word's hash on the pi and the
+  LTN as it reads the branch. roll.sh already moves the triple, code
+  SHA, layout and operational params, to both boxes and verifies it on
+  both (the 2026-11-02 rolls were checked that way); what the drift
+  report lacks is the ops word. The need: oak's scada sat six commits
   behind its LTN on td/bruce after nine hand pulls on the ltn box
   since 2026-10-31, and the heartbeat-001 crash stretch was that split
-  in action. How-to home: executor `running.md` "Rolling a house
-  between lines".
+  in action.
 - [ ] On the weather service: a GET /forecasts/{ForecastUid} route, so a
   `WeatherForecastId` resolves to the values behind a run.
 
-Live finding (2026-11-01): oak's day on the first field LTN is read
-off the box log and the journal in `experiments/oaks-first-ltn/`: every
-bid is one pair at the floor because the deployed sweep drops every
-quantity decrease (fixed on the fork, not deployed), and the FLO would
-not buy at any price while the store sat above its ceiling, which is
-the heating curve's `MaxEwtF` (161 °F at oak), a boundary question in
-its own right. The open analysis stays in that folder.
-
-Live finding (2026-11-01): since the forecast box moved to
-`gw.weather.forecast` 002, every deployed scada on 001 code rejects the
-hourly pull on `Version` (spruce and oak journals checked) and runs on
-the seasonal fill, so the FLOs plan against template temperatures until
-the branch rolls; left as is, the scadas are monitored. The
-fill-as-event backlog item is OPS-652.
-
-`wiki/flo/designs/flo-as-a-service.md` (OPS-514) owns the service side:
+[OPS-514](https://linear.app/gridworks/issue/OPS-514/flo-as-a-service) owns the service side:
 gridworks-flo (`hw1.flo`), its topics, and the swap of the LTN's seam
 from the local call to the broker.
 
@@ -190,10 +377,11 @@ the port intact. That was the hard part.
 What the branch crossed is the FLO boundary ("The FLO boundary" below):
 the LTN hands the FLO one serialized sema message and gets one back, so
 the FLO can run as a service for many LTNs with nothing shared but the
-words. On td/bruce the bytes handed to the build child were bruce's own
+words. The LTN on td/bruce handed the build child bruce's own
 `HeatPumpWaterTankParams` JSON, with no TypeName, and the bid child
 returned a bare list of price-quantity dicts, so the FLO's answer had no
-name and the market facts moved into LTN code.
+name and the market facts moved into LTN code. No machine runs that
+path now; `main` runs the one call described above.
 
 The two words that fix it are in sema (`flo.params`, `flo.recommendation`
 with `flo.optimal.path`), and the two PRs against optimal-flexibility
@@ -204,73 +392,14 @@ every quantity change (`jm/bid-descends-from-price-max`,
 its bytes-in bytes-out twin `recommend_bytes`, which derives layers and
 gallons from the tank facts, takes the bid bounds from the price bounds
 and feeds `PreviousOptimalPath` into the stability penalty
-(`jm/flo-as-service`, OPS-514). The pickle between the LTN's own phases
+(`jm/flo-as-service`, [OPS-514](https://linear.app/gridworks/issue/OPS-514/flo-as-a-service)). The pickle between the LTN's own phases
 is unchanged and stays: it is one process's memory handed to its child.
 
-### For the LTN executor (draft, moves there when this design closes)
+### The contract, in the executor
 
-The LTN reaches the FLO in two steps. Step one: bruce is installed into
-the LTN's venv from the GridWorks fork at a tag and the FLO child calls
-it. Step two (OPS-514): the same bytes go to `hw1.flo` over the broker
-and the LTN drops the import. Three bright lines keep step two a
-one-seam change:
-
-- The LTN imports nothing from the FLO repo except the one callable it
-  invokes: bytes in, bytes out, no shared objects, no reaching into the
-  FLO's graph, state or settings from the LTN side.
-- The bytes in each direction are a sema word, serialized `by_alias`: a
-  request the LTN builds from its own snapshot and a reply the FLO
-  builds from its own. The two repos share no Python types; they share
-  the vocabulary.
-- The market facts (slot name, sign convention, the bid's units) are
-  the bidder's: the LTN forms them from its ops word
-  (`MarketMakerAlias`, `MarketProductName`) and the reply states only
-  the curve, its units and the paths.
-- The FLO never sees the real-time price. The reply is complete over
-  prices, so the LTN reads the cleared price's pair off the reply it
-  already holds. One request, one reply, no FLO state between them.
-- The LTN never runs the FLO on a seasonal-fill forecast; a fill is the
-  scada's fallback for its own derived channels.
-
-The words at the boundary:
-
-- The request is `flo.params`, one word for every FLO, built by the LTN
-  from house facts: the curves, `HpMaxKwEl`, `HpTurnOnMinutes` and
-  `FloTuning` from the ops word; `GallonsPerTank`, `TempSensorsPerTank`
-  and `TotalStoreTanks` from the layout's `gw.water.store`;
-  `SeasonalStorageMode` from the operating status, which sets the tanks
-  modeled (the store in AllTanks, one tank in BufferOnly); the heat
-  load and RSWT per hour from the heating curve; the measured store as
-  three layer temperatures and two thermoclines counted in sensor
-  layers from the top, which is the FLO's layer unit. `Tuning` is a
-  oneOf over the FLOs' tuning words whose TypeName names the FLO. A
-  FLO's tag is its author's chosen name (bruce; sally and ella to
-  come), the first place a human name is a tag, and never for a home. A
-  house fact one FLO reads sits in its tuning word and moves to the
-  shared ops fields when a second FLO reads it.
-- `WeatherForecastId` is the `ForecastUid` of the `gw.weather.forecast`
-  the run's weather came from, so the run is reproducible. A `*Uid` is
-  an identity a word mints for itself, a `*Id` a reference into another
-  service's archive. The price forecast gets the same treatment when
-  the price service has an Id to point at.
-- The reply is `flo.recommendation` with one `flo.optimal.path` per PQ
-  pair, complete over prices, so the LTN reads the cleared price's pair
-  and takes the path at the same index. The LTN matches a reply to its
-  request on `BidderAlias` and the first path's `StartUnixS`.
-- `flo.tuning.bruce` is one branch of `FloTuning` on
-  `gw.operational.params`, selecting the FLO by TypeName as
-  `FamilyParams` does. `flo.tuning.alice` is the stub FLO, TypeName and
-  Version only: alice answers every request with one pair at
-  `PriceMaxUsdMwh` with zero quantity and a path whose first step is 0
-  W, so the LTN's one rule (a bid is made from the pairs) yields a bid
-  of nothing with no alice case in the code. Axiom 6 on the ops word
-  makes alice require the operator hold. Alice exists so the selector
-  has two branches from day one and FLO-as-a-service has its
-  hello-world.
-- What the LTN copies to the scada over MQTT is a word; the gw envelope
-  takes its MessageType from the payload, so a payload without a
-  TypeName is refused when the message is built, never swallowed at
-  publish.
+The bright lines at the seam, the words at the boundary and where every
+input comes from are now the LTN executor's `flo-boundary.md`; this
+design keeps the history and the next steps.
 
 ## One call and response
 
@@ -337,30 +466,6 @@ read only by the log line at the store measurement and goes with the
 collapse (the mode comes from the operating status); and the main loop
 crashed once (2026-10-31 13:57) on a `Header` with `Dst: 's'`, on code
 before the publish wrapper was reverted, a watch for the first deploy.
-
-## Launch note
-
-The LTNs need to run before we are on the production broker. The first
-job is to test locally, and use that test to find the minimal updates
-to the LTN that get it working. The design text is worked in-process
-with the work itself: the local run says what the LTN needs, and that
-is what gets written here.
-
-The split is roughly: what do we need so that the reports are acked
-and the LTNs do not crash. The LTNs do not have to work well with their
-FLOs yet. Once the launch part is done, this file moves back over to
-spruce-settled with whatever LTN work can wait until after launch.
-
-The LTN and the scada always run from the same code at launch. When the
-fleet starts publishing to the rabbit broker, the cloud-box LTN gets the
-cert and the matching code. So a heartbeat version change on the scada
-branch is not a wire break to build around: the LTN runs on the laptop
-from the same branch against the dev rabbit broker, and there is nothing
-to build now.
-
-The cloud LTN will decode several versions of a word one day, the scada
-never will. That decoder arrives when the LTN moves out of scada into
-gridworks-base, not before.
 
 ## The two FLOs
 
@@ -488,7 +593,7 @@ lookup:
 ## Open
 
 - A `slow.contract.heartbeat` persisted at version 001 fails to load
-  under the 002 twin at every boot (beech's LTN and pi, oak's pi on
+  under the 002 twin at every boot (every LTN and pi rolled on
   2026-11-02): the load is skipped with a traceback and the box runs
   on. Delete the stale file at the roll, or let the loader drop a
   heartbeat it cannot read without the traceback.
@@ -497,9 +602,10 @@ lookup:
   know to ignore it. Consider making the posture optional, or an axiom
   that it is absent when `Standby` is false, so the status says only what
   is in force.
-- The price bounds and the store's layer resolution are OPS-653.
+- The store's ceiling. On oak's first day the FLO would not buy at any
+  price while the store sat above the heating curve's `MaxEwtF`
+  (161 °F at oak); the analysis is in `experiments/oaks-first-ltn/`.
+  Whether that ceiling is the FLO's to hold or the plant's to state is
+  a boundary question, with the price bounds and the store's layer
+  resolution in [OPS-653](https://linear.app/gridworks/issue/OPS-653/flo-request-bounds).
 
-Otherwise nothing. The FLO words (`flo.params`, `flo.recommendation`,
-`flo.optimal.path`, the tunings) are published at 000 and own their
-fields; the ops word stays staging and the LTN copies its `FloTuning`
-into each request, so neither word waits on the other.

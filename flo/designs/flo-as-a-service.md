@@ -10,8 +10,7 @@ broker.
 
 > What this is: move FLO compute out of the LTN process into its own gwbase
 > service on its own box. LTN boxes are then sized for LTN-only; FLO memory
-> lives in one measured, contained place. The first request the service
-> ever answers is an alice request. Time-box target: under 20 hours.
+> lives in one measured, contained place. Time-box target: under 20 hours.
 
 ## Why
 
@@ -19,13 +18,13 @@ broker.
   crashing stopped, at c5.large (4 GB) per two to four houses. The FLO's
   CPU cost is small; its memory had never been measured.
   `gridworks-infra/ltn/README.md` "Box sizing" has the operational fact.
-- The memory shape: `actors/ltn/ltn.py` forks a child per FLO step
-  (`_flo_build_worker` → `_flo_bid_worker` → `_flo_plans_worker`); the
-  child builds the full graph, solves, trims, pickles the trimmed graph
-  back through a queue, and the parent unpickles it. Six houses' hourly
-  peaks are not synchronized.
-- OPS-511 downsizes the LTN box on the condition that FLOs do not resume
-  there. This design is what lets FLOs resume.
+- The memory shape, as measured on td/bruce: a child per FLO step built
+  the full graph, solved, trimmed and pickled the trimmed graph back
+  through a queue for the parent to unpickle. Since PR #600 the LTN runs
+  one child per slot (`_flo_worker`) that builds, answers and exits; the
+  peak is the same build, once. Six houses' hourly peaks are not
+  synchronized.
+- The LTN box is sized for LTN-only once the builds leave it.
 - OPS-491 (five-minute FLOs) multiplies the build cadence by 12; a service
   absorbs the cadence in one place.
 
@@ -35,7 +34,7 @@ broker.
   `thegridelectric/optimal-flexibility`; the service pins a tag of the
   fork. The as-built service, its words, transport and invariants are
   `../executor/primary.md`; bruce's model is `../executor/bruce-flo.md`.
-- The LTN edge is OPS-392's work: one callable whose transport changes
+- The LTN edge is step 3 of "Shape" below: one callable whose transport changes
   from a child process to the broker round trip, with its existing
   timeout and no-FLO fallback bid. The LTN runs on gwsproto over MQTT and
   the service is a gwbase actor on AMQP; the same broker joins them, and
@@ -119,11 +118,12 @@ base for the service's build-time harness. With it, the per-pair path in
 
 ## Shape
 
-**Do this next:** witness the first real round trip. Spruce's LTN
-publishes its first alice `flo.params` (OPS-392 step two); the service's
-log shows the build answered and the journal holds both the request and
-the `flo.recommendation`. That window is the domain's first trace. Then
-oak on the service in parallel with in-process for a day, bids compared.
+**Do this next:** the LTN edge (step 3), then witness the first real
+round trip: oak's LTN publishes its `flo.params` to the service, the
+service's log shows the build answered and the journal holds both the
+request and the `flo.recommendation`. That window is the domain's first
+trace. Oak runs on the service in parallel with in-process for a day,
+bids compared.
 
 Stand-up record (`gridworks-infra/new-platform-service.md` and the box's
 `flo/instance-README.md`):
@@ -139,24 +139,27 @@ Stand-up record (`gridworks-infra/new-platform-service.md` and the box's
    for hw1 over mTLS, oak's matrix, `flo-rabbit` enabled and running.
 4. **First-start check** (done 2026-11-02: principal Active on FIS, the
    connection on the broker as `a4991bea…` with the GRIDWORKS mechanism,
-   the queue bound on `amq.topic` with `gw.*.to.flo.flo-params`). Next:
-   spruce's LTN publishes its first alice request (OPS-392 step two) and
-   the journal shows the request and the reply.
+   the queue bound on `amq.topic` with `gw.*.to.flo.flo-params`).
 
 1. **Measure** (done above).
 2. **Service** (built and running: `gridworks-flo`, spec in
    `../executor/primary.md`).
-3. **LTN edge** (OPS-392): the one callable's transport changes from a
+3. **LTN edge:** the one callable's transport changes from a
    child process to the broker round-trip, same timeout and the existing
    no-FLO default-bid fallback, so a service outage degrades rather than
    breaks. Nothing else in the LTN moves.
-4. **Cutover:** alice first (spruce), then oak on the service in parallel
-   with in-process for a day; compare bids; then the rest.
+4. **Cutover:** oak on the service in parallel with in-process for a
+   day; compare bids; then the rest.
 
 ## Open
 
-- Rolling the horizon incrementally so the hourly build shrinks. Not
-  needed for cost at the measured numbers; stays as an optimizer question.
+The graph in memory is [OPS-655](https://linear.app/gridworks/issue/OPS-655/graph-as-arrays): arrays in place of node and edge objects
+cut the build's peak from gigabytes to tens of megabytes. The three
+items below are [OPS-656](https://linear.app/gridworks/issue/OPS-656/flo-matrix-manifest-generation-command-cached-back-half-of-the-graph).
+
+- Caching the back half of the graph's arrays per house and refreshing
+  only the front, so a five-minute cadence (OPS-491) is not twelve full
+  builds an hour. Not needed at the hourly cadence.
 - Where matrices are generated: a CLI on the service box against the
   committed tlayouts ops instances, or on first sight of a new plant
   shape with the request refused until it exists. Either keeps generation

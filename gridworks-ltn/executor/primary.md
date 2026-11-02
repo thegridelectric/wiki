@@ -6,7 +6,7 @@ hop above each scada in the GridWorks fleet. It schedules the house's
 heating against forecasts and prices using a forward-looking optimizer
 (FLO).
 
-> Status: Draft · Pass 0 · Updated 2026-09-10
+> Status: Draft · Pass 0 · Updated 2026-11-02
 >
 > **Acceptable-minimum bootstrap** for a domain whose code does not yet
 > live in its own repo (the production code is in
@@ -24,22 +24,20 @@ suffix). One LTN per scada in production; the LTN is the
 "thinking" half of the pair (the scada actuates).
 
 **Production code path today:**
-`gridworks-scada/gw_spaceheat/actors/ltn/` — eight Python files:
+`gridworks-scada/gw_spaceheat/actors/ltn/`:
 
-- `ltn.py` — the `LtnApp` PrimeActor, the main entry point
-- `cli.py` — the `gws ltn run` typer command (added to scada CLI at
-  `gw_spaceheat/cli.py:13,30`)
-- `config.py` — `LtnSettings(AppSettings)` (extends gwproactor's
-  AppSettings)
+- `ltn.py` — the `Ltn` PrimeActor, the main loop and the FLO call
+- `cli.py` — the `gws ltn run` typer command
+- `config.py` — `LtnSettings` (`LTN_` prefix)
 - `contract_handler.py` — contract / scheduling state machine
-- `data.py`, `dtypes.py` — runtime data structures
-- `flo.py` — the Forward-Looking Optimizer integration (calls into
-  `gridworks-innovations/gridworks-flo/`)
-- `dashboard/` — likely Trogon TUI for ops inspection
-- `__init__.py`
+- `flo_request.py` — builds `flo.params` from the house's facts; the
+  slot arithmetic; the previous run
+- `market.py` — the slot name, the latest-price topic, the clearing rule
+- `data.py` — runtime data structures
+- `dashboard/` — the operator TUI
 
 **Future home:** a sibling `gridworks-ltn/` repo (does not exist
-yet). When it lands, this wiki domain becomes its rebuild spec home
+yet). When it exists, this wiki domain becomes its rebuild spec home
 and the code in `gridworks-scada/gw_spaceheat/actors/ltn/` is moved
 verbatim, then this `executor/primary.md` is filled out.
 
@@ -48,10 +46,12 @@ verbatim, then this `executor/primary.md` is filled out.
 **Entry point:** `gws ltn run` (the scada CLI's `ltn` subcommand —
 borrowed because the code lives there today).
 
-**Deployment:** **tmux** sessions on the LTN host. There is no
-systemd unit (today); the operator attaches/detaches tmux to
-observe / restart. (Open: codify the tmux session name + restart
-ritual, or migrate to a supervisor.)
+**Deployment:** one systemd unit per house, `gwltn@<house>`, on the
+`ltn` box, from a clean checkout of a pushed SHA at
+`~/ltn-<house>/gridworks-scada`; a house's LTN and scada run the same
+branch at the same SHA and move together by `scripts/roll.sh`
+(`gridworks-infra/ltn/instance-README.md`; scada executor `running.md`
+"Rolling a house between lines").
 
 **Framework:** **gwproactor**, not gwbase. The LTN is a `PrimeActor`
 (`gwproactor.PrimeActor`) with `LinkSettings` (`gwproactor.LinkSettings`),
@@ -80,41 +80,21 @@ gwproactor (see the XDG file locations in
 
 - Config dir: `~/.config/gridworks/ltn/`
 - Certs:      `~/.config/gridworks/ltn/certs/scada_mqtt/`
-- Layout:     `LTN_PATHS__HARDWARE_LAYOUT` env (typically
-  `tlayouts/output/<house>.generated.json`)
-
-**Hardware layout:** the LTN reads the same `hardware-layout.json`
-shape that scada does — same file, layered for the LTN's view of
-the house. The layout is generated from `tlayouts/`.
+- Layout pair: `hardware-layout.json` and `operational-params.json`
+  in the config dir, the committed tlayouts pair of the house's line,
+  the same two files its scada reads.
 
 ## §3 — The Forward-Looking Optimizer (FLO)
 
-The LTN's scheduling brain is the **FLO**: it consumes weather
-forecasts, price forecasts, and house state, and emits an
-energy-instruction schedule for the scada to actuate. The FLO
-implementation lives in the **private**
-`gridworks-innovations/gridworks-flo/` package (Thomas's code).
-
-- Local glue:  `gridworks-scada/gw_spaceheat/actors/ltn/flo.py`
-- Strategy:    `gridworks-innovations/gridworks-flo/` (installed via
-  `pip install -e ./gridworks-flo` into the scada venv per
-  `gridworks-innovations/README.md`).
-
-The `gridworks-innovations/` monorepo also reserves
-`gridworks-price-forecasting/` (not yet present) for future
-forecasting strategies.
-
-**Open / cleanup-flagged:**
-
-- This domain (LTN + FLO) is **Thomas's code** and **likely needs a
-  lot of cleaning up**. The known concerns to address in the
-  cleanup pass: factoring the FLO interface cleanly (so FLO swaps
-  don't ripple into ltn.py), nailing down where `dtypes.py` types
-  belong (LTN-local vs Sema-vocabulary), and clarifying the
-  contract_handler state machine.
-- The private/public split (LTN public vs FLO private) is mostly an
-  IP-protection boundary, not a technical one — any clarification
-  of LTN structure has to keep that split clean.
+The LTN's bidding brain is a FLO: given the house's facts, the
+forecasts and the store's state it answers a bid curve complete over
+prices, with the plan behind each pair. The LTN reaches it through one
+call, a `flo.params` out and a `flo.recommendation` back, and holds
+nothing of the FLO's between calls. The contract, the sources of every
+input, the slot and the tests are
+[`flo-boundary.md`](flo-boundary.md). The FLOs themselves, the
+`hw1.flo` service and the bruce optimizer, are the FLO domain
+(`../../flo/executor/primary.md`).
 
 ## §4 — Cross-cutting invariants
 
@@ -132,9 +112,9 @@ matures.)
    `amq.topic → ear_tx` exchange-to-exchange binding making LTN
    traffic visible to ear-tx-bound consumers. No change planned;
    LTN keeps publishing on amq.topic.
-4. **FLO is private.** The optimizer logic stays in
-   `gridworks-innovations/gridworks-flo/`; LTN public code consumes
-   it as a dependency.
+4. **The FLO is behind one call.** The LTN and its FLO share the
+   vocabulary and nothing else; the optimizer is a tagged dependency
+   from the public GridWorks fork (`flo-boundary.md`).
 5. **Three command surfaces, each declared.** Down to the scada (the
    dispatch contract), across from admin, and out to the homeowner. The
    LTN is the single writer of dispatch and mode to the scada; every
@@ -177,7 +157,7 @@ scada.
   (`../../api-pattern.md` "Foreign-contract exceptions"). In-home
   sources (a wall dial's learned setpoint, a comms stat) reach the LTN
   upward through the scada as readings; the LTN merges both.
-- **Auth.** A setpoint inside the band is low-impact and rides a normal
+- **Auth.** A setpoint inside the band is low-impact and uses a normal
   app session. Changing the band or the contract terms needs the
   step-up assertion.
 - **When the LTN is absent.** LocalControl honors the last accepted
@@ -212,16 +192,16 @@ model in the private repo.
 | §7 | _Open_ | LTN ↔ scada MQTT protocol (link name, topics, message types) |
 | §8 | _Open_ | LTN ↔ rest-of-fleet AMQP protocol (what LTN publishes on `amq.topic`; what it subscribes to) |
 | §9 | _Open_ | Contract / scheduling state machine (`contract_handler.py`) |
-| §10 | _Open_ | FLO interface and the private/public boundary |
-| §11 | _Open_ | Deployment / tmux ritual / operator runbook |
+| §10 | [`flo-boundary.md`](flo-boundary.md) | The LTN ↔ FLO contract: the one call, the words, the slot, the previous run |
+| §11 | _Open_ | Operator runbook (the unit, the aliases, the roll) |
 | §12 | _Open_ | Migration plan to a standalone `gridworks-ltn/` repo |
 
 ## §7-§12 — Open
 
-See TOC. Each becomes its own sub-spec when the corresponding work
-becomes load-bearing. For now the code is the spec — read
-`gridworks-scada/gw_spaceheat/actors/ltn/` and the private
-`gridworks-innovations/gridworks-flo/` source.
+See TOC. Each becomes its own sub-spec when the corresponding work is
+live. For now the code is the spec: read
+`gridworks-scada/gw_spaceheat/actors/ltn/`, with the FLO contract in
+`flo-boundary.md`.
 
 ## Cleanup epic — when we touch this domain in earnest
 
@@ -234,16 +214,12 @@ cleanup commit when this domain becomes active:
    `gridworks-scada/gw_spaceheat/actors/ltn/` until callers update.
 2. **Migrate framework from gwproactor to gwbase.** The LTN is the
    flagship gwbase object — its needs should drive any gaps in
-   gwbase. Likely surfaces several gwbase designs that need to land
+   gwbase. Likely surfaces several gwbase designs that need to ship
    first or alongside:
    the three-tier actor model — ServiceSettings / XDG-paths /
    Sema-validate-init-JSON, shipped in gwbase 0.5.0
    ([`../../gridworks-base/executor/actors.md`](../../gridworks-base/executor/actors.md))
    — and the gridworks-base design `must-accept-current-ltn-messages`.
-3. Make the FLO interface a named ABC in `ltn.py` and have
-   `gridworks-flo/` provide concrete implementations — so optimizer
-   swaps don't ripple through LTN.
-4. Sort `dtypes.py` into "LTN-internal" vs "Sema-vocabulary" —
-   anything that crosses a boundary (per
-   `../sema/primary.md`) belongs in `sema/`, not local types.
-5. Codify the tmux ritual or replace with a supervisor.
+3. Move the FLO call's transport from the child process to the
+   broker round trip with the `hw1.flo` service (OPS-514); nothing
+   else at the seam moves.

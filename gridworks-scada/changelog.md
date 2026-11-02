@@ -10,6 +10,33 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-02 — The LTN bids through the bruce FLO (`c7f893b9`, squash of jm/flo-tuning-ops, PR #600, OPS-654)
+
+**Why.** The LTNs run against the new scada code and bid through
+Thomas's bruce optimizer, and the seam between the LTN and its FLO is a
+boundary contract: one `flo.params` out, one `flo.recommendation`
+back, both sema words, nothing of the FLO's held in between. The
+branch's own commits each have an entry below (`2057d6cd` through
+`213ac3a0`); this entry is the squash as a whole. Thomas's FLO
+commits on td/bruce, which the branch was cut from, have none.
+
+**What.** bruce is installed into the venv from the GridWorks fork at
+a tag (`tools/mkenv.sh`, `v0.1.0+gw2`); the FLO child calls
+`bruce.service.recommend_bytes` and nothing else. The LTN builds its
+request from the ops word, the layout's water store, the operating
+status and the forecast (`actors/ltn/flo_request.py`), measures the
+store at :57, runs the FLO once and bids off the answer; the clearing
+rule picks the lowest-priced pair at or above the cleared price and
+keeps that pair's path as the next request's `PreviousOptimalPath`.
+The slot start is whole hours of UTC seconds. `LtnSettings.ha1_params`,
+`.market_maker_alias`, `.monitor_only`, `.create_graph_minute` and
+`.seasonal_storage_mode`, `actors/ltn/flo_tuning.py`, the two-event
+`BidRunner`, the third FLO call and the `flo.next.hour.plans`,
+`MarketTypeName` and `market.maker.ack` twins are gone. The snapshot is
+at sema `fe60b58` with the FLO words and axiom 7 on the ops word; the
+four `tests/config` pairs gain ops words. First live slot on oak
+2026-11-02 02:57 ET, clean on both boxes.
+
 ## 2026-11-02 — retiring MarketTypeName, add axiom 7 to ops params (`213ac3a0`, jm/flo-tuning-ops off td/bruce, OPS-392)
 
 **Why.** Two gwsproto twins had no reader: sema froze `market.type.name`
