@@ -40,13 +40,13 @@ the rest.
 The contract itself is the LTN executor's `flo-boundary.md`. The four
 things to hold onto while working:
 
-1. **bruce is installed from a tag on the GridWorks fork**
-   (`tools/mkenv.sh`, `BRUCE_TAG`, `v0.1.0+gw2` today). A box has no
-   checkout of bruce; the sibling checkout is a laptop option for
-   developing it (`editable_flo`). The fork's `main` is five commits
-   ahead of `thdfw/optimal-flexibility`; which repo is the one we all
-   work on is the Tuesday question under "Changing bruce and shipping
-   it".
+1. **bruce runs editable from the sibling checkout**
+   `../optimal-flexibility`, on the laptop as on a box (`tools/mkenv.sh`
+   installs it by default). The one repo is `thdfw/optimal-flexibility`,
+   MIT-licensed; a house's sibling on the ltn box tracks its `main` with
+   no pin, `scripts/roll.sh` brings it to the pushed tip before the LTN
+   restarts, and every recommendation records the commit that answered
+   (`FloGitCommit`). The GridWorks fork is an archive of the two tags.
 2. **bruce reads nothing from a `.env`.** The installed package has no
    repo root for its loader to find one in; the only environment it
    sees is the LTN process's, and the only variables it reads are the
@@ -127,6 +127,13 @@ graph.
 
 ### Where to take it next
 
+**Do this next:** merge bruce's `jm/knit` onto `thdfw` main, then scada
+`jm/bruce-sibling` onto `main`; rebuild oak's LTN venv once by hand
+(`tools/mkenv.sh`, bruce editable from the sibling); `scripts/roll.sh
+oak to main`; watch one slot: a `flo.params` 001 out at :57, the
+`flo.recommendation` back on the scada broker beside it, the bid, the
+clearing, both logs clean. Then OPS-657 journals both words.
+
 The FLO box is yours to work on: the `flo-thomas` and `flo-olly` keys
 open the `flo` login (`gridworks-infra/flo/instance-README.md` is the
 box; `authority/ssh-access.md` the roster). The next steps are one
@@ -153,29 +160,60 @@ thing to do as a pair:
    is there today, what replaces it and the plan are on the issue and
    its design.
 
+3. **Journal the LTN's words** (gridworks-journalkeeper). The ear
+   writes every word the LTN speaks to the S3 eventstore, but the
+   journal DB holds none of them: in the 30 hours to 2026-11-02 05:00 ET
+   the messages table has `latest.price` from the market maker and five
+   glitches from the LTN, and no `bid`, `flo.params`,
+   `flo.optimal.path`, `flo.recommendation`, `slow.contract.heartbeat`
+   or `slow.contract.rejection`. The journalkeeper persists a type only
+   when it is in both its sema snapshot and one of the persistor's
+   tables; `bid` is in the snapshot and in no table, the other five are
+   in neither, and a type outside the set is skipped without a log
+   line. The recipe is the journalkeeper executor's `captured-types.md`
+   "Adding a type": seed the words in `src/gjk/sema_seed_request.yaml`,
+   run `scripts/regen_sema_snapshot.sh`, add each type name to the right
+   table in `sema_message_persistor.py`, and extend the seed test. The
+   words with `CreatedMs` or `MessageCreatedMs` take the default path;
+   `bid` has neither a created time nor an id, so it joins
+   `BASIC_MSG_TYPES` and `RECEIPT_TIME_KEYED_TYPES` beside `atn.bid`
+   until the word gets one, and `flo.optimal.path` has only
+   `StartUnixS`. `flo.recommendation` is not on the wire today: the LTN
+   holds it for the seconds between the FLO's answer and the bid. It
+   reaches the bus as the service's reply once the FLO is `hw1.flo`, so
+   seed it with the others now and the journal is ready for the first
+   reply. A merged change reaches the gjk box by pull and restart
+   (`gridworks-infra/gjk/instance-README.md`). The eventstore has the
+   objects since the first slot, so the journal can be backfilled
+   through the importer once the words are in.
+
 ### Changing bruce and shipping it
 
-1. Branch on the fork (`thegridelectric/optimal-flexibility`), PR on
-   the fork, merge to its `main`.
-2. Tag it `v0.1.0+gwN` (upstream version plus a GridWorks suffix, as the
-   scada pins the proactor) and push the tag.
-3. On a scada `jm/<topic>` branch off `main`, move `BRUCE_TAG` in
-   `tools/mkenv.sh`, rebuild the venv, run the tests above, PR to scada
-   `main`.
-4. Roll (below). The same fork branch goes upstream to Thomas's repo by
-   a separate PR.
+1. Branch on `thdfw/optimal-flexibility`, PR, merge to its `main`. bruce's
+   own suite runs there; a change to the store shape rebuilds the
+   transition matrix (minutes), and the box's bruce cache keeps one per
+   shape.
+2. `scripts/roll.sh <house> to main` fast-forwards the house's sibling to
+   `origin/main` and restarts the LTN; `check` reports the sibling's
+   commit beside the LTN's. A house whose venv still installs bruce from
+   the retired tag gets one `tools/mkenv.sh` rebuild by hand first, and
+   `roll_bruce` says so.
+3. A scada change that bruce needs goes on a scada `jm/<topic>` branch as
+   usual; the two repos share no pin, so merge the bruce side first when
+   the LTN's request changes shape.
 
-To settle on Tuesday: which repo we all work on, `thdfw/optimal-flexibility`
-or the GridWorks fork that the boxes install from, and the license. The
-upstream has no LICENSE file; the proposal is MIT on whichever repo
-becomes the one. `FLO_REPO` in
-`bruce/service.py`, recorded in every recommendation, follows the
-answer at the next tag.
+The store is modeled at the tuning's `NumLayers` (`flo.tuning.bruce`
+001, fleet value 9), and `bruce.service` maps the sensor-position
+thermoclines of `flo.params` onto those layers: the same fraction of the
+whole modeled store, rounded to a layer. The layer count is the
+optimizer's choice; the sensor count stays a house fact and the unit of
+the thermoclines.
 
-A change to a word at the boundary starts in sema, then both snapshots
-regenerate: the scada's `scripts/regen_sema_snapshot.sh` and bruce's
-`scripts/regen_sema_snapshot.sh`. The FLO words are published at 000;
-the ops word is staging and never crosses the production broker.
+A change to a word at the boundary starts in sema, then the snapshots
+regenerate: the scada's `scripts/regen_sema_snapshot.sh`, bruce's and
+tlayouts'. The FLO words are published at 001 (`flo.params`,
+`flo.tuning.bruce`) and 000 (the rest); the ops word is staging and
+never crosses the production broker.
 
 ### Layouts and the roll
 

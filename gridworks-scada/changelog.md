@@ -10,6 +10,72 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-02 — roll.sh takes BRUCE_LINE for the sibling (`5c861380`, jm/bruce-sibling, OPS-654)
+
+**Why.** Oak needs the bruce that speaks `flo.params` 001 before that
+change is on upstream main, and a roll always fast-forwards the sibling
+to main. Naming the pushed bruce branch for one roll keeps the roll the
+only path onto the box; the next plain roll takes the sibling back to
+main.
+
+**What.** `roll.sh` reads `BRUCE_LINE` (default `main`): `roll_bruce`
+refuses a line the sibling's remote lacks, checks it out and
+fast-forwards to its pushed tip; `check` reports the branch the sibling
+sits on and how far behind its own origin it is.
+
+## 2026-11-02 — The LTN sends the FLO's recommendation to its scada (`2f3669bf`, jm/bruce-sibling, OPS-654)
+
+**Why.** The LTN already sends each `flo.params` to its scada; sending
+the FLO's answer the same way puts both sides of the FLO boundary on the
+wire, so the ear sees them and the journal keeps them, with the bruce
+commit each recommendation records.
+
+**What.** `ltn.py` publishes each `flo.recommendation` to the scada as
+it publishes the request, with a test on a stubbed actor.
+
+## 2026-11-02 — bruce editable from the sibling, flo.params 001 (`b51631ef`, jm/bruce-sibling, OPS-654)
+
+**Why.** The one bruce repo is Thomas's, MIT-licensed, and a box runs it
+editable from a sibling checkout that tracks its main, so a bruce update
+is a pull and every recommendation records the commit that answered;
+the tag on the GridWorks fork retires. `flo.tuning.bruce` 001 states
+the store model's `NumLayers`, so the request is `flo.params` 001.
+
+**What.** gwsproto twins at 001 (`FloTuningBruce` gains `NumLayers`,
+`FloParams` repoints), seed and snapshot regenerated, the four ops
+fixtures state nine layers. `tools/mkenv.sh` installs bruce editable
+from `../optimal-flexibility` by default; `no_flo` skips it. `roll.sh`
+brings the house's sibling to upstream main before the LTN restarts,
+clones it for a house that has none, and refuses a venv that does not
+install bruce editable; `check` reports the sibling.
+
+## 2026-11-02 — Logging FLO params (`0f80182b`, main, OPS-654)
+
+**What.** The LTN logs each `flo.params` it sends, as the wire JSON, one
+line in `ltn.py`. Reading the request beside the FLO's answer in the LTN
+journal while the bruce slots on oak are watched.
+
+## 2026-11-02 — scada reboot accepts its stored contract (`b984b554`, jm/resume-waits-for-fresh, OPS-654)
+
+**Why.** Oak's scada was restarted at 04:04 ET on 2026-11-02 with the
+hour's contract in its store. The resume ran 9 s after boot, asked
+`dispatch_refusal`, got `ScadaBlind` because the buffer picos had not
+posted yet (the buffer went fresh 22 s after boot), and ended the
+contract with `TerminatedByScada`. The LTN had reloaded the same
+contract and kept heartbeating it; it then sat with no contract until
+the next slot. The point of storing the contract is to take it up
+again after a restart, and the blindness of the first seconds is not a
+refusal.
+
+**What.** `resume_at_first_forecast` awaits `buffer_fresh_once` after
+the first forecast, bounded by `Scada.RESUME_BLIND_BOUND_S` (120 s); a
+buffer still unread at the bound ends the contract with `ScadaBlind` as
+before. Two tests in `tests/actors/test_startup_contract_load.py`: the
+field case, with willow's simulated buffer pico held so the scada is
+blind past the startup seconds, then released; and the bound, with the
+pico held and the bound at 1 s. The reproducer fails on `main` with
+"the resumed contract was given up while blind".
+
 ## 2026-11-02 — The LTN bids through the bruce FLO (`c7f893b9`, squash of jm/flo-tuning-ops, PR #600, OPS-654)
 
 **Why.** The LTNs run against the new scada code and bid through

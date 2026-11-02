@@ -1,6 +1,6 @@
 # Leaf ally
 
-Status: Accepted · Pass 1 · Updated 2026-10-14
+Status: Accepted · Pass 1 · Updated 2026-11-02
 
 > What this is: the transactive side of the scada's handoff. The leaf
 > ally runs the house under a slow dispatch contract; this spoke states
@@ -82,7 +82,12 @@ case.
 boot, `resume_at_first_forecast` (the `contract_resumer` task spawned
 from `start_tasks`), awaits `first_forecast` too: waking the ally under
 a resumed contract with no forecast is the same wrong first judgment
-through another door. It is not awaited inside `state_tracker`, where
+through another door. It then awaits `buffer_fresh_once`, bounded by
+`Scada.RESUME_BLIND_BOUND_S` (120 s): a booting scada is blind until
+its picos have posted, tens of seconds in, and that blindness is not a
+refusal of the contract it finds in the store. A buffer still unread
+at the bound is a blind scada, and the resume ends the contract with
+`ScadaBlind` as it does for any refusal. It is not awaited inside `state_tracker`, where
 it would stall consistency enforcement and the operating-status reports
 for as long as the first fetch takes; in that window an LTN
 continuation heartbeat for the loaded contract would get an Active
@@ -112,3 +117,4 @@ it (`dispatch-gate.md` "The answer").
 | --- | --- |
 | The ally awaits its inputs: with the first fetch held open and an offer taken, Initializing with SuitUp sent and no judgment through `main` passes or a second contract; opening the pin judges at once with a forecast; GoDormant while held cancels the task; the announcement waits for the first forecast; the first forecast is retried with a Warning per miss | `tests/actors/test_ally_initialize.py` |
 | A resumed contract waits for the first forecast: not given up, no heartbeat out, an LTN continuation dropped; then the loaded heartbeat and the judgment | `tests/actors/test_startup_contract_load.py` |
+| A resumed contract waits for the first fresh buffer: with the sim buffer pico held, not given up and no heartbeat out past the startup seconds; the pico's first post resumes it. Held past the bound, ended with `ScadaBlind` | `tests/actors/test_startup_contract_load.py` |

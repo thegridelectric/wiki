@@ -10,6 +10,42 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-02 — publish the flo-001 versions (`1f6c096`, OPS-654)
+
+**Why.** The LTN sends every `flo.params` to its scada, and a staging
+word never crosses the production broker. The 001 pair is settled: the
+layer count is the whole modeled store's (approach A, agreed with
+Thomas), and bruce's service maps the sensor-position thermoclines onto
+it. Publishing lets oak roll onto the branch that speaks 001.
+
+**What.** `sema promote` bottom-up: `flo.tuning.bruce` 001, then
+`flo.params` 001. Status flipped, content-hash pins recorded, public
+registry index regenerated, nothing else. `gw.operational.params` stays
+staging.
+
+## 2026-11-02 — flo.tuning.bruce 001 NumLayers, flo.params 001 (staging) (`7a2982f`, OPS-654)
+
+**Why.** bruce's store model has its own resolution: the layer count it
+divides the store into is the optimizer's choice, and the thermoclines
+in `flo.params` are stated in the house's sensor positions. Today the
+service couples the two by setting the layer count to TanksModeled times
+TempSensorsPerTank, and a hack in the bruce params rescales the
+thermoclines instead. Putting the layer count in the tuning word lets the
+service do the sensor-to-layer mapping once, at the boundary, and the
+hack goes away. `TempSensorsPerTank` stays in `flo.params`: it is a house
+fact and the unit of the thermoclines.
+
+**What.** `flo.tuning.bruce` 001 (staging) adds required `NumLayers`
+(`positive.int`). `flo.params` 001 (staging) only repoints the Tuning
+oneOf at it, because 000 is published and names the tuning version. The
+000 to 001 upgrade of a request assigns NumLayers as TanksModeled times
+TempSensorsPerTank, what a 000 request modeled; a lone 000 tuning refuses
+with `UpgradeRequiresContext`. `gw.operational.params` 000, staging and edited in place, repoints its
+FloTuning oneOf at tuning 001, so a house's ops params state the layer
+count the LTN copies into each request. Axiom templates copied
+unchanged, runtime regenerated, indexes rebuilt, the hand tests moved to
+001, two upgrade tests added.
+
 ## 2026-11-02 — new axiom about when the bruce optimizer can run (`fe60b58`, OPS-392)
 
 **Why.** A FLO is a model of the plant as operated, so the ops word's

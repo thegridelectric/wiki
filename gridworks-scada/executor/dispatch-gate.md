@@ -107,7 +107,9 @@ Two facts, two messages, one vocabulary:
   one path for ending a contract the scada holds, and the terminating
   heartbeat names the reason in the same enum: the cold latch
   (`ServiceContractBroken`), a stored contract not resumed at restart
-  because the property refuses, the deed lost mid-contract
+  because the property refuses once the buffer has been read or the
+  resume's bound has passed (`leaf-ally.md` "The resume runs as its
+  own task"), the deed lost mid-contract
   (`NoTaDeed`), the buffer gone stale mid-contract (`ScadaBlind`).
 
 The per-heartbeat check on a held contract evaluates `dispatch_refusal`

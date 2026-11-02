@@ -10,6 +10,49 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-02 — update flo params to 001 (`f3ac1b4`, main, OPS-654)
+
+**Why.** `flo.tuning.bruce` 001 states the resolution of bruce's store
+model, `NumLayers`, so the layer count is the optimizer's choice and no
+longer follows the sensor count. One fleet tuning serves every LTN house,
+and the fleet has three sensors per tank and three tanks in a House0
+store, so the fleet value is 9: the all-tanks store at one layer per
+sensor, and what Thomas's sibling runs on oak.
+
+**What.** The vendored snapshot regenerated against sema 1f6c096, the
+fleet tuning in `layout_gen.py` gains `NumLayers=9`, and every committed
+ops params with a bruce tuning (beech, elm, fir, maple, oak, orange-sim,
+spruce-sim, willow-sim) regenerated: the tuning at 001 with the field,
+nothing else. The `*.uploaded.json` files the gens also rewrite were left
+at their committed content; the gens on main produce different ones (the
+dist-flow channels and the water store facts), drift to settle on its
+own.
+
+## 2026-11-02 — dead dist flow pico at oak (`43737ab`, main, GRI-7)
+
+**Why.** Oak's dist-flow pico (`pico_974532`) has posted nothing since
+2026-10-28 and awaits a field visit (GRI-7). A channel the layout
+expects and never receives is flatlined every day in the roster glitch
+and counts against the scada's view of its own sensing; disabling the
+node says what is true on the box until the visit.
+
+**What.** `oak_gen.py` adds `dist_flow` to `disabled_node_names` beside
+the fake sieg meter, and `dist-flow` and `dist-flow-hz` to the disabled
+channels; the regenerated oak layout JSON lists them. Dist flow is not a
+dispatch channel, so the scada is not blind for it.
+
+## 2026-11-02 — Operator hold (no ltn) on every installed house but oak (`9343f4f`, main, OPS-654)
+
+**Why.** The new LTN code went to `main` (scada PR #600) and every
+installed house rolls to it, but only oak had run a live slot. The
+operator hold keeps the other houses' LTNs idle on the new code
+(`Main loop idle: accepts_dispatch=False`) while oak proves it, each
+house to be released on its own.
+
+**What.** `operator_hold=True` in the ops spec of `beech_gen.py`,
+`elm_gen.py`, `fir_gen.py` and `maple_gen.py`; the four regenerated ops
+words have `DispatchHold.OperatorHold` true. Oak keeps `False`.
+
 ## 2026-11-01 — Spruce names alice; the spruce sim keeps bruce (`6de9e67`, jm/flo-tuning-ops, OPS-392)
 
 **What:** `spruce_gen.py` passes `FloTuningAlice()` as the house's
