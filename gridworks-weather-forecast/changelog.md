@@ -11,6 +11,17 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-01 — The service emits gw.weather.forecast 002: a ForecastUid per send (`81d132d`, PR #13 `a69b669`, OPS-622)
+
+**Why:** a forecast had no identity of its own, so a consumer could not
+name the one it ran on, and the journal keyed the bundles of one slot on
+sender and time and kept one. The scheduler mints the uid as it builds
+the message, the archive is keyed by it, and the actor archives before
+it sends, so a re-send of an identical window under held source
+revisions goes out under the uid the first send got. `GET
+/forecasts/{forecast_uid}` serves the sent message, the values behind a
+decision that cites it.
+
 ## 2026-10-18 — README to the pattern; legacy weather word out of the seed (`cd36dfd`, `jm/readme`)
 
 **What:** the README rewritten in the README pattern's order: a summary

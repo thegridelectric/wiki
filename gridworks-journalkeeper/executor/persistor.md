@@ -23,7 +23,8 @@ The default path stores the message in `messages` and stops. A **custom
 persistor** additionally fans selected fields into `readings` (and, for
 layouts, maintains `reading_channels`). The custom persistors today:
 `layout.lite`, `report.event`, `flo.params.house0`, `weather.forecast`,
-`gw.weather.forecast.bundle.gt`, `gw.weather.observation`, `g.node.forest`,
+`gw.weather.forecast`, `gw.weather.forecast.bundle.gt`,
+`gw.weather.observation`, `g.node.forest`,
 and the alert, house-status and snapshot projections.
 
 ## The channel model — the kind is the row's fact
@@ -261,3 +262,31 @@ make the lossiness explicit so it's a *decision*, not an accident.
   the `STATE_CHANNELS` map for houses on 011 and 012, which goes when
   the last house rolls, and the integer pseudo channels (price, weather,
   flo params).
+- **The exception table and the handle map are one relic.** With 013 the
+  general state-channel rule is `<node>-state`, and
+  `CONTINUED_STATE_CHANNEL_NAMES` keeps the seven hand-named streams
+  under their old names across the roll; the general rule collides (a
+  node hosting two machines gets one name for both) and names badly
+  (`s-state`, `n-state`). The table goes when a state row records what
+  identifies the machine (node name, enum, version) and readers select
+  by that; pre-013 rows have the node in the handle's last segment and
+  the enum in `unit_type`, so a migration backfills them. The handle map
+  stays as data for replaying pre-013 reports from S3. Until then the
+  continued names keep the state lineages whole: state pseudo rows have
+  no `channel_id`, so the readers knit them by name alone.
+- **The heat-call synthesis guard decides by substring.** The guard is
+  keyed on declaration and content, which is the right key, but it tests
+  `"heat-call" in name` and `"whitewire-pwr" in name` and routes by
+  name, so a 013 report with whitewire readings and no heat-call readings
+  would write synthesized values into a derived channel's row. With
+  `gw.channel.kind`, synthesis targets HeatCallSynth rows only. The live
+  path retires when no house runs pre-013 code; the replay path's rule and
+  per-site thresholds (beech 100 W, elm 1 W, default 20 W) then stay here
+  as the record of how the historical pseudo rows were made.
+- **`buffer-available-kwh` is removed, not re-derived.** The
+  `flo_params_house0_persistor.py` pseudo channel stores the LTN's
+  `BufferAvailableKwh`, computed from a hard-coded four-layer buffer and
+  0 whenever `KeepBufferFull` is true (every deployed House0 house). No
+  layout has that buffer; the journal's rows stay, a rebuild will not
+  have them. It is the only live emitter of `KilowattHoursX1000`, which
+  stays in `gw1.unit` because 002 is published.

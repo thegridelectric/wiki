@@ -20,6 +20,11 @@ live JournalKeeper's own record. Below 2024-10-13 the archive (back to
 telemetry name — which JournalKeeper does not accept; loading it would be a
 separate decision.
 
+The weather service's `gw.weather.forecast` sends from 2026-10-18 20:01Z,
+three bundles an hour, were loaded on 2026-11-01 after the rows the live
+keeper had kept under a sender-and-time id were deleted (journaldb.md in
+gridworks-infra records the run).
+
 Deliberately **not** loaded from the archive:
 
 - `snapshot.spaceheat` — generates no readings (the channel time-series
@@ -43,6 +48,15 @@ Deliberately **not** loaded from the archive:
 The two gaps in the live record that a load did not fill — snapshots
 Jan–Jul 2026 and the shorter `scada.params` / `ticklist.hall.report` gaps in
 early 2026 — are an open decision, not an oversight.
+
+## Two object shapes
+
+An eventstore object is one of two shapes, and the importer reads the
+word out of either (`s3_message_importer.word_of`): a scada's MQTT-era
+object is an envelope, `Header` and `Payload`, whose Payload is the
+word; a gwbase message (the weather service, the registry, the alerter)
+is stored by the ear as the word itself. The key names the sender, the
+type and the ear's receipt time the same way for both.
 
 ## Idempotency — what makes a re-import safe
 

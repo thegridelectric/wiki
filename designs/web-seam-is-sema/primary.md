@@ -1,6 +1,6 @@
 # The web seam is sema
 
-Status: Draft · Pass 0 · Updated 2026-10-29 · Linear: [OPS-622](https://linear.app/gridworks/issue/OPS-622)
+Status: Draft · Pass 0 · Updated 2026-11-01 · Linear: [OPS-622](https://linear.app/gridworks/issue/OPS-622)
 
 **EDD: no** build-out across the journalkeeper, the web-backend, the
 web-frontend and sema, verified by each repo's suite and a page check
@@ -213,12 +213,15 @@ exists in the sema repo or either web repo, so each is typed to the fields
 a page reads and drifts from the word.
 
 - Sema on both sides: `summaries` (`gw.house.summary` through
-  `to_dict()`, `HouseSummary.d.ts`).
+  `to_dict()`, `HouseSummary.d.ts`) and the weather routes
+  (`gw.weather.forecast.bundle.gt` and `gw.weather.forecast`, zod
+  schemas in the browser; the house-to-bundle table in the browser is
+  hand-kept until `gw.operational.params` is journaled).
 - Sema on the backend and in wire form, hand-typed in the browser:
   `synced.readings.bundle` (its three `.d.ts` match the words, kept by
   hand) and `messages` (`glitch`, `gridworks.event.problem`,
-  `weather.forecast`; the morning report and the weather plot type them
-  by hand without TypeName).
+  `weather.forecast`, which no scada on `main` emits; the morning
+  report types them by hand without TypeName).
 - No word at all: `alerts` (alert-manager's snake_case rows proxied
   through a pydantic model), `hourly.electricity` without `dl` (positional
   `[ts, kwh, usd_per_mwh]` arrays), the gateway's websocket (`status`,
@@ -379,6 +382,27 @@ backend or the browser:
    operational-parameter asks. The types come from the TypeScript emitter
    (the `typescript-emitter.md` spoke) once it exists; until then they are
    kept by hand to the words, as the real-time page's are.
+
+## The hand-written TypeScript is checked both ways
+
+Until sema generates the frontend's types, each hand-written zod schema
+in `src/sema/types/` is a claim about a word, and a python harness per
+word tests the claim from both sides, with the python codec as the
+oracle in every direction:
+
+- **Acceptance.** The python snapshot's samples, and instances the
+  harness builds from them, go through the zod schema: every instance the
+  python codec accepts, zod accepts.
+- **Rejection.** The harness mutates each sample one fault at a time (a
+  format broken, a required field dropped, an axiom violated, a field
+  added, a wrong Version), asserts the python codec rejects it, and
+  asserts zod rejects it too. A fault zod lets through is the finding.
+- **Emission.** What TypeScript constructs and serializes (the page's
+  requests, fixtures built in TS) goes back through the python codec and
+  SHALL decode to an equal instance.
+
+The harness runs node from pytest with the mutations enumerated in
+python. When the type generator ships, the harness stays as its check.
 
 ## Open
 

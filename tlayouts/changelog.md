@@ -10,6 +10,38 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-01 — Spruce names alice; the spruce sim keeps bruce (`6de9e67`, jm/flo-tuning-ops, OPS-392)
+
+**What:** `spruce_gen.py` passes `FloTuningAlice()` as the house's
+`FloTuning`; `spruce_sim_gen.py` keeps `BRUCE_FLEET_TUNING` beside its
+operator hold off. The spruce and spruce-async1 outputs say alice; the
+spruce-sim output says bruce and gains the market fields the previous
+commit missed, since the sim gen was not rerun then.
+
+**Why:** alice answers every request with a bid of nothing, and the
+Nolan scada has no working leaf ally yet, so spruce names alice with the
+operator hold it already has (axiom 6) and no LTN bids on it. The sim
+home takes dispatch in tests, so it stays on bruce.
+
+## 2026-11-01 — FloTuning, the market and the store tank facts in every layout (`1bc46e7`, jm/flo-tuning-ops, OPS-392)
+
+**What:** the vendored snapshot regenerated at sema `03a949d`. `OpsSpec`
+gains `flo_tuning`, `market_maker_alias` and `market_product_name`, and
+`LayoutGenConfig` gains `gallons_per_tank` and `temp_sensors_per_tank`,
+all required. `BRUCE_FLEET_TUNING` in `layout_gen.py` is the one bruce
+tuning the fleet runs, with the values the LTN's `flo_tuning.py`
+constants had; every house gen passes it, `rt60gate5` at
+`hw1.isone.me.versant.keene`, and 120 gallons, 3 sensors per tank.
+Outputs regenerated for every house and sim; each ops word gains
+`FloTuning`, `MarketMakerAlias` and `MarketProductName`, each layout's
+`WaterStore` the two tank facts, and nothing else moves.
+
+**Why:** `gw.operational.params` requires `FloTuning` and the market
+facts, and `gw.water.store` the tank facts (sema `03a949d`), so a layout
+pair without them fails the scada's boot decode. Every LTN house runs
+bruce and bids into the same market; alice is the branch for a house
+held out of dispatch.
+
 ## 2026-10-29 — fix heating params for fir, maple, oak (`41e99ad`)
 
 **What:** the fir, maple, oak and spruce gens set each house's heating

@@ -68,8 +68,13 @@ one instance, a clock or the store to check.
   bundle's Start. A location with no template skips the slot and
   raises a glitch. Each downgrade raises a glitch naming the series.
 - **Sent forecasts are store rows**, one per send-distinct message,
-  keyed by the bundle name it was sent under and the joined per-series
-  source revisions. The read API serves the latest one per bundle.
+  keyed by the message's ForecastUid, which the scheduler mints as it
+  builds the message; the row is unique on the bundle name it was sent
+  under, the joined per-series source revisions and the window, and a
+  re-send of an identical window goes out under the first send's uid,
+  since the actor archives before it sends. The read API serves the
+  latest one per bundle and any one by its uid, at the word's version
+  this snapshot speaks.
 
 ## Open
 

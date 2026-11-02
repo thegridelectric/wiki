@@ -10,7 +10,44 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-10-29 — the Houses card shows each scada's commit, a check when it is main's head (OPS-622) <!-- pending commit -->
+## 2026-11-01 — the weather plot draws a house's bundle forecasts from the weather words (`7e3ac74`, OPS-622)
+
+**What:** seven zod schemas in `src/sema/types/` for `gw.weather.forecast`
+002 and 001 (`AnyWeatherForecast` is their union: the journal holds the
+service's 001 emissions, which have no ForecastUid and no upgrade path,
+so the backend serves each at its own version) and
+`gw.weather.forecast.bundle.gt` 002 with the series, binding and channel
+records they embed, each axiom a named refinement; the seed pins the
+two forecast versions and names the bundle word and the fidelity enum, `formats.ts` gains the
+three formats the closure brings (`LowercaseToken`, `NonEmptyString`,
+`NonNegativeInt`, as sema's TypeScript generator emits them) and
+`enums/WeatherForecastFidelity.ts` the enum. `weather-api.ts` fetches a
+bundle's record and its emissions over the window from the backend's
+weather routes, parses both, and lays the runs of one quantity on the
+bound forecast channel's slice grid in the bound observation channel's
+unit, which the plot converts through the shared unit table.
+`house-weather-bundles.ts` is the hand-kept table from a house's alias
+to the bundle its scada reads (every house on `us.me.millinocket.moose`),
+with the note naming the `gw.operational.params` field that retires it.
+`WeatherForecastPlot.tsx` draws the temperature runs, the newest in red.
+Tests: the registry 002 example and the journaled bobcat 001 emission
+and record parse, singly and through the union, one failing case per
+axiom, the run builder on 001 and 002 rows together.
+
+**Why:** the plot read the per-house `weather.forecast` message the
+`legacy` scada emitted and typed it by hand; no scada on `main` emits
+it, so the plot went blank as the fleet rolled on 2026-10-29. The
+weather service's word is about a bundle, so the house-to-bundle fact
+is what the browser needs, and until the scada's operational params are
+journaled it is a table in the browser. The journal holds every
+bundle's record and its hourly emissions (moose, bobcat and raccoon;
+the service's 002 emissions from 2026-11-01 17:01Z), so each house's
+plot has data. The fixtures are moose's journaled record and one
+emission at each version. Seen on the page: the oak visualizer against
+the backend on `tsdb_tap`, a window spanning the version switch, 44
+runs drawn and no console error.
+
+## 2026-10-29 — the Houses card shows each scada's commit, a check when it is main's head (`fec2bab`, OPS-622)
 
 **What:** `gw.house.summary` 002 as a zod schema with `ScadaCommit` on the
 `git.commit` format and `ScadaCommitStanding` on the new `CommitStanding`

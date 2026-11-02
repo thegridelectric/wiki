@@ -10,6 +10,17 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-01 — Hand SQL: the forecast rows journaled before bundle-keyed ids (`f766fb9`, PR #16 `ffc1d53`, OPS-622)
+
+**Why:** the journal kept the weather service's `gw.weather.forecast`
+001 rows under an id of sender, type and created time, one bundle an
+hour; the journalkeeper now keys those rows with the bundle name, and an
+eventstore load re-journals the same sends under that id. The script
+deletes the old-id rows so the load holds one row per bundle per hour,
+and refuses to run again once bundle-keyed 001 rows are present. Run on
+tsdb_tap and then production on 2026-11-01; the run is recorded on the
+journal-DB page in gridworks-infra.
+
 ## 2026-10-25 — reading_channels.channel_type: from TypeNames and `gjk.pseudo` to gw.channel.kind values (`jm/channel-type-synth-to-derived` 70900cb, OPS-542)
 
 **Why:** the column held three sema TypeNames and the marker `gjk.pseudo`,

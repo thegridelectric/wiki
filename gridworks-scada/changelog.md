@@ -10,6 +10,255 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-02 — retiring MarketTypeName, add axiom 7 to ops params (`213ac3a0`, jm/flo-tuning-ops off td/bruce, OPS-392)
+
+**Why.** Two gwsproto twins had no reader: sema froze `market.type.name`
+in June 2026, replaced by `gw.market.product.name`, which the ops word
+already names, and the scada kept its twin only because the `MarketName`
+format read it, whose one user was the `market.maker.ack` twin that
+nothing decodes or sends. And sema's `gw.operational.params` 000 gained
+axiom 7 (`fe60b58`): bruce on a House0 family excludes
+`SiegLoopStrategy` LwtControl, since the bruce FLO models one heat pump
+charging one stratified store and a loop targeting its own leaving
+temperature is not that plant.
+
+**What.** The `MarketTypeName` and `MarketMakerAck` twins, the
+`MarketName` format and the seed's `market.type.name` pin are gone, and
+`market.maker.ack` leaves the conformance sweep's no-word list; the
+`bid.recommendation` axiom docstring names the market product instead
+of the frozen enum. The slot-name check is unchanged: it was already
+sema's maker-agnostic pattern. Snapshot regenerated at `fe60b58`,
+`check_axiom_7` on the `OperationalParams` twin, a rejecting test on the
+orange fixture for clause a and an accepting one for alice on the same
+loop.
+
+## 2026-11-02 — The operating status is the LTN's only word on running its FLO (`07ec6e7f`, jm/flo-tuning-ops off td/bruce, OPS-392)
+
+**Why.** `LtnSettings.monitor_only` sat before the hold check in the
+LTN's main loop, and `LTN_MONITOR_ONLY=True` was set in the box `.env` of
+five of the six LTNs, so five houses skipped their FLO for a reason no
+word on the broker or in the layout pair stated. The ops word's
+`DispatchHold.OperatorHold`, reported by the scada on
+`gw.house.operating.status`, says the same thing with authority.
+
+**What.** The setting and its branch are gone; the main loop idles on
+`accepts_dispatch` alone. New test: with the operator's hold on, the main
+loop logs idle every tick and never runs the FLO. The five `.env` lines
+come out on the next roll (ltn instance-README).
+
+## 2026-11-02 — remove some logs; back to regular time (`715b916d`, jm/flo-tuning-ops off td/bruce, OPS-392)
+
+**Why.** Two lines filled the scada journal with nothing a reader acts
+on: the derived generator's "[HeatCall periodic]" line on every
+five-minute heat-call emit, one per zone, and the sieg loop's
+"sieg-view" strip every tick. The bid minute goes back to :57 after the
+oak trial at :27.
+
+**What.** The HeatCall periodic log is gone; the boundary still advances.
+The two `log_view()` calls are commented out, so the strip comes back
+with two lines for a test-drive; `view()` itself and its tests stay. The
+test that every tick writes a view line goes with the calls (the next
+commit). `send_bid_minute` is 57.
+
+## 2026-11-02 — async status update when no longer blind (`eb251bcc`, jm/flo-tuning-ops off td/bruce, OPS-392)
+
+**Why.** The first roll of jm/flo-tuning-ops onto oak missed its 01:57
+bid. The scada's first operating status, answering the LTN's layout
+request six seconds after the restart, said `ScadaBlind` because the
+buffer pico had not posted yet; the buffer was fresh 13 seconds later,
+but the only path that re-evaluated the status was the report tick,
+every 300 s, so the LTN held `AcceptsDispatch` false until 01:59:58 and
+skipped the FLO. The dispatch-gate spec already says the derived fact
+moves with the sensing.
+
+**What.** The reading path's freshness hook (`note_reading_for_buffer_fresh`,
+the one-shot's home) also re-reports the operating status when the
+buffer's freshness differs from the last status sent, in either
+direction. `test_operating_status_follows_buffer_freshness` boots a
+scada with no buffer reading, sees the blind startup status, and asserts
+the fresh reading re-reports at once, a second fresh reading sends
+nothing, and a stale finding re-reports blind. The bid minute moves to
+:27 in the same commit for the live oak trial (then :17); it goes back to
+:57 before the squash to main.
+
+## 2026-11-02 — The LTN runs its FLO in one call at the bid minute (`8909bd11`, jm/flo-tuning-ops off td/bruce, OPS-392)
+
+**Why.** The LTN built and solved the graph at `create_graph_minute`,
+pickled the trimmed graph, and at :57 updated it with the measured
+store and generated the bid. The split existed to spread minutes-long
+builds across the hour; on the ltn box a build is 14 s and a bid 11 s.
+It cost: the stability gates evaluated against the :05 store and baked
+into edge costs; the previous run lost when the minute-0 tick came
+before the price; held state going inconsistent for five hours at the
+fall-back change; `stop` unable to reach a run blocked in a wait, so
+systemd killed the unit; and a copy of bruce's `recommend` loop with
+an allow-list of what may change between phases. The design is the
+spoke's "One call and response".
+
+**What.** At the bid minute the LTN measures the store, builds
+`flo.params` for the next slot (`next_slot_start_s`, whole hours of
+the epoch, so a clock change does not move it) with the previous run
+attached, copies the request to the scada, and runs bruce's
+`recommend_bytes` in one child (`_flo_worker`); the `BidRunner` turns
+the recommendation into the bid and polls its child every second so
+`stop` ends it, and `Ltn.stop` calls it. The request stays until the
+next slot's replaces it, so the clearing price at :00 finds it.
+`_flo_build_worker`, `_recommendation_on`, `_flo_bid_worker`,
+`with_store_state`, `sent_bid`, `LtnSettings.create_graph_minute` and
+`LtnSettings.seasonal_storage_mode` (read only by a log line; the mode
+comes from the operating status) are gone. Tests: the FLO round trip
+against bruce in the venv replaces the empty `test_ltn.py`; a stop
+during a run (`test_bid_runner.py`); the slot helpers with the
+fall-back and spring-forward instants.
+
+## 2026-11-02 — The LTN keeps the cleared path as the next run's previous run (`aa2f200d`, jm/flo-tuning-ops off td/bruce, OPS-392)
+
+**Why.** bruce's recommendation already answers, beside every pair, the
+path that pair's first-step edge leads to. The LTN still ran a third
+child process against the pickled graph to ask for the plan at the
+cleared price, as its own `flo.next.hour.plans` word, and never handed
+the answer back as `PreviousOptimalPath`, so on this branch the
+stability penalty saw no previous plan.
+
+**What.** The bid child answers the whole `flo.recommendation` (bruce's
+`recommend` loop on the graph built at :05, since bruce's own call
+builds its graph in the same call). The LTN holds it, and at the
+cleared price takes the cleared pair's index (`cleared_pair_index`, the
+clearing rule now answering an index) and its path: saved as the
+`PreviousRun` in `previous_run.json` beside the layout, handed to the
+next request when the path's first step ends at that request's start,
+and sent to the scada under the LTN's alias so the broker journals it.
+The plans child, its event, the `flo.next.hour.plans` word and twin go;
+the scada ignores the LTN's `flo.optimal.path` and `flo.params` instead
+of raising on them. `_cleanup_bid_runner` keeps `flo_params`, read at
+clearing for the price the request forecast for the slot after.
+Tests: the clearing rule on the same breakpoints as an index, the
+previous run's slot match and disk round trip. `tools/mkenv.sh` pins
+bruce at `v0.1.0+gw2`, the tag with the previous plan aligned from the
+path's second step.
+
+## 2026-11-02 — The LTN clears its bid by the FLO's segment rule (`a7bda953`, jm/flo-tuning-ops off td/bruce, OPS-392)
+
+**Why.** The FLO's bid curve partitions the price range: a pair holds
+for every price above the next lower pair's price, up to and including
+its own, so the pair that applies to a cleared price is the
+lowest-priced one at or above it. The LTN read it the other way, as
+the highest-priced pair strictly below the cleared price, which is the
+quantity of the segment one step down, more energy than the FLO chose
+at that price, and certainly wrong on a breakpoint. Nothing had gone
+wrong in the field because the deployed bruce sweep emits one pair per
+bid; the forked sweep emits real curves, so the rule goes in with it.
+
+**What.** `cleared_quantity_x1000` in `actors/ltn/market.py` is the
+rule, a pure function over the bid's `PqPairs`; `ltn.py` calls it where
+the loop was and keeps its three log lines. `tests/actors/test_ltn_clearing.py`
+sits on each breakpoint of a three-pair curve, above the ceiling, below
+the floor, and on the one-pair bid oak sends today.
+
+## 2026-11-01 — The LTN speaks words to its FLO and its market: flo.params, the slot from the ops word, no best-effort publish (`a30145f3`, jm/flo-tuning-ops off td/bruce, OPS-392)
+
+**What:** `actors/ltn/flo_request.py` holds `build_flo_params`, a pure
+function from the house's facts to one `flo.params`: the curves,
+`HpMaxKwEl`, `HpTurnOnMinutes` and `FloTuning` from the ops word; the
+tank facts from the layout's `gw.water.store`; the tanks modeled from
+`SeasonalStorageMode`; the heat load and RSWT per hour from the heating
+curve (moved here from the actor); `WeatherForecastId` from the forecast's
+`ForecastUid`; thermoclines as sensor-layer counts, which is bruce's
+layer unit. A forecast with a seasonal-fill series raises
+`SeasonalFillForecast` and the LTN skips that hour's run. The FLO child
+validates the bytes with bruce's own `FloParams` and maps them through
+`bruce.service.params_from_request`, so the LTN no longer spells bruce's
+request. `with_store_state` refreshes the measured store at bid time
+through the word. Gone: `LtnSettings.ha1_params`, `actors/ltn/flo_tuning.py`,
+`TANK_GALLONS`, the `getattr` lookups of the app's clock and weather
+source. New `ltn_app_interface.py`: `LtnAppInterface` declares
+`settings`, `hardware_layout`, `clock`, `weather_source` and
+`operational_params`; `LtnApp` implements it and loads the ops word once;
+the LTN dispatches on `isinstance`. `load_operational_params` takes
+`ScadaPathsSettings`, which is all it reads, so the `Any` cast goes.
+Tests: `tests/actors/test_flo_request.py` (the facts, BufferOnly models
+one tank, the horizon is the shortest of asked, cap, forecast and prices,
+a seasonal fill is refused, the buffer's energy comes off the first
+hours, a previous run is handed on, the measured store revalidates);
+the two `ha1_params` settings tests go with the setting.
+
+**Why:** the FLO boundary is one sema word each way. The LTN's request
+was bruce's own `HeatPumpWaterTankParams`, built in the actor from a
+settings-held `ha1.params`, module constants and a hard-coded tank size,
+with no TypeName to publish. The ops word on the LTN box states every
+house fact the FLO needs, and the tuning word states the FLO's knobs.
+The price bounds stay as two constants until the MarketMaker's product
+word states them; `PreviousOptimalPath` is handed on only once the plans
+worker produces one (next step), so the stability penalty sees no
+previous plan until then.
+
+**Also in this commit, the market facts and the publish path.**
+`actors/ltn/market.py` holds `market_slot_name(ops, slot_start_s)` (the
+energy slot on the ops word's `MarketMakerAlias` and `MarketProductName`,
+validated as a `market.slot.name`) and `latest_price_topic`, moved off
+the `Ltn` class; `BidRunner` takes the ops word in place of the settings;
+the latest.price source check reads the ops word; `LtnSettings.market_maker_alias`
+goes and the LTN's one use of the `MarketTypeName` enum with it (the twin
+itself stays: `market.maker.ack` and the slot-name format read it, and
+retiring it is a sema wave). `_message_for_scada_publish` is the plain
+publish of a `GwsprotoSemaType` with the gw envelope deriving
+`MessageType` from the payload; the try/except that swallowed every
+failure (commit `e1392b6a`, wrapped after a payload without a TypeName
+killed the LTN's main task on oak at 2026-10-31 17:57:54Z) goes, since
+every payload on that path is a word now. Tests:
+`tests/actors/test_market.py` (the slot and the topic from the willow ops
+word), `tests/actors/test_ltn_scada_publish.py` (a payload without a
+TypeName is refused when the message is built; a word wraps under its own
+TypeName), and the live latest-price test forms its slot and topic from
+the ops word.
+
+**And the bruce pin.** `tools/mkenv.sh` installs `bruce-energy` from
+`git+https://github.com/thegridelectric/optimal-flexibility` at the tag
+`v0.1.0+gw1` by default (`editable_flo` installs the sibling checkout,
+`no_flo` skips it): the FLO child calls `bruce.service.params_from_request`,
+which exists only from that tag, a box's venv must not depend on which
+branch a sibling checkout sits on, and pip records the VCS pin so
+`bruce_git_commit()` names the tagged commit in every request. The fork
+is public, so the https URL installs unattended.
+
+## 2026-11-01 — new ltn <-> FLO words, also minor weather forecast update (`2057d6cd`, jm/flo-tuning-ops off td/bruce, OPS-392)
+
+**What:** the sema snapshot regenerated at sema `03a949d`; the seed pins
+`flo.params` and `flo.recommendation` 000, whose closure brings
+`flo.optimal.path`, the two tuning words and `gw.market.product.name`.
+New twins `FloParams` (replacing the 001 base class nothing derived
+from), `FloRecommendation`, `FloOptimalPath`, `FloTuningAlice` and
+`FloTuningBruce`, every axiom a `check_axiom_<n>`, with tests of each
+word's example and one rejecting test per axiom clause against the
+snapshot oracle; `flo.params` leaves the conformance no-word list.
+`OperationalParams` gains the required `FloTuning`, discriminated by
+TypeName as `FamilyParams` is, `check_axiom_6` (alice requires
+`DispatchHold.OperatorHold`), and the required `MarketMakerAlias` and
+`MarketProductName`, the latter the new `MarketProductName` enum twin.
+`WaterStore` gains `GallonsPerTank` and `TempSensorsPerTank`. A
+`NonEmptyString` property format mirrors `non.empty.string`. The four
+ops fixtures under `tests/config` take bruce with the fleet's knob values
+and the market facts, and the four layout fixtures 120 gallons and 3
+sensors per tank. `gw.weather.forecast` moves from 001 to 002, the
+version the forecast box publishes: the twin gains the required `ForecastUid`, the seasonal
+fill mints one for the forecast it builds itself, and the moose fixture
+is the 002 message. The twins `GwWeatherForecast` and
+`GwWeatherForecastSeries` take their local names `WeatherForecast` and
+`WeatherForecastSeries`, as the snapshot classes and every other weather
+twin already have.
+
+**Why:** the ops word is where the tuning and the market live at rest,
+so the scada decodes them at boot: an alice file without the operator
+hold fails the boot instead of letting an LTN bid on an empty tuning,
+and the LTN forms its slot name and its latest-price topic from the ops
+word rather than from a settings default and a constant. The store facts
+let the LTN state the modeled store in `flo.params` from the layout
+rather than from constants in `ltn.py`. The reply twins are the LTN's
+side of the FLO boundary: one request, one reply complete over prices.
+The LTN reading these, and the deletion of `flo_tuning.py`,
+`TANK_GALLONS` and `LtnSettings.ha1_params`, are the next commit on the
+branch.
+
 ## 2026-10-31 — Cleaning up after bid (`7328a0f8`, td/bruce)
 
 **What:** when the LTN's bid-runner thread exits, success or failure,

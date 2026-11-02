@@ -1,146 +1,207 @@
 # flo-as-a-service
 
-Status: Draft · Pass 0 · Updated 2026-08-30 · Linear: OPS-514
+Status: Accepted · Pass 1 · Updated 2026-11-02 · Linear: OPS-514
 
-**EDD: yes** the opening experiment is a measured FLO build (peak RSS, wall
-time) on a laptop from a real params blob and cached supergraph; the service
-is Verified when one house's bids from the service match its in-process bids
-over a day on the real broker.
+**EDD: yes** the opening experiment is a measured bruce build from oak's
+plant facts (peak RSS, wall time per phase, trimmed-graph size), done
+2026-11-01 and recorded below; the service is Verified when one house's
+bids from the service match its in-process bids over a day on the real
+broker.
 
 > What this is: move FLO compute out of the LTN process into its own gwbase
 > service on its own box. LTN boxes are then sized for LTN-only; FLO memory
-> lives in one measured, contained place. Time-box target: under 20 hours.
+> lives in one measured, contained place. The first request the service
+> ever answers is an alice request. Time-box target: under 20 hours.
 
 ## Why
 
 - LTN boxes were sized by crashing: the 2025–26 season grew them until the
-  crashing stopped, landing on c5.large (4 GB) per two to four houses. The
-  FLO's CPU cost is trivial (~5 s per hourly build, from `gridflo.log`); its
-  memory has never been measured. `gridworks-infra/ltn/README.md` "Box
-  sizing" holds the operational fact.
+  crashing stopped, at c5.large (4 GB) per two to four houses. The FLO's
+  CPU cost is small; its memory had never been measured.
+  `gridworks-infra/ltn/README.md` "Box sizing" has the operational fact.
 - The memory shape: `actors/ltn/ltn.py` forks a child per FLO step
-  (`_flo_build_worker` → `_flo_recommend_worker` → `_flo_plans_worker`);
-  the child builds the full graph from the cached supergraph, solves,
-  trims, **pickles the trimmed graph back through a queue**, and the parent
-  unpickles it. Peak is a multiple of the graph per house, and six houses'
-  hourly peaks are not synchronized.
+  (`_flo_build_worker` → `_flo_bid_worker` → `_flo_plans_worker`); the
+  child builds the full graph, solves, trims, pickles the trimmed graph
+  back through a queue, and the parent unpickles it. Six houses' hourly
+  peaks are not synchronized.
 - OPS-511 downsizes the LTN box on the condition that FLOs do not resume
   there. This design is what lets FLOs resume.
-- OPS-491 (five-minute FLOs) multiplies the build cadence by 12; in-process
-  that multiplies the unmeasured memory pressure per LTN box by the same.
-  A service absorbs the cadence in one place.
+- OPS-491 (five-minute FLOs) multiplies the build cadence by 12; a service
+  absorbs the cadence in one place.
 
 ## What exists already
 
-- The FLO is already process-isolated with a bytes-in / bytes-out contract:
-  `Flo(flo_params_bytes)` → trimmed graph → `generate_recommendation(bytes)`
-  → `BidRecommendation` bytes. The service wraps these functions; it does
-  not rewrite the optimizer.
-- `gridflo/rabbit.py` is a stub (hard-coded `gwflo1.mic` exchange, pika to
-  localhost); nothing runs it. Not the pattern.
-- Supergraphs cache per params-hash in `~/.config/gridworks/gridflo/`
-  (25 MB on `ltn2`); generation ~3 s / ~96 MB peak.
-- Sema already has `flo.params.house0` and `bid` / `atn.bid`; check whether
-  `bid.recommendation` exists before coining anything.
-
-## Constraint: the LTN is not on gridworks-base
-
-The LTN runs on gwsproto/gwproactor over MQTT; a gwbase actor is AMQP-native.
-Same broker (Rabbit MQTT plugin), so a request/reply works, but
-`FloParamsHouse0` / `BidRecommendation` exist twice — gwsproto named types
-and `gridflo.asl.types` — and the LTN passes `to_bytes()` between them. V1
-straddles: the service speaks sema; the LTN edge translates until the
-proactor port (the LTN-on-gwbase design, OPS-435) removes the second
-vocabulary. The design must work with the
-gwsproto LTN as-is.
+- The optimizer is `bruce` (`optimal-flexibility`), forked to
+  `thegridelectric/optimal-flexibility`; the service pins a tag of the
+  fork. The as-built service, its words, transport and invariants are
+  `../executor/primary.md`; bruce's model is `../executor/bruce-flo.md`.
+- The LTN edge is OPS-392's work: one callable whose transport changes
+  from a child process to the broker round trip, with its existing
+  timeout and no-FLO fallback bid. The LTN runs on gwsproto over MQTT and
+  the service is a gwbase actor on AMQP; the same broker joins them, and
+  the request and reply words exist as gwsproto twins on the LTN side
+  until the proactor port (OPS-435) removes them.
+- The words (`flo.params/000`, `flo.recommendation/000`, the tunings,
+  `flo.optimal.path/000`) are published in the sema registry. This design
+  authors none.
 
 ## Hosting
 
-Two layers, decided separately.
+A thin gwbase actor on its own box owns the request and reply with every
+LTN on the production broker; builds run in a bounded local worker pool.
+The measurement below settled the two questions this turned on: the
+built graph does not need to stay resident between runs (1.8 GB per
+three-tank house held, against a sub-second solve and a 43 s rebuild),
+and overlapping bursts are queueing, `N` workers under one memory cap on
+a box sized for `N` peaks. A provider function stays viable as overflow
+because the service is stateless per request and the matrix cache is
+tiny; it is not V1.
 
-**The broker face is settled:** a thin gwbase actor (`hw1.flo`, its own
-Hetzner box under the fleet box-access model) owns the sema request/reply
-with every LTN on the production broker. FLO params in and bids out are
-fleet claims — witnessed by the ear, under FIS auth, following the house
-API pattern; bids are money. The actor does not build graphs itself; it
-dispatches builds to an executor and returns the result.
+## The opening measurement (2026-11-01)
 
-**The executor is decided by the opening measurement.** The resource that
-crashed the LTN boxes is memory, consumed in bursts (one build's full
-graph, its pickle, the parent's copy, for a few seconds) — and the crashes
-came when bursts overlapped. Averages hide that; the design question is
-how overlapping bursts are handled.
+Laptop, `/usr/bin/time -l`, the bruce package at `optimal-flexibility`
+`2711f59`, oak's plant facts from `tlayouts/output/oak` and
+`actors/ltn/flo_tuning.py`, forecast arrays stand-ins shaped like a
+November weekday under the Versant A-1 windows. Oak runs `BufferOnly`
+today, so its live FLO is one tank: 9 layers, 120 gallons, 1890 states ×
+461 actions. The build used the matrix copied from the LTN box
+(`heat_pump_water_tank_2b6a76e0`), which the same params hash to.
 
-- *Local bounded worker pool on the actor's box:* N workers, each capped
-  with `MemoryMax`, box sized for N × measured peak. Overlap becomes
-  queueing; a params set larger than measured kills one worker, not the
-  box. Cheap, on-convention, supergraphs warm on local disk, private
-  `gridflo` at a pushed SHA. Needs a real peak number and its variance
-  across houses; queue depth needs watching at OPS-491's cadence
-  (100 homes × 5 min ≈ 1200 builds/hour).
-- *Provider function (Lambda-class):* every build in its own memory (up to
-  10 GB), no overlap by construction, pay per GB-second — pennies at six
-  houses hourly, roughly a large box's price at 100 homes on 5-minute
-  cadence. Costs: supergraph fetched from S3/EFS per cold start, private
-  code packaged into a provider runtime, a second deploy path.
+| phase | wall | peak RSS so far |
+| --- | --- | --- |
+| interpreter + imports | | 109 MB |
+| asset (available-actions cache) | 2.0 s | 160 MB |
+| graph: load matrix, nodes, edges (185 k nodes, 348 k edges) | 2.5 s | 315 MB |
+| find_shortest_path | 0.1 s | 323 MB |
+| trim + pickle trimmed graph (7.0 MB) | 0.2 s | 323 MB |
+| bid child: unpickle, generate_bid, next node | 0.1 s | 201 MB |
 
-Because the actor fronts either, the executor can change later without
-touching an LTN. The reuse section below tilts V1 to the resident pool;
-the measurement records peak RSS per build, resident graph size per
-house, and how both vary with house params.
+Build child total 5.4 s wall; the LTN box reports the same shape ("Built
+and solved in 14.2 seconds", 7.3 MB trimmed, with 9 s of child start-up
+and pickling around it).
 
-## Reuse across the 5-minute cadence
+The same run at the all-tanks shape (27 layers, 360 gallons, 15 876
+states, cached matrix):
 
-`solve_dijkstra` (`gridflo/flo.py`) is backward induction: it walks layers
-from the horizon down to now, storing on each node a cost-to-go
-(`pathcost`) and `next_node`. A layer's solution depends only on later
-layers' inputs. Profiling shows where the cost sits — `Created edges 3.2 s
-· nodes 0.9 s · Dijkstra 0.1 s` — so the graph build is the burst and the
-solve is nearly free. Reuse follows:
+| phase | wall | peak RSS so far |
+| --- | --- | --- |
+| asset (available-actions cache) | 27 s | 558 MB |
+| graph: load matrix, nodes, edges (1.56 M nodes, 2.96 M edges) | 12 s | 1852 MB |
+| find_shortest_path | 0.9 s | 1924 MB |
+| trim + pickle trimmed graph (59 MB) | 1.6 s | 1924 MB |
+| bid child: unpickle, generate_bid, next node | 0.7 s | 876 MB |
 
-- **Within an hour:** the horizon and every forecast beyond the current
-  hour are unchanged, so the built graph and all cost-to-go values from
-  layer 1 out are valid. A 5-minute run updates current state and
-  current-hour price, recomputes layer 0's edge costs, re-solves layer 0,
-  locates the initial node, reads the path. Sub-second, no build, no
-  burst. OPS-491's twelve runs an hour cost about one run today.
-- **On a forecast revision mid-hour:** recompute edge costs and re-solve
-  from the earliest changed layer outward; graph structure unchanged.
-- **Across hours:** the horizon slides and the terminal layer moves, so
-  the backward solve is formally invalidated — a full build once an hour,
-  as today. Making the slide incremental (pinned terminal rolled every
-  N hours) is Open, not required for cost.
+All-tanks build child total 43 s wall, 2.0 GB by `/usr/bin/time`. Six of
+these overlapping on a 4 GB LTN box is the crash the design opens with.
+With the bid sweep fixed, the all-tanks bid is two pairs: nothing at the
+ceiling, 7.71 kWh at 105 $/MWh and below.
 
-Consequence for Hosting: this works only if the **built, untrimmed graph
-stays resident per house** between runs. A per-invocation function rebuilds
-it every call and forfeits the saving, so the executor holds per-house
-graph state on our box; a function is at most burst overflow for full
-rebuilds. The measurement therefore records resident graph size per house
-as well as build peak.
+Cold matrix generation, laptop, one core: 8 minutes for the 9-layer
+shape (peak RSS unchanged at 330 MB; the file regenerated is the one on
+the LTN box, byte for byte; a second run of the same shape at horizon 12
+took 16 minutes, so budget a quarter hour) and three and a half hours for the 27-layer all-tanks shape: 461 actions from 16 s each at the
+start to 76 s each at the end, for a 9.5 MB file. The
+all-tanks build sizes the worker cap.
 
-## Shape (to be worked)
+**Finding, for OPS-392:** every oak bid on `td/bruce` is one PQ pair by
+construction. `Graph.generate_bid` sweeps trial prices upward and appends
+a pair only when the quantity *rises* by more than 0.01 kWh; the hour-0
+quantity falls with price (oak: 6.32 kWh up to ~121.6 $/MWh, then 0), so
+only the first pair, at the floor price, is ever recorded. The penalties
+do not flatten it: all four switched off give the same single pair.
+gridflo's sweep (`gridflo/flo.py:552`) records a pair when the quantity
+*drops* by more than 10 Wh; bruce inverted the comparison in the port.
+The fix is `optimal-flexibility` `9ecc3aa` (branch `jm/flo-as-service`)
+with `tests/test_generate_bid.py`, a 12-hour half-charged-store build that
+checks the bid curve and is the smallest end-to-end bruce invocation: the
+base for the service's build-time harness. With it, the per-pair path in
+`flo.recommendation` has work to do.
 
-1. **Measure** (the experiment): one real build under `/usr/bin/time -l`,
-   laptop, supergraph + params copied down from `ltn2`. Sizes the service
-   box; decides worker concurrency.
-2. **Service:** the broker-facing actor above plus the executor the
-   measurement selects; supergraphs cached by params-hash; request/reply
-   words are sema.
-3. **LTN edge:** replace the `multiprocessing.Queue` round-trip with the
-   broker round-trip, same timeout and the existing no-FLO default-bid
-   fallback, so a service outage degrades rather than breaks.
-4. **Cutover:** one house (oak; its params are in the gridflo tests) on the
-   service in parallel with in-process for a day; compare bids; then the
-   rest.
+## Shape
+
+**Do this next:** witness the first real round trip. Spruce's LTN
+publishes its first alice `flo.params` (OPS-392 step two); the service's
+log shows the build answered and the journal holds both the request and
+the `flo.recommendation`. That window is the domain's first trace. Then
+oak on the service in parallel with in-process for a day, bids compared.
+
+Stand-up record (`gridworks-infra/new-platform-service.md` and the box's
+`flo/instance-README.md`):
+
+1. **Broker fabric** (done 2026-11-01): rmqbot runs gwbase 0.6.2's
+   definitions; `flo_tx` and `flomic_tx` exist on `hw1__1`, drift check
+   in sync.
+2. **Principal and cert** (done 2026-11-01): FIS Service principal
+   `a4991bea-c11e-424a-8dca-3bef4142f600`, cert on the box, recorded in
+   `flo/instance-README.md` and `authority/cert-inventory.md`.
+3. **Checkout and unit** (done 2026-11-02): `gridworks-flo` main on the
+   box, bruce from the public fork at tag `v0.1.0+gw1` over https, `.env`
+   for hw1 over mTLS, oak's matrix, `flo-rabbit` enabled and running.
+4. **First-start check** (done 2026-11-02: principal Active on FIS, the
+   connection on the broker as `a4991bea…` with the GRIDWORKS mechanism,
+   the queue bound on `amq.topic` with `gw.*.to.flo.flo-params`). Next:
+   spruce's LTN publishes its first alice request (OPS-392 step two) and
+   the journal shows the request and the reply.
+
+1. **Measure** (done above).
+2. **Service** (built and running: `gridworks-flo`, spec in
+   `../executor/primary.md`).
+3. **LTN edge** (OPS-392): the one callable's transport changes from a
+   child process to the broker round-trip, same timeout and the existing
+   no-FLO default-bid fallback, so a service outage degrades rather than
+   breaks. Nothing else in the LTN moves.
+4. **Cutover:** alice first (spruce), then oak on the service in parallel
+   with in-process for a day; compare bids; then the rest.
 
 ## Open
 
-- Rolling the horizon incrementally (pinned terminal, roll every N hours)
-  so the hourly full build also shrinks.
-- Whether the three worker steps stay three calls (graph state held on the
-  service between them) or collapse to one request returning
-  recommendation + next-hour plan.
-- Where the supergraph generator runs (on the service on cache miss, or a
-  separate step).
-- The gridflo test params hash (`afa1e066`) does not match the committed
-  params file (`64f29a7c`); fix before the measurement.
+- Rolling the horizon incrementally so the hourly build shrinks. Not
+  needed for cost at the measured numbers; stays as an optimizer question.
+- Where matrices are generated: a CLI on the service box against the
+  committed tlayouts ops instances, or on first sight of a new plant
+  shape with the request refused until it exists. Either keeps generation
+  out of the request path.
+- **The matrix seam is sema, as soon as possible.** Today a matrix is a
+  bare `.npz` whose meaning is its filename, a hash of nine plant-shape
+  fields only bruce's `TransitionMatrixParams` can reproduce, and the
+  loader checks the array's shape and nothing else. The seam wants a word
+  as the manifest beside the array: the plant shape spelled out, the
+  state and action counts the array must have, the bruce commit and time
+  that generated it, and a checksum of the array. The FLO loads a matrix
+  only through its manifest; the generation step emits the manifest; the
+  array stays binary beside it (the 27-layer one is 7.3 million
+  integers). The fields are bruce's, so the word is bruce vocabulary,
+  decoded through the optimizer's vendored snapshot; the missing word is
+  the one thing the service hand-codes around until it is coined.
+- **The FLO knows no market** (decided 2026-11-01). The request gives
+  it a step grid and price bounds as numbers; its answer is electricity
+  against price for that plant on that grid. `flo.recommendation` states
+  no slot name and no sign convention; those are the bidder's facts, and
+  the LTN adds them when it makes the bid. `BidderAlias` and the paths'
+  `StartUnixS` pair a reply with its request.
+- A refused request (no matrix for the plant shape, a tuning no FLO
+  answers) is logged on the service and nothing goes back; the LTN bids
+  its fallback. A glitch word for the refusal, so the fleet sees it, is
+  the next step on this path.
+- The box installs bruce from a private repo (`thdfw/optimal-flexibility`)
+  while boxes hold no GitHub key; the first deploy settles whether a
+  read-only deploy key on the flo box or a public repo is the way.
+- **Action item: nodes and edges as NumPy arrays in bruce.** The
+  all-tanks build's 1.8 GB and 43 s are 1.56 million node objects and
+  2.96 million edge objects; the numbers on them fit in a few arrays
+  (cost-to-go and next-node per state per layer, edge costs per state and
+  action per layer, index arrays for the ragged available actions). That
+  representation would bring every build to tens of megabytes and
+  seconds, shared plant shape or not, and the matrix is already an
+  array. It is a rewrite of the inside of `Graph` in Thomas's repo, so
+  it is sequenced after the callable and the day of matched bids: those
+  give the golden set of saved requests against which the rewrite must
+  reproduce every `flo.recommendation` byte for byte before it merges.
+  Two steps, so the asset layer he tunes in (states, actions, the COP
+  curve, the penalty functions) reads as it does now: first storage
+  only, the build still calling each cost function per state, action and
+  step and writing the answer into an array, which removes the memory
+  and leaves the time; then each penalty vectorized over a layer, one
+  at a time, each against the golden test. `Node` and `Edge` stay as
+  views built on demand for the visualizer and for debugging. Its home
+  is a design in this domain when it starts.

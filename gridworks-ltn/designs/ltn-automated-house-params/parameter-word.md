@@ -1,6 +1,6 @@
 # parameter-word
 
-Status: Draft · Pass 0 · Updated 2026-10-14 · Linear: OPS-531
+Status: Draft · Pass 0 · Updated 2026-11-01 · Linear: OPS-531
 
 > What this is: a spoke of [`primary.md`](primary.md). The sema words
 > this design needs: the parameter set that comes into the LTN, and the
@@ -49,7 +49,8 @@ The code on scada `main` has moved on; this is the path now:
 |---|---|---|---|
 | `AlphaTimes10`, `BetaTimes100`, `GammaEx6` | `derived_generator` load forecast and the `−alpha/beta` RSWT anchor | `get_RSWT`; FLO load forecast | the house envelope |
 | `IntermediatePowerKw/RswtF`, `DdPowerKw/RswtF` | `derived_generator` RSWT quadratic | `get_RSWT`; FLO | emitters: supply temperature the house needs per kW |
-| `DdDeltaTF` | `derived_generator`, scaled with delivered power | FLO `ConstantDeltaT` | emitters: drop across them |
+| `DdDeltaTF` | `derived_generator`, scaled with delivered power | — (the bruce FLO models the drop itself: return temperature as intercept + slope × supply temperature per load bucket, `flo_tuning.RWT_*`, fleet-wide constants) | emitters: drop across them |
+| — (no field) | — | bruce `hp_constant_lift_f`, 20 F fleet-wide: the temperature rise across the heat pump per pass, which sets how fast a store charges | heat pump fact with no home yet |
 | `MaxEwtF` | hydronic, leaf ally, local control, sieg strat-protect | — | a plant limit on water temperature |
 | `HpTurnOnMinutes` | leaf ally, local control | FLO | heat pump fact |
 | `HpMaxKwEl`, `cop.curve` | — | FLO | heat pump facts |
@@ -80,6 +81,24 @@ the kinds, not the file.**
    the word states it), the intermediate point and the design-day point;
    plus the emitter drop at design load. Not in it: `MaxEwtF`, which is a
    plant limit, not a curve.
+
+   The curve is one emitter characteristic read in two directions. The
+   SCADA reads it inverse: a load, and the supply temperature that
+   meets it. The FLO reads it forward: a supply temperature and a load,
+   and the return temperature that comes back to the store. Today each
+   side has its own reduced form (the SCADA's `DdDeltaTF` scaled by
+   delivered power, the FLO's per-bucket line), and each encodes the
+   distribution flow rate implicitly. The word states the
+   characteristic and the flow; each side derives its direction. The
+   journal has `dist-swt`, `dist-rwt` and `dist-flow` per house, so the
+   characteristic is what the fit produces alongside the load model.
+
+   Not part of the curve: the SCADA's usable-energy gate in
+   `derived_generator.rwt_f` (no extraction counted more than 10 F below
+   the required supply temperature, a ramp across that band). It is a
+   conservative accounting rule for how much of the store control may
+   count on, and it stays in control code with the other family-shaped
+   derivations below.
 3. **Heat pump facts and control knobs** — `cop.curve`, `HpMaxKwEl`,
    `HpTurnOnMinutes`, `MaxEwtF`, `LoadOverestimationPercent`. Not house
    parameters: they stay in `gw.operational.params` and are not part of

@@ -10,8 +10,19 @@ repo's git history.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-10-30 — README: dev broker starts clean each run; adding an exchange
+## 2026-11-01 — Adding FLO service (OPS-514, `10b3fa7`, PR #190 `7d9b7d8`)
+
+`TransportClass.Flo` / `RoutingClass.Flo` (`flo`) join the taxonomy and
+`AMQP_ACTOR_CLASSES`, so the FLO service (`gridworks-flo`, `hw1.flo`) is
+an Orchestrator with its own `flo_tx` / `flomic_tx` pair; the definitions
+are regenerated and the README class table gains the row. The service's
+traffic with the LTNs crosses the MQTT seam as wrapped messages on
+`amq.topic` (`gw.<ltn>.to.flo.flo-params` in,
+`gw.<flo>.to.ltn.flo-recommendation` out), which any actor may send, so no
+new fabric edge is needed; the class exchanges give the actor its queue and
+put its words in the ear. Version 0.6.2.
+
+## 2026-10-30 — README: dev broker starts clean each run; adding an exchange (in `10b3fa7`, 2026-11-01)
 
 Two README additions, both prompted by onboarding a new developer to the
 dev broker. The first says what `arm.sh` / `x86.sh` do to state: the

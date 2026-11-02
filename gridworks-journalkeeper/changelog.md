@@ -10,6 +10,33 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-01 — The importer reads a bare-word eventstore object (`a7127b6`, PR #205 `76c9594`, OPS-622)
+
+**Why:** the importer took every eventstore object for a scada's
+MQTT-era envelope and read its Payload, and the ear stores a gwbase
+message as the word itself, so a dry run over the weather service's
+forecasts rejected all 1021 objects with a missing key. `word_of` reads
+the word out of either shape; the dry run then decodes 999 at 001 and 3
+at 002 and counts the 19 at the retired 000. The test feeds one object
+of each shape through a dry run.
+
+## 2026-11-01 — A forecast row is keyed by its bundle, then by its ForecastUid (`96fc6bd`, PR #204 `01083e4`, OPS-622)
+
+**Why:** the weather service sends its bundles in one emission slot, from
+one alias at one MessageCreatedMs, and `gw.weather.forecast` 001 has no
+id of its own, so the journal keyed each row on sender, type and created
+time and kept one bundle per hour (bobcat) while the rows for raccoon
+and moose, the bundle every scada reads, were dropped as duplicates. A
+`GwWeatherForecastPersistor` now owns the word: a 001 row's id is the
+uuid5 of sender, type, bundle name and created time
+(`default_message_id` takes the bundle as its `subject`), so the three
+bundles are three rows from the next emission, and a replay of the
+persistent store fills the fortnight the journal missed; a 002 row's id
+is the ForecastUid the service mints before the send, so a replay dedupes
+on the service's own identity. The snapshot vendors both versions. The
+bobcat 001 rows already journaled stay under their old ids, so a replay
+of that window adds a second bobcat row per hour under the new id.
+
 ## 2026-10-25 — the row's kind from gw.channel.kind; observed weather readings (`b888a2c`, PR #203 `0557703`, OPS-542)
 
 **Why:** `channel_type` held three TypeNames and one marker, `gjk.pseudo`,

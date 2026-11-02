@@ -1,6 +1,6 @@
 # The visualizer
 
-Status: Draft · Pass 0 · Updated 2026-10-26
+Status: Draft · Pass 0 · Updated 2026-11-01
 
 > What this is: the visualizer page of the web-frontend, one section per
 > plot, each saying what the plot shows, which word the backend serves it
@@ -92,4 +92,39 @@ Open.
 
 ## Weather forecasts
 
-Open.
+Every temperature forecast run the house's weather bundle emitted over
+the window, each drawn from its first slice; the newest run is red, the
+older runs fade by age. Admin logins only
+(`gridworks-web-frontend/src/visualizer/VisualizerPlot.tsx:48`).
+
+- **Words and routes.** `gw.weather.forecast.bundle.gt` 002, the newest
+  record the journal holds under the bundle's name, answered in wire form
+  by `GET /api/v2/weather/bundles/{bundle_name}`
+  (`gridworks-web-backend/api/v2/routers/weather_forecast.py:38`), and
+  `gw.weather.forecast`, the bundle's emissions the journal received in
+  the window, oldest first and each in the dict form of its own version
+  (001 rows have no ForecastUid and no upgrade path, so both are served
+  as journaled), by `GET
+  /api/v2/weather/bundles/{bundle_name}/forecasts?start&end`
+  (`weather_forecast.py:64`), at most the newest 500
+  (`weather_forecast.py:24`). Both behind the login dependency; a bundle
+  with no record is a 404.
+- **House to bundle.** The bundle a house's scada reads is the
+  `WeatherBundleName` of its `gw.operational.params`. The browser holds
+  that fact as a table from the installation's alias to the bundle name
+  (`gridworks-web-frontend/src/visualizer/house-weather-bundles.ts:8`)
+  until the params are journaled and the api resolves it; a house the
+  table does not know shows "No weather bundle is known for"
+  (`WeatherForecastPlot.tsx:52`).
+- **Series.** One quantity, Temperature (`WeatherForecastPlot.tsx:57`).
+  The bundle's binding for the quantity names the forecast channel whose
+  series the run is and the observed channel whose `Unit` scales its
+  values; slice start times are the emission's `FirstSliceStart` walked
+  along the forecast channel's `SliceDurationSList`
+  (`gridworks-web-frontend/src/visualizer/weather-api.ts:27`). The plot
+  converts the scaled values through the shared unit table by that
+  `Unit`. A bundle that binds no channel of the quantity shows "forecasts
+  no temperature".
+- **Window.** The emissions fetched run from a day before the window
+  start to its end (`weather-api.ts:63`), so the run in force at the
+  window start is drawn.

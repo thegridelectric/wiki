@@ -10,6 +10,46 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-01 — The weather routes serve a bundle's record and its journaled forecasts (`cddefbe`, OPS-622)
+
+**What:** `api/v2/routers/weather_forecast.py`: `GET
+/api/v2/weather/bundles/{bundle_name}` answers the newest
+`gw.weather.forecast.bundle.gt` record the journal holds under that name,
+and `GET /api/v2/weather/bundles/{bundle_name}/forecasts?start&end` the
+bundle's `gw.weather.forecast` emissions received in the window, oldest
+first; both in the words' dict form through the vendored snapshot, which
+the seed extends with the two words (the closure brings the series, the
+channel records and the fidelity enum). The forecast is vendored at 001
+and 002, since the journal holds the service's fortnight of 001 rows and
+its 002 rows from 2026-11-01 17:01Z, and 001 has no upgrade path to 002
+(no ForecastUid to mint), so each emission is served at its own
+version. Tests seed a bundle record and three re-timed registry-example
+emissions, two at 001 and one at 002, and cover the window, the bundle
+filter, the ordering, the 404 and the login.
+
+The api seed also declares `local_names: strip_prefixes: [gw]`, so the
+vendored snapshot renders `gw.weather.channel.gt` as `WeatherChannelGt`,
+`gw.house.summary` as `HouseSummary` and so on for every `gw.` word and
+enum (wire TypeNames untouched; `gw1.` words keep their prefix), matching
+the names the frontend's vendored `.d.ts` already uses. The legacy
+`weather.forecast` word leaves the seed: no backend code read it, and
+its local name collided with `gw.weather.forecast`.
+
+**Why:** the visualizer's weather plot read the per-house
+`weather.forecast` message the scada's derived generator emitted on the
+`legacy` line; on `main` the scada consumes the weather service's
+`gw.weather.forecast` and emits nothing, so the plot went blank house by
+house as the fleet rolled to `main` on 2026-10-29. The service's word is
+about a bundle, not a house, and its values are scaled per the bundle's
+channel records, so the browser needs the record beside the emissions.
+Verified against production rows copied into `tsdb_tap`: bobcat answers
+its record and 63 emissions over three days; moose and raccoon answer
+their records and no emissions, because the journalkeeper's default
+message id (sender, type, created time) collides across the three
+bundles the service emits in the same millisecond and keeps only the
+first, bobcat. That journalkeeper fault is open; the routes are right
+once it journals every bundle.
+
 ## 2026-10-29 — the house summary states the scada's commit and where it stands against main (`6c877d2`, OPS-622)
 
 **What:** the summaries query joins the newest `gw.scada.commit` each

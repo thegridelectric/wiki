@@ -1,6 +1,6 @@
 # RSWT zero-load anchor
 
-Status: Draft · Pass 0 · Updated 2026-10-30 · Linear: OPS-646
+Status: Draft · Pass 0 · Updated 2026-11-01 · Linear: OPS-646
 
 **EDD: yes** the verification is the fleet's `heating.forecast` journal
 after the roll: no house forecasts an RSWT below room temperature at any
@@ -124,7 +124,11 @@ hotter water.
   params.
 - Whether `RswtDeltaTF` (`delta_T`) needs the same anchor treatment: it
   scales the design-day delta T by delivered power from the same
-  parabola, so it inherits whatever the fit does.
+  parabola, so it inherits whatever the fit does. Nothing more is
+  needed here: the delta T is the forward reading of the same emitter
+  curve whose inverse the anchor fixes (OPS-531 `parameter-word.md`
+  "Proposal" states the curve once for both directions), so this item
+  closes with the fit.
 
 ## Plan
 

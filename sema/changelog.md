@@ -10,6 +10,87 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-02 — new axiom about when the bruce optimizer can run (`fe60b58`, OPS-392)
+
+**Why.** A FLO is a model of the plant as operated, so the ops word's
+FloTuning has to be admissible for its FamilyParams. `flo.tuning.bruce`
+models one heat pump charging one stratified store; a House0 Siegenthaler
+loop under `LwtControl` targets its own leaving temperature, which is not
+that plant, and nothing stated the pairing was wrong.
+
+**What.** `gw.operational.params` 000 (staging, edited in place) gets
+axiom 7 `FloTuningAdmitsFamily`, clause a: bruce on a House0 family
+excludes `SiegLoopStrategy` LwtControl. Runtime regenerated from the
+axiom template, mutation test added, indexes rebuilt. The Nolan row
+(alice only until the Nolan scada has a leaf ally) waits: the simulated
+spruce runs bruce in tests today.
+
+## 2026-11-01 — ltn <-> flo <-> optimizer  words, gw.weather.forecast 002, water store tank facts (`03a949d`, OPS-392)
+
+**What:** the FLO boundary, one request and one reply, all 000 and
+published. `flo.params` names the bidder, the step grid, the wholesale
+and distribution price forecasts as separate lists, the weather lists
+with the `WeatherForecastId` they came from, the store being modeled
+(`SeasonalStorageMode`, `TanksModeled`, `GallonsPerTank`,
+`TempSensorsPerTank`) and its state at the slot start, the heat pump and
+COP facts, the price bounds, the previous slot's `flo.optimal.path` for
+the stability penalty, and `Tuning`, a oneOf over `flo.tuning.bruce` and
+`flo.tuning.alice` whose TypeName names the optimizer the house runs.
+Axioms: equal per-step list lengths, thermoclines within the store,
+BufferOnly models one tank, floor below ceiling, previous-run fields
+together; on the bruce tuning, one RWT line per load bucket and
+ascending buckets. `flo.tuning.alice` is the stub FLO's tuning, identity
+only. `flo.optimal.path` states a step grid (`StartUnixS`,
+`StepDurationMinutes`), the heat pump's average watts per step and the
+store's watt-hours at each step end. `flo.recommendation` has
+`BidderAlias`, `PqPairs` with their units, `OptimalPathList` linked to
+`PqPairs` by index, and the FLO's provenance (`FloName`, `FloRepo`,
+`FloGitCommit`); axioms: at least one pair, a path per pair, each path's
+first step equals its pair's quantity in watts, pairs strictly descend in
+price and do not fall in quantity, paths start together. The reply has
+no market slot name and no sign convention.
+`gw.weather.forecast` 002, published, adds required `ForecastUid`; the
+001 upgrade refuses without context. `gw.water.store` 000, staging, gains
+required `GallonsPerTank` and `TempSensorsPerTank`, with the hydronic
+example and the three layout fixtures updated and the dependent layout
+words' `created` moved forward. `gw.operational.params` 000, staging,
+gains required `FloTuning` (the same oneOf) with axiom 6
+`AliceHoldsDispatch`, and required `MarketMakerAlias` and
+`MarketProductName` (enum `gw.market.product.name`); its `created` moves
+after the tuning words; example and fixture are alice with the hold on,
+bidding `rt60gate5` at `hw1.isone.me.versant.keene` on the
+`us.me.millinocket.moose` bundle. Axiom and upgrade templates, mutation
+tests, indexes, pins, runtime regenerated.
+
+**Why:** one request word for every FLO, because each per-run field is a
+fact about the house, its forecasts or its store, not an optimizer's
+invention; only the tuning is the FLO's, so it is the word that names
+the FLO. The request states facts and lets bruce derive its geometry, so
+the FLO's "three model layers per sensor" lives in the FLO and an auditor
+reads the storage mode in plain words. The two price components stay
+separate because they have different sources and futures. The previous
+run is a path, not three loose numbers. The FLO never sees the real-time
+price: the reply is complete over prices, so the LTN reads the cleared
+price's pair and takes the path at the same index, and the third FLO
+call and the `flo.next.hour.plans` twin retire. Pairs descend from the
+price ceiling because `bid` axiom 1 puts PriceMax first; with that, N
+pairs partition the price domain and no implied "buy nothing" segment
+exists. Power per step rather than energy because the market bids
+average power and prices energy, so one number reads the same in every
+market duration. The optimizer's question is how much electricity at
+each price for this plant and these forecasts; which market the bid goes
+to, its slot name and its sign convention are the bidder's facts, so the
+reply drops them and the market vocabulary stays out of the service and
+its repo. Pairing a reply with its request needs only the bidder alias
+and the paths' start. The market maker and product move onto the ops
+word so the LTN forms the slot name from its config rather than from a
+settings default and a constant. Alice gives the FLO selector two
+branches from day one and names a house held out of dispatch; axiom 6
+makes a bid on an alice house a decode failure at scada boot rather than
+a runtime surprise. The weather id lets a FLO run name the forecast
+behind it so the run is reproducible. Tank gallons and sensors per tank
+are layout facts the LTN hard-coded; the layout states them.
+
 ## 2026-10-29 — Add gw.commit.standing (`0116c4f`, OPS-622)
 
 **What:** `gw.commit.standing` 000, a versioned enum: Unknown (default),
