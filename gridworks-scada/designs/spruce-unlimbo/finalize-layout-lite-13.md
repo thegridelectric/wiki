@@ -7,7 +7,7 @@ Status: Draft · Pass 0 · Updated 2026-10-26 · Linear: OPS-392
 > `jm/spruce-unlimbo` can connect to the production broker, and gives
 > the LTNs what they need once the word stops sending them operational
 > parameters. The segment after the LTNs run on the new code is
-> `ltns-ready.md`; the merge to `main` is `deployment.md`.
+> ltns-ready (OPS-654); the merge to `main` is `deployment.md`.
 
 ## Do this next
 
@@ -77,7 +77,7 @@ the LTN harness mode.
    per-house constants, which report a rolled house as drift until
    edited.
 5. Distill into `executor/`, move what is still open into
-   `ltns-ready.md`, delete this file.
+   ltns-ready (OPS-654), delete this file.
 
 ## Open
 

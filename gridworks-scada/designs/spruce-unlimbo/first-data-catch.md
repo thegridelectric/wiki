@@ -25,7 +25,7 @@ the branch.
   (`finalize-layout-lite-13.md`): a scada cannot send on the production
   broker until the word it sends on link-up is published.
 - The LTNs run against the new scada code so reports are acked and the
-  LTNs do not crash (`ltns-ready.md`).
+  LTNs do not crash (ltns-ready, OPS-654).
 - The JournalKeeper release below is merged and deployed on gjk.
 
 ## The JournalKeeper release

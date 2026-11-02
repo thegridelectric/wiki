@@ -1,12 +1,17 @@
-# LTNs ready (spoke)
+# LTNs ready
 
-Status: Accepted · Pass 1 · Updated 2026-11-02 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-11-02 · Linear: OPS-654
 
-> What this is: the spruce-unlimbo spoke that gets the LTNs running
-> against the new scada code before the fleet is on the production
-> broker, and settles what the LTN takes from the scada. Until launch it
-> lives here; the LTN work that can wait moves back to spruce-settled
-> (OPS-532) when this spoke closes.
+**EDD: yes** the verification is a live slot: the LTN bids at :57, the
+price clears at :00, the scada takes the contract, and both boxes' logs
+are clean through it; the first one ran on oak 2026-11-02 02:57 ET.
+
+> What this is: the LTNs running against the new scada code and bidding
+> through the bruce FLO. It settles what the LTN takes from the scada and
+> gives back, the FLO boundary (sema words at every edge), and how a slot
+> runs. It is the write-up for Thomas and Olly while the branch rolls out;
+> the durable parts distill into `executor/` and the design goes when it
+> closes. The LTN work that can wait goes back to spruce-settled (OPS-532).
 
 ## Before td/bruce becomes main (do this next, on a PR)
 
@@ -202,7 +207,7 @@ and feeds `PreviousOptimalPath` into the stability penalty
 (`jm/flo-as-service`, OPS-514). The pickle between the LTN's own phases
 is unchanged and stays: it is one process's memory handed to its child.
 
-### For the LTN executor (draft, moves there when this spoke closes)
+### For the LTN executor (draft, moves there when this design closes)
 
 The LTN reaches the FLO in two steps. Step one: bruce is installed into
 the LTN's venv from the GridWorks fork at a tag and the FLO child calls
@@ -337,8 +342,8 @@ before the publish wrapper was reverted, a watch for the first deploy.
 
 The LTNs need to run before we are on the production broker. The first
 job is to test locally, and use that test to find the minimal updates
-to the LTN that get it working. The spoke text is worked in-process
-with the spoke itself: the local run says what the LTN needs, and that
+to the LTN that get it working. The design text is worked in-process
+with the work itself: the local run says what the LTN needs, and that
 is what gets written here.
 
 The split is roughly: what do we need so that the reports are acked

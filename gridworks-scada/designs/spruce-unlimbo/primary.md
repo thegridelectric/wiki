@@ -117,10 +117,9 @@ house runs the branch by a roll now.
 - ✅ DONE gwsproto-conformance (est 4h → 2h) — the scada vendors its
   own sema snapshot as the oracle, one version per word, every enum with
   a default (`executor/gwsproto-conformance.md`, `eb73e305`)
-- `ltns-ready.md` — the LTNs running against the new scada code
-  before the fleet is on the production broker: a local run first,
-  and from it the minimal LTN updates so reports are acked and the
-  LTNs do not crash; FLO quality waits
+- ltns-ready — moved up to a gridworks-ltn design of its own (OPS-654):
+  the LTNs running against the new scada code and bidding through the
+  bruce FLO
 - **`finalize-layout-lite-13.md`** (est 4h) — `layout.lite/013` edited in
   place (ops fields and the Krida field out), the ScadaParams path
   removed, the LTN settings block on every house plus a harness mode,

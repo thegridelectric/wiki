@@ -1,6 +1,6 @@
 # FLO request bounds
 
-Status: Draft · Pass 0 · Updated 2026-11-02 · Linear: [OPS-653](https://linear.app/gridworks/issue/OPS-653)
+Status: Draft · Pass 0 · Updated 2026-11-02 · Linear: OPS-653
 
 **EDD: yes** the layer question is settled by reading oak's bids and
 cleared paths over its first weeks on the bruce FLO; the price-bounds half

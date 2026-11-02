@@ -86,7 +86,7 @@ order:
    conflicts are in the LTN: `actors/ltn/ltn.py` (the FLO parameter
    build and the weather read), `ltn/config.py`, `ltn_app.py` and
    `tests/actors/test_ltn.py`, which both sides rewrote. That is a
-   working session with the branch's author (`ltns-ready.md` "The FLO
+   working session with the branch's author (ltns-ready, OPS-654, "The FLO
    boundary"), prepared on a topic branch off the new `main`.
 
 ### Gates for the swap itself
