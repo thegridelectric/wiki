@@ -1,6 +1,6 @@
 # flo-as-a-service
 
-Status: Accepted · Pass 1 · Updated 2026-11-02 · Linear: OPS-514
+Status: Accepted · Pass 1 · Updated 2026-11-03 · Linear: OPS-514
 
 **EDD: yes** the opening experiment is a measured bruce build from oak's
 plant facts (peak RSS, wall time per phase, trimmed-graph size), done
@@ -30,19 +30,26 @@ broker.
 
 ## What exists already
 
-- The optimizer is `bruce` (`optimal-flexibility`), forked to
-  `thegridelectric/optimal-flexibility`; the service pins a tag of the
-  fork. The as-built service, its words, transport and invariants are
-  `../executor/primary.md`; bruce's model is `../executor/bruce-flo.md`.
+- The optimizer is `bruce`, the one repo `thdfw/optimal-flexibility`
+  (MIT). The service installs it editable from the sibling checkout
+  `../optimal-flexibility`, on the laptop as on the box, the same
+  pattern as the LTN boxes: the sibling tracks `main` with no pin, a
+  bruce update is a pull of the sibling, and every recommendation
+  records the commit that answered (`FloGitCommit`). The lock resolves
+  only with the sibling present, so CI clones it. The as-built service,
+  its words, transport and invariants are `../executor/primary.md`;
+  bruce's model is `../executor/bruce-flo.md`.
 - The LTN edge is step 3 of "Shape" below: one callable whose transport changes
   from a child process to the broker round trip, with its existing
   timeout and no-FLO fallback bid. The LTN runs on gwsproto over MQTT and
   the service is a gwbase actor on AMQP; the same broker joins them, and
   the request and reply words exist as gwsproto twins on the LTN side
   until the proactor port (OPS-435) removes them.
-- The words (`flo.params/000`, `flo.recommendation/000`, the tunings,
-  `flo.optimal.path/000`) are published in the sema registry. This design
-  authors none.
+- The words (`flo.params/001`, `flo.tuning.bruce/001`,
+  `flo.recommendation/000`, `flo.tuning.alice/000`,
+  `flo.optimal.path/000`) are published in the sema registry; the
+  service's snapshot, bruce's and the scada's speak the same versions.
+  This design authors none.
 
 ## Hosting
 
@@ -118,12 +125,26 @@ base for the service's build-time harness. With it, the per-pair path in
 
 ## Shape
 
-**Do this next:** the LTN edge (step 3), then witness the first real
-round trip: oak's LTN publishes its `flo.params` to the service, the
-service's log shows the build answered and the journal holds both the
-request and the `flo.recommendation`. That window is the domain's first
-trace. Oak runs on the service in parallel with in-process for a day,
-bids compared.
+**Do this next**, three pieces that fit together and can go in
+parallel:
+
+1. **The LTN edge** (step 3 below). `_flo_worker` in
+   `actors/ltn/ltn.py` is the one callable: `flo.params` bytes in,
+   `flo.recommendation` bytes out. Its transport becomes a broker round
+   trip to `hw1.flo`, same timeout, same no-FLO fallback bid; nothing
+   else in the LTN moves. The LTN speaks gwsproto over MQTT and the
+   service is a gwbase actor on AMQP; the same broker joins them.
+2. **Journal both words** ([OPS-657](https://linear.app/gridworks/issue/OPS-657)). The journal DB
+   holds no `flo.params` and no `flo.recommendation` today; the
+   journalkeeper persists a type only when it is in its snapshot and in
+   one of the persistor's tables. With both journaled, the cutover's
+   comparison reads from the journal, and the service's reply is on the
+   record from its first slot.
+3. **Oak's day on the service.** Oak's LTN on the service beside
+   in-process for a day, the bids compared slot by slot; the first real
+   round trip (the request on the bus, the service's log showing the
+   build answered, the reply beside it) is the domain's first trace.
+   Then the rest of the fleet.
 
 Stand-up record (`gridworks-infra/new-platform-service.md` and the box's
 `flo/instance-README.md`):
@@ -134,9 +155,10 @@ Stand-up record (`gridworks-infra/new-platform-service.md` and the box's
 2. **Principal and cert** (done 2026-11-01): FIS Service principal
    `a4991bea-c11e-424a-8dca-3bef4142f600`, cert on the box, recorded in
    `flo/instance-README.md` and `authority/cert-inventory.md`.
-3. **Checkout and unit** (done 2026-11-02): `gridworks-flo` main on the
-   box, bruce from the public fork at tag `v0.1.0+gw1` over https, `.env`
-   for hw1 over mTLS, oak's matrix, `flo-rabbit` enabled and running.
+3. **Checkout and unit** (done 2026-11-02; sibling pattern 2026-11-03):
+   `gridworks-flo` main on the box, bruce editable from the sibling
+   `~/optimal-flexibility` (`thdfw` main), `.env` for hw1 over mTLS,
+   oak's matrices, `flo-rabbit` enabled and running.
 4. **First-start check** (done 2026-11-02: principal Active on FIS, the
    connection on the broker as `a4991bea…` with the GRIDWORKS mechanism,
    the queue bound on `amq.topic` with `gw.*.to.flo.flo-params`).
@@ -186,9 +208,6 @@ items below are [OPS-656](https://linear.app/gridworks/issue/OPS-656/flo-matrix-
   answers) is logged on the service and nothing goes back; the LTN bids
   its fallback. A glitch word for the refusal, so the fleet sees it, is
   the next step on this path.
-- The box installs bruce from a private repo (`thdfw/optimal-flexibility`)
-  while boxes hold no GitHub key; the first deploy settles whether a
-  read-only deploy key on the flo box or a public repo is the way.
 - **Action item: nodes and edges as NumPy arrays in bruce.** The
   all-tanks build's 1.8 GB and 43 s are 1.56 million node objects and
   2.96 million edge objects; the numbers on them fit in a few arrays

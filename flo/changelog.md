@@ -1,10 +1,29 @@
 # FLO changelog
 
-Status: Accepted · Pass 0 · Updated 2026-11-01
+Status: Accepted · Pass 0 · Updated 2026-11-03
 
 > What this is: one entry per code-repo commit in the FLO domain
 > (`optimal-flexibility` for the bruce optimizer; the FLO service repo when
 > it exists). Git is the what; this file is the why.
+
+## 2026-11-03 · gridworks-flo · bruce from the sibling checkout, words at 001 (`9be3a85`)
+
+**Why.** The service pinned `bruce-energy` to a tag on the GridWorks fork
+of optimal-flexibility while the LTN boxes moved to the editable sibling
+checkout of `thdfw/optimal-flexibility` tracking `main` (scada PR #603).
+One pattern for every box that runs bruce, and the fork can go.
+
+**What.** `pyproject.toml` sources `bruce-energy` from
+`../optimal-flexibility`, editable; the lock resolves only with the
+sibling present, so the CI workflow clones it before `uv sync`. The
+seed moves to `flo.params/001`, the snapshot regenerates
+(`flo.tuning.bruce/001` in the closure) and the test fixtures read the
+001 samples: bruce `main` speaks 001 and the service's 000 snapshot
+rejected its own broker test's request. gridworks-infra:
+`tools/box-deploy.sh flo` pulls the sibling and syncs with the bruce
+extra (a plain `uv sync --frozen` drops the extra); the flo box README
+records the sibling and the 9-layer oak matrix
+(`heat_pump_water_tank_268a5f12`) now beside the 3-layer one.
 
 ## 2026-11-02 · optimal-flexibility · the previous plan lines up from the path's second step (`6b0ae89`, fork PR #1, tag `v0.1.0+gw2`)
 
