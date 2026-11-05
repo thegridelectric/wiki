@@ -1,6 +1,6 @@
 # gridworks-timecoordinator — executor hub
 
-Status: Draft · Pass 0 · Updated 2026-09-02
+Status: Draft · Pass 0 · Updated 2026-11-04
 
 What this is: the rebuild spec for `gridworks-timecoordinator`, the
 simulated-time authority. Mostly Open; this hub records what the
@@ -10,8 +10,11 @@ branch — design intent, not implementation.
 
 ## Overview
 
-The time coordinator broadcasts `sim.timestep` over the rabbit routing
-fabric; every gwbase Orchestrator-tier actor already tracks simulated
+The time coordinator is a GNode of class `TimeCoordinator`
+(`gw.g.node.class`): the universe clock `<universe>.time` at the
+universe root, a house or regional clock a child of the node it serves;
+a GNode marches to the nearest clock above it in the registry forest.
+It broadcasts `sim.timestep` over the rabbit routing fabric; every gwbase Orchestrator-tier actor already tracks simulated
 time from these broadcasts (`on_simulated_time` hook, monotonic guard)
 and can answer with `Ready` via `send_ready()`. The coordinator-side
 Ready barrier (advance only when all expected participants have

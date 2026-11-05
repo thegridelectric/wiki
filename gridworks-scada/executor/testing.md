@@ -147,8 +147,8 @@ the addressee and never received it. So the behavioral check for the
 
 1. Boot the tree and reach quiescence.
 2. Drive the LTN to emit one of the changed types (e.g. `FloNextHourPlans` /
-   `Glitch` → scada; `Bid` → `Dst="mm"`). A sample `FloParamsHouse0` lives in
-   `tests/actors/test_ltn.py::get_sample_house_0_flo_params`.
+   `Glitch` → scada; `Bid` → `Dst="mm"`; `FloParams` → `Dst="flo"`). A sample
+   `flo.params` comes from `tests/actors/test_flo_request.py::build`.
 3. Assert the SCADA's received-by-topic count for `gw/<ltn>/to/s/<type>`
    increments (and, for `Bid`, that it goes to `to/mm`, not the scada).
 

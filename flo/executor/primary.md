@@ -1,6 +1,6 @@
 # FLO — the house optimizer
 
-Status: Draft · Pass 0 · Updated 2026-11-02
+Status: Draft · Pass 0 · Updated 2026-11-04
 
 > What this is: the rebuild spec hub for the FLO (Forward-Looking
 > Optimizer), the per-house bid optimizer. It runs as the `hw1.flo`
@@ -32,14 +32,25 @@ One request, one reply, no state on the service between them.
   bytes in and bytes out; the service and the optimizer share the
   vocabulary and no Python types. The optimizer is an optional install;
   a service without it answers alice and refuses bruce.
-- **The transport** is the broker's `amq.topic` as wrapped (`gw`)
-  messages, the seam an MQTT client reaches. The request goes out on
-  `gw/<ltn-alias-hyphenated>/to/flo/flo-params` and the service's queue
-  binds `gw.*.to.flo.flo-params`; the reply goes out on
-  `gw.<flo-alias-hyphenated>.to.ltn.flo-recommendation`. An LTN keeps a
-  reply whose `BidderAlias` is its own and whose first path's `StartUnixS`
-  is the slot it is bidding. There is no correlation id. Both words reach
-  the ear through `amq.topic`'s audit binding.
+- **The transport** is two ways in, each answered in kind. A gwbase LTN
+  sends `flo.params` direct over the LeafTransactiveNode-to-Flo edge of
+  the class fabric, addressed to the FLO by alias, and the
+  `flo.recommendation` goes back direct over the edge to the bidder. An
+  LTN still inside gridworks-scada is an MQTT client: its request
+  arrives wrapped (`gw`) on `amq.topic`,
+  `gw/<ltn-alias-hyphenated>/to/flo/flo-params`, where the service's
+  queue binds `gw.*.to.flo.flo-params`, and its reply goes back wrapped
+  on `gw.<flo-alias-hyphenated>.to.ltn.flo-recommendation`. That binding
+  goes once the LTN has fully moved out of gridworks-scada. An LTN keeps
+  a reply whose `BidderAlias` is its own and whose first path's
+  `StartUnixS` is the slot it is bidding. There is no correlation id.
+  Both words reach the ear through the class taps.
+- **The service is a GNode.** `FloActor` is a `GridworksActor`: a
+  `g.node.gt.json` on the box names its registry row, `<universe>.flo` at
+  the universe root (`hw1.flo`), class `Flo`, and the FIS principal's
+  cert CN is that GNodeId. An LTN finds its FLO by walking the forest
+  from itself up to the universe root: the first node with a Flo child
+  names it, else `<universe>.flo`.
 - **Builds run in a bounded pool** of worker processes behind the actor,
   one process per build, `GWFLO_WORKERS` at once. A reply older than
   `GWFLO_REPLY_DEADLINE_S` when its build finishes is dropped: the LTN

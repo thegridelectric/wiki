@@ -33,17 +33,15 @@ Run from the **repo top level**. It **recreates** the venv from scratch:
 4. `pip install -e packages/gridworks-admin` — `gwadmin` (skippable: 2nd arg
    ≠ `install_admin`).
 5. Symlink the **`gws`** CLI (`gw_spaceheat/gws`) into the venv `bin/`.
-6. `pip install -e ../gridworks-innovations/gridworks-flo/` — `gridflo`, the FLO
-   engine, editable from a **sibling repo** (skippable: 3rd arg ≠ `install_flo`).
 
-Args: `mkenv.sh [requirements-file] [install_admin] [install_flo]`.
+Args: `mkenv.sh [requirements-file] [install_admin]`. The FLO is not in
+the venv: the LTN asks the FLO service for its recommendation over the
+broker.
 
 ## The by-hand / fragile bits (why this needs writing down)
 
 - **Two editable installs point at local source trees** — `gwsproto` and
-  `gwadmin` from `packages/`, and `gridflo` from the **sibling**
-  `../gridworks-innovations/gridworks-flo/` (not on PyPI; the FLO engine is a
-  separate house). A checkout missing that sibling can't build the full env.
+  `gwadmin` from `packages/`.
 - **Editable installs can silently bind to a *different* checkout.** Observed: a
   `gw_spaceheat/venv` whose `gridworks-scada-protocol` editable resolved to
   `~/Coding/gridworks-scada/packages/...` instead of the working checkout, so
@@ -74,6 +72,5 @@ World hook-up) are in [`../../world/primary.md`](../../world/primary.md).
 
 ## Open
 
-- The uv migration: declare the three editable local deps + the FLO sibling as
-  proper sources, lock them, and retire `mkenv.sh` + the `gws` symlink.
-- Decide how `gridflo` (separate house) is versioned/pinned across checkouts.
+- The uv migration: declare the two editable local deps as proper
+  sources, lock them, and retire `mkenv.sh` + the `gws` symlink.

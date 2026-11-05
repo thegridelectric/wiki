@@ -7,7 +7,18 @@ corresponding code-repo commit.
 
 This changelog does NOT track wiki edits.
 
-Newest at the top.
+
+## 2026-11-04 — The maker declares GwGNodeClass.MarketMaker; ci.sh is the one gate (`4f02d29`, PR #79 `28e45fa`)
+
+gridworks-base 0.7.1 makes `GridworksActor` take its class from
+`gw.g.node.class`, check the identity file against it at boot and derive
+its transport class from it. The maker passes `GwGNodeClass.MarketMaker`
+and nothing else about its class, and pins the new gwbase; the
+enum is imported from gwbase's snapshot, not seeded here. The gate
+follows sema and gjk: `ci.sh` owns the steps and exports the dev broker
+URL when a broker answers on 5672, so the broker test runs locally as in
+CI; the workflow is checkout, uv and `./ci.sh` with the dev-rabbit
+service; `ruff check` runs with `--no-fix`.
 
 ## 2026-10-22 — The maker publishes only at the top of the hour (`4ab796e`, OPS-615)
 

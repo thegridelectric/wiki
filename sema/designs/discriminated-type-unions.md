@@ -1,6 +1,8 @@
 # Discriminated type unions: the runtime decodes a oneOf of types by TypeName and Version
 
-Status: Draft · Pass 0 · Updated 2026-11-01 · Linear: OPS-651
+Status: Draft · Pass 0 · Updated 2026-11-04 · Linear: OPS-651
+**EDD: no** — a generator change, verified by the suite plus the prototype
+table below and a pyright-clean regenerated runtime.
 
 > What this is: the generated Python runtime decodes a `oneOf` of types
 > as a plain union, so pydantic picks the first branch whose required
@@ -37,6 +39,17 @@ the first branch whose other required fields it satisfies. A branch
 with a TypeName present but wrong is already rejected by the Literal.
 Reproduced against the generated classes: `flo.tuning.alice` has no
 fields of its own, so `Tuning: {}` decodes as alice.
+
+The same emit fails pyright. The base class declares `type_name: str`
+and `version: str | None`; every generated class narrows both to a
+Literal, and pyright reports `reportIncompatibleVariableOverride` on
+each, since a mutable attribute is invariant. On 2026-11-04 that is 662
+of the runtime's 757 pyright errors, two per class; mypy accepts the
+narrowing. A further 76 are the gw.house0.layout axiom template reading
+`board_component_id` across the `Components` union, where not every
+member has the field. Every consumer excludes its vendored snapshot
+from pyright for this reason (gridworks-base, gridworks-journalkeeper),
+so pyright asserts nothing about generated classes anywhere.
 
 This contradicts spec Principle 3 (every type declares its identity)
 for a nested member, and it is the type-union twin of the enum rule the
@@ -88,6 +101,13 @@ overlapping shapes can never be confused.
 This is a generator rule for every word at once. No word changes, and
 no axiom is written per word.
 
+The discriminator reads the Literal TypeName and Version off each
+branch, so the pyright fix cannot be to stop narrowing. The declaration
+of `type_name` and `version` has to satisfy pyright with the Literal
+kept; the prototype table above is the regression check that whatever
+shape is chosen still rejects the tagless member. The axiom template
+narrows with `isinstance` before reading a member-specific field.
+
 ## Plan
 
 1. `sema_tag` in `sema.runtime.base`, with a unit test.
@@ -103,8 +123,14 @@ no axiom is written per word.
    discriminate a `oneOf` of types and implementations decode by them.
    The spec is change-controlled; this line is agreed with the human
    before it is written.
+6. The regenerated runtime passes pyright: the `type_name` and
+   `version` declarations satisfy both checkers with the Literal kept,
+   and the gw.house0.layout axiom template narrows before it reads.
+   `src/sema/runtime` leaves sema's pyright exclude in the same change.
 
-Effort: 2.5 h point, 1.5 to 4 h at 90%.
+Effort: 3.5 h point, 2 to 6 h at 90%. The pyright step adds an hour at
+the point and widens the high bound: the declaration shape is one
+decision, and the regen diff touches every class.
 
 ## Consumers
 
@@ -121,6 +147,9 @@ Effort: 2.5 h point, 1.5 to 4 h at 90%.
   custom refinement or a `superRefine` on the pair. Record the rule on
   that branch; build it when the generator reaches a oneOf-bearing
   word.
+- **Vendored snapshots.** gridworks-base and gridworks-journalkeeper
+  exclude their snapshot from pyright. After this regenerates, each
+  drops the exclude at its next snapshot regen.
 
 ## Open
 

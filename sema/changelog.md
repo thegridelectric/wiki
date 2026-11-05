@@ -8,7 +8,67 @@ corresponding code-repo commit.
 This changelog does NOT track wiki edits — those live in the wiki
 repo's git history.
 
-Newest at the top.
+
+## 2026-11-04 — gw.g.node.class 001: TimeCoordinator and Flo (`d18a645`)
+
+**Why.** The live hw1 registry holds `hw1.time` with class
+`TimeCoordinator`, a value the enum did not list, and the FLO is a GNode
+with the same shape: a Logical row an LTN finds by walking the forest
+from itself up to the universe root (the registry spec's clock rule).
+`g.node.gt` keeps `GNodeClass` an open string for other registries; the
+enum is GridWorks' own list, and gwbase vendors it so every GridWorks
+GNode declares its class from it. gwbase ships published-only from
+`main`, so the version is promoted in the same commit.
+
+**What.** `definitions/enums/gw.g.node.class/001.yaml` appends
+`TimeCoordinator` and `Flo` with value descriptions; the registry entry,
+promoted with `sema promote` (status, hash pin, public index); the
+runtime and indexes regenerated.
+
+## 2026-11-04 — pyright joins ci.sh (`3e878dd`)
+
+**Why.** The fleet's `ci.sh` files run pyright; sema's ran ruff and the
+tests only, and mypy here is the snapshot lint's tool for the generated
+runtime, not a gate on the hand-written code. On the generator, the
+tools and the tests pyright found 34 real errors: a registry dict typed
+as `object`, list and tuple returns that did not match their
+annotations, `Path` passed where `str` was declared, two codec decodes
+read without narrowing, a test building a `TypeContext` from a
+`SimpleNamespace`, and an unchecked module spec.
+
+**What.** `[tool.pyright]` checks `src` and `tests` and excludes
+`src/sema/runtime`; `ci.sh` gains the step; pyright joins the dev
+group. The exclusion stays until OPS-651 makes the generator emit
+pyright-clean classes: today every generated class fails
+`reportIncompatibleVariableOverride` twice, on `type_name` and
+`version`, 662 errors that only a generator change clears.
+
+## 2026-11-03 — slow.contract.rejection is published (`71df72a`)
+
+**Why.** The scada has sent the word to its LTN since 2026-09-09 and the
+deployed fleet runs that code, so the word is in production use while the
+registry still calls it staging. The journal only vendors published words,
+so it could not journal the refusals until the status caught up.
+
+**What.** `sema promote slow.contract.rejection 000`: the status flip, the
+hash pin and the regenerated public index. Its closure (three formats and
+`gw.dispatch.refusal.reason` 000) was already published.
+
+## 2026-11-03 — delete src/sema/interfaces/api <!-- pending commit -->
+
+**Why.** Five files from the 2025 reorg that nothing imports and that
+read the registry from a path that has not existed since: a web form for
+picking types, an HTML types table, a GET schema server with no validate
+route, and a Dockerfile for an API and a UI never built. The snapshot
+seed and `sema snapshot` replaced the first two; the schemas host is
+static files, and the validate route is one function over
+`sema.runtime.validate` when the host exists. The folder only showed up as
+ruff findings for `./ci.sh` to work around.
+
+**What.** The folder goes, `fastapi` and `uvicorn` leave the
+dependencies (their only other mentions are docstrings on `GwStrEnum`),
+the lock regenerates. On the same branch as the published-only refusal
+and `./ci.sh`, which no longer needs the stubs.
 
 ## 2026-11-02 — publish the flo-001 versions (`1f6c096`, OPS-654)
 

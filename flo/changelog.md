@@ -1,10 +1,51 @@
 # FLO changelog
 
-Status: Accepted · Pass 0 · Updated 2026-11-03
+Status: Accepted · Pass 0 · Updated 2026-11-04
 
 > What this is: one entry per code-repo commit in the FLO domain
 > (`optimal-flexibility` for the bruce optimizer; the FLO service repo when
 > it exists). Git is the what; this file is the why.
+
+## 2026-11-04 · gridworks-flo · The FLO hears flo.params direct over the edge and wrapped on amq.topic, answering in kind (`2a48ef9`)
+
+**Why.** The LTN on gwbase sends `flo.params` as a direct message over
+the class fabric and wants the `flo.recommendation` back the same way;
+gridworks-base 0.7.2 declares the LeafTransactiveNode and Flo edge pair.
+The LTN inside gridworks-scada is still an MQTT client and reaches the
+FLO wrapped on `amq.topic`, and the fleet runs that LTN until the move
+is complete, so the FLO answers both.
+
+**What.** `FloActor.process_message` notes whether the request came
+wrapped (a header) or direct, and `reply` answers in kind: direct over
+the Flo-to-LeafTransactiveNode edge to the bidder's alias, or wrapped
+across the MQTT seam as before. The `amq.topic` binding stays and its
+docstring says it goes once the LTN has fully moved out of
+gridworks-scada. The broker test gains the direct round trip: an alice
+request published on `ltnmic_tx` with the direct key comes back on the
+LTN's class queue with the direct key; the MQTT round trip stays. The
+pin moves to gridworks-base 0.7.2, whose definitions have the edges.
+
+## 2026-11-04 · gridworks-flo · the FLO is a GNode; ci.sh is the one gate (`dd2c579`)
+
+**Why.** The LTN finds its optimizer the way it finds its clock: by
+walking the registry forest from itself up to the universe root, the
+first node with a Flo child names it, else `<universe>.flo`. That needs
+the FLO to be a registry row with a durable GNodeId, and it is the same
+row the FIS principal binds to. A Service principal with a hand-chosen
+`amq.topic` wildcard has no place in the forest.
+
+**What.** `GwfloSettings` subclasses `GNodeSettings` and `FloActor`
+subclasses `GridworksActor`, so the actor loads and validates its
+`g.node.gt.json` at boot, declares `GwGNodeClass.Flo` and claims it at
+connect; its transport class follows from that (gridworks-base 0.7.1). The
+tests write a dev identity file; the README and `template.env` describe
+the identity and the cert whose CN is the GNodeId. The hw1 cutover is
+separate: a `hw1.flo` row in the registry, a GNode principal and cert
+minted for it, the box moved to them, the Service principal suspended.
+The gate follows sema and gjk: `ci.sh` owns the steps, the workflow is
+checkout, uv, the sibling clone and `./ci.sh` with the dev-rabbit
+service; `ruff check` runs with `--no-fix` so a lint error fails instead
+of being auto-fixed on the runner.
 
 ## 2026-11-03 · gridworks-flo · bruce from the sibling checkout, words at 001 (`9be3a85`)
 

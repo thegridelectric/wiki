@@ -10,6 +10,60 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-04 — pyright joins the gate (`d101deb`, PR #207 `79fb592`)
+
+**Why.** The README named mypy as the repo's type check while no gate ran
+it, and it reported 144 strict errors, mostly annotation chores plus
+eleven inside the generated sema snapshot that only sema's generator can
+fix. The fleet's other `ci.sh` files run pyright with the snapshot
+excluded, so this repo follows them: on the hand-written code pyright
+found thirteen real defects, every one a narrowing or a version union
+the code had outgrown.
+
+**What.** `[tool.pyright]` checks `src` and excludes `src/gjk/sema`;
+`ci.sh` gains the step; mypy leaves the dev extras and the README. The
+fixes: the channel row builders accept every data and derived channel
+version the layouts reference; the forest bootstrap and layout rebuild
+narrow their codec decodes; the node upsert takes both GNodeGt versions;
+Settings uses `SettingsConfigDict`; two Optional accesses assert first;
+the custom-persistor branch tests the persistor, not just its method;
+`live_only_db_operations` accepts any return so a projection may report
+whether it wrote. One ignore stays, on `deactivated_date = None`, until
+gw_data types the nullable column as Optional. Tests are outside the
+check for now: pyright reports 125 errors there, a cluster of its own.
+
+## 2026-11-04 — ci.sh is the one gate (`b8f6628`)
+
+**Why.** The repo had three definitions of "passes": the workflow ran
+pytest alone, the README told a developer to run ruff, mypy and pytest by
+hand, and pre-commit added the format check. Nothing that gated ran the
+format check, so main had merged with it red. The workflow also started a
+RabbitMQ service from the 2023 initial commit that no test reads: the
+suite's fixtures start their own broker through testcontainers. Sema set
+the pattern this follows: the script owns the steps, the workflow owns
+the runner and calls the script.
+
+**What.** `ci.sh` runs the locked sync, ruff check, ruff format check and
+the tests; the workflow is checkout, uv and `./ci.sh`. The unused broker
+service and its `.ci/` config go, one test file gets formatted, and the
+README's two check sections point at the script. mypy stays out of the
+gate until its 144 strict errors are fixed in their own cluster.
+
+## 2026-11-03 — Add slow.contract.rejection and new.command.tree v002/v003 (`e5486b6`)
+
+**Why.** The gjk log shows hourly "degraded SEMA type new.command.tree
+(v003) … not persisting" from oak, after elm and beech sent it from
+2026-10-28: both 002 and 003 are published in the registry while the
+snapshot stopped at 001, so the fleet's command trees have gone
+unjournaled for a week. slow.contract.rejection is on the wire from every
+deployed scada and is published as of today; the journal keeps the
+refusals too.
+
+**What.** The seed lists new.command.tree 000 through 003 and adds
+slow.contract.rejection; the snapshot regenerates from the sema commit
+that published the word. The persistor's created-time table names the
+word's MessageCreatedMs so its row takes the sender's clock.
+
 ## 2026-11-01 — The importer reads a bare-word eventstore object (`a7127b6`, PR #205 `76c9594`, OPS-622)
 
 **Why:** the importer took every eventstore object for a scada's

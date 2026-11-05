@@ -12,6 +12,25 @@ Newest at the top.
 
 ---
 
+## 2026-11-04 — The time coordinator is a GNode; ci.sh is the one gate (`befe546`, on `dev`)
+
+**Why.** The registry holds `hw1.time` as a GNode of class
+`TimeCoordinator` and gridworks-base 0.7.1 puts the class on the
+`GridworksActor` tier, while the hello actor still called itself not a
+GNode, rode `ServiceSettings`, read `GWBASE_*` variables against the
+one-env-one-prefix rule, and defaulted to `d1.tc` where the registry
+rule says `<universe>.time`. The repo also had no gate: no `ci.sh`, no
+workflow, no pyright.
+
+**What.** `GwtcSettings(GNodeSettings)` with the `GWTC_` prefix, alias
+`d1.time`, `super_alias`; `HelloTimeCoordinator` is a `GridworksActor`
+declaring `GwGNodeClass.TimeCoordinator`; the test writes a dev identity
+file; the README says what the coordinator is. `ci.sh` runs the locked
+sync, ruff, pyright, the unit tests and the live test when a broker
+answers; the workflow is checkout, uv and `./ci.sh` with the dev-rabbit
+service. Pin `gridworks-base>=0.7.1`; the lock updates when that release
+exists. The Ready barrier stays Open.
+
 ## 2026-10-09 — Track gwbase 0.5.15 (`7528e95, on `dev``)
 
 The floor was 0.5.6; the lock resolves to 0.5.15 so the simulation runs on the same gwbase as the fleet (`user_id` on publish, OPS-579).

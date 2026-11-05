@@ -10,7 +10,43 @@ repo's git history.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-11-05 — mkenv.sh points at scada-to-uv (pin-python-version, PR 607, OPS-661)
+
+**Why.** The TODO block in `tools/mkenv.sh` from PR 607 was the best
+statement anyone had written of what a uv port has to keep working. A
+migration plan is not a shell script's to hold.
+
+**What.** The block becomes a two-line pointer to OPS-661, whose
+description and design hold the constraints. Pushed onto Olly's PR 607
+branch, so the merge takes the pointer rather than the plan.
+
+## 2026-11-04 — LTN uses flo as a service at hw1.flo (`bf0a2219`, jm/flo-over-the-broker, OPS-514)
+
+**Why.** The FLO is a service now (`gridworks-flo`, the GNode
+`<universe>.flo`), so the LTN no longer runs bruce in a child process on
+its own box. The LTN sends its `flo.params` gw-wrapped on the scada
+broker addressed to the flo class, the way its bid goes to the maker,
+and the service answers with a `flo.recommendation` wrapped on its own
+topic. The LTN keeps the answer that matches the request it holds (the
+bidder and the slot) and bids off it. The bruce sibling checkout, its
+install in `mkenv.sh`, its roll in `roll.sh` and the BidRunner thread
+with its forkserver child all go with the in-process run.
+
+**What.** `actors/ltn/flo_service.py` names the FLO (`<universe>.flo`
+from the LTN's own alias), the flo destination token and the reply
+topic. `Ltn.send_flo_params` publishes the request to the flo class with
+a copy to the scada; `Ltn.process_flo_recommendation` turns a matching
+answer into the bid and drops one for another bidder, another slot, no
+request held or a request already answered. The codec accepts the FLO's
+alias as a source and `LtnApp` subscribes the scada link to the FLO's
+topic. Tests: `test_ltn_flo_exchange.py` (the exchange, stubbed) and
+`test_ltn_flo_recommendation.py` (the answer over the local broker).
+
+
 ## 2026-11-02 — roll.sh takes BRUCE_LINE for the sibling (`5c861380`, jm/bruce-sibling, OPS-654)
+
+This and the two entries below squashed to main as `871f7e37` (PR #603, 2026-11-03).
 
 **Why.** Oak needs the bruce that speaks `flo.params` 001 before that
 change is on upstream main, and a roll always fast-forwards the sibling

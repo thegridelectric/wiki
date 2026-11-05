@@ -10,6 +10,99 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-05 — Add last-hour-dist-energy to beech (`b4d0c93`)
+
+**Why.** The `last-hour-dist-energy` derived channel (scada PR 606) was
+added to beech's committed output JSON by hand, so the next regeneration
+would drop it. Output is generated and never hand-edited; the gen is the
+source.
+
+**What.** `House0SemaGenConfig` gains `rolling_dist_energy`, off by
+default, and `emit_energy_channels` emits the channel when it is set;
+beech sets it. The regenerated beech layout is byte-identical to the
+hand edit, Id included. The channel stays per-home while the strategy
+is proven in the field.
+
+## <!-- pending commit --> 2026-11-04 — elm: store-btu hot is store-hot-pipe; store pump default 2.5 V
+
+**Why.** The first store charge with the store Gw101 in service (15:07)
+showed the meter's hot input on the hot pipe, as on the other three
+meters at elm. The store pump's power-on 0-10 V level joins the dist
+pump's at 2.5 V.
+
+**What.** `elm_gen.py` maps store-btu hot to store-hot-pipe and cold to
+store-cold-pipe, and sets store-010v to 25 volts times ten. Every elm
+meter now has its hot input on the hot pipe. Output regenerated.
+
+## 2026-11-04 — fix dist-rwt/dist-swt swap (`3a30bdd`, main): primary and dist BTU hot inputs are on the supply side; pump defaults
+
+**Why.** The first compressor run with the primary Gw101 in service
+(14:30 to 14:34) read hp-ewt 7 °C above hp-lwt. A heat pump heats the
+water it sends out, so the thermistor on the meter's hot input is on the
+leaving pipe. The first dist pump run (14:44) read dist-rwt jumping to
+41 °C while dist-swt sat at 20 °C, and the installer confirms the supply
+thermistor is in the meter's hot input.
+
+**What.** `elm_gen.py` maps primary-btu hot to hp-lwt and dist-btu hot
+to dist-swt. The store pair keeps its return-side mapping until the store
+charges and the readings say. The dist pump's 0-10 V default drops from
+3.5 V to 2.5 V and the secondary pump's from 3.3 V to 2.1 V, above the
+Ecocirc+ 1.5 V start floor. Output regenerated.
+
+## 2026-11-04 — secondary btu is in place (`fa33bc7`, main): Gw101 BTU meter at the secondary position
+
+**Why.** The fourth Gw101 went in at elm at 14:25 and posts as
+secondary-btu (pico_6d5039). It replaces the silent hall pico and
+brings the secondary pipe thermistors the ADS never had wired.
+
+**What.** `elm_gen.py` authors secondary-btu on the beech pattern, hot
+on secondary-lwt and cold on secondary-ewt;
+the secondary `FlowSpec`, the disabled entries for it and the two ADS
+secondary channels are gone, so nothing at elm is disabled. Output
+regenerated.
+
+## 2026-11-04 — correct pico board variant, add 1 A CT for primary-pump-pwr on egauge (`070aaf7`, main)
+
+**Why.** After the roll each meter raised a Warning glitch: the pico
+reports PicoBoardVariant PicoRaspberryWifi2040 and the layout said
+Unknown. The secondary-flow hall pico (pico_3e9a28) has been silent
+since 10:17 and its Gw101 is on the way; while the layout names it the
+pico-cycler bounces the 5 V bus under every pico at elm each half hour
+shaking the zombie.
+
+**What.** The three `BtuSpec`s in `elm_gen.py` take
+`PicoRaspberryWifi2040`; secondary-flow is a disabled node with its flow
+and Hz channels disabled; primary-pump-pwr is enabled, its CT going on
+eGauge S2 (register 9008) today. Output regenerated; `elm.uploaded.json`
+is the pi's running layout as fetched after the roll.
+
+## 2026-11-04 — another elm update (`8cf6057`, main): BTU hot inputs are on the return side
+
+**Why.** At elm each Gw101's hot thermistor is on the return side of
+its loop, the pipe flowing back toward the source, so the beech mapping
+(hot = supply) would swap every pair.
+
+**What.** `elm_gen.py` maps primary-btu to hp-ewt / hp-lwt, dist-btu to
+dist-rwt / dist-swt and store-btu to store-cold-pipe / store-hot-pipe
+as hot / cold. Output regenerated.
+
+## 2026-11-04 — elm has new btu picos (`e32082c`, main)
+
+**Why.** Three Gw101 boards running the BTU firmware went in at elm on
+2026-11-04 and post as primary-btu (pico_4e6e35), dist-btu
+(pico_298631) and store-btu (pico_7a4d2b); the layout knew only the
+hall flow picos they replaced, so every post was served by no actor.
+The store position had a hall sensor in the pipe with no pico, so
+store-flow stops being a disabled placeholder.
+
+**What.** `elm_gen.py` authors the three meters as `BtuSpec`s on the
+beech pattern, drops the primary, dist and store `FlowSpec`s, and takes
+the six pipe channels the meters read (hp-lwt, hp-ewt, dist-swt,
+dist-rwt, store-hot-pipe, store-cold-pipe) off the ADS board, which
+keeps the buffer and secondary pipes. Board revision and MicroPython
+are not yet recorded. The secondary position stays a hall flow pico.
+Output regenerated.
+
 ## 2026-11-02 — update flo params to 001 (`f3ac1b4`, main, OPS-654)
 
 **Why.** `flo.tuning.bruce` 001 states the resolution of bruce's store

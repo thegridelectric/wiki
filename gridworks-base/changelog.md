@@ -8,7 +8,59 @@ one-line title mirror the corresponding code-repo commit.
 This changelog does NOT track wiki edits — those live in the wiki
 repo's git history.
 
-Newest at the top.
+
+## 2026-11-04 — LTN and FLO talk to each other (`04fba32`, PR #193 `d4af888`)
+
+**Why.** The LTN on gwbase sends `flo.params` to its FLO as a direct
+message and wants the `flo.recommendation` back the same way; with no
+edge pair between the two classes the request reached no queue, and the
+FLO's only door was the `amq.topic` wildcard the MQTT-native LTN uses.
+The fabric declares who may reach whom, so the pair goes in the table.
+
+**What.** `ROUTING_EDGES` gains `(LeafTransactiveNode, Flo)` and
+`(Flo, LeafTransactiveNode)`; the `AMQP_ACTOR_CLASSES` note on Flo says
+the words go direct over them. The dev and hybrid definitions
+regenerate with the two `mic_tx` to `_tx` bindings. Version 0.7.2, so
+the deployed brokers can import the hybrid definitions from a release.
+
+## 2026-11-04 — A GNode's transport class follows from its GwGNodeClass (`40c40e3`, PR #192 `4a434e3`)
+
+**Why.** 0.7.0 had every GNode subclass spell its class twice,
+`transport_class` and `g_node_class`, with nothing checking that the
+two agreed: an actor could route as a maker while claiming to be a FLO.
+One declaration, and the tier map becomes code.
+
+**What.** `TRANSPORT_CLASS_BY_G_NODE_CLASS` in `transport_encoding.py`
+maps every `gw.g.node.class` value but `Unknown` to its transport
+class; `GridworksActor.__init__` drops `transport_class` and derives it,
+refusing a class off the table. `Orchestrator` keeps `transport_class`
+for the non-GNode participants. A test pins the table: complete over
+the enum, injective, and the classes it leaves out are exactly
+Supervisor, GridNodeRegistry and Alerter. Version 0.7.1.
+
+## 2026-11-04 — GridworksActor declares its GwGNodeClass; Flo and TimeCoordinator are GNode-tier; ci.sh is the one gate (`ef399ff`, PR #191 `555f93b`)
+
+**Why.** gwbase already names every GridWorks class in `TransportClass`,
+so leaving `GNodeClass` as a bare string in the actors bought no
+generality. `g.node.gt` keeps the field an open string for other
+registries; a GridWorks GNode declares its class from `gw.g.node.class`
+and the identity file has to agree, the same drift guard the alias has.
+The FLO and the time coordinator are registry rows a GNode finds by
+walking the forest up to the universe root, so they ride the GNode tier.
+
+**What.** The sema seed adds `gw.g.node.class` 001 and the snapshot
+regenerates with `GwGNodeClass`. `GridworksActor.__init__` takes a
+required `g_node_class: GwGNodeClass`, checks it against the file's
+`GNodeClass` at boot, keeps it as the enum and sends `.value` in the
+client properties and the connect claims. The tier map in
+`transport_encoding.py`, the `Orchestrator` docstring and the README move
+`Flo` and `TimeCoordinator` to the `GridworksActor` tier. Every subclass
+passes its class; the `hello_rabbit.py` demo supervisor becomes an
+`Orchestrator` on `ServiceSettings`, the tier the spec gives it. The
+gate follows sema and gjk: `ci.sh` owns the steps (and writes
+`coverage.xml`), the workflow is checkout, uv, `./ci.sh` with the
+dev-rabbit service and the Codecov upload; the 3.13 matrix goes.
+Version 0.7.0.
 
 ## 2026-11-01 — Adding FLO service (OPS-514, `10b3fa7`, PR #190 `7d9b7d8`)
 

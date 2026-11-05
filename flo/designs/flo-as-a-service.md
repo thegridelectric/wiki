@@ -1,6 +1,6 @@
 # flo-as-a-service
 
-Status: Accepted · Pass 1 · Updated 2026-11-03 · Linear: OPS-514
+Status: Accepted · Pass 1 · Updated 2026-11-04 · Linear: OPS-514
 
 **EDD: yes** the opening experiment is a measured bruce build from oak's
 plant facts (peak RSS, wall time per phase, trimmed-graph size), done
@@ -152,16 +152,23 @@ Stand-up record (`gridworks-infra/new-platform-service.md` and the box's
 1. **Broker fabric** (done 2026-11-01): rmqbot runs gwbase 0.6.2's
    definitions; `flo_tx` and `flomic_tx` exist on `hw1__1`, drift check
    in sync.
-2. **Principal and cert** (done 2026-11-01): FIS Service principal
-   `a4991bea-c11e-424a-8dca-3bef4142f600`, cert on the box, recorded in
-   `flo/instance-README.md` and `authority/cert-inventory.md`.
+2. **Registry row, principal and cert** (done 2026-11-04): `hw1.flo`
+   in the registry (class `Flo`, GNodeId
+   `ae4be0c3-6dd0-42de-b267-543e61c11c89`), the identity file on the
+   box written from the served record, a GNode cert whose CN is that id
+   (the Service principal `a4991bea…` of 2026-11-01 revoked and
+   suspended), recorded in `flo/instance-README.md` and
+   `authority/cert-inventory.md`. The registry write needed its own
+   operator principal on the gnr box, `hw1.gnr-operator`, since the
+   gate admits no password connect.
 3. **Checkout and unit** (done 2026-11-02; sibling pattern 2026-11-03):
    `gridworks-flo` main on the box, bruce editable from the sibling
    `~/optimal-flexibility` (`thdfw` main), `.env` for hw1 over mTLS,
    oak's matrices, `flo-rabbit` enabled and running.
-4. **First-start check** (done 2026-11-02: principal Active on FIS, the
-   connection on the broker as `a4991bea…` with the GRIDWORKS mechanism,
-   the queue bound on `amq.topic` with `gw.*.to.flo.flo-params`).
+4. **First-start check** (done 2026-11-04 as the GNode: principal Active
+   on FIS, the connection on the broker as `ae4be0c3…` with the GRIDWORKS
+   mechanism, the queue bound on `amq.topic` with
+   `gw.*.to.flo.flo-params`).
 
 1. **Measure** (done above).
 2. **Service** (built and running: `gridworks-flo`, spec in

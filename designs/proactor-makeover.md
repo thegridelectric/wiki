@@ -35,7 +35,8 @@ and the new code, per the link-state findings' standing charge; not code review.
 - **LTN on gwbase**; **scada MQTT-native** (mosquitto on the Pis), riding the
   rabbit MQTT plugin for the critical scada↔LTN link.
 - **NO BACK DOOR** — no side channel that bypasses the authenticated transport.
-- **Rewrite, not refactor** — flat-in-scada under `uv`; the old gwproactor is
+- **Rewrite, not refactor** — flat-in-scada under `uv` (the port is OPS-661,
+  done first); the old gwproactor is
   frozen as the ingester/uploader until cut over.
 - **Sim/real trust boundary** — a simulated scada must find it **hard or
   impossible to acquire a real-world TaDeed / validation**; the boundary is

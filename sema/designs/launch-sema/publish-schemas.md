@@ -1,6 +1,6 @@
 # Publish the schemas (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-13 · Linear: OPS-538
+Status: Draft · Pass 0 · Updated 2026-11-03 · Linear: OPS-538
 
 > What this is: make every `Sema:` URL resolve. The spec already defines a
 > word as published when it is served at `https://schemas.electricity.works`
@@ -34,11 +34,9 @@ names or two sites.
 Beside the static schemas, one POST route that validates a payload:
 the body is the JSON instance, the response is the same verdict the CLI
 prints (`OK: <TypeName> (version <v>)` or `INVALID: <error>`), computed by
-the same `sema.runtime.validate.validate` function. The existing FastAPI
-schema server (`sema/src/sema/interfaces/api/schema_server.py`) serves
-schemas by GET and has no validate route; this adds one and deploys the
-server beside the static host, at the same published subset. It is the
-front-door form of `sema validate`: a stranger, or a non-Python
+the same `sema.runtime.validate.validate` function. It is one route,
+written when the static host exists, deployed beside it at the same
+published subset. It is the front-door form of `sema validate`: a stranger, or a non-Python
 participant, can try a message before installing anything. A running
 consumer never calls it; its own vendored snapshot validates its traffic.
 
@@ -56,5 +54,5 @@ consumer never calls it; its own vendored snapshot validates its traffic.
 ## Do this next
 
 Write the layout script and run it locally against the current registry;
-look at the tree. Then wire Pages and DNS, and deploy the schema server
-with the validate route beside them.
+look at the tree. Then wire Pages and DNS, and deploy the validate route
+beside them.
