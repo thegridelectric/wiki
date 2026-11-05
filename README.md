@@ -130,7 +130,9 @@ To set up a machine:
 1. Make the umbrella folder; clone the sibling repos **and this wiki** into it.
 2. Point the umbrella's `CLAUDE.md` at this repo's canonical copy:
    `cd GridWorks && ln -s wiki/conventions/base-CLAUDE.md CLAUDE.md` (symlink preferred;
-   copy works too).
+   copy works too). For Codex or Cursor launched at the umbrella, add
+   `ln -s wiki/conventions/base-CLAUDE.md AGENTS.md`; those tools stop at a
+   repo root, so a session opened inside one sibling repo does not see it.
    Optionally link the session launchers beside it:
    `for s in base scada build-executor; do ln -s wiki/tools/$s.sh $s.sh; done`.
    Each starts Claude with that kind's protocol file appended

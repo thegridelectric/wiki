@@ -255,6 +255,10 @@ checks), not just `pytest`; green `pytest` with red `ruff` still fails CI.
 (`gridworks-base/ci.sh` needs the dev broker on `localhost:5672`.) No script ⇒
 run the tests.
 
+**A lint finding is fixed, never silenced, unless the current behaviour is
+intentional**: an obvious fix that would change runtime behaviour is a
+separate change with its own test, and a suppression says why beside it.
+
 **Never edit or commit on a code repo's `dev`/`main`/`master`.** Cut a
 `jm/<topic>` branch first, always — enforced by two hard-deny hooks
 (`precheck-protected-branch.sh`, `precheck-protected-branch-git.sh`). The wiki
