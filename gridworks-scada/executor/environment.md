@@ -89,6 +89,10 @@ are in [`../../world/primary.md`](../../world/primary.md).
 
 ## Open
 
-- Whether `packages/` become uv workspace members (one lock, no per-package
-  `uv.lock`).
+- `gridworks-scada-protocol` and `gridworks-admin` as `[tool.uv.workspace]`
+  members with the one root lock, once nothing but the scada imports
+  gwsproto (tlayouts and experiments still do). With it the scada becomes
+  installable: `gws` a `[project.scripts]` entry, and the `PYTHONPATH`
+  export (the units' `Environment=PYTHONPATH=` included), the `gws`
+  symlink and its relative shebang retire.
 - A first Pi built from `uv.lock` has not been run.

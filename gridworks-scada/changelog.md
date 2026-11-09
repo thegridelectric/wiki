@@ -10,6 +10,13 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-09 — Drop the FLO-era dev packages: pandas, openpyxl, matplotlib, pika (`8ad6d059`, PR #614)
+
+The four were in the dev set only for the in-process FLO. With the FLO a
+service (#605, #615) nothing imports them, so they and their transitive
+dependencies leave the lock. `scripts/plot_ram.py` imports matplotlib only
+when run and now says to run it with `uv run --with matplotlib`.
+
 ## 2026-11-09 — The scada is a uv project: pyproject dependencies, uv.lock, .venv (`303c675a`, PR #614)
 
 The pip-tools requirement files compiled per environment had drifted
