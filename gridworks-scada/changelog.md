@@ -10,6 +10,37 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-09 — Drop the FLO-era dev packages: pandas, openpyxl, matplotlib, pika (`8ad6d059`, PR #614)
+
+The four were in the dev set only for the in-process FLO. With the FLO a
+service (#605, #615) nothing imports them, so they and their transitive
+dependencies leave the lock. `scripts/plot_ram.py` imports matplotlib only
+when run and now says to run it with `uv run --with matplotlib`.
+
+## 2026-11-09 — The scada is a uv project: pyproject dependencies, uv.lock, .venv (`303c675a`, PR #614)
+
+The pip-tools requirement files compiled per environment had drifted
+apart: the Pi's `drivers.txt` and the laptop's `dev.txt` pinned different
+versions of 25 shared packages (pyModbusTCP 0.2 vs 0.3), and the Pi's
+platform-marker dependencies (sysv-ipc) were never pinned because the
+files were compiled off the Pi. One universal `uv.lock` now gives every
+environment the same versions, matching the gridworks-terminalasset layout
+(dependencies in `pyproject.toml`, a `dev` group, `uv sync --locked` in CI).
+`ci.sh` runs through uv: `uv sync --locked`, `ruff check`, pytest. mypy
+stays out of the gate until the transitions triggers are declared.
+
+Pi choices. The lock was seeded from `drivers.txt`, so the Pi keeps the
+versions it runs, with two exceptions: multidict (6.0.4 to 6.5.1) and
+frozenlist (1.4.0 to 1.7.0), which had no Python 3.12 wheels at all and
+need a C toolchain to build. `required-environments` holds the lock to
+aarch64 Linux. The Pi-only hardware packages are the `drivers` group;
+`tools/mkenv-pi.sh` syncs `--no-dev --group drivers`, so gridworks-admin
+and the test tools stay off the box. The units call `.venv/bin/python`
+directly, so the Pi needs uv only to build the venv. The venv moves from
+`gw_spaceheat/venv` to `.venv`, so a box rolled back to a pip line still
+has its old venv. `roll.sh` compares `uv.lock` beside the requirements
+files that pip lines still carry.
+
 <!-- pending commit -->
 ## 2026-11-05 — mkenv.sh points at scada-to-uv (pin-python-version, PR 607, OPS-661)
 
