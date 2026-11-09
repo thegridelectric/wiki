@@ -1,57 +1,73 @@
-Status: Draft · Pass 0 · Updated 2026-10-26
+Status: Draft · Pass 0 · Updated 2026-11-09
 
-# SCADA dev/test environment — how it's built and maintained (pre-uv)
+# SCADA Python environment — how it's built and maintained
 
-What this is: the **as-is** mechanism for building and maintaining the scada's
-Python environment, including the non-obvious, partially-by-hand bits. This is
-operational scaffolding that exists **until the scada is migrated to `uv`** —
-record it so experiments/tests are reproducible in the meantime, and so the uv
-migration knows what it is replacing.
+What this is: how the scada's Python environment is declared, locked and
+built, on the laptop, in CI, on the LTN box and on the Raspberry Pis, and
+the non-obvious bits of each.
 
-> **TEMPORARY.** The scada repo is **not** a flat `uv` project — its
-> `pyproject.toml` carries only `[tool.pytest.ini_options]` / `[tool.ruff]`,
-> **no `[project]` table**, so `uv run` / `uv sync` do **not** work at the repo
-> root. Dependency management is the hand-rolled `tools/mkenv.sh` + pinned
-> `requirements/` files below. Going through the scada with uv replaces all of
-> this with a declared, locked dependency set.
+## The declaration and the lock
+
+The repo root is a uv project with `package = false`: `pyproject.toml`
+declares dependencies and nothing is built or installed from `gw_spaceheat/`,
+which reaches the interpreter through `PYTHONPATH` (pytest's `pythonpath`,
+the units' `Environment=PYTHONPATH=`). `uv.lock` at the root is the one
+resolution for every environment.
+
+| Set | Where declared | Who gets it |
+|---|---|---|
+| runtime | `[project] dependencies` | every environment |
+| `drivers` | dependency group | the Pis only (adafruit, `board`) |
+| `dev` | dependency group, uv's default | laptop, CI, LTN box; never a Pi |
+
+`requires-python` is 3.12 only, the version `.python-version` names and the
+Pis run. `[tool.uv] required-environments` holds the lock to aarch64 Linux,
+so a lock that cannot install on a Pi fails on the laptop.
+
+Three dependencies come from `[tool.uv.sources]`, not PyPI: the proactor
+at a git tag of `gridworks-proactor`, and `gridworks-scada-protocol` and
+`gridworks-admin` editable from `packages/` of the same checkout. Admin is
+in `dev`, so a Pi has no `gwadmin`. The two packages stay standalone uv
+projects with their own `uv.lock` for publishing; they are not workspace
+members.
+
+The root lock records each package's version, so a version bump in
+`packages/` needs `uv lock` at the root, or CI's `uv sync --locked` fails.
 
 ## The venv
 
-The scada virtual env lives at **`gw_spaceheat/venv/`** — NOT a top-level
-`.venv/`. Python **3.12**. `gw_spaceheat/venv/bin/python` is the interpreter for
-running tests, scripts, and experiments.
+`.venv/` at the repo root, built by `uv sync --locked` through two wrappers
+run from the repo top level:
 
-## The build tool: `tools/mkenv.sh`
+- `tools/mkenv.sh [uv sync options]`: syncs (runtime + `dev`) and symlinks
+  `gw_spaceheat/gws` into `.venv/bin/`. Laptop and the LTN box.
+- `tools/mkenv-pi.sh`: `mkenv.sh --no-dev --group drivers`. The Pis.
 
-Run from the **repo top level**. It **recreates** the venv from scratch:
+uv uses an installed Python 3.12 or downloads one. Sync is exact: a package
+not in the lock is removed, so `tools/lpro.sh` (local proactor and protocol
+checkouts via `uv pip install -e`) lasts until the next sync or `uv run`;
+`tools/rpro.sh` restores the locked pair.
 
-1. `rm -rf gw_spaceheat/venv` then `python -m venv gw_spaceheat/venv`
-   (override the interpreter with `PYTHON=python3.12 ./tools/mkenv.sh`).
-2. `pip install -r gw_spaceheat/requirements/dev.txt` (the pinned dep set).
-3. `pip install -e packages/gridworks-scada-protocol` — `gwsproto`, editable
-   from **this** checkout.
-4. `pip install -e packages/gridworks-admin` — `gwadmin` (skippable: 2nd arg
-   ≠ `install_admin`).
-5. Symlink the **`gws`** CLI (`gw_spaceheat/gws`) into the venv `bin/`.
+## On a Pi
 
-Args: `mkenv.sh [requirements-file] [install_admin]`. The FLO is not in
-the venv: the LTN asks the FLO service for its recommendation over the
-broker.
+- uv lives in `~/.local/bin` (the standalone installer) and is needed only
+  to build the venv. The units (`service/gwspaceheat.service`,
+  `service2/gwspaceheat2.service`) run `.venv/bin/python gw_spaceheat/gws`
+  directly, so boot never resolves or downloads.
+- Every locked runtime and driver package has a cp312 aarch64 manylinux
+  wheel except `pyModbusTCP`, which is pure Python; a Pi compiles nothing.
+- A line still on pip keeps its venv at `gw_spaceheat/venv/` and its pins
+  in `gw_spaceheat/requirements/`, so both venvs can sit in one checkout and
+  a roll between the lines rebuilds neither by accident. `scripts/roll.sh`
+  compares `uv.lock` and those requirement files between SHAs and stops
+  the roll when either differs; the rebuild is `tools/mkenv-pi.sh` by hand
+  on the box, whichever line it is on.
 
-## The by-hand / fragile bits (why this needs writing down)
+## The by-hand / fragile bits
 
-- **Two editable installs point at local source trees** — `gwsproto` and
-  `gwadmin` from `packages/`.
-- **Editable installs can silently bind to a *different* checkout.** Observed: a
-  `gw_spaceheat/venv` whose `gridworks-scada-protocol` editable resolved to
-  `~/Coding/gridworks-scada/packages/...` instead of the working checkout, so
-  `import gwsproto` failed here. Fix: re-run `tools/mkenv.sh` from the intended
-  checkout so the editables rebind to it. (Stop-gap without a rebuild: prepend
-  `gw_spaceheat` + `packages/*/src` to `PYTHONPATH`.)
-- **The `gws` entrypoint is a symlink**, re-created by `mkenv.sh` — it is not a
-  packaged console-script, so it doesn't survive a venv copy/move.
-- **No root uv project** (above) — IDE/tooling that assumes `uv` at the root
-  will mis-resolve; point them at `gw_spaceheat/venv`.
+- **The `gws` entrypoint is a symlink**, re-created by `mkenv.sh`; its
+  shebang is the relative `.venv/bin/python`, so the bare `gws` works from
+  the repo top level only.
 - **The laptop keeps a `legacy` worktree with its own venv.**
   `GridWorks/scada-legacy` is a git worktree of the canonical checkout
   on `legacy` (`git -C gridworks-scada worktree list` shows both),
@@ -59,18 +75,20 @@ broker.
   to one checkout, and the tlayouts gens for the houses on `legacy`
   and for `actual-spruce` import `layout_gen` and `gwsproto` at that
   line, so they run with `PYTHONPATH=scada-legacy/gw_spaceheat` under
-  `scada-legacy/gw_spaceheat/venv/bin/python`. A moved worktree needs
-  its venv rebuilt (absolute paths inside).
+  `scada-legacy/gw_spaceheat/venv/bin/python`, `legacy` being a pip
+  line. A moved worktree needs its venv rebuilt (absolute paths inside).
 
 ## Running tests / experiments
 
-Use `gw_spaceheat/venv/bin/python` (or `source gw_spaceheat/venv/bin/activate`),
-**from the repo top level** so the editable packages + `gw_spaceheat/` resolve.
-`pytest` + `pytest-asyncio` are in the venv. The in-process live-test harness is
-documented in [`testing.md`](testing.md); broker-based **experiments** (the
-World hook-up) are in [`../../world/primary.md`](../../world/primary.md).
+`uv run pytest`, or `.venv/bin/python` (or `source .venv/bin/activate`),
+**from the repo top level** so the editable packages + `gw_spaceheat/`
+resolve. `./ci.sh` is the CI gate: `uv sync --locked`, `ruff check`, then
+pytest under coverage; the workflow runs it after its broker and cert setup. The in-process live-test harness is documented in
+[`testing.md`](testing.md); broker-based **experiments** (the World hook-up)
+are in [`../../world/primary.md`](../../world/primary.md).
 
 ## Open
 
-- The uv migration: declare the two editable local deps as proper
-  sources, lock them, and retire `mkenv.sh` + the `gws` symlink.
+- Whether `packages/` become uv workspace members (one lock, no per-package
+  `uv.lock`).
+- A first Pi built from `uv.lock` has not been run.
