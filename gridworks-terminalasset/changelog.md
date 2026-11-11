@@ -12,6 +12,85 @@ Newest at the top.
 
 ---
 
+## 2026-11-11 — ta-plant runs the physics of a Katahdin house from a Modelica FMU, on a generated Katahdin layout (`6dd37ce`, on `ow/katahdin-fmu`)
+
+The drifting plant shows a scada plausible numbers that answer nothing it
+does, so no control code can be exercised against it. A Katahdin house
+(monobloc on glycol, plate exchanger, three-tank store, V1 to V5, zoned
+distribution, boiler or elements) is where control work goes next, so that
+is the first plant with physics.
+
+Why Modelica compiled to an FMU, and not Python physics: the flows form
+loops whose direction changes with the valves, the store carries the signed
+difference of two pumped flows, and the answer must not move with the
+caller's tick (1 s on a laptop, 60 s for a fleet). A variable-step solver
+inside the FMU settles all three; Python only sets inputs and reads
+outputs. The FMU carries CVODE, and the adapter still sub-steps at 5 s
+because an OpenModelica co-simulation FMU checks its own events (a
+thermostat, the compressor cut-out) only at the end of a step.
+
+Why one self-contained model and no Modelica Buildings library: the build
+is seconds, the export is reliable, and zero flow and flow reversal are
+handled by construction (a linear pressure network, every mixing point a
+small volume, upwind advection on signed flows). The cost is that every
+component is ours to keep honest; the energy-balance test (heat in less
+loss equals stored heat, across every mode) is the guard.
+
+Why every coefficient is a placeholder parameter: the priority was the
+right parts, wired as the D1116 schematic, running end to end. Pipe
+resistances, pump curves, conductances and the heat pump tables are
+overridable at start (`--fmu-overrides`) so tuning needs no rebuild.
+
+Decisions a reader cannot see in the diff:
+
+- The model follows the plumbing, not the operating-modes table: a valve
+  combination the table never uses still gives the flows the pipework
+  would.
+- A relay acts through its contact. What a closed contact does is a
+  hand-kept table in `katahdin.py` (a fed valve leaves its rest position;
+  boiler house rests with the store valved off from the house and the
+  boiler in circuit, a house with no boiler rests with the store heating
+  the house); no word says what a valve does when fed. Which position
+  closes the contact is read from the layout's `relay.control.config`, so
+  the plant follows a rewired relay without a code change.
+- The heat pump is called by a closed `hp-scada-ops-relay` contact, and
+  only while the boiler backup's failsafe relay is energised. That is the
+  scada's own usage (hp-boss sends `CloseRelay` to call; `gw.boiler.backup`
+  defines the failsafe relay as giving the scada control when energised).
+  The relay is normally closed in a House0 layout and larch keeps that, so
+  a scada that takes the failsafe relay and does nothing else is calling
+  the heat pump. De-energised, the heat pump is its aquastat's, and the
+  model has the aquastat make no call.
+- Tank 1 is taken as the hot tank; no word says it.
+- Pump 0-10 V speed and outdoor temperature do not cross
+  `sim.plant.actuation`, so they are FMU inputs that hold their start
+  value. A scada that modulates a pump sees no change in flow.
+- A simulated tank module and a flow meter report their own electrical
+  reading (`-micro-v`, `-hz`) beside the quantity, so the plant encodes
+  those as the device does (`sensing.py`); the divider constants and the
+  sim sensor's gallons per pulse are hand-kept, each with a note naming
+  what retires it.
+- The FMU is generated, not committed: `scripts/build_fmu.sh` and the
+  image both build it from the Dockerfile's `fmu` stage, and `ci.sh`
+  generates it before the tests.
+
+The layout the plant runs on is made here too (`ta-katahdin-layout`,
+`tests/config/gw.katahdin.larch.layout.json`), because the plant cannot
+boot or be tested without a word that passes `gw.katahdin.layout`'s
+axioms, and no other repo makes one: `tlayouts` imports a `layout_gen`
+that gridworks-scada no longer has. The generator draws from a House0
+layout what the two kinds share and replaces the pipework, so a simulated
+Katahdin house senses with the same simulated devices a simulated House0
+house does. Larch is invented: the alias, the zone names, the valves'
+places on the board's free relays and the secondary pump on `Dfr2` A are
+nobody's wiring. The control box borrows `SimHpOdu`, there being no
+simulated control box device type. A house with no boiler is generated
+with no backup at all; a `gw.element.backup` house needs element relays
+the generator does not make.
+
+Open: the scada reads no Katahdin layout, so the plant has run on larch on
+the dev broker and not yet beside a scada.
+
 ## 2026-10-17 — A test that dev ships no staging word (OPS-473, `5c7a5ca`)
 
 `tests/test_sema_snapshot_published.py` reads the snapshot's own
