@@ -12,6 +12,58 @@ Newest at the top.
 
 ---
 
+## 2026-11-11 — Hydronic.mo: the component parts as a library, and Beech.mo, the Beech plant placed as on its schematic (`a5e36a9`, on `ow/beech-components`)
+
+A second house wants the same parts as the first, so the parts leave
+`KatahdinComponents.mo` for a library of their own, `Hydronic.mo`, and each
+plant file holds its plant alone. `KatahdinComponents.Plant` is the same
+model on the library: an FMU built from it stays within 0.0025 K of the
+flat model's over two simulated days.
+
+Beech is the first House0 plant in the repo. It needs parts Katahdin has
+none of, and each is in the library for the next house: a check valve and a
+pump with one in its flange, a flow meter, a three-way valve with the motor
+that gives the Siegenthaler valve its travel time, a split heat pump whose
+water another pump moves, a boiler that fires, and zones whose circulator
+is a part of its own. Where a part differs from a Katahdin one only at its
+edge (who moves the water, who holds the call), the common physics is a
+partial model both extend.
+
+The diagram's coordinates are the schematic's, 1.5 units to a pixel of the
+drawing at 1024 wide, so a reader can lay one over the other. Topology is
+read off schematic D1053 of 2026-11-11 and the names off Beech's
+`gw.house0.layout`.
+
+The cold pipe is two bodies of water with a run between them, not one
+header: with one, the house's return and the store's charge return mixed in
+it, and a charging store warmed a buffer the closed ISO valve had cut off.
+
+The image build checks that both component plants translate
+(`check_components.mos`), since nothing else in ci reads them and
+`KatahdinComponents.mo` no longer stands alone.
+
+Checked by hand, not in ci: an FMU of `Beech.Plant` driven through rest,
+all kept, send to the buffer, store charge, store discharge, boiler, and
+scada-held zones. Flows take the direction the schematic gives each mode,
+the check valves hold with every pump off, the store flow meter reads the
+discharge alone, and the heat held, put in and lost balance to the last
+digit printed.
+
+Open:
+
+- No adapter from a House0 layout's relays and channels to these inputs
+  and outputs, and no FMU build: `ta-plant` does not run Beech.
+- Where the `sieg-hot` and `sieg-cold` sensors sit is not on the drawing;
+  the model reads the kept water at the Siegenthaler flow meter and the
+  cold pipe at the heat pump's return.
+- Every coefficient is a placeholder, the buffer's volume among them.
+- The layout has two zones and the drawing three emitters; the model has
+  two.
+- The diagram has been parsed by omc and has not been opened in OMEdit or
+  Dymola.
+
+---
+
 ## 2026-11-11 — KatahdinComponents.mo: the Katahdin plant as connected components with a placed diagram (`cc3909a`, on `ow/katahdin-fmu`)
 
 `Katahdin.mo` is one model of flat equations, so a Modelica tool shows its
