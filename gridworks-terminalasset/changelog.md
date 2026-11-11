@@ -12,6 +12,37 @@ Newest at the top.
 
 ---
 
+## 2026-11-11 — KatahdinComponents.mo: the Katahdin plant as connected components with a placed diagram (`cc3909a`, on `ow/katahdin-fmu`)
+
+`Katahdin.mo` is one model of flat equations, so a Modelica tool shows its
+variables and nothing of the pipework. A reader who wants to see the plant,
+or to carry it into OMEdit or Dymola and rearrange it, needs components,
+connectors and a placed diagram. This file is that, beside the flat model
+and not in place of it.
+
+Why its own connectors and no Modelica Standard Library: the reasons the
+flat model gives hold here too (a build of seconds, zero flow and flow
+reversal by construction). The grid is staggered: a body of fluid (a tank
+layer, a header, a tee) carries a filled port that sets pressure and
+temperature, a pipe, valve or pump carries a hollow port that sets flow,
+and every joint holds exactly one filled port. No tool enforces that rule;
+the model's documentation states it for whoever rewires the diagram.
+
+`KatahdinComponents.Plant` keeps the inputs, outputs and parameter names
+of `Katahdin.Plant`, so an FMU built from it runs under the adapter
+unchanged. Checked by hand, not in ci: such an FMU passes the FMU tests,
+and its temperatures stay within 0.0025 K of the flat model's over two
+simulated days.
+
+Open:
+
+- The diagram has been parsed by omc (every placement and connection line
+  reads) and has not been opened in OMEdit or Dymola.
+- Two models of one plant drift. The FMU is built from `Katahdin.mo` and
+  nothing in ci translates the component file; the choice is to build the
+  FMU from the components and delete the flat model, or to add a ci check
+  that the two agree.
+
 ## 2026-11-11 — ta-plant runs the physics of a Katahdin house from a Modelica FMU, on a generated Katahdin layout (`6dd37ce`, on `ow/katahdin-fmu`)
 
 The drifting plant shows a scada plausible numbers that answer nothing it
