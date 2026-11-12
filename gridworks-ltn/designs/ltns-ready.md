@@ -1,6 +1,44 @@
 # LTNs ready
 
-Status: Accepted · Pass 1 · Updated 2026-11-02 · Linear: OPS-654
+Status: Accepted · Pass 1 · Updated 2026-11-11 · Linear: OPS-654
+
+**▶ Close-out (do this next).** The work shipped: the LTNs run on `main`
+and bid through `hw1.flo`. The two open checklist items are done: the
+ops-word drift check is in `wiki/tools/check-drift.sh` "House lines",
+and the weather `GET /forecasts/{ForecastUid}` route is live. What is
+left before the design is deleted and OPS-654 goes to Done (12.0 h):
+
+1. Rewrite `../executor/flo-boundary.md` to `main`. Lines 21–37 still
+   describe the in-process child, `_flo_worker`, `BRUCE_TAG` and the
+   no-checkout box. On `main` the LTN asks `hw1.flo` over the broker
+   (`actors/ltn/flo_service.py`, #605). Lines 83–87 (`BidRunner.stop`,
+   the fallback when the optimizer is missing) are stale too, and
+   `flo.refusal` handling is not described. No fallback-bid code turned
+   up in `actors/ltn` on `main`, although the FLO glossary relies on one,
+   so check it. The Tests table names `test_ltn.py` and
+   `test_bid_runner.py`, which are gone; `main` has
+   `test_ltn_flo_exchange.py`, `test_ltn_flo_recommendation.py`,
+   `test_ltn_flo_refusal*.py` and `test_ltn_bid_lead.py`. Add the rule
+   from "Why the FLO is one call": a feature that seems to need LTN state
+   between calls puts it in the words or in the FLO.
+2. `../executor/primary.md` lines 115–117 (bruce as a tagged dependency)
+   and the cleanup item at 223–225 (OPS-514, done) are stale.
+3. `../../flo/executor/bruce-flo.md`: under "The store", add that bruce
+   maps each sensor-position thermocline onto the tuning's `NumLayers`
+   as the same fraction of the modeled store, rounded to a layer
+   (`optimal-flexibility` `src/bruce/service.py` `thermocline_layer`).
+   Fix "Admissibility": axiom 7 has only clause a (bruce excludes
+   `LwtControl` on House0), and no Nolan row exists.
+4. In "LTN code that scrapes where the layout answers": delete the dead
+   `get_house_available_kwh` (`ltn.py`, unused on `main`), and put the
+   remaining `fuel_sub_usd_per_mwh` / `use_oil_as_fuel_substitute` /
+   zone-name regex cleanup on the executor's "Cleanup epic" or a Linear
+   issue. Raise the `StandbyPosture` item from "Open" as a sema Open.
+5. Rewrite the references to this file before deleting it:
+   `DESIGN_INDEX.md`, `gridworks-scada/changelog.md` ("One call and
+   response"), and the spruce-unlimbo spokes `finalize-layout-lite-13`,
+   `main-changes`, `first-data-catch` and `primary`, and
+   `spruce-settled/primary.md`.
 
 **EDD: yes** the verification is a live slot: the LTN bids at :57, the
 price clears at :00, the scada takes the contract, and both boxes' logs

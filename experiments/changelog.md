@@ -6,26 +6,65 @@ the *why*.
 
 Newest at the top.
 
-## 2026-10-28 — elm-arctic-field-check: harness and the record of the first runs (OPS-628) <!-- pending commit -->
+## 2026-11-11 — The FLO trace pulls without a forest; flo-dev-harness closes rung 1 (jm/flo-trace-and-harness, OPS-514)
+<!-- pending commit -->
 
-**Why.** The Arctic bring-up design's confidence comes from elm's first
-watched run on the bring-up scada, and the run has to be watched from
-the first minute. `2026-10-27-elm-arctic-field-check/` is the folder:
-a README with the seven pass criteria and the protocol, and
-`field_check.py`, which reads elm's report.event state machines and
-channels, glitches and problem events off the journal for an ET window
-and prints one PASS / FAIL / NO-DATA line per criterion. Smoke-run on
-the 2026-10-27 legacy window: the query path works and the glitch
-listing surfaced the LTN's hourly price-forecast error. The folder is
-dated to the first roll of elm to `jm/arctic` (2026-10-27 20:17 ET),
-and its README is where the run entries live: the 2026-10-26 traits
-measurement, eGauge glitches, admin-run wiring and failsafe
-observations on the legacy layout, the three 2026-10-27 rolls, and the
-first night under local control on `main`. Those entries moved out of
-the design `elm-arctic-bring-up`, which had become a logbook and a spec
-in one file; the harness has not yet run on a window.
+**Why.** The first FLO trace (oak's 18:57Z bid on 2026-11-11) could not
+be pulled: `traces/pull_trace.py` required a `tracked_set` and decoded the
+forest through the domain's snapshot, which fits the alerter but not the
+FLO, which reads no forest. The tracked set is now optional. A spec
+without one writes no `forest.json` and prints no alerts, and the rest of
+the pull is unchanged.
 
-## 2026-10-23 — trace puller reads the eventstore <!-- pending commit -->
+`2026-11-05-flo-dev-harness/` is closed as a record. Rung 1 passed on
+2026-11-05: request 13:50:56 ET, answer three seconds later, and the bid
+built from it. The folder has its `gw.experiment.run` 001 from
+`emit_instances.py`, a README to the template, and a logbook line. The
+three findings are OPS-669, OPS-670 and OPS-671. The stand-up steps moved
+to `dev-stack-recipe.md` "A FLO round trip", where laptop stacks live.
+
+`ci.sh` excludes two scripts from pyright that import environments this
+repo lacks: paho (`2026-10-22-stopgap-mm/mqtt_witness.py`) and the
+web-backend gateway checkout
+(`2026-10-28-realtime-units-elm-check/run_gateway_on_tap.py`). The gate
+had been red on them. `./ci.sh` green.
+
+## 2026-11-05 — hello-rabbit-ltn-trace and dev-flo-harness (`e0ff0c6`)
+
+**Why.** Two folders. `2026-11-03-hello-rabbit-ltn-trace/` is the first
+trace of a dev scada against the gwbase LTN on the dev broker, the LTN
+taken away and brought back, for the OPS-659 design; its raw capture and
+the scada and LTN stdout stay gitignored, the reduced `link-trace.jsonl`
+is the committed evidence. `2026-11-05-flo-dev-harness/` is the
+flo-as-a-service harness (OPS-514) on one laptop, written as thirteen
+steps anyone on the team can run: the dev broker, `d1.flo` seeded in the
+registry and its identity written from the served record, the FLO
+service, the scada-repo LTN with `LTN_BID_LEAD_S`, the sim scada. Found
+is open: the FLO, the façade and the LTN came up; bruce's matrix for the
+Nolan plant shape is the open step; alice cannot be rung 1 because its
+tuning requires an operator hold, under which the LTN never asks.
+
+## 2026-11-05 — various (`8437903`): the experiments tree evaluated, two folders tossed, three kept
+
+**Why.** The tree held five uncommitted folders from three sessions.
+Each was judged on whether it taught something no other record holds.
+Kept: `oaks-first-ltn/` (how oak ran on the first field LTN, the six
+findings on the bid sweep, the store ceiling and the clearing rule;
+the box log now has a provenance sidecar and the pull command, the
+reduction by hand), `2026-10-28-realtime-units-elm-check/` (PASS with
+its instance; an empty layout file and a screenshot removed, the
+hand-fetched layout step recorded), and the recipe notes: a shell that
+has sourced `experiments/.env` runs the journalkeeper against prod, the
+gateway on the tap broker needs the analyst queue prefix, spruce rolls
+to `main`. Tossed: `2026-10-29-elm-admin-pump-override/` (a closed slice
+whose drivers duplicated the admin tooling) and
+`2026-10-27-elm-arctic-field-check/` (its harness never ran on a window;
+the two faults it surfaced live on OPS-629 and PR #590; elm's hand-read
+plant facts are parked until elm has a per-house record).
+`2026-11-03-hello-rabbit-ltn-trace/` stays uncommitted for now with its
+raw logs gitignored.
+
+## 2026-10-23 — trace puller reads the eventstore (`832265a`, "updating traces")
 
 **Why.** An executor trace needs every message a party put on the
 broker, and the journal does not have them: pings and acks are not

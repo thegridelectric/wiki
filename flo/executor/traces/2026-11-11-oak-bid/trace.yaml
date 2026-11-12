@@ -1,0 +1,54 @@
+# Trace spec: oak's 19:00Z slot, one bruce request over the MQTT seam and the two-pair recommendation.
+# The input is materialised from the eventstore by experiments/traces/pull_trace.py
+# into experiments/traces/flo/<name>/messages.jsonl (gitignored);
+# this file and the expected output below are the vector. The FLO reads no forest, so the spec names no tracked set.
+name: 2026-11-11-oak-bid
+concern: hub
+clauses_exercised: [a request is answered from its own bytes and the plant-shape matrix (hub invariant 2), the reply is complete over prices from the request's ceiling with one path per pair (hub invariant 3), a wrapped request is answered wrapped to its sender]
+event: >
+  Field window. oak's LTN, inside the scada on the MQTT seam, built its
+  request for the 19:00Z slot at 18:57Z and sent it twice: once to its
+  scada for the record (header Dst s) and once to the FLO (header Dst flo).
+  The service answered with bruce at optimal-flexibility 8bcc073 about ten
+  seconds later. The store's top read 166.9 F against a modelled maximum of
+  161 F, and the bid has two pairs.
+
+window:
+  start: 2026-11-11T18:57:00Z    # before the LTN's first copy of the request
+  end: 2026-11-11T18:57:30Z      # after the reply
+time: arrival                    # order and timestamp by the ear's persisted_ms, never by the message's own time
+decode: as-sent                  # the service parses flo.params 001 and refuses other versions
+senders:
+  - hw1.isone.me.versant.keene.oak   # the LTN
+  - hw1.flo
+bodies_for: [flo.params, flo.recommendation, flo.refusal]
+
+input:                           # the one message the service hears; the copy with header Dst s goes to the scada
+  - t: 2026-11-11T18:57:07.580Z
+    type: flo.params 001
+    header_dst: flo
+    arrives_on: gw/hw1-isone-me-versant-keene-oak/to/flo/flo-params   # amq.topic, wrapped (gw); from the transport grammar
+    StartUnixS: 1794423600
+    Tuning: flo.tuning.bruce 001
+    steps: 48 of 60 minutes
+
+expected_out:                    # flo.recommendation 000 from hw1.flo, wrapped, to the LTN
+  - t: 2026-11-11T18:57:17.386Z
+    type: flo.recommendation 000
+    routing_key: gw.hw1-flo.to.ltn.flo-recommendation   # from the transport grammar; the eventstore keeps no routing key
+    header_dst: hw1.isone.me.versant.keene.oak
+    BidderAlias: hw1.isone.me.versant.keene.oak
+    PriceUnit: USDPerMWh
+    QuantityUnit: AvgkW
+    PqPairs:                     # PriceX1000, QuantityX1000
+      - [2000000, 0]
+      - [226000, 4271]
+    OptimalPathList: 2 flo.optimal.path 000, StartUnixS 1794423600, 48 steps each; byte for byte as recorded in messages.jsonl
+    FloName: bruce
+    FloGitCommit: 8bcc073a6a45d163507692a05ea86adc3703790a
+
+not_in_window:
+  - oak's plant-shape transition matrix, a file the service reads from its matrix cache; replay serves the one the request's plant shape hashes to
+  - the routing key of each message; the keys above follow the transport grammar, and header Dst says which copy of the request reached the service
+  - a refusal of any kind
+tolerance: the reply before GWFLO_REPLY_DEADLINE_S from the request's arrival; PqPairs and OptimalPathList exact; CreatedMs and the header MessageId free

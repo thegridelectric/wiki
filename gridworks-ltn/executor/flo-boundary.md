@@ -1,6 +1,6 @@
 # The FLO boundary
 
-Status: Draft · Pass 0 · Updated 2026-11-02
+Status: Draft · Pass 0 · Updated 2026-11-05
 
 > What this is: the contract between an LTN and its FLO (Forward-Looking
 > Optimizer): the one call, the two words at the seam, where every input
@@ -64,10 +64,13 @@ curve, its units and the paths.
 
 ## The slot
 
-1. At the bid minute (:57) the LTN measures the store, builds
-   `flo.params` with the previous run attached when it applies, and runs
-   the FLO once. The slot start is the next whole hour of UTC seconds
-   (`next_slot_start_s`); it does not move at a clock change.
+1. `bid_lead_s` seconds before the slot starts (the `GWLTN_BID_LEAD_S`
+   setting, 180 by default, less than one slot) the LTN measures the
+   store, builds `flo.params` with the previous run attached when it
+   applies, and runs the FLO once. The slot is an hour starting on the
+   hour (`MARKET_SLOT_S`, hard-coded in `market.py` until the market
+   posts its own facts); its start is the next whole slot of UTC
+   seconds (`next_slot_start_s`) and does not move at a clock change.
 2. The bid is the reply's price-quantity pairs. The request is kept
    until the next slot's request replaces it.
 3. At the top of the hour the price clears. The pair that applies is

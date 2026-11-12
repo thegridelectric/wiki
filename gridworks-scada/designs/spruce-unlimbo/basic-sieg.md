@@ -1,6 +1,6 @@
 # basic-sieg
 
-Status: Accepted · Pass 1 · Updated 2026-09-28 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-11-11 · Linear: OPS-392
 
 > What this is: a spoke of [`primary.md`](primary.md). The least that has
 > to change in the Siegenthaler loop for maple and beech to take the
@@ -277,13 +277,20 @@ split (`FailedOpen` the placeholder, or `Blind` kept for launch) is
 decided in that pass; nothing outside `strat_protect.py` reads it and the
 control states have no sema enum.
 
-These go in together. Fixing the blind timer alone, with `MaxEwtF` at the
-170 in the branch's ops params, leaves maple's valve at keep with no heat
-to the house.
+The timer went in on 2026-11-11 with an interim start: `HpStartingUp`
+parks the valve at `t2` and opens to full send when the outdoor unit
+draws more than an idle heat pump does, and stays parked if it never
+does (no backup timer: it would open the loop on its own once the open is
+reckoned); `hp_loop_is_getting_hot` and `MaxEwtF` leave the loop. Rest stays at the
+keep stop: holding at `t2` through an off period was considered and
+rejected, since a timed position drifts without a stop and an error
+toward send trickles into the buffer top. The waiting-to-open test below
+replaces the power line; the rest of this change goes in together.
 
-- **The timer.** `hp_turned_off_time` is cleared on `HpTurnsOn`, so
-  "drawing power long after an off command" means that again and an
-  ordinary run no longer goes blind.
+- **The timer.** ✅ built. Any hp-boss state but `HpOff` clears
+  `hp_turned_off_time`, so "drawing power long after an off command"
+  means that again and an ordinary run no longer goes blind. The brain
+  logs the blind reason on the line before `BecameBlind`.
 - **Waiting to open** replaces `hp_loop_is_getting_hot`. In `HpStartingUp`
   the valve parks at `t2` as it does now, and the loop opens it to full
   send when
@@ -433,22 +440,29 @@ deselects):
 
 ## Do this next
 
-The valve's positions are measured (Open, "The valve's positions"): keep
-complete at about 56 s and the keep stop at about 94 s, so the two admin
-stops of 2026-09-28 at 81.5 and 81.1 s sat in the fully kept span short
-of the stop. Before the start algorithm (change 6) is rewritten, the loop
-gets a model that the day's data supports:
-`experiments/2026-09-28-maple-ecodan-start-in-full-keep/` finding 6 fits
-the kept loop at about 0.8 gal of water from nine closed-start chunks
-(V x rise = integral of flow x lift), with the fitted volume drifting up
-with temperature. The next move is the model's second term: separate the
-heat pump's own warming from room loss and from the 0.65 F same-water
-sensor offset, using the hold periods (only two exist, 55 W each at 64 F
-and at 105 F, which no loss-to-a-fixed-room line fits, so the next window
-holds the closed loop at three temperatures for ten minutes each with the
-heat pump off). Change 6's "park then one reckoned move" is not the plan
-until that model says what the valve should do; the two-stage sketch in
-Open stays open. Keep the admin lease alive through any start.
+The interim start is in the field on `a5bfa62b` (jm/sieg-init-homing,
+rolled to maple 2026-11-11). Its first admin-driven start ran as designed:
+TurnOn at 15:27:07, parked at keep_seconds 56.0 at 15:27:46, outdoor-unit
+power crossed 500 W at 15:30:57, `HpStartUpDone` on the next tick at
+15:31:12, full send at 15:32:18, no Blind. Only the `hp.loop.keep.send`
+relay states and `sieg.valve.state` reach the journal; the control state
+and the blind reason are in the box log
+(`journalctl -u gwspaceheat | grep -E "\[sieg-loop\] (Blind:|[A-Za-z]+: [A-Za-z]+ -> [A-Za-z]+)"`).
+
+The next move is the open that replaces the power line: the loop model
+whose first term `experiments/2026-09-28-maple-ecodan-start-in-full-keep/`
+finding 6 fits (the kept loop at about 0.8 gal from nine closed-start
+chunks, V x rise = integral of flow x lift, the fitted volume drifting up
+with temperature) needs its second term, the heat pump's own warming
+separated from room loss and from the 0.65 F same-water sensor offset.
+Only two hold periods exist (55 W each at 64 F and at 105 F, which no
+loss-to-a-fixed-room line fits), so the next window holds the closed loop
+at three temperatures for ten minutes each with the heat pump off. Until
+that model says when the valve should move, the power line stays, and
+with it the rest of change 6: the `is_blind` split (`inputs_missing()` and
+the running-after-off critical glitch), the per-model signatures, and
+the close-on-the-stop question in Open. Keep the admin lease alive
+through any start.
 
 ## Verification (EDD)
 
@@ -523,6 +537,17 @@ the valve (change 6, layer 2) and does not guess. `HoldFullSend` reads
 none of them.
 
 ## Open
+
+- **The off is on the command, not the stop.** `HpOff` runs the valve to
+  keep at once, 26 s to keep onset and 56 s to keep complete from the send
+  stop, while the heat pump stops on its own clock. The Ecodan's outdoor
+  unit fell to idle 5 to 18 s after every off command of 2026-09-22, so at
+  maple the loop sends the last of the hot water to the buffer for about
+  half a minute after the compressor stops and then closes, which is the
+  purge wanted. A unit that keeps running past keep onset (the LG's stop
+  lag is longer) heats a closed loop for the difference. The symmetric
+  design to the start is to close on the stop read from power, with the
+  command as the fallback; per model, with change 6's signatures.
 
 - Executor text to correct when the package settles:
   `executor/sieg-loop.md`'s opening note describes a branch diff that

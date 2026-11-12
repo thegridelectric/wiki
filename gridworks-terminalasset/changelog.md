@@ -12,6 +12,47 @@ Newest at the top.
 
 ---
 
+## 2026-11-08 — Snapshot adds gw.katahdin.layout and catches up to sema dev <!-- pending commit -->
+
+The seed gains `gw.katahdin.layout`, the layout of the first simulated
+plant, and drops `sim.relay.component.gt`, a word the registry no longer
+has (the seed had gone stale against it, so `prepare` refused). The regen
+runs with `--allow-staged` against sema `dev` at `862b7c1`, so the
+snapshot is dev-only: it vendors the staging layout words and the
+published-only test skips off `main` and would fail on it, by design. The
+rest of the diff is the catch-up to every word that moved in sema since
+the August regen. Nothing in `gwta` outside the snapshot changes; the
+gate stays green.
+
+## 2026-11-08 — ci.sh is the one gate; the workflow runs it against the dev-rabbit image <!-- pending commit -->
+
+The pattern sema set and gwbase and gjk follow: `ci.sh` owns the steps
+(locked `uv sync`, `ruff check --no-fix`, `ruff format --check`, pyright,
+then pytest with the `live` marker lifted), and `.github/workflows/tests.yml`
+is checkout, setup-uv and `./ci.sh` with `ghcr.io/thegridelectric/dev-rabbit`
+as a service container, so the live heartbeat test runs in CI on the same
+broker image developers use. pyright joins the dev group and excludes the
+generated snapshot at `src/gwta/sema`, as gwbase and gjk do: checking it
+means editing it, and edits vanish at regen. Set up before Olly's first PR
+so every change to the simulated plant goes through the same gate.
+
+## 2026-11-08 — Track gwbase 0.7.3: GwGNodeClass, header in process_message, GWTA_ settings (`4a54837`, on `jm/gwbase-0-7-3`)
+
+The floor moves from 0.5.15 to 0.7.3 so the terminal asset builds on the
+same gwbase as the FLO, the time coordinator and the LTN before Olly
+starts the simulated plant here. Three gwbase changes reach the actor:
+`GridworksActor.__init__` takes `g_node_class=GwGNodeClass.TerminalAsset`
+and derives the transport class itself (0.7.0, 0.7.1); `process_message`
+receives the unwrapped body plus a `GridworksHeader | None` (0.6.0); and
+settings follow the one-prefix-per-service pattern, so `GwtaSettings`
+(`gwta/config.py`) replaces the bare `GNodeSettings` with the `GWTA_`
+prefix, the dev alias, and the supervisor and time-coordinator aliases
+as settings rather than constructor defaults. Verified: ruff clean, the
+offline suite and the `live` test pass, and `ta-hello` beats on the dev
+broker. A laptop that still has the June 004 dev identity at
+`~/.config/gridworks/terminalasset/g.node.gt.json` fails at boot by
+design; move the file aside and the next run mints a 006.
+
 ## 2026-10-17 — A test that dev ships no staging word (OPS-473, `5c7a5ca`)
 
 `tests/test_sema_snapshot_published.py` reads the snapshot's own

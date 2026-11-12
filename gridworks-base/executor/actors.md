@@ -1,6 +1,6 @@
 # gridworks-base — Application layer & diagnostics
 
-Status: Draft · Pass 0 · Updated 2026-10-09
+Status: Draft · Pass 0 · Updated 2026-11-06
 
 Sub-spec of the gridworks-base rebuild spec — **start at
 [`primary.md`](primary.md)**. Section numbers are global; this file holds
@@ -305,6 +305,7 @@ extends it with `g_node_path`. On the base classes the fields read from the
 - `service_name` — the directory segment for file locations (e.g. `scada`),
   distinct from the alias.
 - `log_level`, `log_rotate_bytes`, `log_rotate_count`.
+- `log_tz` — the IANA zone log timestamps are rendered in (`UTC` default).
 - `g_node_path` (`GNodeSettings` only) — the `g.node.gt.json` location.
 
 Logging is provided, not configured: every actor gets `self.logger` at
@@ -344,7 +345,12 @@ template is *the other gwbase cloud actors*, never scada/LTN.
 writing a **bijective human-readable** line —
 `<iso-ts> <LEVEL> <alias> > <message>[ key=val …]`, with a file header and
 `  | …` exception continuation, and a context filter injecting
-`service_alias` + `instance_id`. The format is designed to map 1:1 onto a
+`service_alias` + `instance_id`. `<iso-ts>` is RFC 3339 with milliseconds
+in `log_tz` and always ends in the numeric UTC offset
+(`2026-11-06T16:37:56.795-05:00`): the line reads in the operator's hour
+and still names one instant, so the DST fall-back hour does not repeat
+and logs from boxes in different zones sort and correlate. The format is
+designed to map 1:1 onto a
 future `observability.log-entry/000` Sema type, so a downstream
 broker-forwarding handler can attach to the same logger with **no**
 actor-side change. That downstream work (broker forwarding, verbosity

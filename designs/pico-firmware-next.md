@@ -1,6 +1,6 @@
 # Pico firmware next
 
-Status: Accepted · Pass 1 · Updated 2026-10-14 · Linear: OPS-595
+Status: Accepted · Pass 1 · Updated 2026-11-05 · Linear: OPS-595
 
 **EDD: yes** a real pico against a real scada is the verification; the
 windows under "Verification" are run before any section reaches
@@ -243,6 +243,22 @@ All of the flow-meter hardware in the field is breadboards: a Pico and
 a hall sensor posting tick lists (`pico.flow.module.component.gt`,
 `ApiFlowModule`). They are replaced in a couple of weeks by GW101
 boards with no thermistors. The old flow-meter code is left alone.
+
+**Reed meters on the GW101.** The GW101's flow input is the terminal
+block J5: 3.3 V, GND and a signal that is a bare trace to GP22 with no
+pull-up or filter on the board (Gw101 RevD netlist), so it is the
+breadboard's input on a different pin. A field reed meter, two wires
+and a dry contact, goes across GND and signal with the 3.3 V terminal
+empty; the firmware's internal pull-up lets the contact pull the pin
+low. `gridworks-pico/flow_reed/flow_reed_main.py` is the archived reed
+code with `PULSE_PIN` 22 and nothing else changed: it posts
+`flow.reed.params` and `ticklist.reed` to `ApiFlowModule` and the
+device type stays `GridworksPicoFlowReed`; the layout's board variant
+names the Pico module on the Gw101, as it does for every pico. This is the one exception to the Gw110 rule that the
+calculator's firmware counts hall pulses: it keeps the reed meters
+already in the field (oak's three loop picos) on the new board without
+a plumbing change. It is not in the provisioner; it is loaded by hand
+from the repo, and it retires with the last field reed meter.
 
 **Decision: one device type with a mode.** The GW101 is one board,
 with or without thermistors plugged in. What it senses is a fact about

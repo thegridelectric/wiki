@@ -9,6 +9,23 @@ This changelog does NOT track wiki edits — those live in the wiki
 repo's git history.
 
 
+## 2026-11-06 — Log timestamps in the service's zone, with offset (`815fe14`, PR #194)
+
+**Why.** The flo box answers oak at 16:37 Maine time and the log says
+`21:37Z`; the people reading the logs live in Maine, and heating and
+market slots are local-hour phenomena. Bare local time would make the
+DST fall-back hour ambiguous and break the line's 1:1 map onto the future
+log-entry word, so the timestamp keeps its UTC offset: one rule, one
+instant per line, sortable across boxes in different zones.
+
+**What.** `ServiceSettings.log_tz` (`iana.timezone.str` shape, resolved
+against the runtime tz database, `UTC` default); the human formatter
+renders RFC 3339 with milliseconds in that zone and a numeric offset
+(`+00:00` for UTC, so the trailing `Z` is gone). `IanaTimezone` joins
+`transport_format`. Tests pin the oak answer and the 2026-11-01 fall-back
+hour. Version 0.7.3 so gridworks-flo can pin it and set
+`GWFLO_LOG_TZ=America/New_York`.
+
 ## 2026-11-04 — LTN and FLO talk to each other (`04fba32`, PR #193 `d4af888`)
 
 **Why.** The LTN on gwbase sends `flo.params` to its FLO as a direct

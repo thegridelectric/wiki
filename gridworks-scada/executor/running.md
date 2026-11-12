@@ -109,25 +109,21 @@ current caveats:
 
 ## Rolling a house between lines
 
-`scripts/roll.sh <house> check | forward | to <scada-branch> | back`,
-run from the laptop, is the one way a deployed house moves between
-scada lines; `forward` is `to main`, and the roll-back
-path is the same script as the roll-forward.
+`scripts/roll.sh <house> check | to <scada-branch>`, run from the
+laptop, is the one way a deployed house moves between scada lines. `to`
+takes every box to the pushed tip of the named branch. The process is
+temporary: a UI for updating layouts and operational params replaces
+it.
 
 A house's LTN and scada run on exactly the same branch, at the same
 pushed SHA. The LTN is a checkout of this repo on the `ltn` box
 (`~/ltn-<house>/gridworks-scada`, run by the systemd unit
 `gwltn@<house>` from `service/gwltn@.service`;
 `gridworks-infra/ltn/README.md`), and a roll moves it with the pi:
-`to` and `back` fast-forward both checkouts and restart the LTN's unit
+`to` fast-forwards both checkouts and restarts the LTN's unit
 before the pi's service, and `check` compares both against the line's
 record. The unit runs `LtnApp.main` with the dashboard off
-(`LTN_DASHBOARD__PRINT_GUI=false`). The script is temporary and has no
-tests. The lines are `main` (the spruce-unlimbo line), `legacy` (the line the
-House0 houses ran before it, with the winter's fixes),
-`td/generalized-flo` (oak's LTN work) and `actual-spruce` (spruce's
-winter hack). `forward` goes to `main`; `back` goes to the house's
-roll-back line. On `main` the LTN
+(`LTN_DASHBOARD__PRINT_GUI=false`). The script has no tests. The LTN
 loads the same layout ⊕ operational-params pair as the scada, from
 `~/ltn-<house>/.config/gridworks/ltn/`, and the roll verifies and
 installs it there as it does on the pi. `check` fails when either box
@@ -136,32 +132,27 @@ paired with an LTN on another line has every Report go un-acked, and
 its link flaps for as long as the pair stands
 (`experiments/2026-10-22-spruce-roll-rehearsal/`).
 
-Each scada branch has a tlayouts branch, and that branch's committed
-`output/<house>/` JSON is the record of what the house runs
-(`wiki/tlayouts/executor/primary.md` "Temporary authority"): `main`,
-`legacy` and `actual-spruce` read the tlayouts branch of the same name,
-and `td/generalized-flo` (the FLO work, which changes the LTN and not
-the layout) reads `legacy`. Any other scada branch is on the `main`
-line: a branch off `main` tried on a house reads the house's tlayouts
-`main` pair, the ops word with it, and needs the deed. The layout line
-follows the house, so a layout change the branch needs goes to
-tlayouts `main` first; the `main` scada never loads it unless
-the house is rolled `forward`, which is deliberate. The trial is visible
-as the branch in `check` and in the fleet drift report, `back` returns
-the house to its roll-back line, and once the branch merges, `forward`
-fast-forwards the house to `main` on the same pair. The script
-reads the record from the tlayouts *remote* after a fetch, so only
-pushed JSON reaches a box whatever the laptop's checkout is doing, and
-moves each pi's `~/gridworks-scada` only by fast-forward to the pushed
-SHA of the branch. A dirty or diverged box checkout refuses.
+A scada branch pairs with the tlayouts branch of the same name when the
+tlayouts remote has one, and with tlayouts `main` otherwise; that
+branch's committed `output/<house>/` JSON is the record of what the
+house runs (`wiki/tlayouts/executor/primary.md` "Temporary authority").
+A branch that needs a layout or ops change pushes it to a same-named
+tlayouts branch, so the `main` scada never loads it; a branch that
+needs none reads the house's `main` pair. `check` and `to` say which
+pair they resolved. The trial is visible as the branch in `check` and
+in the fleet drift report, and once the branch merges, `to main`
+fast-forwards the house on the merged pair. The script reads the record
+from the tlayouts *remote* after a fetch, so only pushed JSON reaches a
+box whatever the laptop's checkout is doing, and moves each pi's
+`~/gridworks-scada` only by fast-forward to the pushed SHA of the
+branch. A dirty or diverged box checkout refuses.
 
 The pair is verified before the service restarts. A layout matches byte
-for byte. On `main` the operational-params file matches
+for byte. The operational-params file matches
 outside its `DispatchHold` block, which the scada writes itself (the
 cold latch sets `ServiceContractBroken` in
 `actors/scada.py` `process_break_service_contract`; an operator hold
-sets `OperatorHold`); the other lines do not read the ops word and the
-file is left alone. The rules are `scripts/roll_compare.py`. A pi whose file differs shows
+sets `OperatorHold`). The rules are `scripts/roll_compare.py`. A pi whose file differs shows
 the differing paths and takes the committed file only on a `y`. The
 box's own file is not kept, since the committed JSON of the line it
 came from is its record, and any `<stem>.<date>-pre-roll.json` an
@@ -195,23 +186,10 @@ rebuilt by hand on the box with `tools/mkenv.sh`), and a difference in
 `service/` unit files (root reinstalls them with `service/install`).
 The requirements comparison runs on the laptop's checkout after a
 fetch, since a box runs only pushed SHAs. The package rule is what lets
-a house roll between `main` and `legacy`, whose gwsproto and admin
-packages differ by release only (1.3.0 and 1.3.1 against 1.2.3 and
-1.2.5).
+a house roll between lines whose packages differ by release only.
 The test and dev requirements are not compared: nothing the box runs
 imports them, and a house rolls between lines without touching its
-venv. Spruce's
-winter hack (`spruce-winter-hack.service`) is the plant controller on
-`actual-spruce`: the script disables it when spruce leaves that line and
-enables it when spruce returns, so a reboot never runs two controllers.
-
-`back` goes to the house's roll-back line: `actual-spruce` for spruce,
-`td/generalized-flo` for the houses in the script's `THOMAS_LTN` list
-(oak), `legacy` for the rest.
-
-The `legacy` and `actual-spruce` layout gens run from the laptop's
-`legacy` worktree of the scada repo, `GridWorks/scada-legacy`
-(`environment.md`).
+venv.
 
 **No roll to beech (2026-10-20).** Beech is unwell in the field. Do NOT
 roll it until this line is removed.

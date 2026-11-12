@@ -1,6 +1,6 @@
 # FLO — the house optimizer
 
-Status: Draft · Pass 0 · Updated 2026-11-04
+Status: Draft · Pass 0 · Updated 2026-11-11
 
 > What this is: the rebuild spec hub for the FLO (Forward-Looking
 > Optimizer), the per-house bid optimizer. It runs as the `hw1.flo`
@@ -36,12 +36,11 @@ One request, one reply, no state on the service between them.
   sends `flo.params` direct over the LeafTransactiveNode-to-Flo edge of
   the class fabric, addressed to the FLO by alias, and the
   `flo.recommendation` goes back direct over the edge to the bidder. An
-  LTN still inside gridworks-scada is an MQTT client: its request
+  LTN inside gridworks-scada is an MQTT client: its request
   arrives wrapped (`gw`) on `amq.topic`,
   `gw/<ltn-alias-hyphenated>/to/flo/flo-params`, where the service's
   queue binds `gw.*.to.flo.flo-params`, and its reply goes back wrapped
-  on `gw.<flo-alias-hyphenated>.to.ltn.flo-recommendation`. That binding
-  goes once the LTN has fully moved out of gridworks-scada. An LTN keeps
+  on `gw.<flo-alias-hyphenated>.to.ltn.flo-recommendation`. An LTN keeps
   a reply whose `BidderAlias` is its own and whose first path's
   `StartUnixS` is the slot it is bidding. There is no correlation id.
   Both words reach the ear through the class taps.
@@ -51,15 +50,22 @@ One request, one reply, no state on the service between them.
   cert CN is that GNodeId. An LTN finds its FLO by walking the forest
   from itself up to the universe root: the first node with a Flo child
   names it, else `<universe>.flo`.
-- **Builds run in a bounded pool** of worker processes behind the actor,
-  one process per build, `GWFLO_WORKERS` at once. A reply older than
-  `GWFLO_REPLY_DEADLINE_S` when its build finishes is dropped: the LTN
-  has bid its fallback by then.
+- **Each build is a subprocess of its own** behind the actor, the
+  request on its stdin and the reply on its stdout, `GWFLO_WORKERS` at
+  once; it shares nothing with the service but its pipes.
+- **A request the service cannot serve is answered with `flo.refusal`**
+  in place of the recommendation, in the kind the request came, with a
+  Reason from `flo.refusal.reason`: no optimizer for the tuning, no
+  cached matrix for the plant shape, a build that raised, a worker lost
+  under it, or a recommendation built later than
+  `GWFLO_REPLY_DEADLINE_S`, which the LTN has bid its fallback without
+  by then. Answered or refused is discriminated by TypeName.
 - **The plant-shape matrix is never built in the request path.** bruce
   loads a cached transition matrix per plant shape from
   `~/.config/bruce/graph_optimizer/`; a request whose shape has none is
-  refused and logged, and nothing goes back. Matrices are generated as a
-  separate step and placed on the box.
+  refused (`NoMatrix`). Matrices are generated as a separate step and
+  placed on the box: a cold generation on one core takes minutes for a
+  one-tank shape and hours for the three-tank shape.
 
 ## Invariants
 
@@ -71,10 +77,11 @@ One request, one reply, no state on the service between them.
    spans slots, the previous cleared path, travels in the request.
 3. The reply is complete over prices: pairs descend from the request's
    `PriceMaxUsdMwh`, the first pair at that ceiling, one path per pair.
-4. A refused request (no matrix, a tuning no FLO answers, a body the
-   snapshot refuses), a lost build (worker killed under the memory cap)
-   and a late reply all produce no reply; the service logs each and the
-   LTN bids without the FLO.
+4. A request the service cannot serve (no matrix, a tuning no FLO
+   answers, a build that raised, a build killed under the memory cap or
+   at the deadline, a reply built past `GWFLO_REPLY_DEADLINE_S`) is
+   answered with `flo.refusal` in place of the recommendation, and the
+   service logs it. A body the snapshot refuses gets no answer.
 5. The service holds no per-site state and nothing to back up; it is
    rebuilt from the box README.
 
@@ -96,7 +103,18 @@ One request, one reply, no state on the service between them.
 
 - [`bruce-flo.md`](bruce-flo.md) — the bruce asset model: request,
   plant assumptions, costs, response.
+- [`sema_seed_request.yaml`](sema_seed_request.yaml) — the service's
+  seed, a verbatim copy of `gridworks-flo` `main`'s.
+- [`traces/2026-11-11-oak-bid/trace.yaml`](traces/2026-11-11-oak-bid/trace.yaml)
+  — the first trace: one bruce request from oak and the two-pair
+  recommendation the service answered.
 - The executor tables (the rulebook form in
-  `../../conventions/executor-CLAUDE.md`): Open. They are built once the
-  first real request and reply are in the journal, which is the first
-  trace.
+  `../../conventions/executor-CLAUDE.md`): Open.
+
+## Open
+
+- The matrix seam as a sema word, a manifest beside each cached array
+  ([OPS-656](https://linear.app/gridworks/issue/OPS-656)).
+- The graph as arrays in bruce, which takes the largest build from
+  gigabytes to tens of megabytes
+  ([OPS-655](https://linear.app/gridworks/issue/OPS-655)).

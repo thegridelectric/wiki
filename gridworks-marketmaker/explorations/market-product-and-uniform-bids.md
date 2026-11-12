@@ -1,6 +1,6 @@
 # Market products & uniform market messages in Sema
 
-Status: Draft · Pass 0 · Updated 2026-06-08
+Status: Draft · Pass 0 · Updated 2026-11-11
 
 > What this is: informal pointers to how *market products* and the *uniform
 > market messages* (`bid`, `latest.price`) are modeled in Sema after the
@@ -14,8 +14,9 @@ Status: Draft · Pass 0 · Updated 2026-06-08
 
 ## What a market product is
 
-A **market product** is one of the kinds of market a MarketMaker offers. The
-same product is offered at *every* node that maker runs. Conceptually it anchors
+A **market product** is one of the kinds of market a MarketMaker offers. An
+operator that runs MarketMakers at many nodes offers the same product at
+each of them. Conceptually it anchors
 the market's full rulebook: settlement, dispatch/response timing, the
 non-performance penalty when a cleared bid is not met, and how price is formed.
 
@@ -64,6 +65,48 @@ append-only per Sema's additive-enum rule.
 "Open the enum" here means *multiplicity of namespaced product-name enums*, one
 per maker — not an open / freeform pattern. Each maker may carry its own
 `*.market.product.name`.
+
+## One MarketMaker identity per priced node
+
+Decided 2026-11-11. A MarketMaker is a GNode at the node where a distinct
+price forms, and each such node has its own MarketMaker identity: its own
+alias, its own queue as the ordering authority, its own stored acks. An
+ISO-NE PNode is such a node. A distribution constraint below a PNode
+becomes another when it is known, which is the registry's rule that a
+connectivity node may become a MarketMaker. MarketMakers nest: a
+node-level maker faces the price of the maker above it and makes its own.
+
+Three things follow.
+
+- **A market is named by its MarketMaker's alias and its product.** A
+  `MarketSlotName` adds the slot start, and `latest.price` states one
+  price per slot name. A maker spanning two priced nodes would need two
+  prices under one name.
+- **The upstream pricing point is a fact about the MarketMaker.** Which
+  ISO-NE location a maker faces belongs in the maker's own record. A word
+  about the market (a price, a forecast of it) names the maker and has no
+  separate node field.
+- **The application is a deployment choice.** One codebase runs as one
+  instance per identity today, since a certificate is the identity of one
+  running program. Hosting several identities in one process later
+  changes no word, because the words address a MarketMaker by its alias.
+
+A market declares one delivery tariff, so its price is the full price for
+every bidder on it. Homes in another utility's territory, or on another
+rate, are bidders on another market.
+
+## `latest.price` is the full price, stated in its parts
+
+Decided 2026-11-11. `latest.price` is the price that settles the contract
+between a bidder and its MarketMaker, so it is the full price the bidder
+faces at the maker's node. The MarketMaker's work is that of a DSO, built
+piece by piece: it turns the prices and charges it faces upstream, which
+may be structured differently from its own market, into one price per
+slot. From version 001 the word also lists the named parts that sum to
+the price (`price.component.name`: the wholesale energy, congestion and
+loss parts, delivery under the market's tariff, and two coincident-peak
+parts reserved for a recipe not yet decided), so each part can settle
+with its own counterparty while the contract stays on the one price.
 
 ## `bid` and `latest.price` are uniform across ALL makers
 

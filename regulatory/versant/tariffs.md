@@ -1,16 +1,33 @@
-Status: Draft · Pass 0 · Updated 2026-07-17
+Status: Draft · Pass 0 · Updated 2026-11-11
 
 > What this is: detailed Versant Bangor Hydro District (BHD)
 > tariff schedules relevant to transactive / storage-controlled
-> load pricing. Companion to [`primary.md`](primary.md). Sourced
-> from the Versant BHD consolidated tariff PDF, eff. July 1, 2025:
+> load pricing. Companion to [`primary.md`](primary.md). The latest
+> known Versant BHD consolidated tariff PDF is effective October 26,
+> 2026, and Rate A-1 below is read from it:
+> https://www.versantpower.com/docs/default-source/business-rates-bhd/10-26-26-update/versantpower-bhd-tariffs-2026-10-26.pdf?sfvrsn=41600df1_1
+> The other rates below are from the file effective July 1, 2025 and
+> are unchecked against the latest:
 > https://www.versantpower.com/docs/default-source/rates/july-1st--2025/versantpower-bhd-tariffs-2025-07-01.pdf
 
 ## Rate A-1 — "Home Eco Rate with Bonus Meter" (Time-of-Use)
 
-**Page reference:** 6.1.1, 14th Revision, eff. July 1, 2025.
+**In force:** page 6.1.1, Seventeenth Revision, eff. July 1, 2026
+(dockets 2026-00082, 2026-00149), with page 6.1.2, Third Revision,
+eff. November 21, 2025 (docket 2025-00313). The BHD consolidated
+tariff eff. October 26, 2026 reprints both pages unchanged; its
+October 26 changes are to street and area lighting.
 
-**Likely the most important tariff in this folder** — this is the
+Sources (both read 2026-11-11; A-1 is PDF pages 6–7 in each):
+
+- Consolidated tariff eff. 2026-10-26:
+  https://www.versantpower.com/docs/default-source/business-rates-bhd/10-26-26-update/versantpower-bhd-tariffs-2026-10-26.pdf?sfvrsn=41600df1_1
+  > "SEVENTEENTH REVISION"
+- Consolidated tariff eff. 2026-07-01:
+  https://www.versantpower.com/docs/default-source/business-rates-bhd/july-1-2026/versantpower-bhd-tariffs-2026-07-01.pdf?sfvrsn=495d18a2_2
+  > "EFFECTIVE DATE:  JULY 1, 2026"
+
+**Likely the most important tariff in this folder.** It is the
 existing residential TOU rate that already prices storage-controlled
 load close to its cost drivers.
 
@@ -24,14 +41,21 @@ load close to its cost drivers.
 - Versant inspects the equipment to confirm it is "sized appropriately
   for residential use." Failed inspection → denial.
 - Single-phase, 60 Hz, standard secondary voltage.
+- Customers on A-1 pay both Distribution Service and Stranded Cost.
 - No explicit minimum kW / kWh threshold in the tariff text.
 - Tariff language is **technology-neutral on the storage side**;
   "thermal energy storage" is generic and likely includes HP + hot
   water / glycol thermal store, not just legacy ETS resistive
-  bricks. **Subject to Versant inspection** — load-bearing
+  bricks. **Subject to Versant inspection.** Whether a heat pump
+  with a thermal store passes that inspection is the critical
   practical question.
 
-### TOU windows
+### Seasons and TOU windows (page 6.1.2, Third Revision)
+
+Seasons, as stated on the A-1 sheet:
+
+- **Winter Season:** November through February.
+- **Non-Winter Season:** March through October.
 
 Weekdays:
 
@@ -45,41 +69,84 @@ Weekends / holidays:
 - **Off-Peak:** 8 p.m. – 7 a.m.
 - **No on-peak period.**
 
-Holidays: New Year's, Washington's, Patriot's, Memorial, Independence,
-Labor, Columbus, Veteran's, Thanksgiving, Christmas. DST-shift
-schedule applies the two weeks bracketing DST transitions.
+Holidays, "as the same are actually observed in any year": New
+Year's Day, Washington's Birthday, Patriot's Day, Memorial Day,
+Independence Day, Labor Day, Columbus Day, Veteran's Day,
+Thanksgiving Day, Christmas.
 
-### Rate structure (eff. July 1, 2025)
+The A-1 sheet states no daylight-saving-time schedule. The DST
+schedule (windows shifted one hour later from the second Sunday in
+March through the first Sunday in April, and from the last Sunday in
+October through the first Sunday in November) is printed on Rate A-4,
+page 3.1.2. Whether Versant applies it to A-1 billing is unverified.
 
-- **No customer charge on the bonus meter** (the primary A-3 / A-4
-  meter carries it).
-- **No demand charge.**
+### Rate structure (Seventeenth Revision, eff. July 1, 2026)
 
-**Distribution energy:**
+- **No customer charge** and **no demand charge** appear on the A-1
+  sheet.
+- Transmission is shown "for information purposes only"; FERC sets it
+  under Versant's OATT.
+
+**Per-kWh components:**
+
+| Component | Winter | Non-winter |
+| --- | --- | --- |
+| Distribution, On-Peak | $0.529976 | $0.515622 |
+| Distribution, Shoulder | $0.005873 | $0.005873 |
+| Distribution, Off-Peak | $0.000000 | $0.000000 |
+| Stranded cost (all periods) | ($0.003770) | ($0.003770) |
+| Transmission (all periods) | $0.060420 | $0.060420 |
+| Conservation (all periods) | $0.001906 | $0.001906 |
+
+**Total Delivery** (distribution + stranded cost + transmission +
+conservation, as printed on the sheet):
 
 | Period | Winter | Non-winter |
 | --- | --- | --- |
-| On-Peak | $0.54784 / kWh | $0.53302 / kWh |
-| Shoulder | $0.00608 / kWh | $0.00608 / kWh |
-| Off-Peak | **$0.00000 / kWh** | **$0.00000 / kWh** |
+| On-Peak | $0.588532 / kWh | $0.574178 / kWh |
+| Shoulder | $0.064429 / kWh | $0.064429 / kWh |
+| **Off-Peak** | **$0.058556 / kWh** | **$0.058556 / kWh** |
 
-**Total Delivery** (distribution + transmission + stranded-cost +
-conservation):
+The printed totals equal the sum of the components.
 
-| Period | Winter | Non-winter |
-| --- | --- | --- |
-| On-Peak | $0.61210 / kWh | $0.59728 / kWh |
-| Shoulder | $0.07034 / kWh | $0.07034 / kWh |
-| **Off-Peak** | **$0.06426 / kWh** | **$0.06426 / kWh** |
+**Supply.** The A-1 sheet sets delivery only. The BHD residential and
+small non-residential standard offer for 1/1/2026–12/31/2026 is
+**$0.129540 / kWh** (docket 2025-00157), per the MPUC page
+https://www.maine.gov/mpuc/regulated-utilities/electricity/standard-offer-rates/bhd
+("(1/1/2026-12/31/2026) $0.129540"). That the bonus meter bills at
+this class price is inferred from A-1 being a residential rate; no
+source read states it.
+
+### Prior revisions
+
+| Total delivery | 17th, eff. 2026-07-01 | 16th, eff. 2026-01-01 | 14th, eff. 2025-07-01 |
+| --- | --- | --- | --- |
+| On-Peak, winter | $0.588532 | $0.613840 | $0.61210 |
+| On-Peak, non-winter | $0.574178 | $0.599020 | $0.59728 |
+| Shoulder | $0.064429 | $0.072080 | $0.07034 |
+| Off-Peak | $0.058556 | $0.066000 | $0.06426 |
+| Distribution on-peak, winter / non-winter | $0.529976 / $0.515622 | $0.547840 / $0.533020 | $0.54784 / $0.53302 |
+| Distribution shoulder | $0.005873 | $0.006080 | $0.00608 |
+| Stranded cost | ($0.003770) | ($0.003770) | ($0.00155) |
+| Transmission | $0.060420 | $0.060420 | $0.05646 |
+| Conservation | $0.001906 | $0.009350 | $0.00935 |
+
+The 16th Revision is page 6 of
+https://www.versantpower.com/docs/default-source/rates/january-2026/versantpower-bhd-tariffs-2026-01-01.pdf
+("SIXTEENTH REVISION"); the 14th is page 6 of the 2025-07-01 PDF cited
+at the top of this file ("FOURTEENTH REVISION"). The 15th Revision,
+eff. October 1, 2025, has the 2025-07-01 distribution and conservation
+rates with stranded cost ($0.003770) and transmission $0.056460.
 
 ### Why this matters
 
 For load running **entirely off-peak**, A-1 total delivery is
-**$0.06426 / kWh** with no customer charge on the bonus meter and
-no demand charge. The structural difference from the commercial
-schedules: A-1 has **no demand charges and no NCP transmission**,
-so storage-controlled load that avoids the peak period pays close
-to *cost-causal* delivery rates.
+**$0.058556 / kWh**, with no customer charge or demand charge on the
+sheet. Adding the 2026 standard offer gives about $0.188 / kWh all-in
+off-peak. The structural difference from the commercial schedules:
+A-1 has **no demand charges and no NCP transmission**, so
+storage-controlled load that avoids the peak period pays close to
+*cost-causal* delivery rates.
 
 ---
 

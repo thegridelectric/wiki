@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-06-10
+Status: Draft · Pass 0 · Updated 2026-11-11
 
 > What this is: the pets→livestock fleet-management architecture sketch
 > — Authority / Control / Observability plane separation, Grid Node
@@ -62,6 +62,70 @@ It consists of
     - Responds to broker HTTP auth backend
 
 ### Control Plane
+
+Updated 2026-11-11. The control plane answers one question for every box
+in the fleet: what should run here, at which commit, and is that what is
+running? Today the answer lives in two hand-driven halves. The FIS gate
+leases each identity (one cert, one process) and the `box-deploy.sh` script
+in `gridworks-infra/tools/` pulls, syncs and restarts a platform service
+from the laptop over ssh. Routine operation still means a person on a
+box.
+
+The shape this plane grows into: a box is a GNode. It has a registered
+identity and a cert, it reads the registry's statement of what should run
+on it and at which SHA, it pulls that code itself, and it reports what it
+is running. The registry is the control plane. Nothing in that loop needs
+an inbound path to the box, and nothing in it needs a vendor control plane
+(AWS orchestration, Kubernetes), which keeps the fleet free of tooling
+that locks it to one provider.
+
+Two pieces of work already implement this shape for one class of box each:
+
+- OPS-401 (code-update) is the Pi side: a pull-based version handshake
+  over the broker, a supervisor that applies the release and reports, no
+  inbound path on a house.
+- `box-deploy.sh` is the VM side with the laptop standing in for the
+  registry's statement.
+
+Orchestration generalises these. The registry's statement of what runs
+where is the one new element; the handshake, the supervisor and the lease
+exist.
+
+The unit a box runs is likely a container. The services on the `hw1`
+boxes run native under systemd today. The `hw2` simulation host is the
+first box set up for containers, and it is where the registry's
+statement of what runs on a box is first tried against compose.
+
+By-hand access remains for support and repair and is a separate concern.
+OPS-662 (production security) and OPS-663 (pi-support-tunnel) set that
+posture: outbound-only boxes, a tailnet for the VMs, an on-demand tunnel
+for a Pi. Orchestration removes the routine reasons to use that path.
+
+**Where the LTN runs.** The LTN stays in the cloud. Three reasons:
+
+- The LTN changes far more often than the scada: the market vocabulary
+  (flo.params, price identity, bids and contracts) is where the work is.
+  A cloud box redeploys by commit, push and pull in minutes; a Pi deploy
+  goes through OPS-401, which is a 100-homes gate.
+- Houses go offline far more often than cloud boxes. The LTN is the
+  house's representative in the market, and a representative has to
+  outlive the house being offline: it keeps the contract state, the last
+  readings and the forecast, and can say what is happening with the house
+  when the house cannot.
+- The code path to a cloud box exists today; the Pi update path does not.
+
+Dispatch latency does not change this. The fastpath is scada to broker to
+LTN, and every scada and LTN talks to the production broker in us-east-1,
+so the broker's location decides it. Measured 2026-11-11: broker TCP
+connect is about 3 ms from the AWS LTN box and about 110 ms from Hetzner
+Helsinki, against an hourly offer window, a 60 s contract heartbeat and a
+5 s ack timeout. OPS-667 moves the LTN box to Helsinki on that basis. The scada never
+sees a price. At the top of the hour the MarketMaker publishes the
+price, the LTN runs the FLO and sends the scada the hour's contract, and
+the scada executes it locally. At a sub-hour cadence that chain repeats
+per slot, and the broker, the MarketMaker, the FLO and the LTNs move to
+one US location together. The outage and standby questions are worked
+in `ltn-placement-and-comms-loss.md`.
 
 ### Observability Plane
 

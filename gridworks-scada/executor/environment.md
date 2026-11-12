@@ -52,16 +52,6 @@ broker.
   packaged console-script, so it doesn't survive a venv copy/move.
 - **No root uv project** (above) — IDE/tooling that assumes `uv` at the root
   will mis-resolve; point them at `gw_spaceheat/venv`.
-- **The laptop keeps a `legacy` worktree with its own venv.**
-  `GridWorks/scada-legacy` is a git worktree of the canonical checkout
-  on `legacy` (`git -C gridworks-scada worktree list` shows both),
-  built with its own `tools/mkenv.sh` run from inside it. A venv binds
-  to one checkout, and the tlayouts gens for the houses on `legacy`
-  and for `actual-spruce` import `layout_gen` and `gwsproto` at that
-  line, so they run with `PYTHONPATH=scada-legacy/gw_spaceheat` under
-  `scada-legacy/gw_spaceheat/venv/bin/python`. A moved worktree needs
-  its venv rebuilt (absolute paths inside).
-
 ## Running tests / experiments
 
 Use `gw_spaceheat/venv/bin/python` (or `source gw_spaceheat/venv/bin/activate`),

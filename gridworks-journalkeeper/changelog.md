@@ -10,6 +10,30 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-10 — Merge pull request #208 from thegridelectric/jm/flo-plot-words (`c53f1f9`, main, OPS-665)
+
+The flo plot words reach `main`. The branch had forked before
+`slow.contract.rejection` and `new.command.tree` 002 and 003 joined the
+seed, so the merge conflicted on three generated snapshot files; the
+hand-kept seed request merged on its own, and the snapshot was
+regenerated from it against sema `58a55b4`, so one snapshot now has
+both sides' words. `ci.sh` green, 122 tests. Deployed to the gjk box the
+same day; the journal reads the new words before any publisher emits
+them.
+
+## 2026-11-09 — The journal hears flo.recommendation 001 and flo.previous.run (`0489a50`, jm/flo-plot-words, OPS-665)
+
+Snapshot at sema `58a55b4`, the published flo plot words, built with the
+regen script's default (published-only): `flo.recommendation` at 000 and
+001, `flo.previous.run` 000 added to the seed, and `flo.tank.store.path`
+and `flo.path.penalties.bruce` through the closure, each with the fields
+the dashboard draws (`EmptyStoreWh`, `FullStoreWh`,
+`TerminalCostEmptyStoreUsd`, `PathCostUsd`). The journal persists the new
+words through the default persistor, keyed on their `CreatedMs`; the
+persistor decodes a recommendation before it writes the row, so it
+journals recommendations from a bruce that fills the fields. ruff clean,
+pytest 122 passed.
+
 ## 2026-11-04 — pyright joins the gate (`d101deb`, PR #207 `79fb592`)
 
 **Why.** The README named mypy as the repo's type check while no gate ran

@@ -25,8 +25,7 @@ Open.
 The forecast the stopgap price service holds at the moment of the
 request: the next 48 hours from the next full hour, for one pricing node
 under one tariff, the same for every house. It is not the price any
-house optimized against; that series, from the journaled FLO params, is
-OPS-611's.
+house optimized against; that series is OPS-666's.
 
 - **Word and route.** `gw.stopgap.price.forecast` 000, answered in wire
   form by `GET /api/v2/price-forecast/latest` behind the login
@@ -36,15 +35,25 @@ OPS-611's.
   the body through the vendored snapshot (`price_forecast.py:36`). A
   service that cannot be reached, or answers anything but 200, is a 503
   from the route with the reason in `detail` (`price_forecast.py:33`).
-- **Series.** LMP and delivery are the word's lists. Total is a display
-  sum of the two computed in the browser
-  (`gridworks-web-frontend/src/visualizer/pricing-api.ts:46`); no word
-  states a total price.
-- **Window.** The panel keeps the forecast hours from the window start to
-  48 hours past its end (`pricing-api.ts:39`) and its x-axis reaches the
-  same point (`PriceForecastPlot.tsx:66`), so a window that ends at now
-  shows the forecast ahead. A window with no forecast hour near it shows
-  "No price forecast near this window" (`PriceForecastPlot.tsx:46`).
+- **Series.** LMP alone, on one axis, from the word's `LmpList`
+  (`gridworks-web-frontend/src/visualizer/pricing-api.ts`). The word's
+  delivery list is not drawn.
+- **Window.** The panel keeps the forecast hours inside the window and
+  its x axis is the window's, as on every other panel
+  (`PriceForecastPlot.tsx`), so a window that ends at now shows the
+  forecast's first hours and a window in the past shows "No price
+  forecast in this window".
+- **On-peak shading.** The tariff's on-peak hours are light pink
+  rectangles behind the trace. The browser lays the tariff's recurring
+  windows over the window's range in the tariff's zone
+  (`src/visualizer/tou-tariff.ts`, `onPeakSpans`); the tariff comes from
+  `GET /api/v2/tou-tariff/current` as a `gw.tou.tariff` 000 word built
+  through the snapshot class (`api/v2/routers/tou_tariff.py`), typed in
+  the browser by the
+  snapshot's `TouTariff` and `TouWindow` schemas with the words' axioms
+  as refinements. The route serves the fleet's one tariff, Versant Rate
+  A-1; once houses journal `gw.operational.params` it serves the house's
+  own `Tariff`.
 - **Standing.** The stopgap word has two consumers, the LTN's fetch and
   this forward, and both retire with the price-forecast service's own
   word (OPS-437; `../../gridworks-price-forecast/executor/primary.md`

@@ -10,8 +10,379 @@ repo's git history.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-11-05 — mkenv.sh points at scada-to-uv (pin-python-version, PR 607, OPS-661)
+## 2026-11-11 — Jm/roll compare fix (`9992a539`, PR #619)
+
+Merges `jm/roll-compare-fix`: roll_compare compares every field of the params file.
+
+The exclusion in `patch the roll` (`6f0e0eac`) kept
+`DispatchHold.ServiceContractBroken` out of the compare so a box's cold
+latch would survive a roll. That hides the latch: a roll would pass a box
+whose latch is set against a committed file that says the service
+contract is whole, and the record and the box would disagree unseen.
+The compare now covers every field. A set latch shows as a difference at
+the roll, and the person at the prompt decides whether the committed
+file goes on; clearing the latch is that person's act, made in tlayouts
+and rolled.
+
+## 2026-11-11 — patch the roll (`6f0e0eac`)
+
+`roll_compare.py` ignored the whole `DispatchHold` block, so a change to
+`OperatorHold` in the committed tlayouts JSON never reached a box: the
+roll reported a match and offered no install. Found when the operator
+hold placed on oak at 16:19 on 2026-11-11 (by hand, against the rule
+that the committed pair is the only source of a box's params) could not
+be lifted by two rolls of the corrected tlayouts main. The exclusion
+narrows to `DispatchHold.ServiceContractBroken`, the one field the scada
+writes itself, so every other field differs when the box is behind the
+record.
+
+## 2026-11-11 — A start clears the off timer, parks on the cusp and opens as the heat pump starts running (`a5bfa62b`, jm/sieg-init-homing, OPS-392)
+
+Every maple start on record reached full send through `Blind`, never
+`HpHasLift`: all five starts of 2026-09-22 and the 12:00 ET start of
+2026-11-10 went `HpStartingUp -> Blind` within one tick of the outdoor
+unit's power crossing 500 W, about four minutes into the start as the
+Ecodan's compressor ramps. The cause is the off timer in `StratProtect`:
+`hp_turned_off_time` was set when hp-boss reported off and never
+cleared, so from the second run on, "drawing power long after an off
+command" was true of every ordinary run. The timer came over whole from
+the simple control machine of April (`332cdbfc`) through the Sept 25
+package move; basic-sieg change 6 names it as defect 1.
+
+Now a report from hp-boss of any state but `HpOff` clears the timer, and
+the brain logs the blind reason on the line before `DoneInitializingBlind`
+and `BecameBlind`, which the 2026-11-10 log could not say.
+
+With Blind out of the way the start would have waited at just keep until
+LWT or EWT passed `MaxEwtF` minus 20, the placeholder in the simple
+machine that no house ever reached. The start now parks the valve at
+just keep (`t2`, keep complete, where the first second of an open sends
+water) when hp-boss prepares to turn on, and opens to full send when the
+outdoor unit draws more than an idle heat pump does (`IDLE_POWER_W`, the
+same 500 W line the off-settle check uses). A heat pump that never draws
+leaves the loop parked: a backup timer was tried and dropped, since it
+would open the loop on its own once the open is reckoned less
+conservatively. The rest posture stays at the keep stop,
+where the valve is homed and provably not sending; holding at `t2`
+through an off period was rejected because a timed position drifts
+without a stop and an error toward send trickles into the buffer top all
+night. `MaxEwtF` leaves the loop. A reckoned open replaces the power line
+when the plant model says when the valve should move. Tests: a second
+run after a stop, the compressor coming on past the off-settle window,
+opens as `HpHasLift` with no blind reason; a start from the keep stop
+parks at `t2` and opens on power; a start whose outdoor unit never draws
+power stays parked; the heat pump turned off while parked returns the
+valve to the keep stop.
+
+## 2026-11-10 — The loop's own atomic names its move, and the fsm.atomic.report twin checks its axioms (`504e32c2`, jm/sieg-init-homing, OPS-619)
+
+Every maple report.event with a valve move the strategy chose was refused
+at the JournalKeeper today (16:30Z, 16:45Z, 17:05Z, 17:10Z, 17:25Z,
+17:30Z, 18:35Z; oak at 14:15Z), each on Axiom 2 of `fsm.atomic.report`:
+the sieg loop's own atomic was an Event report with no event. The journal
+lost the five minutes of readings around each move and the alerter raised
+NoData on maple at 12:10 ET.
+
+The loop's own atomic now reports the move the strategy chose in the
+vocabulary the boss would have used: `move.sieg.valve` with
+`MoveToFullKeep` for a run toward keep and `MoveToFullSend` toward send,
+taken from the run's direction (`Move.toward`, set when the run starts);
+a commanded move reports the command. hp-boss's two-minute
+sieg-ready timeout reports `TurnOff`, which is what it does, and
+`transition` takes an event always. The twin's two axiom stubs are
+implemented to match the snapshot's generated bodies, so the scada
+refuses to build such a report itself. Tests: the sieg test that pinned
+the empty event asserts the direction, a named-types test file for the
+twin against the sema oracle, and an hp-boss test for the timeout path.
+
+## 2026-11-10 — cleaning up the StratProtect strategy for the sieg loop (`e0b3a465`, jm/sieg-init-homing)
+
+Maple ran twelve days at full send (the Sept 25 test gen change to
+HoldFullSend reached the box on the Oct 29 roll), and the buffer
+destratified every heat pump off period because the Mitsubishi's primary
+pump never stops. Rolling StratProtect back exposed two defects in the
+loop's first minute, reconstructed from the box log of the 11:25 ET
+restart.
+
+The valve model booted assuming FullyKeep at keep_seconds 94 with nothing
+to make it true, and the brain's first decision was Blind (no temperatures
+in the first second), so the valve ran toward send and only then, on the
+first tick, back toward keep. That keep run was sized from keep_seconds
+before the send run settled, 10 s instead of 40, leaving the valve in
+SteadyBlend. On a box whose valve really was at send this ends 10 s from
+the send stop, before keep onset, with the heat pump off: the Nov 9
+destratification on every boot. Today it did no harm because the valve
+had been put at keep under admin that morning.
+
+Now `move_to_full_send`, `move_to_full_keep` and `move_to_just_keep` are
+positions, and the run length is computed after the run in flight has
+settled from the clock. The brain leaves Initializing only once hp-boss
+has reported (the default HpOn at construction is gone), HpOff wins over
+Blind since Blind protects a running heat pump and there is none, and
+until the valve is homed every automatic move is one full run to the stop
+the state wants: keep with the heat pump off, send when it is running
+unseen. The valve owns `homed`, which means keep_seconds can be trusted:
+False at boot, True from the end of the first run whose measured motor
+time in one direction is at least the full range plus the overshoot, since
+that reaches the stop from any starting position, and True from then on.
+So a state change during the homing run starts another full run, a
+commanded full run homes the valve too, and a nacked run does not. The existing
+settle test passed by an artifact: a 70 s clock step measured a 10 s run
+as 70 and clamped to the stop; the new tests advance a second at a time.
+
+## 2026-11-09 — Drop the PyPI board package: Blinka provides the board module (`da268051`, main, PR 617)
+
+The `board` name on PyPI is an unrelated package; Adafruit Blinka
+provides the `board` module the pico and I2C drivers import. The
+dependency comes out of `pyproject.toml` and `uv.lock` so a fresh uv
+venv resolves the right module.
+
+## 2026-11-09 — flo.recommendation 001 with store state and penalties; the LTN keeps its cleared run as flo.previous.run (`e8c29f33`, jm/flo-plot-words, OPS-665)
+
+Seed pins `flo.recommendation` 001 and `flo.previous.run` 000; the
+snapshot at sema `58a55b4` (the published flo plot words) brings
+`flo.tank.store.path` and `flo.path.penalties.bruce` through the closure.
+The scada's seed still reaches other staging words (layout and contract
+vocabulary), so its staging index stays. The twins follow: three new
+hand-written twins with their axiom tests, and `FloRecommendation` at 001
+with the two optional annotation lists and axioms 6 and 7.
+`FloTankStorePath` has `EmptyStoreWh` and `FullStoreWh` with
+`check_axiom_3` (EmptyBelowFull); `FloPathPenaltiesBruce` has
+`TerminalCostEmptyStoreUsd` and `PathCostUsd` with `check_axiom_2`
+(TerminalCostBound). The scada passes a recommendation through and reads
+none of these fields, but its codec decodes the word; without this a 001
+recommendation from the FLO service fails to decode at the MQTT LTN.
+
+The scada's LTN mirrors `gridworks-ltn`: the cleared run is one
+`flo.previous.run` (the path, the cleared pair and its index, the units,
+the next slot's forecast price times 1000) saved to `previous_run.json`
+as its word and sent to the scada in place of the bare path; the request
+builder divides the price back to USD per MWh. The scada's match arm
+passes the word through like the path it replaces, so the broker journals
+it. `ci.sh` green.
+
+## 2026-11-09 — Clear behaviour-preserving ruff findings (`d5a25248`, main, PR 613, from PR 608)
+
+Twenty-seven files, no behaviour change: unused imports, empty
+f-strings, two `not in` checks, the `ScadaBoardComponent` re-export in
+`__all__`, `type(warning) is` for the eGauge disconnect check. The LTN
+imports move above the optional `bruce` import (a missing package still
+sets `recommend_bytes` to `None`), and the BTU multichannel snapshot is
+parsed once, with a failure response returned without parsing when the
+body is missing. Clears the way for `ci.sh` to run ruff check as a gate.
+
+## 2026-11-08 — vscode settings: no bruce analysis path (`0fe5d8c9`, main, PR 612, OPS-514)
+
+The tracked `.vscode/settings.json` listed `../optimal-flexibility/src`
+among the editor's analysis paths, the last reference to the bruce
+sibling in the repo after PR 611. Gone; the paths are the scada source
+and the two packages.
+
+## 2026-11-08 — with flo as a service, no more bruce in the scada/ltn roll.sh (`7d87cfae`, main, PR 611, OPS-514)
+
+The FLO answers over the broker from `hw1.flo` since PR 605, and
+`tools/mkenv.sh` on main no longer installs `optimal-flexibility`
+editable, but `roll.sh` still fast-forwarded (or cloned) the sibling
+checkout on the LTN box and refused to restart the unit unless the venv
+had bruce editable. On a house with no sibling (fir, maple, spruce) a
+roll to main would therefore have moved the pis and then stopped before
+the LTN restart. The sibling block and both `bruce:` report lines are
+gone; `check` and `to` report the scada and the LTN only.
+
+## 2026-11-07 — LTN uses flo as a service at hw1.flo (`792fa867`, main, PR 605, OPS-514)
+
+The squash of `jm/flo-over-the-broker` onto main. The why is in the
+branch's entries below, from "roll.sh: oak rolls back to legacy like the
+other House0 houses" (2026-11-06) up to "The LTN reads one clock": the
+FLO as a broker service answering `flo.params` with `flo.recommendation`
+or `flo.refusal`, the scada announcing its posture when the LTN link
+activates, the review follow-ups. Oak ran the branch tip through the
+09:00 slot on 2026-11-07 before the merge: ask, bid, latest price,
+contract, no glitches. The runtime requirements did not change on the
+branch, so no venv rebuild on a roll.
+
+## 2026-11-06 — The LTN reads one clock (`05863872`, jm/flo-over-the-broker, PR 605, OPS-514)
+
+Review of PR #605 asked why the LTN mixed `plant_clock.now()` with
+`time.time()`. A transition artifact: the FLO request moved to the plant
+clock and the rest did not. Now every read is the plant clock, so a
+simulated run under a timestep clock sees one time everywhere. The two
+logic sites became functions that take `now_s`, so they are tested with a
+number: `market.slot_is_current` (the bid-hour check in
+`latest_contract_is_live`) and `ltn.price_forecast_from` (the saved
+price-CSV crop and 48-hour extension, kept until the price forecast
+arrives as a word). The glitch and report `CreatedMs` stamps read
+`plant_clock.now_ms()`. The stubbed `Ltn` in `test_ltn_flo_exchange.py`
+gains a wall plant clock beside its other stubbed properties. Tests:
+`test_market.py` (a slot is current for its own hour),
+`test_ltn_price_forecast.py` (drop begun hours, repeat the last hour,
+refuse an all-past file).
+
+## 2026-11-06 — The scada and the LTN know their GNode alias, and the storage model typed as it returns (`d3f1c504`, jm/flo-over-the-broker, PR 605, OPS-514)
+
+Two more from the review of PR #605. The LTN app's FLO subscription
+derived the FLO alias through a cast of the hardware layout to
+`HydronicLayout` for its `ltn_g_node_alias`. The review asked whether
+the proactor's `publication_name` would do; it is the same string, but
+that is a transport name, and the code is where a developer learns the
+architecture: the scada and the LTN are GNodes, the fundamental building
+block, and their code should say so. `Scada`, `ScadaApp`, `Ltn` and
+`LtnApp` each have a `g_node_alias` property defined as their own alias
+in the layout (the layout is the one source of a proactor's identity;
+`_get_name` already builds the proactor name from it, so no `.env` copy
+and no boot check, unlike gridworks-ltn where gwbase needs the alias
+before the layout). Every `self.layout.<x>_g_node_alias` read in the two
+actors (FromGNodeAlias on glitches and reports, the FLO request's
+`g_node_alias`, snapshot and layout.lite fields, log lines) now says
+`self.g_node_alias`; the FLO subscription calls
+`flo_alias(self.g_node_alias)`, and `LtnApp.hardware_layout` is typed
+`HydronicLayout` as `ScadaApp`'s is. `get_three_layer_storage_model`
+was annotated as returning `int` middle and bottom temperatures, but the
+BufferOnly path rounds to one decimal and the tank paths return whatever
+`round` gives: `StoreState` takes floats, and the annotation now says so.
+
+## 2026-11-06 — The LTN logs service mode race instead of glitching (`a3bac74f`, jm/flo-over-the-broker, PR 605, OPS-514)
+
+Review of PR #605: `ask_the_flo` re-tests `accepts_dispatch` and
+`service_mode` after fetching the forecasts, and the main loop had
+already tested them before calling. The re-test stays, because the
+scada's posture can change during the two network awaits, but that is a
+known, occasional race in a polling actor, not a field event: the
+"Summer!!" Warning glitch becomes a log line naming the slot. The
+polling shape itself is the subject of a later change in gridworks-ltn.
+
+## 2026-11-06 — The scada announces its posture when the LTN link activates and on send.layout (`d9a798aa`, jm/flo-over-the-broker, OPS-514)
+
+An LTN rebooted at oak on 2026-11-06 and sat idle ("waiting for
+gw.house.operating.status from SCADA") until a field at the house
+happened to change. The scada sent the status only on change, and its
+one unsolicited resend, layout.lite from `recv_activated`, is driven by
+the scada's own link state: that state leaves `active` only on a broker
+disconnect or an ack timeout, and an LTN restart inside one 60 s ping
+period never produces one (oak's scada logged no transition). The LTN's
+`send.layout` on boot was reaching the scada, but was answered with the
+layout alone.
+
+`Scada.announce_posture` sends the layout.lite and the operating status,
+the status whether or not it changed, and is called from `recv_activated`
+on the upstream link and in answer to the LTN's `send.layout`; the
+admin's `send.layout` still gets the layout alone. `report_operating_status`
+keeps its send-on-change rule. Tests: `tests/actors/test_announce_posture.py`
+(the posture twice with nothing changed, the LTN's and the admin's
+request, the announcement on link activation). `send.layout` stays as
+the LTN's boot request: a word of its own for the posture would cost a
+published word, a twin and both LTN repos moving together, for a name.
+
+## 2026-11-06 — The LTN hears flo.refusal (`2703d6fb`, jm/flo-over-the-broker, OPS-514)
+
+The FLO answers a request it cannot serve with `flo.refusal` (sema
+`cb422c1`), and until now the LTN had no twin for it: the refusal
+reached its queue and was dropped as an unknown type, so a slot with
+no FLO bid looked the same as a FLO that never answered. Snapshot
+regenerated from sema `cb422c1` with `flo.refusal` 000 in the seed
+(the snapshot also now shows `slow.contract.rejection` published, as
+sema has it). Twins `FloRefusalReason` (default `Unknown`) and
+`FloRefusal` in gwsproto; `flo_refusal_topic` beside the
+recommendation topic and a second subscription in the LTN app;
+`process_flo_refusal` pairs the refusal with the request held by
+bidder and slot as the recommendation handler does, copies it to the
+scada for the record and sends a Warning glitch naming the reason, and
+drops one for another request. The bid is untouched: the LTN bids as
+it does when no answer comes. Tests: the twin against the oracle's
+example with and without Detail and an unknown reason decoding to the
+default; the handler with services stubbed, for the request held, for
+another bidder or slot, and with no request; and a live test that
+publishes a wrapped refusal on the FLO's topic over mosquitto and
+waits for the LTN to hear it.
+
+## 2026-11-06 — heating.curve and gw.operational.params back on 000 (`0bc58f4c`, td/new-house-params, PR 609)
+
+**Why.** The sema side folded the new house parameters into the two
+staging words in place, so the seed asks for `["000"]` of each again,
+the snapshot is regenerated from Thomas's sema branch, the two twins
+return to `Version "000"`, and the four test ops files say 000 at both
+levels. No field changes: the twins keep the regression and radiator
+fields.
+
+## 2026-11-06 — Tests for the LTN's load history and forecast functions (`825c59d1`, td/new-house-params, PR 609)
+
+**Why.** The regression inputs had no test, which is where the three
+history defects lived. `tests/actors/test_ltn_load_history.py` pins
+the four-hour window (four slots keep four hours, a fifth drops the
+oldest), the outdoor-temperature history filling from the nearest slice
+when the forecast starts at the slot, the design-day anchor returning
+its own RSWT, and a full history leaving the baseline model. The three
+history tests fail on the code before `591aa67e`.
+
+## 2026-11-06 — LTN load history: four real hours, nearest OAT slice, history before the buffer (`591aa67e`, td/new-house-params, PR 609)
+
+**Why.** Three review findings on the LTN's new regression inputs. The
+staleness filter dropped an entry at exactly four hours old, so the
+"four-hour" means fed to the epsilon and eta coefficients were
+three-hour means. The outdoor-temperature history looked for a forecast
+slice starting exactly at the finished hour and stayed empty when the
+forecast began at the coming hour, which left the regression branch
+dead; it now takes the nearest slice. The buffer's available energy was
+computed before the histories were updated, so its RSWT ran on the
+previous slot's history; the updates now come first.
+
+## 2026-11-06 — Jm/roll: roll.sh check and to, tlayouts paired by branch name (`de6e4849`, main, PR 610)
+
+**Why.** Every house runs `main` or a branch off it; nothing runs
+`legacy` or `actual-spruce` any more, and the tlayouts `legacy` branch
+and the laptop's `scada-legacy` worktree are gone with them. The script
+is down to `check` and `to <branch>`, where `to` is the pushed tip of
+the named branch, and every line reads the ops word and needs the deed.
+A scada branch now pairs with the tlayouts branch of the same name when
+one is pushed, and with tlayouts `main` otherwise, so a branch that
+changes the ops word (a new `heating.curve` shape, say) can be tried on
+a house without putting a wrong pair on tlayouts `main`; `check` and
+`to` say which pair they resolved. The winter-hack enable/disable goes
+with `actual-spruce`. The process stays temporary: a UI for updating
+layouts and operational params replaces it. `running.md` "Rolling a
+house between lines", `environment.md` and `scada-CLAUDE.md` say the
+same.
+
+## 2026-11-06 — Adding rolling distribution energy use (hourly) (`f554c8e3`, main, PR 606)
+
+**Why.** The LTN's house load forecast wants the last hours of
+distribution energy as a regression input. The derived generator gains
+a `rolling-dist-energy` strategy: it integrates dist-flow and the
+dist-swt/dist-rwt delta minute by minute and emits the trailing hour in
+watt-hours on a periodic derived channel (`last-hour-dist-energy` in
+the layouts that declare it; the three House0 test layouts and beech
+do). A layout declaring the strategy must name exactly those three
+inputs and WattHours, or the generator refuses at boot.
+
+## 2026-11-06 — roll.sh: oak rolls back to legacy like the other House0 houses (`84946112`, jm/flo-over-the-broker, PR 605, OPS-514)
+
+`td/generalized-flo` was oak's roll-back line while its LTN ran the FLO
+work from that branch. Oak runs `main` now, so
+the script's roll-back rule is the same for every House0 house: `legacy`,
+whose tlayouts branch has an oak pair. The `THOMAS_LTN` list and the
+branch's tlayouts mapping go with it; `running.md` "Rolling a house
+between lines" says the same.
+
+## 2026-11-05 — The LTN bids LTN_BID_LEAD_S seconds before the slot (`008280ec`, jm/flo-over-the-broker, PR 605, OPS-514)
+
+**Why.** The LTN asked the FLO at minute 57 of the hour, a literal in
+`actors/ltn/ltn.py`. The time is now `LtnSettings.bid_lead_s` (default
+180), counted back from the start of the next market slot, so a dev run
+of the flo-as-a-service harness sets the lead short and sees a round
+trip in minutes, and the same rule serves a 5-minute market when the
+slot shortens. The slot facts the rule needs, an hour long and starting
+on the hour, are one hard-coded constant (`MARKET_SLOT_S` in
+`actors/ltn/market.py`) with a note that they are the market's facts;
+the setting must be less than it, and the actor refuses a lead at or
+below its 61 s loop sleep, which could pass between two wakes.
+`minute_of_hour` is gone and `seconds_to_slot_start` replaces it; the
+tests are `test_ltn_bid_lead.py` and the slot test in
+`test_flo_request.py`. Two unused imports in `config.py` dropped. A
+cross-cutting design moves the slot facts to the ops word and to what
+the MarketMaker posts about its market. The same change is on
+`gridworks-ltn`.
+
+## 2026-11-05 — mkenv.sh points at scada-to-uv (`c9e843fc`, pin-python-version, PR 607, OPS-661)
 
 **Why.** The TODO block in `tools/mkenv.sh` from PR 607 was the best
 statement anyone had written of what a uv port has to keep working. A

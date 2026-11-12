@@ -10,6 +10,97 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-11 — The price panel draws LMP alone on one axis, on the page's time axis, with the on-peak hours shaded (`1179322`, jm/price-panel-lmp, OPS-666)
+
+**Why:** the panel's reader wants the wholesale price and where the
+tariff's on-peak hours fall, on the same time axis as every other panel.
+The Total trace (a browser sum of LMP and delivery that no word states)
+and the right-hand axis go; LMP moves to the left axis as a solid line.
+The x axis is the window's instead of reaching 48 hours past it, and the
+fetch keeps only the hours inside the window. The on-peak hours come
+from the backend's `gw.tou.tariff` word, laid over the window's range in
+the tariff's zone by `onPeakSpans` in `tou-tariff.ts` (tested on a
+weekday, a weekend, a clipped range and a UTC range), and drawn as light
+pink rectangles behind the trace. `gw.tou.tariff`, `gw.tou.window`,
+the `day.of.week` enum and the `hh.mm` and `iana.timezone.str` formats
+join the snapshot under `src/sema` in its hand-written generated style,
+with the words' axioms as refinements, and the seed request names the
+tariff word.
+
+## 2026-11-10 — The FLO client reads a 404 as no FLO in the slot, and the notice names the slot (`f6885b7`, jm/flo-plot-words, OPS-665)
+
+**Why:** the first page check on the dev stack pressed the FLO button on
+an hour with no run and got "FLO request failed: No FLO was run in this
+hour" instead of the page's notice. The app's axios response interceptor
+replaces an error that has a `detail` string with a plain `Error`, so the
+client's `isAxiosError` branch for 404 never matched. The client now asks
+axios to resolve a 404 as a response (`validateStatus`) and returns null
+on it, so the interceptor sees no error. A test fixes both paths: the 404
+resolves to null, and any other failure keeps the interceptor's message.
+The notice names the slot it asked for ("No FLO was run for the slot
+starting 2026-11-10 07:00 ET"), since the hour the page looks in is the
+end time's hour and the reader cannot see that from the picker.
+
+## 2026-11-10 — Snapshot at the flo plot words with the store's bounds and the path cost (`445ee91`, jm/flo-plot-words, OPS-665)
+
+The commit is the whole FLO view under a snapshot title: the page draws the recommendation word.
+
+**What:** zod schemas in `src/sema/types/` for `flo.recommendation` 001
+and 000 (`AnyFloRecommendation` is their union: the journal's 000 rows
+have no store state and no penalties and the backend serves each row at
+its own version), `flo.optimal.path`, `flo.tank.store.path`,
+`flo.path.penalties.bruce` and `price.quantity.unitless`, each axiom a
+named refinement, the five recommendation axioms shared between the two
+versions in `floRecommendationAxioms.ts`; `enums/` gains the two market
+unit enums; the seed names the word at both versions and the enums.
+`flo-api.ts` fetches the house's recommendation for the End time's slot
+from the backend's FLO route and parses it, null on the route's 404.
+`flo-path-view.ts` lays one pair's path out for drawing: step starts on
+the path's own step grid, the heat pump's kW, the store's kWh, each store
+layer's temperature from the band its two thermoclines put it in, and the
+three penalty series stacked. `FloPlot.tsx` draws that in three bands on
+one time axis: heat pump kW; the store's layers colored by temperature
+over the path's own range with the store's kWh beside them; the penalties
+with the terminal cost in the title. A 000 recommendation draws the first
+two bands. The page's FLO button fetches instead of downloading, the hour
+buttons step the End time by one hour and refetch, and a button per bid
+pair picks which path is drawn, opening on the lowest-priced pair.
+
+`FloParams.ts`, `FloTuningAlice.ts` and `FloTuningBruce.ts` type the
+LTN's request with their axioms as refinements; `fetchParams` reads it
+for the same slot, null on the route's 404; `paramsView` lays it out on
+the request's step grid as the price the optimizer saw (LMP plus
+distribution, USD/MWh) and the load it forecast (kWh over the step
+hours, kW); the top band draws both beside the heat pump, load on the
+left axis and price on the right, as bruce's own visualizer does. A slot
+with a recommendation and no request draws the heat pump alone. The plot
+follows bruce's visualizer, which the `td/dev` page reproduces: the
+title is the slot start and the path's cost to the cent, the pair whose
+path has the lowest `PathCostUsd` is drawn with no pair buttons (the path
+the optimizer takes at its forecast price, which is the one bruce's
+visualizer walks; a recommendation with no path costs opens on the
+lowest-priced pair), the right axis of the top band is the thermal price (the
+electricity price over the step's COP, with the price over the mean COP
+hidden behind the legend), the store band is "Storage state" in Reds
+over 60 to 180 F as three blocks per step (top, middle, bottom) with one
+temperature each and the state of charge on the right, and the penalties take bruce's names and colors
+with the terminal cost as a green bar on the last step labelled by its
+share of an empty store's cost. The state of charge, that share and the
+path cost in the title (`plotTitle`) come from the words:
+`flo.tank.store.path` states `EmptyStoreWh` and `FullStoreWh`, and
+`flo.path.penalties.bruce` states `TerminalCostEmptyStoreUsd` and
+`PathCostUsd` (sema `20e46b9`), so `pathView` computes all three from
+the recommendation alone and `paramsView` reads only the request. The
+COP per step is the one optimizer rule the browser applies, from the
+coefficients `flo.params` states. Tests: the schemas parse orange1's
+001 recommendation and the registry's 000 example and refuse the axiom
+breaks, the two new axioms among them; the view's step grid, band
+lookup, stacking, state of charge, terminal share, title and 000
+fallback. The 001 fixture is the recommendation journaled in the dev run
+of 2026-11-09 with the four new fields as bruce computes them for the
+same journaled request; bruce reproduces every other field of the
+journaled row exactly. vitest 114 passed, `tsc -b` clean.
+
 ## 2026-11-01 — the weather plot draws a house's bundle forecasts from the weather words (`7e3ac74`, OPS-622)
 
 **What:** seven zod schemas in `src/sema/types/` for `gw.weather.forecast`

@@ -1,6 +1,6 @@
 # gridworks-scada — Rebuild Specification (primary)
 
-Status: Draft · Pass 0 · Updated 2026-10-21
+Status: Draft · Pass 0 · Updated 2026-11-06
 
 The faithful-rebuild hub for `gridworks-scada`. Intended to grow into a
 language-agnostic account complete enough to rebuild the SCADA from these docs.
@@ -152,7 +152,10 @@ Normative across the domain — full statements in
   state, a layout/code mismatch found at runtime. Both show on the Morning
   reports page. **Critical** pages the person on call through the alerter
   (`gridworks-alerter` executor `CriticalGlitch`), so a condition that
-  does not need a person now is never Critical. Each glitch is
+  does not need a person now is never Critical. A glitch reports a
+  condition of the house or the scada that a person might act on; an
+  expected outcome of the program's own control flow (a race the code
+  handles, a retry, a wait) is a log line and no glitch. Each glitch is
   rate-limited per key (the pico's `HwUid` or the channel, plus the
   condition), at an interval its call site sets.
 

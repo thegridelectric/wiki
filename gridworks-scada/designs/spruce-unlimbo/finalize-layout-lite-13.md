@@ -71,12 +71,7 @@ the LTN harness mode.
    staging admin word sent over the broker, the shape of the scada's
    admin words. Then roll spruce, both halves, to the branch and leave
    it.
-4. Couple the fleet-drift hook to the line a house runs: a scada-branch
-   column in `gridworks-infra/fleet-inventory.md` that `roll.sh` writes
-   and `wiki/tools/check-fleet-drift.sh` reads, in place of its
-   per-house constants, which report a rolled house as drift until
-   edited.
-5. Distill into `executor/`, move what is still open into
+4. Distill into `executor/`, move what is still open into
    ltns-ready (OPS-654), delete this file.
 
 ## Open
