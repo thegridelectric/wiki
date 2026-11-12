@@ -12,6 +12,50 @@ Newest at the top.
 
 ---
 
+## 2026-11-12 — ta-plant runs a House0 house with a Siegenthaler loop from BeechPlant.fmu (`f90dcd2`, on `ow/beech-plant`)
+
+A scada on a House0 layout had only the drift model to run against: its
+relays moved nothing. `Beech.Plant` becomes a second FMU and
+`gwta/house0.py` the second adapter, so a `gw.house0.layout` gets physics
+its scada's relays act on. `ta-plant` picks the adapter by the layout word;
+a `gw.house0.no.sieg` has no FMU and says so.
+
+One relay drives one FMU input, so the model takes on the two places where
+a House0 relay hands a decision to the plant's own hardware:
+
+- **The primary pump.** `primary-pump-failsafe-relay` chooses between the
+  heat pump running the pump and the scada running it. The split heat pump
+  gets an output, its call for the pump that moves its water, and a
+  `Changeover` block passes that or the scada's relay to the pump. Without
+  it a scada that leaves the pump to the heat pump (as the sim scada does)
+  calls a heat pump that never sees flow.
+- **The boiler.** `aquastat-ctrl-relay` chooses between the boiler's own
+  aquastat and the scada holding it off, so the model's `boilerCall` input
+  gives way to `boilerScadaControl` and an `Aquastat` block on the middle
+  of the buffer. With every relay de-energised the boiler keeps the buffer
+  warm: the failsafe a dead scada leaves behind is in the model, and a
+  test holds it.
+
+A double-throw relay's two positions are states with names of their own
+(`ChargingStore`, `SendLess`, `WallThermostat`), so the House0 adapter keys
+a relay's effect on the two state names its `relay.control.config` gives,
+where the Katahdin adapter reads closed and open. The names are hand-kept
+strings: the six enums that hold them (`store.flow.relay`,
+`heat.pump.control`, `aquastat.control.state`, `primary.pump.control`,
+`hp.loop.keep.send`, `heatcall.source`) are not in the snapshot, and the
+sema checkout the regeneration ran against refused the seed for another
+reason (`gw.katahdin.layout` is draft there), so adding them waits for a
+regeneration from a checkout that carries the layout words.
+
+The FMU is Beech's plant, two zones and three tanks, and the adapter
+refuses a layout with another count of either: the sizes are constants of
+the Modelica model. The test house is a simulated Beech, orange's all-sim
+devices on Beech's zones and tanks.
+
+Verified by the suite (18 tests on the House0 plant, 12 against the FMU)
+and by a whole scada run against it in containers:
+`experiments/2026-11-11-beech-sim-compose/`.
+
 ## 2026-11-11 — Hydronic.mo: the component parts as a library, and Beech.mo, the Beech plant placed as on its schematic (`a5e36a9`, on `ow/beech-components`)
 
 A second house wants the same parts as the first, so the parts leave
