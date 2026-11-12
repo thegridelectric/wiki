@@ -6,6 +6,26 @@ the *why*.
 
 Newest at the top.
 
+## 2026-11-12 — beech-sim-compose: a simulated Beech and its scada as one compose stack, thirteen hours (`c3df070`, on `ow/plant-seam`, OPS-40)
+
+**Why.** The plant loop fed a scada from a plant whose values drift, so
+the scada's relays moved nothing it could then read. Beech has a model
+(`BeechPlant.fmu`), so `2026-11-11-beech-sim-compose/` runs a whole
+scada against it and asks whether the loop closes both ways. It is one
+`docker compose` project of four containers in one network namespace,
+publishing nothing to the host, because a house that starts with one
+command and collides with nothing is the unit a simulated fleet is made
+of. The recorded run covers an on-peak evening and the off-peak night
+after it: PASS, all 15 relays heard, all 50 plant-fed channels moved,
+the buffer filled and the store charged. `check.py` waits for the
+scada's first two reports, since a check run seconds after `up` read as
+a failure of the stack. `plot_channels.py` draws the run from the
+scada's persisted reports. The folder holds `scada.Dockerfile`, the one
+recipe for a scada image, and `dev-stack-recipe.md` gains a section
+pointing at it. Two scada findings are recorded and left: the
+Siegenthaler loop goes blind with the heat pump running, and its
+valve-state reports fail the snapshot's `fsm.atomic.report` Axiom 2.
+
 ## 2026-10-28 — elm-arctic-field-check: harness and the record of the first runs (OPS-628) <!-- pending commit -->
 
 **Why.** The Arctic bring-up design's confidence comes from elm's first
