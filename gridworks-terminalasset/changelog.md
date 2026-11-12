@@ -12,7 +12,7 @@ Newest at the top.
 
 ---
 
-## 2026-11-08 — Snapshot adds gw.katahdin.layout and catches up to sema dev <!-- pending commit -->
+## 2026-11-08 — Snapshot adds gw.katahdin.layout and catches up to sema dev
 
 The seed gains `gw.katahdin.layout`, the layout of the first simulated
 plant, and drops `sim.relay.component.gt`, a word the registry no longer
@@ -24,7 +24,7 @@ rest of the diff is the catch-up to every word that moved in sema since
 the August regen. Nothing in `gwta` outside the snapshot changes; the
 gate stays green.
 
-## 2026-11-08 — ci.sh is the one gate; the workflow runs it against the dev-rabbit image <!-- pending commit -->
+## 2026-11-08 — ci.sh is the one gate; the workflow runs it against the dev-rabbit image
 
 The pattern sema set and gwbase and gjk follow: `ci.sh` owns the steps
 (locked `uv sync`, `ruff check --no-fix`, `ruff format --check`, pyright,

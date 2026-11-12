@@ -392,8 +392,16 @@ are retired.
   VM. sshd is key-only, root is `fleet-jessica` alone, `sim` has the
   five fleet keys, ufw inactive behind the Hetzner firewall (22 and
   icmp), no tailscale yet: it joins the tailnet with the rest in step 8.
-  ESM Apps and the 26.04 release upgrade that the login banner offers
-  are not taken on any VM.
+  Later the same morning the box was rebuilt onto Ubuntu 26.04
+  (`hcloud server rebuild`, then the README's base-OS step from the
+  top): five minutes, the server, IP, DNS and firewall kept, host key
+  changed. The fresh 26.04 image came with 117 security updates and a
+  kernel behind; unattended-upgrade by hand, reboot, now 7.0.0-43, zero
+  failed units, zero security updates pending, 41 ordinary. The
+  hello-world container runs as `sim`. The decision taken with it: the
+  team wants the simulation host on the current LTS; the other VMs stay
+  on the release they were built with until the fleet upgrade is its
+  own planned move. ESM Apps is not taken on any VM.
   Housekeeping the same day: the stale SlowContractHeartbeat files
   (version 000 and 001, on beech, fir, elm, maple and in the five older
   `ltn-<house>` data dirs on the ltn box) deleted; oak's live 002 file

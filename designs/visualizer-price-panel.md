@@ -227,10 +227,11 @@ vendored `.d.ts` for the new word types the response.
 ## Plan
 
 **Do this next:** step 2, the price service, built and exercised on the
-dev broker. Step 1 is committed on the `jm/price-components` branch of
-`sema` (`eba7ece`), unmerged, with all six definitions `staging`, so
-they do not run on `hw1` until promoted. Vendor the snapshot into the
-price service before its first consumer line.
+dev broker. Step 1 is on `dev` in `sema` (`eba7ece`), with all six
+definitions `staging`, so they do not run on `hw1` until promoted. Vendor the snapshot into the
+price service before its first consumer line. Two parts of step 1 are
+still to do: the journalkeeper seed, and promoting the six definitions
+before anything on `hw1` sends them.
 
 **Where the page stands (2026-11-11).** Both `jm/price-panel-lmp`
 branches are merged and deployed: the backend's `gw.tou.tariff` route on
@@ -238,9 +239,9 @@ web-api2 and the panel on GitHub Pages. The panel has the final shape
 (LMP alone on one axis, the page's time axis, the on-peak shading) and
 keeps only the stopgap forecast's hours inside the window. The stopgap
 has no past, so for the default window, which ends at now, the panel says
-"No price forecast in this window". That stays until step 3 serves a
+"No price forecast in this window". That stays until step 5 serves a
 journaled forecast; a rollback was considered and declined. The lesson
-for step 4: the frontend check is on the page with the default window.
+for step 6: the frontend check is on the page with the default window.
 
 **How the panel finds its forecast.** The panel looks first at the
 `PriceForecastId` in the `flo.params` journaled for the house at the

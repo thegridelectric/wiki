@@ -49,6 +49,13 @@ simulated-test-environment design.
 - **Tests.** Offline smoke tests by default; broker-needing tests are
   marked `live` and deselected unless `pytest -m live`.
 
+## Sub-specs
+
+- [`simulated-plant.md`](simulated-plant.md): `ta-plant`, the simulated
+  terminal asset that runs a house's physics from a compiled Modelica
+  model and exchanges `sim.plant.flux` and `sim.plant.actuation` with
+  its scada.
+
 ## Open
 
 - The simulated terminal asset proper (synthetic channels, comms-test

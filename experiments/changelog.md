@@ -6,8 +6,23 @@ the *why*.
 
 Newest at the top.
 
-## 2026-11-11 — The FLO trace pulls without a forest; flo-dev-harness closes rung 1 (jm/flo-trace-and-harness, OPS-514)
-<!-- pending commit -->
+## 2026-11-12 — flo-dev-harness closes rung 1; the FLO round trip joins the dev-stack recipe (`a003331`, OPS-514)
+
+**Why.** `2026-11-05-flo-dev-harness/` is closed as a record. Rung 1
+passed on 2026-11-05: request 13:50:56 ET, answer three seconds later,
+and the bid built from it. The folder has its `gw.experiment.run` 001
+from `emit_instances.py`, a README to the template, and a logbook line.
+The three findings are OPS-669, OPS-670 and OPS-671. The stand-up steps
+moved to `dev-stack-recipe.md` "A FLO round trip", where laptop stacks
+live.
+
+`ci.sh` excludes two scripts from pyright that import environments this
+repo lacks: paho (`2026-10-22-stopgap-mm/mqtt_witness.py`) and the
+web-backend gateway checkout
+(`2026-10-28-realtime-units-elm-check/run_gateway_on_tap.py`). The gate
+had been red on them. `./ci.sh` green.
+
+## 2026-11-12 — The trace puller takes a spec with no tracked set (`c14a969`, OPS-514)
 
 **Why.** The first FLO trace (oak's 18:57Z bid on 2026-11-11) could not
 be pulled: `traces/pull_trace.py` required a `tracked_set` and decoded the
@@ -15,19 +30,6 @@ forest through the domain's snapshot, which fits the alerter but not the
 FLO, which reads no forest. The tracked set is now optional. A spec
 without one writes no `forest.json` and prints no alerts, and the rest of
 the pull is unchanged.
-
-`2026-11-05-flo-dev-harness/` is closed as a record. Rung 1 passed on
-2026-11-05: request 13:50:56 ET, answer three seconds later, and the bid
-built from it. The folder has its `gw.experiment.run` 001 from
-`emit_instances.py`, a README to the template, and a logbook line. The
-three findings are OPS-669, OPS-670 and OPS-671. The stand-up steps moved
-to `dev-stack-recipe.md` "A FLO round trip", where laptop stacks live.
-
-`ci.sh` excludes two scripts from pyright that import environments this
-repo lacks: paho (`2026-10-22-stopgap-mm/mqtt_witness.py`) and the
-web-backend gateway checkout
-(`2026-10-28-realtime-units-elm-check/run_gateway_on_tap.py`). The gate
-had been red on them. `./ci.sh` green.
 
 ## 2026-11-05 — hello-rabbit-ltn-trace and dev-flo-harness (`e0ff0c6`)
 
