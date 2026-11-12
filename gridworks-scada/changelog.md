@@ -10,6 +10,20 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-12 — StratProtect logs why it goes blind (`8755ba34`, on `ow/plant-seam`)
+
+**Why.** The loop logged `BecameBlind` and never which of its three
+reasons fired, so the cause of a run opening through `Blind` could only
+be read from the code. On the transition it logs the reason and how
+long ago hp-boss last turned to `HpOff`. With the `Engaging brain` line
+before it, which carries hp-boss's state, the log shows a blind taken
+under the off-settle rule while hp-boss says `HpOn`. A simulated Beech,
+a whole scada against its plant in containers, logged it 23 seconds
+after local control turned the heat pump on:
+`Blind: 3780W over 500W 120s after off; hp-boss last turned to HpOff 11490s ago`
+(`experiments/2026-11-11-beech-sim-compose/`). The rule is left as it
+is. The boot path into `Blind` (`DoneInitializingBlind`) logs no reason.
+
 <!-- pending commit -->
 ## 2026-11-05 — mkenv.sh points at scada-to-uv (pin-python-version, PR 607, OPS-661)
 
