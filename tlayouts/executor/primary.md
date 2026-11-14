@@ -50,7 +50,7 @@ to get right, not any output file.
   same wave.
 
 Drivers run from the scada venv
-(`../gridworks-scada/gw_spaceheat/venv/bin/python beech_gen.py`); the
+(`../gridworks-scada/.venv/bin/python beech_gen.py`); the
 coupling is the `gwsproto.names` constants the gens import. A driver's
 `main()` is the validation gate: it serializes both artifacts and decodes
 each back through the snapshot codec, which runs the word's axioms,

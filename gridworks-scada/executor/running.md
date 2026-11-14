@@ -16,7 +16,7 @@ Venv + editable packages per [`environment.md`](environment.md):
 `./tools/mkenv.sh`, then
 
 ```sh
-source gw_spaceheat/venv/bin/activate
+source .venv/bin/activate
 export PYTHONPATH=$PWD/gw_spaceheat:$PYTHONPATH
 ```
 
@@ -178,18 +178,23 @@ also where a branch scada paired with the other line's LTN was seen to
 flap for as long as it ran.
 
 Two guards stop the roll before the checkout: a difference in the
-runtime requirements between the SHAs (`requirements/base.txt`,
-`requirements/drivers.txt` byte for byte, and the packages'
-`pyproject.toml` outside their version line and their pins on the
-sibling editable packages, `scripts/roll_compare.py reqs`; the venv is
-rebuilt by hand on the box with `tools/mkenv.sh`), and a difference in
-`service/` unit files (root reinstalls them with `service/install`).
-The requirements comparison runs on the laptop's checkout after a
-fetch, since a box runs only pushed SHAs. The package rule is what lets
-a house roll between lines whose packages differ by release only.
-The test and dev requirements are not compared: nothing the box runs
-imports them, and a house rolls between lines without touching its
-venv.
+requirements between the SHAs, and a difference in `service/` unit files
+(root reinstalls them with `service/install`). The requirements are
+`uv.lock` on a uv line and `requirements/base.txt`,
+`requirements/drivers.txt` on a pip line, byte for byte, plus the
+packages' `pyproject.toml` outside their version line and their pins on
+the sibling editable packages (`scripts/roll_compare.py reqs`); the venv
+is rebuilt by hand on the box with `tools/mkenv-pi.sh`. The requirements
+comparison runs on the laptop's checkout after a fetch, since a box runs
+only pushed SHAs. The package rule is what lets a house roll between two
+pip lines whose packages differ by release only. On a
+pip line the test and dev requirements are not compared: nothing the box
+runs imports them. `uv.lock` holds every group and the packages'
+versions, so a dev-only change or a release bump stops a roll between uv
+lines too. A uv line and a pip line keep separate venvs (`.venv`,
+`gw_spaceheat/venv`) in one checkout, and a roll between them always
+stops on the requirements guard, since `uv.lock` exists on one side
+only.
 
 **No roll to beech (2026-10-20).** Beech is unwell in the field. Do NOT
 roll it until this line is removed.
