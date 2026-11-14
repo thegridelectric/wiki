@@ -11,7 +11,10 @@
 #
 # Checks per platform box: checkout == origin/main and clean; every
 # service process started AFTER the checkout's last commit landed (the
-# 2026-07-24 stale-write-loop lesson); ear retry caches empty.
+# 2026-07-24 stale-write-loop lesson); ear retry caches empty; each box's
+# ~/README.md the same bytes as its instance-README.md in gridworks-infra.
+# Per house: every scada pi on the same code SHA, layout and operational
+# params as the house's LTN.
 
 MARKER="$HOME/.cache/gw-drift-check-$(date +%Y%m%d)"
 if [ -f "$MARKER" ] && [ ! -s "$MARKER" ]; then
@@ -106,6 +109,61 @@ check_house_params() {  # house source-file boxes...
 check_house_params spruce gw.nolan.operational.params.json spruce
 check_house_params beech gw.house0.operational.params.json beech beech2
 check_house_params maple gw.house0.operational.params.json maple maple2
+
+# Box READMEs: a box's ~/README.md is a copy of its instance-README.md in
+# gridworks-infra, and only this check notices when one side moves on.
+# The fix is a copy after a person has compared the two; the repo file is
+# the record. A box with no ~/README.md is not drift.
+check_readme() {  # host infra-dir
+  local src="$UMBRELLA/gridworks-infra/$2/instance-README.md" want got
+  [ -f "$src" ] || return 0
+  want=$(shasum -a 256 "$src" | cut -d' ' -f1)
+  got=$($SSH "$1" 'sha256sum ~/README.md 2>/dev/null | cut -d" " -f1' 2>/dev/null)
+  [ -z "$got" ] || [ "$got" = "$want" ] || OUT="$OUT
+  $1: ~/README.md differs from gridworks-infra/$2/instance-README.md (compare the two, then copy the repo file to the box)"
+}
+check_readme gnr gnr
+check_readme rmqbot rmqbot
+check_readme ltn ltn
+
+# House lines: a house's scada pis and its LTN run one line, the same code
+# SHA, layout and operational params on every box, which roll.sh moves
+# together and verifies. Hand pulls between rolls split them (oak's scada
+# sat six commits behind its LTN in 2026-10). Each pi is compared with the
+# LTN; the ops files are compared byte for byte, so a cold latch the scada
+# wrote shows here too and a person reads it with roll_compare.py. A pi
+# that does not answer is not drift.
+LTN_HOUSES="beech elm fir maple oak spruce"
+line_of() {  # host repo-dir config-dir -> "sha layout-hash ops-hash"
+  $SSH "$1" "h() { if [ -f \"\$1\" ]; then sha256sum \"\$1\" | cut -c1-12; else echo none; fi; }
+    echo \$(git -C $2 rev-parse --short HEAD 2>/dev/null || echo none) \
+      \$(h $3/hardware-layout.json) \$(h $3/operational-params.json)" 2>/dev/null
+}
+check_house_line() {  # house pis...
+  local house="$1" ltn pi cdir got l_sha l_lay l_ops p_sha p_lay p_ops
+  shift
+  ltn=$(line_of ltn "~/ltn-$house/gridworks-scada" "~/ltn-$house/.config/gridworks/ltn")
+  [ -n "$ltn" ] || return 0
+  read -r l_sha l_lay l_ops <<< "$ltn"
+  for pi in "$@"; do
+    if [ "$pi" = "${pi%2}" ]; then cdir='~/.config/gridworks/scada'; else cdir='~/.config/gridworks/scada2'; fi
+    got=$(line_of "$pi" '~/gridworks-scada' "$cdir")
+    [ -n "$got" ] || continue
+    read -r p_sha p_lay p_ops <<< "$got"
+    [ "$p_sha" = "$l_sha" ] || OUT="$OUT
+  $pi: scada at $p_sha, its LTN (ltn-$house) at $l_sha (roll.sh $house check)"
+    [ "$p_lay" = "$l_lay" ] || OUT="$OUT
+  $pi: hardware-layout.json differs from ltn-$house's (roll.sh $house check)"
+    [ "$p_ops" = "$l_ops" ] || OUT="$OUT
+  $pi: operational-params.json differs from ltn-$house's (a cold latch, or a hand edit; roll_compare.py ops shows the paths)"
+  done
+}
+for h in $LTN_HOUSES; do
+  case "$h" in
+    spruce) check_house_line spruce spruce ;;
+    *) check_house_line "$h" "$h" "${h}2" ;;
+  esac
+done
 
 if [ -n "$OUT" ]; then
   printf '%s\n' "$OUT" > "$MARKER"

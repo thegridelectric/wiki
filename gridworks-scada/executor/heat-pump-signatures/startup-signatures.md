@@ -1,6 +1,6 @@
 # Start-up signatures
 
-Status: Draft · Pass 0 · Updated 2026-10-28
+Status: Draft · Pass 0 · Updated 2026-11-12
 
 > What this is: what a heat pump start looks like in the scada's channels,
 > per heat pump model, with the Siegenthaler loop open and closed: the
@@ -63,6 +63,16 @@ Neither heat pump has winter data taken this way with the loop closed.
 - A self-stop falls to 34–449 W, in one case 2859 W to 95 W in 4 s, and
   stays under 500 W for a median 99 s. A defrost falls to a median 73 W
   for a median 137 s.
+- A commanded off during a steady run stops the compressor within about
+  5 s: over 74 offs (2026-11-01 to 2026-11-11) the draw fell under 500 W
+  at a median 5 s, p90 10 s. An off in the first minutes of a start is
+  honored late: five minutes into a run at 1.4 kW the unit drew for 284 s
+  more (2026-11-08 08:00 ET), 60 s in at 3.0 kW for 44 s (08:04 the same
+  morning), and a scada restart on 2026-11-11 at 15:14 ET found a run 4.5
+  minutes old still drawing 1.7 kW 87 s after the off, when the call
+  closed again. A minimum compressor run after a start is the likely
+  cause. What the unit does when the off arrives under 60 s into a start
+  is unseen.
 - Thirty-day maximum LWT 138.9 F. Its upper limit with the loop closed
   has not been observed.
 

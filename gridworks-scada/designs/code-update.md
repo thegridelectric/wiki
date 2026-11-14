@@ -1,10 +1,10 @@
 # Code update (design)
 
-Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-401
+Status: Accepted · Pass 1 · Updated 2026-11-08 · Linear: OPS-401
 
 > What this is: the build spec for fleet code update — how scada code
 > gets onto houses and what happens to on-disk state when it does. All
-> decisions ratified 2026-06-10/11; **not currently scheduled** (high
+> decisions ratified 2026-06-10/11, remote access amended 2026-11-08; **not currently scheduled** (high
 > priority, queued). A 100-homes gate: hand-imaged SD cards and by-hand
 > pulls carried 6 houses; they do not carry 6 → 20 → 100.
 
@@ -18,7 +18,7 @@ Status: Accepted · Pass 1 · Updated 2026-06-11 · Linear: OPS-401
 | Obligations | Device stores never constitute obligations — the MarketMaker's **stored timestamped ack IS the contract** (see the launch-new-simple-marketmaker design). Wipe is provably harmless. |
 | Artifact | **Vendored wheelhouse in the release** (offline `uv sync --frozen`) + **supervisor wheel cache, hash-verified per reuse** (~100 MB release → ~1 MB typical download). |
 | Restart safety | Non-issue: relay failsafes are field-proven; house stays warm as long as there is power. ~24 h deferral ceiling is an engineering default, not a safety bound. |
-| Remote access | Tailscale on the first ~20 only. **Fleet end-state: NO BACK DOOR** — rollback machinery is the entire remote recovery story; beyond it, you drive out and knock on the front door. |
+| Remote access | Tailscale on the first ~20. Fleet end-state: no standing inbound path on a house, and the update machinery itself provides no shell. By-hand access at every scale is the on-demand support tunnel (OPS-663): the house dials out on a word over the broker, the window closes itself, open and close go to the journal. Rollback machinery stays the remote recovery story for updates. Amended 2026-11-08 from "no back door beyond the first ~20". |
 | Signing | **Deferred to the crypto-key work** (substrate-fit design) — part of the metering-trust fabric ([`metering.md`](../../economy-energy-markets/executor/metering.md)). Interim: sha256 pinning end-to-end, no false precision about signatures. |
 | Picos | **Out of scope. No field firmware downloads to picos** (see Boundaries). |
 | OS | **Out of scope by posture** (see Boundaries). |
@@ -107,9 +107,10 @@ failed, loud). Announce doubles as fleet inventory.
    ends in `reverted` + report, not a loop.
 6. The supervisor can update itself, and its fallback reinstall path
    works with the supervisor dead.
-7. No component of this system provides shell-equivalent access
-   (NO BACK DOOR) — it can fetch, verify, flip, restart, revert,
-   report; nothing else.
+7. No component of this system provides shell-equivalent access: it
+   can fetch, verify, flip, restart, revert, report; nothing else.
+   By-hand shell access is a separate path (OPS-663), opened per house
+   on request and closed by its window.
 
 ## Boundaries (out of scope, by decision)
 

@@ -8,6 +8,151 @@ corresponding code-repo commit.
 This changelog does NOT track wiki edits — those live in the wiki
 repo's git history.
 
+## 2026-11-11 — Add the price component words (`eba7ece`, jm/price-components, OPS-666)
+
+**Why.** `latest.price` is the price that settles the contract between
+an LTN and its MarketMaker, so it is the full price the bidder faces at
+the maker's node. The stopgap MarketMaker published that full price as
+one number, the ISO-NE LMP plus the tariff's delivery charge, with no
+way to recover the parts. Each part settles with a different
+counterparty (the wholesale market, the distribution utility), and
+reimbursing a homeowner for an on-peak hit needs the delivery part
+alone. The visualizer's price panel needs the forecast a FLO ran on,
+which no word could name.
+
+Six definitions, all `staging`:
+
+- `price.component.name` 000, the enum of the parts: `Unknown`,
+  `WholesaleEnergy`, `WholesaleCongestion`, `WholesaleLoss`, `Delivery`,
+  `CoincidentPeakTransmission`, `CoincidentPeakCapacity`. `Unknown` is
+  the default, so a reader on an older version still sums a price whose
+  newer parts it cannot name. The two coincident-peak members are in
+  from the first version; no recipe prices them yet.
+- `price.component` 000, one name and its amount.
+- `latest.price` 001: `Components` summing exactly to `PriceTimes1000`,
+  `TariffAlias` present exactly when a `Delivery` part is, optional
+  `CreatedMs`. The upgrade from 000 assigns one `Unknown` component with
+  the whole price, because a 000 instance does not say how it divides.
+- `gw.price.forecast` 000 and `gw.price.forecast.series` 000: a forecast
+  of one MarketMaker market's price in the same parts, identified by
+  MarketMaker alias and product (one MarketMaker identity per priced
+  node), with a `ForecastUid`, slot starts in UTC seconds and integer
+  amounts. A series says how many leading slots are the source's posted
+  values. It replaces `gw.stopgap.price.forecast` when promoted.
+- `flo.params` 002: required `PriceForecastId` beside
+  `WeatherForecastId`. The upgrade from 001 refuses for want of context.
+
+`latest.price` 000 gains an `examples:` block, as a superseded version
+must have one, and its content-hash pin is rewritten for that reason
+alone; the pin rewrite also re-sorts ten unchanged entries.
+
+## 2026-11-11 — Publish gw.tou.tariff, gw.tou.window and day.of.week (`ae2b2ac`, jm/publish-tou-tariff, OPS-666)
+
+**Why.** The visualizer's price panel shades the tariff's on-peak hours,
+and the web backend and browser both vendor published-only snapshots, so
+while the two tariff words were at staging the backend served the
+tariff as a hand-written instance of the word and the browser typed it
+by a hand-written schema. The words have been in real use by the scada's
+operational params since September and have not moved. Promoted
+bottom-up with `sema promote`: the `day.of.week` enum, then
+`gw.tou.window` 000, then `gw.tou.tariff` 000. The diff is the three
+flipped status lines, the three recorded content-hash pins and the
+regenerated public registry index; `created` and the schema files are
+untouched.
+
+## 2026-11-09 — Add the flo plot words (`58a55b4`)
+
+**Why.** The dashboard's FLO view re-solves the optimization on the web
+box to get the facts it draws that `flo.recommendation` 000 does not
+state: the store's band temperatures and thermocline positions per step,
+and bruce's penalty breakdown. The LTN keeps what it learns at clearing in
+a hand-made JSON file. OPS-665 moves both into words so the view draws
+from the journal and the web box needs no optimizer. `flo.optimal.path`
+stays at 000: it names a heat pump and a store's energy and fits any
+store, while the layered state is one store model's and hangs off the
+recommendation beside the penalties. The store's energy when empty and
+when full, the terminal cost of a store with no usable energy and the
+total path cost are the optimizer's numbers too, so the words state them
+and the browser runs none of bruce's formulas.
+
+**What.** Four words, published: `sema promote` bottom-up,
+`flo.tank.store.path` 000 and `flo.path.penalties.bruce` 000, then
+`flo.recommendation` 001 (which references both) and `flo.previous.run`
+000, each with its hash pin and the regenerated public index. A deployed
+snapshot is published-only, and every consumer (the FLO service, bruce,
+the LTN, the journalkeeper, the scada, the web backend) builds at these
+words on its branch, so they publish before any of those branches merge.
+`flo.tank.store.path` 000: `StoreLayers`, `TopFList`, `MiddleFList`,
+`BottomFList`, `Thermocline1List`, `Thermocline2List`, and
+`EmptyStoreWh` and `FullStoreWh` on the path's `StoreWhList` reference,
+all required, axioms StepListLengths, ThermoclinesWithinTheStore and
+EmptyBelowFull. `flo.path.penalties.bruce` 000: three per-step penalty
+lists in USD, `TerminalCostUsd`, `TerminalCostEmptyStoreUsd` and
+`PathCostUsd`, axioms PenaltyListLengths and TerminalCostBound
+(`TerminalCostUsd` is at most the empty-store cost). `flo.recommendation` 001:
+optional `StoreStateList` and `PathPenaltiesList`, each a oneOf over
+model-named words parallel to `OptimalPathList`, axioms StoreStatePerPath
+and PenaltiesPerPath; the upgrade from 000 is a version bump.
+`flo.previous.run` 000: the path, `ClearedPairIndex`, `ClearedPair` with
+`PriceUnit` and `QuantityUnit`, `NextSlotPriceX1000` (the request's
+wholesale plus distribution forecast for the slot after the one bid),
+`CreatedMs`, axiom PathStartsAtTheBid. Runtime tests mutate each axiom
+clause and round-trip the upgrade.
+
+## 2026-11-08 — Add staging katahdin layout (`862b7c1`)
+
+**Why.** Olly's first simulated plant is the Katahdin install (schematic
+D1116) rather than house0: a monobloc heat pump on a plate heat exchanger,
+a secondary pump that charges a store of one to six tanks through the V2
+hot-top / V3 cold-top valve pair, a distribution pump that serves the
+emitters from the exchanger (V1 open) or from the store (V1 closed, V4
+open), and no buffer tank, iso valve or store pump. It is the first of the
+fall installs in sema, and the first layout the "every layout has a store
+pump" assumption does not fit; the registry summary names the scada code
+that rests on it.
+
+**What.** `gw.katahdin.layout` 000, `staging`, a copy of `gw.nolan.layout`
+000 with the Nolan-only surface removed and the axioms renumbered from 1:
+RequiredActuators names `vdc-relay`, `secondary-pump-relay`,
+`hp-scada-ops-relay` and the four FCM valve relays `v1-hx-house-relay`,
+`v2-store-hot-relay`, `v3-store-cold-relay`, `v4-house-return-relay`, with
+`v5-boiler-relay` where `Hydronic.Backup` is a boiler, and both 0-10 V
+outputs `secondary-010v` and `dist-010v`; RequiredSensing is the four BTU
+meters and the heat-pump and pump powers. `SingleStoreTank` and
+`BufferTank` are gone: `Hydronic.WaterStore` stays required and
+`gw.water.store` bounds the count, and the element relays come through
+`BackupRelays`. The axiom template is the Nolan one with the same edits;
+indexes and runtime regenerated; `./ci.sh` green. Fixture, mutation tests
+and the tlayouts generator are the hand-over to Olly.
+
+## 2026-11-06 — heating.curve and operational.params stay at 000 (`ccc9be7`, td/houseparamslatest, PR 37)
+
+**Why.** Both words are `staging`, and a staging word is edited in
+place, never versioned. The regression load-forecast coefficients,
+`DdRoomTempF` and `MassFlowKgH` now sit on `heating.curve` 000 with the
+quadratic coefficients under `Baseline*` names, and `gw.operational.params`
+000 keeps its `heating.curve:000` reference. The 001 schemas, the
+old-version classes, the upgrade templates and the v001 fixture go. The
+`BaselineGammaEx6` description now states the unit the formula implies,
+kW per mph per degree F, since the term multiplies wind speed by the
+indoor-outdoor temperature difference. `created` moves to the revision
+time on both words.
+
+## 2026-11-06 — flo.refusal 000 and flo.refusal.reason 000: the FLO's answer to a request it cannot serve (`cb422c1`, jm/flo-refusal, OPS-514)
+
+A FLO service that could not answer a `flo.params` sent nothing: a
+refused request, a build that raised, a worker killed under it or a
+reply past the deadline all left the LTN waiting and bidding on its
+own without knowing why; oak's first request to `hw1.flo` (2026-11-06
+11:25 ET) was one. `flo.refusal` is the refused twin of
+`flo.recommendation` on the pattern of `gw.dispatch.nack`: discriminated
+by TypeName, paired with its request by BidderAlias and StartUnixS as
+the recommendation is, with a Reason from `flo.refusal.reason`
+(`Unknown` default, `NoTuning`, `NoMatrix`, `BuildFailed`, `BuildLost`,
+`PastDeadline`), an optional one-line Detail and CreatedMs. Published
+at birth: the word is for the production broker, where staging
+vocabulary may not run. No axioms. Runtime, indexes and published
+pins regenerated.
 
 ## 2026-11-04 — gw.g.node.class 001: TimeCoordinator and Flo (`d18a645`)
 
@@ -54,7 +199,7 @@ so it could not journal the refusals until the status caught up.
 hash pin and the regenerated public index. Its closure (three formats and
 `gw.dispatch.refusal.reason` 000) was already published.
 
-## 2026-11-03 — delete src/sema/interfaces/api <!-- pending commit -->
+## 2026-11-03 — Fail a published-only snapshot that drops a staging-only seed word (`e2a2b7d`, PR 36; also deletes src/sema/interfaces/api)
 
 **Why.** Five files from the 2025 reorg that nothing imports and that
 read the registry from a path that has not existed since: a web form for

@@ -10,6 +10,20 @@ git history.
 
 Newest at the top.
 
+## 2026-11-05 — d1.flo in the dev universe (merged `0e21ff7`, PR 19)
+
+**Why.** The FLO runs in production as the GNode `hw1.flo`, and the
+gwbase LTN sends its `flo.params` to the FLO alias its settings name
+(`d1.flo` in dev). The dev universe seeded the time, weather and price
+services but no FLO, so a FLO could not boot as a GNode on the dev
+broker and the flo-as-a-service dev harness (OPS-514) had no peer.
+`d1.flo` is now a Logical forest root in `seed-dev` with class `Flo`,
+beside `d1.time`; the façade serves it and the class-hierarchy test
+accepts it at a root. `Flo` joins the `gnr create` wizard's menu of
+known Logical classes. The scheduled-snapshot test picked the first
+sorted root as beech's forest; it now picks the copper root beech hangs
+under, since `d1.flo` sorts first.
+
 ## 2026-10-22 — gnr prepping for dev harness structure (`7eff734`, merged `eb2be53`): seed-dev, one display-name rule, read API off 8000 in the dev template, a test that main ships no staging word
 
 **Why.** The OPS-473 dev run showed the `d1` registry's seven older

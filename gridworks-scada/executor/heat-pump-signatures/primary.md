@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-10-28
+Status: Draft · Pass 0 · Updated 2026-11-12
 
 # Heat pump signatures
 
@@ -50,3 +50,10 @@ code per model, keyed on the heat pump `DeviceType` the layout binds to
   `control-hierarchy.md` "The heat-pump surface".
 - The Arctic's minimum modulation in mild weather, its stop lag, and
   whether its two compressors show as two steps in the start.
+- The Ecodan's minimum compressor run after a start. An off in the first
+  minutes of a run is honored up to about five minutes late
+  (`startup-signatures.md` "Mitsubishi Ecodan (maple)"); how early an off
+  can arrive and still stop the unit at once is unseen. No glitch fires
+  when a heat pump draws running power against an open call: hp-watch
+  reports the sensed state on Nolan layouts only, and the sieg loop's
+  blind rule needs a transition into HpOff it never sees at boot.

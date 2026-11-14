@@ -10,6 +10,72 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-11 — The fleet's time-of-use tariff as a gw.tou.tariff word for the price panel's on-peak shading (`ada1c7f`, jm/price-panel-lmp, OPS-666)
+
+**Why:** the price panel shades the tariff's on-peak hours, and the browser
+is not allowed to know what on-peak means. The on-peak windows are a
+sema fact, `gw.tou.tariff` 000 with `gw.tou.window` 000, published for
+this (sema `ae2b2ac`). The api seed takes the tariff word and the
+snapshot is regenerated; a new route `GET /api/v2/tou-tariff/current`
+answers the fleet's Versant A-1 tariff as a `TouTariff` instance in wire
+form. When houses journal `gw.operational.params`, the route serves the
+house's own `Tariff`. A test checks the shape against the word's formats
+and that the route needs a login.
+
+## 2026-11-10 — side_quests no longer import gridflo (`458fbc7`, jm/flo-plot-words, OPS-665)
+
+**Why:** three one-off analysis scripts under `side_quests/house_energy_use/`
+imported `gridflo`, the last reference in the repo to the private
+`gridworks-innovations` checkout the branch stops depending on. The
+scripts stay for reference with their `gridflo` imports commented out and
+a note saying why; the rest of each script is untouched. The folder is
+not installed code.
+
+## 2026-11-10 — Snapshot at the flo plot words with the store's bounds and the path cost (`fdb8bd0`, jm/flo-plot-words, OPS-665)
+
+The commit is the whole FLO route under a snapshot title: the route serves the recommendation word from the journal, and the optimizer and the xlsx go.
+
+**What:** `api/v2/routers/flo_recommendation.py`: `GET
+/api/v2/installations/{installation_id}/flo.recommendation?time` answers
+the newest `flo.recommendation` the journal holds whose `BidderAlias` is
+the house and whose paths start at the market slot `time` falls in, in
+the word's dict form through the vendored snapshot, behind the same
+data-access check as the readings routes; a 404 `No FLO was run in this
+hour` when no row matches. The seed pins the word at 000 and 001, since
+the journal holds the fleet's 000 rows and 001 adds the store state and
+the penalties as optional lists with no upgrade path from 000, so each
+row is served at its own version; the closure brings the path, the two
+annotation words, the pair and the two market enums. The snapshot is at
+sema `58a55b4`, the published flo plot words, built published-only by
+`scripts/regen_sema_snapshot.sh` for both packages (`api`, `gateway`);
+`test_sema_snapshots_published` passes. `flo.tank.store.path` states the
+store's empty and full energy and `flo.path.penalties.bruce` the
+empty-store terminal cost and the path cost; the route serves a 001 row
+that has them and answers 500 on a 001 row written before them.
+
+The same module serves `GET .../flo.params?time` the same way: the newest
+`flo.params` whose `GNodeAlias` is the house and whose `StartUnixS` is the
+slot start, for the FLO view's load and price traces; the seed pins the
+word at 001, which brings `flo.tuning.alice` 000 and `flo.tuning.bruce`
+001. A test seeds beech's request for the 001 slot and asserts the slot
+before, which has a recommendation but no request, is a 404.
+
+**Gone:** `flo_download.py` (re-solve the hour's `flo.params.house0`
+with the optimizer and return `result.xlsx`), the legacy `POST /flo` in
+`backend_api.py` that did the same, and the `gridworks-flo` editable path
+dependency on the private `gridworks-innovations` checkout, so the web
+box runs no optimizer and depends on nothing outside the public repos.
+The `side_quests/` scripts that import `gridflo` are untouched; they are
+not installed code.
+
+**Why:** the FLO service already publishes the answer; re-solving on the
+web box made a plot depend on which commit a sibling checkout sat at and
+ran a second optimizer against production data. The dashboard reads what
+was published. Tests seed the registry's 001 and 000 examples re-addressed
+to beech for two slots and oak's for one, and cover the word returned at
+each version, the slot with no run, the alias filter and the viewer gate.
+pytest 51 passed.
+
 ## 2026-11-01 — The weather routes serve a bundle's record and its journaled forecasts (`cddefbe`, OPS-622)
 
 **What:** `api/v2/routers/weather_forecast.py`: `GET

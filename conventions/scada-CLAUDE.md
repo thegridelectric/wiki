@@ -1,6 +1,6 @@
 # gridworks-scada — Claude protocol
 
-Status: Draft · Pass 0 · Updated 2026-10-26
+Status: Draft · Pass 0 · Updated 2026-11-06
 
 ## Scada is a statue: chip, don't sculpt
 
@@ -91,15 +91,30 @@ box only `scripts/roll.sh` does, from the committed tlayouts JSON of the
 line the house moves to.
 
 **A deployed house moves between scada lines only by `scripts/roll.sh`**
-(`<house> check | to <branch> | back`, run from the laptop), which moves
+(`<house> check | to <branch>`, run from the laptop), which moves
 the pi and the house's LTN together and verifies the layout pair both
 ways; the how-to is executor `running.md` "Rolling a house between
-lines". Spruce runs `actual-spruce` with the tlayouts `actual-spruce`
-layout and rolls to `main` with the tlayouts `main`
-layout, so its two layouts are reasoned about separately, and `check`
-says which line it is on. Do NOT boot a branch scada on a box by any
+lines". A scada branch pairs with the tlayouts branch of the same name
+when one is pushed, and with tlayouts `main` otherwise; `check` says
+which pair a house runs. Do NOT boot a branch scada on a box by any
 other path: no second checkout, no env file naming another broker, no
-window harness.
+window harness. `roll.sh` moves code and the layout pair ONLY. It NEVER
+touches `ta-deed.json`, and NEVER an identity file (`g.node.gt.json`)
+where a box has one: those are provisioned once and stay put, so a
+layout rolled onto the wrong machine meets a deed naming another
+terminal asset and the scada refuses dispatch (`ta-deed-wrong-asset`).
+
+**`operational-params.json` on a box is NEVER hand-edited, on a pi or on
+the LTN box.** The committed tlayouts JSON of the house's line is its
+only source, the `DispatchHold` block included. An operator hold is set
+by changing `operator_hold` in the house's gen (`tlayouts/<house>_gen.py`),
+regenerating, committing to the line's tlayouts branch, pushing, and
+rolling; the scada reads the file only at startup, so the hold takes
+effect at the roll's restart. `scripts/roll_compare.py` compares every
+field, the `DispatchHold` block included: a latch the scada set itself
+(`ServiceContractBroken`) shows as a difference at the roll, and the
+person decides whether the committed file goes on. Do NOT add an
+exclusion for any field to the compare.
 
 ## gwsproto rules
 

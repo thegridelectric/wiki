@@ -10,6 +10,19 @@ repo's git history.
 
 Newest at the top.
 
+## <!-- pending commit --> Reed flow firmware for the Gw101
+
+**What.** `flow_reed/` is the archived reed flow firmware with
+`PULSE_PIN` 22, the Gw101's flow-input pin, plus the app and comms
+config templates and a README section on the wiring.
+
+**Why.** Field reed meters (oak's three loop picos) move from
+breadboards to Gw101 boards. The Gw101 flow input is a bare trace to
+GP22 with the pull-up in firmware, so the dry contact goes across GND
+and signal and the old code runs unchanged apart from the pin. The
+firmware is loaded by hand, not from the provisioner, since it serves
+only the reed meters already installed and retires with them.
+
 ## 2026-10-14 — update rreadme for pico2 firmware, publication-grade sema snapshot (`50f6efa`)
 
 **What.** Two things in one commit. `scripts/regen_sema_snapshot.sh`

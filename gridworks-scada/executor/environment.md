@@ -68,15 +68,6 @@ checkouts via `uv pip install -e`) lasts until the next sync or `uv run`;
 - **The `gws` entrypoint is a symlink**, re-created by `mkenv.sh`; its
   shebang is the relative `.venv/bin/python`, so the bare `gws` works from
   the repo top level only.
-- **The laptop keeps a `legacy` worktree with its own venv.**
-  `GridWorks/scada-legacy` is a git worktree of the canonical checkout
-  on `legacy` (`git -C gridworks-scada worktree list` shows both),
-  built with its own `tools/mkenv.sh` run from inside it. A venv binds
-  to one checkout, and the tlayouts gens for the houses on `legacy`
-  and for `actual-spruce` import `layout_gen` and `gwsproto` at that
-  line, so they run with `PYTHONPATH=scada-legacy/gw_spaceheat` under
-  `scada-legacy/gw_spaceheat/venv/bin/python`, `legacy` being a pip
-  line. A moved worktree needs its venv rebuilt (absolute paths inside).
 
 ## Running tests / experiments
 

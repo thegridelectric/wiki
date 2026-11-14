@@ -23,5 +23,11 @@ ones stay under that domain's `research/explorations/`.
 
 - [`home-assistant-ltn.md`](home-assistant-ltn.md) — porting proactor/SCADA
   capabilities into a Home Assistant-native form (an "LTN wrapper" on HA).
+- [`fleet-planes-pets-to-livestock.md`](fleet-planes-pets-to-livestock.md) —
+  authority, control and observability planes for the fleet; the control
+  plane as the registry's statement of what runs where, and LTN placement.
+- [`ltn-placement-and-comms-loss.md`](ltn-placement-and-comms-loss.md) —
+  where the LTNs run against dispatch latency and comms-loss scenarios;
+  standby options costed; the local island as the eventual shape.
 - [`aris-collaboration.md`](aris-collaboration.md) — the Aris Hydronics /
   Jonathon Woolley collaboration and its open business-model questions.

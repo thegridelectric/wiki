@@ -10,6 +10,41 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-11 — this time with feeling: operator hold false on oak (`12ca00f`)
+
+**Why.** The 16:00 contract turned out to be right: 2026-11-11 is
+Veterans Day, a tariff holiday with no on-peak, so the hold placed an
+hour earlier is lifted and the LTN dispatches oak again.
+
+**What.** `oak_gen.py` `operator_hold=False`; output regenerated, the
+params file changes in that one field.
+
+## 2026-11-11 — remove operator hold (`313db8d`)
+
+**Why.** Oak's LTN issued a 2,249 W contract for the 16:00 slot, the
+first non-zero contract of the afternoon, and the heat pump ran until an
+admin session ended it at 16:15. The operator holds oak out of dispatch
+while the FLO's choice is looked at. The hold is
+`DispatchHold.OperatorHold` in the ops word, and a box gets it from the
+committed pair through a roll. (The title says "remove"; the diff sets
+the hold.)
+
+**What.** `oak_gen.py` `operator_hold=True`; output regenerated, the
+params file changes in that one field. The gen's fetch also refreshed
+`oak.uploaded.json` to the pi's running layout (the 2026-11-05 dist-flow
+pico).
+
+## 2026-11-05 — new flow pico on a gw101 for dist-flow at oak (`3b39df4`)
+
+**Why.** The oak dist-flow reed meter moves from its breadboard pico to
+a Gw101 carrier (gridworks-pico `flow_reed/`). The new pico identified
+itself to the scada on 2026-11-05 as `pico_607636`, so the layout
+names it and the node and its channels come back from disabled.
+
+**What.** `oak_gen.py` dist FlowSpec takes the new HwUid; `dist-flow`
+and `dist-flow-hz` leave the disabled lists. Board variant stays
+Unknown since `flow.reed.params` names no board. Output regenerated.
+
 ## 2026-11-05 — Add last-hour-dist-energy to beech (`b4d0c93`)
 
 **Why.** The `last-hour-dist-energy` derived channel (scada PR 606) was

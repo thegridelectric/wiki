@@ -1,6 +1,6 @@
 # working-store
 
-Status: Draft · Pass 0 · Updated 2026-10-26 · Linear: OPS-531
+Status: Draft · Pass 0 · Updated 2026-11-06 · Linear: OPS-531
 
 > What this is: a spoke of [`primary.md`](primary.md). The LTN's small
 > SQLite working store: what it holds, how hourly rows are reduced from
@@ -60,6 +60,18 @@ Open:
 - The three-week window against the fit's backlook: the store's window
   is the upper limit on the fit window
   ([`fit-on-the-box.md`](fit-on-the-box.md) "Window").
+- **The forecast's own history comes from the store.** The load model
+  has autoregressive terms: the previous hour's load, the four-hour mean
+  load and the four-hour mean outdoor temperature. At the bid minute the
+  LTN reads the last four hourly rows for them. Today those four hours
+  are two in-memory lists in `actors/ltn/ltn.py` (`last_four_dist_kwh`,
+  `last_four_oat_f`) that start empty on every LTN restart, so the first
+  run after a restart falls back to the baseline model and the next
+  three run the regression on means over fewer hours than it was fitted
+  on. The store retires both lists, and the hourly row is where the
+  typing of those inputs is settled: energy in kWh as a float, outdoor
+  temperature in °F as a float, an hour with no reading as an absent
+  row, not a `None` inside a tuple inside an optional list.
 
 ## Build step
 
