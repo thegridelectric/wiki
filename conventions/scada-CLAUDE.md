@@ -1,6 +1,6 @@
 # gridworks-scada — Claude protocol
 
-Status: Draft · Pass 0 · Updated 2026-11-06
+Status: Draft · Pass 0 · Updated 2026-11-14
 
 ## Scada is a statue: chip, don't sculpt
 
@@ -8,36 +8,24 @@ In `gridworks-scada` every change is made with the utmost care unless the
 human has given a specific green light. Two things combine to make my
 default gravity produce errors: an existing and rather unique codebase, and
 a set of ideas about how the human wants to change it that I do not fully
-understand. On top of those sit mistakes already in the code, including
-recent ones made when this care was not taken. So: remove only what
+understand. On top of those sit mistakes already in the code, and test
+coverage thin enough that even a well-tested area (the sieg loop, with its
+1,200-line test file) has behaviour no test pins. So: remove only what
 demonstrably does not belong; for each change, state the problem it solves
 and how we really want to solve it before touching code; no drive-by
 refactors, renames, or "improvements" alongside the change at hand.
 
+A change that reshapes a path (a sculpt) lists every behaviour difference
+it makes, intended or not, and the list is checked by a reader who did not
+write the change, since an author's own list has come up short (scada
+#618: five differences found by an independent line-by-line comparison).
+Each difference gets a test that pins it. A sculpt that touches drivers,
+I2C or GPIO, metering or relay actuation also runs on a bench Pi before it
+merges.
+
 Every feature we create or touch gets a test, and a break in `pytest` is
 the rope: follow it up, fix what it reaches, and keep climbing rather than
 routing around it.
-
-## ⏳ The single scada focus (set 2026-09-01; REMOVE when both sim houses run in dev)
-
-Get a simulated House0 and a simulated spruce working against tests with
-genuinely decent coverage, and nothing else. CHALLENGE any scada work that
-does not serve this focus, including work Jessica floats. One clear
-exception: work that **clears out the pipes**, finding hidden crud on a
-path the fleet really runs that we would not otherwise easily find (a
-channel nothing sends on, a creator no actor claims, a reading dropped at a
-boundary). That work serves the focus without needing to be named by it,
-because it finds what tests written from today's understanding do not look
-for. It is not to be challenged, and it matters most on the paths that
-serve the core mission on the electric grid: metering, energy, the
-transactive boundary.
-
-Once green: run both in dev, then bring the four upstream data repos (gjk,
-gridworks-data, gridworks-web-backend, gridworks-web-frontend) to correct
-layout-sema ingestion IN DEV. No per-house "specials" upstream: the
-standing team rule (2024) is that data analysis never slows the production
-system, and hard-coded channel-name strings in data services are the named
-enemy of that rule.
 
 ## Layouts
 
@@ -47,14 +35,6 @@ control manifold (no iso valve, no buffer tank); the third is a cement
 store-under-floor with no water tanks at all. Scada code SHALL NOT assume a
 buffer tank, an iso valve, or water store tanks exist; "shared" means every
 layout we can imagine has it, not both current families.
-
-**⏳ fir, elm and oak are being refactored to House0 layouts with fake
-sieg BTUs (REMOVE when `gw.house0.no.sieg` exists).** Each gen gets a
-sieg BTU meter on a pico that does not exist, with the meter node and its
-sieg channels disabled, and its sieg loop on relays nothing at the house is
-wired to; oak is done (`tlayouts/oak_gen.py`). Do not relax the
-`SiegManifoldChannels` axiom. The three houses move to a
-`gw.house0.no.sieg` word once House0 is close to stable.
 
 **The Nolan iso valve is NOT under hp-boss.** `NolanBufferOnlyTou` owns
 `iso-valve-relay`: the boot posture commands it open and nothing closes
