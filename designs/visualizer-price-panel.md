@@ -1,6 +1,6 @@
 # Visualizer price panel
 
-Status: Accepted · Pass 1 · Updated 2026-11-13 · Linear: OPS-666
+Status: Accepted · Pass 1 · Updated 2026-11-14 · Linear: OPS-666
 
 **EDD: yes** the panel on the visualizer page draws, for a window that
 spans a day-ahead publication, the price forecast the house's FLO ran on
@@ -291,15 +291,19 @@ delivery list gave before 002.
 
 ## Plan
 
-**Do this next:** step 5, the web backend's forecast-for-house-and-hour
-route (rule 1, then rule 2), with the `gridworks-flo` dependency
-removal. The service and both LTNs deploy in one cutover after the
-words are promoted: the service's legacy route serves the new word, so
-an LTN on the old code breaks the moment the service ships, and an LTN
-on the new code has nothing to read until it does.
+**Do this next:** step 6, the panel reads
+`GET /api/v2/installations/{alias}/price-forecast?time=` (the
+`gw.price.forecast` word; the panel asks with the window's first hour,
+divides `PriceX1000List` by 1000 and draws the slots inside the window),
+the stopgap fetch goes, and the check is on the page with the default
+window against the backend on `tsdb_tap`. The service and both LTNs
+deploy in one cutover after the words are promoted: the service's
+legacy route serves the new word, so an LTN on the old code breaks the
+moment the service ships, and an LTN on the new code has nothing to
+read until it does.
 
-**Where the build stands (2026-11-13).** Steps 1, 2 and 3 are done on
-branches.
+**Where the build stands (2026-11-14).** Steps 1, 2, 3 and 5 are done
+on branches.
 
 - **sema**: on `dev` at `115aea2` (the price words in `ebbc627`); the
   earlier `jm/price-forecast-one-list` at `95a63bc` (its title is
@@ -322,11 +326,19 @@ branches.
   forecast's slots starting at the request's own; a forecast without
   that slot refuses the request. The scada's protocol twins moved with
   its snapshot (`FloParams` 002, `PriceForecast`, the product name
-  enum 001). The scada's commit is `a9f6ba88`; the port's is pending.
-- **journalkeeper**, `jm/price-forecast-word`: the seed takes
-  `gw.price.forecast` (journaled on its own id and clock) and
+  enum 001). The scada's commit is `a9f6ba88`; the port's is `d8bcdbf`.
+- **journalkeeper**, `jm/price-forecast-word` at `96e9a9d`: the seed
+  takes `gw.price.forecast` (journaled on its own id and clock) and
   `layout.lite` 014; 013 moves to the old versions and the 014 row is
-  projected like a 013 row. Gate green, commit pending.
+  projected like a 013 row.
+- **web backend**, `jm/price-forecast-word`, cut from OPS-665's
+  `jm/flo-plot-words` rebased on `main`, commit pending: the
+  forecast-for-house-and-hour route (`api/v2/routers/house_price_forecast.py`),
+  the seed with `gw.price.forecast` and `flo.params` 001 and 002, the
+  snapshot regenerated with staging admitted. The regen also took
+  `gw.house.summary` 003 and `layout.lite` 014, so step 9.3's backend
+  part is in the same change. The response is the word alone; the
+  rule that chose it waits on a sema enum (see "Open").
 - Everything stays off `hw1` until the words are promoted. The price
   service does not merge to `main` before then.
 
@@ -369,9 +381,8 @@ Ordered by dependency; each step is a spoke if it outgrows a section.
 4. **MarketMaker**: `latest.price` 001 with its parts, the A-1 table at
    the Seventeenth Revision.
 5. **web backend**: the forecast-for-house-and-hour route (rule 1, then
-   rule 2), the `gridworks-flo` dependency removal in the same change
-   (nothing imports it; it pins an editable checkout on web-api2 that
-   is to be deleted).
+   rule 2). The `gridworks-flo` dependency removal is OPS-665's, on
+   `jm/flo-plot-words`, which this branch includes.
 6. **web frontend**: the panel reads that route; the stopgap fetch goes.
    Checked on the page with the default window before the PR.
 7. **The real-time price.** The MarketMaker publishes a `latest.price`
@@ -406,9 +417,9 @@ Ordered by dependency; each step is a spoke if it outgrows a section.
       seed and the layout union; the layouts table stores the payload,
       so no schema change). `gw.house.summary` is the backend's word,
       not the journal's.
-   3. **web backend**: snapshot takes 014 and summary 003; the summaries
-      route decodes 013 and 014 rows and emits summary 003; the fleet
-      tariff route gets its retiring note.
+   3. **web backend**: done on `jm/price-forecast-word` with step 5
+      (the summaries route decodes 013 and 014 rows and emits summary
+      003; the fleet tariff route names the 014 `Tariff` that retires it).
    4. **web frontend**: vendored zod for 014 and summary 003; the price
       panel and the FLO plot read `Layout.Tariff`, else the fallback
       route. Checked on the page against a 014 row.
@@ -423,6 +434,11 @@ design; OPS-665 is the pattern (the browser draws the published word).
 ## Open
 
 - The service's broker auth posture (OPS-437's question).
+- Which rule chose the forecast the house route serves (the house's
+  own request named it, or it was the newest published). The design
+  calls for a small sema enum derived in the backend and sent as data;
+  the route serves the word alone until the enum exists. The route
+  does not fall back to the stopgap service's live forecast.
 - What went into a forecast. The forecast word states the price and
   nothing about its making: the ISO-NE posting it was built from, how
   many of its hours are ISO-NE's own and how many are repeats, the

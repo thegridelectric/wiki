@@ -10,6 +10,30 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-14 — The price panel's forecast for a house and hour, from the journal (<!-- pending commit -->, jm/price-forecast-word, OPS-666)
+
+**Why:** the price panel draws the stopgap service's live forecast, which
+has no past, so the default window shows nothing. The journal now takes
+`gw.price.forecast` (one per ISO-NE posting, under a stable `ForecastUid`)
+and `flo.params` 002 names the forecast the LTN read its prices from. A
+new route `GET /api/v2/installations/{alias}/price-forecast?time=` answers
+with the forecast word for the market slot `time` falls in: the one the
+house's own `flo.params` for that slot names, else the newest the service
+had published by `time`, else 404. Which rule chose it is not in the
+response; a sema enum for it waits on the registry reopening. The api
+seed takes `gw.price.forecast` and both `flo.params` versions (001 rows
+from oak have two price lists and no forecast id), and the FLO route
+decodes 001 rows at their own version. The snapshot is regenerated with
+staging words admitted (`ALLOW_STAGED=1`, a switch the regen script now
+has), which also moved `gw.house.summary` to 003 and `layout.lite` to
+014: the summaries route decodes 013 and 014 layout rows and emits
+summary 003, and the fleet tariff route's prose names the 014 `Tariff`
+that retires it. The branch is cut from `jm/flo-plot-words` (OPS-665,
+which already drops the `gridworks-flo` dependency) rebased on `main`.
+Staging words run on dev only, so the branch merges after promotion.
+Tests seed two service forecasts and an oak `flo.params` 002 naming the
+earlier one; 58 passed.
+
 ## 2026-11-14 — Stop printing every SQL command (`206b926`, jm/no-sql-echo, cherry-pick of Thomas's `4dcd5d4a`)
 
 **Why:** the api service's async engine was created with `echo=True`, so
