@@ -39,7 +39,7 @@ mkdir -p "$HOME/.claude" && : > "$marker"
 CTX="Your active-claims Scope includes experiments/. Before creating or editing an experiment folder you MUST read \`experiments/README.md\` (\"Layout\" and \"Conventions\") and \`experiments/experiment-README-template.md\`. Run first, quickly and natively; the record (README from the template, runbook, evidence, instances/, logbook line, executor claim) follows in the same session before anything else.
 
 Anchor rules (the README is authoritative):
-  - One folder per experiment, \`<first-run-date>-<slug>/\`; queued work lives in \`future/<slug>/\` and moves on first run; the logbook gets one line.
+  - One folder per experiment, \`<first-run-date>-<slug>/\` at the top (older seasons under \`archive/\`); undated kinds live under \`datasets/\`, \`practices/\` and \`procedures/\`; queued work lives in \`future/<slug>/\` and moves on first run; the logbook gets one line.
   - Running on a pi: the box holds ONE clone of the experiments repo at a pushed SHA (\`~/experiments\`, pulled, never scp'd) and the harness runs from it. Nothing else is placed in the pi's home dir; whatever a window puts there, its restore step removes. What must stay is recorded in the box's \`~/README.md\` in the same window.
   - Wire-encoded data files are the evidence and stay untouched; results are sema instances under \`instances/\`.
 

@@ -85,7 +85,7 @@ settable per-channel rail value first:
 ## Verification (EDD)
 
 Two claims, each in a bounded field window
-(`experiments/beta-field-windows/`). The baseline window (beech,
+(`experiments/practices/beta-field-windows/`). The baseline window (beech,
 2026-09-21, `b86da812`) only showed the meter's channels staying live.
 
 - **A lost meter channel is unknown within seconds, beech.** Break the

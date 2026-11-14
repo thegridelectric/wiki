@@ -8,6 +8,93 @@ corresponding code-repo commit.
 This changelog does NOT track wiki edits — those live in the wiki
 repo's git history.
 
+## 2026-11-14 — heating.curve 000: regression model named, two anchor axioms, RhoTimes100 positive (`3f98f67`, with `42e2a2b` merging dev; on td/houseparamslatest, merged to dev via PR #37)
+
+**Why:** Thomas's branch gives `heating.curve` the LTN's regression
+load-forecast model beside the baseline heat-load model, both in the one
+staging word, edited in place at 000 (the split into two words is OPS-668,
+later). The review fixes go on his branch: `dev` merged in with both
+words' `created` moved to the merge's time, as the spec asks of a staging
+revision; the top-level description names the regression model; one name
+for the radiator model; the baseline is no longer called quadratic and
+the gamma term states its fixed 65 F indoor temperature; `RhoTimes100`
+is `positive.int`; axioms 1 and 2 state that the design-day RSWT and
+power are at least the intermediate anchor's, with mutation tests. No
+axiom relates `DdRswtF` to `MaxEwtF`: a required temperature above what
+the emitters tolerate is a real house once resistive elements heat the
+store.
+
+## 2026-11-13 — layout.lite 014 states the house's tariff; gw.operational.params prose states the tariff's own meaning (`115aea2`, jm/flo-params-tariff, OPS-666)
+
+**Why.** The visualizer shades the tariff's on-peak hours on the price
+panel and the FLO plot, and the only source the backend had was a
+hand-kept fleet constant. The ops word, which holds the tariff, is
+staging and will change for a month, so nothing journals it. The scada
+emits `layout.lite` at boot, the journalkeeper keeps the latest per
+house, and the house summary sends it to the browser, so 014 adds the
+`Tariff` the scada copies from its ops word; `gw.house.summary` 003
+accepts 014 in `Layout`. Both staging. The 013 upgrade refuses for want
+of context, and 013 gains the example a superseded version must have (a
+permitted in-place addition on a published version; its pin is
+rewritten). A `Tariff` in `flo.params` 002 was weighed and declined: a
+plotting fact in the optimizer's request word, permanent once 002
+publishes. The ops word's `Tariff` prose claimed the heat pump is held
+off during on-peak hours, which is local control's behavior when it is
+in charge and not the tariff's meaning; `Tariff` and
+`UsesBackupWhenCold` now state their own meaning (staging, in place).
+
+## 2026-11-13 — gw.market.product.name 001 adds rt60gate1 (`ebbc627`, jm/rt60gate1, OPS-666)
+
+**Why.** The Keene market claimed `rt60gate5`, a gate closing five
+minutes before the slot, while the LTNs bid about three minutes before
+it and the maker drops every bid. The product the fleet runs is an
+hourly market whose bids are in by one minute before the slot, so the
+enum names it: `rt60gate1`. The enum is published, so the value is a
+new staging version; `gw.price.forecast` 000 and `gw.operational.params`
+000 are staging and take the 001 ref in place.
+
+## 2026-11-13 — Price fields converge on PriceX1000 (`ebbc627`, jm/price-forecast-one-list, OPS-666)
+
+**Why.** The vocabulary spelled the same quantity, a price in `PriceUnit`
+times 1000 as an integer, two ways: `PriceX1000` in the bid line
+(`price.quantity.unitless` 001 and every word that holds a pair) and
+`PriceTimes1000` in the price-publication line. One spelling is the
+convention. The bid line is published and cannot change, so the three
+staging words move to it in place:
+
+- `latest.price` 001: `PriceTimes1000` is `PriceX1000`; the 000 → 001
+  upgrade renames the field.
+- `price.component` 000: `PriceTimes1000` is `PriceX1000`.
+- `gw.price.forecast` 000: `PriceTimes1000List` is `PriceX1000List`.
+
+`latest.price` 000 is published and keeps `PriceTimes1000`; every live
+consumer (marketmaker, ltn, scada, journalkeeper) vendors 000 and is
+untouched.
+
+## 2026-11-12 — One price list in gw.price.forecast and flo.params 002 (`ebbc627`, jm/price-forecast-one-list, OPS-666)
+
+**Why.** The FLO optimizes against the sum of the price lists and makes
+no decision on how the price divides, and the LTN adds them again to
+state the next slot's expected price. A forecast in named parts made
+every reader add the parts to get a price, which is knowledge the LTN
+and the optimizer should not need. The forecast is of one product's
+price, so it is one list.
+
+Both words are `staging` and are edited in place:
+
+- `gw.price.forecast` 000 has `PriceTimes1000List` in place of
+  `SeriesList`, loses `TariffAlias` and the two axioms about series,
+  and keeps the slot-grid axiom with one price per slot.
+- `gw.price.forecast.series` is deleted. It had one staging version and
+  one referrer.
+- `flo.params` 002 has `PriceUsdMwhList` in place of `LmpUsdMwhList`
+  and `DistUsdMwhList`.
+
+`latest.price` 001 keeps its components: it is the actual price and the
+MarketMaker owns its recipe. What went into a forecast (the source
+posting, the repeated hours, the tariff revision) is left for a later
+basis word keyed by `ForecastUid`.
+
 ## 2026-11-11 — Add the price component words (`eba7ece`, jm/price-components, OPS-666)
 
 **Why.** `latest.price` is the price that settles the contract between
@@ -1547,7 +1634,7 @@ boot state holding the pump off had no exit if power never arrived.
 staging to published, bottom-up, by `sema promote`: five status lines,
 five hash pins, the regenerated public index, nothing else. **Why:** the
 alerter's laptop experiment against Alertmanager passed
-(`experiments/2026-09-30-alerter-to-alertmanager/`), which the
+(`experiments/archive/2026-09-30-alerter-to-alertmanager/`), which the
 alertmanager design set as the gate for promotion; a published closure
 is what lets the alerter ship a published-only snapshot to the alerts
 box on the hw1 broker.
@@ -3127,7 +3214,7 @@ hand-ported axiom logic. Full suite green (463 passed).
 The scada-side gwsproto mirrors (`House0Component` / `NolanComponent`) move in
 lockstep in the gridworks-scada repo. Real-broker verified: a sim-sensor-swapped
 layout decodes through the widened union and self-generates
-(`experiments/2026-08-15-sim-boot-from-word/`).
+(`experiments/archive/2026-08-15-sim-boot-from-word/`).
 
 ## 2026-08-14 — Example type check reports the rule it broke (`66d6463`)
 

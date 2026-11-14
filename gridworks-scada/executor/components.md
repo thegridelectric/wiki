@@ -271,7 +271,7 @@ layout says the pico should run with. The exchange settles three things.
 A pico does not always make the boot post. On a power cycle some picos
 resume readings with no params post, a different set on each boot, so a
 pico can run unchecked, on its own capture settings, until its next boot
-(`experiments/2026-09-19-spruce-pico-params/`).
+(`experiments/archive/2026-09-19-spruce-pico-params/`).
 
 The web handlers run off the proactor thread. A handler answers the pico
 and queues the accepted post to its own actor (`send_threadsafe`);

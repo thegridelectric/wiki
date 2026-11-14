@@ -1,6 +1,6 @@
 # Start-up signatures
 
-Status: Draft · Pass 0 · Updated 2026-11-12
+Status: Draft · Pass 0 · Updated 2026-11-13
 
 > What this is: what a heat pump start looks like in the scada's channels,
 > per heat pump model, with the Siegenthaler loop open and closed: the
@@ -53,8 +53,12 @@ Neither heat pump has winter data taken this way with the loop closed.
 ## Mitsubishi Ecodan (maple)
 
 - Standby 58 W (p10 55, p90 72).
-- From relay 6 closing, nothing for a median 215 s; a second cluster of
-  starts waits about ten minutes (p90 613 s, longest 894 s).
+- From relay 6 closing, nothing on `hp-odu-pwr` for a median 215 s (216,
+  224 and 215 s on 2026-11-13); a second cluster of starts waits about
+  ten minutes (p90 613 s, longest 894 s). The primary pump starts within
+  about 30 s of the call and the compressor about 190 s after the pump
+  ([`idle-signatures.md`](idle-signatures.md) "Mitsubishi Ecodan (maple)"
+  for the pump).
 - Then one near-vertical step, 0 to 1 kW in about 18 s, with no separate
   pump or fan stage. About half the starts hold at 1.0–1.4 kW for a few
   minutes; 1500 W comes at a median 414 s from the command.
@@ -70,9 +74,12 @@ Neither heat pump has winter data taken this way with the loop closed.
   more (2026-11-08 08:00 ET), 60 s in at 3.0 kW for 44 s (08:04 the same
   morning), and a scada restart on 2026-11-11 at 15:14 ET found a run 4.5
   minutes old still drawing 1.7 kW 87 s after the off, when the call
-  closed again. A minimum compressor run after a start is the likely
-  cause. What the unit does when the off arrives under 60 s into a start
-  is unseen.
+  closed again. On 2026-11-13 an off 28 s after the compressor started
+  (13:22:29 ET, at 1.4 kW) was honored 6 min 14 s later, and an off 3 s
+  after a start (13:41:16 ET) 6 min 8 s later, the unit ramping to 2.5 kW
+  in between; both with the loop at full keep, which took the loop to 138
+  and 140 F. The unit runs about six minutes from a compressor start
+  whenever the off arrives inside them: a minimum compressor run.
 - Thirty-day maximum LWT 138.9 F. Its upper limit with the loop closed
   has not been observed.
 

@@ -297,12 +297,12 @@ OutOfRange today). The client tracks each command by `TriggerId` and
 toasts one line per answer (`watch/relay_app.py:255`).
 
 **Verified on the real house, 2026-09-08**
-(`experiments/2026-09-08-spruce-admin-panel/`): on spruce's Nolan
+(`experiments/archive/2026-09-08-spruce-admin-panel/`): on spruce's Nolan
 layout the panel rendered the twenty relays, the pico-cycler and
 hp-boss rows and the DAC; Reboot picos, relay and valve events and DAC
 levels each reached the actor the row names and the row followed the
 node's state report. The sim witness with the same client is
-`experiments/2026-09-07-admin-reboots-picos/`. Reconfirmed 2026-09-21 on
+`experiments/archive/2026-09-07-admin-reboots-picos/`. Reconfirmed 2026-09-21 on
 a later commit (`experiments/2026-09-21-spruce-secondary-pump-admin-dryrun/`):
 `CloseRelay`/`OpenRelay` on `secondary-pump-relay` each cross-checked
 against the gw108 0x21 relay register directly, not just the panel's own

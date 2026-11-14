@@ -1,6 +1,6 @@
 # Production security: a weekly supervised patch run
 
-Status: Draft · Pass 0 · Updated 2026-11-11 · Linear: OPS-662
+Status: Draft · Pass 0 · Updated 2026-11-13 · Linear: OPS-662
 
 **EDD: no** infra remediation; verified by re-surveying the live boxes
 after each weekly run (kernel running = kernel installed, no
@@ -67,6 +67,13 @@ Each box: apply the distribution's security updates, reboot when the box
 asks for it, wait for the units to come back, print HEAD, unit states
 and the running kernel. A recurring Linear issue is the weekly prompt;
 the drift hook reports patch state between runs.
+
+The steps below are checked against four constraints that outlive this
+design: no AWS where a choice exists; nothing central that cannot be
+rebuilt from a README, a spec and the record; no agent with authority
+it has not earned; a record anyone can witness. The tailnet, the
+Hetzner moves, the self-hosted database (OPS-680, OPS-676) and the
+observer agent (OPS-681) are those four applied beyond patching.
 
 The run is supervised because every box is a single service with no
 standby, and a reboot that does not come back is an outage until a human
@@ -199,9 +206,10 @@ table, a health check, no interactive steps).
    on-demand support tunnel (OPS-663) works on one house; that keeps the
    tailnet's tagged-resource count at the platform VMs however many
    homes there are.
-7. **Weekly prompt and reporting:** a recurring Linear issue (`loop`
-   label) and the drift hook extended to reboot-required plus pending
-   security-update count per box.
+7. **Weekly prompt and reporting:** the patch hook's daily line says
+   when the weekly run is due (seven days after the last `full` list)
+   and the run follows the OPS-675 recipe; each run closes with a
+   comment on that issue. Nothing recurs in Linear.
 8. **Inbound ssh:** the VMs join the tailnet, 22 closes on the Hetzner
    firewall, a source allowlist for any box that cannot run Tailscale;
    recorded in `gridworks-infra/authority/ssh-access.md`.
@@ -409,14 +417,146 @@ are retired.
   (price-forecast and curtailment CSVs, weather.json, copied from the
   old AWS box, now gone) and the four `flo_next_hour_plans.json` files
   are also legacy and still there.
-- Next move: step 7, the weekly prompt (a recurring Linear issue with
-  the `loop` label) and the drift hook extended to reboot-required plus
-  pending security-update count per box, so the fleet cannot drift back
-  while step 8 is designed. The box roster for both is the platform
-  inventory plus the eleven Pis; hw2-1 is on it (root login, no service
-  to pre-check).
+- 2026-11-12 evening, step 7 done. `wiki/tools/check-patch.sh` runs at
+  SessionStart beside check-drift (same daily marker and re-report
+  shape, boxes probed in parallel, 5 s for 25): per box it reports a
+  pending reboot and the packages behind it, the count of upgradable
+  `-security` packages, an apt list older than three days, and
+  unreachable. The ordinary pocket is not reported. The weekly prompt is
+  OPS-675 "weekly patch run" (`loop`, Backlog; recurrence to be set
+  weekly in the Linear UI, which the API cannot do). First run of the
+  hook: certbot, ltn, rmqbot and pii want a kernel reboot; gjk, tap,
+  flo, ltn, rmqbot and web-api2 hold 2 to 5 security updates (the
+  morning's unattended run has not reached them yet, or they are
+  phased); beech2's apt lists are three days old. Finding on the way:
+  **no Pi has unattended-upgrades installed.** Step 6 planned it in the
+  sd-card recipe and the catch-up did not include it, so a Pi is
+  patched only when the weekly run reaches it, and every Pi will show a
+  stale apt list in this hook within days. The fix is one install per
+  Pi: `unattended-upgrades` with the Debian-Security origin only,
+  kernel and firmware held, reboot off, plus the apt-daily periodic
+  config; eleven boxes, the scada running throughout.
+- 2026-11-13 morning: done on all eleven Pis, beech2 first, the other
+  ten in parallel, every scada active throughout and no new failed
+  unit (spruce's failed `NetworkManager-wait-online` is the 11-11 boot
+  before the hotspot-profile fix). Debian's shipped `Origins-Pattern`
+  list also admits the point-release pocket, so the override clears it
+  and names the two Debian-Security patterns alone; the dry run on each
+  box confirms the two origins. The recipe (`sd-card-recipe.md`) has the
+  commands and the runbook's weekly-run section says what the `debian`
+  stage is now: the point-release pocket plus any security update the
+  nightly run has not yet taken.
+- 2026-11-13, the hook split in two. The daily line was printing
+  "2 security updates pending" for boxes whose nightly run would take
+  them that night, which is not something a person acts on. `daily`
+  (SessionStart) now reports only a stopped machinery: box unreachable,
+  unattended-upgrades missing or its timer disabled, no nightly run for
+  two days, apt lists older than three days. `full` is step 1 of the
+  weekly run and lists per box the pending reboot with its packages,
+  security and ordinary counts. The first daily run says only "beech2:
+  apt lists older than 3 days" (its first apt-daily fires this evening).
+  The first full run, after this morning's nightly runs took a glibc
+  security update and the -149 kernel fleet-wide: eleven of the fourteen
+  VMs want a reboot (certbot, gjk, tap, mm, flo, ltn, hw2-1, rmqbot,
+  web-api2, pii; ltn has two kernels queued), ear, gnr, tap and pii
+  hold 3 to 5 security updates for tonight, no Pi wants anything but
+  the ordinary pocket. A severity signal is not in the hook: the apt
+  metadata does not say which security update is being exploited. For a
+  same-day reboot the trigger is the Ubuntu Security Notice itself
+  (ubuntu.com/security/notices, kernel, glibc and openssh entries), read
+  by a person; the hook cannot grade it.
+- 2026-11-13 midday, the first OPS-675 instance, one box at a time
+  with a pre-check, the reboot and a post-check each: hw2-1, certbot,
+  web-api2, gjk, tap, mm (11:54, before the window), flo (12:03, after
+  the :57 solves), ltn (12:05, mid-hour, 32 s without the six LTNs, no
+  contract break: the scada has no missed-heartbeat rule, so a contract
+  runs to its hour end), rmqbot (40 s, 9 AMQP and 12 MQTT connections
+  back to baseline), pii. Then the point-release pocket on all eleven
+  Pis (parted set and tailscale 1.104.7; same kernel, no Pi reboot).
+  Two things the run taught, now in the OPS-675 recipe: the service
+  aliases for gjk, tap, mm, flo and ltn have no sudo, so a reboot goes
+  as root on the hostname, and the first gjk attempt did nothing for
+  that reason; the flo box has a window of its own around :57. The ear
+  was not on the list and is not rebooted as a single copy (OPS-676).
+  beech2's apt lists had gone stale although its timer ran; refreshed
+  by hand, a repeat would point at that Pi's morning network.
+- 2026-11-13: no recurring Linear issue. The daily hook line prompts
+  the run once the last `full` list is a week old; OPS-675 stays Done
+  as the recipe and the log of runs (one comment per run).
+- 2026-11-13 evening, step 8 first half: all fourteen VMs joined the
+  tailnet as `tag:platform` with Tailscale SSH on, from one reusable
+  one-day auth key generated in the admin console; the policy gained
+  the tag owner and one ssh rule (any member to any platform node, as
+  any non-root user or root). Each node verified three ways from the
+  laptop: in the roster with the tag, keyed ssh over its tailnet
+  address, and a Tailscale SSH login with no key offered. The Pis stay
+  untagged user devices. web-api2 refused the install with a full 6.8 GB
+  root disk (snap 783 MB, a held-back journal, apt cache); clearing the
+  cache and old journals freed enough, 700 MB left, and that box needs a
+  larger volume or a snap purge before the ordinary pocket is ever
+  applied there. The gjk, tap, mm, flo and ltn aliases log in as service
+  users, so the installs went as root on the hostname.
+- Next move: step 8 second half, close 22. Order: every team member's
+  ssh config points at the tailnet names first (the fleet keys keep
+  working over the tailnet, Tailscale SSH needs none), the team is told,
+  then the Hetzner firewall drops its 22 rule and the three AWS security
+  groups lose their 22 ingress, one box at a time with a login check
+  after each. Recorded in `authority/ssh-access.md`, each
+  instance-README and the inventory as the last part of the step.
 - The ordinary updates pocket (35 to 67 packages per box) is left for a
   decision on whether the weekly run applies it.
+
+## Docker
+
+The platform services are moving into containers (hw2-1 is the first
+host built for it). The host side of this design is unchanged: kernel,
+sshd, systemd and the Docker engine are host packages, the security
+pocket installs unattended, the kernel waits for the weekly attended
+reboot, and steps 7 and 8 apply as written. Three things move.
+
+**Application patching leaves apt.** A service's Python, OpenSSL and
+libc are the image's, and unattended-upgrades does not reach inside an
+image. Images are rebuilt from a pinned base on the weekly run and on a
+base-image advisory; a scanner (trivy or docker scout) runs in the
+repo's `ci.sh` so a stale base fails the build. The image is the
+artifact: the git SHA is a label set at build, boxes run a pinned
+digest from the org's private registry, and `check-drift.sh` compares
+the running container's label with the branch head and flags an image
+older than the base-image policy. A hand-built image on a box is the
+hand-deploy the prod-boxes rule already forbids. The registry pull
+credential on each box is non-repo state in its instance README.
+
+**The docker socket is root.** A member of the `docker` group can mount
+`/` and own the host, so a service login that runs containers has root
+and the finding that service logins have no sudo stops being true for
+that box. hw2-1 accepts this because no `hw1` credential is there. A
+box that holds an `hw1` cert runs rootless Docker (or podman) so the
+split between the service login and root is kept. Decide this on hw2-1
+first, before the first `hw1` service goes into a container.
+
+**Certs, env, ports and logs.** One cert, one program becomes one cert,
+one container: cert and `.env` are bind-mounted read-only at run time
+and never baked into an image, and an image that has touched them is
+never pushed. Docker writes its iptables rules ahead of ufw's, so a
+published port is open whatever ufw says; on the VMs the cloud firewall
+in front decides exposure as before, and a Pi has no such firewall, so
+a Pi stays on systemd units or publishes nothing. The post-check
+becomes: every container up with `restart: unless-stopped`,
+`docker.service` enabled, healthchecks passing. Compose points the log
+driver at journald so the reboot runbook's error-line grep keeps
+working.
+
+**Fewer boxes.** Of the fourteen platform VMs, nine are one small gwbase
+actor each on a cx23 (ear, forecast, gjk, alerts, mm, flo, certbot,
+rmqbot, web-api2). With containers these can share two or three larger
+hosts. The broker, gnr (its LUKS volume and seed-store key), rmqtap and
+ltn stay on their own boxes: each is a blast radius or a credential set
+that should not share a kernel with anything else. A shared host
+changes two things in this design: one reboot takes several services
+down together, so the sweep schedules the shared hosts in the quiet
+window the broker reboot already uses; and the docker-socket question
+widens, since root on a shared host is root over every service on it,
+which is the reason rootless comes first.
 
 ## Open questions
 

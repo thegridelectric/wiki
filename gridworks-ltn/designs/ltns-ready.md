@@ -320,7 +320,7 @@ none, and the squash commit's entry is the branch as a whole.
   down and keeps every quantity change (`jm/bid-descends-from-price-max`,
   PR 1 to Thomas). What the sweep fixed in the field: every bid of oak's
   first day on td/bruce (2026-10-31 to 11-01, read off the box log and
-  the journal in `experiments/oaks-first-ltn/`) was one pair at the
+  the journal in `experiments/datasets/oaks-first-ltn/`) was one pair at the
   floor, because the deployed sweep dropped every quantity decrease.
   The forked sweep has run on oak since the roll.
 - [x] The LTN builds `flo.params` from the ops word, the layout's water
@@ -680,7 +680,7 @@ lookup:
   is in force.
 - The store's ceiling. On oak's first day the FLO would not buy at any
   price while the store sat above the heating curve's `MaxEwtF`
-  (161 °F at oak); the analysis is in `experiments/oaks-first-ltn/`.
+  (161 °F at oak); the analysis is in `experiments/datasets/oaks-first-ltn/`.
   Whether that ceiling is the FLO's to hold or the plant's to state is
   a boundary question, with the price bounds and the store's layer
   resolution in [OPS-653](https://linear.app/gridworks/issue/OPS-653/flo-request-bounds).

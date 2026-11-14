@@ -19,7 +19,7 @@ power as off, or negative lift as a fault, misreads every defrost.
 ## Mitsubishi Ecodan at maple
 
 Measured from 67 defrosts in the journal readings for 2026-03-26 →
-2026-05-15 (`experiments/2026-09-20-maple-starts-heating/` "Defrost
+2026-05-15 (`experiments/archive/2026-09-20-maple-starts-heating/` "Defrost
 profile"; harness `defrost_hunt.py`, events in `maple-defrost-events.json`).
 Channels: `hp-odu-pwr`, `hp-lwt`, `hp-ewt`, `hp-scada-ops-relay6`, `oat`.
 The monobloc has no indoor-unit power; `hp-odu-pwr` is the whole heat pump.

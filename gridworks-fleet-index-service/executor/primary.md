@@ -108,7 +108,7 @@ new alias.
 
 ## How the claims arrive
 
-Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-14@1e16d79 (`experiments/2026-08-14-sasl-mechanism-spike/`) — AMQP leg only
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-14@1e16d79 (`experiments/archive/2026-08-14-sasl-mechanism-spike/`) — AMQP leg only
 
 The broker forwards, per protocol (rmqbot `auth-path.md` "What the
 broker forwards to an auth backend"):
@@ -194,7 +194,7 @@ current alias (FIS-validated per new key). Message bodies include
 Before rolling to the fleet, auth must be fast and every deny witnessed,
 each verdict twice: by the client's outcome and by the `auth_events` row
 FIS recorded for it. The battery is
-`experiments/2026-09-05-fis-gate-battery/`: FIS, the rmqbot gate overlay
+`experiments/archive/2026-09-05-fis-gate-battery/`: FIS, the rmqbot gate overlay
 and the mechanism plugin on a stock 4.1.8 broker, driven by real
 claims-bearing clients (gwbase's credentials class and claims word on
 AMQP, a cert-bearing paho client on MQTT). It runs twice: on the dev
@@ -231,7 +231,7 @@ Witnessed: the dev run 27/27 plus the storm; the staging box `hw1-2`
 the storm 100/100 inside the budget, supersession 6.8 s
 (`battery-2026-09-06-hw1-2.log`); the CRL leg on the rig 2026-09-08,
 38/38; revocation on the prod broker 2026-10-07. The staging box is
-dropped; its recipe, `experiments/2026-09-06-fis-staging-box/`, is the
+dropped; its recipe, `experiments/archive/2026-09-06-fis-staging-box/`, is the
 reproducer (TLS-only `rabbitmq.conf`, `fail_if_no_peer_cert`, a vhost of
 its own) and the dress rehearsal for a broker move, since the battery
 kills connections and takes the management API down. Not recorded as

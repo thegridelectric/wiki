@@ -4,7 +4,7 @@ Status: Draft · Pass 0 · Updated 2026-09-14 · Linear: [OPS-532](https://linea
 
 > What this is: a spoke of [`primary.md`](primary.md). The
 > tests the hp-boss witness of 2026-09-07 did not give us. That witness
-> (`experiments/2026-09-07-hp-boss-admin-drive/`, rung 3 on honeysuckle)
+> (`experiments/archive/2026-09-07-hp-boss-admin-drive/`, rung 3 on honeysuckle)
 > covered one path: admin to hp-boss to the call relay on a Nolan
 > layout, the relay confirming at the pin, release back to LocalControl.
 > Everything below is what stays unexercised, each with the test that

@@ -1,12 +1,13 @@
 # Sender-time: one name for the sender's clock
 
-Status: Accepted · Pass 1 · Updated 2026-10-21 · Linear: OPS-472
+Status: Accepted · Pass 1 · Updated 2026-11-14 · Linear: OPS-472
 
 > What this is: the standard for the sender's clock in sema words:
 > `CreatedMs` by default, `SendTimeMs` for reassembled current-state
 > words, one format, applied as words naturally version. The first
-> adopter (`g.node.forest`) and the authoring rule are done; the
-> consumer rule remains.
+> adopter (`g.node.forest`), the authoring rule and the consumer rule
+> are done; what remains is the legacy spellings converging as their
+> words version.
 
 ## The standard — two times, not one
 
@@ -34,11 +35,12 @@ later, stored until acked and re-sent, the time of each transmission is
 transport metadata and belongs in the envelope; the stored word stays
 immutable with its `CreatedMs`.
 
-Two worked examples. `gw.house.operating.status` is assembled fresh on
-every change, but each instance records a state change and may one day
-be stored and re-sent as an event, so it takes `CreatedMs`. A
-house-summary response is rebuilt per request from projections and
-says nothing about when any state changed, so it takes `SendTimeMs`.
+Two worked examples. `gw.house.operating.status` is sent on every
+change, and each instance records a state change that may one day be
+stored and re-sent as an event, so it says `CreatedMs`. `gw.house.summary`
+is rebuilt per request from the backend's projections and says nothing
+about when any state changed, so it says `SendTimeMs`. `layout.bundle`
+is the other `SendTimeMs` word in the fleet.
 
 Common to both:
 
@@ -78,7 +80,7 @@ cascade. The standard applies:
    under another name converges on the standard at its next version:
    `CreatedMs` for creation time (the persisted-event words,
    `report.event`'s and `report`'s divergent spellings both end up
-   here; `gw.house.operating.status` renames `UnixMs` before it is
+   here; `gw.house.operating.status` renamed `UnixMs` before it was
    published), `SendTimeMs` only for the reassembled current-state
    words. New words use the standard from birth. One published word
    misfits: `energy.instruction/000` says `SendTimeMs` for what is a
@@ -92,7 +94,7 @@ cascade. The standard applies:
    standard needs no table entry; the table shrinks to the legacy
    spellings and goes when the last of them converges. The first
    beneficiary is the latest-status projection for
-   `gw.house.operating.status`, and this step is built with that
+   `gw.house.operating.status`, and this step was built with that
    projection rather than as its own issue. The dashboard frontend
    reads the same two names and nothing else.
 4. **Convention home: `wiki/conventions/sema-CLAUDE.md` "Registry
@@ -105,12 +107,31 @@ cascade. The standard applies:
 
 - `g.node.forest/001` and `/002`, gnr stamping, journalkeeper
   persisting: done.
-- `layout.bundle/000` (`SendTimeMs`), `glitch/000` and
-  `gw.opsgenie.alert/000` (`CreatedMs`): on the standard from birth.
-- The rule in `sema-CLAUDE.md`: done.
-- Open: the consumer rule in journalkeeper's sema message persistor
-  (step 3, built with the `gw.house.operating.status` projection); the
-  `UnixMs` rename in that word before it is published.
+- The rule in `sema-CLAUDE.md` "Registry rules": done.
+- The consumer rule (step 3): done in journalkeeper `b49c94e`
+  (2026-10-21). `SemaMessagePersistor` reads `CreatedMs`, else
+  `SendTimeMs`, from any payload before its per-type table, so a word
+  on the standard needs no table entry.
+- `gw.house.operating.status/000` published 2026-10-22 with `CreatedMs`.
+- On the standard from birth: `layout.bundle/000` and
+  `gw.house.summary/000` (`SendTimeMs`); `glitch/000`,
+  `gw.opsgenie.alert/000`, `flo.params`, `flo.recommendation`,
+  `flo.previous.run/000`, `flo.refusal/000`, `gw.price.forecast/000`
+  (`CreatedMs`).
+- Converging as they version (the legacy rows left in
+  `MSG_CREATED_AT_FIELDS_MS`, 2026-11-14): `report` and
+  `gw.scada.commit` and `slow.contract.rejection` (`MessageCreatedMs`),
+  `gridworks.event.problem` (`TimeCreatedMs`), `new.command.tree`
+  (`UnixMs`), `scada.params` (`UnixTimeMs`), the two ticklist reports
+  (`ScadaReceivedUnixMs`), `energy.instruction` (`SendTimeMs` for a
+  command), `heating.forecast` (`ForecastCreatedS`). Each row goes when
+  its word's next version says `CreatedMs`; the table goes with the
+  last row.
+- Gap in the consumer: `MSG_ID_FIELDS` is keyed by type name with no
+  version, so a word whose id field arrives in a later version
+  (`latest.price` 001) is still keyed by receipt time until the table
+  learns it. A version-aware key, or an id convention beside this one,
+  is the fix.
 - Not affected: gwbase (its snapshot predates the forest lineage); the
   ear (lossless witness, no sema decode). The gw_data `sent_at` columns
   give projections their do-not-regress guard.

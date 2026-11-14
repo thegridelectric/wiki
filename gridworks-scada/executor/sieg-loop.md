@@ -23,7 +23,7 @@ the primary pump keeps running: maple's pump sits inside the Mitsubishi,
 the scada cannot switch it, and with the valve at send and the heat pump
 off it mixes the buffer (`buffer-depth1` 103.2 F to 95.3 F in twelve
 minutes, against 0.3 F with the loop closed;
-`experiments/2026-09-20-maple-starts-heating/README.md` findings 12 and
+`experiments/archive/2026-09-20-maple-starts-heating/README.md` findings 12 and
 14).
 
 ## How it runs

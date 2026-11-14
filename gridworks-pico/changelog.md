@@ -194,4 +194,4 @@ the config and resets the pico. The tank module now sets
 boot where the link takes longer, the post fails silently and nothing
 posts again, so the scada never checks that pico's identity or sends the
 layout's capture settings. At spruce this was about half of all boots
-(`experiments/2026-09-19-spruce-pico-params/`). Branch `td/pico-easy-fixes`.
+(`experiments/archive/2026-09-19-spruce-pico-params/`). Branch `td/pico-easy-fixes`.

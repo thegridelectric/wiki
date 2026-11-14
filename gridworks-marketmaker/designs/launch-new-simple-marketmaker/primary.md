@@ -1,6 +1,6 @@
 # Launch a new simple MarketMaker
 
-Status: Draft · Pass 0 · Updated 2026-06-10 · Linear: OPS-431
+Status: Draft · Pass 0 · Updated 2026-11-13 · Linear: OPS-431
 
 > What this is: the **hub** of the design to launch a new, simple MarketMaker —
 > the locked decisions, scope, and open questions, as a tight seed for a fresh
@@ -10,6 +10,17 @@ Status: Draft · Pass 0 · Updated 2026-06-10 · Linear: OPS-431
 > run alongside: [`../../research/market-structure-survey.md`](../../research/market-structure-survey.md).
 > GNode model reference: [`../../research/gnode-taxonomy.md`](../../research/gnode-taxonomy.md).
 > Full architecture: [`../../../economy-energy-markets/executor/primary.md`](../../../economy-energy-markets/executor/primary.md).
+
+**EDD: yes** an LTN's real `bid` is booked by the maker on the dev
+broker and the LTN holds the `bid.ack` before the slot opens.
+
+Spokes, in order:
+
+1. [`evaluate-existing-repo.md`](evaluate-existing-repo.md), the
+   evaluation this plan rests on.
+2. [`bid-ack.md`](bid-ack.md), the gate and the ack: the maker books
+   bids, enforces the gate on dequeue and acks what it books; the LTN
+   contracts only with an ack in hand.
 
 ## Locked decisions (2026-06-09)
 

@@ -15,13 +15,13 @@ the DAC output; the dist and store pumps are not identified anywhere
 either. A device-type record per pump model (the pattern the heat
 pump parts use: a node with a component whose DeviceType names the
 record) is the likely shape; the speed-versus-output curve from
-`experiments/2026-09-06-spruce-pump-speed-sweep/` is the first fact such
+`experiments/archive/2026-09-06-spruce-pump-speed-sweep/` is the first fact such
 a record would carry.
 
 ## Measured: the spruce secondary pump
 
 **Spruce secondary pump, Grundfos UPMS 20-78 F on the 0-10 V output
-(measured 2026-09-06, `experiments/2026-09-06-spruce-pump-speed-sweep/`
+(measured 2026-09-06, `experiments/archive/2026-09-06-spruce-pump-speed-sweep/`
 "Found").** Flow versus DAC volts, settled, same up, down and in
 jumps to within 0.06 gpm: 3.0 -> 0.63, 3.5 -> 1.57, 4.0 -> 2.3,
 4.5 -> 3.05, 5.0 -> 3.76, 5.5 -> 4.5, 6.0 -> 5.2, 6.5 -> 5.9,

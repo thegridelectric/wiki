@@ -10,6 +10,23 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-13 — The journal hears gw.price.forecast and layout.lite 014 (`96e9a9d`, jm/price-forecast-word, OPS-666)
+
+**Why.** The visualizer draws the forecast a house's FLO used by the
+`PriceForecastId` in its `flo.params`, so the journal keeps every
+`gw.price.forecast` the price service publishes, keyed on the
+forecast's own id and clock. `layout.lite` 014 states the house's
+tariff; the journalkeeper decodes it as it does 013, with the layout
+row and no derived operating status. The family of layouts that
+declare their machines (013 on) has one name in `pseudo_channels.py`,
+so the next version joins it in one place. The snapshot also takes
+`flo.params` 002 and `latest.price` 001 as the words moved.
+
+A gap left: the persistor keys a word's created time and id by type
+name, so a `latest.price` 001, which has both, would still be journaled
+on receipt time as 000 is. No MarketMaker sends 001 yet; the keying
+moves to the version when one does.
+
 ## 2026-11-10 — Merge pull request #208 from thegridelectric/jm/flo-plot-words (`c53f1f9`, main, OPS-665)
 
 The flo plot words reach `main`. The branch had forked before
@@ -928,7 +945,7 @@ seven working commits (2026-07-28 → 2026-08-06); the sub-entries keep
 the working narrative, their hashes died in the squashes. Dev-rig
 verified end to end on current code (all four legs PASS, `created_at ==
 SendTimeMs` exact, ear slice capture; reproducer
-`experiments/2026-08-05-registry-projection-rig/`). Paired with
+`experiments/archive/2026-08-05-registry-projection-rig/`). Paired with
 gridworks-data 0.4.0's position_points drop + sent_at — the same-named
 branch there; reviewed together. Awaiting that review before merge.
 

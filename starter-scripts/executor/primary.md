@@ -105,7 +105,7 @@ do (`sudo systemctl start` of what was stopped) when done.
 
 ## Field state (what is known, 2026-08-23)
 
-Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-23@5fda749 (`experiments/2026-08-23-gw108-relay-stress/2026-08-23-spruce/`, `experiments/2026-08-23-spruce-store-charge-valve/`) — the iso-relay rule and the charge-valve no-flow result; the rest is field record
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-23@5fda749 (`experiments/archive/2026-08-23-gw108-relay-stress/2026-08-23-spruce/`, `experiments/archive/2026-08-23-spruce-store-charge-valve/`) — the iso-relay rule and the charge-valve no-flow result; the rest is field record
 
 - **Charge valve** (silk "DISCHARGE VALVE", 0x21 port 1 bit 3; to be
   named charge valve in scada): **drive polarity unresolved, and the
@@ -124,7 +124,7 @@ Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-23@5fda749 
 - **Iso valve**: energized = OPEN, fails closed (field-verified
   2026-07-16).
 - **0x21 resets** (OPS-452 lineage): the 2026-08-23 relay-stress
-  experiment (`experiments/2026-08-23-gw108-relay-stress/2026-08-23-spruce/`) found the
+  experiment (`experiments/archive/2026-08-23-gw108-relay-stress/2026-08-23-spruce/`) found the
   trigger: **energizing the iso-valve relay while fewer than two other
   0x21 coils are energized** (66 % of energizes reset it with none on,
   2 in 15 with one, 0 with two or more; the secondary-pump relay never
@@ -155,7 +155,7 @@ ALERT/RDY pin is unconnected, so the pi never sees conversion-ready.
 
 **An empty input reads its neighbour.** With a CT on P3 and nothing
 on P0, P0 carried 94 % of the CT's signal at the same bias
-(`experiments/2026-09-07-gw108-ct-testing/`, 2026-09-09). The CT is a
+(`experiments/archive/2026-09-07-gw108-ct-testing/`, 2026-09-09). The CT is a
 floating AC source between its input node and `1V65`; the ADC reads
 each node against ground, and `1V65` is held only by 23 to 50 kΩ, so
 the CT's voltage splits across both nodes and reaches every other

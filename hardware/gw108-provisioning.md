@@ -8,7 +8,7 @@ Status: Draft · Pass 0 · Updated 2026-09-02
 
 ## ADS1115 thermistor path: 8 SPS, 1 Hz poll, no software averaging
 
-Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-10@27aa70d (`experiments/2026-08-06-ads-noise/`, `experiments/2026-08-10-ads-declared-rate/`)
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-10@27aa70d (`experiments/archive/2026-08-06-ads-noise/`, `experiments/archive/2026-08-10-ads-declared-rate/`)
 
 The chosen configuration for the zone-thermistor read path is 1 Hz
 polling with single-shot conversions at 8 SPS — the chip's slowest
@@ -51,7 +51,7 @@ mismatches that look exactly like hardware failure.
 
 ## MCP4728 DACs: write EEPROM power-on defaults
 
-Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-12@e551c2e1 (`experiments/2026-08-12-dac-bus-bench/`) — the verify choreography through the bus; fleet state below is a field record, not a verified claim
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-12@e551c2e1 (`experiments/archive/2026-08-12-dac-bus-bench/`) — the verify choreography through the bus; fleet state below is a field record, not a verified claim
 
 Each MCP4728 channel loads its EEPROM value into the output on power-up.
 Factory EEPROM is not a safe default: a board power cycle drops every

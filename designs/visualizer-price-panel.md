@@ -1,6 +1,6 @@
 # Visualizer price panel
 
-Status: Accepted · Pass 1 · Updated 2026-11-11 · Linear: OPS-666
+Status: Accepted · Pass 1 · Updated 2026-11-13 · Linear: OPS-666
 
 **EDD: yes** the panel on the visualizer page draws, for a window that
 spans a day-ahead publication, the price forecast the house's FLO ran on
@@ -53,16 +53,23 @@ enough that the panel needs no layered forecast like the weather panel's.
   every hour.
 - **One forecast per window.** The panel draws the forecast in force at
   the window start. No layering.
-- **LMP only, one vertical axis.** Delivery and total are not drawn. The
-  tariff's on-peak hours are indicated by light pink blocks over those
-  times.
+- **One trace, one vertical axis.** The panel draws the forecast price,
+  which is the full price the LTN expects to face. The tariff's on-peak
+  hours are indicated by light pink blocks over those times.
+- **A forecast is one price per slot for one product (2026-11-12).** The
+  FLO optimizes against the sum and makes no decision on how the price
+  divides, so the forecast word has one price list and no parts, and
+  `flo.params` has one price list. The parts stay in `latest.price`,
+  the actual price, whose recipe the MarketMaker owns. What went into a
+  forecast is a question asked after the fact and is under "Open".
 - **The time axis is the page's.** The price panel's x range is the
   window's range, as on every other panel.
 - **Prices are integers with a declared unit.** The forecast word states
-  each hour's price as `...Times1000` integers with a `PriceUnit` from
-  `market.price.unit`, as `bid`, `latest.price` and
-  `price.quantity.unitless` already do. Floats in USD/MWh are the stopgap
-  word's shape and end with it.
+  each hour's price as `...X1000` integers with a `PriceUnit` from
+  `market.price.unit`, the spelling of `price.quantity.unitless` 001 and
+  the bid words; `latest.price` 001 and `price.component` take it too
+  (2026-11-13). `flo.params` keeps its
+  per-step lists as floats in USD/MWh, as its other lists are.
 - **`latest.price` is the full price the LTN faces.** It is the price
   that determines the contract between the LTN and the MarketMaker, so
   it includes every sub-stream the LTN faces at its node. A
@@ -92,6 +99,49 @@ enough that the panel needs no layered forecast like the weather panel's.
   tariff, and its price is the full price for every bidder on it.
 - **The enum of price parts is `price.component.name`**, with no `gw.`
   segment.
+- **The on-peak hours reach the browser in the layout (2026-11-13).**
+  Both panels shade the tariff's on-peak hours, and the FLO plot loses
+  the implicit signal when `flo.params` 002 folds the delivery list
+  into one price. The scada states its tariff in `layout.lite` 014,
+  copied from its ops word, and the house summary names that version,
+  so the browser reads the tariff off the installation it already has.
+  Considered and declined: a `Tariff` in `flo.params` (a plotting fact
+  in the optimizer's request word, permanent once 002 publishes, and
+  copied into every hourly request); journaling the ops word (the right
+  source later, but it will change rapidly for a month and is not
+  publishable); a house-and-time route over the hand-kept fleet
+  constant (correct only once the ops word is journaled). The ops
+  word's `Tariff` prose is corrected at the same time: when the LTN is
+  the boss, local control is dormant and the tariff's windows are
+  nothing to it beyond the price.
+
+## The market, as claimed and as run (2026-11-13)
+
+**Decision: the Keene market's product is `rt60gate1`.** Real-time
+energy, 60-minute slots, gate closing 60 s before the slot. The value is
+added in `gw.market.product.name` 001 (staging), and the two words that
+name a product, `gw.price.forecast` and `gw.operational.params`, take
+that version. The MarketMaker's `market_product`, the price service's
+`product_name` and every house's `MarketProductName` in tlayouts move to
+it. The slot names change with the product, so the Keene `latest.price`
+series under `rt60gate5` ends and a new one begins under `rt60gate1`;
+the backend's real-time route takes the market prefix as a parameter
+and follows it.
+
+**Why.** Both services claimed `rt60gate5`, a gate closing 300 s before
+the slot, and `market.product` 000 spells the same numbers out as
+`SlotDurationMinutes` and `GateClosingSeconds`. The LTN asks the FLO
+`bid_lead_s` = 180 s before the slot and sends its `bid` off the answer;
+the FLO answers in about 10 s (oak, 2026-11-11: `flo.params` at
+18:57:07Z, `flo.recommendation` at 18:57:17Z). Bids therefore reach the
+maker about 170 s before the slot, after the gate the name claimed.
+Moving the practice to a 300 s gate (a 420 s lead) was weighed and
+declined: it changes the LTN's timing for no gain, since clearing today
+takes the price from ISO-NE and the tariff and a book-reading engine
+would also finish in milliseconds. A 60 s gate leaves the bid about
+110 s of slack against a FLO stall, the same budget the other option
+had. The maker today receives bids and drops them; booking and acking
+them, with the gate enforced on dequeue, is OPS-431's work.
 
 ## The price service, reshaped
 
@@ -112,15 +162,18 @@ it, emit it once, and serve views of it until the next publication.
   repeat as now. Its id is minted once. The hourly view the LTN pulls is
   cut from the kept forecast and names the same id; a new id appears only
   when ISO-NE publishes (or the service starts with nothing kept).
-- **The posting time is a fact in the word.** The ISO-NE `CreationDate`
-  of the day the forecast was built from is recorded in the forecast, so a
-  reader can tell a forecast built from today's prices alone from one
-  built after tomorrow's posted.
 - **Broadcast.** Each new forecast is published onto the hw1 broker as the
   weather service publishes its forecasts; the journalkeeper journals it.
   The service grows a rabbit side; its auth posture is the OPS-437 hub's
   open question and this design takes the weather service's answer until
   that hub decides otherwise. The HTTP routes stay for the LTN's pull.
+- **As built.** The kept document is 72 hours from the next hour and
+  the view is its next 48; a new document is also built when the kept
+  one can no longer fill a 48-hour view. The word does not say which
+  ISO-NE posting a forecast came from, so the service keeps that beside
+  the document in a small basis file (the posting time and the count of
+  hours ISO-NE itself published). The basis word in "Open" retires the
+  file.
 
 ## Vocabulary
 
@@ -140,50 +193,55 @@ anything on `hw1` sends them.
   `gw.` segment because `latest.price` refers to it and that word is
   uniform across makers. A maker with another part appends a value.
 - **`price.component`**, a type, 000: `Name` (the enum) and
-  `PriceTimes1000` (integer), one part of one price.
+  `PriceX1000` (integer), one part of one price.
 - **`latest.price` 001** (000 is published, so this is a new version).
-  `PriceTimes1000` stays the full price the bidder faces and the price
-  of the contract. Added: `Components`, a list of `price.component`;
+  `PriceX1000` is the full price the bidder faces and the price of the
+  contract; 000 spells it `PriceTimes1000`, and the bid words'
+  `price.quantity.unitless` 001 spelling is the one every price word
+  converges on. Added: `Components`, a list of `price.component`;
   `TariffAlias` (`left.right.dot`), the tariff the `Delivery` part is
   computed under; `CreatedMs`. Axioms: the components' prices sum to
-  `PriceTimes1000`; no `Name` other than `Unknown` appears twice;
+  `PriceX1000`; no `Name` other than `Unknown` appears twice;
   `TariffAlias` is present exactly when a `Delivery` part is. The
   upgrade from 000 assigns one `Unknown` component with the whole
   price, since a 000 instance does not say how its price divides.
-- **`gw.price.forecast.series`**, a type, 000: `Name` (the enum),
-  `PriceTimes1000List` (integers, one per slot), and two optional
-  provenance fields: `SourcePostedS`, when the external source posted
-  the data the series was built from, and `PublishedSlotCount`, the
-  number of leading slots whose values are the source's own; the slots
-  after them are extended by hour-of-day repeat.
 - **`gw.price.forecast`**, a type, 000, replacing
-  `gw.stopgap.price.forecast`. It forecasts a MarketMaker's price for
-  one market, in the same parts `latest.price` reports, so forecast and
-  actual line up part by part. Fields: `FromGNodeAlias`;
-  `MarketMakerAlias` and `ProductName` (`gw.market.product.name`),
-  which with a slot start give that slot's `MarketSlotName`;
-  `TariffAlias`; `ForecastUid` (uuid4, the name `gw.weather.forecast`
-  gives its own id); `CreatedMs`; `SlotStartS`
-  (`utc.seconds`, ascending); `PriceUnit` (`market.price.unit`);
-  `SeriesList` of `gw.price.forecast.series`. Axioms: every series has
-  one value per slot; `SlotStartS` strictly ascends; no `Name` other
-  than `Unknown` appears twice. The word has no total: a slot's
-  forecast price is the sum of its parts, exact in integers. Slot
-  starts in UTC seconds leave nothing for the word to say about the
-  23-hour and 25-hour days.
-- **`flo.params` 002** gains `PriceForecastId` (uuid4), the
-  `ForecastUid` of the `gw.price.forecast` the price lists were read
-  from, required as `WeatherForecastId` is. It is in the first sema
-  change, because the panel finds its forecast through this id. The
-  upgrade from 001 refuses for want of context: a 001 instance does not
-  say which forecast its prices came from.
+  `gw.stopgap.price.forecast`. It forecasts the price a MarketMaker
+  will publish in `latest.price` for one market, slot by slot. Fields:
+  `FromGNodeAlias`; `MarketMakerAlias` and `ProductName`
+  (`gw.market.product.name`), which with a slot start give that slot's
+  `MarketSlotName`; `ForecastUid` (uuid4, the name `gw.weather.forecast`
+  gives its own id); `CreatedMs`; `SlotStartS` (`utc.seconds`);
+  `PriceUnit` (`market.price.unit`); `PriceX1000List`. Axioms:
+  `SlotStartS` is non-empty, strictly ascending and on the 300-second
+  grid; one price per slot. Slot starts in UTC seconds leave nothing
+  for the word to say about the 23-hour and 25-hour days.
+- **`flo.params` 002** has one `PriceUsdMwhList` where 001 had
+  `LmpUsdMwhList` and `DistUsdMwhList`, and gains `PriceForecastId`
+  (uuid4), the `ForecastUid` of the `gw.price.forecast` the list was
+  read from, required as `WeatherForecastId` is. It is in the first
+  sema change, because the panel finds its forecast through this id.
+  The upgrade from 001 refuses for want of context: a 001 instance does
+  not say which forecast its prices came from. The one list reaches the
+  optimizer, which reads the two lists and adds them today.
 - **The journalkeeper's seed** takes `gw.price.forecast` and
   `latest.price` 001 so both are journaled.
+- **`layout.lite` 014** adds `Tariff` (`gw.tou.tariff` 000), required:
+  the time-of-use tariff the home is billed on, as the running scada's
+  operational params state it. The 013 upgrade refuses for want of
+  context. 013 gains the example a superseded version must have.
+  **`gw.house.summary` 003** accepts 014 in `Layout`. Both staging.
+- **`gw.operational.params` 000** (staging, in place): `Tariff` and
+  `UsesBackupWhenCold` state their own meaning. The old prose said the
+  heat pump is held off during on-peak hours, which is local control's
+  behavior when it is in charge and not the tariff's meaning.
 
 Until a tariff word with prices exists ("Open", the tariff tracking
 item), the MarketMaker and the price service each compute the
-`Delivery` part from a hand-kept copy of the A-1 table, corrected to the
+delivery price from a hand-kept copy of the A-1 table, corrected to the
 Seventeenth Revision, with a note beside each naming the missing word.
+The MarketMaker states it as the `Delivery` part of `latest.price`; the
+price service adds it into the forecast price.
 
 Known tension, undecided: the tariff's delivery charge includes retail
 transmission as a flat amount per kWh, and `CoincidentPeakTransmission`
@@ -194,8 +252,9 @@ coincident-peak part is priced until that recipe is decided.
 ## LTN
 
 The LTN decodes the forecast through its vendored snapshot instead of
-`data["LmpList"]`, keeps the decoded word, and writes its
-`PriceForecastId` into every `flo.params` it builds from it. The
+`data["LmpList"]`, keeps the decoded word, and writes its price list
+and its id (`PriceForecastId`) into every `flo.params` it builds from
+it. The optimizer reads the one list. The
 hand-kept `price_forecast.csv` goes with the dict.
 
 ## Backend
@@ -204,34 +263,78 @@ One route answers "the price forecast for this house at this hour":
 
 1. The `flo.params` journaled for the house at the window's first hour
    names a `PriceForecastId`; return that journaled forecast.
-2. Otherwise the journaled forecast with the greatest `ForecastCreatedS`
+2. Otherwise the journaled forecast with the greatest `CreatedMs`
    at or before the window start; the stopgap's live route is the fallback
    only until forecasts are journaled.
 3. Otherwise nothing, and the panel says so.
 
 The response is the forecast word, with a note of which rule chose it (a
 small sema enum, derived here, sent as data). The on-peak hours are a
-fact of the tariff and reach the browser as the `gw.tou.tariff` word from
-`GET /api/v2/tou-tariff/current`, the fleet's one tariff until houses
-journal `gw.operational.params`, when the route serves the house's own
-`Tariff`.
+fact of the tariff and reach the browser inside the house summary: the
+summaries route serves the house's latest layout row, and a
+`layout.lite` 014 row states the house's `Tariff`. The fleet's one
+tariff at `GET /api/v2/tou-tariff/current` is the fallback for a house
+whose latest layout is older than 014, with a note naming the version
+that retires it.
 
 ## Frontend
 
-`PriceForecastPlot.tsx` draws one trace, LMP in USD/MWh (divide the
-integers by 1000 at render), on one y axis; light pink rectangles over
+`PriceForecastPlot.tsx` draws one trace, the forecast price in USD/MWh
+(divide the integers by 1000 at render), on one y axis; light pink rectangles over
 the on-peak spans the browser lays from the tariff word over the window's
 range; the x axis range set from the window like the other panels. The
-vendored `.d.ts` for the new word types the response.
+vendored `.d.ts` for the new word types the response. The tariff word
+is the installation's `Layout.Tariff` when the layout is 014, else the
+fallback route's. `FloPlot.tsx` (OPS-665) lays the same spans over its
+horizon from the same tariff, which replaces the on-peak signal the
+delivery list gave before 002.
 
 ## Plan
 
-**Do this next:** step 2, the price service, built and exercised on the
-dev broker. Step 1 is on `dev` in `sema` (`eba7ece`), with all six
-definitions `staging`, so they do not run on `hw1` until promoted. Vendor the snapshot into the
-price service before its first consumer line. Two parts of step 1 are
-still to do: the journalkeeper seed, and promoting the six definitions
-before anything on `hw1` sends them.
+**Do this next:** step 5, the web backend's forecast-for-house-and-hour
+route (rule 1, then rule 2), with the `gridworks-flo` dependency
+removal. The service and both LTNs deploy in one cutover after the
+words are promoted: the service's legacy route serves the new word, so
+an LTN on the old code breaks the moment the service ships, and an LTN
+on the new code has nothing to read until it does.
+
+**Where the build stands (2026-11-13).** Steps 1, 2 and 3 are done on
+branches.
+
+- **sema**: on `dev` at `115aea2` (the price words in `ebbc627`); the
+  earlier `jm/price-forecast-one-list` at `95a63bc` (its title is
+  "squash"; it wants a real title when the branch is squashed). All the
+  new words are `staging`. Its parent `eba7ece` is on local `dev` and
+  not pushed.
+- **price service**, `jm/price-components` at `92d04c4` plus the regen below.
+  It was exercised on the dev broker: one `gw.price.forecast` broadcast
+  per ISO-NE posting, 72 slots, and a 48-slot view under the same id on
+  both HTTP routes. Its snapshot is vendored with `--allow-staged` at
+  the renamed field.
+- **FLO**: `gridworks-flo` `0ff6a75` and `optimal-flexibility`
+  `ec2675a` on `jm/price-forecast-word`; the optimizer reads the one
+  list.
+- **LTN**, both copies on `jm/price-forecast-word`: the live one in
+  `gridworks-scada/gw_spaceheat/actors/ltn/` and the gwbase port in
+  `gridworks-ltn`. Each decodes `gw.price.forecast` from the service's
+  route, keeps the word's bytes in its data dir as the copy it reads
+  when the service is unreachable, and builds `flo.params` 002 from the
+  forecast's slots starting at the request's own; a forecast without
+  that slot refuses the request. The scada's protocol twins moved with
+  its snapshot (`FloParams` 002, `PriceForecast`, the product name
+  enum 001). The scada's commit is `a9f6ba88`; the port's is pending.
+- **journalkeeper**, `jm/price-forecast-word`: the seed takes
+  `gw.price.forecast` (journaled on its own id and clock) and
+  `layout.lite` 014; 013 moves to the old versions and the 014 row is
+  projected like a 013 row. Gate green, commit pending.
+- Everything stays off `hw1` until the words are promoted. The price
+  service does not merge to `main` before then.
+
+Gaps left in the price service: the actor has no test in CI (it needs
+a broker), and CI does not run mypy. A gap left in the LTN: the request
+does not check that the forecast's `MarketMakerAlias` and `ProductName`
+are the LTN's own market; the LTN has one market today and the check
+belongs with the word that names it.
 
 **Where the page stands (2026-11-11).** Both `jm/price-panel-lmp`
 branches are merged and deployed: the backend's `gw.tou.tariff` route on
@@ -256,13 +359,13 @@ at that hour, so every house draws once the service ships.
 Ordered by dependency; each step is a spoke if it outgrows a section.
 
 1. **sema**: `price.component.name`, `price.component`, `latest.price`
-   001, `gw.price.forecast` with its series type, `flo.params` 002, the
-   journalkeeper seed.
+   001, `gw.price.forecast`, `flo.params` 002, the journalkeeper seed.
 2. **price service**: publication-driven fetch on `/info`, one forecast
-   per publication with a stable id, the posting time recorded, the
-   broadcast, the new word on both routes, the A-1 table at the
+   per publication with a stable id, the broadcast, the new word on both routes, the A-1 table at the
    Seventeenth Revision.
-3. **LTN**: decode the word, name its id in `flo.params` 002.
+3. **LTN**: decode the word, write its price list and its id into
+   `flo.params` 002; the optimizer in `gridworks-flo` reads the one
+   list.
 4. **MarketMaker**: `latest.price` 001 with its parts, the A-1 table at
    the Seventeenth Revision.
 5. **web backend**: the forecast-for-house-and-hour route (rule 1, then
@@ -287,6 +390,31 @@ Ordered by dependency; each step is a spoke if it outgrows a section.
    browser passes the fleet's one, with a note naming the word that
    retires the constant.
 
+8. **The product name.** sema: `gw.market.product.name` 001 with
+   `rt60gate1`, the two referrers on it, staging. Then the MarketMaker
+   and price service config lines, and the tlayouts gen change rolled
+   to every house by `roll.sh`, all in one cutover so no service names
+   a product the others do not. The gate and the ack are OPS-431's.
+
+9. **The tariff in the layout.** sema is done on `jm/flo-params-tariff`
+   (layout.lite 014, gw.house.summary 003, the ops prose, the 013
+   example). The rest waits until every consumer's sema snapshot is
+   regenerated for the words above, then in dependency order:
+   1. **scada**: the `layout_lite` property in `actors/scada.py` fills
+      `Tariff` from `self.ops.Tariff`; the protocol snapshot takes 014.
+   2. **journalkeeper**: done on `jm/price-forecast-word` (014 in the
+      seed and the layout union; the layouts table stores the payload,
+      so no schema change). `gw.house.summary` is the backend's word,
+      not the journal's.
+   3. **web backend**: snapshot takes 014 and summary 003; the summaries
+      route decodes 013 and 014 rows and emits summary 003; the fleet
+      tariff route gets its retiring note.
+   4. **web frontend**: vendored zod for 014 and summary 003; the price
+      panel and the FLO plot read `Layout.Tariff`, else the fallback
+      route. Checked on the page against a 014 row.
+   Promotion of 014 and summary 003 (and their staging closure) before
+   any of this reaches `hw1`.
+
 Related work by issue: OPS-437 owns the price service's standing as a
 gwbase GNode and the tariff vocabulary; OPS-611's per-house price plot
 from `flo.params.house0` is superseded for the new `flo.params` by this
@@ -295,6 +423,15 @@ design; OPS-665 is the pattern (the browser draws the published word).
 ## Open
 
 - The service's broker auth posture (OPS-437's question).
+- What went into a forecast. The forecast word states the price and
+  nothing about its making: the ISO-NE posting it was built from, how
+  many of its hours are ISO-NE's own and how many are repeats, the
+  tariff revision behind the delivery price, and later a model's
+  inputs. These do not sum to anything, so they are not parts of the
+  price. The candidate is a separate basis word keyed by `ForecastUid`,
+  journaled beside the forecast. Until it exists the journal tells a
+  forecast built before tomorrow's posting from one built after it only
+  by its `CreatedMs`.
 - The 25-hour and 23-hour days at the DST changes: ISO-NE labels the
   repeated fall hour `02X` in its reports; how the Web Services API
   represents it is unverified.

@@ -1,6 +1,6 @@
 # Heating curve: two models, two words
 
-Status: Draft · Pass 0 · Updated 2026-11-11 · Linear: OPS-668
+Status: Draft · Pass 0 · Updated 2026-11-14 · Linear: OPS-668
 
 **EDD: no** a word splits in two along a seam the code already has;
 verified by the sema and scada suites, the four test ops files and oak
@@ -47,9 +47,13 @@ the word hold fields it never uses.
 - **Readers move.** `make_ha1_params` reads `HeatingCurve` unchanged.
   The LTN's `load_forecast_kwh` and `rswt_forecast_f` read the new
   word; `baseline_load_kwh` reads `HeatingCurve`.
-- **Axioms on `heating.curve`** are added in the same edit:
-  `IntermediateRswtF < DdRswtF` and `DdRswtF <= MaxEwtF`, both
-  invariants the anchors have always had and the word never stated.
+- **Axioms on `heating.curve`** stay as the November 2026 in-place
+  revision stated them: `DdRswtF >= IntermediateRswtF` and
+  `DdPowerKw >= IntermediatePowerKw`. There is no axiom relating
+  `DdRswtF` to `MaxEwtF`: the required source water temperature on the
+  design day may exceed what the emitters tolerate, since resistive
+  elements can heat the store above the heat pump's leaving temperature
+  and the word has to state that house as it is.
 
 ## Open
 

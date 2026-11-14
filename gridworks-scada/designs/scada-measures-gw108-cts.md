@@ -68,6 +68,6 @@ the hardware layout (`CtAdc` on the board record is the hook).
 ## ▶ Do this next
 
 Get the 10 µF capacitor onto spruce's board and re-run the empty-input
-check from the bench rung (`experiments/2026-09-07-gw108-ct-testing/`):
+check from the bench rung (`experiments/archive/2026-09-07-gw108-ct-testing/`):
 P0 with nothing attached should fall to noise while P3 keeps the CT's
 waveform. That capture is the gate for everything above.

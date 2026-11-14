@@ -39,7 +39,7 @@ it away. That is the entire reason the mechanism plugin below exists.
 
 ## The GridWorks mechanism plugin
 
-Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-14@1e16d79 (`experiments/2026-08-14-sasl-mechanism-spike/`) — AMQP leg through the stock 4.1 broker; MQTT not exercised
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-14@1e16d79 (`experiments/archive/2026-08-14-sasl-mechanism-spike/`) — AMQP leg through the stock 4.1 broker; MQTT not exercised
 
 A two-change fork of `rabbit_auth_mechanism_ssl`, and the only custom Erlang
 in the system. It keeps the stock behavior — refuse when there is no usable

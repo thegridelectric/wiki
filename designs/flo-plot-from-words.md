@@ -1,6 +1,6 @@
 # FLO plot from words
 
-Status: Accepted · Pass 1 · Updated 2026-11-11 · Linear: OPS-665
+Status: Accepted · Pass 1 · Updated 2026-11-14 · Linear: OPS-665
 
 **EDD: yes** a recommendation published by the FLO service at the new
 versions reaches the journal and is drawn on the visualizer page from the
@@ -24,8 +24,10 @@ this design adds fix the plot's shape earlier than he is ready for. The
 four words are published on sema and the journalkeeper has them; no
 instance has emitted them onto the broker.
 
-Thomas is reading the PR on `thdfw/optimal-flexibility` and deciding
-whether this multi-repo change merges. The design waits on that call.
+Thomas read the PR on `thdfw/optimal-flexibility` and said yes to the
+merge at the 2026-11-13 team meeting. The gate is open; the merge order
+across the six repos is in the rollout design listed beside this one in the
+design index, and the build continues from "Do this next" below.
 
 - **If it merges:** the build continues from "Do this next" in the spokes
   section.

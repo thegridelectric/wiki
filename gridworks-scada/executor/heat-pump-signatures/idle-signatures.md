@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-24
+Status: Draft · Pass 0 · Updated 2026-11-13
 
 # Idle signatures
 
@@ -6,6 +6,43 @@ What this is: what a heat pump does in the scada's channels while its
 compressor is off, per model: standby draw, and anything the unit runs on
 its own that code could mistake for a start. Standby draw for the Ecodan
 and the LG is in [`startup-signatures.md`](startup-signatures.md).
+
+## Mitsubishi Ecodan (maple)
+
+Read from the journal DB (`hw1.isone.me.versant.keene.maple.scada`),
+2026-11-11 to 2026-11-13 ET, and from maple's service log for the
+commands. Channels: `hp-odu-pwr`, `hp-idu-pwr`, `primary-flow` (the sum
+of `sieg-flow` and `sieg-send-flow`), `hp-scada-ops-relay`.
+
+**The primary pump does not show on power.** `hp-idu-pwr` reads 0 ± 4 W
+with the pump running or stopped, so the pump is read from
+`primary-flow`: about 5.0 gpm with the valve at full keep, 4.2 to 4.3
+gpm at full send, 0 when stopped.
+
+**With the call closed and the compressor off, the pump ran all the
+time.** Through 2026-11-13 12:00 the pump never stopped between compressor
+cycles: every thermo-off gap of the preceding 2.5 days, the longest from
+06:59 to 12:04 on the 13th, ran 5.0 gpm with the compressor at standby.
+
+**The pump economy setting, from 2026-11-13 about 12:30 ET.** A
+Mitsubishi technician changed a setting at the unit to stop the pump
+between cycles; the setting is read as the Hydrobox service menu's
+"Economy settings for pump" (Auxiliary settings; On with a delay of 3 to
+60 minutes, factory default On, 10 minutes; the manual's description is
+"Water pump stops automatically in certain period of time from when
+operation is finished"), with the delay at its 3-minute minimum.
+Confirmation of the setting's name and value from Mitsubishi is pending.
+What the channels show since:
+
+| Case | Compressor off | Pump |
+| --- | --- | --- |
+| thermo-off, call still closed (12:41:54) | falls to standby in 2 s | 4.3 to 0.95 gpm within 5 s, 0 at 12:45:00, 3 min after the stop |
+| off while the call is open (13:28:43, 13:47:24) | falls to standby in 1 s | 0 within seconds |
+| before a compressor start (13:22:01, 13:41:13, 13:53:07) | | starts 192, 192 and 183 s before the compressor; within about 30 s of a call closing |
+
+The service manual's fault 27, "does not start operation smoothly", names
+too short a delay in this setting as a cause; nothing of the kind has
+shown in the three starts since.
 
 ## Samsung AE055FEYMCG (spruce)
 
@@ -67,6 +104,8 @@ that water is moving, not that the compressor is running.
 
 ## Open
 
+- What the Ecodan's pump does at thermo-off over a longer run of cycles
+  with the economy setting, and whether the 3-minute delay stays.
 - What the Samsung does during an idle pulse, and what starts a run of
   them (outdoor temperature not yet checked against the two runs).
 - Whether the idle water-pump cadence is a Samsung field setting.

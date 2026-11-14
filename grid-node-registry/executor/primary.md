@@ -322,7 +322,7 @@ these are **shape**, not machinery; #4 is a discipline on the interface.
 
 ## Durability — the message log is the system of record
 
-Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-27@e8779cc (`experiments/2026-08-27-ops-457-regenesis/`, `experiments/2026-08-27-ops-457-replay/`)
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-27@e8779cc (`experiments/archive/2026-08-27-ops-457-regenesis/`, `experiments/archive/2026-08-27-ops-457-replay/`)
 
 The registry requires **no database backups**. Its Postgres is a materialized
 view of the logged command stream, and that stream is held in two places
@@ -384,7 +384,7 @@ everything after the first regenesis create must match.
 **Proven** (2026-08-27): a real seed ear witnessed a regenesis onto a
 scratch registry; wiped and rebuilt from that capture alone — 25 applied,
 27/27 checkpoints, validate-clean, equal to the previous box's dump
-(`experiments/2026-08-27-ops-457-replay/`). Then, after the production regenesis, a
+(`experiments/archive/2026-08-27-ops-457-replay/`). Then, after the production regenesis, a
 scratch registry rebuilt from B2 alone (`--seedstore --from 20260827`)
 equals the Helsinki registry node-for-node, 25/25 new-epoch checkpoints.
 

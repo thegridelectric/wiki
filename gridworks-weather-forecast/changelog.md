@@ -328,7 +328,7 @@ renamed to match (quantity, unit, weather_forecast_fidelity) in the
 collapsed initial migration — deploy drops + re-migrates the box DB.
 
 Witnessed: broadcast mechanics on the dev broker
-(`experiments/2026-08-12-gwwf-record-broadcast/`), and the full
+(`experiments/archive/2026-08-12-gwwf-record-broadcast/`), and the full
 round in the layer-2 suite (empty boot → out-of-order nack → six
 acks → duplicate nack → record broadcasts on the wire → emissions
 begin, no restart).
@@ -391,7 +391,7 @@ shape tail (`…temperature.forecast.nws.hourly`): concurrent
 time-slice shapes are distinct channels; a future 5-minute product
 coexists rather than succeeds. Emission phase settled at :01 from
 the updatetime-probe verdict
-(`experiments/2026-08-11-nws-updatetime-probe/`): NWS freshness is
+(`experiments/archive/2026-08-11-nws-updatetime-probe/`): NWS freshness is
 issuance-driven (2–4 revisions/day) and phase-independent, so :30
 bought nothing and cost half the FLO randomness window; the hour is
 :00 observation → :01 forecast → FLO window.

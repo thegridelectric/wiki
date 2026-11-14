@@ -22,7 +22,7 @@ reported) is Open — the hello coordinator free-runs.
 
 ## Settled facts (verified by the witnessed live run, 2026-06-11)
 
-Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-06-11@6b2cc35 (`experiments/2026-06-11-sim-time-bridge/`) — the harness is archived, not re-runnable; the claims are narrow
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-06-11@6b2cc35 (`experiments/archive/2026-06-11-sim-time-bridge/`) — the harness is archived, not re-runnable; the claims are narrow
 
 - **Not a GNode.** An `Orchestrator` subclass on plain
   `ServiceSettings` — no `g.node.gt.json`, no registry identity. Its

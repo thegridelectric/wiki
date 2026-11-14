@@ -35,7 +35,7 @@ go without.
 
 Before `scripts/roll.sh` existed the branch ran in bounded windows on
 one house of each layout family, the beta field test of the new code;
-the record is `experiments/beta-field-windows/` and what the rounds
+the record is `experiments/practices/beta-field-windows/` and what the rounds
 taught is in executor `running.md` "Rolling a house between lines". A
 house runs the branch by a roll now.
 
@@ -136,8 +136,9 @@ house runs the branch by a roll now.
   `None` for a flatlined channel; the pico actors flatline one quiet
   channel
 - `basic-sieg.md` (design pass est 4h → 8.5h; build est 4h) — the least the sieg loop has to change before
-  maple and beech take the branch, chipped not rebuilt: a start that waits
-  to open and fails open, one owner for the valve relays, the valve
+  maple and beech take the branch, chipped not rebuilt: a valve that rests
+  at send while the heat pump is off, a start that parks the valve before
+  the call and then waits to open and fails open, one owner for the valve relays, the valve
   commandable from the admin panel, `MonitorOnly` honoured, a restart that
   finds the valve, scada2 re-sending its readings when its link goes
   active, the relays' energization back as a channel, and the House0

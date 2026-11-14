@@ -4,7 +4,7 @@ Status: Draft · Pass 0 · Updated 2026-10-15 · Linear: OPS-601
 
 **EDD: yes** the fit itself is the verification: the model's coefficients
 stand only when a re-runnable pull and fit under
-`experiments/spruce-radiant-slab/` reproduces them from journal data.
+`experiments/datasets/spruce-radiant-slab/` reproduces them from journal data.
 
 > What this is: a simple model of spruce's radiant floor, fitted to the
 > data spruce has already reported. The experiment folder holds the
@@ -29,7 +29,7 @@ temperature exists only from 2026-08-13 (hourly `gw.weather.observation`
 from `hw1.isone.weather`), spring has only the scada's `forecast-oat`.
 Second, fit over every span the journal offers, not just Oct 7. The
 living-room two-stage fit (G over C from the free float, C from the
-charge) is in `experiments/spruce-radiant-slab/`, "Found".
+charge) is in `experiments/datasets/spruce-radiant-slab/`, "Found".
 
 Also wanted: a workbook per window of the buffer tank heating up on
 its elements alone, spring 2026, from the journal (channels

@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-11-12
+Status: Draft · Pass 0 · Updated 2026-11-13
 
 # Heat pump signatures
 
@@ -26,7 +26,7 @@ code per model, keyed on the heat pump `DeviceType` the layout binds to
 
 | Model | House | Start-up | Running | Idle | Defrost |
 | --- | --- | --- | --- | --- | --- |
-| Mitsubishi Ecodan | maple | measured | in start-up | standby only | measured |
+| Mitsubishi Ecodan | maple | measured | in start-up | standby, primary pump | measured |
 | LG | beech | measured | in start-up | standby only | Open |
 | Samsung AE055FEYMCG | spruce | measured | measured | measured | Open |
 | Arctic MAHRW030ZA | elm | measured, three runs | in start-up | standby only | measured, six defrosts ([`defrost-signatures/arctic-high-temp.md`](defrost-signatures/arctic-high-temp.md)) |
@@ -37,7 +37,7 @@ code per model, keyed on the heat pump `DeviceType` the layout binds to
 ## Open
 
 - Defrost at spruce and beech.
-- Idle behaviour beyond standby draw at maple and beech.
+- Idle behaviour beyond standby draw at beech.
 - The Samsung stop lag and minimum compressor run. The journal shows the
   draw falling under 80 W within a minute of the call opening on an old
   run and four minutes after it on a run ninety seconds old; the Nolan
@@ -50,10 +50,9 @@ code per model, keyed on the heat pump `DeviceType` the layout binds to
   `control-hierarchy.md` "The heat-pump surface".
 - The Arctic's minimum modulation in mild weather, its stop lag, and
   whether its two compressors show as two steps in the start.
-- The Ecodan's minimum compressor run after a start. An off in the first
-  minutes of a run is honored up to about five minutes late
-  (`startup-signatures.md` "Mitsubishi Ecodan (maple)"); how early an off
-  can arrive and still stop the unit at once is unseen. No glitch fires
-  when a heat pump draws running power against an open call: hp-watch
-  reports the sensed state on Nolan layouts only, and the sieg loop's
-  blind rule needs a transition into HpOff it never sees at boot.
+- No glitch fires when a heat pump draws running power against an open
+  call: hp-watch reports the sensed state on Nolan layouts only, and the
+  sieg loop's blind rule needs a transition into HpOff it never sees at
+  boot. The Ecodan runs about six minutes from a compressor start
+  whatever the off's timing (`startup-signatures.md` "Mitsubishi Ecodan
+  (maple)").

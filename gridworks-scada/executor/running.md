@@ -208,7 +208,7 @@ sema snapshot (`packages/gridworks-scada-protocol/sema_snapshot/`, its
 status; `gwsproto_sema_conformance.py` has no release-gate flag.
 
 Reading a house after a roll, learned in the beta field windows of
-2026-09 and 2026-10 (record: `experiments/beta-field-windows/`):
+2026-09 and 2026-10 (record: `experiments/practices/beta-field-windows/`):
 
 - Start the bus capture before the first actuation and run it past the
   last expected one, and prove the subscriber connects before anything

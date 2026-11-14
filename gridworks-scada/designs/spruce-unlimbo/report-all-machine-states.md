@@ -21,7 +21,7 @@ inside the `report.event` payload and projects to no channel, so what
 the cycler did about a flatline, and when, is invisible without
 opening the report JSON. Today's rows made the gap concrete: five
 tank modules went Flatlined then Zombie and the cycles in between are
-not in any channel (`experiments/2026-09-10-pico-state-reported/`).
+not in any channel (`experiments/archive/2026-09-10-pico-state-reported/`).
 
 ## Channels or machine states: the rule
 

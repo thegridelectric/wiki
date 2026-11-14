@@ -6,6 +6,17 @@ Status: Accepted · Pass 0 · Updated 2026-11-06
 > (`optimal-flexibility` for the bruce optimizer; the FLO service repo when
 > it exists). Git is the what; this file is the why.
 
+## 2026-11-13 · gridworks-flo + optimal-flexibility · snapshot at flo.params 002; bruce reads the one price list (`0ff6a75` flo, `ec2675a` bruce, jm/price-forecast-word, OPS-666)
+
+**Why.** `flo.params` 002 has one price list, `PriceUsdMwhList`, and
+names the forecast it came from. The FLO service passes the request to
+bruce as bytes, so it needs only the snapshot; bruce summed the LMP and
+delivery lists in two places (its snapshot reader and its hand-written
+model) and now takes the list as the electricity price. The LMP alone
+went only to bruce's plot of the price split, which the one list no
+longer feeds. The service's regen takes `--allow-staged`, so the service
+does not merge to main until the word is promoted.
+
 ## 2026-11-11 · gridworks-flo · clean up README (`c51e85b`, merged to main in `33ca934`, OPS-514)
 
 The README now follows the repo README pattern, so the executor's

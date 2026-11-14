@@ -10,6 +10,45 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-13 — beech's primary and sieg BTU meters post on 0.04 gpm for the valve work (`5f9787c`, td/new-house-params)
+
+**Why.** The two meters form beech's kept fraction, `sieg-flow /
+primary-flow`, and the pump-speed run at full keep that decides between a
+meter gain and a leak past the valve wants them finer than the 0.10 gpm
+default; the calibration of 2026-11-13 read a plateau through two to
+three thresholds. 0.04 gpm is the finest the Hall stream at maple showed
+sense at, about seventeen times the rows for the window it is on.
+
+**What.** On `td/new-house-params`, the line beech runs: `beech_gen.py`
+sets `flow_delta=4` on primary-btu and sieg-btu; dist-btu and store-btu
+keep the default. Beech's layout and operational params are regenerated,
+four lines in all, two in the pico words and two in the capture tunings.
+`tests/test_btu_flow_delta.py` checks beech's four thresholds in the pico
+word and the scada tuning, and that the stock default is 0.10 gpm.
+
+## 2026-11-13 — Maple sieg flow goes back to default 0.10 gpm async delta (`a95cbb4`, main)
+
+**Why.** Maple's Hall pico on the sieg send line was the one flow meter in
+the fleet on a 0.04 gpm threshold, set for the 2026-09-28 keep-ratio
+map. On 2026-11-12 it wrote 44,092 journal rows against 609 for the
+sieg BTU meter beside it; replaying the day against a 0.10 gpm rule
+leaves about 550. The fleet default is 0.10 gpm and an experiment that
+wants finer sets it for its window. The pico BTU meters had no such
+setting: 0.10 gpm was a constant written into the emitter twice (the
+pico's `AsyncCaptureDeltaGpmX100` and the scada's capture tuning), and
+the beech valve calibration of 2026-11-13 wants a finer one on the two
+meters that form its ratio.
+
+**What.** `maple_gen.py` sets the send meter's `async_threshold_gpm_x100`
+to 10 and `output/maple/gw.house0.layout.json` is regenerated for that
+one field; the tick lists already go only to the scada (`SendTickLists`
+false), which needs them to compute the flow. `BtuSpec.flow_delta`
+(gpm x 100, default 10) drives both the component field and the flow
+channel's capture tuning; no house sets it in this commit, so every
+other output is unchanged. `tests/test_btu_flow_delta.py` checks the
+default on beech's four meters and that an override reaches the pico
+word and the scada tuning alike.
+
 ## 2026-11-11 — this time with feeling: operator hold false on oak (`12ca00f`)
 
 **Why.** The 16:00 contract turned out to be right: 2026-11-11 is
@@ -58,7 +97,7 @@ beech sets it. The regenerated beech layout is byte-identical to the
 hand edit, Id included. The channel stays per-home while the strategy
 is proven in the field.
 
-## <!-- pending commit --> 2026-11-04 — elm: store-btu hot is store-hot-pipe; store pump default 2.5 V
+## 2026-11-04 — omg. correcting hot/cold for the store-btu (`f6b5f02`, main): elm store-btu hot is store-hot-pipe; store pump default 2.5 V
 
 **Why.** The first store charge with the store Gw101 in service (15:07)
 showed the meter's hot input on the hot pipe, as on the other three

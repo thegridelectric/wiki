@@ -10,3 +10,7 @@ __pycache__/
 .pytest_cache/
 .venv/
 *.egg-info/
+
+# private session protocol, not in version control (umbrella symlink metaphysics.sh -> tools/metaphysics.sh)
+conventions/metaphysics-CLAUDE.md
+tools/metaphysics.sh

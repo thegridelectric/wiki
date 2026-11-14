@@ -6,6 +6,44 @@ the *why*.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-11-13 — sieg-valve-calibration: the procedure, and beech's first run (OPS-392)
+
+**Why.** The sieg loop's strategies stand on three valve positions in
+motor seconds that the scada holds as maple's constants (26 / 56 / 94 s).
+Beech runs the same code against an unmeasured valve. The procedure
+measures a house's valve from the laptop through the admin path with the
+pump only: `drive.py` takes the tree, sets the plant (heat pump off,
+store relay, primary pump failsafe to Scada and on), homes the valve and
+runs a plan of full traverses and timed stops; `positions.py` reads the
+motor runs off the two valve relay channels in the journal and the kept
+fraction off the flow meters, and prints onset, half and complete for
+each run. The first undated `procedures/` folder, with a dated run folder
+per house. Beech, 2026-11-13: keep onset 13 s, keep complete 54 s, keep
+stop 75 s, lag 3.5 s, from one stop pair; the numbers are the beech gen's
+when the layout word exists.
+
+<!-- pending commit -->
+## 2026-11-13 — Four kinds of folder: archive, datasets, practices, procedures (OPS-392)
+
+**Why.** Ninety-two entries at the top of the repo had stopped being a
+layout. The README already named three kinds of folder beside the dated
+experiment (dataset, practice, queued); the tidy gives each its own
+parent and adds a fourth, the procedure, a measurement run on every
+house of a kind with a dated run folder per house. The 44 experiments
+of June to September move whole under `archive/`, the current season
+stays at the top, and the logbook goes on pointing at every one.
+
+Moving a folder one level down changes two things the folders did by
+depth: the relative links in their READMEs and the `sys.path` lines by
+which their scripts reach the repo top and `src/`. Both are rewritten
+by computed depth (36 scripts, 34 READMEs), and `ci.sh`'s emitter and
+instance globs gain one level. S3 keys under `experiments/` are the
+immutable store's names and stay as written. Outside the repo, 55 wiki
+files cite the moved folders and are swept in the same wave; the two
+experiment hooks accept the new shapes. Pyright, the emitter
+reproduction and all 345 sema instances pass in the tidy worktree.
+
 ## 2026-11-12 — flo-dev-harness closes rung 1; the FLO round trip joins the dev-stack recipe (`a003331`, OPS-514)
 
 **Why.** `2026-11-05-flo-dev-harness/` is closed as a record. Rung 1

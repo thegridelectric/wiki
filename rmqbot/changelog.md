@@ -296,7 +296,7 @@ cutover and needs FIS answering `/auth/user` first. What lands here is the
 buildable artifact plus its recipe; the staging box exercises the wiring.
 
 The source moved out of the spike harness
-(`experiments/2026-08-14-sasl-mechanism-spike/`), which now mounts the
+(`experiments/archive/2026-08-14-sasl-mechanism-spike/`), which now mounts the
 shipped `.ez` — so the harness verifies the real artifact rather than a
 parallel copy of it, and stays the re-runnable witness for the claims path.
 

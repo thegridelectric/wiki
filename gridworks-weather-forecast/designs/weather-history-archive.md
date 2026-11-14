@@ -3,7 +3,7 @@ Status: Draft · Pass 0 · Updated 2026-10-26 · Linear: OPS-603
 **EDD: yes** verified when a request over the weather façade returns
 last winter's Open-Meteo forecasts as issued and a station's actuals for
 Millinocket, both as archive words read from the eventstore, and the
-spruce slab fit (`experiments/spruce-radiant-slab/`) runs from those
+spruce slab fit (`experiments/datasets/spruce-radiant-slab/`) runs from those
 words with its gzipped CSV gone.
 
 # Weather history archive: long records from named outside sources
@@ -127,7 +127,7 @@ evaluating a forecaster or a simulated winter asks there or with one
 
 ## The slab experiment
 
-`experiments/spruce-radiant-slab/` holds `irradiance-kmemilli18.csv.gz`
+`experiments/datasets/spruce-radiant-slab/` holds `irradiance-kmemilli18.csv.gz`
 and `pull_irradiance.py` pulling the KMEMILLI18 five-minute solar
 highs for three windows, with the record typed in the script and a
 note naming the missing word. When the observed-series word exists:

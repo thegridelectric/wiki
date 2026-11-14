@@ -13,6 +13,17 @@ Newest at the top.
 
 ---
 
+## 2026-11-14 — The LTN port reads gw.price.forecast and asks the FLO with flo.params 002 (`d8bcdbf`, jm/price-forecast-word, OPS-666)
+
+**Why.** The same change as the scada's LTN, kept in step so the port
+does not diverge on its first field-relevant seam: decode the price
+service's word through the snapshot, keep it on disk as the fallback,
+write the one price list and `PriceForecastId` into `flo.params` 002.
+The snapshot moves to flo.params 002, gw.price.forecast 000 and
+`gw.market.product.name` 001; the seam test's held request is the 002
+sample. Local class names also drop a leading `gw0.` segment, so
+every word's class is its name without a GridWorks prefix.
+
 ## 2026-11-11 — ltn box is now on Hetzner (gridworks-infra `02aa453`, main, OPS-667)
 
 The six house LTNs run on a Hetzner cx23 in hel1 (`ltn.electricity.works`,

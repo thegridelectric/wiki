@@ -8,7 +8,7 @@ the one path a consumer pulls by.
 
 ## Cadence
 
-Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-11@711a8cc (`experiments/2026-08-11-nws-updatetime-probe/`) — the top-of-hour choice; no emission minute beats another
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-11@711a8cc (`experiments/archive/2026-08-11-nws-updatetime-probe/`) — the top-of-hour choice; no emission minute beats another
 
 - Cadence is a record fact: EmitPeriodS and EmitOffsetS on the channel
   and bundle words. Raising a station's cadence to its true update
@@ -25,7 +25,7 @@ Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-11@711a8cc 
 
 ## Broadcast binding shape
 
-Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-12@f4f3d01 (`experiments/2026-08-11-gwwf-obs-roundtrip/`, `experiments/2026-08-12-gwwf-record-broadcast/`)
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-12@f4f3d01 (`experiments/archive/2026-08-11-gwwf-obs-roundtrip/`, `experiments/archive/2026-08-12-gwwf-record-broadcast/`)
 
 The radio channel is the dotted tail of the `rjb` routing key,
 appended verbatim with dots preserved, so a consumer binds per

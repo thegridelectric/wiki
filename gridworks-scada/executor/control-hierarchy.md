@@ -143,7 +143,7 @@ local-control or leaf-ally (the shape both layout words declare; tlayouts `nolan
 Auto transitions send it no `GoDormant` or `WakeUp` (`scada.py:1004-1022`). The reason it never
 sleeps under admin: on the 2026-09-06 spruce pump-speed sweep the dormant cycler could not cycle
 a flatlined pico and `secondary-flow` was lost for nineteen minutes
-(`experiments/2026-09-06-spruce-pump-speed-sweep/`). Rejected with it: an admin-mode toggle that
+(`experiments/archive/2026-09-06-spruce-pump-speed-sweep/`). Rejected with it: an admin-mode toggle that
 would hand the vdc relay to the operator directly. Dormant, for the cycler, keeps the one meaning
 it has everywhere: the node became a leaf and commands nothing, reserved for a mode that touches
 no relay at all, which is what five-v-boss's hold is (next section).
@@ -246,7 +246,7 @@ themselves were not seen there: the scada forwards a glitch to the LTN on the up
 only, with no box log line and no persisted event, and that window's link was refused.
 
 **Spruce's 0x21 resets follow the iso actuator's load.** The 2026-08-23 gw108 relay stress run
-(`experiments/2026-08-23-gw108-relay-stress/`) energized the iso-valve relay with no other 0x21
+(`experiments/archive/2026-08-23-gw108-relay-stress/`) energized the iso-valve relay with no other 0x21
 coil on and reset the expander 35 times in 100; with one other coil on, 2 in 30; with two or more,
 0 in 90. The secondary-pump relay never reset it, and the same triplet on the bench board with
 nothing on the contacts never did. Command spacing makes no difference. The boot posture's iso
@@ -257,7 +257,7 @@ against the iso command that preceded it before anything else is blamed.
 hp-boss does not wait on the report: it would
 learn nothing about the heat pump, which answers a call minutes later. The honest on/off signal
 is the power channel. Witnessed on
-honeysuckle 2026-09-07 (`experiments/2026-09-07-hp-boss-admin-drive/`): the relay committed
+honeysuckle 2026-09-07 (`experiments/archive/2026-09-07-hp-boss-admin-drive/`): the relay committed
 `RelayOpen` 14 ms after `HpOff` and `RelayClosed` 12 ms after `HpOn`.
 
 ## Shared *definitions*, per-topology *binding*
@@ -526,7 +526,7 @@ a hands-off flag on the relay. Each either let the cycler sleep under
 admin or gave the relay two commanders.
 
 **Witnessed.** Dev sim run 4 and spruce 2026-09-09
-(`experiments/2026-09-08-five-v-boss-hold/` "Found"): TurnOff to FiveVOff
+(`experiments/archive/2026-09-08-five-v-boss-hold/` "Found"): TurnOff to FiveVOff
 in 27 ms, five picos flatlined through the hold, the cycler cycled
 nothing, TurnOn in 12 ms. Tests: `tests/actors/test_five_v_boss.py` (18,
 on the Nolan and House0-sim pairs).
@@ -554,10 +554,10 @@ arriving mid-cycle is nacked Busy. The cycler also cycles on its own on
 stale.
 
 Real timing (spruce gw108, 2026-09-08,
-`experiments/2026-09-08-spruce-admin-panel/`): the BTU picos re-POST
+`experiments/archive/2026-09-08-spruce-admin-panel/`): the BTU picos re-POST
 7 to 9 s after the relay closes, so PicosLive arrives about 13 s after
 the command and the 60 s wait never fires in anger. The sim rung is
-`experiments/2026-09-07-admin-reboots-picos/`.
+`experiments/archive/2026-09-07-admin-reboots-picos/`.
 
 **What provoked a cycle is structured, not prose.** The provocation
 kind is the cycle's entering event (`PicoMissing`, `ShakeZombies`,

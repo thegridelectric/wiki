@@ -446,7 +446,7 @@ re-posted within `resolve_timeout` and the alerter says each transition
 once, so the tap re-posts its open set every `tap_resend_s` (300) and
 seeds that set from the alerter's store at boot (`Store.open_alerts`),
 which is what makes a tap restart neither re-page nor forget. Witnessed
-PASS on the laptop, `experiments/2026-09-30-alerter-to-alertmanager/`.
+PASS on the laptop, `experiments/archive/2026-09-30-alerter-to-alertmanager/`.
 
 **Snapshot from the published alert words** (was `f0064a6`).
 The vendored snapshot regenerated from sema `632b58e`, where `gw.alert`
@@ -562,7 +562,7 @@ every `GWALERTER_DETECTOR_TICK_S` once it is consuming and broadcasts
 each word on its mic exchange with the house alias as the radio channel;
 arrivals clear in dispatch. Tests drive the rule with a fixed clock
 through a typed report builder in `conftest.py`; the real-broker witness
-is `experiments/2026-09-15-alerter-no-data/` (PASS, including the
+is `experiments/archive/2026-09-15-alerter-no-data/` (PASS, including the
 restart with the alert open; experiments `58cf200`, which also puts the
 alert words in that repo's snapshot).
 

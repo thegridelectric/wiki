@@ -168,7 +168,7 @@ not vendor gets no channel and is tallied (`unvendored_machines`).
   projection from gnr's read API (`g.node.forest.request`) through the
   same `project_forest`, writing no `messages` row; it is for standing up a
   journalkeeper against a fresh database. Verified on a dev universe:
-  `experiments/2026-08-05-registry-projection-rig/`.
+  `experiments/archive/2026-08-05-registry-projection-rig/`.
 - **`layout.lite`** → `layouts` (`layouts_projection.py`, `project`),
   beside its channel sync. One row per terminal asset, keyed on the
   TerminalAsset GNodeId looked up in `g_nodes` by the scada's alias with

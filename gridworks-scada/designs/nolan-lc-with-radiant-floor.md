@@ -88,7 +88,7 @@ control needs the slab's charge in the same ledger as the buffer's.
 
 ## Do this next
 
-Pull the 2026-10-30 to 10-31 window into `experiments/spruce-radiant-slab/`
+Pull the 2026-10-30 to 10-31 window into `experiments/datasets/spruce-radiant-slab/`
 and fit G and C for the living room from it, so the first control
 question (how long a cold slab takes to pass the room air at a given
 supply) has a measured answer.

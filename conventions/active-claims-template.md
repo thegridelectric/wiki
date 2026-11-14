@@ -35,7 +35,7 @@ verbatim; deviation is a defect, not a stylistic choice. RFC 2119 keywords
   deep** for code-repo claims (e.g., `sema/`, `gridworks-base/`,
   `gridworks-scada/`) and SHALL be **at most two deep** for `wiki/` and
   `experiments/` claims (e.g., `wiki/sema/`, `wiki/gridworks-scada/`,
-  `experiments/2026-09-05-dac-output-bench/`). An experiment folder is one
+  `experiments/archive/2026-09-05-dac-output-bench/`). An experiment folder is one
   rung with one owner, so sessions claim the folder, not `experiments/`
   as a whole; `experiments/` alone is a valid claim only for work on the
   folder's shared files (the logbook, `future/`). Finer-grained claims

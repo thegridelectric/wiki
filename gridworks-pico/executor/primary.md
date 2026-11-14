@@ -175,7 +175,7 @@ provisioning is the only way code reaches a pico.
 
 ## Verified field facts
 
-Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-05@5e77cee (`experiments/pico-power-cycling/2026-08-03-gap-analysis/`, `experiments/pico-power-cycling/2026-08-05-link-census/`, `experiments/2026-08-10-hp-snafu-and-pico-blackout-postmortem/`)
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-05@5e77cee (`experiments/practices/pico-power-cycling/2026-08-03-gap-analysis/`, `experiments/practices/pico-power-cycling/2026-08-05-link-census/`, `experiments/archive/2026-08-10-hp-snafu-and-pico-blackout-postmortem/`)
 
 - **A permanently dead pico in the layout reboots every sibling.** The
   cycler shakes the shared VDC bus every 30 minutes while any zombie
@@ -215,7 +215,7 @@ Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-05@5e77cee 
 - The params retry is unverified in the field: three cycles of the
   spruce rail with the listener in the scada's place, PASS when every
   live pico posts params after every boot and readings keep their
-  cadence (`experiments/2026-09-19-spruce-pico-params/` is the before
+  cadence (`experiments/archive/2026-09-19-spruce-pico-params/` is the before
   picture: three of eight, then five of eight).
 - floor1 at spruce has sent nothing since the 2026-09-15 in-field
   update. Leading cause, unconfirmed: a short download written straight

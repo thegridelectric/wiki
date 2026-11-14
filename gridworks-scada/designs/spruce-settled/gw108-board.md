@@ -233,7 +233,7 @@ gw108 state check).
 
 - **Declare the eGauge poll period on the spruce eGauge component.** The
   pico-blackout postmortem's timing argument
-  (`experiments/2026-08-10-hp-snafu-and-pico-blackout-postmortem/`) had to
+  (`experiments/archive/2026-08-10-hp-snafu-and-pico-blackout-postmortem/`) had to
   infer ~1 s read cadence from observed sample spacing; the poll period
   is an operational choice that belongs on the component record, the
   same pattern as the ADS 8 SPS / 1 Hz choice above. Once declared,

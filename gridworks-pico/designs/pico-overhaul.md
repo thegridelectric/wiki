@@ -35,7 +35,7 @@ the params retry, merged 2026-09-22. `jm/pico-overhaul` is gone; all of
 it was carried onto that branch. Spruce runs earlier builds of the same
 line: four tank picos took one on 2026-09-09, and pipes1 and the four
 BTU picos took the single-file builds at `0ca8a2f` on 2026-09-15
-(`experiments/2026-09-19-spruce-pico-params/`). The `main` build goes
+(`experiments/archive/2026-09-19-spruce-pico-params/`). The `main` build goes
 to spruce at the next site visit, with the three-cycle params check in
 the executor's Open list.
 

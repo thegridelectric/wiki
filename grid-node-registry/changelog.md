@@ -146,7 +146,7 @@ Helsinki populate restarts the stream under current versions, so the
 snapshot stays latest-only). Proven locally: a real `gnr-ear` witnessed a
 regenesis onto a scratch registry; wiped and rebuilt from that capture
 alone — 25 applied, 27/27 checkpoints, validate-clean, equal to the old
-box's dump (`experiments/2026-08-27-ops-457-replay/`).
+box's dump (`experiments/archive/2026-08-27-ops-457-replay/`).
 
 ## 2026-08-27 — Rebuild replay lands on dev: pending-first fixtures, send-time-blind checkpoints (`c6621ee`, on `jm/ops-457-replay`; merge `70e4b19`)
 

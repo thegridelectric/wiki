@@ -38,7 +38,7 @@ chart-only numbers marked as such.
 The repo. One folder per document named by its slug: the markdown as
 the text of record, the current Word cut `<slug>.v<N>.docx` made with
 pandoc, the workbook `<slug>.xlsx` from
-`experiments/dist-loop-experiments/sheets.py <slug>` where that
+`experiments/datasets/dist-loop-experiments/sheets.py <slug>` where that
 registry has one, `build.sh`, a `build.txt` provenance record
 (markdown, docx and xlsx hashes, the experiments commit, the pandoc
 version) and `archive/` with earlier cuts. A pre-commit hook refuses a

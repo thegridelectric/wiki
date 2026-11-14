@@ -29,5 +29,9 @@ ones stay under that domain's `research/explorations/`.
 - [`ltn-placement-and-comms-loss.md`](ltn-placement-and-comms-loss.md) —
   where the LTNs run against dispatch latency and comms-loss scenarios;
   standby options costed; the local island as the eventual shape.
+- [`jessica-learns-k8s.md`](jessica-learns-k8s.md) — a learning note on
+  Kubernetes: what the cluster teaches (declared state, the two kinds of
+  workload, volumes, secrets, operators) and the order to learn it in;
+  the actionable plan is OPS-676.
 - [`aris-collaboration.md`](aris-collaboration.md) — the Aris Hydronics /
   Jonathon Woolley collaboration and its open business-model questions.

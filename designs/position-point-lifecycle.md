@@ -131,7 +131,7 @@ naming convergence across other words (OPS-472); Kafka/scale concerns.
    MarketMaker re-parent → broadcast 002/006, projection re-aliased with
    verbatim position ids, `created_at == SendTimeMs` exactly, ear slice
    captured cmd + ack + forest; snapshot healed a corrupted row.
-   (Reproducer in `experiments/2026-08-05-registry-projection-rig/`
+   (Reproducer in `experiments/archive/2026-08-05-registry-projection-rig/`
    needs its one-line `DEV_POSITION_ID` rename + an 08-06 note —
    deferred, the folder is under another session's claim.)
 5. **After `sema promote`: refresh the other g.node.gt consumers.** Every

@@ -10,6 +10,23 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-13 — The Ltn reads gw.price.forecast and asks the FLO with flo.params 002 (`a9f6ba88`, jm/price-forecast-word, OPS-666)
+
+**Why.** The price service's route now serves `gw.price.forecast`: one
+price per slot with a `PriceUnit`, a stable `ForecastUid` and the
+market's product. The LTN read the stopgap word off raw JSON
+(`LmpList`, `DistList`) and kept a CSV as its fallback, so it breaks
+the moment the service deploys. It decodes the word through its
+protocol twin instead, keeps the decoded word on disk as the fallback,
+and writes the one price list and `PriceForecastId` into `flo.params`
+002, which is what lets the visualizer draw the forecast a house's FLO
+used. The protocol snapshot moves to flo.params 002, gw.price.forecast
+000 and `gw.market.product.name` 001 (`rt60gate1`), and the gwsproto
+twins with it: `FloParams` 002, a `PriceForecast` twin with its two
+axioms, the enum's new value. A request whose slot the forecast does not
+hold is refused. Also in the commit: the DAC bench path in the end-to-end
+sim test's comment points at `experiments/archive/`.
+
 ## 2026-11-11 — Jm/roll compare fix (`9992a539`, PR #619)
 
 Merges `jm/roll-compare-fix`: roll_compare compares every field of the params file.
@@ -1948,7 +1965,7 @@ the previous one sent `PicoMissing` and the cycler opened the 5 V relay.
 The 2026-09-15 pico build posts after its ADC burst instead of from the
 timer callback, so one post in five from a Wiznet tank pico arrives about
 0.8 s late, and the four ethernet houses were rebooting their buses 100 to
-250 times a day (`experiments/pico-power-cycling/2026-10-14-reboot-storm/`).
+250 times a day (`experiments/practices/pico-power-cycling/2026-10-14-reboot-storm/`).
 The report compare was `last_error_report > 60`, a timestamp against a
 count, always true, so a missing pico was re-reported every 10 s. OPS-592.
 
@@ -4730,7 +4747,7 @@ cycler row) and the indent assertion in `test_admin_row_order.py`. Also deleted:
 no module imported, rendering through a `RelayWidgetConfig` method that
 no longer existed.
 
-**Why:** the spruce window (`experiments/2026-09-08-five-v-boss-hold/`)
+**Why:** the spruce window (`experiments/archive/2026-09-08-five-v-boss-hold/`)
 showed the five-v-boss row offering only `TurnOff`: `next_command`
 picked the first command leading elsewhere, and `RebootPicos` leads to
 `PicoCycler`, so in `PicoCycler` it was never chosen. The hold and the
@@ -4797,7 +4814,7 @@ these three were the only twins that kept it.
 ## 2026-09-08 — five-v-boss rung fixes: gwadmin row vocabularies, atomic labels, cycler Dormant row (`6cdf8a1d`)
 
 Branch `jm/spruce-unlimbo`. The five-v-boss dev-broker rung
-(`experiments/2026-09-08-five-v-boss-hold/`) stopped at its first
+(`experiments/archive/2026-09-08-five-v-boss-hold/`) stopped at its first
 command: the panel's row for five-v-boss took only `RebootPicos`.
 `RelayWatchClient._get_relay_configs` keyed the scada's command
 interfaces by node name, so a node with two vocabularies kept whichever
@@ -5018,7 +5035,7 @@ nothing if a different cycle is running when they fire; two tests in
 `tests/actors/test_pico_cycler_command.py` pin each wait to its cycle.
 
 **Why:** the dev-broker rung for the pico-cycler command
-(`experiments/2026-09-07-admin-reboots-picos/`) stalled in run 1 at its
+(`experiments/archive/2026-09-07-admin-reboots-picos/`) stalled in run 1 at its
 first cycle: the cycler waits for the relay's confirmation before
 closing it again, so on a sim board no cycle ever completed and no sim
 pico ever rebooted; the relay's state had committed, only its word to
@@ -5289,7 +5306,7 @@ simulated timestep, so nobody deletes it as dead.
 
 ## 2026-09-05 — Board-resident actors pick real or fake silicon from the board record; the fake control-input branches go
 
-The honeysuckle bench (`experiments/2026-09-05-dac-output-bench/`) could
+The honeysuckle bench (`experiments/archive/2026-09-05-dac-output-bench/`) could
 not reach the real MCP4728: `I2cBus` chose `SimI2c` because the derived
 `is_simulated` was true (no TaDeed, two sim tank modules), even though
 the layout's board record is a real `Gw108RevB`. That bit answers "is
@@ -5327,7 +5344,7 @@ and DFR multiplexers) are the whole list.
 
 ## 2026-09-05 — Admin seam on Nolan: capabilities and dispatch tests; outputer names its dispatch and its EEPROM read; proactor pin to v4.1.13+jm2
 
-The 2026-09-05 honeysuckle bench (`experiments/2026-09-05-dac-output-bench/`)
+The 2026-09-05 honeysuckle bench (`experiments/archive/2026-09-05-dac-output-bench/`)
 reported the admin dispatch never reaching `ZeroTenOutputer` and the
 EEPROM verify reprogramming every boot. Both traced to one cause the log
 named in its first lines: the pi booted `SIMULATED`, so `I2cBus` ran the
@@ -5835,7 +5852,7 @@ two on gwproto's `EventBase` take it as a second base (MRO `ReportEvent` →
 `EventBase` → `GwsprotoSemaType` → `BaseModel`). The free function
 `type_name_literal` is deleted; its call sites inside gwsproto now ask the
 word. Verified by experiment
-(`experiments/2026-08-15-gwsproto-sema-layover/`, re-runnable): against a
+(`experiments/archive/2026-08-15-gwsproto-sema-layover/`, re-runnable): against a
 patched copy of the whole package the message union is identical by
 TypeName set, no word's `model_config` changed, wire form is byte-identical,
 and the suite is green — the first run caught the two `EventBase` words the
@@ -6091,11 +6108,11 @@ partition correction `91385fe`, tlayouts snapshot on actor.class
 013): the gen now emits the `gw108-dac2-writer` node natively, so
 the DAC-writer test fixture stops hand-appending one and boots the
 artifact as-is — the same shape the bench rung ran
-(`experiments/2026-08-12-dac-bus-bench/`, EDD gate met).
+(`experiments/archive/2026-08-12-dac-bus-bench/`, EDD gate met).
 
 ## 2026-08-12 — EEPROM write-cycle settle in the DAC verify; sim models the busy window (`12d6a1bc`)
 
-The bench rung's finding (`experiments/2026-08-12-dac-bus-bench/`):
+The bench rung's finding (`experiments/archive/2026-08-12-dac-bus-bench/`):
 the MCP4728 is busy ~25–50 ms per EEPROM write and reads meanwhile
 return the old data, so the boot verify's immediate re-read saw
 stale values and convergence took three heartbeat passes instead of

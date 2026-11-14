@@ -1,6 +1,6 @@
 # hp-boss power watcher
 
-Status: Draft · Pass 0 · Updated 2026-11-12 · Linear: OPS-673
+Status: Draft · Pass 0 · Updated 2026-11-13 · Linear: OPS-673
 **EDD: yes** — verified by a scada restart into a running heat pump at
 maple, reproduced locally against a real broker, that raises the critical
 glitch and keeps the sieg loop open until the unit stops.
@@ -36,9 +36,12 @@ makes, and its 120 s settle is shorter than the Ecodan's late honor.
   about the unit, and the boss reports the truth (call open, unit still
   running) until the sensed draw says the compressor has stopped. An off
   commanded inside the model's minimum run is a Warning glitch.
-- **The sieg loop holds the loop open until the unit has stopped**, read
-  from the sensed state, not from the relay command. Today it goes to
-  full keep the instant hp-boss says HpOff.
+- **The sieg loop is open whenever hp-boss reports HpOff.** Its rest
+  posture is the send stop (the basic sieg work under OPS-392), so a unit
+  that runs on after an off meets an open loop with no read of the
+  sensed state; the loop parks at keep complete only on a TurnOn, before
+  the call closes. Today it goes to full keep the instant hp-boss says
+  HpOff.
 - **One sensed state per unit, running or stopped**, read from hp-odu
   power with the model's on and off lines, on every layout. hp-watch
   does this on Nolan layouts today; it becomes the heat pump's state
@@ -56,8 +59,9 @@ makes, and its 120 s settle is shorter than the Ecodan's late honor.
 ## Open
 
 - Where the record lives: `hp.device.type.gt` in sema, or the layout's
-  component attributes, and what the Ecodan row says for a call that
-  opens under 60 s into a start (unseen).
+  component attributes. The Ecodan row for a call that opens early in a
+  start is measured: 3 s and 28 s after the compressor started, the unit
+  ran 6 min 8 s and 6 min 14 s more (2026-11-13 13:41 and 13:22 ET).
 - Modbus: when a unit reports its own state, the watcher reads that and
   the power lines become the cross-check.
 - The sieg control state refactor runs alongside this; the sensed state

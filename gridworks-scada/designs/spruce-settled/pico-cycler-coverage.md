@@ -3,7 +3,7 @@
 Status: Draft · Pass 0 · Updated 2026-09-10 · Linear: OPS-532
 
 > What this is: the in-process tests the pico-cycler command work owed
-> itself after the dev-broker rung (`experiments/2026-09-07-admin-reboots-picos/`),
+> itself after the dev-broker rung (`experiments/archive/2026-09-07-admin-reboots-picos/`),
 > which today have only the broker run behind them. All in
 > `tests/actors/test_pico_cycler_command.py` unless noted.
 

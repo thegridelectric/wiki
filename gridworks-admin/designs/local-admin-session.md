@@ -21,7 +21,7 @@ Neither side notices a dead link. The admin client publishes a dispatch
 and watches for a few seconds; the scada holds Admin until a fixed timer
 from the last admin message and never learns whether the operator is
 still there; the operator never learns whether the scada is still
-listening. On bench run 4 (2026-09-05, `experiments/2026-09-05-dac-output-bench/boot-2026-09-05-run4.log`)
+listening. On bench run 4 (2026-09-05, `experiments/archive/2026-09-05-dac-output-bench/boot-2026-09-05-run4.log`)
 the laptop's tunnel died silently eight seconds after a send; the scada
 logged nothing for two minutes, then its 120 s timer fired after SIGTERM
 had already cancelled its tasks:

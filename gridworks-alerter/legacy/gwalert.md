@@ -40,7 +40,7 @@ detector.
   the full-window fetch cannot delay it. Verified on the live fleet
   2026-09-16: spruce's scada stopped for 15 minutes paged Opsgenie 14.7
   minutes after the stop, the cycle after the one that saw the data 9.9
-  minutes old (`experiments/2026-09-16-gwalert-no-data-page/`). Worst
+  minutes old (`experiments/archive/2026-09-16-gwalert-no-data-page/`). Worst
   case from data stop to page is the threshold plus one cycle plus the
   scada's report cadence, about 15 minutes.
 - **Opsgenie de-duplicates by a per-day alias.** gwalert posts every

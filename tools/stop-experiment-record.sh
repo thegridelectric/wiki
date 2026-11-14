@@ -39,8 +39,8 @@ if [ -f "$dismissed" ] && [ "$dismissed" -nt "$marker" ]; then
 fi
 
 # A README in a dated experiment folder, written after the run started,
-# or a run record under the undated beta-field-windows/ folder.
-newer=$(find "$UMBRELLA/experiments" -maxdepth 2 \( -path '*/20[0-9][0-9]-*' -o -path '*/beta-field-windows/*' \) -name README.md -newer "$marker" 2>/dev/null | head -1)
+# or a run record under practices/<name>/ or procedures/<name>/runs/.
+newer=$(find "$UMBRELLA/experiments" -maxdepth 4 \( -path '*/20[0-9][0-9]-*' -o -path '*/practices/*' -o -path '*/procedures/*/runs/*' \) -name README.md -newer "$marker" 2>/dev/null | head -1)
 if [ -n "$newer" ]; then
   rm -f "$marker"
   exit 0

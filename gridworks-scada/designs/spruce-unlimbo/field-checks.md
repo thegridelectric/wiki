@@ -40,7 +40,7 @@ open.
 ## Look out for at spruce: the iso relay and the 0x21 reset
 
 The 2026-08-23 gw108 relay stress run at spruce
-(`experiments/2026-08-23-gw108-relay-stress/`) found that energizing
+(`experiments/archive/2026-08-23-gw108-relay-stress/`) found that energizing
 the iso-valve relay with fewer than two other 0x21 coils already
 energized resets expander 0x21 (35 in 100 with none on, 2 in 30 with
 one, 0 in 90 with two or more); the secondary-pump relay never resets
@@ -150,7 +150,7 @@ window to re-break.
   (2026-10-16) did not open: the forecaster served bundle 000 against
   the scada's 001 pin.
 - **oak 2026-10-20** (`b3b71004`, both pis, observe-only;
-  `experiments/beta-field-windows/runs/2026-10-20-1831-oak-second-window/`):
+  `experiments/practices/beta-field-windows/runs/2026-10-20-1831-oak-second-window/`):
   sane on-peak posture, no errors, all four Hubitat zones reporting,
   the deed and tank board-variant glitches cleared by the oak gen fix.
 - **spruce 2026-10-21** (`a9acd401`, 11 minutes, admin TurnOn and

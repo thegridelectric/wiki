@@ -18,8 +18,8 @@ experiment script and captured to `experiments/<date>-<slug>/`. The entry
 is the live one, `gws run`, with the pair and the admin link given by
 environment (`SCADA_PATHS__HARDWARE_LAYOUT`, `SCADA_PATHS__OPERATIONAL_PARAMS`,
 `SCADA_ADMIN__*`, `SCADA_SECONDS_PER_REPORT`), bounded by `timeout`; the
-model runs are `experiments/2026-09-07-admin-reboots-picos/` and the dev
-rung of `experiments/2026-09-10-beech-krida-witness/`.
+model runs are `experiments/archive/2026-09-07-admin-reboots-picos/` and the dev
+rung of `experiments/archive/2026-09-10-beech-krida-witness/`.
 
 - **The repo holds only simulated layouts.** `tests/config/` carries two
   House0 pairs, orange (measured primary flow) and willow (derived primary

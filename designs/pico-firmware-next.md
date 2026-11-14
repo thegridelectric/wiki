@@ -38,7 +38,7 @@ What the pico says about itself: the params post has `HwUid`,
 `MicropythonVersion` (`async_btu_main_no_net.py:363`). It has no
 firmware commit and no MAC. Which build a pico runs is reconstructed
 from the md5 of the file the box served it
-(`experiments/pico-power-cycling/firmware-track-record.md`). The
+(`experiments/practices/pico-power-cycling/firmware-track-record.md`). The
 MicroPython version the Pico W fleet runs is recorded nowhere in a
 repo; the next params post from any Pico W says it.
 

@@ -10,6 +10,14 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-14 — Stop printing every SQL command (`206b926`, jm/no-sql-echo, cherry-pick of Thomas's `4dcd5d4a`)
+
+**Why:** the api service's async engine was created with `echo=True`, so
+every SQL statement went to the journal on web-api2, about 6,600 lines an
+hour on a box with a 6.8 GB root disk. One line in
+`api/v2/dependencies.py` drops the flag. Lifted on its own from the
+`td/bruce-flo` branch so it ships ahead of the FLO-plot merge order.
+
 ## 2026-11-11 — The fleet's time-of-use tariff as a gw.tou.tariff word for the price panel's on-peak shading (`ada1c7f`, jm/price-panel-lmp, OPS-666)
 
 **Why:** the price panel shades the tariff's on-peak hours, and the browser

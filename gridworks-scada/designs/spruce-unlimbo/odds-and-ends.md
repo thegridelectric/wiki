@@ -55,7 +55,7 @@ Status: Draft · Pass 0 · Updated 2026-09-30 · Linear: OPS-392
   the backup node. The reported state reads `UsingNonElectricBackup` /
   `Dormant` while the heat pump runs on electricity. Seen at maple
   2026-09-20 12:46:25 on `main`
-  (`experiments/2026-09-20-maple-starts-heating/`, finding 11): relay 6
+  (`experiments/archive/2026-09-20-maple-starts-heating/`, finding 11): relay 6
   closed and `hp-odu-pwr` climbing to 5 kW for forty minutes under a
   dormant machine. A cold start with an empty buffer always reaches the
   SystemCold mark, since no heat pump lifts a 61 F buffer in five
@@ -80,7 +80,7 @@ Status: Draft · Pass 0 · Updated 2026-09-30 · Linear: OPS-392
   that decays under the threshold before it stops never reaches zero: at
   maple `sieg-send` ended a valve closure at 0.02 gpm and the five-minute
   synced report kept re-sending 0.02
-  (`experiments/2026-09-20-maple-starts-heating/`, finding 16). The pico
+  (`experiments/archive/2026-09-20-maple-starts-heating/`, finding 16). The pico
   is not at fault; it posts an empty tick list every 7 s. Anything that
   tests a flow against zero, or sums flows, reads a pump that is not
   running.
@@ -118,7 +118,7 @@ Status: Draft · Pass 0 · Updated 2026-09-30 · Linear: OPS-392
   `3e5087f` (`v4.1.13+jm2`) for the scada. With a wrong password the broker
   refuses every CONNACK while the panel appears connected and nothing it sends
   can arrive. Found on the 2026-09-05 dac-output bench
-  (`experiments/2026-09-05-dac-output-bench/` README "Side findings",
+  (`experiments/archive/2026-09-05-dac-output-bench/` README "Side findings",
   reproducer `test_connect_refused.py`).
 - **Change.** Mirror the gwproactor fix: a refusal rides a `mqtt_connect_failed`
   edge with its reason logged, no re-queued connect on the closing socket.

@@ -46,7 +46,7 @@ Sub-specs:
 - **Moving the broker off AWS** is a DNS repoint (human-executed) plus
   one reconnect storm: same hostname, same CA, same client certs, zero
   per-house config, following the staging-box recipe
-  (`experiments/2026-09-06-fis-staging-box/`). It is not combined with
+  (`experiments/archive/2026-09-06-fis-staging-box/`). It is not combined with
   an auth cutover: mixing a DNS/IP move into a per-client migration
   re-imports the flag day the ratchet engineered out.
 - **TLS only, client cert required.** The broker listens on AMQPS 5671,
@@ -217,7 +217,7 @@ API. Run it after any conf change; 8/8 is the bar. The topology drift check (see
 harness.
 
 The SASL mechanism plugin has its own witness, since nothing on the running
-broker exercises it yet: `experiments/2026-08-14-sasl-mechanism-spike/` mounts
+broker exercises it yet: `experiments/archive/2026-08-14-sasl-mechanism-spike/` mounts
 the built `.ez` into a pinned broker image and drives a real client cert plus
 a claims payload into a stub authority. It passes when the authority's
 `/auth/user` call carries the cert's CN as `username` and the claims

@@ -6,11 +6,11 @@ Status: Draft · Pass 0 · Updated 2026-09-02
 > `gw_data`, and the rules that keep a load from corrupting the live era.
 > The importer is `gjk.s3_message_importer`; the driver is
 > `scripts/s3_bulk_load.sh`; the dev-DB harness is
-> `experiments/2026-08-25-ops498-load/` (umbrella dir).
+> `experiments/archive/2026-08-25-ops498-load/` (umbrella dir).
 
 ## What the journal holds
 
-Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-25@38bd6e5 (`experiments/2026-08-25-ops498-load/`)
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-25@38bd6e5 (`experiments/archive/2026-08-25-ops498-load/`)
 
 The database is populated from **2024-10-13**, the first full day of the
 `report.event` era, through the present. The 2024-10-13 → 2026-01-08 span
@@ -153,13 +153,13 @@ that meets the live keeper's locks fails fast instead of queueing behind
 them; one printed row/seconds line per batch; stop on the first error rather
 than retry, and resume by re-running (the predicate makes it idempotent). At
 that batch size prod took 1.2–3 s a batch with the keeper live. The log of
-that run is `experiments/2026-08-25-ops498-load/snapshot-cleanup.log`.
+that run is `experiments/archive/2026-08-25-ops498-load/snapshot-cleanup.log`.
 
 ## Verification
 
-Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-25@38bd6e5 (`experiments/2026-08-25-ops498-load/`)
+Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-25@38bd6e5 (`experiments/archive/2026-08-25-ops498-load/`)
 
-`experiments/2026-08-25-ops498-load/edd_dev_run.sh` seeds the dev DB with
+`experiments/archive/2026-08-25-ops498-load/edd_dev_run.sh` seeds the dev DB with
 prod's `reading_channels` and newest layout per house — the shape a prod load
 meets — then runs both passes over windows crossing every channel era and
 asserts: active channel set unchanged; era rows end at each house's newest

@@ -5,7 +5,7 @@ Status: Draft · Pass 0 · Updated 2026-10-05 · Linear: OPS-547
 **EDD: yes** the experiment is the verification: a `gw.alert` raised by
 the alerter arrives in Alertmanager's alert list and reaches a receiver,
 and its `Resolved` record closes it
-(`experiments/2026-09-30-alerter-to-alertmanager/`, PASS on the laptop).
+(`experiments/archive/2026-09-30-alerter-to-alertmanager/`, PASS on the laptop).
 Nothing here is Verified until that harness runs on the alerts box.
 
 > **What this is.** A suggestion, written for whoever takes alert
@@ -93,7 +93,7 @@ is to not build them.
   restart, so a restart neither re-pages nor forgets.
 - The path, on the laptop: alerter to tap to a local Alertmanager to a
   webhook receiver, `Firing` and `Resolved`, with a tap restart while an
-  alert is open (`experiments/2026-09-30-alerter-to-alertmanager/`,
+  alert is open (`experiments/archive/2026-09-30-alerter-to-alertmanager/`,
   which also holds the `alertmanager.yml` used).
 
 Not proven: anything on the alerts box, and any real receiver.

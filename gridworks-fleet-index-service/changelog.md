@@ -204,7 +204,7 @@ the service itself. In gridworks-infra, a `fis/` service folder joins
 `ear/`, `gjk/`, `gnr/`: how FIS lives on any broker box (the login, the
 unit, the Postgres container, the boot rule) and the homedir README.
 The staging box itself is ephemeral, so its build is an experiment
-reproducer (`experiments/2026-09-06-fis-staging-box/`), not an infra
+reproducer (`experiments/archive/2026-09-06-fis-staging-box/`), not an infra
 folder.
 
 ## 2026-09-05 — The claimed run reaches `/auth/vhost` as the connection's user tag (`8d3f96c`)
@@ -268,7 +268,7 @@ silently.
 ## 2026-09-05 — First real-broker run: form parsing, AMQP service principals, supersession-confirm mitigation (`7280642`)
 
 The dev-universe gate battery
-(`experiments/2026-09-05-fis-gate-battery/`) is the first time FIS ran
+(`experiments/archive/2026-09-05-fis-gate-battery/`) is the first time FIS ran
 against a real broker + the rmqbot gate overlay rather than the
 in-process handlers. Three code changes it forced, all invisible to the
 handler tests (which drive the endpoints directly and use a fake killer):

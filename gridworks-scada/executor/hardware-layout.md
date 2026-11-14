@@ -755,7 +755,7 @@ glitch robustness, not noise: the reader publishes each in-band sample
 as truth, so one garbled-but-plausible read publishes a wrong value.
 Candidate closures are two consecutive in-band samples before an async
 publish, or the EMA, which absorbs single-sample glitches by
-construction. Record and reproducer: `experiments/2026-08-06-ads-noise/`.
+construction. Record and reproducer: `experiments/archive/2026-08-06-ads-noise/`.
 
 ### Expander types and the energized level
 
@@ -835,10 +835,10 @@ verify path as Nolan (`SimI2c.muxless_dacs`). The GP8403 arm is covered by
 a unit test of the driver's wire bytes and by the beech witness.
 
 Verified: the real MCP4728 on the bench 2026-09-05
-(`experiments/2026-09-05-dac-output-bench/` "Found", run 4) and spruce's
-secondary pump 2026-09-06 (`experiments/2026-09-06-spruce-pump-speed-sweep/`);
+(`experiments/archive/2026-09-05-dac-output-bench/` "Found", run 4) and spruce's
+secondary pump 2026-09-06 (`experiments/archive/2026-09-06-spruce-pump-speed-sweep/`);
 the GP8403 arm end to end on beech `dist-010v` 2026-09-13
-(`experiments/2026-09-12-beech-dist-010v-sweep/`: dist pump power followed
+(`experiments/archive/2026-09-12-beech-dist-010v-sweep/`: dist pump power followed
 the level, 4 W at 2 V to 48 W at 10 V, up and down).
 
 ## Hacky/irregular bits (current)
