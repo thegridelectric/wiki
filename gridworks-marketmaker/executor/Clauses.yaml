@@ -1,0 +1,208 @@
+# Clauses: one obligation each, in three kinds. Unconditional; a
+# transition, whose Condition is the guard; a failure, whose Condition is
+# the trigger and whose Obligation and Recovery are the observable
+# behaviour. Boundary names the Boundaries row the obligation crosses,
+# blank when internal.
+table: Clauses
+schema:
+  - name: Concern
+    kind: relationship
+    to: Concerns.Name
+    blank: hub
+  - name: Number
+    kind: relationship
+    to: Axioms.Number
+  - name: Label
+    kind: raw
+  - name: Kind
+    kind: raw
+    values: [unconditional, transition, failure]
+  - name: Condition
+    kind: raw
+    prose: true
+  - name: Obligation
+    kind: raw
+    prose: true
+  - name: Recovery
+    kind: raw
+    prose: true
+  - name: Boundary
+    kind: relationship
+    to: Boundaries.Name
+    blank: internal
+  - name: HasTest
+    kind: calculated
+    formula: COUNTIFS(Bindings.Concern, Concern, Bindings.Clause, Number & Label, Bindings.Kind, "test") > 0
+  - name: HasCounterexample
+    kind: calculated
+    formula: COUNTIFS(Vectors.Concern, Concern, Vectors.Clause, Number & Label, Vectors.Kind, "counterexample") > 0
+data:
+  # -- hub -------------------------------------------------------------
+  - Concern: ""
+    Number: 1
+    Label: a
+    Kind: unconditional
+    Boundary: mm-mic
+    Condition: ""
+    Obligation: >-
+      A published body is the wire form of a listed word at its listed
+      version, produced through the vendored snapshot.
+    Recovery: ""
+  - Concern: ""
+    Number: 1
+    Label: b
+    Kind: unconditional
+    Boundary: log
+    Condition: ""
+    Obligation: >-
+      An arriving body is not decoded; it is logged with its type and
+      sender and dropped, whatever its type or version.
+    Recovery: ""
+  - Concern: ""
+    Number: 2
+    Label: a
+    Kind: unconditional
+    Boundary: ""
+    Condition: ""
+    Obligation: >-
+      A publish happens only at a gate tick that finds a new slot open;
+      arrivals on the inbox do not publish, and a restart carries no
+      published or fetched price into the new run.
+    Recovery: ""
+  # -- gate ------------------------------------------------------------
+  - Concern: gate
+    Number: 1
+    Label: a
+    Kind: transition
+    Boundary: mm-mic
+    Condition: >-
+      A tick finds the wall clock in a later slot than the one last
+      published or passed over.
+    Obligation: >-
+      The maker publishes the price for the slot the clock is in, once,
+      and the slot becomes the last published.
+    Recovery: ""
+  - Concern: gate
+    Number: 1
+    Label: b
+    Kind: transition
+    Boundary: ""
+    Condition: >-
+      The first tick after start.
+    Obligation: >-
+      The slot the clock is in is passed over without a publish and
+      becomes the last handled slot.
+    Recovery: ""
+  - Concern: gate
+    Number: 2
+    Label: a
+    Kind: transition
+    Boundary: isone-current-lmp
+    Condition: >-
+      A tick finds a slot open whose price is not yet published and the
+      deadline not passed.
+    Obligation: >-
+      The maker asks ISO-NE for its current interval; when the interval
+      begins at the slot's start, the slot's price goes out on it.
+    Recovery: ""
+  - Concern: gate
+    Number: 2
+    Label: b
+    Kind: failure
+    Boundary: ""
+    Condition: >-
+      An ask raises, answers with a body that is not a price for the
+      maker's location, or answers with an interval other than the
+      slot's first.
+    Obligation: >-
+      The failure's text is kept as the slot's latest; the next tick
+      asks again.
+    Recovery: >-
+      The asks go on until the slot's interval is posted or the deadline passes.
+  - Concern: gate
+    Number: 3
+    Label: a
+    Kind: transition
+    Boundary: mm-mic
+    Condition: >-
+      An ask answers with the slot's first interval.
+    Obligation: >-
+      The slot's price is that interval's parts plus the tariff's
+      delivery for the slot's hour.
+    Recovery: ""
+  - Concern: gate
+    Number: 3
+    Label: b
+    Kind: failure
+    Boundary: mm-mic
+    Condition: >-
+      fetch_deadline_s pass after a slot's start with no price for it
+      and a price published before in this run.
+    Obligation: >-
+      The slot's price is the last published wholesale parts plus the
+      tariff's delivery for this slot's hour; a glitch of type Critical
+      with summary "stale price published" goes out on the mic beside
+      it, its details naming the slot, the failure and the slot the
+      parts came from.
+    Recovery: >-
+      The next slot with a fresh price is published fresh; nothing is
+      republished for the stale slot.
+  - Concern: gate
+    Number: 3
+    Label: c
+    Kind: failure
+    Boundary: mm-mic
+    Condition: >-
+      fetch_deadline_s pass after a slot's start with no price for it
+      and nothing published in this run.
+    Obligation: >-
+      No price goes out; a glitch of type Critical with summary "no
+      price to publish" goes out on the mic, its details naming the slot
+      and the failure.
+    Recovery: >-
+      The next slot with a fresh price is published fresh.
+  # -- publication -----------------------------------------------------
+  - Concern: publication
+    Number: 1
+    Label: a
+    Kind: unconditional
+    Boundary: mm-mic
+    Condition: ""
+    Obligation: >-
+      The word's MarketSlotName is e.<market_product>.<maker alias>.<slot
+      start in unix seconds>, and its FromGNodeAlias is the maker's alias.
+    Recovery: ""
+  - Concern: publication
+    Number: 1
+    Label: b
+    Kind: unconditional
+    Boundary: tariff-table
+    Condition: ""
+    Obligation: >-
+      The word has four components, WholesaleEnergy, WholesaleCongestion
+      and WholesaleLoss from the fetched parts and Delivery equal to the
+      tariff table's price for the slot's hour; its TariffAlias is the
+      table's alias and its PriceUnit USDPerMWh.
+    Recovery: ""
+  - Concern: publication
+    Number: 1
+    Label: c
+    Kind: unconditional
+    Boundary: mm-mic
+    Condition: ""
+    Obligation: >-
+      The word goes out as one broadcast on the mic with no radio
+      channel, its CreatedMs the maker's clock at the publish and a fresh
+      MessageId.
+    Recovery: ""
+  # -- inbox -----------------------------------------------------------
+  - Concern: inbox
+    Number: 1
+    Label: a
+    Kind: unconditional
+    Boundary: mm-inbox
+    Condition: ""
+    Obligation: >-
+      An arriving message is acknowledged to the broker and dropped; no
+      message goes out because of it and nothing is kept from it.
+    Recovery: ""

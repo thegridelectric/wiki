@@ -1,0 +1,66 @@
+# Trace spec: a field incident. ISO-NE's five-minute price did not come
+# back before the 04:00Z slot on 2026-11-11, and the maker published the
+# slot at the wholesale parts of the slot before, with a Critical glitch
+# beside it. The input is materialised by experiments/traces/pull_trace.py
+# into experiments/traces/gridworks-marketmaker/<name>/messages.jsonl
+# (gitignored); this file and the served boundary below are the vector.
+name: 2026-11-11-keene-stale-price
+concern: gate
+clauses_exercised:
+  - "gate 2b: a fetch that times out is the slot's failure, not retried"
+  - "gate 3b: the slot is published at the last published parts with the hour's delivery and a Critical glitch"
+event: >
+  At 03:00Z (22:00 EST) the maker published slot 1794366000 normally. Its
+  fetch for slot 1794369600 at 03:59:40Z timed out after 15 s. At 04:00Z
+  it published slot 1794369600 at the same price, 123.670 USD/MWh (both
+  hours are off-peak, so the delivery part is the same 58.556 and the
+  wholesale 65.114 is the 22:00 slot's), and broadcast the glitch
+  "stale price published". The maker ran latest.price 000 that night, so
+  the recorded words state the price alone; a replay with the 001 seed
+  publishes 001 words whose PriceX1000 equals the recorded PriceTimes1000.
+
+window:
+  start: 2026-11-11T02:58:00Z   # the replayed maker runs from here and passes over slot 1794362400
+  end: 2026-11-11T04:00:30Z
+time: arrival
+decode: as-sent
+senders:
+  - hw1.isone.me.versant.keene
+bodies_for: [latest.price, glitch]
+recorded_from: field
+recorded_version:
+  latest.price: "000"            # PriceTimes1000 in the recording is PriceX1000 in the replay's 001
+
+served:
+  isone-current-lmp:
+    - at: 2026-11-11T02:59:40Z
+      LocId: "43790"
+      BeginDate: "2026-11-10T21:55:00.000-05:00"
+      EnergyComponent: "65.114"  # the recording keeps the total only; the split into parts is the replay's and free
+      CongestionComponent: "0"
+      LossComponent: "0"
+    - at: 2026-11-11T03:59:40Z
+      failure: "ReadTimeout after 15 s"
+  tariff-table: as the Boundaries row states (22:00 and 23:00 EST are off-peak)
+
+expected_out:
+  - t: 2026-11-11T03:00:00Z      # arrival 03:00:09.172Z
+    TypeName: latest.price
+    MarketSlotName: e.rt60gate5.hw1.isone.me.versant.keene.1794366000
+    PriceX1000: 123670
+  - t: 2026-11-11T04:00:00Z      # arrival 04:00:17.441Z
+    TypeName: latest.price
+    MarketSlotName: e.rt60gate5.hw1.isone.me.versant.keene.1794369600
+    PriceX1000: 123670
+  - t: 2026-11-11T04:00:00.838Z  # CreatedMs
+    TypeName: glitch
+    Type: Critical
+    Node: gate
+    Summary: stale price published
+    Details: "no fresh LMP for slot 1794369600 (ReadTimeout: HTTPSConnectionPool(host='webservices.iso-ne.com', port=443): Read timed out. (read timeout=15)); published the LMP from slot 1794366000"
+tolerance: >
+  Each publish within one gate tick (1 s) of its slot start; the glitch
+  within the same tick as the 04:00Z publish; the glitch Details free
+  past the slot numbers (the log Boundaries row is free); MessageId and
+  CreatedMs free.
+events: []

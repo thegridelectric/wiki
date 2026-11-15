@@ -17,7 +17,7 @@ for a window that spans the cutover.
 > FLO actually optimized against, as of the start of the window, on the
 > page's time axis, with the tariff's on-peak hours shaded. The chain
 > that makes it possible shipped on 2026-11-14 and is now stated where
-> it lives: the service in `gridworks-price-forecast/executor/primary.md`,
+> it lives: the service in `gridworks-price-forecast/executor/` (its tables),
 > the LTN's request in `gridworks-ltn/executor/flo-boundary.md`, the
 > route and the panel in `gridworks-web-backend/executor/visualizer.md`
 > "Price forecast". What remains here is the market-side remainder:
@@ -61,6 +61,20 @@ on the page against the dev backend on `tsdb_tap` and, after the
   capacity in ISO-NE is unverified. `latest.price` 001 (published) has
   the parts, a `TariffAlias` present exactly when a `Delivery` part is,
   and axioms that the parts sum to the price.
+- **The market's real-time hourly price is the hour's first 5-minute
+  LMP** (2026-11-15): the interval that begins as the slot opens, so
+  the maker asks ISO-NE every second from the top of the hour and
+  publishes the moment the interval is posted, about 25 s in (ISO-NE
+  posted the 09:45 and 09:50 intervals 23.5 s after they began,
+  measured 2026-11-15), and no longer the :55 sample fetched 20 s
+  before the hour. A
+  check against ISO-NE's posted prices for 2026-11-15 found every
+  published wholesale part equal to the :55 sample and the first hour
+  20 USD/MWh under ISO-NE's hourly price. The LTN clears a bid only on
+  a `latest.price` heard within 5 s of the slot's start
+  (`gridworks-ltn/src/gwltn/market.py` `LATEST_PRICE_WINDOW_S`), so
+  the LTN's window widens past the maker's `fetch_deadline_s` (240 s)
+  in the same cutover, or every house aborts its clearing.
 - **One MarketMaker identity per priced node.** A MarketMaker exists
   wherever a distinct price forms: an ISO-NE PNode, later a distribution
   constraint below one. A market is named by its MarketMaker's alias and

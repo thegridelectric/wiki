@@ -1,0 +1,200 @@
+{
+ "isone-day-ahead": {
+  "2026-11-14": [
+   {
+    "HourStartS": 1794632400,
+    "LmpTotal": 57.8
+   },
+   {
+    "HourStartS": 1794636000,
+    "LmpTotal": 57.31
+   },
+   {
+    "HourStartS": 1794639600,
+    "LmpTotal": 54.66
+   },
+   {
+    "HourStartS": 1794643200,
+    "LmpTotal": 54.56
+   },
+   {
+    "HourStartS": 1794646800,
+    "LmpTotal": 53.78
+   },
+   {
+    "HourStartS": 1794650400,
+    "LmpTotal": 57.82
+   },
+   {
+    "HourStartS": 1794654000,
+    "LmpTotal": 54.62
+   },
+   {
+    "HourStartS": 1794657600,
+    "LmpTotal": 58.8
+   },
+   {
+    "HourStartS": 1794661200,
+    "LmpTotal": 56.13
+   },
+   {
+    "HourStartS": 1794664800,
+    "LmpTotal": 46.05
+   },
+   {
+    "HourStartS": 1794668400,
+    "LmpTotal": 42.01
+   },
+   {
+    "HourStartS": 1794672000,
+    "LmpTotal": 43.56
+   },
+   {
+    "HourStartS": 1794675600,
+    "LmpTotal": 49.4
+   },
+   {
+    "HourStartS": 1794679200,
+    "LmpTotal": 53.99
+   },
+   {
+    "HourStartS": 1794682800,
+    "LmpTotal": 55.79
+   },
+   {
+    "HourStartS": 1794686400,
+    "LmpTotal": 63.08
+   },
+   {
+    "HourStartS": 1794690000,
+    "LmpTotal": 67.83
+   },
+   {
+    "HourStartS": 1794693600,
+    "LmpTotal": 64.45
+   },
+   {
+    "HourStartS": 1794697200,
+    "LmpTotal": 56.38
+   },
+   {
+    "HourStartS": 1794700800,
+    "LmpTotal": 54.93
+   },
+   {
+    "HourStartS": 1794704400,
+    "LmpTotal": 56.95
+   },
+   {
+    "HourStartS": 1794708000,
+    "LmpTotal": 54.55
+   },
+   {
+    "HourStartS": 1794711600,
+    "LmpTotal": 56.86
+   },
+   {
+    "HourStartS": 1794715200,
+    "LmpTotal": 47.09
+   }
+  ],
+  "2026-11-15": [
+   {
+    "HourStartS": 1794718800,
+    "LmpTotal": 56.71
+   },
+   {
+    "HourStartS": 1794722400,
+    "LmpTotal": 49.38
+   },
+   {
+    "HourStartS": 1794726000,
+    "LmpTotal": 50.8
+   },
+   {
+    "HourStartS": 1794729600,
+    "LmpTotal": 48.59
+   },
+   {
+    "HourStartS": 1794733200,
+    "LmpTotal": 53.23
+   },
+   {
+    "HourStartS": 1794736800,
+    "LmpTotal": 45.16
+   },
+   {
+    "HourStartS": 1794740400,
+    "LmpTotal": 45.69
+   },
+   {
+    "HourStartS": 1794744000,
+    "LmpTotal": 45.89
+   },
+   {
+    "HourStartS": 1794747600,
+    "LmpTotal": 40.04
+   },
+   {
+    "HourStartS": 1794751200,
+    "LmpTotal": 35.69
+   },
+   {
+    "HourStartS": 1794754800,
+    "LmpTotal": 37.63
+   },
+   {
+    "HourStartS": 1794758400,
+    "LmpTotal": 38.51
+   },
+   {
+    "HourStartS": 1794762000,
+    "LmpTotal": 41.63
+   },
+   {
+    "HourStartS": 1794765600,
+    "LmpTotal": 42.82
+   },
+   {
+    "HourStartS": 1794769200,
+    "LmpTotal": 47.06
+   },
+   {
+    "HourStartS": 1794772800,
+    "LmpTotal": 49.24
+   },
+   {
+    "HourStartS": 1794776400,
+    "LmpTotal": 57.74
+   },
+   {
+    "HourStartS": 1794780000,
+    "LmpTotal": 64.71
+   },
+   {
+    "HourStartS": 1794783600,
+    "LmpTotal": 62.2
+   },
+   {
+    "HourStartS": 1794787200,
+    "LmpTotal": 53.17
+   },
+   {
+    "HourStartS": 1794790800,
+    "LmpTotal": 55.47
+   },
+   {
+    "HourStartS": 1794794400,
+    "LmpTotal": 54.7
+   },
+   {
+    "HourStartS": 1794798000,
+    "LmpTotal": 57.78
+   },
+   {
+    "HourStartS": 1794801600,
+    "LmpTotal": 55.26
+   }
+  ]
+ }
+}

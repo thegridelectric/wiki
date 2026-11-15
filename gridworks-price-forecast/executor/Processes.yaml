@@ -1,0 +1,22 @@
+# Processes: one row per runnable. The two share the kept document on
+# one box; the actor writes it and the facade only reads.
+table: Processes
+schema:
+  - name: Name
+    kind: raw
+  - name: Summary
+    kind: raw
+    prose: true
+  - name: StepCount
+    kind: aggregation
+    formula: COUNTIF(Steps.Process, Name)
+data:
+  - Name: rabbit
+    Summary: >-
+      The actor: watches ISO-NE for a posting, builds the forecast
+      document when the kept one is stale, keeps it, and broadcasts it
+      once on the universe's broker.
+  - Name: api
+    Summary: >-
+      The read facade: serves a view of the kept document over HTTP and
+      calls nothing.

@@ -1,0 +1,296 @@
+# Clauses: one obligation each, in three kinds. Unconditional; a
+# transition, whose Condition is the guard; a failure, whose Condition is
+# the trigger and whose Obligation and Recovery are the observable
+# behaviour. Boundary names the Boundaries row the obligation crosses,
+# blank when internal. The kept-document store a Condition reads is
+# named in the Condition text.
+table: Clauses
+schema:
+  - name: Concern
+    kind: relationship
+    to: Concerns.Name
+    blank: hub
+  - name: Number
+    kind: relationship
+    to: Axioms.Number
+  - name: Label
+    kind: raw
+  - name: Kind
+    kind: raw
+    values: [unconditional, transition, failure]
+  - name: Condition
+    kind: raw
+    prose: true
+  - name: Obligation
+    kind: raw
+    prose: true
+  - name: Recovery
+    kind: raw
+    prose: true
+  - name: Boundary
+    kind: relationship
+    to: Boundaries.Name
+    blank: internal
+  - name: HasTest
+    kind: calculated
+    formula: COUNTIFS(Bindings.Concern, Concern, Bindings.Clause, Number & Label, Bindings.Kind, "test") > 0
+  - name: HasCounterexample
+    kind: calculated
+    formula: COUNTIFS(Vectors.Concern, Concern, Vectors.Clause, Number & Label, Vectors.Kind, "counterexample") > 0
+data:
+  # -- hub -------------------------------------------------------------
+  - Concern: ""
+    Number: 1
+    Label: a
+    Kind: unconditional
+    Boundary: price-mic
+    Condition: ""
+    Obligation: >-
+      A broadcast, kept or served body is the wire form of the listed
+      word at its listed version, produced and read through the vendored
+      snapshot.
+    Recovery: ""
+  - Concern: ""
+    Number: 1
+    Label: b
+    Kind: failure
+    Boundary: kept-document
+    Condition: >-
+      The kept document file is present and the snapshot refuses it, or
+      the basis file is unreadable or names another identity.
+    Obligation: >-
+      The pair counts as nothing kept: the actor logs a warning and
+      builds at its next check; the facade answers 503.
+    Recovery: >-
+      The next built pair replaces both files.
+  - Concern: ""
+    Number: 1
+    Label: c
+    Kind: unconditional
+    Boundary: log
+    Condition: ""
+    Obligation: >-
+      A body arriving on the inbox is not decoded; it is logged at debug
+      with its type and sender and ignored.
+    Recovery: ""
+  - Concern: ""
+    Number: 2
+    Label: a
+    Kind: unconditional
+    Boundary: http-view
+    Condition: ""
+    Obligation: >-
+      Every slot and price in a served view is a slot and price of the
+      kept document, under the kept document's ForecastUid.
+    Recovery: ""
+  - Concern: ""
+    Number: 2
+    Label: b
+    Kind: transition
+    Boundary: kept-document
+    Condition: >-
+      The actor starts with a kept pair whose basis names the posting
+      ISO-NE reports and whose document can fill a whole view.
+    Obligation: >-
+      The pair is loaded and nothing is built or broadcast.
+    Recovery: ""
+  - Concern: ""
+    Number: 3
+    Label: a
+    Kind: unconditional
+    Boundary: price-mic
+    Condition: ""
+    Obligation: >-
+      Each ForecastUid appears in exactly one broadcast.
+    Recovery: ""
+  # -- watcher ---------------------------------------------------------
+  - Concern: watcher
+    Number: 1
+    Label: a
+    Kind: transition
+    Boundary: isone-info
+    Condition: >-
+      A check completes before 12:30 on the tariff's wall clock.
+    Obligation: >-
+      The next check is due at the earlier of one hour later and 12:30.
+    Recovery: ""
+  - Concern: watcher
+    Number: 1
+    Label: b
+    Kind: transition
+    Boundary: isone-info
+    Condition: >-
+      A check completes at or after 12:30 and the posting's last hour
+      is before tomorrow on the tariff's wall clock.
+    Obligation: >-
+      The next check is due five minutes later.
+    Recovery: ""
+  - Concern: watcher
+    Number: 1
+    Label: c
+    Kind: transition
+    Boundary: isone-info
+    Condition: >-
+      A check completes at or after 12:30 and the posting's last hour
+      is in tomorrow or later.
+    Obligation: >-
+      The next check is due one hour later.
+    Recovery: ""
+  - Concern: watcher
+    Number: 1
+    Label: d
+    Kind: failure
+    Boundary: log
+    Condition: >-
+      The info call, a day-ahead call or the build raises.
+    Obligation: >-
+      The failure is logged as an error; the kept document is unchanged;
+      the next check is due five minutes later.
+    Recovery: >-
+      A later check that succeeds proceeds as if the failed one had not
+      happened.
+  - Concern: watcher
+    Number: 2
+    Label: a
+    Kind: transition
+    Boundary: isone-day-ahead
+    Condition: >-
+      A check finds the kept basis's posting time differs from the one
+      ISO-NE reports, or finds nothing kept.
+    Obligation: >-
+      A new document is built from the posting and kept.
+    Recovery: ""
+  - Concern: watcher
+    Number: 2
+    Label: b
+    Kind: transition
+    Boundary: isone-day-ahead
+    Condition: >-
+      A check finds the posting unchanged and the kept document's view
+      from the top of the next hour shorter than 48 slots.
+    Obligation: >-
+      A new document is built from the same posting and kept.
+    Recovery: ""
+  - Concern: watcher
+    Number: 2
+    Label: c
+    Kind: transition
+    Boundary: ""
+    Condition: >-
+      A check finds the posting unchanged and the kept document able to
+      fill a view of 48 slots.
+    Obligation: >-
+      Nothing is built, kept or broadcast.
+    Recovery: ""
+  # -- document --------------------------------------------------------
+  - Concern: document
+    Number: 1
+    Label: a
+    Kind: unconditional
+    Boundary: ""
+    Condition: ""
+    Obligation: >-
+      SlotStartS is 72 hour starts beginning at the top of the hour after
+      the build time.
+    Recovery: ""
+  - Concern: document
+    Number: 1
+    Label: b
+    Kind: unconditional
+    Boundary: isone-day-ahead
+    Condition: ""
+    Obligation: >-
+      The posted hours are fetched for each operating day from the
+      earlier of today and the last posted day through the last posted
+      day, on the tariff's wall clock.
+    Recovery: ""
+  - Concern: document
+    Number: 1
+    Label: c
+    Kind: unconditional
+    Boundary: tariff-table
+    Condition: ""
+    Obligation: >-
+      A slot's price is its posted wholesale price when ISO-NE posted
+      that hour, else the latest posted price at the same wall-clock hour
+      of day, rounded to the nearest thousandth of a USD/MWh and
+      expressed times 1000, plus the tariff table's delivery price for
+      the slot's hour.
+    Recovery: ""
+  - Concern: document
+    Number: 1
+    Label: d
+    Kind: unconditional
+    Boundary: ""
+    Condition: ""
+    Obligation: >-
+      FromGNodeAlias is the service alias, MarketMakerAlias and
+      ProductName the configured market, PriceUnit USDPerMWh,
+      ForecastUid fresh, CreatedMs the build time.
+    Recovery: ""
+  - Concern: document
+    Number: 2
+    Label: a
+    Kind: unconditional
+    Boundary: kept-document
+    Condition: ""
+    Obligation: >-
+      The basis is written whole, then the document whole, each by
+      atomic replace, before any broadcast.
+    Recovery: ""
+  - Concern: document
+    Number: 2
+    Label: b
+    Kind: unconditional
+    Boundary: kept-document
+    Condition: ""
+    Obligation: >-
+      The basis names the document's ForecastUid, the posting time it
+      was built from, and the count of leading slots whose price is a
+      posted one.
+    Recovery: ""
+  - Concern: document
+    Number: 2
+    Label: c
+    Kind: unconditional
+    Boundary: price-mic
+    Condition: ""
+    Obligation: >-
+      The document goes out as one broadcast on the mic with radio
+      channel e.<ProductName>.<MarketMakerAlias>.
+    Recovery: ""
+  # -- facade ----------------------------------------------------------
+  - Concern: facade
+    Number: 1
+    Label: a
+    Kind: transition
+    Boundary: http-view
+    Condition: >-
+      A request arrives and the kept document has 12 or more slots from
+      the top of the next hour.
+    Obligation: >-
+      The 200 body is the document with SlotStartS and PriceX1000List
+      cut to those slots, 48 at most, and every other field as kept.
+    Recovery: ""
+  - Concern: facade
+    Number: 1
+    Label: b
+    Kind: failure
+    Boundary: http-view
+    Condition: >-
+      A request arrives and nothing is kept or fewer than 12 slots remain
+      from the top of the next hour.
+    Obligation: >-
+      The response is 503 with detail "no price forecast available".
+    Recovery: >-
+      The next request after the actor keeps a new document is served.
+  - Concern: facade
+    Number: 1
+    Label: c
+    Kind: unconditional
+    Boundary: http-view
+    Condition: ""
+    Obligation: >-
+      The same view is served on the party route and on ltn_route; the
+      facade makes no outbound call and reads only the kept document.
+    Recovery: ""

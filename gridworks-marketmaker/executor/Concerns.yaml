@@ -1,0 +1,57 @@
+# Concerns: one row per spoke. Each belongs to the one process that
+# enforces its clauses. The hub (Concern blank on Axioms rows) holds the
+# invariants that span the concerns.
+table: Concerns
+schema:
+  - name: Name
+    kind: raw
+  - name: Summary
+    kind: raw
+    prose: true
+  - name: Description
+    kind: raw
+    prose: true
+  - name: Process
+    kind: relationship
+    to: Processes.Name
+  - name: AxiomCount
+    kind: aggregation
+    formula: COUNTIF(Axioms.Concern, Name)
+  - name: BindingCount
+    kind: aggregation
+    formula: COUNTIF(Bindings.Concern, Name) + SUMIF(Clauses.Concern, Name, Clauses.BindingCount)
+  - name: HasBindings
+    kind: calculated
+    formula: BindingCount > 0
+data:
+  - Name: gate
+    Process: rabbit
+    Summary: >-
+      When the maker fetches, when it publishes, and what it publishes
+      when the fetch did not come back.
+    Description: >-
+      The clock ticks once a second. Shortly before each hour the gate
+      fetches the current wholesale price once for the coming slot and
+      keeps it, or keeps the reason it failed. At the first tick of a
+      new slot the gate publishes that slot's price: from the fresh
+      wholesale parts when it has them, else from the parts it last
+      published with a fault raised beside, else nothing but the fault.
+      The slot open when the maker starts is passed over.
+  - Name: publication
+    Process: rabbit
+    Summary: >-
+      The price word itself: its slot name, its parts, its tariff, and
+      where it goes.
+    Description: >-
+      A slot's price is assembled from the wholesale parts the gate hands
+      over and the tariff's delivery price for the slot's hour, named by
+      the market's product and the maker's alias, and broadcast once on
+      the maker's mic.
+  - Name: inbox
+    Process: rabbit
+    Summary: >-
+      What the maker does with what it is sent: nothing, logged.
+    Description: >-
+      Every message that arrives on the maker's inbox, a bid or anything
+      else, is acknowledged to the broker, logged with its type and
+      sender, and dropped. No reply, no acknowledgement word, no state.

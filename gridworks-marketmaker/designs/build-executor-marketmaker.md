@@ -1,6 +1,6 @@
 # Build the marketmaker executor
 
-Status: Draft · Pass 0 · Updated 2026-10-22 · Linear: OPS-617
+Status: Draft · Pass 0 · Updated 2026-11-15 · Linear: OPS-617
 
 **EDD: yes** the trace replay is the verification: the marketmaker
 executor reaches Verified when every clause has a vector and every
@@ -16,13 +16,20 @@ trace replays green against the built service over the dev broker.
 
 ## Where it stands
 
-- `../executor/` does not exist. The repo has the service, its tests
-  (`ci.sh` green), `template.env`, `service/`, and the vendored sema
-  snapshot with its seed.
+- `../executor/` exists in the table form (2026-11-15): Domain, Words,
+  Boundaries, Settings, Processes, Steps, Concerns (gate, publication,
+  inbox), Axioms, Clauses, Vectors, Bindings, the seed copy, and two
+  trace specs from the journal: the first `latest.price` 001 hour
+  (2026-11-15 04:00Z) and the 2026-11-11 stale-price incident. Every
+  clause but hub 1b, hub 2a and inbox 1a has a test binding; the
+  Vectors rows with no Path (boot mid-slot, cold failure, the inbox
+  drop) await induced windows.
+- The repo has the service, its tests (`ci.sh` green), `template.env`,
+  `service/`, and the vendored sema snapshot with its seed.
 - The stopgap is deployed and Verified: `experiments/2026-10-22-stopgap-mm/`.
 - The maker is a counterparty of the LTN (scada executor) and a source
   for the journal (journalkeeper executor) and the settled-price series
-  the web backend will read; those are its Boundaries rows.
+  the web backend reads; those are its Boundaries rows.
 
 ## The stopgap, distilled
 

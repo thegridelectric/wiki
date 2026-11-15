@@ -8,6 +8,18 @@ corresponding code-repo commit.
 This changelog does NOT track wiki edits — those live in the wiki
 repo's git history.
 
+## 2026-11-15 — gw.weather.archive.cmd 000: fill a station's history over the bus (`<!-- pending commit -->`, jm/weather-archive-cmd, OPS-603)
+
+**Why:** the fleet's weather record is complete from go-live and empty
+before it. This staging word is the one command that fills it: name a
+station, its channels, a Method and SourceLocator, and a window, and
+the weather service pulls the series and publishes it as ordinary
+observations, so the history reaches the ear and the journal by the
+same path as live readings. `CreatedMs` is required from birth, per the
+clock rule for command words. Three axioms (window order, channel names
+on the station, distinct channels) with mutation tests; runtime and
+indexes regenerated.
+
 ## 2026-11-14 — publish the price panel's words (`bba18bc`, jm/promote-price-words, OPS-666)
 
 **Why:** the price forecast reaches the journal and the browser only

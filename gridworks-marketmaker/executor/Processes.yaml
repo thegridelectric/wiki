@@ -1,0 +1,18 @@
+# Processes: one row per runnable.
+table: Processes
+schema:
+  - name: Name
+    kind: raw
+  - name: Summary
+    kind: raw
+    prose: true
+  - name: StepCount
+    kind: aggregation
+    formula: COUNTIF(Steps.Process, Name)
+data:
+  - Name: rabbit
+    Summary: >-
+      The maker: one actor on the universe's broker that fetches the
+      wholesale price before each hour, publishes the hour's price at its
+      start, raises a fault when it had to publish stale, and drops what
+      it is sent.

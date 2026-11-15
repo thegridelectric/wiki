@@ -1,0 +1,63 @@
+# Concerns: one row per spoke. Each belongs to the one process that
+# enforces its clauses. The hub (Concern blank on Axioms rows) holds the
+# invariants that span the processes.
+table: Concerns
+schema:
+  - name: Name
+    kind: raw
+  - name: Summary
+    kind: raw
+    prose: true
+  - name: Description
+    kind: raw
+    prose: true
+  - name: Process
+    kind: relationship
+    to: Processes.Name
+  - name: AxiomCount
+    kind: aggregation
+    formula: COUNTIF(Axioms.Concern, Name)
+  - name: BindingCount
+    kind: aggregation
+    formula: COUNTIF(Bindings.Concern, Name) + SUMIF(Clauses.Concern, Name, Clauses.BindingCount)
+  - name: HasBindings
+    kind: calculated
+    formula: BindingCount > 0
+data:
+  - Name: watcher
+    Process: rabbit
+    Summary: >-
+      When the actor asks ISO-NE what it has posted, and when an answer
+      means a new document.
+    Description: >-
+      A check is due at start and then on a cadence set by the time of
+      day on the tariff's wall clock and by whether tomorrow is posted.
+      Each check asks ISO-NE for its latest posting. The kept document is
+      current when it was built from that posting and can still fill a
+      whole view; otherwise a new document is built, kept and handed on
+      for broadcast. A check that fails leaves the kept document alone
+      and is tried again soon.
+  - Name: document
+    Process: rabbit
+    Summary: >-
+      What a forecast document is: its hours, its prices, its identity,
+      its basis, and how it is kept and broadcast.
+    Description: >-
+      The document starts at the top of the hour after it is built and
+      runs three days. The posted days from today through the last
+      posted day are fetched; each hour's price is its posted wholesale
+      price, or the latest posted price at the same hour of the day
+      where none is posted, plus the tariff's delivery for the hour. The
+      document gets a fresh identity and is written with its basis by
+      atomic replace, the document last, then broadcast once on the
+      actor's mic under the market's radio channel.
+  - Name: facade
+    Process: api
+    Summary: >-
+      What a caller gets over HTTP: a view of the kept document, or a
+      refusal.
+    Description: >-
+      A request reads the kept document and cuts the view: the hours
+      from the top of the next hour, two days at most, under the
+      document's own identity. Too few hours left is a refusal. The
+      facade calls nothing and keeps nothing.

@@ -1,0 +1,92 @@
+# Axioms: one row per rule, numbered from 1 within their Concern; the hub
+# (Concern blank) is counted as one Concern and hub Axiom 1 is the sema
+# axiom. A clause is cited as Concern, Number and Label (gate 3b).
+table: Axioms
+schema:
+  - name: Concern
+    kind: relationship
+    to: Concerns.Name
+    blank: hub
+  - name: Number
+    kind: raw
+  - name: Name
+    kind: raw
+  - name: Statement
+    kind: raw
+    prose: true
+  - name: Reason
+    kind: raw
+    prose: true
+  - name: ClauseCount
+    kind: aggregation
+    formula: COUNTIFS(Clauses.Concern, Concern, Clauses.Number, Number)
+  - name: UnboundClauseCount
+    kind: aggregation
+    formula: COUNTIFS(Clauses.Concern, Concern, Clauses.Number, Number, Clauses.HasTest, FALSE)
+data:
+  # -- hub -------------------------------------------------------------
+  - Concern: ""
+    Number: 1
+    Name: SemaBoundary
+    Statement: >-
+      Every instance the maker publishes SHALL be a listed word at its
+      listed version, encoded through the vendored snapshot; every body
+      that arrives SHALL be dropped without being decoded, and the maker
+      SHALL go on.
+    Reason: Meaning comes from the vocabulary, and the maker has no inbound word yet.
+  - Concern: ""
+    Number: 2
+    Name: TheClockIsTheTrigger
+    Statement: >-
+      The maker's publications SHALL be driven by the wall clock alone:
+      no message that arrives and no state kept across a restart SHALL
+      cause, advance or suppress a publish.
+    Reason: A market's price is stated at the slot's start whatever the houses are doing.
+  # -- gate ------------------------------------------------------------
+  - Concern: gate
+    Number: 1
+    Name: OnePublishPerSlot
+    Statement: >-
+      For every slot that begins while the maker runs, the maker SHALL
+      publish exactly one price, within fetch_deadline_s of the slot's
+      start; the slot open when the maker starts SHALL get none.
+    Reason: A house clears against one price per hour, the one it hears after the top of the hour when its bid is in.
+  - Concern: gate
+    Number: 2
+    Name: TheSlotsFirstInterval
+    Statement: >-
+      A slot's wholesale price SHALL be the 5-minute LMP of the interval
+      that begins as the slot opens; from the slot's start the maker
+      SHALL ask ISO-NE for its current interval on every tick until the
+      answer is that interval, and SHALL publish on it.
+    Reason: The market's real-time hourly price is defined as the hour's first 5-minute price, and ISO-NE posts it about 25 s into the hour; every second the houses wait is a second off their slot.
+  - Concern: gate
+    Number: 3
+    Name: StaleBeforeSilent
+    Statement: >-
+      A slot whose first interval ISO-NE has not posted fetch_deadline_s
+      after the slot's start SHALL be published at the last wholesale
+      parts published, with the slot's own delivery price and a critical
+      fault; such a slot with nothing published before SHALL get the
+      fault and no price.
+    Reason: The houses still clear, and a person is paged for a price that is not the market's.
+  # -- publication -----------------------------------------------------
+  - Concern: publication
+    Number: 1
+    Name: ThePriceWord
+    Statement: >-
+      A slot's price word SHALL name the slot by the market's product,
+      the maker's alias and the slot's start; SHALL state the price as
+      the three wholesale parts and the tariff's delivery for the slot's
+      hour, with the tariff's alias; and SHALL go out once on the maker's
+      mic.
+    Reason: The slot name is how a house and the journal find the price, and the parts settle with different counterparties.
+  # -- inbox -----------------------------------------------------------
+  - Concern: inbox
+    Number: 1
+    Name: DropEverything
+    Statement: >-
+      Every message that arrives SHALL be acknowledged to the broker,
+      logged with its type and sender, and dropped; no reply SHALL be
+      sent and no state SHALL be kept from it.
+    Reason: The ack that makes a bid a contract belongs to the full maker.

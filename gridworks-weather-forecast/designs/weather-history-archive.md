@@ -1,6 +1,6 @@
 # Weather history archive: history over the bus, into the journal
 
-Status: Draft · Pass 0 · Updated 2026-11-15 · Linear: OPS-603
+Status: Accepted · Pass 1 · Updated 2026-11-15 · Linear: OPS-603
 
 **EDD: yes** verified when the journal DB holds hourly temperature,
 wind speed and irradiance readings for the Open-Meteo Millinocket
@@ -67,7 +67,8 @@ a one-token alias, Millinocket's coordinates, no network identifiers,
 DisplayName saying it is a model gridpoint. Three
 `gw.weather.channel.gt` on it: temperature, windspeed, irradiance, each
 in the unit the matching kmlt or kmemilli18 channel uses, hourly grid.
-Four create commands, no sema change. The actual for irradiance is
+Temperature and windspeed exist for the history before kmlt;
+irradiance is also live. Four create commands, no sema change. The actual for irradiance is
 this station's series; there is no measured irradiance in reach.
 
 A composite actual is the consumer's, never a message's: the
@@ -91,10 +92,34 @@ journal (readings conflict on timestamp and channel and are skipped)
 and leaves a second copy in the eventstore with its own receipt time.
 Two years is about 17,500 messages, one day of fleet traffic.
 
-The live loop also emits the gridpoint station each hour, the
-shortest-lead value for the hour just ended, from the same product the
-forecast fetch already pulls, so the series stays continuous after the
-backfill with no further command.
+The live loop also emits the gridpoint station each hour with one
+reading, irradiance: the shortest-lead value for the hour just ended,
+from the same product the forecast fetch already pulls, so the
+irradiance actual stays continuous after the backfill with no further
+command. The gridpoint's temperature and windspeed channels are
+backfill only; from go-live kmlt is the live source for both, and the
+live gridpoint message does not report them.
+
+## The pull ledger
+
+The service's store gains one table, `pulls`: one row per fetch from an
+outside source, whether the live loop's hourly fetch or an archive
+command's long pull. A row names the Method and SourceLocator, the kind
+of pull, the window or the source's own run stamp, when the fetch
+started and finished, the code revision (the deployed SHA) of the
+service that ran it, what came of it (observations or forecast
+emissions published, or the refusal), and for an archive pull the hash
+of the command it answered. Today the only trace of a live fetch is the
+upserted latest product, overwritten by the next fetch; with the ledger
+every emitted forecast and observation traces to a pull row, and the
+pull row names the code. Two live pulls an hour is about 17,000 rows a
+year.
+
+Method stays a table in the service's code, mapped to one adapter
+function and the quantities its product serves; a Method with no
+adapter is refused. Whether Method becomes a minted record the pull
+row references, and whether a pull row is also a word broadcast once,
+are the next design, not this one.
 
 ## The hourly columns
 
@@ -129,8 +154,9 @@ keeps them by ForecastUid. Out of scope here.
    with the read-receipt sema-CLAUDE asks for); extend the actor's
    command consumer to execute it.
 2. The Open-Meteo adapter's long pull for temperature, wind speed and
-   irradiance over a window, and the hourly gridpoint observation in
-   the live loop.
+   irradiance over a window, the hourly gridpoint irradiance
+   observation in the live loop, and the `pulls` table written by every
+   fetch, live and archive.
 3. Mint the station and its three channels on d1, replay one month,
    check the journal; then hw1, replay 2024-10-01 to the present.
 4. The hourly function change, tried on `tsdb_tap` then prod with a

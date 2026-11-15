@@ -10,6 +10,19 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-15 — The re-run solves with bruce at flo.params 002 (`c260b4a`, OPS-665)
+
+**Why.** The LTNs moved to `flo.params` 002 the evening of 2026-11-14 and
+bruce's main followed, while the re-run route's lock still pinned bruce at
+the 001 commit, so every current hour would have failed to solve. The lock
+moves to bruce main (`6632ea5`), and a body at a version bruce no longer
+reads (the journal's 001 hours, which name no forecasts and cannot lift to
+002) answers 422 naming both versions instead of a 500 from bruce's own
+decode error. The re-run is a developer tool, so the mount now refuses
+to start an API that is not running locally (`BACKEND_RUNNING_LOCALLY`,
+false on the web box) with the setting on: the only-on-a-laptop rule is in
+the code, not just in which box sets which variable.
+
 ## 2026-11-15 — The latest-prices route: a market's cleared prices over a window, every row at latest.price 001 (#34) (`7e8fc3a`, jm/realtime-price, OPS-666)
 
 **Why:** the price panel draws the price the market cleared at beside the

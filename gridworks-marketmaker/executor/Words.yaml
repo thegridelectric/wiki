@@ -1,0 +1,27 @@
+# Words: one row per crossing of the sema boundary: one word at one
+# version in one direction through one process. The maker publishes and
+# never decodes: every inbound body is dropped unread (hub 1b), so no
+# word has an inbound row.
+table: Words
+schema:
+  - name: Word
+    kind: raw
+  - name: Version
+    kind: raw
+  - name: Direction
+    kind: raw
+    values: [in, out, stored]
+  - name: ReadAs
+    kind: raw
+  - name: Process
+    kind: relationship
+    to: Processes.Name
+  - name: Crossing
+    kind: raw
+    values: [broker, http, file, store]
+  - name: InSeed
+    kind: calculated
+    formula: COUNTIFS(SeedEntries.Word, Word, SeedEntries.Version, Version) > 0
+data:
+  - {Word: latest.price, Version: "001", Direction: out, ReadAs: "", Process: rabbit, Crossing: broker}
+  - {Word: glitch, Version: "000", Direction: out, ReadAs: "", Process: rabbit, Crossing: broker}

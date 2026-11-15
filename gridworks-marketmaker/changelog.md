@@ -8,6 +8,40 @@ corresponding code-repo commit.
 This changelog does NOT track wiki edits.
 
 
+## <!-- pending commit --> 2026-11-15 — The slot's price is its first 5-minute interval, published when ISO-NE posts it (jm/price-at-slot-open, OPS-666)
+
+**Why.** The maker fetched ISO-NE's current 5-minute LMP 20 s before
+the hour and published it at the top of the hour, so every slot's
+wholesale price was the previous hour's :55 interval. A check of
+2026-11-15 against ISO-NE's posted prices for Keene Rd showed exactly
+that: each published wholesale part equalled the :55 sample, and the
+first hour missed ISO-NE's hourly real-time LMP by 20 USD/MWh because
+the hour opened with a spike the :55 sample came before. The market's
+real-time hourly price is defined as the hour's first 5-minute price,
+the interval that begins as the slot opens. ISO-NE posts an interval
+about 25 s after it begins (measured 2026-11-15 at the 09:45 and 09:50
+boundaries: 23.5 s both times, by polling `fiveminutelmp/current` once
+a second), so the gate now asks on every tick (1 s) from the top of the
+hour until the current interval is the slot's own and publishes on it; `fetch_deadline_s` (240 s) without it
+publishes stale with the critical glitch as before. `fetch_lead_s` is
+gone. The README names the A-1 tariff sheet it copies.
+
+## <!-- pending commit --> 2026-11-15 — README to the repo pattern; module docstrings to the documentation convention (jm/readme-executor, OPS-617)
+
+**Why:** the executor's Domain Summary is copied verbatim from the
+README, so the README comes first: a summary for a person with no code
+words, box names or paths, then what the maker speaks and how it runs,
+install last. Docstrings stop narrating literals the executor's
+Boundaries rows now own (the tariff table, the routing key) and state
+each module's purpose for a reader who has not read the code.
+
+## 2026-11-15 — upgrade to 0.7.3 gwbase (`b393fa0`, merge of jm/log-tz, PR #81)
+
+**Why:** gwbase 0.7.3 renders log timestamps in a configured zone
+(`log_tz`), and the maker's hour is the market's hour; `template.env`
+sets `GWMM_LOG_TZ=America/New_York` so a log line and a slot name read
+on the same clock.
+
 ## 2026-11-14 — latest.price 001: the price in its parts, delivery at latest Versant A1 (`db25c3f`, squash of jm/latest-price-001, PR #80, OPS-666)
 
 **Why:** the price the LTN faces is the sum of parts that settle with

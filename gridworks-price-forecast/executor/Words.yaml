@@ -1,0 +1,30 @@
+# Words: one row per crossing of the sema boundary: one word at one
+# version in one direction through one process. The one word goes out
+# three ways: broadcast by the actor, kept whole by the actor and read
+# back as the word, and served by the facade over HTTP as a cut of the
+# kept one. Nothing inbound is a word: every body that arrives on the
+# actor's inbox is ignored unread (hub 1b).
+table: Words
+schema:
+  - name: Word
+    kind: raw
+  - name: Version
+    kind: raw
+  - name: Direction
+    kind: raw
+    values: [in, out, stored]
+  - name: ReadAs
+    kind: raw
+  - name: Process
+    kind: relationship
+    to: Processes.Name
+  - name: Crossing
+    kind: raw
+    values: [broker, http, file, store]
+  - name: InSeed
+    kind: calculated
+    formula: COUNTIFS(SeedEntries.Word, Word, SeedEntries.Version, Version) > 0
+data:
+  - {Word: gw.price.forecast, Version: "000", Direction: out, ReadAs: "", Process: rabbit, Crossing: broker}
+  - {Word: gw.price.forecast, Version: "000", Direction: stored, ReadAs: "", Process: rabbit, Crossing: store}
+  - {Word: gw.price.forecast, Version: "000", Direction: out, ReadAs: "", Process: api, Crossing: http}

@@ -1,0 +1,14 @@
+# SeedEntries: one row per word the seed copy names, scanned from
+# sema_seed_request.yaml beside this file. The seed names each word with
+# no version, which the snapshot resolves to the registry's latest
+# published version at build; the version here is what the vendored
+# snapshot holds. The check regenerates it and expects no change.
+table: SeedEntries
+schema:
+  - name: Word
+    kind: raw
+  - name: Version
+    kind: raw
+data:
+  - {Word: latest.price, Version: "001"}
+  - {Word: glitch, Version: "000"}

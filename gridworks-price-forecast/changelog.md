@@ -7,6 +7,15 @@ that commit.
 
 Newest at the top.
 
+## <!-- pending commit --> 2026-11-15 — README to the repo pattern; module docstrings to the documentation convention (jm/readme-executor, OPS-437)
+
+**Why:** the executor's Domain Summary is copied verbatim from the
+README, so the README comes first: a summary for a person with no code
+words, box names or paths, then what the service speaks, its two
+processes and how it runs, install last. Docstrings stop restating the
+tariff table and the run commands, which the executor's Boundaries and
+Settings rows own, and state each module's purpose.
+
 ## 2026-11-14 — Serve and broadcast gw.price.forecast, one per ISO-NE posting (`eecfecc`, squash of jm/price-components, OPS-666)
 
 **Why.** The stopgap service rebuilt its forecast on every hour's first

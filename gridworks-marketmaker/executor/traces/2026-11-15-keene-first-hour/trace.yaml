@@ -1,0 +1,58 @@
+# Trace spec: the first latest.price 001 the Keene maker published in
+# production, the top of the hour after its 2026-11-14 deploy. The
+# input is materialised by experiments/traces/pull_trace.py into
+# experiments/traces/gridworks-marketmaker/<name>/messages.jsonl
+# (gitignored); this file and the served boundary below are the vector.
+name: 2026-11-15-keene-first-hour
+concern: gate
+clauses_exercised:
+  - "hub 2a: the publish is at a gate tick on the new slot, with nothing inbound"
+  - "gate 1a: one publish at the slot's start"
+  - "gate 2a: one fetch of the current wholesale price before the slot"
+  - "gate 3a: a fresh price is published fresh"
+  - "publication 1a, 1b, 1c: the slot name, the four parts and the tariff, one broadcast on the mic"
+event: >
+  The maker was restarted at 22:19 EST on 2026-11-14 running latest.price
+  001 for the first time. The slot open at the restart (22:00 EST) was
+  passed over; at 23:00 EST (04:00Z) it published the slot
+  e.rt60gate5.hw1.isone.me.versant.keene.1794715200 from a fetch 20 s
+  before the hour. No message was addressed to the maker in the window.
+
+window:
+  start: 2026-11-15T03:58:00Z   # the replayed maker runs from here; its first tick passes over slot 1794711600
+  end: 2026-11-15T04:00:30Z     # after the publish has reached the ear
+time: arrival                    # order and timestamp by the ear's persisted_ms
+decode: as-sent
+senders:
+  - hw1.isone.me.versant.keene
+bodies_for: [latest.price, glitch]
+recorded_from: field
+
+served:                          # Boundaries rows the harness answers during replay
+  isone-current-lmp:
+    - at: 2026-11-15T03:59:40Z   # fetch_lead_s = 20 before the slot
+      LocId: "43790"
+      BeginDate: "2026-11-14T22:55:00.000-05:00"
+      EnergyComponent: "49.08"
+      CongestionComponent: "0"
+      LossComponent: "-0.09"
+  tariff-table: as the Boundaries row states (23:00 EST on a Saturday is off-peak)
+
+expected_out:                    # the broadcast on mm-mic, as the journal kept it
+  - t: 2026-11-15T04:00:00.625Z  # CreatedMs; the ear's arrival was 04:00:12.298Z
+    TypeName: latest.price
+    Version: "001"
+    FromGNodeAlias: hw1.isone.me.versant.keene
+    MarketSlotName: e.rt60gate5.hw1.isone.me.versant.keene.1794715200
+    PriceUnit: USDPerMWh
+    PriceX1000: 107546
+    TariffAlias: versant.a1.home.eco.bonus
+    Components:
+      - {Name: WholesaleEnergy, PriceX1000: 49080}
+      - {Name: WholesaleCongestion, PriceX1000: 0}
+      - {Name: WholesaleLoss, PriceX1000: -90}
+      - {Name: Delivery, PriceX1000: 58556}
+tolerance: >
+  Publish within one gate tick (1 s) after 04:00:00Z; MessageId and
+  CreatedMs free; everything else exact. No glitch in the window.
+events: []

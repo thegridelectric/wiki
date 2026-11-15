@@ -1,6 +1,6 @@
 # The visualizer
 
-Status: Draft · Pass 0 · Updated 2026-11-14
+Status: Draft · Pass 0 · Updated 2026-11-15
 
 > What this is: the visualizer page of the web-frontend, one section per
 > plot, each saying what the plot shows, which word the backend serves it
@@ -35,9 +35,26 @@ stacked penalties). The page opens on the path with the lowest
   (`api/v2/routers/flo_recommendation.py`); `flo.params` for the same
   slot on the sibling route. The box runs no optimizer; the browser
   renders from the generated type (`FloPlot.tsx`) and computes colors,
-  bar widths, baselines and axis ranges itself. Re-solving a run from its
-  params is the optimizer author's tool in `optimal-flexibility`, not a
-  route.
+  bar widths, baselines and axis ranges itself.
+- **The re-run, a laptop tool.** The optimizer author's inspection tool
+  is to solve an hour again with bruce's penalty tuning changed and look
+  at the plot. `POST /api/v2/installations/{installation_id}/flo.rerun`
+  (`api/v2/routers/flo_rerun.py`) takes the hour's `flo.params` word with
+  its Tuning edited and answers the `flo.recommendation` bruce gives,
+  solved in a thread by the bruce package from the backend's `rerun`
+  dependency group (a git source at optimal-flexibility `main`). The
+  route is mounted only when `BACKEND_FLO_RERUN=in-process`, and the
+  mount refuses to start an API whose `BACKEND_RUNNING_LOCALLY` is false,
+  so the web box never serves it; the box also never installs the group.
+  bruce reads `flo.params` at the version its snapshot vendors, and an
+  older journaled hour answers 422 naming both versions. The browser
+  probes the route when a house is selected (a GET of the POST-only path:
+  405 means mounted, anything else hides the panel) and, where it is,
+  shows the thirteen penalty fields of `flo.tuning.bruce` prefilled from
+  the hour's request (`FloRerunPanel.tsx`, `flo-rerun-tuning.ts`), sends
+  the edited word through the vendored types, and draws the answer with
+  the same `FloPlot`; Reset or the hour arrows bring the journaled plot
+  back. Forced heat pump steps wait on a sema word (OPS-683).
 - **Open.** Which path to draw once the slot has a `flo.previous.run`
   (the cleared pair's; today the page does not read it). A recommendation
   with no penalties word (a 000 row, or alice's) has no `PathCostUsd`, so
@@ -48,7 +65,8 @@ stacked penalties). The page opens on the path with the lowest
   browser projection from `flo.params`. Whether the x axis shows the
   date at midnight across the two-day horizon. The hour arrow takes
   about 4 s per press against web-api2 while the box is idle; the
-  FLO GET logs about 4 s after its CORS preflight (parked on OPS-665).
+  FLO GET logs about 4 s after its CORS preflight; the notes are a comment
+  on OPS-665.
 
 ## Price forecast
 

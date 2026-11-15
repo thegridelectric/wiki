@@ -10,6 +10,20 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-15 — The FLO re-run panel: the hour's penalty tuning edited, bruce's answer drawn in place of the journaled plot (`c7ad3f8`, OPS-665)
+
+**Why.** The optimizer author's inspection tool is to solve an hour again
+with the penalty tuning changed and look at the plot, on a laptop whose
+backend has bruce beside it. The panel shows only where a probe of the
+re-run route says it is mounted (a GET of the POST-only path answers 405
+there and 404 on the web box), prefills the thirteen penalty fields of
+`flo.tuning.bruce` from the hour's journaled `flo.params`, and sends that
+word back with the edits through the vendored types, so an edit that
+breaks the word is refused before it is sent. The answer is drawn with
+the same `FloPlot`; Reset or the hour arrows bring the journaled plot
+back. Nothing changes on Pages against the web box, where the probe hides
+the panel.
+
 ## 2026-11-15 — The price panel draws the real-time price beside the day-ahead forecast (#25) (`e876fdb`, jm/realtime-price, OPS-666)
 
 **Why:** a house's FLO optimizes against a forecast; what the house then

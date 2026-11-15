@@ -1,0 +1,62 @@
+# Trace spec: the service's first forecast document in production, built
+# at its first check after the 2026-11-14 deploy with nothing kept, from
+# the posting ISO-NE made at 12:44 EST that day. The wire-in is
+# materialised by experiments/traces/pull_trace.py into
+# experiments/traces/gridworks-price-forecast/<name>/messages.jsonl
+# (gitignored); this file, isone-day-ahead.json beside it (the served
+# day-ahead rows, a declared input) and the expected output are the vector.
+name: 2026-11-14-keene-first-posting
+concern: document
+clauses_exercised:
+  - "hub 3a: one broadcast for the identity"
+  - "watcher 2a: nothing kept at start, so a document is built"
+  - "watcher 1c: after 12:30 with tomorrow posted, the next check is an hour out"
+  - "document 1a, 1b, 1c, 1d: 72 slots from the next hour, posted hours as posted, the rest repeated by hour of day, each plus the hour's delivery"
+  - "document 2b, 2c: the basis beside it; one broadcast under the market's radio channel"
+event: >
+  The actor started at 18:29 EST on 2026-11-14 with an empty data dir.
+  Its first check found ISO-NE's posting of 12:44:51 EST (operating day
+  2026-11-15 posted) and built forecast f89aaeee-1c44-43bd-88f9-b1f9b78c1b6e
+  for the 72 hours from 19:00 EST: the 29 hours 19:00 Saturday through
+  23:00 Sunday at their posted prices, then Sunday's prices repeated by
+  hour of day under the weekday delivery schedule. It broadcast the
+  document once; the journal has one row for the identity.
+
+window:
+  start: 2026-11-14T23:28:00Z   # the replayed actor starts here with nothing kept
+  end: 2026-11-14T23:30:00Z
+time: arrival
+decode: as-sent
+senders:
+  - hw1.isone.price
+bodies_for: [gw.price.forecast]
+recorded_from: field
+
+served:
+  isone-info:
+    - at: any                     # the one check in the window
+      latest_begin_s: 1794801600  # 23:00 EST Sunday 2026-11-15, the last posted hour
+      posted_s: 1794678291        # 12:44:51 EST Saturday 2026-11-14
+  isone-day-ahead: isone-day-ahead.json   # operating days 2026-11-14 and 2026-11-15, 24 hours each, as posted
+  tariff-table: as the Boundaries row states (Saturday and Sunday shoulder/off-peak, Monday and Tuesday weekday windows, winter)
+  kept-document: empty at start
+
+expected_out:                    # the broadcast on price-mic, as the journal kept it
+  - t: 2026-11-14T23:29:04.110Z  # CreatedMs; arrival 23:29:05.365Z
+    TypeName: gw.price.forecast
+    Version: "000"
+    FromGNodeAlias: hw1.isone.price
+    MarketMakerAlias: hw1.isone.me.versant.keene
+    ProductName: rt60gate5
+    PriceUnit: USDPerMWh
+    SlotStartS: 72 hourly starts from 1794700800 (2026-11-15T00:00Z) through 1794956400
+    PriceX1000List: [119359, 115506, 113106, 115416, 105646, 115266, 107936, 109356, 107146, 111786, 103716, 104246, 110319, 104469, 100119, 102059, 102939, 106059, 107249, 111489, 113669, 122169, 129139, 126629, 117599, 114026, 113256, 116336, 113816, 115266, 107936, 109356, 107146, 111786, 103716, 104246, 634422, 628572, 624222, 626162, 627042, 106059, 107249, 111489, 113669, 646272, 653242, 650732, 641702, 114026, 113256, 116336, 113816, 115266, 107936, 109356, 107146, 111786, 103716, 104246, 634422, 628572, 624222, 626162, 627042, 106059, 107249, 111489, 113669, 646272, 653242, 650732]
+    radio_channel: e.rt60gate5.hw1.isone.me.versant.keene
+expected_kept:                   # the pair in data_dir after the build
+  price-forecast.json: the broadcast document, byte for byte
+  price-forecast-basis.json: {forecast_uid: the document's, source_posted_s: 1794678291, published_slot_count: 29}
+tolerance: >
+  Build within one watcher tick (5 s) of the start; ForecastUid and
+  CreatedMs free, the kept basis's forecast_uid equal to the document's;
+  everything else exact.
+events: []

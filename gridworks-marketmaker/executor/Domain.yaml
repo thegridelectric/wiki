@@ -1,0 +1,45 @@
+# Domain: the one hub row. Summary is copied verbatim from the repo
+# README (conventions/readme-pattern.md); the check is that the README
+# contains it.
+table: Domain
+schema:
+  - name: Name
+    kind: raw
+  - name: Summary
+    kind: raw
+    prose: true
+  - name: Repo
+    kind: raw
+  - name: InfraPointer
+    kind: raw
+  - name: Status
+    kind: raw
+    values: [Draft, Accepted, Verified]
+  - name: Pass
+    kind: raw
+  - name: ReconciledAt
+    kind: raw
+  - name: AxiomCount
+    kind: aggregation
+    formula: COUNTIF(Axioms.Concern, "")
+  - name: UnboundClauseCount
+    kind: aggregation
+    formula: COUNTIF(Clauses.HasTest, FALSE)
+  - name: IsPromotable
+    kind: calculated
+    formula: >-
+      AND(ALL(Words.InSeed), ALL(Clauses.HasTest), ALL(Concerns.HasBindings),
+      ALL(Bindings.Resolves), ALL(Vectors.Exists), ReadmeMatch)
+data:
+  - Name: gridworks-marketmaker
+    Summary: |
+      The MarketMaker runs one market at one node of the grid and states its price. The market it runs today is the Keene constraint market in ISO New England, where the houses of the fleet buy their heat's electricity hour by hour. At the top of every hour it publishes the cleared price for the hour that just opened: the wholesale price at the market's pricing node in its energy, congestion and loss parts, plus the delivery price the houses' tariff charges for that hour, with the tariff named. The houses' transactive nodes clear their dispatch contracts against that price, and the journal keeps the series as the settled price of the market.
+
+      When the wholesale price cannot be fetched in time, the maker still publishes the hour, at the last wholesale price it published with the hour's own delivery price, and raises a critical fault so a person is paged. A maker that starts partway through an hour publishes nothing for that hour, because a house clears against a price only at the top of the hour, when its bid is in.
+
+      Bids addressed to the maker are received and dropped. The acknowledgement that makes a bid a contract, the market book and the clearing belong to the full maker, which extends this one.
+    Repo: gridworks-marketmaker
+    InfraPointer: gridworks-infra/mm/instance-README.md
+    Status: Draft
+    Pass: 0
+    ReconciledAt: b393fa0

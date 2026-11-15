@@ -1,0 +1,56 @@
+# Bindings: pointers into the code and nowhere else. A symbol is
+# qualified with its File; a test binds a Clause by its test name; a
+# setting binds a Clause to a Settings Key; a cli binds a Concern to a
+# command. Clause is "<Number><Label>" within Concern, blank on a cli row.
+# File is relative to the repo root and is what the reconcile reads.
+table: Bindings
+schema:
+  - name: Concern
+    kind: relationship
+    to: Concerns.Name
+    blank: hub
+  - name: Clause
+    kind: relationship
+    to: Clauses.Number & Clauses.Label
+  - name: Kind
+    kind: raw
+    values: [symbol, test, setting, cli]
+  - name: TargetName
+    kind: raw
+  - name: File
+    kind: raw
+  - name: Resolves
+    kind: calculated
+    formula: IF(Kind="setting", COUNTIF(Settings.Key, TargetName) > 0, SymbolInFile(TargetName, File))
+data:
+  - {Concern: "", Clause: "1a", Kind: symbol, TargetName: "gwmm.market_maker.MarketMaker.latest_price", File: src/gwmm/market_maker.py}
+  - {Concern: "", Clause: "1a", Kind: test, TargetName: "test_publish_is_heard_on_the_mic_exchange", File: tests/test_market_maker.py}
+  - {Concern: "", Clause: "1b", Kind: symbol, TargetName: "gwmm.market_maker.MarketMaker.process_message", File: src/gwmm/market_maker.py}
+  - {Concern: "", Clause: "2a", Kind: symbol, TargetName: "gwmm.market_maker.MarketMaker.main", File: src/gwmm/market_maker.py}
+  - {Concern: gate, Clause: "1a", Kind: symbol, TargetName: "gwmm.gate.SlotGate.tick", File: src/gwmm/gate.py}
+  - {Concern: gate, Clause: "1a", Kind: test, TargetName: "test_asks_every_tick_from_the_top_of_the_hour_until_the_slot_interval_is_posted", File: tests/test_gate.py}
+  - {Concern: gate, Clause: "1b", Kind: symbol, TargetName: "gwmm.gate.SlotGate.tick", File: src/gwmm/gate.py}
+  - {Concern: gate, Clause: "1b", Kind: test, TargetName: "test_boot_mid_slot_publishes_nothing", File: tests/test_gate.py}
+  - {Concern: gate, Clause: "2a", Kind: symbol, TargetName: "gwmm.gate.SlotGate.fetch_for", File: src/gwmm/gate.py}
+  - {Concern: gate, Clause: "3b", Kind: setting, TargetName: fetch_deadline_s, File: src/gwmm/config.py}
+  - {Concern: gate, Clause: "2a", Kind: test, TargetName: "test_asks_every_tick_from_the_top_of_the_hour_until_the_slot_interval_is_posted", File: tests/test_gate.py}
+  - {Concern: gate, Clause: "2b", Kind: symbol, TargetName: "gwmm.gate.SlotGate.fetch_for", File: src/gwmm/gate.py}
+  - {Concern: gate, Clause: "2b", Kind: symbol, TargetName: "gwmm.isone.parse_current", File: src/gwmm/isone.py}
+  - {Concern: gate, Clause: "2b", Kind: test, TargetName: "test_wrong_location_is_an_error", File: tests/test_isone.py}
+  - {Concern: gate, Clause: "3a", Kind: symbol, TargetName: "gwmm.gate.SlotGate.publish_for", File: src/gwmm/gate.py}
+  - {Concern: gate, Clause: "3a", Kind: test, TargetName: "test_price_is_the_interval_parts_plus_delivery", File: tests/test_gate.py}
+  - {Concern: gate, Clause: "3b", Kind: symbol, TargetName: "gwmm.gate.SlotGate.publish_stale", File: src/gwmm/gate.py}
+  - {Concern: gate, Clause: "3b", Kind: test, TargetName: "test_deadline_publishes_last_price_and_glitches", File: tests/test_gate.py}
+  - {Concern: gate, Clause: "3c", Kind: symbol, TargetName: "gwmm.gate.SlotGate.publish_stale", File: src/gwmm/gate.py}
+  - {Concern: gate, Clause: "3c", Kind: test, TargetName: "test_cold_failure_publishes_nothing_and_glitches", File: tests/test_gate.py}
+  - {Concern: publication, Clause: "1a", Kind: symbol, TargetName: "gwmm.market_maker.market_slot_name", File: src/gwmm/market_maker.py}
+  - {Concern: publication, Clause: "1a", Kind: setting, TargetName: market_product, File: src/gwmm/config.py}
+  - {Concern: publication, Clause: "1a", Kind: test, TargetName: "test_market_slot_name_is_well_formed", File: tests/test_market_maker.py}
+  - {Concern: publication, Clause: "1b", Kind: symbol, TargetName: "gwmm.market_maker.price_components", File: src/gwmm/market_maker.py}
+  - {Concern: publication, Clause: "1b", Kind: symbol, TargetName: "gwmm.tariff.delivery_x1000", File: src/gwmm/tariff.py}
+  - {Concern: publication, Clause: "1b", Kind: test, TargetName: "test_components_are_the_lmp_parts_and_delivery", File: tests/test_market_maker.py}
+  - {Concern: publication, Clause: "1b", Kind: test, TargetName: "test_weekday_windows_in_winter", File: tests/test_tariff.py}
+  - {Concern: publication, Clause: "1c", Kind: symbol, TargetName: "gwmm.market_maker.MarketMaker.publish_price", File: src/gwmm/market_maker.py}
+  - {Concern: publication, Clause: "1c", Kind: test, TargetName: "test_publish_is_heard_on_the_mic_exchange", File: tests/test_market_maker.py}
+  - {Concern: publication, Clause: "", Kind: cli, TargetName: "gwmm show", File: src/gwmm/cli.py}
+  - {Concern: inbox, Clause: "1a", Kind: symbol, TargetName: "gwmm.market_maker.MarketMaker.process_message", File: src/gwmm/market_maker.py}

@@ -1,0 +1,75 @@
+# Bindings: pointers into the code and nowhere else. A symbol is
+# qualified with its File; a test binds a Clause by its test name; a
+# setting binds a Clause to a Settings Key; a cli binds a Concern to a
+# command. Clause is "<Number><Label>" within Concern, blank on a cli row.
+# File is relative to the repo root and is what the reconcile reads.
+table: Bindings
+schema:
+  - name: Concern
+    kind: relationship
+    to: Concerns.Name
+    blank: hub
+  - name: Clause
+    kind: relationship
+    to: Clauses.Number & Clauses.Label
+  - name: Kind
+    kind: raw
+    values: [symbol, test, setting, cli]
+  - name: TargetName
+    kind: raw
+  - name: File
+    kind: raw
+  - name: Resolves
+    kind: calculated
+    formula: IF(Kind="setting", COUNTIF(Settings.Key, TargetName) > 0, SymbolInFile(TargetName, File))
+data:
+  - {Concern: "", Clause: "1a", Kind: symbol, TargetName: "gwpf.forecast.ForecastStore.load", File: src/gwpf/forecast.py}
+  - {Concern: "", Clause: "1b", Kind: symbol, TargetName: "gwpf.forecast.ForecastStore.load_kept", File: src/gwpf/forecast.py}
+  - {Concern: "", Clause: "1b", Kind: test, TargetName: "test_a_kept_file_in_another_shape_is_ignored", File: tests/test_forecast.py}
+  - {Concern: "", Clause: "1b", Kind: test, TargetName: "test_a_document_without_its_basis_is_rebuilt", File: tests/test_forecast.py}
+  - {Concern: "", Clause: "1c", Kind: symbol, TargetName: "gwpf.price_actor.PriceActor.process_message", File: src/gwpf/price_actor.py}
+  - {Concern: "", Clause: "2a", Kind: symbol, TargetName: "gwpf.forecast.view", File: src/gwpf/forecast.py}
+  - {Concern: "", Clause: "2a", Kind: test, TargetName: "test_view_is_a_cut_of_the_document_under_its_id", File: tests/test_forecast.py}
+  - {Concern: "", Clause: "2b", Kind: symbol, TargetName: "gwpf.forecast.PublicationWatcher.kept_is_current", File: src/gwpf/forecast.py}
+  - {Concern: "", Clause: "2b", Kind: test, TargetName: "test_watcher_builds_once_per_posting", File: tests/test_forecast.py}
+  - {Concern: "", Clause: "3a", Kind: symbol, TargetName: "gwpf.price_actor.PriceActor.main", File: src/gwpf/price_actor.py}
+  - {Concern: watcher, Clause: "1a", Kind: symbol, TargetName: "gwpf.forecast.poll_interval_s", File: src/gwpf/forecast.py}
+  - {Concern: watcher, Clause: "1a", Kind: test, TargetName: "test_poll_interval", File: tests/test_forecast.py}
+  - {Concern: watcher, Clause: "1b", Kind: symbol, TargetName: "gwpf.forecast.poll_interval_s", File: src/gwpf/forecast.py}
+  - {Concern: watcher, Clause: "1b", Kind: test, TargetName: "test_poll_interval", File: tests/test_forecast.py}
+  - {Concern: watcher, Clause: "1c", Kind: symbol, TargetName: "gwpf.forecast.poll_interval_s", File: src/gwpf/forecast.py}
+  - {Concern: watcher, Clause: "1c", Kind: test, TargetName: "test_poll_interval", File: tests/test_forecast.py}
+  - {Concern: watcher, Clause: "1d", Kind: symbol, TargetName: "gwpf.forecast.PublicationWatcher.step", File: src/gwpf/forecast.py}
+  - {Concern: watcher, Clause: "1d", Kind: test, TargetName: "test_watcher_keeps_its_document_when_isone_fails", File: tests/test_forecast.py}
+  - {Concern: watcher, Clause: "2a", Kind: symbol, TargetName: "gwpf.forecast.PublicationWatcher.kept_is_current", File: src/gwpf/forecast.py}
+  - {Concern: watcher, Clause: "2a", Kind: test, TargetName: "test_watcher_builds_once_per_posting", File: tests/test_forecast.py}
+  - {Concern: watcher, Clause: "2b", Kind: symbol, TargetName: "gwpf.forecast.PublicationWatcher.kept_is_current", File: src/gwpf/forecast.py}
+  - {Concern: watcher, Clause: "2b", Kind: test, TargetName: "test_watcher_rebuilds_when_the_document_cannot_fill_a_view", File: tests/test_forecast.py}
+  - {Concern: watcher, Clause: "2c", Kind: symbol, TargetName: "gwpf.forecast.PublicationWatcher.step", File: src/gwpf/forecast.py}
+  - {Concern: watcher, Clause: "2c", Kind: test, TargetName: "test_watcher_builds_once_per_posting", File: tests/test_forecast.py}
+  - {Concern: document, Clause: "1a", Kind: symbol, TargetName: "gwpf.forecast.build_forecast", File: src/gwpf/forecast.py}
+  - {Concern: document, Clause: "1a", Kind: test, TargetName: "test_document_prices_and_basis", File: tests/test_forecast.py}
+  - {Concern: document, Clause: "1b", Kind: symbol, TargetName: "gwpf.forecast.build_forecast", File: src/gwpf/forecast.py}
+  - {Concern: document, Clause: "1b", Kind: symbol, TargetName: "gwpf.isone.IsoneClient.day_ahead", File: src/gwpf/isone.py}
+  - {Concern: document, Clause: "1b", Kind: test, TargetName: "test_parse_captured_day", File: tests/test_forecast.py}
+  - {Concern: document, Clause: "1c", Kind: symbol, TargetName: "gwpf.forecast.extend_by_hour_of_day", File: src/gwpf/forecast.py}
+  - {Concern: document, Clause: "1c", Kind: symbol, TargetName: "gwpf.tariff.delivery_price_times1000", File: src/gwpf/tariff.py}
+  - {Concern: document, Clause: "1c", Kind: test, TargetName: "test_document_prices_and_basis", File: tests/test_forecast.py}
+  - {Concern: document, Clause: "1c", Kind: test, TargetName: "test_weekday_windows_in_winter", File: tests/test_tariff.py}
+  - {Concern: document, Clause: "1d", Kind: symbol, TargetName: "gwpf.forecast.build_forecast", File: src/gwpf/forecast.py}
+  - {Concern: document, Clause: "1d", Kind: setting, TargetName: market_maker_alias, File: src/gwpf/config.py}
+  - {Concern: document, Clause: "1d", Kind: setting, TargetName: product_name, File: src/gwpf/config.py}
+  - {Concern: document, Clause: "1d", Kind: test, TargetName: "test_document_prices_and_basis", File: tests/test_forecast.py}
+  - {Concern: document, Clause: "2a", Kind: symbol, TargetName: "gwpf.forecast.ForecastStore.save", File: src/gwpf/forecast.py}
+  - {Concern: document, Clause: "2a", Kind: setting, TargetName: data_dir, File: src/gwpf/config.py}
+  - {Concern: document, Clause: "2b", Kind: symbol, TargetName: "gwpf.forecast.published_slot_count", File: src/gwpf/forecast.py}
+  - {Concern: document, Clause: "2b", Kind: test, TargetName: "test_document_prices_and_basis", File: tests/test_forecast.py}
+  - {Concern: document, Clause: "2c", Kind: symbol, TargetName: "gwpf.price_actor.PriceActor.publish", File: src/gwpf/price_actor.py}
+  - {Concern: document, Clause: "2c", Kind: symbol, TargetName: "gwpf.price_actor.market_name", File: src/gwpf/price_actor.py}
+  - {Concern: facade, Clause: "1a", Kind: symbol, TargetName: "gwpf.forecast.view", File: src/gwpf/forecast.py}
+  - {Concern: facade, Clause: "1a", Kind: test, TargetName: "test_api_serves_the_view_on_both_routes", File: tests/test_forecast.py}
+  - {Concern: facade, Clause: "1b", Kind: symbol, TargetName: "gwpf.api.create_app", File: src/gwpf/api.py}
+  - {Concern: facade, Clause: "1c", Kind: symbol, TargetName: "gwpf.api.create_app", File: src/gwpf/api.py}
+  - {Concern: facade, Clause: "1c", Kind: setting, TargetName: ltn_route, File: src/gwpf/config.py}
+  - {Concern: facade, Clause: "1c", Kind: test, TargetName: "test_api_serves_the_view_on_both_routes", File: tests/test_forecast.py}
+  - {Concern: facade, Clause: "", Kind: cli, TargetName: "gwpf show", File: src/gwpf/cli.py}

@@ -1,0 +1,54 @@
+# Steps: start and stop steps per process, ordered by Idx. Blocks: the
+# next step waits for this one. Retried: repeats until it succeeds.
+# AbandonedOnStop: a stop interrupts it rather than waiting for it.
+table: Steps
+schema:
+  - name: Process
+    kind: relationship
+    to: Processes.Name
+  - name: Idx
+    kind: raw
+  - name: Text
+    kind: raw
+    prose: true
+  - name: Blocks
+    kind: raw
+  - name: Retried
+    kind: raw
+  - name: AbandonedOnStop
+    kind: raw
+data:
+  - Process: rabbit
+    Idx: 1
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      Read the settings; the ISO-NE account has no default and a start
+      without one fails. Read the registry record and check its alias
+      against the configured one; a mismatch fails the start.
+  - Process: rabbit
+    Idx: 2
+    Blocks: true
+    Retried: true
+    AbandonedOnStop: true
+    Text: >-
+      Connect to the broker and bind the inbox for the maker's alias.
+  - Process: rabbit
+    Idx: 3
+    Blocks: false
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      Start the gate on the wall clock, once a second. The slot open at
+      start is taken as already handled and gets no publish; the first
+      asks are for the next slot.
+  - Process: rabbit
+    Idx: 4
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      On stop, end the gate loop and wait for its current tick, then
+      leave the broker. Nothing is written; the next start begins as a
+      cold one.

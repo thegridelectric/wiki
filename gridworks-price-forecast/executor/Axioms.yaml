@@ -1,0 +1,110 @@
+# Axioms: one row per rule, numbered from 1 within their Concern; the hub
+# (Concern blank) is counted as one Concern and hub Axiom 1 is the sema
+# axiom. A clause is cited as Concern, Number and Label (watcher 2b).
+table: Axioms
+schema:
+  - name: Concern
+    kind: relationship
+    to: Concerns.Name
+    blank: hub
+  - name: Number
+    kind: raw
+  - name: Name
+    kind: raw
+  - name: Statement
+    kind: raw
+    prose: true
+  - name: Reason
+    kind: raw
+    prose: true
+  - name: ClauseCount
+    kind: aggregation
+    formula: COUNTIFS(Clauses.Concern, Concern, Clauses.Number, Number)
+  - name: UnboundClauseCount
+    kind: aggregation
+    formula: COUNTIFS(Clauses.Concern, Concern, Clauses.Number, Number, Clauses.HasTest, FALSE)
+data:
+  # -- hub -------------------------------------------------------------
+  - Concern: ""
+    Number: 1
+    Name: SemaBoundary
+    Statement: >-
+      Every instance the service broadcasts, keeps or serves SHALL be the
+      listed word at its listed version, encoded and decoded through the
+      vendored snapshot; a kept file the snapshot refuses SHALL count as
+      nothing kept; a body that arrives on the inbox SHALL be ignored
+      unread, and the actor SHALL go on.
+    Reason: Meaning comes from the vocabulary, and a stale or foreign file is never served.
+  - Concern: ""
+    Number: 2
+    Name: TheKeptDocumentIsTheTruth
+    Statement: >-
+      Every view served SHALL be a cut of the kept document under the
+      document's own identity, with every value equal to the broadcast
+      document's; the kept pair SHALL survive a restart of either
+      process, and a restart SHALL neither rebuild nor rebroadcast a
+      document that is current.
+    Reason: A house's plan can be matched to the forecast it was made against, by identity.
+  - Concern: ""
+    Number: 3
+    Name: OneDocumentPerPosting
+    Statement: >-
+      A document with a new identity SHALL come to be only when ISO-NE
+      has posted since the kept one was built, when the kept one can no
+      longer fill a whole view, or when nothing is kept; and each
+      document SHALL be broadcast exactly once.
+    Reason: The journal holds one forecast per posting, and a repeat is noise a reader must dedupe.
+  # -- watcher ---------------------------------------------------------
+  - Concern: watcher
+    Number: 1
+    Name: TheCheckCadence
+    Statement: >-
+      After a check, the next SHALL be due at the earlier of one hour and
+      12:30 on the tariff's wall clock when the clock is before 12:30;
+      five minutes after when tomorrow's day is not yet posted; one hour
+      after when it is. A check that fails SHALL be logged and retried
+      five minutes after, with the kept document unchanged.
+    Reason: ISO-NE posts tomorrow around 13:00 and a late posting is still caught within the hour.
+  - Concern: watcher
+    Number: 2
+    Name: BuildWhenStale
+    Statement: >-
+      A check SHALL build a new document when the kept document's basis
+      names a posting other than the one ISO-NE reports, when the kept
+      document cannot fill a view of the full view length, or when
+      nothing is kept; otherwise it SHALL build nothing.
+    Reason: The document follows the posting and never runs out before the next one.
+  # -- document --------------------------------------------------------
+  - Concern: document
+    Number: 1
+    Name: TheDocument
+    Statement: >-
+      A document SHALL hold 72 consecutive hourly slots from the top of
+      the hour after it is built; each slot's price SHALL be the posted
+      day-ahead wholesale price for that hour where ISO-NE has one, else
+      the latest posted price at the same wall-clock hour of day, plus
+      the tariff's delivery price for the hour, in USD/MWh times 1000;
+      and it SHALL carry the service's alias, the market, a fresh
+      identity and the build time.
+    Reason: The FLO plans against the whole price a bidder faces, two to three days out.
+  - Concern: document
+    Number: 2
+    Name: KeptThenBroadcast
+    Statement: >-
+      A built document SHALL be written with its basis, each file whole,
+      the basis first and the document last, before it is broadcast; the
+      basis SHALL name the document's identity, the posting it came from
+      and how many leading slots are posted prices; the broadcast SHALL
+      be one message on the mic under the market's radio channel.
+    Reason: What the facade serves and what the journal holds are the same document, and a reader never sees a half-written one.
+  # -- facade ----------------------------------------------------------
+  - Concern: facade
+    Number: 1
+    Name: TheView
+    Statement: >-
+      A view SHALL be the kept document's slots from the top of the next
+      hour, 48 at most, with the document's identity and every other
+      field unchanged; fewer than 12 remaining slots SHALL be a 503; the
+      facade SHALL call no external service and read nothing but the
+      kept document.
+    Reason: A caller gets two days under an identity the journal can match, and a facade outage is never ISO-NE's.

@@ -1,0 +1,43 @@
+# Domain: the one hub row. Summary is copied verbatim from the repo
+# README (conventions/readme-pattern.md); the check is that the README
+# contains it.
+table: Domain
+schema:
+  - name: Name
+    kind: raw
+  - name: Summary
+    kind: raw
+    prose: true
+  - name: Repo
+    kind: raw
+  - name: InfraPointer
+    kind: raw
+  - name: Status
+    kind: raw
+    values: [Draft, Accepted, Verified]
+  - name: Pass
+    kind: raw
+  - name: ReconciledAt
+    kind: raw
+  - name: AxiomCount
+    kind: aggregation
+    formula: COUNTIF(Axioms.Concern, "")
+  - name: UnboundClauseCount
+    kind: aggregation
+    formula: COUNTIF(Clauses.HasTest, FALSE)
+  - name: IsPromotable
+    kind: calculated
+    formula: >-
+      AND(ALL(Words.InSeed), ALL(Clauses.HasTest), ALL(Concerns.HasBindings),
+      ALL(Bindings.Resolves), ALL(Vectors.Exists), ReadmeMatch)
+data:
+  - Name: gridworks-price-forecast
+    Summary: |
+      The price-forecast service is the fleet's one source of forward electricity prices. For each coming hour it forecasts the price a MarketMaker will publish for one market: the whole price a bidder in that market faces, the wholesale price at the market's pricing node plus the delivery price the houses' tariff charges for that hour. The houses' transactive nodes read it to plan their heating a day or two ahead, so a missing forecast is a plan not made.
+
+      The forecast follows the day-ahead market. Once a day, early in the afternoon, ISO New England posts the next day's hourly prices; the service watches for that posting, and when it comes builds one forecast document for the next three days, with a new identity. The hours ISO New England has posted are used as they are, and the hours beyond them repeat the latest posted price at the same hour of the day. The document is broadcast once for the journal and anyone listening, and kept until the next posting; what a caller pulls is a view of the kept document, the coming two days under the same identity, so every pulled value is in a broadcast forecast with that identity. Beside the document the service keeps a note of what it was built from: which posting, and how many of its hours are ISO New England's own.
+    Repo: gridworks-price-forecast
+    InfraPointer: gridworks-infra/forecast/instance-README.md
+    Status: Draft
+    Pass: 0
+    ReconciledAt: 1450fb6

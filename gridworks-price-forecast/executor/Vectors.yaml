@@ -1,0 +1,47 @@
+# Vectors: one fixture per clause, its kind set by the clause's. A row
+# with no Path is the work list ("Finding the traces"). An example of a
+# word is sema's by reference, Path <word>/<version>. Paths are relative
+# to this folder.
+table: Vectors
+schema:
+  - name: Concern
+    kind: relationship
+    to: Concerns.Name
+    blank: hub
+  - name: Idx
+    kind: raw
+  - name: Kind
+    kind: raw
+    values: [example, counterexample, trace]
+  - name: Path
+    kind: raw
+  - name: Clause
+    kind: relationship
+    to: Clauses.Number & Clauses.Label
+  - name: Exists
+    kind: calculated
+    formula: IF(Kind="example", WordHasExample(Path), FileExists(Path & "/trace.yaml"))
+data:
+  - {Concern: "", Idx: 1, Kind: example, Clause: "1a", Path: "gw.price.forecast/000"}
+  - {Concern: "", Idx: 2, Kind: counterexample, Clause: "1b", Path: ""}
+  - {Concern: "", Idx: 3, Kind: trace, Clause: "1c", Path: ""}
+  - {Concern: "", Idx: 4, Kind: trace, Clause: "2a", Path: ""}
+  - {Concern: "", Idx: 5, Kind: trace, Clause: "2b", Path: ""}
+  - {Concern: "", Idx: 6, Kind: trace, Clause: "3a", Path: "traces/2026-11-14-keene-first-posting"}
+  - {Concern: watcher, Idx: 1, Kind: trace, Clause: "1a", Path: ""}
+  - {Concern: watcher, Idx: 2, Kind: trace, Clause: "1b", Path: ""}
+  - {Concern: watcher, Idx: 3, Kind: trace, Clause: "1c", Path: "traces/2026-11-14-keene-first-posting"}
+  - {Concern: watcher, Idx: 4, Kind: counterexample, Clause: "1d", Path: ""}
+  - {Concern: watcher, Idx: 5, Kind: trace, Clause: "2a", Path: "traces/2026-11-14-keene-first-posting"}
+  - {Concern: watcher, Idx: 6, Kind: trace, Clause: "2b", Path: ""}
+  - {Concern: watcher, Idx: 7, Kind: trace, Clause: "2c", Path: ""}
+  - {Concern: document, Idx: 1, Kind: trace, Clause: "1a", Path: "traces/2026-11-14-keene-first-posting"}
+  - {Concern: document, Idx: 2, Kind: trace, Clause: "1b", Path: "traces/2026-11-14-keene-first-posting"}
+  - {Concern: document, Idx: 3, Kind: trace, Clause: "1c", Path: "traces/2026-11-14-keene-first-posting"}
+  - {Concern: document, Idx: 4, Kind: trace, Clause: "1d", Path: "traces/2026-11-14-keene-first-posting"}
+  - {Concern: document, Idx: 5, Kind: trace, Clause: "2a", Path: ""}
+  - {Concern: document, Idx: 6, Kind: trace, Clause: "2b", Path: "traces/2026-11-14-keene-first-posting"}
+  - {Concern: document, Idx: 7, Kind: trace, Clause: "2c", Path: "traces/2026-11-14-keene-first-posting"}
+  - {Concern: facade, Idx: 1, Kind: trace, Clause: "1a", Path: ""}
+  - {Concern: facade, Idx: 2, Kind: counterexample, Clause: "1b", Path: ""}
+  - {Concern: facade, Idx: 3, Kind: trace, Clause: "1c", Path: ""}

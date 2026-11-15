@@ -1,0 +1,145 @@
+# Boundaries: everything that crosses the edge and is not a word. Form is
+# the exact form, or OwnerExecutor points at the executor that owns it.
+# Reproduce says whether a rebuild matches the form byte for byte (exact)
+# or may change it (free); a trace diff is judged against this column.
+# A replay serves every row from its Form or records it as wire-out.
+table: Boundaries
+schema:
+  - name: Name
+    kind: raw
+  - name: Kind
+    kind: raw
+    values: [transport, http, file, store, api, setting, text]
+  - name: Form
+    kind: raw
+    prose: true
+  - name: OwnerExecutor
+    kind: raw
+  - name: Reproduce
+    kind: raw
+    values: [exact, free]
+data:
+  - Name: price-mic
+    Kind: transport
+    OwnerExecutor: gridworks-base
+    Reproduce: exact
+    Form: >-
+      The actor's broadcast on its own mic exchange, routing key
+      rjb.<service alias, dots as hyphens>.price.gw-price-forecast.<radio
+      channel>, the radio channel being the forecast's market,
+      e.<ProductName>.<MarketMakerAlias>. The mic exchange fans into the
+      universe's ear exchange, which is where the journal hears it.
+  - Name: price-inbox
+    Kind: transport
+    OwnerExecutor: gridworks-base
+    Reproduce: exact
+    Form: >-
+      The actor's own queue, declared and bound by the actor tier for the
+      PriceForecastService transport class at the service's alias. The
+      actor acks each arrival and ignores it.
+  - Name: isone-info
+    Kind: api
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: >-
+      GET https://webservices.iso-ne.com/api/v1.1/hourlylmp/da/final/info
+      with HTTP basic auth (isone_user, isone_api_pass), a 30 s timeout.
+      The XML body states the start of the last posted day-ahead hour
+      and the time the posting was made; both become unix seconds.
+  - Name: isone-day-ahead
+    Kind: api
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: >-
+      GET https://webservices.iso-ne.com/api/v1.1/hourlylmp/da/final/day/<YYYYMMDD>/location/<isone_location_id>
+      with the same auth and timeout. The XML body is one HourlyLmp
+      element per posted hour of that operating day, each with its
+      BeginDate and its LmpTotal in decimal USD/MWh, sorted by hour; a
+      day ISO-NE has not posted answers with no HourlyLmp elements.
+  - Name: kept-document
+    Kind: store
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: >-
+      Two files in the directory data_dir names: price-forecast.json, the
+      kept gw.price.forecast in its wire form, and
+      price-forecast-basis.json, a JSON object with forecast_uid (the
+      document's ForecastUid), source_posted_s (the ISO-NE posting time
+      the document was built from, unix seconds) and
+      published_slot_count (how many leading slots carry a posted price).
+      Each file is written whole by atomic replace, the basis first and
+      the document last, so a reader sees either the previous pair or
+      the new one and a basis without its document is ignored. Read by
+      both processes; written by the actor alone.
+  - Name: http-view
+    Kind: http
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: >-
+      GET /<service alias, dots as hyphens>/latest-forecast and GET
+      <ltn_route>, bound on api_host:api_port with TLS at a fronting
+      proxy, CORS open to GET from any origin. A 200 body is the view of
+      the kept document in the word's wire form with no null fields; a
+      503 with detail "no price forecast available" when no view can be
+      cut. /docs and /openapi.json describe the word and link each
+      schema to its sema definition.
+  - Name: http-ping
+    Kind: http
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: >-
+      GET /ping answers 200 with the JSON object {"status": "ok"}.
+  - Name: tariff-table
+    Kind: setting
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: >-
+      The total delivery price per hour under Versant Rate A-1 "Home Eco
+      Rate with Bonus Meter", Bangor Hydro District, Seventeenth Revision,
+      in USD/MWh times 1000: on-peak 588532 in winter (November through
+      February) and 574178 otherwise; shoulder 64429; off-peak 58556. The
+      period of an hour is read on the America/New_York wall clock at the
+      hour's start: off-peak from 20:00 to 07:00 every day; on weekends
+      and the tariff's ten holidays shoulder from 07:00 to 20:00; on other
+      days on-peak 07:00 to 12:00 and 16:00 to 20:00 and shoulder 12:00 to
+      16:00. The holidays are New Year's Day, Washington's Birthday
+      (third Monday of February), Patriot's Day (third Monday of April),
+      Memorial Day (last Monday of May), Independence Day, Labor Day
+      (first Monday of September), Columbus Day (second Monday of
+      October), Veterans Day, Thanksgiving (fourth Thursday of November)
+      and Christmas Day, on their dates and not observed. The same table
+      the MarketMaker prices delivery from. A tariff word with prices and
+      a revision retires this row.
+  - Name: registry-record
+    Kind: file
+    OwnerExecutor: grid-node-registry
+    Reproduce: exact
+    Form: >-
+      The service's own g.node.gt record, read from the path the
+      g_node_path setting names at the actor's start; its Alias must
+      equal service_alias or the start fails.
+  - Name: settings
+    Kind: setting
+    OwnerExecutor: gridworks-base
+    Reproduce: exact
+    Form: >-
+      Environment variables with the prefix GWPF_, nested keys joined
+      with a double underscore, read also from a .env file at the working
+      directory; the keys are the Settings table.
+  - Name: log
+    Kind: text
+    OwnerExecutor: ""
+    Reproduce: free
+    Form: >-
+      The process log: one line per broadcast with the routing key and
+      the ForecastUid; one error line per failed ISO-NE call or build;
+      one warning per kept file that could not be read; one debug line
+      per ignored inbound message.
+  - Name: cli-show
+    Kind: text
+    OwnerExecutor: ""
+    Reproduce: free
+    Form: >-
+      The text a person reads from the show command: the view the facade
+      would serve now, as indented JSON, or a one-line refusal when no
+      view can be cut.

@@ -1,0 +1,108 @@
+# Boundaries: everything that crosses the edge and is not a word. Form is
+# the exact form, or OwnerExecutor points at the executor that owns it.
+# Reproduce says whether a rebuild matches the form byte for byte (exact)
+# or may change it (free); a trace diff is judged against this column.
+# A replay serves every row from its Form or records it as wire-out.
+table: Boundaries
+schema:
+  - name: Name
+    kind: raw
+  - name: Kind
+    kind: raw
+    values: [transport, http, file, store, api, setting, text]
+  - name: Form
+    kind: raw
+    prose: true
+  - name: OwnerExecutor
+    kind: raw
+  - name: Reproduce
+    kind: raw
+    values: [exact, free]
+data:
+  - Name: mm-mic
+    Kind: transport
+    OwnerExecutor: gridworks-base
+    Reproduce: exact
+    Form: >-
+      The maker's broadcast on its own mic exchange, routing key
+      rjb.<maker alias, dots as hyphens>.mm.<type name, dots as
+      hyphens>, with no radio channel. The mic exchange fans into the
+      universe's ear exchange, which is where the houses, the journal and
+      the alerter hear it.
+  - Name: mm-inbox
+    Kind: transport
+    OwnerExecutor: gridworks-base
+    Reproduce: exact
+    Form: >-
+      The actor's own queue, declared and bound by the actor tier for the
+      MarketMaker transport class at the maker's alias, on which bids and
+      every other message addressed to the maker arrive. The maker acks
+      each arrival and does nothing else with it.
+  - Name: isone-current-lmp
+    Kind: api
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: >-
+      GET https://webservices.iso-ne.com/api/v1.1/fiveminutelmp/current/location/<isone_location_id>
+      with HTTP basic auth (isone_user, isone_api_pass), a 15 s timeout.
+      The XML body's one Location element names the location id; its
+      BeginDate is the start of the latest priced five-minute interval;
+      EnergyComponent, CongestionComponent and LossComponent are decimal
+      USD/MWh and become the three wholesale parts, each rounded to the
+      nearest thousandth. A body for another location, or without one
+      of those elements, is a failed fetch.
+  - Name: tariff-table
+    Kind: setting
+    OwnerExecutor: ""
+    Reproduce: exact
+    Form: >-
+      The total delivery price per hour under Versant Rate A-1 "Home Eco
+      Rate with Bonus Meter", Bangor Hydro District, Seventeenth Revision,
+      in USD/MWh times 1000: on-peak 588532 in winter (November through
+      February) and 574178 otherwise; shoulder 64429; off-peak 58556. The
+      period of an hour is read on the America/New_York wall clock at the
+      hour's start: off-peak from 20:00 to 07:00 every day; on weekends
+      and the tariff's ten holidays shoulder from 07:00 to 20:00; on other
+      days on-peak 07:00 to 12:00 and 16:00 to 20:00 and shoulder 12:00 to
+      16:00. The holidays are New Year's Day, Washington's Birthday
+      (third Monday of February), Patriot's Day (third Monday of April),
+      Memorial Day (last Monday of May), Independence Day, Labor Day
+      (first Monday of September), Columbus Day (second Monday of
+      October), Veterans Day, Thanksgiving (fourth Thursday of November)
+      and Christmas Day, on their dates and not observed. The tariff's
+      alias is versant.a1.home.eco.bonus. A tariff word with prices and a
+      revision retires this row.
+  - Name: registry-record
+    Kind: file
+    OwnerExecutor: grid-node-registry
+    Reproduce: exact
+    Form: >-
+      The maker's own g.node.gt record, read from the path the g_node_path
+      setting names at start; its Alias must equal service_alias or the
+      start fails.
+  - Name: settings
+    Kind: setting
+    OwnerExecutor: gridworks-base
+    Reproduce: exact
+    Form: >-
+      Environment variables with the prefix GWMM_, nested keys joined
+      with a double underscore, read also from a .env file at the working
+      directory; the keys are the Settings table.
+  - Name: log
+    Kind: text
+    OwnerExecutor: ""
+    Reproduce: free
+    Form: >-
+      The process log: one line per publish with the slot name and the
+      wholesale, delivery and total prices; one line per dropped inbound
+      message with its type and sender; one critical line per glitch with
+      its summary and details; one line per gate tick that raised.
+  - Name: cli-show
+    Kind: text
+    OwnerExecutor: ""
+    Reproduce: free
+    Form: >-
+      The text a person reads from the show command: the slot name of
+      the open slot, its local start, and the wholesale parts, the
+      delivery price and their total that the maker would publish for
+      it now, from a live fetch and no broker.

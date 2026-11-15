@@ -1,0 +1,76 @@
+# Steps: start and stop steps per process, ordered by Idx. Blocks: the
+# next step waits for this one. Retried: repeats until it succeeds.
+# AbandonedOnStop: a stop interrupts it rather than waiting for it.
+table: Steps
+schema:
+  - name: Process
+    kind: relationship
+    to: Processes.Name
+  - name: Idx
+    kind: raw
+  - name: Text
+    kind: raw
+    prose: true
+  - name: Blocks
+    kind: raw
+  - name: Retried
+    kind: raw
+  - name: AbandonedOnStop
+    kind: raw
+data:
+  - Process: rabbit
+    Idx: 1
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      Read the settings; the ISO-NE account has no default and a start
+      without one fails. Read the registry record and check its alias
+      against the configured one; a mismatch fails the start.
+  - Process: rabbit
+    Idx: 2
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      Load the kept document with its basis; a missing, unreadable or
+      mismatched pair is treated as nothing kept and logged.
+  - Process: rabbit
+    Idx: 3
+    Blocks: true
+    Retried: true
+    AbandonedOnStop: true
+    Text: >-
+      Connect to the broker and bind the inbox for the service's alias.
+  - Process: rabbit
+    Idx: 4
+    Blocks: false
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      Start the watcher, which checks ISO-NE at once and then on its
+      cadence; a kept document that is current is not rebuilt and not
+      broadcast again.
+  - Process: rabbit
+    Idx: 5
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      On stop, end the watcher loop and wait for its current step, then
+      leave the broker. The kept pair stays for the next start.
+  - Process: api
+    Idx: 1
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      Read the settings and bind the routes on api_host and api_port.
+      Nothing is loaded ahead: each request reads the kept document.
+  - Process: api
+    Idx: 2
+    Blocks: true
+    Retried: false
+    AbandonedOnStop: false
+    Text: >-
+      On stop, close the listener. Nothing is written.

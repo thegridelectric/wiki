@@ -1,0 +1,40 @@
+# Settings: one row per configuration key, generated from the settings
+# class (gwpf.config.GwpfSettings and what it inherits from gwbase's
+# GNodeSettings and ServiceSettings) and checked in; the check is that
+# regeneration changes nothing. Keys are the environment names under the
+# settings boundary's prefix, nested keys joined with a double underscore.
+table: Settings
+schema:
+  - name: Key
+    kind: raw
+  - name: Type
+    kind: raw
+  - name: Default
+    kind: raw
+  - name: Required
+    kind: raw
+data:
+  - {Key: rabbit__url, Type: SecretStr, Default: "amqp://smqPublic:smqPublic@localhost:5672/d1__1", Required: false}
+  - {Key: rabbit__tls, Type: RabbitTls, Default: "", Required: false}
+  - {Key: service_alias, Type: LeftRightDot, Default: d1.price, Required: false}
+  - {Key: service_name, Type: str, Default: price-forecast, Required: false}
+  - {Key: instance_id, Type: UUID4Str, Default: "a fresh uuid per boot", Required: false}
+  - {Key: log_level, Type: str, Default: INFO, Required: false}
+  - {Key: log_tz, Type: IanaTimezone, Default: UTC, Required: false}
+  - {Key: log_rotate_bytes, Type: int, Default: "10000000", Required: false}
+  - {Key: log_rotate_count, Type: int, Default: "5", Required: false}
+  - {Key: prefetch_count, Type: int, Default: "100", Required: false}
+  - {Key: g_node_path, Type: Path, Default: "the XDG config path for service_name", Required: false}
+  - {Key: gnr_url, Type: str, Default: "", Required: false}
+  - {Key: gnr_timeout_s, Type: float, Default: "5.0", Required: false}
+  - {Key: market_maker_alias, Type: LeftRightDot, Default: d1.isone.me.versant.keene, Required: false}
+  - {Key: product_name, Type: MarketProductName, Default: rt60gate5, Required: false}
+  - {Key: isone_location_id, Type: str, Default: "43790", Required: false}
+  - {Key: isone_user, Type: str, Default: "", Required: true}
+  - {Key: isone_api_pass, Type: SecretStr, Default: "", Required: true}
+  - {Key: data_dir, Type: Path, Default: "~/.local/share/gridworks/price-forecast", Required: false}
+  - {Key: ltn_route, Type: str, Default: /hw1-isone-me-versant-keene-ps/gw0-price-forecast, Required: false}
+  - {Key: api_host, Type: str, Default: 127.0.0.1, Required: false}
+  - {Key: api_port, Type: int, Default: "8532", Required: false}
+  - {Key: my_super_alias, Type: str, Default: d1.super, Required: false}
+  - {Key: my_time_coordinator_alias, Type: str, Default: d1.time, Required: false}
