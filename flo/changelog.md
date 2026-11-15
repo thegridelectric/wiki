@@ -6,6 +6,28 @@ Status: Accepted · Pass 0 · Updated 2026-11-06
 > (`optimal-flexibility` for the bruce optimizer; the FLO service repo when
 > it exists). Git is the what; this file is the why.
 
+## 2026-11-14 · gridworks-flo + optimal-flexibility · main merged into jm/price-forecast-word; snapshots from the published words (`d50fbf5` gridworks-flo; `d104a14` optimal-flexibility; OPS-666)
+
+**Why.** The price words are published (sema `bba18bc`), so both repos'
+vendored snapshots are rebuilt published-only: `flo.params` 002 and
+`gw.market.product.name` 001 come in as published, the `staging.yaml`
+index goes, and the regen scripts no longer admit staging words. Main's
+`flo.recommendation` 001 work merges in; the only hand resolution was
+the regen script, which takes main's published-only form.
+
+## 2026-11-14 · gridworks-flo + optimal-flexibility · the FLO service speaks flo.recommendation 001 (`3cf9810` PR #6; `f6c6530` PR #4; OPS-665)
+
+**Why.** `flo.recommendation` 001 lists, beside each path, the store word
+(`flo.tank.store.path` 000: `EmptyStoreWh` and `FullStoreWh` on the
+path's `StoreWhList` reference) and the penalties word
+(`flo.path.penalties.bruce` 000: the terminal cost of an empty store and
+the path cost). bruce's `path_words` fills both from one walk of each
+pair's path, over the two-head edges and RSWT penalty changes main took
+in November. The service's bruce arm calls `recommend_bytes` and decodes
+the reply through its own snapshot, so the words reach it as a snapshot
+regen. The flo box pulls both checkouts and restarts
+(`tools/box-deploy.sh flo`) before any LTN that expects 001 rolls.
+
 ## 2026-11-13 · gridworks-flo + optimal-flexibility · snapshot at flo.params 002; bruce reads the one price list (`0ff6a75` flo, `ec2675a` bruce, jm/price-forecast-word, OPS-666)
 
 **Why.** `flo.params` 002 has one price list, `PriceUsdMwhList`, and

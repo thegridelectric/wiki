@@ -110,10 +110,6 @@ house runs the branch by a roll now.
 - `field-checks.md` — the claims a beta window confirms, and which
   windows have confirmed which; the built part is in
   `executor/local-control.md` and `executor/cold-house.md`
-- `thermostat-and-zone-control.md` — first the MVP: a circuit held off
-  through the ops word, applied to spruce's living-room fan coil; then
-  the zone / circuit / thermostat control model (the circuit FSM, the
-  governance machine, setpoint belief, the thermostat chunk)
 - ✅ DONE gwsproto-conformance (est 4h → 2h) — the scada vendors its
   own sema snapshot as the oracle, one version per word, every enum with
   a default (`executor/gwsproto-conformance.md`, `eb73e305`)
@@ -164,7 +160,7 @@ house runs the branch by a roll now.
   on the new code: assert-then-verify with I2C self-heal, confirmed state
   from pin-readback, honest boot; the two relay-test gaps that witness it
   pulled forward to launch. The zone-call / thermostat control model on top
-  is post-launch (OPS-532)
+  is post-launch, a spruce-settled spoke (OPS-532)
 - `command-tree-matrix.md` (est 3h → 1h) — the sender rule for five nodes (built),
   the state-transition tree matrix on `command_node.py`, the relay's full
   report to the journal

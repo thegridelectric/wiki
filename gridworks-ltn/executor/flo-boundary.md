@@ -1,6 +1,6 @@
 # The FLO boundary
 
-Status: Draft · Pass 0 · Updated 2026-11-05
+Status: Draft · Pass 0 · Updated 2026-11-14
 
 > What this is: the contract between an LTN and its FLO (Forward-Looking
 > Optimizer): the one call, the two words at the seam, where every input
@@ -47,6 +47,7 @@ Matrices are generated as a separate step and placed on the box
 | `GallonsPerTank`, `TempSensorsPerTank`, `TotalStoreTanks` | the layout's `gw.water.store` |
 | `SeasonalStorageMode` (the tanks modeled: the store in AllTanks, one tank in BufferOnly), whether dispatch is accepted | the scada's `gw.house.operating.status` |
 | the hourly temperatures, and `WeatherForecastId` as the forecast's `ForecastUid` | the `gw.weather.forecast` the LTN pulls; a seasonal fill is refused (`SeasonalFillForecast`) |
+| `PriceUsdMwhList`, one price per hourly step from the request's own slot, and `PriceForecastId` as the forecast's `ForecastUid` | the `gw.price.forecast` the LTN pulls from the price service's route (`actors/ltn/ltn.py` `get_price_forecast`), decoded through its snapshot and kept as bytes in its data dir, the copy it reads when the service is unreachable; a forecast with no slot starting at the request's is refused (`PriceForecastMissesSlot`) |
 | the heat load and RSWT per hour | the heating curve applied to the forecast |
 | the measured store: three layer temperatures and two thermoclines counted in sensor layers from the top | the scada's latest readings at the bid minute |
 | `PreviousOptimalPath` | the previous run, below |
@@ -132,3 +133,6 @@ when the message is built, never swallowed at publish.
   layer resolution (OPS-653).
 - The market's price bounds are two constants in `flo_request.py`
   until the MarketMaker's product word states them.
+- The request does not check that the forecast's `MarketMakerAlias` and
+  `ProductName` are the LTN's own market. The LTN has one market today;
+  the check belongs with the word that names it.

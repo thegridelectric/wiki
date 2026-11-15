@@ -165,6 +165,55 @@ for h in $LTN_HOUSES; do
   esac
 done
 
+# Unfit load model: the regression half of HeatingCurve (AlphaEx6..EtaEx6,
+# RhoTimes100, DdRoomTempF, MassFlowKgH) is read only by the LTN's FLO
+# request, so a house can run on the fleet placeholder set without local
+# control noticing. The tlayouts gens give every unfit house the one
+# placeholder set below; a house whose OperatorHold is false SHALL have its
+# own fit. A params file on the older word (no regression fields) is not
+# drift, and neither is a box that does not answer.
+fit_of() {  # host params-file -> "hold=<True|False> fit=<yes|no|na>"
+  $SSH "$1" "python3 - $2" 2>/dev/null <<'PY'
+import json, sys
+try:
+    p = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(0)
+hc = p.get("HeatingCurve", {})
+keys = ["AlphaEx6", "BetaEx6", "GammaEx6", "DeltaEx6", "EpsilonEx6",
+        "ZetaEx6", "EtaEx6", "RhoTimes100", "DdRoomTempF", "MassFlowKgH"]
+placeholder = [-450000, 30000, -1000, -500, 6000, 300000, 500000, 120, 68, 480]
+hold = p.get("DispatchHold", {}).get("OperatorHold")
+if any(k not in hc for k in keys):
+    fit = "na"
+else:
+    fit = "no" if [hc[k] for k in keys] == placeholder else "yes"
+print(f"hold={hold} fit={fit}")
+PY
+}
+check_house_fit() {  # house pis...
+  local house="$1" box path got
+  shift
+  for box in "$@" ltn; do
+    case "$box" in
+      ltn) path="~/ltn-$house/.config/gridworks/ltn/operational-params.json" ;;
+      *2)  path='~/.config/gridworks/scada2/operational-params.json' ;;
+      *)   path='~/.config/gridworks/scada/operational-params.json' ;;
+    esac
+    got=$(fit_of "$box" "$path")
+    [ "$got" = "hold=False fit=no" ] || continue
+    [ "$box" = ltn ] && box="ltn-$house"
+    OUT="$OUT
+  $box: OperatorHold is false but HeatingCurve is the fleet placeholder regression (fit $house in tlayouts/${house}_gen.py, or set operator_hold=True, then roll)"
+  done
+}
+for h in $LTN_HOUSES; do
+  case "$h" in
+    spruce) check_house_fit spruce spruce ;;
+    *) check_house_fit "$h" "$h" "${h}2" ;;
+  esac
+done
+
 if [ -n "$OUT" ]; then
   printf '%s\n' "$OUT" > "$MARKER"
   # The reading Claude is told below to relay this to the user in its

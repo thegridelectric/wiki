@@ -10,7 +10,22 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-11-14 — The price panel's forecast for a house and hour, from the journal (<!-- pending commit -->, jm/price-forecast-word, OPS-666)
+## 2026-11-15 — The latest-prices route: a market's cleared prices over a window, every row at latest.price 001 (#34) (`7e8fc3a`, jm/realtime-price, OPS-666)
+
+**Why:** the price panel draws the price the market cleared at beside the
+forecast, and the journal holds the maker's `latest.price` rows at 000
+(the price alone) and, from the 2026-11-14 maker deploy, at 001 (the
+price in its parts). `GET /api/v2/markets/{market}/latest-prices?start&end`
+serves the rows of one market, named by its slot-name prefix
+`<commodity>.<product>.<maker alias>`, for the slots that start from one
+slot before the window through its end, oldest first; the codec upgrades
+a 000 row to 001 with its whole price as one `Unknown` part, so the
+browser reads one version. The snapshot seeds `latest.price` at both
+versions. The slot length is a module constant with a note naming the
+product-name fact that retires it. A login is the only gate: a market
+price is not house data.
+
+## 2026-11-14 — The price panel's forecast for a house and hour, from the journal (#33) (`37eedbf`, jm/price-forecast-word, OPS-666)
 
 **Why:** the price panel draws the stopgap service's live forecast, which
 has no past, so the default window shows nothing. The journal now takes
@@ -33,6 +48,42 @@ which already drops the `gridworks-flo` dependency) rebased on `main`.
 Staging words run on dev only, so the branch merges after promotion.
 Tests seed two service forecasts and an oak `flo.params` 002 naming the
 earlier one; 58 passed.
+
+
+**Also in this squash:** the api snapshot regenerated from sema `dev` at `bba18bc`, where the
+price panel's words are published, so the build is published-only and
+the `staging.yaml` index goes. The re-run route decoded its body at the
+snapshot's current `flo.params`, 002, and the codec refuses to upgrade a
+001 body (no forecast id to invent), yet the journal's rows before
+tonight are 001; the route now accepts either journaled version and
+lets bruce say what it can solve.
+
+## 2026-11-14 — The FLO re-run route: a flo.params in, bruce's flo.recommendation out, on a laptop only (`9bac6f7`, OPS-665)
+
+**Why.** The optimizer author's inspection tool is to solve an hour again
+with the penalty tuning changed and look at the plot. The web box has no
+optimizer, so the route lives behind a setting (`BACKEND_FLO_RERUN=in-process`)
+and a dependency group (`rerun`, the bruce package from
+optimal-flexibility `main`, a git source so a box's `uv sync` needs no
+sibling checkout) that only a laptop sets and installs. The
+seam is sema both ways: the body is the hour's `flo.params` with its
+Tuning edited, the answer is the `flo.recommendation` 001 bruce gives,
+so the visualizer draws it with the plot it already has. bruce needs
+newer numpy and pandas than the lock held, so the lock moves both for
+every install.
+
+## 2026-11-14 — Merge pull request #31 from thegridelectric/jm/flo-plot-words (`1eb7fb6`, OPS-665)
+
+**Why.** The backend reads the FLO's recommendation, it does not solve
+it. `api/v2/routers/flo_recommendation.py` serves the journaled
+`flo.recommendation` at 000 or 001 by bidder and slot through the codec,
+and `/flo.params?time=` serves the LTN's request for the slot by the same
+lookup. The side quests no longer import gridflo, so the web box has
+no optimizer and no `bruce-energy`. Both snapshots (`api`, `gateway`) are
+regenerated from sema `dev` at `b5064f9`, which also brings
+`layout.lite` 013. The merge of main keeps the `tou_tariff` router of
+PR #29 beside the new one in `tests/conftest.py`. web-api2 pulls `main`
+and restarts `gridworks-api` and `gridworks-gateway`.
 
 ## 2026-11-14 — Stop printing every SQL command (`206b926`, jm/no-sql-echo, cherry-pick of Thomas's `4dcd5d4a`)
 

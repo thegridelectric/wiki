@@ -74,6 +74,11 @@ them exercises it (`experiments/`).
   three Millinocket installs); what each removes/adds
 - `gw108-board.md` — schematic-verified board facts: zone signal
   chain, expander map, DAC/EEPROM (living reference)
+- `thermostat-and-zone-control.md` — first the MVP: a circuit held off
+  through the ops word, applied to spruce's living-room fan coil; then
+  the zone / circuit / thermostat control model (the circuit FSM, the
+  governance machine, setpoint belief, the thermostat chunk); board
+  facts in `gw108-board.md`
 - `simple-sim-n3.md` — `gw1.simple.sim.layout` loadability as the N=3
   stress test of the family tiers
 - `multi-bus-layouts.md` — a board with two I²C buses or a second board

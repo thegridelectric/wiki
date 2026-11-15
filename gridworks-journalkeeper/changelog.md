@@ -10,7 +10,7 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-11-13 — The journal hears gw.price.forecast and layout.lite 014 (`96e9a9d`, jm/price-forecast-word, OPS-666)
+## 2026-11-14 — The journal hears gw.price.forecast and layout.lite 014 (`f1f9935`, squash of jm/price-forecast-word, OPS-666)
 
 **Why.** The visualizer draws the forecast a house's FLO used by the
 `PriceForecastId` in its `flo.params`, so the journal keeps every
@@ -20,7 +20,11 @@ tariff; the journalkeeper decodes it as it does 013, with the layout
 row and no derived operating status. The family of layouts that
 declare their machines (013 on) has one name in `pseudo_channels.py`,
 so the next version joins it in one place. The snapshot also takes
-`flo.params` 002 and `latest.price` 001 as the words moved.
+`flo.params` 002 and `latest.price` 001 as the words moved. The words
+are published (sema `bba18bc`), so the snapshot is built without
+`--allow-staged`, the `staging.yaml` index goes and the regen script
+drops the flag: a seed that reaches a staging word fails the regen
+rather than shipping a dev-only snapshot to `hw1`.
 
 A gap left: the persistor keys a word's created time and id by type
 name, so a `latest.price` 001, which has both, would still be journaled

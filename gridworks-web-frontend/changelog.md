@@ -10,6 +10,93 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-15 — The price panel draws the real-time price beside the day-ahead forecast (#25) (`e876fdb`, jm/realtime-price, OPS-666)
+
+**Why:** a house's FLO optimizes against a forecast; what the house then
+paid is the market's cleared price, and the two belong on one axes. The
+panel, now titled "Price", fetches the market the forecast names
+(`e.<ProductName>.<MarketMakerAlias>` off the `gw.price.forecast` word)
+from the backend's latest-prices route and draws a second step trace,
+"Real-time", from the slot in force at the window start. A window with
+no forecast knows no market and draws no real-time trace. `latest.price`
+001 and `price.component` 000 get their zod schemas with the word's three
+axioms as refinements, the `price.component.name` enum and the
+`market.slot.name` format join the vendored set, and the series math is
+pinned in vitest. Checked on the page against the backend on `tsdb_tap`
+for oak, 2026-11-14 19:00 to 23:00.
+
+## 2026-11-14 — The price panel steps over the window, reads against zero, and shows its empty state on a 404 (`e65a02f`, jm/price-panel-empty-state, OPS-666)
+
+**Why:** the house price-forecast route answers 404 for an hour before
+the service's first journaled forecast, and the panel means to show
+"No price forecast in this window" for it. The app's response
+interceptor rewraps any error with a string `detail` into a plain Error
+before the fetch's catch sees it, so the 404 check there never matched
+and the page showed "Pricing request failed: No price forecast for this
+hour". The fetch now accepts the 404 as a response, the way the FLO
+fetch does, and returns the empty series.
+The series was the slots that start inside the window, so a window
+inside one hour had one point and a step trace drew nothing, and
+autorange zoomed the y axis into a band a dollar wide. The series is now
+a step: the slot in force at the window start, clamped to it, the slots
+starting inside the window, and a closing point where the last ends or
+the window does; the y axis includes zero.
+
+## 2026-11-14 — The FLO plot reads flo.params 002 beside 001 (`ce96904`, jm/flo-params-002, OPS-666)
+
+**Why:** the LTNs on scada `main` send `flo.params` 002, which states the
+price as one `PriceUsdMwhList` read from a named `gw.price.forecast`,
+and the journal keeps the 001 rows with their LMP and distribution
+lists. The browser read 001 only, so the FLO panel's parse failed for
+every hour after the cutover. `AnyFloParams` is the union the backend's
+params route serves, in the shape `AnyFloRecommendation` set, and
+`priceUsdMwhList` gives the view the price per step at either version.
+The axioms every version shares live once in `floParamsAxioms.ts`; the
+step-list axiom names the price list, so each version states it beside
+its schema.
+
+## 2026-11-14 — The price panel and the FLO plot shade the house's own tariff from its layout (`21b27bb`, jm/price-forecast-word, OPS-666)
+
+**Why:** both plots shaded the fleet's one tariff from
+`GET /api/v2/tou-tariff/current`, which is right only while every house
+is billed on the same rate. A `layout.lite` 014 row states the house's
+`Tariff`, and the house summary brings that row to the browser, so
+`tariffForHouse` in `tou-tariff.ts` reads `Layout.Tariff` when the
+summary's layout is 014 and asks the fleet route only for an older
+layout; that fallback retires when every house's layout is 014. The
+on-peak rectangles are built once, in `onPeakShapes`, for both plots.
+The price panel finds its house's summary in the session; the FLO plot
+takes the tariff as a prop and shades its path's horizon behind all
+three bands, which restores the on-peak signal the delivery list gave
+before `flo.params` 002. Tests cover the 014 and 013 cases and the
+shapes. Checked on the page against the dev backend on `tsdb_tap` with
+elm's layouts row lifted to 014 under a one-window tariff: elm shaded
+that window with no fleet request, oak shaded the fleet's.
+
+## 2026-11-14 — The price panel draws the house's journaled price forecast (`91ac38e`, jm/price-forecast-word, OPS-666)
+
+**Why:** the panel drew the stopgap service's live forecast, which has no
+past, so the default window showed nothing. It now asks the backend for
+the house's forecast at the window's first hour
+(`GET /api/v2/installations/{alias}/price-forecast?time=`), parses the
+`gw.price.forecast` word through a hand-written zod schema (axioms
+SlotGrid a, b, c and OnePricePerSlot as refinements) with the
+`gw.market.product.name` 001 enum, and draws the slots inside the window
+at `PriceX1000List / 1000`, one trace, "Day-ahead forecast". A 404 is an
+empty series and the panel says so. The stopgap word and its fetch go.
+The backend's summaries route now emits `gw.house.summary` 003 and the
+layout can be 014, so the browser reads both: `layout.lite` 014 is the
+word (`Tariff` required), 013 moves to `old_versions`, and the five
+layout axioms live once in `layoutLiteAxioms.ts` for every version read
+whole; summary 002 moves to `old_versions` and 003 is the word. The
+information page narrows on 013 and 014 alike. The branch is cut from
+OPS-665's `jm/flo-plot-words` rebased on `main`, so it has the FLO
+words and the tariff shading together. Vitest 131 passed, tsc clean,
+eslint clean on the changed files. Checked against the dev backend on
+`tsdb_tap` seeded with two service forecasts and an oak `flo.params`
+002: oak's slot answers with the forecast its request names, beech's
+with the newest published.
+
 ## 2026-11-11 — The price panel draws LMP alone on one axis, on the page's time axis, with the on-peak hours shaded (`1179322`, jm/price-panel-lmp, OPS-666)
 
 **Why:** the panel's reader wants the wholesale price and where the

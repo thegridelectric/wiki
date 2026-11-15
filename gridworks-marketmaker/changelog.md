@@ -8,6 +8,23 @@ corresponding code-repo commit.
 This changelog does NOT track wiki edits.
 
 
+## 2026-11-14 — latest.price 001: the price in its parts, delivery at latest Versant A1 (`db25c3f`, squash of jm/latest-price-001, PR #80, OPS-666)
+
+**Why:** the price the LTN faces is the sum of parts that settle with
+different counterparties, and `latest.price` 000 gave no way to recover
+them. The maker now publishes `latest.price` 001: the ISO-NE five-minute
+LMP's energy, congestion and loss components as three `WholesaleEnergy`
+/ `WholesaleCongestion` / `WholesaleLoss` parts, the Versant A-1
+delivery price as the `Delivery` part with `TariffAlias`
+`versant.a1.home.eco.bonus`, and the price as their exact integer sum.
+Prices travel as integers times 1000 from the ISO-NE parse onward, so
+the sum axiom holds by construction. The A-1 table moves to the
+Seventeenth Revision (effective 2026-07-01), the same numbers the
+price-forecast service uses, so a realized price and its forecast agree
+on delivery. The stale-fetch fallback republishes the last wholesale
+parts with the hour's delivery price, as before. `gwmm show` prints the
+parts.
+
 ## 2026-11-04 — The maker declares GwGNodeClass.MarketMaker; ci.sh is the one gate (`4f02d29`, PR #79 `28e45fa`)
 
 gridworks-base 0.7.1 makes `GridworksActor` take its class from

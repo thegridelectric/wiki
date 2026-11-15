@@ -1,6 +1,6 @@
 # gridworks-web-backend — rebuild spec
 
-Status: Draft · Pass 0 · Updated 2026-11-01
+Status: Draft · Pass 0 · Updated 2026-11-14
 
 > Faithful-rebuild hub for gridworks-web-backend: the two services behind
 > the fleet web page, the read API over the journal DB and the realtime
@@ -170,10 +170,16 @@ behind them) and the gateway (consumer, house state, browser messages).
   nowhere but the two codebases.
 - Routes that answer in no word: `alerts` (alert-manager's rows through a
   pydantic model), `hourly.electricity` without `dl` (positional
-  `[ts, kwh, usd_per_mwh]` arrays), the gateway's envelopes, and the
-  price forecast, which the browser fetches from the price service
-  directly. The csv and xlsx downloads are files, outside the word layer;
-  `sessions` is an OAuth2 token on purpose.
+  `[ts, kwh, usd_per_mwh]` arrays) and the gateway's envelopes. The csv
+  and xlsx downloads are files, outside the word layer; `sessions` is an
+  OAuth2 token on purpose.
+- Which rule chose the forecast the house price route serves (the
+  house's own request named it, or it was the newest published). The
+  fix is a small sema enum derived in the backend and sent as data; the
+  route serves the word alone until it exists.
+- What the price panel shows for windows before the service's first
+  journaled forecast (2026-11-14): the `flo.params` lists themselves, or
+  the empty state it shows today.
 - The state seam loses the machine's identity: `operating.state.sequence`
   names a channel, and the browser picks a strip by regex on that name
   (`DefaultVisualizerPlot.tsx` `matchChannelName`). The build: a

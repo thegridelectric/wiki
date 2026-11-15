@@ -385,7 +385,7 @@ OPS-648.
   circuit's mode in hand).
 - Zone 0-10V analog outputs (dac1/dac2 a-c): in the capability
   surface someday (variable-speed zone circulators), or out until a
-  house uses one. Not blocking; the DAC map is in `../spruce-settled/gw108-board.md`.
+  house uses one. Not blocking; the DAC map is in `gw108-board.md`.
 - Mode is system-level (`SystemMode`): capability declarations turn
   mode changes into checkable safety semantics — a system entering
   cooling mode must not route cold water to heat-only emitters. Meet

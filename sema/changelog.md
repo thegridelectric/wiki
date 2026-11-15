@@ -8,6 +8,19 @@ corresponding code-repo commit.
 This changelog does NOT track wiki edits — those live in the wiki
 repo's git history.
 
+## 2026-11-14 — publish the price panel's words (`bba18bc`, jm/promote-price-words, OPS-666)
+
+**Why:** the price forecast reaches the journal and the browser only
+once its words may run on `hw1`, and a published word's closure must be
+published. Promoted bottom-up with `sema promote`: `price.component.name`
+000, `price.component` 000, `gw.market.product.name` 001,
+`gw.price.forecast` 000, `latest.price` 001, `flo.params` 002,
+`layout.lite` 014 and `gw.house.summary` 003. The diff is the eight
+status flips, their content-hash pins and the regenerated public
+registry; `created` and the schema files are untouched. `heating.curve`
+000 and `gw.operational.params` 000 stay staging: no word in this
+cluster depends on them.
+
 ## 2026-11-14 — heating.curve 000: regression model named, two anchor axioms, RhoTimes100 positive (`3f98f67`, with `42e2a2b` merging dev; on td/houseparamslatest, merged to dev via PR #37)
 
 **Why:** Thomas's branch gives `heating.curve` the LTN's regression

@@ -9,6 +9,22 @@ This changelog does NOT track wiki edits — those live in the wiki
 repo's git history.
 
 
+## 2026-11-14 — Start the dev broker from the cached image when the registry is unreachable (`b036cab`, PR #195)
+
+**Why.** `arm.sh` and `x86.sh` deleted the running `gw-dev-rabbit` and
+then started it with `--pull always`, so a restart with GitHub's registry
+unreachable could leave the laptop with no broker, and with it no dev
+stack and no `ci.sh`. A dev machine should be able to restart its own
+broker with the network down.
+
+**What.** Both scripts pull first. A failed pull falls back to the cached
+image, and the running container is removed only after an image is known
+to be on disk. With no cached image the script exits 1 and leaves the
+running broker alone. `set -euo pipefail`, and a trap removes the
+temporary compose copy on every exit path. The three paths were checked
+against a stand-in `docker`; the real offline restart is still to be
+confirmed with the network off.
+
 ## 2026-11-06 — Log timestamps in the service's zone, with offset (`815fe14`, PR #194)
 
 **Why.** The flo box answers oak at 16:37 Maine time and the log says

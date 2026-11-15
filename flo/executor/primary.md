@@ -1,6 +1,6 @@
 # FLO — the house optimizer
 
-Status: Draft · Pass 0 · Updated 2026-11-11
+Status: Draft · Pass 0 · Updated 2026-11-14
 
 > What this is: the rebuild spec hub for the FLO (Forward-Looking
 > Optimizer), the per-house bid optimizer. It runs as the `hw1.flo`
@@ -84,6 +84,25 @@ One request, one reply, no state on the service between them.
    service logs it. A body the snapshot refuses gets no answer.
 5. The service holds no per-site state and nothing to back up; it is
    rebuilt from the box README.
+6. The reply annotates every path with the optimizer's own account of
+   it, and the path itself stays generic. `flo.optimal.path` names a heat
+   pump and a store's energy and nothing else. `flo.recommendation` 001
+   adds two optional lists parallel to `OptimalPathList`:
+   `StoreStateList`, a oneOf over store-model words
+   (`flo.tank.store.path`: layer count, top, middle and bottom band
+   temperatures, two thermocline layer indices, `EmptyStoreWh` and
+   `FullStoreWh`), and `PathPenaltiesList`, a oneOf over optimizer
+   penalty words (`flo.path.penalties.bruce`: the four penalty series per
+   step, `TerminalCostEmptyStoreUsd`, `PathCostUsd`). Every path gets
+   both, since the FLO publishes before the market clears. The optimizer
+   states its own bounds and totals; no reader runs its formulas. The
+   path the optimizer takes at its forecast price is the one with the
+   lowest `PathCostUsd`.
+7. The clearing is a word. After a slot clears the LTN publishes
+   `flo.previous.run` (the cleared pair's path, the pair and its index,
+   the next slot's forecast price as an integer times 1000 in a
+   `PriceUnit`) and reads it back as the previous cleared path of the
+   next request.
 
 ## Glossary
 
@@ -118,3 +137,27 @@ One request, one reply, no state on the service between them.
 - The graph as arrays in bruce, which takes the largest build from
   gigabytes to tens of megabytes
   ([OPS-655](https://linear.app/gridworks/issue/OPS-655)).
+- The FLO's reply reaches every LTN, not the one that asked: an LTN
+  drops every other house's recommendation each hour (one dropped
+  message per house per hour, growing with the fleet). A reply to the
+  requesting LTN alone (a per-bidder routing key or a reply-to) is the
+  fix; parked on OPS-665 until the rollout issue exists.
+- Two price conventions in the flo words: integer times 1000 with a
+  `PriceUnit` (`flo.recommendation`, `flo.previous.run`, the market
+  words) and float USD per MWh with the unit in the field name
+  (`flo.params`, `gw.stopgap.price.forecast`). The market maker and
+  price forecast words settle which the request takes.
+- `flo.optimal.path` does not state what zero `StoreWhList` is measured
+  from (bruce: energy from absolute temperature, about 1.7 MWh for a
+  three-tank store). The page needs only `EmptyStoreWh` and
+  `FullStoreWh`, which share that reference; a reader wanting absolute
+  store energy needs the reference stated, a `flo.optimal.path` 001.
+- `EmptyStoreWh` is the store at 70 F, a constant in bruce; the word's
+  prose names 70 F, and another tank-store optimizer could mean a
+  different floor.
+- bruce merges first-step quantities within 0.01 kWh into one pair, so
+  in that corner the stored path can differ from the forecast-cheapest
+  one. Not seen in the field.
+- The dev harness runs orange1 (`d1.isone.ct.newhaven.orange1`), a
+  house no registry source knows, so the dashboard's house list cannot
+  show it; either the harness registers it or runs a seeded house.

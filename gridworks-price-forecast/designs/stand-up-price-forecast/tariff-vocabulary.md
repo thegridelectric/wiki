@@ -1,6 +1,6 @@
 # Tariff and price vocabulary (spoke)
 
-Status: Draft · Pass 0 · Updated 2026-09-16
+Status: Draft · Pass 0 · Updated 2026-11-14
 
 > What this is: the brainstorm for the words that carry a delivery
 > tariff and a price signal, and the first small word we want now so
@@ -135,3 +135,27 @@ Questions the real design session resolves before `vocabulary.md`:
   self-send, the `backend_api.py` fallback table, and the two inline
   clock tables. Each names the word that replaces it when the word
   exists.
+- **Tracking the actual tariffs over time, with evidence an outsider can
+  check** (recorded 2026-11-14). Handled before the move out of the
+  hybrid `hw1` world into a `w` world used to exchange money; the
+  standard applies from its start onward, not to old data. Today the
+  record is prose (`wiki/regulatory/versant/tariffs.md`) and two
+  hand-kept code tables (the MarketMaker's and the price service's A-1
+  copies). Recommendation on file, a chain of three links: (1) each
+  tariff revision is a journaled word with its effective date, revision
+  number and docket, and its rates by part and period as integers, the
+  sequence being the history; (2) the word names its evidence by
+  content, the SHA-256 of the approved tariff sheet PDF with page and
+  source link, the PDF stored under that hash because the utility's
+  links change with each filing; (3) the `Delivery` part of each
+  `latest.price` names the tariff revision it was computed from, so a
+  contract price traces to a filed sheet. Sub-questions: who publishes
+  the tariff word (the MarketMaker declaring its market's tariff, or a
+  registry record), and where the PDFs live (the eventstore bucket,
+  keyed by hash, is the candidate).
+- **Transmission counted twice.** The A-1 delivery charge includes
+  retail transmission as a flat amount per kWh, and a
+  `CoincidentPeakTransmission` part prices the same upstream cost by its
+  peak. A price with both counts transmission twice unless the recipe
+  nets one against the other; no coincident-peak part is priced until
+  that recipe is decided.

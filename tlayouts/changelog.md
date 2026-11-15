@@ -10,6 +10,19 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-14 — regenerate every layout: fleet FLO tuning and last-hour-dist-energy (`3516263`, jm/regen-layouts)
+
+**Why.** The td/new-house-params branch changed the shared generators
+twice after most houses were last regenerated: `layout_gen.py` moved the
+fleet FLO tuning (RSWT penalty weight 0.075, exponent rate 0.05, the
+short-cycle penalty off) and `house0_sema_gen.py` put the
+`last-hour-dist-energy` derived channel on every house0 layout. Beech, oak
+and spruce were re-run after that; maple, elm, fir and the three sims were
+not, so their committed JSON disagreed with their gens. Running every gen
+on main brings the sixteen files level. The `*.uploaded.json` copies are
+the pis' live layouts the gens fetch as their id reference, refreshed by
+the same run.
+
 ## 2026-11-13 — beech's primary and sieg BTU meters post on 0.04 gpm for the valve work (`5f9787c`, td/new-house-params)
 
 **Why.** The two meters form beech's kept fraction, `sieg-flow /

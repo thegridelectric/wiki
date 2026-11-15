@@ -10,6 +10,119 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-14 — The LTN reads latest.price 001 (`7e8e52f4`, squash of jm/latest-price-001, PR #624, OPS-666)
+
+**Why:** the MarketMaker publishes `latest.price` 001 (maker `db25c3f`),
+the price in its parts with the tariff it was computed under, and the
+LTN's 000 twin refused a 001 body on its `Version` literal. The protocol
+snapshot seeds `latest.price` 001; the gwsproto twin follows with its
+three axioms (parts sum to the price, named parts distinct, `TariffAlias`
+present exactly with a `Delivery` part) and the `price.component` and
+`price.component.name` twins it depends on. The LTN clears against
+`PriceX1000` as it did against `PriceTimes1000`; the parts are decoded
+and kept, not yet read. The LTN houses roll before the maker deploys.
+
+## 2026-11-14 — layout.lite 014: the scada states its tariff (`95f32696`, squash of jm/layout-lite-tariff, PR #623, OPS-666)
+
+**Why:** the dashboard shades a house's on-peak hours from the tariff the
+house is billed on, and the only source that knows it is the running
+scada's operational params. `layout_lite` now fills the published
+`layout.lite` 014's `Tariff` from `self.ops.Tariff`; the protocol
+snapshot moves from 013 to 014 and the gwsproto twin follows. The four
+`layout.lite` axioms that the coverage allowlist had excused get their
+rejecting tests, so the allowlist shrinks by four. The browser already
+reads a 014 row's `Tariff` and falls back to the fleet's one tariff for
+older rows; that fallback retires when every house runs 014.
+
+## 2026-11-14 — The Ltn reads gw.price.forecast and asks the FLO with flo.params 002 (`bd249306`, squash of jm/price-forecast-word, PR #622, OPS-666)
+
+**Why:** the LTN decodes `gw.price.forecast` from the price service's
+route through its snapshot, keeps the word's bytes in its data dir as
+the copy it reads when the service is unreachable, and builds
+`flo.params` 002 (one `PriceUsdMwhList`, a `PriceForecastId`) from the
+forecast's slots starting at the request's own; a forecast without that
+slot refuses the request. The `flo.previous.run` word (#620) takes its
+`NextSlotPriceX1000` from that one list. The protocol snapshot is regenerated with the price
+words now published (sema `bba18bc`); it keeps `--allow-staged` because
+the scada's hardware vocabulary is still staging.
+
+## 2026-11-14 — The LTN starts with no previous run when `previous_run.json` cannot be read (`df2962b9`, squash of jm/stale-previous-run, PR #621, OPS-665)
+
+**Why.** `load_previous_run` validated whatever file it found and raised
+in the LTN's constructor, so an LTN rolled onto a new shape of
+`flo.previous.run` with a file from the old shape crashed on every start
+until a person deleted the file; beech and oak needed that hand step at
+the 2026-11-14 roll. The loader now logs a warning naming the file and
+returns nothing, so the LTN starts without a previous run and writes a
+fresh file at its next clearing. A test writes a stale-shape file and a
+non-JSON file and pins both outcomes.
+
+## 2026-11-14 — flo.recommendation 001 with store state and penalties; the LTN keeps its cleared run as flo.previous.run (`ab3442ac`, squash of jm/flo-plot-words, PR #620, OPS-665)
+
+**Why.** The FLO-plot words are published on sema `dev`:
+`flo.tank.store.path` 000 and `flo.path.penalties.bruce` 000 state the
+store's `EmptyStoreWh` and `FullStoreWh` on each path's `StoreWhList`
+reference and the path's terminal and total cost, and
+`flo.recommendation` 001 lists them beside each path. The scada's
+snapshot is regenerated at those words from sema `dev` at `b5064f9`, the
+hand-written twins follow, and the LTN decodes the FLO's answer at 001.
+When the LTN clears a run it keeps it as `flo.previous.run` 000, the
+word behind its stability penalty on the next request, and publishes it
+so the journal has the run the penalty was judged against.
+
+The branch merged main before the squash: the house-parameter work
+(`03ff59bb`) and this one both touch `ltn.py`, and the merge keeps the
+`FloPreviousRun` type beside main's `last_four_dist_kwh` and
+`last_four_oat_f` lists. The rollout order is publisher first: the flo
+box runs gridworks-flo at 001 before a house rolls to this main.
+
+## 2026-11-14 — FLO uses new house parameters (`03ff59bb`, squash of td/new-house-params, PR #609)
+
+The squash of PR #609 onto `main`, authored by Thomas. The branch's own
+entries below (`16b6e5d4` and the earlier td/new-house-params commits)
+hold the why; this entry records the merge.
+
+**What the line now runs.** `heating.curve` 000 with the baseline
+coefficients renamed `Baseline*`, seven regression coefficients,
+`RhoTimes100`, `DdRoomTempF` and `MassFlowKgH`; the LTN's FLO request
+builds its load and RSWT forecasts from them (`actors/ltn/flo_request.py`),
+and local control reads only the baseline half through `Ha1Params`, so a
+house whose regression is the fleet placeholder behaves as before under
+local control. `last-hour-dist-energy` is a derived channel on every
+house0 layout. The matching tlayouts merge is PR #5 (`6c315f5`). Rolled to
+main the same day: beech, oak, fir. The drift check
+(`wiki/tools/check-drift.sh` "Unfit load model") flags a house that
+dispatches on the placeholder regression.
+
+## 2026-11-14 — Test: dist temps read on scada2 reach the rolling dist energy; flo_request notes (`16b6e5d4`, td/new-house-params, PR #609, OPS-665)
+
+One commit for the whole step: the snapshot regen, the twin, the enum, the
+two tests and the notes.
+
+**Why.** The sema side of the house parameters (sema PR #37) gave
+`heating.curve` 000 two anchor axioms and made `RhoTimes100` positive, so
+the scada snapshot is regenerated from `dev` at `3f98f67` and the
+hand-written twin follows: `PositiveInt` for rho, `check_axiom_1` and
+`check_axiom_2`, and a rejecting test for each. The regen also brings
+`gw.market.product.name` 001 (`rt60gate1`), so the gwsproto enum twin
+moves to 001.
+
+The branch's own fix (`57cec45d`) gets the test it lacked. A capturer the
+primary scada runs posts its readings to the derived generator itself,
+but one on scada2 cannot, and at the installed houses `dist-swt` and
+`dist-rwt` are read on scada2, so the rolling distribution energy stayed
+at zero (oak, all day). The primary now posts the synced readings scada2
+forwards it on to the generator when they feed a derived channel.
+`tests/actors/test_dist_energy_from_scada2.py` re-parents the two sensors
+under scada2 on the orange pair, feeds flow from the power meter, and
+reads about 13 kWh after an hour on a manual clock; it fails with the
+forwarding off. A second test holds that a capturer the primary runs is
+not posted twice.
+
+The three `TODO`s in `flo_request.py` become notes on what is: solar is
+zero until the weather forecast word has a solar field; the radiator
+exponent and minimum RSWT are module constants.
+
 ## 2026-11-13 — The Ltn reads gw.price.forecast and asks the FLO with flo.params 002 (`a9f6ba88`, jm/price-forecast-word, OPS-666)
 
 **Why.** The price service's route now serves `gw.price.forecast`: one

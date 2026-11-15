@@ -1,6 +1,6 @@
 # FLO merge rollout
 
-Status: Draft · Pass 0 · Updated 2026-11-14 (step 1 and step 2.1 done) · Linear: OPS-665 (cap-8; no issue of its own until a slot opens)
+Status: Draft · Pass 0 · Updated 2026-11-14 (steps 1, 2, 3 and the backend half of 4 done and deployed; #28 closed) · Linear: OPS-665 (cap-8; no issue of its own until a slot opens)
 
 **EDD: no** build-out and rollout; each step is verified by the repo's CI
 gate and the live check named in the step.
@@ -64,17 +64,25 @@ sema first, then scada, then the layouts, then the fleet.
      `60a91049` on the branch, so no history rewrite is needed; commits go
      straight onto `td/new-house-params` with Thomas's agreement, never a
      force-push, so beech and oak fast-forward at the next pull;
-   - keep commit `7b6b6a75`, the fix the logs found: the multipurpose
-     sensor forwards its channels that feed a derived channel to the
-     derived generator as a second `SyncedReadings` message, so
-     `dist-swt` and `dist-rwt` reach the rolling distribution energy;
-   - add the test that fix lacks: SWT and RWT through a multipurpose
-     sensor, flow through the power meter, a nonzero rolling energy;
-   - resolve the three `TODO`s in `flo_request.py` into Linear or into
-     the code (solar fixed at 0, the radiator exponent and minimum RSWT
-     as module constants);
+   - keep the fix the logs found (`57cec45d`, in `actors/scada.py`): a
+     capturer the primary scada runs posts its readings to the derived
+     generator itself, but one on scada2 cannot, so the primary posts the
+     synced readings scada2 forwards it on to the generator when they
+     feed a derived channel; `dist-swt` and `dist-rwt` are read on scada2
+     at the installed houses, so without it the rolling distribution
+     energy stayed at zero;
+   - add the test that fix lacks: dist temps read on scada2, flow from
+     the power meter, a nonzero rolling energy, and no double post for a
+     capturer the primary runs (`tests/actors/test_dist_energy_from_scada2.py`);
+   - the three `TODO`s in `flo_request.py` become notes: solar is zero
+     until the weather forecast word has a solar field; the radiator
+     exponent and minimum RSWT are module constants and candidate
+     `heating.curve` fields if houses prove to differ;
    - regenerate the scada snapshot from sema `dev` after step 2.1 so the
-     snapshot is generated, not hand-edited to match;
+     snapshot is generated, not hand-edited to match; the regen also
+     brings `gw.market.product.name` 001 (`rt60gate1`) and the
+     `latest.price` and `layout.lite` examples sema `dev` added, and the
+     gwsproto enum twin follows to 001;
    - `ci.sh` green.
 3. **tlayouts `td/new-house-params` → `main`**, 14 commits, the gens and
    outputs the scada branch pairs with. Merge after the scada PR so the
@@ -109,65 +117,138 @@ Thomas's yes on 2026-11-13. The order is dependency order:
 Check: the OPS-665 design's verification, a fleet LTN running at 001 and
 the visualizer drawing the hour from the word on `tsdb_tap`.
 
-### 4. The re-run as a developer tool in optimal-flexibility
+### 4. The re-run as a local developer tool, drawn by the visualizer
+
+Status: Accepted · Pass 1 · Updated 2026-11-14
 
 What #28 built that the words do not replace is the re-run: solve an
 hour again from its `flo.params` with the penalty tuning changed and
 heat pump steps forced on or off, and look at the plot. It is the
-optimizer author's inspection tool, and it moves into Thomas's repo so
-Thomas and George both have it on a laptop with nothing installed on the
-web box:
+optimizer author's inspection tool. It becomes a feature of the dev
+stack on a laptop: the visualizer's FLO view gains a re-run panel, a
+local backend solves the re-run with bruce installed beside it, and the
+browser draws the answer with the same `FloPlot` it draws the journaled
+word with. Thomas and George run the backend and the frontend locally
+against `tsdb_tap` for the house's journaled hours, and nothing changes
+on the web box, which has no optimizer.
 
-- `scripts/run_flo_plot.py` and the re-run functions
-  (`with_penalty_tuning`, the forced-step handling) move from the
-  web-backend branch into `optimal-flexibility`, beside `flo_params.py`.
-- Its input is a `flo.params` word as JSON. The backend endpoint
-  `/api/v2/installations/{id}/flo.params?time=` from step 3 serves
-  exactly that for any house and hour, so the tool needs no database
-  login: fetch the word, run the tool, read the plot.
-- The tool parses the word through `bruce.sema`, not a hand twin
-  (main's `flo_params.py` hand-twins three words today; raised with
-  Thomas, his to fix).
+The seam is sema both ways:
 
-Thomas owns this step; the move is offered with the #28 close.
+- **Request.** `POST /api/v2/installations/{id}/flo.rerun` takes a
+  `flo.params` word as its body: the hour's journaled word with its
+  `Tuning` edited by the person. The browser builds it from the word the
+  `flo.params` endpoint served, through the vendored `.d.ts`.
+- **Answer.** The response is a `flo.recommendation` 001 word, so the
+  store state and the penalties come back and `FloPlot` draws them with
+  no new browser code.
+- **Solving.** The backend decodes the body through its codec and calls
+  `bruce.service.recommend`, in a thread, with the bruce package an
+  optional dependency group (`rerun`) of the backend that only a laptop
+  installs (`uv sync --group rerun`; a git source at optimal-flexibility
+  `main`, since a path source breaks a box's sync when the sibling
+  checkout is absent). The route is mounted only when a
+  settings value turns it on (`BACKEND_FLO_RERUN=in-process`) and bruce
+  imports; otherwise it answers 404 like any absent route, and the
+  browser hides the panel when a probe of the route says so. Production
+  never sets the value and never installs the extra.
+- **The panel.** Beside the plot: the thirteen penalty fields of
+  `flo.tuning.bruce` (the RSWT, short-cycle and stability penalties)
+  prefilled from the hour's `Tuning`, a Re-run button, and the resulting
+  plot in place of the journaled one with a "re-run" label; the journaled
+  plot comes back with the hour arrows or a Reset.
+- **Forced steps are phase 2, behind a sema word.** No word carries
+  "heat pump forced on at steps 3 and 4" today; bruce's optimizer params
+  already accept them. The ask to Thomas is concrete: make a sema word
+  for this, a `flo.rerun.request` that wraps a `flo.params` with the
+  forced-on and forced-off step lists (or, if he prefers, the two lists
+  as fields of `flo.params` itself). Phase 1 ships the tuning re-run with
+  the body a plain `flo.params`; phase 2 switches the body to the new
+  word and adds the forced steps to the panel.
 
-### 5. Later: the re-run as a request to the FLO service
+bruce caches one transition matrix per tank shape under
+`~/.config/bruce/graph_optimizer` and builds a missing one only when
+`CAN_COMPUTE_TRANSITION_MATRICES=true`; penalty tuning is not part of the
+shape, so a re-run after the first is well under a second.
 
-The dashboard version of step 4 is its own design, after step 3 ships.
-Sketch, so the thinking is not lost:
+Checks: the suite in each repo; on the laptop, a journaled hour re-run
+with unchanged tuning draws the journaled plot, and one with the
+stability penalty off draws a different path; the web box answers 404 on
+the route.
 
-- The backend's re-run endpoint builds a modified `flo.params` (tuning
-  overrides, forced steps) and sends it over the broker to a FLO
-  service, which answers `flo.recommendation` 001 with the store and
-  penalty words. The browser draws the answer with the same `FloPlot`.
-- Forced steps need a field on `flo.params` or its tuning word: a sema
-  question for Thomas before any code.
-- On the laptop the target is the dev broker and a local FLO with bruce.
-  In production the endpoint is off unless a settings value names a
-  re-run broker, so the web box still has no optimizer.
-- It is a feature, not a refactor, and it waits for a Linear slot under
-  the cap.
+### 5. Later: the re-run over the broker
+
+The production shape, after step 4: the backend's re-run endpoint sends
+the `flo.params` over the broker to a FLO service and answers with its
+`flo.recommendation`, so a hosted visualizer can re-run with no
+optimizer on the web box. The endpoint's in-process solver and its
+broker solver are two settings values of the same route. It is a
+feature, and it waits for a Linear slot under the cap.
 
 ## Done so far
 
 - Step 1: web-backend PR #30 merged 2026-11-14 and deployed to web-api2;
   the api journal has no SQL text.
-- Step 2.1: sema PR #37 merged to `dev` 2026-11-14 with the review fixes
-  (`3f98f67`): both words restamped at the merge, the regression model
-  named in the description, `RhoTimes100` positive, axioms 1 and 2 on the
-  anchors with mutation tests. OPS-668 (the two-word split) is postponed
-  to after step 3; its design records the two kept axioms and the absent
-  `MaxEwtF` one.
+- Step 2: sema PR #37 (`3f98f67`), scada PR #609 (`03ff59bb`) and
+  tlayouts PR #5 (`6c315f5`) merged 2026-11-14; every layout regenerated
+  (`3516263`). Beech, oak, fir and elm rolled to main, maple to
+  `jm/sieg-init-homing` with main merged. OPS-668 (the two-word split) is
+  postponed to after step 3.
+- Step 3, repos 1 to 5: optimal-flexibility #4 (`f6c6530`), gridworks-flo
+  #6 (`3cf9810`), journalkeeper #208, scada #620 (`ab3442ac`) and
+  web-backend #31 (`1eb7fb6`) merged 2026-11-14, each with main merged in
+  first. The flo box runs both merged mains since 15:03 EST and answers
+  at 001. web-api2 runs backend `main` (`1eb7fb6`) since 15:23 EST, venv
+  synced from the new lock (the optimizer dependency gone), both
+  services active and the FLO routes mounted. Frontend PR #21 merged
+  (`ef09c54`, 15:32 EST) and Pages deployed `main`.
+- Step 3, the LTN check: for the 16:00 EST slot of 2026-11-14 both beech
+  and oak sent `flo.params` 001, the FLO answered `flo.recommendation` 001
+  (2 PQ pairs each), both bid, and at 16:00 each kept its cleared path,
+  wrote a new-shape `previous_run.json` and published `flo.previous.run`
+  000; the journal on `tsdb_tap` has every one of those words. Each LTN
+  also receives the other house's recommendation and drops it ("Dropping
+  a flo.recommendation for ... the request held is for ..."), one dropped
+  message per house per hour: a fault, parked as a comment on OPS-665
+  (the FLO should answer the LTN that asked).
+- Step 3's verification: the visualizer on Pages draws beech's 17:00 EST
+  hour of 2026-11-14 from the journaled 001 word, all three panels (the
+  heat pump path against load and prices, the store state as a heat map
+  with the state of charge from the store's empty and full references,
+  and the penalties with the terminal cost), seen 17:04 EST.
+- Step 4, the backend half: web-backend PR #32 (`9bac6f7`) merged
+  2026-11-14 with the `rerun` dependency group, the `BACKEND_FLO_RERUN`
+  setting, the `flo.rerun` route, six tests and the README recipe. The
+  scada's stale-file fix is on main too (PR #621, `df2962b9`). web-backend
+  #28 closed without merging, its comment pointing at this step.
+- The deploy: web-api2 runs backend `main` at `7e8fc3a` (which includes
+  `9bac6f7`), venv on numpy 2.5.4 and pandas 3.1.1, both services active,
+  no api warnings since. Beech and oak run scada `main` at `7e8e52f4`
+  (which includes `df2962b9`). Checked 2026-11-15.
 
 ## Do this next
 
-Step 2.2: scada #609, committing on `td/new-house-params`. Regenerate the
-scada snapshot from sema `dev` at `3f98f67`, update the hand-written
-`heating_curve.py` twin with `check_axiom_1` and `check_axiom_2`, add the
-multipurpose-sensor-to-derived-generator test, resolve the three
-`flo_request.py` `TODO`s, run `ci.sh`.
+1. **Step 4, the frontend panel** (the frontend claim is free): the
+   thirteen penalty fields, Re-run, Reset, the probe that hides the panel
+   when the route answers 404. Then the laptop check against `tsdb_tap`
+   with `BACKEND_FLO_RERUN=in-process`.
+2. **The dev-stack recipe** gets the re-run lines (the `rerun` group,
+   `BACKEND_FLO_RERUN`, `CAN_COMPUTE_TRANSITION_MATRICES`); that file's
+   claim is free too.
+3. **Forced steps** wait on the `flo.rerun.request` word (step 4, phase 2).
 
 ## Open
+
+- **The visualizer's hour arrow takes about 4 s per press** (seen 17:04
+  EST 2026-11-14 on Pages against web-api2). Measured from the box: the
+  access check and the slot lookup run under 10 ms each, the codec
+  under 1 ms, the login check is a JWT parse, the box is idle. The api
+  logs each FLO GET about 4 s after its CORS preflight, and a press's
+  two FLO requests finish within 5 ms of each other, which points at a
+  shared wait, not two slow queries. Neither the api log nor nginx
+  records request duration. Next: split browser from server with the
+  DevTools Network timing of one `flo.recommendation` request, or time
+  the endpoint from the box with a short-lived token minted by the app's
+  own code (asked; wait for the yes). After the rollout.
 
 - **web-api2's root disk.** 6.8 GB on a t3.medium, 82% used after the
   reclaim; apt's daily run failed for space on 2026-11-13. Two paths,

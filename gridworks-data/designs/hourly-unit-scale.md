@@ -1,16 +1,20 @@
 # hourly-unit-scale
 
-Status: Draft · Pass 0 · Updated 2026-10-26 · Linear: OPS-630
+Status: Draft · Pass 0 · Updated 2026-11-14 · Linear: OPS-630
 
 **EDD: no** build-out in gridworks-data, verified by the two hourly
-functions run on `tsdb_tap` over Maple's window with `hp_kwh_th`
-populated for every hour that has flow and temperatures, then the same
-script on prod and a refresh of `cached_hourly_data`.
+functions run on `tsdb_tap` over three windows: Maple's, with `hp_kwh_th`
+populated for every hour that has flow and temperatures; beech across
+2026-01-09, with tank and buffer depths populated on both sides; and
+beech across 2026-10-28, with hp, dist and store temperatures and
+energies populated on both sides. Then the same script on prod and a
+refresh of `cached_hourly_data`.
 
 > What this is: the journal DB's hourly functions stop selecting readings
 > by a unit literal and read each channel's scale from a table generated
-> from the sema snapshot, so a derived channel recorded in one unit enum
-> and a measured channel recorded in another read as the same quantity.
+> from the sema snapshot, so a channel recorded in one unit enum and the
+> same channel recorded in another, by era or by derivation, read as the
+> same quantity.
 
 ## The fault
 
@@ -23,6 +27,16 @@ channel. The journal records a DataChannel's unit in
 flow channel, so its hourly `hp_kwh_th` came out empty (OPS-608). Oak's
 `sieg-send-flow` was in the same enum until 2026-10-23. Any derived
 channel that stands in for a measured one meets the same literal.
+
+A measured channel whose unit changed between layout eras meets it too,
+and the journal shows two such boundaries at every house. Before
+2026-01-09 the tank and buffer depths are `WaterTempCTimes1000`; the
+function wants `FahrenheitX100`, so the hourly tank columns are empty
+before that date. From the roll to the new main (2026-10-23 to 10-29,
+by house) `hp-lwt`, `hp-ewt`, `dist-swt`, `dist-rwt` and
+`store-cold-pipe` are `CelsiusTimes100`; the function wants
+`WaterTempCTimes1000`, so hp, dist and store temperatures and energies
+are empty after it. The fix is the same join.
 
 On 2026-10-26 the production `calc_energy_1hr` was edited in place to
 `unit IN ('GpmTimes100', 'GpmX100')` for primary-flow. The repo file has
