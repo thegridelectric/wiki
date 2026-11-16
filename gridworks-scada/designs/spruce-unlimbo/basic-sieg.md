@@ -1,6 +1,6 @@
 # basic-sieg
 
-Status: Accepted · Pass 1 · Updated 2026-11-13 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-11-16 · Linear: OPS-392
 
 > What this is: a spoke of [`primary.md`](primary.md). The least that has
 > to change in the Siegenthaler loop for maple and beech to take the
@@ -265,7 +265,7 @@ branch.
 
 The numbers of change 6 are set from this, not before it.
 
-### 6. The start and the stop: rest at send, park for the start, wait to open (defects 1–3)
+### 6. The start and the stop: rest at keep, park for the start, wait to open (defects 1–3)
 
 Before this is built: the round-1 response
 (`scratch/basic-sieg/fable-r1-response.md`, each round-1 finding folded
@@ -277,53 +277,53 @@ split (`FailedOpen` the placeholder, or `Blind` kept for launch) is
 decided in that pass; nothing outside `strat_protect.py` reads it and the
 control states have no sema enum.
 
-The timer went in on 2026-11-11 with an interim start: `HpStartingUp`
-parks the valve at `t2` and opens to full send when the outdoor unit
-draws more than an idle heat pump does, and stays parked if it never
-does (no backup timer: it would open the loop on its own once the open is
+The interim start went in on 2026-11-11: `HpStartingUp` parks the
+valve at `t2` and opens to full send when the outdoor unit draws more
+than an idle heat pump does, and stays parked if it never does (no
+backup timer: it would open the loop on its own once the open is
 reckoned); `hp_loop_is_getting_hot` and `MaxEwtF` leave the loop. The
-valve rests at the send stop while the heat pump is off ("Rest at send"
-below); holding at `t2` through an off period was considered and
-rejected, since a timed position drifts without a stop and an error
-toward send trickles into the buffer top. The waiting-to-open test below
-replaces the power line; the rest of this change goes in together.
+off went in on 2026-11-16 ("The off" below). The waiting-to-open test
+replaces the power line and goes in with the rest of this change.
 
-- **The timer.** ✅ built. Any hp-boss state but `HpOff` clears
-  `hp_turned_off_time`, so "drawing power long after an off command"
-  means that again and an ordinary run no longer goes blind. The brain
-  logs the blind reason on the line before `BecameBlind`. The rest at
-  send makes the reading moot for the valve: the loop stops acting on it
-  (the `is_blind` split below).
-- **Rest at send.** `HpOff` runs the valve to the send stop and leaves it
-  there. The start is then a job: on `PreparingToTurnOn` the loop runs
-  the valve from the send stop toward keep for `FULL_RANGE_S - t2` (38 s
-  at maple, 21 s at beech), the direction the calibration traverses took,
-  and sends `SiegLoopReady` when the motor stops, so hp-boss closes the
-  call relay to a loop already parked at keep complete. The run starts
-  from a stop, so the reckoned position is homed; a run to the keep stop
-  first would add about 100 s and trip hp-boss's two-minute wait, and
-  buys nothing. The Ecodan's primary pump runs about three minutes
-  before its compressor and the LG's about four and a half, so the park
-  sits well inside the pre-run.
-
-  Why send and not keep. A heat pump honours an off on its own clock:
-  the Ecodan runs about six minutes after an off that arrives early in a
-  start ([`startup-signatures.md`](../../executor/heat-pump-signatures/startup-signatures.md)
+- **The off.** ✅ built (`97cb4440`). A heat pump honours an off on its
+  own clock: the Ecodan runs about six minutes from a compressor start
+  whatever the call does
+  ([`startup-signatures.md`](../../executor/heat-pump-signatures/startup-signatures.md)
   "Mitsubishi Ecodan (maple)"), and a valve that closes on the command
   heats a shut loop for the difference. Three times at maple: the
   restart of 2026-11-11 15:14 ET, and on 2026-11-13 at 13:22 and 13:41
   ET, when admin's TurnOff came 28 s and 3 s after a compressor start
-  and the loop reached 138 and 140 °F at full keep. At the send stop an
-  off honoured late is an ordinary run, an off honoured at once purges
-  the last hot water to the buffer, and a defrost (hp-boss still says
-  on) moves nothing. The rest costs nothing while the primary pump is
-  off with the compressor, which the LG does on its own and the Ecodan
-  does from 2026-11-13 with its pump economy setting
-  ([`idle-signatures.md`](../../executor/heat-pump-signatures/idle-signatures.md)
-  "Mitsubishi Ecodan (maple)"). On a plant whose primary runs with the
-  heat pump off, full send circulates buffer water through a cold heat
-  pump, and that plant wants the keep rest back: the condition is the
-  pump's behaviour, not the heat pump's make.
+  and the loop reached 138 and 140 °F at full keep. So with hp-boss off
+  the loop looks at one thing, the outdoor unit's draw against the idle
+  line: over it the valve is at full send (`Blind`, the reason logged)
+  and stays there without a motor command when it already stands at the
+  stop; under it the loop rests at keep. No off timer: both House0 heat
+  pumps honour a steady-run off within about ten seconds (Ecodan p90
+  10 s over 74 offs; LG p90 10 s over 58, no minimum run), so a dwell
+  would only run the motor toward keep and back. A missing reading with
+  the heat pump off changes nothing; the valve stays at keep. A TurnOff
+  while parked at `t2` rests at keep, and a compressor that starts anyway
+  opens the loop the same way. The loop stops reading the odu-plus-idu
+  sum here; `blind_reason` reads `hp-odu-pwr` for the running test.
+- **Rest at keep.** The off posture is full keep: the primary pump runs
+  through every off at maple, and at full send it would push buffer water
+  through a cold heat pump. The 2026-11-13 pump economy setting did not
+  change that: from 15:58 ET that day through 2026-11-16 every HpOff
+  period ran the pump at about 5 gpm after a 30 s stop at the call
+  opening, with one 22-minute stop on 2026-11-16 00:34 ET
+  (`scratch/basic-sieg/pump-after-visit/`). With the valve at keep the
+  loop cools on its own, about 55 °C at 5 min and 36 °C at 2 h, LWT
+  under EWT, while the buffer top holds. A rest at send is the right
+  posture only on a plant whose primary stops with the compressor; the
+  condition is the pump's behaviour, not the heat pump's make, and it
+  stays in Open. The start is a job from the keep stop: on
+  `PreparingToTurnOn` the loop runs the valve toward send to `t2` (48 s
+  at maple with the overshoot) and sends `SiegLoopReady`, so hp-boss
+  closes the call relay; the Ecodan's primary pump runs about three
+  minutes before its compressor and the LG's about four and a half, so
+  the park sits well inside the pre-run. Ready goes today at the
+  `PreparingToTurnOn` report; sending it when the motor stops is the
+  remaining piece of the start.
 - **Waiting to open** replaces `hp_loop_is_getting_hot`. In `HpStartingUp`
   the valve parks at `t2` as it does now, and the loop opens it to full
   send when
@@ -429,23 +429,26 @@ replaces the power line; the rest of this change goes in together.
   waiting-to-open test should open the valve some minutes before the
   first trip at that rise rate; the self-stop layer is what stands
   between a missed test and the second trip.
-- **`is_blind` keeps one meaning**: `inputs_missing()`, layer 2 above.
-  Its other reading, the heat pump over its high power threshold more
-  than 120 s after an off command, no longer moves the valve: with the
-  rest at send there is nothing for the loop to do about a unit that
-  runs on, and the critical glitch for running power against an open
-  call is hp-boss's (OPS-673), read from the sensed state every layout
-  has. The loop stops reading `hp_turned_off_time` and the power line
-  against it. The line stays the high threshold and not any power
-  because a heat pump draws power while idle: the Samsung at spruce
-  pulses to 318 W every five minutes with the compressor off
+- **`Blind` has two meanings until this change lands**, both logged on
+  the line before `BecameBlind`: `inputs_missing()`, layer 2 above, with
+  the heat pump on; and the outdoor unit running with hp-boss off ("The
+  off"). The split, a state of its own for the running-after-off case or
+  the critical glitch for running power against an open call moving to
+  hp-boss (OPS-673, read from the sensed state every layout has), is a
+  rename nothing outside `strat_protect.py` reads and goes in with the
+  waiting-to-open test. The running line is the idle threshold and not
+  any power because a heat pump draws power while idle: the Samsung at
+  spruce pulses to 318 W every five minutes with the compressor off
   (`../../executor/heat-pump-signatures/idle-signatures.md`).
 
 Tests (`tests/actors/test_sieg_loop.py`, on the clock seam; a full travel
 against the sim relays carries `@pytest.mark.wallclock`, which `ci.sh`
 deselects):
 
-1. A second run after a stop does not go blind (the timer).
+1. A second run after a stop does not go blind; an off the heat pump
+   runs through leaves the valve at send with no relay command until the
+   draw stops, then rests at keep; an off while parked rests at keep and
+   a compressor that starts anyway opens the loop (✅ built).
 2. Power up with a cold loop: the valve stays parked. LWT rising toward
    the target: the move to send starts on the tick where
    `lwt + slope × travel left` first reaches the target, for a buffer
@@ -456,16 +459,14 @@ deselects):
    through the next rise in power. Power wobbling between the two
    thresholds on the way up: no move. Flat LWT with steady power for the
    model's backup time: full send.
-4. A stop: full send, and the valve stays there while the sim heat pump
-   keeps drawing running power against `HpOff` (the minimum run); a
-   TurnOn inside that run parks the valve at `t2` and the start goes on
-   as usual.
+4. A TurnOn inside a run the heat pump is finishing against `HpOff`
+   parks the valve at `t2` and the start goes on as usual.
 5. The House0 pairs of `tests/actors/test_hp_boss_live.py` (`PAIRS`:
    `house0-willow`, `house0-orange`) uncommented: admin's TurnOn parks
    hp-boss in `PreparingToTurnOn` until the loop on the sim plant sends
    `SiegLoopReady`, which comes when the motor stops at `t2`,
-   `FULL_RANGE_S - t2` on the sim clock after the command, and not
-   before; the call relay closes on it. With it, gap 1 of
+   `FULL_RANGE_S + OVERSHOOT_S - t2` on the sim clock after the command,
+   and not before; the call relay closes on it. With it, gap 1 of
    `../spruce-settled/relay-tests.md`: no ready message arrives and
    `TURN_ON_ANYWAY_S`, shortened through settings, closes the relay
    anyway.
@@ -482,15 +483,36 @@ deselects):
 
 ## Do this next
 
-Build the rest at send and the parked start (change 6, "Rest at send"):
-tests 4 and 5 first, failing, on the simulated House0, then
-`strat_protect.py`'s `HpOff` posture, the park move on
-`PreparingToTurnOn` with `SiegLoopReady` sent on its motor stop, and the
-removal of the running-after-off line. Roll to maple and watch one
-TurnOff inside the Ecodan's minimum run meet an open loop.
+The off path opens on temperature, not on power alone. Maple
+2026-11-16 04:01 to 04:10 ET (main `341090c1`): a TurnOff 65 s after a
+compressor start left the Ecodan running at 1.16 kW for over nine
+minutes with 1.3 °C of lift, LWT 34.7 °C into a buffer top of 55 to
+64 °C at 4.3 gpm, and `buffer-depth1` fell to 109 °F. The rule "full
+send while the outdoor unit draws after an off" was right for the loop
+and wrong for the buffer. The rule to build, with its failing test from
+those numbers first: with hp-boss off and the outdoor unit over the idle
+line, the valve goes to send only when LWT is at or above the
+destination temperature (the `House0Hydronic` accessor of "The target"
+above), and otherwise rests at keep while the loop warms; the loop opens
+as LWT reaches the destination, the waiting-to-open test applied to the
+off. The compressor-running read stays as the gate. This goes in before
+any further roll of `StratProtect`, and it does not wait for the
+simulated plant: it is logic on the clock seam. After it, the remaining
+pieces of change 6 in order: the waiting-to-open test for the start,
+`SiegLoopReady` on the park's motor stop, the `Blind` split and the
+per-model signatures.
 
-The interim start is in the field on `a5bfa62b` (jm/sieg-init-homing,
-rolled to maple 2026-11-11). Its first admin-driven start ran as designed:
+Also from that night: an off 65 s into a run was honoured after more
+than nine minutes, beyond the 6 min 14 s and 6 min 8 s of 2026-11-13, so
+"about six minutes from a compressor start" understates the Ecodan's
+late off; the startup signature wants the 04:00 start added. And the
+at-the-stop shortcut in `valve.py` (a move to a stop the valve stands on
+sends nothing) was in the field for one hour at `e26011b1` and shut the
+loop with the compressor running for six minutes (03:30 to 03:37 ET):
+a move queued and superseded in one call was not cancelled. `341090c1`
+removes it; a test pins the sequence.
+
+`main` is in the field at maple since 2026-11-16 03:53 ET. Its first admin-driven start ran as designed:
 TurnOn at 15:27:07, parked at keep_seconds 56.0 at 15:27:46, outdoor-unit
 power crossed 500 W at 15:30:57, `HpStartUpDone` on the next tick at
 15:31:12, full send at 15:32:18, no Blind. Only the `hp.loop.keep.send`
@@ -573,8 +595,8 @@ polled handle change, the blend leftovers and the state names. HpBoss's
 `PreparingToTurnOn` and `SiegLoopReady` do the job change 6 gives them,
 the park before the call; `HoldFullSend` never enters
 `PreparingToTurnOn`. Off is still what HpBoss reports, so a defrost does
-not move the valve. The power-less posture and the off posture are the
-same, full send.
+not move the valve. The power-less posture is full send; the off posture
+is keep, and full send while the outdoor unit still draws.
 
 ## Not assumed
 
@@ -588,6 +610,14 @@ none of them.
 
 ## Open
 
+- A rest at send for a plant whose primary pump stops with the
+  compressor: an off honoured late is then an ordinary run, an off
+  honoured at once purges the last hot water to the buffer, and the start
+  parks from the send stop. Neither House0 plant qualifies today; the
+  Ecodan's pump economy setting is read in
+  [`idle-signatures.md`](../../executor/heat-pump-signatures/idle-signatures.md)
+  "Mitsubishi Ecodan (maple)". The condition is a fact about the plant,
+  and where it is declared (layout, ops word, or observed) is undecided.
 - Executor text to correct when the package settles:
   `executor/sieg-loop.md`'s opening note describes a branch diff that
   names the actuation authority, and `executor/primary.md` "Sieg loop

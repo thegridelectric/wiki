@@ -10,6 +10,140 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-16 — Remove the sieg valve's at-the-stop shortcut (`341090c1`, main, OPS-392)
+
+**Why:** `97cb4440` made a strategy move to a stop the valve already
+stood on send nothing. A move queued and superseded in the same call
+(Blind to HpStartingUp to HpHasLift on a TurnOn while the compressor
+ran out an off) was then never cancelled, and at maple on 2026-11-16
+03:30 ET the park ran with the compressor on and the state saying
+HpHasLift, the loop shut for six minutes to 141.8 F. The shortcut is
+gone; a move to a stop runs the motor against it for the overshoot as
+before, and the superseding move cancels the queued one. Two tests pin
+the night: an off the heat pump runs through keeps the valve at the
+send stop until the draw stops, and a TurnOn during that run never runs
+the park.
+
+## 2026-11-16 — Jm/sieg init homing (#625) (`e26011b1`, main, OPS-392)
+
+**Why:** the squash merge of jm/sieg-init-homing to `main`: the homed
+valve and the loop's own atomic (`e0b3a465`, `504e32c2`), the parked
+start (`a5bfa62b`) and the off the heat pump runs through (`97cb4440`),
+each with its entry below. Maple has run the branch since 2026-11-11;
+beech, fir and oak take it at their next roll, and beech's is the LG's
+first run of the parked start.
+
+## 2026-11-16 — An off the heat pump runs through leaves the sieg loop open until the draw stops (`97cb4440`, jm/sieg-init-homing, OPS-392)
+
+**Why:** a heat pump honours an off on its own clock: the Ecodan runs
+about six minutes from a compressor start whatever the call does, and
+on 2026-11-13 two offs seconds after a start met a valve at full keep
+and took the loop to 138 and 140 F. The interim start of `a5bfa62b` had
+cut the loop's one defence, leaving Blind the moment hp-boss said off,
+so the running-after-off line could never move the valve. Now, with
+hp-boss off, the one thing the loop looks at is the outdoor unit's draw:
+over the idle line the valve is at full send (Blind) and stays there
+with no motor if it is already at the stop; under it the loop rests at
+keep. The 120 s off timer is gone with it, since both House0 heat pumps
+honour a steady-run off within about ten seconds (Ecodan p90 10 s, LG
+p90 10 s over 58 offs) and a dwell would only run the motor toward keep
+and back. With hp-boss off a missing reading no longer blinds the loop:
+it rests at keep as before. A strategy move to an endpoint the valve
+already stands on sends no relay command. The rest at send of
+`basic-sieg` change 6 is not built: the maple journal shows the primary
+pump running through every off since the 2026-11-13 pump setting, with
+a 30 s stop at the call opening, so the keep rest stays.
+
+## 2026-11-16 — A timestep scada loads its stored contract at the first step; every scada contract time is pinned (`1a704150`, jm/price-stages, OPS-684)
+
+**Why:** an independent line-by-line read of the plant-clock commit
+found one regression under the coordinator's clock: `start_tasks` loaded
+the stored contract before the first `sim.timestep` arrived, the clock
+raised because it had no time yet, and `load_heartbeat`'s catch-all
+logged that as a load error and dropped a live contract on every
+simulated boot. A scada on a `TimestepClock` now loads the contract at
+the first step (`TimestepClock.first_step`, `Scada.load_at_first_step`);
+a box on the wall clock loads at start as before. The load reads its
+clock outside the try, so a clock fault fails the load instead of
+passing as a bad file. The read also found four differences of the
+plant-clock commit with no pinning test: the completion guard, the
+amend, re-ack and terminate stamps, the rejection stamp, and the grace
+check with the two end-of-contract waits. `test_contract_handler_clock.py`
+pins the handler's; the new `test_contract_timing_clock.py` runs a
+scada in process on a `ManualClock` for the waits, the grace check and
+the rejection, and on a `TimestepClock` for the deferred load. The
+resume path's four-second settle and the blind bound stay on the wall:
+they bound IO, not plant time.
+
+## 2026-11-16 — moving to the plant clock (`bab8a082`, jm/price-stages, OPS-684)
+
+**Why:** the LTN reads plant time from the app's one clock, but the
+scada's side of the contract read the wall: expiry, the completion
+guard, the heartbeat stamps, the energy integration, the grace check
+and the end-of-contract waits. On a coordinator's clock the pair
+disagreed about which slot was live, so the price-stage scenarios could
+not run in simulated time. `ContractHandler` now takes the app's clock
+at construction and every contract time goes through it; in `scada.py`
+the grace check and the two waits in `handle_contract_timing` run on it
+too. On a box the clock is `WallClock`, whose `now()` is `time.time()`,
+so deployed behaviour is unchanged. Report and snapshot cadence and the
+non-contract stamps (`layout.lite`, operating status, control
+capabilities) stay on the wall. `tests/actors/test_contract_handler_clock.py`
+pins expiry, the stamps and the energy accrual on a `ManualClock`.
+
+## 2026-11-16 — The LTN reconciles a desired offer against the contract the scada holds (`d5b9f356`, jm/price-stages, OPS-684)
+
+**Why:** the LTN's contract path was a chain of request and reply steps,
+each incoming message doing the next thing, and the flag-based rule for
+the maker's two price stages broke under every out-of-order arrival: a
+Final before the ack, a lost completion reply, a restart between the
+stages. The LTN now keeps two persisted records for the slot, the
+desired offer (`actors/ltn/desired_offer.py`: the Wh it wants the
+contract to say, the stage, the Provisional reading, the one amendment
+sent) and the scada's last heartbeat, and one reconcile step on every
+price, scada heartbeat and tick sends the one message the difference
+calls for: completion of an expired held contract and the slot's Created
+in the same step, Amended once when the acked body differs from the
+desired offer, the Provisional promoted to Final at the terms' deadline
+on the plant clock. The handler reads one injected clock. Reading the
+scada for the resend case found that a contract after the first of a
+wake was never acked: the ally suits up once per wake and goes dormant
+only at an auto-state change, so no SuitUp came and the scada's Created
+handling matched no branch. The scada now acks a Created at once when
+the ally is awake, a resent Created with a fresh heartbeat at the held
+status, and an amendment it does not take with a fresh heartbeat at the
+body held, so the two records converge. The LTN's fuel-substitution
+settings and rule are gone with the oil field. `hp_is_off` starts off in
+the Ltn as in the handler, the ReduceOnly-safe guess. A Provisional more
+than 10 s after the hour makes no contract and says so in a glitch, as
+heartbeat axiom 1 stamps a Created within 10 s of the slot start.
+`tests/actors/test_ltn_offer_rule.py` pins each difference of the
+design's list; `test_contract_amendment.py` the scada's re-acks.
+
+## 2026-11-16 — The scada speaks the contract with its dispatch terms, the heartbeat with Amended (`978119d1`, jm/price-stages, OPS-684, OPS-686)
+
+**Why:** the MarketMaker states a slot's price twice, a Provisional at
+the top of the hour and a Final when ISO-NE posts the slot's first
+interval, and the hour's contract is an instance of a standing agreement
+the LTN may amend once at the Final. The snapshot is pinned to
+`latest.price` 002, `price.stage` 000, `slow.dispatch.contract` 001,
+`slow.contract.heartbeat` 003, the status enum 001 and the
+`dispatch.terms.first.isone.hack` constant; the twins follow, the
+constant's twin among them, and the heartbeat's axiom 2 refusals name
+their clause. The contract states electrical power only: `OilBoilerOn`
+is gone from the word (sema `24a20d4`), from the twin, from the LTN's
+offer and from the allies' reading of a contract, with the LTN's
+fuel-substitution settings and rule, which were off on every LTN; the
+allies' non-electric backup state stays, with nothing that enters it
+from a contract. The named-types tests cover the unknown-stage default,
+the missing stage, the missing terms, an amendment from the wrong party
+and one without a cause. The scada takes one amendment of the contract
+it holds under the terms the contract names. The LTN half is interim: it
+acts on each stage through flags set in message order, and the next
+cluster replaces it with a reconciler of a desired offer against the
+contract the scada holds, since an independent read found the flags
+wrong under every out-of-order arrival.
+
 ## 2026-11-14 — The LTN reads latest.price 001 (`7e8e52f4`, squash of jm/latest-price-001, PR #624, OPS-666)
 
 **Why:** the MarketMaker publishes `latest.price` 001 (maker `db25c3f`),

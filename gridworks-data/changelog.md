@@ -10,6 +10,51 @@ repo's git history.
 
 Newest at the top.
 
+## <!-- pending commit --> — The hourly functions read each reading's unit from unit_scale (jm/hourly-unit-scale, OPS-630)
+
+**Why:** `calc_energy_1hr` and `calc_hourly_data` selected readings by a
+unit literal, so a channel in the other enum or the other era fell out
+of its column: Maple's derived `primary-flow`, every house's tank depths
+before 2026-01-09, and hp, dist and store temperatures after the
+2026-10 roll. Both now join `readings` to `gridworks.unit_scale` on
+`(unit_type, unit)`, select by channel name and quantity, and convert
+through `gridworks.in_unit`; no unit literal remains. A migration
+creates `in_unit` and both functions after `unit_scale` (the 2026-06
+migration stops creating them), with the return tables unchanged. A
+local test runs one house across a unit boundary and fails on the old
+bodies. On `tsdb_tap`, with beech's two boundary windows and a Maple
+window copied from prod, old and new agree to the digit wherever the
+old literal matched, and the new fills the empty hours; the hour
+2026-10-28 23:00, in which beech reported hp-lwt under both spellings,
+averages both.
+
+## 2026-11-16 — unit_scale: what a reading's stored integer means, per unit enum value (`150ab92`, jm/hourly-unit-scale, OPS-630)
+
+**Why:** the hourly functions select readings by a unit literal, so a
+channel recorded in one unit enum and the same channel recorded in
+another (Maple's derived `primary-flow`, the tank depths before
+2026-01-09, the hp and dist temperatures after the 2026-10 roll) fall
+out of the hourly columns. `gridworks.unit_scale` gives every value of
+`gw1.unit` and `spaceheat.telemetry.name` its `gw1.quantity`, base unit
+and scale, so the functions can join on `(unit_type, unit)` and select
+by quantity. The quantity is the vocabulary's: the snapshot grows by the
+two published projection words and the generator calls their
+`project()`. Base unit and scale are read off the value's name with a
+hand-kept map, since no sema word states them yet. The migration
+creates and fills the table; `scripts/write_unit_scale.py` rewrites it
+after a snapshot regen; the test asserts every enum value and every
+`(unit_type, unit)` pair the journal records today resolves to a row.
+
+## 2026-11-16 — calc_energy_1hr: the repo states the deployed primary-flow unit filter (`32e07a2`, jm/hourly-unit-scale, OPS-630)
+
+**Why:** on 2026-10-26 the production function was edited in place to
+`unit IN ('GpmTimes100', 'GpmX100')` for `primary-flow`, so Maple's
+derived flow channel (`GpmX100`) fed `hp_kwh_th` (OPS-608). The repo
+file kept the single literal. Compared against `pg_get_functiondef` on
+prod on 2026-11-16: this one clause is the only difference in either
+hourly function. The journal-DB rule is one SQL script in the repo, so
+the file catches up before the unit join replaces every literal.
+
 ## 2026-11-01 — Hand SQL: the forecast rows journaled before bundle-keyed ids (`f766fb9`, PR #16 `ffc1d53`, OPS-622)
 
 **Why:** the journal kept the weather service's `gw.weather.forecast`

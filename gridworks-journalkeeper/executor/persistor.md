@@ -23,8 +23,8 @@ The default path stores the message in `messages` and stops. A **custom
 persistor** additionally fans selected fields into `readings` (and, for
 layouts, maintains `reading_channels`). The custom persistors today:
 `layout.lite`, `report.event`, `flo.params.house0`, `weather.forecast`,
-`gw.weather.forecast`, `gw.weather.forecast.bundle.gt`,
-`gw.weather.observation`, `g.node.forest`,
+`gw.weather.forecast`, `gw.weather.channel.gt`,
+`gw.weather.forecast.bundle.gt`, `gw.weather.observation`, `g.node.forest`,
 and the alert, house-status and snapshot projections.
 
 ## The channel model — the kind is the row's fact
@@ -140,9 +140,15 @@ not vendor gets no channel and is tallied (`unvendored_machines`).
   again only the **first** array element; the rest of the forecast horizon is
   dropped from `readings`. The row is per house, since the scada fetched
   the forecast for itself; it retires with the word.
-- **`gw.weather.forecast.bundle.gt`** → one `WeatherObserved` row per
-  observed channel the bundle binds, `channel_id` the record's Id, unit
-  the record's, create-if-absent. No readings.
+- **`gw.weather.channel.gt`** → one `WeatherObserved` row for the
+  record, `channel_id` the record's Id, unit the record's,
+  create-if-absent on (weather GNode alias, flat name). The record
+  broadcast is when the series exists for the journal, so a station in
+  no bundle (one minted for an archive replay) has rows for its
+  observations. No readings.
+- **`gw.weather.forecast.bundle.gt`** → the same row, ensured for each
+  observed channel the bundle embeds, so a bundle that arrives before its
+  channel records still has rows. No readings.
 - **`gw.weather.observation`** → `readings` on those rows at the
   observation's time: each reading names its channel record, resolved
   through the journaled `gw.weather.channel.gt` from the same weather

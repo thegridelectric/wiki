@@ -663,7 +663,9 @@ lookup:
   Remove both settings and `use_oil_as_fuel_substitute`
   (`ltn/contract_handler.py:281`) rather than retune them; when fuel
   substitution returns it takes the tariff from the served forecast's
-  `TariffAlias` and a COP-aware comparison, not a constant.
+  `TariffAlias` and a COP-aware comparison, not a constant. This item
+  is done under OPS-684 (2026-11-16), which also removes
+  `fuel_substitution`; when it returns it is an operational parameter.
 
 
 ## Open

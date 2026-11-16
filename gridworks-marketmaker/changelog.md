@@ -8,7 +8,20 @@ corresponding code-repo commit.
 This changelog does NOT track wiki edits.
 
 
-## <!-- pending commit --> 2026-11-15 — The slot's price is its first 5-minute interval, published when ISO-NE posts it (jm/price-at-slot-open, OPS-666)
+## 2026-11-15 — The price in two stages: Provisional at the top of the hour, Final on ISO-NE's posting (`b19764c`, jm/price-at-slot-open, OPS-684)
+
+**Why:** a house must act at the top of an on-peak hour and ISO-NE posts
+the hour's first interval 21 to 34 s in. The gate now publishes twice a
+slot: the Provisional at the slot's open, from the wholesale parts it
+last published plus this hour's delivery, with no fetch, and the Final
+on the slot's own interval. At the 240 s deadline the Final takes the
+provisional value with the critical fault, so the contract binds; a
+cold maker's first slot gets a Final alone. Snapshot regenerated on
+`latest.price` 002 and `price.stage` with `--allow-staged`, dev-only
+until the two words are promoted after the verifying window. The gate
+tests on the fake clock pin each stage; `gwmm show` prints the stage.
+
+## 2026-11-15 — The slot's price is its first 5-minute interval, published when ISO-NE posts it (`a6f6119`, jm/price-at-slot-open, OPS-666)
 
 **Why.** The maker fetched ISO-NE's current 5-minute LMP 20 s before
 the hour and published it at the top of the hour, so every slot's
@@ -26,7 +39,7 @@ hour until the current interval is the slot's own and publishes on it; `fetch_de
 publishes stale with the critical glitch as before. `fetch_lead_s` is
 gone. The README names the A-1 tariff sheet it copies.
 
-## <!-- pending commit --> 2026-11-15 — README to the repo pattern; module docstrings to the documentation convention (jm/readme-executor, OPS-617)
+## 2026-11-15 — README to the repo pattern; module docstrings to the documentation convention (`a6f6119`, jm/price-at-slot-open, OPS-617)
 
 **Why:** the executor's Domain Summary is copied verbatim from the
 README, so the README comes first: a summary for a person with no code

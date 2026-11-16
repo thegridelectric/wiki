@@ -11,6 +11,91 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-16 — dev-records: the gridpoint station gains temperature and wind speed channels (`dcdce92`, squash of jm/gridpoint-temp-wind, PR #17, OPS-688)
+
+Two `gw.weather.channel.gt` records on `ommillinocket`,
+`ommillinocket.temperature` (FahrenheitX10) and
+`ommillinocket.windspeed` (MilesPerHourX10), hourly from 2024-10-01.
+Why: KMLT's own record has about 32 days with no routine report in
+October and November 2025, and kmlt's channels only ever hold what
+KMLT observed, so the fill is a second, labelled instrument: the model
+gridpoint's series on its own channels, replayed with the Open-Meteo
+Method over the same window and emitted live each hour from the mint
+on. The hourly function's composite reads kmlt first, the gridpoint
+where kmlt is dark, then the house's forecast channels (OPS-630).
+
+## 2026-11-16 — The IEM ASOS Method fills a station's past (`fa8b0d6`, squash of jm/asos-archive, PR #16, OPS-603)
+
+A second archive Method, `iem.asos.hourly`: the Iowa Environmental
+Mesonet's ASOS archive serves KMLT's routine METAR observations back
+decades (public domain, attribution appreciated, one request a second,
+1,000 station-years a request). The adapter snaps each observation to
+the nearest top of hour, converts knots to mph, and refuses a response
+missing a wanted column; tests run against a captured October 2024.
+Why a second Method: the kmlt channels have live readings only from
+2026-10-25, and a model gridpoint's values on kmlt's channels would
+claim the station observed what a model computed, so the station's
+own record is the only honest backfill.
+
+## 2026-11-16 — The model gridpoint observes irradiance live (`13ba42f`, squash of jm/gridpoint-observation, PR #15, OPS-603)
+
+**Why:** the fleet has no measured irradiance, so the actual is the
+Open-Meteo gridpoint's own series, and after the archive backfill it
+has to keep going. Observation streams now come from every observed
+channel record, bundled or not, since a station minted for its own
+series has no bundle. A station with no network identifier is a model
+gridpoint: each hour the actor fetches the pinned model's hour-mean
+irradiance for the hour just ended (one past day and one forecast day
+from the most recent run, the shortest-lead value) and publishes it as
+the station's observation, timed at the hour's start as an hour-mean
+quantity is. A gridpoint with a channel for another quantity, or a
+station with another network identifier but no IcaoId, is skipped with
+a logged reason, never a boot failure.
+
+## 2026-11-16 — gwbase 0.7.3, logs in local time, ci.sh is the one gate (`7f06299`, jm/weather-archive-cmd, OPS-603)
+
+**Why:** the people reading the logs live in Maine, and gwbase 0.7.x
+writes log timestamps in the service's zone with the offset kept
+(`GWWF_LOG_TZ=America/New_York`). The bump brings 0.7.3's actor
+contract: the actor declares its `GwGNodeClass` and the transport
+class follows, the identity file's `GNodeClass` is the enum value
+`WeatherForecastService`, and `process_message` takes the opened
+`GridworksHeader`. `ci.sh` gains pyright and the GitHub workflow runs
+`ci.sh` and nothing else, so a local pass is a CI pass. The 3.13 matrix
+leg goes with it; the repo still allows 3.13.
+
+## 2026-11-15 — dev-records: the gridpoint station has one channel, irradiance (`52f2ba9`, jm/weather-archive-cmd, OPS-603)
+
+**Why:** outdoor temperature and wind speed stay with kmlt; the
+gridpoint fills the one quantity nothing measures, irradiance. The
+temperature and windspeed channel records leave the dev set and the
+README's archive example names the irradiance channel alone. The actor
+pulls only the quantities the command's channels need, so the code is
+unchanged.
+
+## 2026-11-15 — dev-records: the ommillinocket gridpoint station and its three channels (`9ce0919`, jm/weather-archive-cmd, OPS-603)
+
+**Why:** the history before go-live enters as a station of its own, the
+Open-Meteo model gridpoint at Millinocket, with temperature, windspeed
+and irradiance channels in the units the kmlt and kmemilli18 channels
+use. Start is 2024-10-01 so an archived observation resolves against a
+record active at its time. The same files mint the station on hw1.
+First replay on d1: October 2024, 744 observations in 41 s, every hour
+with all three readings, Interpolated false
+(`scratch/weather-archive-d1/summary.txt`).
+
+## 2026-11-15 — The actor executes gw.weather.archive.cmd: a station's history replayed over the bus (`0dc6bc4`, jm/weather-archive-cmd, OPS-603)
+
+**Why:** the fleet's weather record is complete from go-live and empty
+before it. The archive command fills it by the same path live readings
+take: the actor checks the command against its records and the Method
+table, pulls the window through Open-Meteo's Historical Forecast API,
+acks, and replays one observation per grid point from a worker thread
+at a fixed send interval. Refusals and failed pulls are nacks; a
+failure mid-replay is a glitch. `gwwf archive` is the minter's side,
+flags for the command's fields and CreatedMs set at send. Snapshot
+regenerated from sema `3211ec2` with the new word.
+
 ## 2026-11-01 — The service emits gw.weather.forecast 002: a ForecastUid per send (`81d132d`, PR #13 `a69b669`, OPS-622)
 
 **Why:** a forecast had no identity of its own, so a consumer could not

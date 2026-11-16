@@ -10,6 +10,28 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-16 — The journal hears gw.weather.archive.cmd; gwbase 0.7.3 and logs in local time (`5501699`, PR #210 `eb3313e`, OPS-603)
+
+**Why.** The journal keeps every minting act, and the archive command
+is the one that fills a station's past, so the snapshot takes
+`gw.weather.archive.cmd` 000 (sema `3211ec2`), keyed on its CreatedMs
+beside its ack or nack. gwbase moves to 0.7.3 so the log timestamps
+are written in the service's zone with the offset kept
+(`GJK_LOG_TZ=America/New_York`).
+
+## 2026-11-15 — The channel record broadcast creates its reading channel (`fa1c0bd`, jm/weather-channel-row, OPS-603)
+
+**Why.** The observed-series reading channel was created only when a
+forecast bundle embedding the channel arrived, so a station minted for
+an archive replay, which has channels and observations but no bundle,
+had its observations journaled as messages and dropped as readings
+(the d1 replay of October 2024: 744 messages, 0 readings). The
+`gw.weather.channel.gt` broadcast now takes a custom persistor that
+ensures the row, keyed on the record's own Id as the bundle already
+was; the bundle path ensures the same rows through the same function,
+so order of arrival does not matter. The record leaves the id-field
+table since the persistor owns it.
+
 ## 2026-11-14 — The journal hears gw.price.forecast and layout.lite 014 (`f1f9935`, squash of jm/price-forecast-word, OPS-666)
 
 **Why.** The visualizer draws the forecast a house's FLO used by the

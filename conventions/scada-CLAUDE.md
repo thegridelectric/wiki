@@ -128,6 +128,17 @@ exclusion for any field to the compare.
   (`NonNegativeInt`, `PositiveInt`, …) + the axiom method. NEVER a
   `Literal[0,1]`-style bound; it silently drops the axiom.
 
+## Reading the journal across a comms outage
+
+A scada out of contact keeps its reports and sends them upstream when
+its link to the LTN returns, each with its original timestamp (scada
+executor `primary.md`, "backfills it upstream on reconnect"). So an
+outage leaves no gap in `gridworks.messages` by `timestamp`; it shows
+as `persisted_at` lagging `timestamp` on the backfilled rows. When a
+reading or a signature is checked against a window that spans an
+outage, query that lag before trusting the window, and treat a gap by
+`timestamp` as lost data only when no backfill followed.
+
 ## Periodic mypy sweep of `actors/` (no gate)
 
 After any change that moves methods between actor base classes, and at each

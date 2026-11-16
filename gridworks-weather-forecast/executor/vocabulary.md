@@ -1,6 +1,6 @@
 # vocabulary — what the service does with the gw.weather.* words
 
-Status: Draft · Pass 0 · Updated 2026-10-18
+Status: Draft · Pass 0 · Updated 2026-11-16
 
 What this is: the service's own obligations around the `gw.weather.*`
 words, for [the hub](primary.md). The words' schemas and axioms are
@@ -84,13 +84,15 @@ one instance, a clock or the store to check.
   forecasters, grid, schedule). A create today refuses on validation, a
   dangling reference, and an embedded-copy mismatch, and nothing else.
   Either becomes a clause with a test, or the claim is dropped.
-- **The observed irradiance series.** The irradiance forecast channel
-  targets `kmemilli18`, the Weather Underground station in Millinocket
-  with a solar sensor, which has no observation stream (no ICAO id); a
-  hobbyist pyranometer behind an HTML scrape is a research series, not
-  a fleet source. Old Town's USCRN pyranometer is 82 km away; an ERA5
-  cell is a third instrument. Each is a different channel. A
-  pyranometer at one house is the cheap way to a local series.
+- **A measured irradiance series.** The irradiance actual is the
+  Open-Meteo Millinocket gridpoint's shortest-lead series on its own
+  station (record-lifecycle "Filling history"); `kmemilli18`, the
+  Weather Underground station with a solar sensor, has no observation
+  stream (no ICAO id), and a hobbyist pyranometer behind an HTML scrape
+  is a research series, not a fleet source. Old Town's USCRN
+  pyranometer is 82 km away; an ERA5 cell is a third instrument. Each
+  is a different channel. A pyranometer at one house is the cheap way
+  to a local series; comparing the model actual to it is postponed.
 - **Specialist solar forecasters.** Solcast, SolarAnywhere and
   Tomorrow.io sell GHI/DNI/DHI forecasts on quote with no published
   winter validation for the northeastern US. Worth a quote once a

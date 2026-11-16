@@ -8,17 +8,80 @@ corresponding code-repo commit.
 This changelog does NOT track wiki edits — those live in the wiki
 repo's git history.
 
-## 2026-11-15 — gw.weather.archive.cmd 000: fill a station's history over the bus (`<!-- pending commit -->`, jm/weather-archive-cmd, OPS-603)
+## 2026-11-16 — removing oil (`24a20d4`, jm/dispatch-terms, OPS-684)
+
+**Why:** the LTN never dispatched oil: fuel substitution was off on every
+LTN and its threshold a constant tuned to a delivery price the tariff no
+longer has, so a contract's statement about the oil boiler was a field
+every instance set false. `slow.dispatch.contract` 001 drops
+`OilBoilerOn` and axiom 2 (oil draws no power) and states electrical
+power only; `slow.contract.heartbeat` 003's examples follow. Both
+versions were authored today on this unpushed branch and nothing but the
+scada's own uncommitted snapshot had read them, so they are corrected in
+place rather than retracted by a 002 and a 004; the published-hash pins
+are rewritten under that sanction, and `created` moves to the revision
+time. The 000 to 001 upgrade still refuses for want of `DispatchTerms`;
+its docstring names the removal too. When fuel substitution returns it
+is an operational parameter of the house with a COP-aware comparison,
+and the contract gains the flag then.
+
+## 2026-11-16 — The hour's contract names its dispatch terms; the LTN amends it once; market.terms states a market's terms (`0ac167e`, jm/dispatch-terms, OPS-686)
+
+**Why:** every hourly slow dispatch contract is an instance of a standing
+agreement, and nothing on the wire named it. `slow.dispatch.contract`
+001 adds the required `DispatchTerms`, the name of the dispatch terms
+constant; a 000 contract does not state it, so the upgrade refuses with
+`UpgradeRequiresContext` rather than guess. The status enum 001 appends
+`Amended`, and `slow.contract.heartbeat` 003 takes the new contract and
+enum: `Amended` is an LTN status (axiom 2a) with a `Cause` (axiom 3), the
+one amendment at the Final price. `market.terms` 000 is the maker's dated
+statement that from `EffectiveS` its market in a product runs under the
+terms named, with one axiom holding `EffectiveS` on the product's slot
+boundary. All four published out of the gate, since every word they
+reference is published and the constant is named as a string. The
+constant stays staging and gains `ProvisionalAction` `ReduceOnly`, the
+one more term a program reads; the rest of the agreement is the signed
+text. Mutation tests for every axiom clause and both upgrade refusals.
+
+## 2026-11-16 — Constant types, and the first: dispatch.terms.first.isone.hack (`0ec43da`, jm/dispatch-terms, OPS-686)
+
+**Why:** several parties have to act on one fixed fact, the terms a
+market runs under, and the registry had no way to make a value's name
+unique. A constant type is a type whose every valid instance is the same
+JSON: every property `const` and required, no additional properties,
+`x-gridworks.constant: true` after `owner`, exactly one version `000`
+with a changed value being a new name. The spec states it in
+`authoring/types.md` "Constant Types", `type-semantics.md` and
+`registry/types.md`; `tests/registry/test_constant_types.py` enforces
+it and the const-identity test exempts constants. The generator emits
+non-string constants as their own literals. The first constant is the
+Keene slow dispatch terms, staging, with the market rules as its prose.
+
+## 2026-11-15 — price.stage 000 and latest.price 002: the maker's price in two stages (`40d9750`, jm/price-stage, OPS-684)
+
+**Why:** the house has to act at the top of an on-peak hour, and ISO-NE
+posts the hour's first interval 21 to 34 s in. The maker now states a
+slot's price twice: a `Provisional` at the slot's open, from what it
+already has in hand, and a `Final` when it binds. `price.stage` 000 is
+the enum of the maker's commitment, two values with `Provisional` as
+the safe default, so a reader meeting an unknown stage treats the price
+as not yet binding. `latest.price` 002 adds `PriceStage` as a required
+field and drops the sentence that called every price the one a contract
+settles at; a 001 price upgrades as `Final`, since every 001 price was
+binding. Both staging. Runtime and indexes regenerated; mutation tests
+for the default and the upgrade.
+
+## 2026-11-15 — gw.weather.archive.cmd 000: fill a station's history over the bus (`3211ec2`, jm/weather-archive-cmd, OPS-603)
 
 **Why:** the fleet's weather record is complete from go-live and empty
-before it. This staging word is the one command that fills it: name a
+before it. This word, born published, is the one command that fills it: name a
 station, its channels, a Method and SourceLocator, and a window, and
 the weather service pulls the series and publishes it as ordinary
 observations, so the history reaches the ear and the journal by the
 same path as live readings. `CreatedMs` is required from birth, per the
 clock rule for command words. Three axioms (window order, channel names
 on the station, distinct channels) with mutation tests; runtime and
-indexes regenerated.
+indexes regenerated, content-hash pin recorded.
 
 ## 2026-11-14 — publish the price panel's words (`bba18bc`, jm/promote-price-words, OPS-666)
 
