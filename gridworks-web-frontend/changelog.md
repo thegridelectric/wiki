@@ -23,6 +23,28 @@ sending `flo.rerun.request` 002 around a 004 params; the path view reads the
 unmet-load series from a 002 penalties word's `Experimental`. The keys are
 read by name, with a note naming the declared field that retires each.
 
+## 2026-11-23 — The House0 thermostat table reads heat-call (`1ac8ff9`)
+
+A House0 house's call is `zone1-down-heat-call`, not `zone1-down-state`.
+The realtime table looked only at `-state`, treated a missing reading as
+idle, and showed both of Beech's zones idle while the distribution pump
+ran on an open valve. It now prefers `-heat-call` and falls back to
+`-state`. Spruce already read heat-call.
+
+## 2026-11-23 — A deployment names its own houses' weather bundles in VITE_HOUSE_WEATHER_BUNDLES (`f65d85c`)
+
+The visualizer's weather panel maps a house to its bundle from a hand-kept
+table of the six `hw1` houses, so a house outside the fleet (a simulated
+Beech at `d1.isone.me.versant.keene.beech`) drew "No weather bundle is
+known" with its bundle's record and forecasts sitting in the journal. A
+simulated house is not the repo's to list: which houses a dev stack runs is
+the stack's fact. `VITE_HOUSE_WEATHER_BUNDLES`, a JSON object of
+installation GNode alias to bundle name, is merged over the table at
+module load, and a value that is not such an object throws there rather
+than leaving the panel quietly without a bundle. The table and the
+variable both go when the backend resolves a house's bundle from
+journaled params.
+
 ## 2026-11-18 — Price panels at the off-peak delivery scale, one pink for on-peak, a zoomed plot holds auto-refresh (`350b921`, jm/flat-delivery-price, PR #32)
 
 The on-peak delivery premium (the on-peak delivery charge over the

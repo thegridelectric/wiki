@@ -117,6 +117,40 @@ then in a Linux container on the dev broker's network ruff, pyright, the
 staging check and pytest with the `fmu` and `live` tests (97 passed, 1
 skipped).
 
+## 2026-11-18 — Beech's zones are fitted to the house: cycling thermostats, emitters the water passes along, rooms of air and fabric (`910b09e`)
+
+The simulated Beech's two zones were one placeholder twice: a deadband
+thermostat on a single lump of room, which called for an hour or more at
+a time and held both zones on the same sawtooth about 20 °C. The house
+does nothing like it. Its report.events for the night of 17 November 2026
+(journal DB, 20:00 to 08:45 ET) show thermostats that cycle: the down
+zone, set to 67 °F, called for 5.3 to 7.7 minutes every 50 or so, and the
+up zone, set to 63 °F, for 5 minutes every 200 to 217. Both fit a
+cycle-rate thermostat at three cycles an hour (a call of 5 min / (1 - x)
+at load x). A call put about 6 MJ into the down zone (2.0 US gpm, supply
+near 77 °C) and 4.4 MJ into the up zone (1.5 US gpm), with the return
+cool until the hot water had crossed the emitter. The up zone's air rose
+about 3 K over the half hour after a call and fell back over the next
+three hours; the down zone's moved under 0.5 K.
+
+`Hydronic.Zones` is now that: a cycling thermostat, an emitter in four
+lengths, air and fabric, each zone with its own coefficients, and
+`Beech.Plant` holds the fitted values. On the bench (no scada, the boiler
+holding the buffer at 77 °C, -5 °C outdoors) the down zone calls for 5.2
+minutes every 48 and the up zone for 5 minutes every 218, with 0.4 K and
+3 K of air swing, and `test_the_thermostats_call_as_beechs_did_with_its_buffer_hot`
+holds that.
+
+Two things the fit stands on that the house's data does not give. The
+outdoor temperature of that night is in no channel, so the losses are
+fitted at the plant's own -5 °C. The plant's distribution pump runs at
+full speed where the house's runs at a `dist-010v` of 35, so the zone
+resistances are fitted to the house's flows against the full-speed pump.
+
+A calling zone's wire now reads 175 W, as Beech's meter does. At the
+placeholder's 10 W a scada whose heat-call threshold is "greater than 10"
+never saw a call from the simulated house.
+
 ## 2026-11-08 — Snapshot adds gw.katahdin.layout and catches up to sema dev
 
 The seed gains `gw.katahdin.layout`, the layout of the first simulated
