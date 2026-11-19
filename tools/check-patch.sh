@@ -94,13 +94,13 @@ if [ "$MODE" = full ]; then
   echo "${OUT:-  nothing pending on any box}"
   # A single ear has an auto-delete queue: its reboot is a hole in the
   # archive. It is rebooted only once a second copy runs (OPS-676,
-  # wiki/designs/prepare-for-kubernetes.md), or the hole is accepted
+  # wiki/simulated-world/designs/prepare-for-kubernetes.md), or the hole is accepted
   # and written on the OPS-675 instance.
   if printf '%s' "$OUT" | grep -q '^  ear: .*reboot required'; then
     echo
     echo "  NOTE ear: do not reboot a single ear. Its queue is auto-delete, so the"
     echo "  archive loses the gap. Stand up the second ear copy first (OPS-676,"
-    echo "  wiki/designs/prepare-for-kubernetes.md) or write the accepted hole on"
+    echo "  wiki/simulated-world/designs/prepare-for-kubernetes.md) or write the accepted hole on"
     echo "  the OPS-675 instance."
   fi
   exit 0

@@ -56,10 +56,9 @@ them exercises it (`experiments/`).
   binds its hp-odu/hp-idu to nameplate facts, not a bare DeviceType string
 - `hp-twin.md` — the heat pump's digital twin under hp-boss: sema
   command events in, modbus out; waits on the modbus work
-- ltns-ready (OPS-654) — a gridworks-ltn design of its own until launch
-  (the LTNs must run before the fleet is on the production broker);
-  returns here with the LTN work that can wait: each LTN with its FLO
-  and parameters, and what the LTN takes from the scada
+- the LTN work that can wait: each LTN with its FLO and parameters,
+  and what the LTN takes from the scada. The launch itself (OPS-654)
+  is done; its durable parts are the LTN executor's `flo-boundary.md`
 - TO DO `async-local-control.md` — the local control evaluates on
   events (messages at receipt, timers armed when a time input is
   known), retiring the 60 s pass; after the simulated houses run

@@ -8,6 +8,20 @@ corresponding code-repo commit.
 This changelog does NOT track wiki edits — those live in the wiki
 repo's git history.
 
+## 2026-11-18 — Replace SingleBus with BusUniqueness on gw1.scada.device.type.gt (dev cfa2b66, OPS-692)
+
+**Why:** axiom 6 held every board record to one `BusList` entry with the
+reason "a scada process drives one bus". That is a fact about the scada,
+and it sat in the board vocabulary, where it would reject a board with
+two buses before the scada saw it. The record's `BusList` now says what
+the board has, and axiom 6 asks the one thing that matters once two are
+allowed: bus names and bus numbers are each unique within the list, so
+two bus actors can never own one adapter. The word is staging, so the
+axiom is replaced in place; the runtime template, the generated runtime
+and the mutation tests follow (two distinct buses accepted, a repeated
+name refused on clause a, a repeated number on clause b). The scada
+keeps its one-bus limit as its own check.
+
 ## 2026-11-16 — removing oil (`24a20d4`, jm/dispatch-terms, OPS-684)
 
 **Why:** the LTN never dispatched oil: fuel substitution was off on every

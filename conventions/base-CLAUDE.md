@@ -244,10 +244,12 @@ OPS-614 better and says so at wrap.
 
 ## Commit suggestions
 
-Human does all `git commit`s; I suggest at logical units (path-scoped
-`git add` + a one-line message) and never `git add -A` while other sessions
-may be live (mirror my active-claims Scope). Code-repo commits are
-title-only; the diff is the authoritative what.
+Human does all `git commit`s. In a code repo I suggest at logical units
+(path-scoped `git add` + a one-line message) and never `git add -A` while
+other sessions may be live (mirror my active-claims Scope). Code-repo
+commits are title-only; the diff is the authoritative what. The wiki takes
+rolling large commits on the human's own cadence: I do not suggest wiki
+commits.
 
 **Run the repo's CI entrypoint before suggesting a code-repo commit** — the
 full gate (`ci.sh` or documented equivalent: lint, format, drift/codegen

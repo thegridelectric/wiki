@@ -10,6 +10,85 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-18 — The 002 test word is a typed literal, so tsc -b passes (`f0645f5`, jm/ops-683-review, OPS-683)
+
+`npm run build` is `tsc -b && vite build`, and `tsc -b` failed on main
+since PR 30: the path-view test wrote `UnmetLoadPenaltyUsdList` onto a
+clone of the 001 fixture, whose imported-JSON type has no such field.
+vitest and the dev server strip types without checking them, so the
+tests and the page kept working. The test now builds the 002 word as
+an object literal with the field present and asserts the same thing.
+No runtime change.
+
+## 2026-11-18 — The FLO view sheds what nothing draws, and the re-run panel's keys are the word's (`211c44f`, jm/ops-683-review, OPS-683)
+
+**Why.** Review of the re-run range. Eight symbols had no caller left
+once the FLO view was reorganized (the thermal-price fields and their COP
+rule, the overlay scaler, a text colour, the step widths, the penalty
+group list); they go, with the two test assertions that were their only
+readers. The penalty component typed its field keys as strings and the
+page cast them back to the word's keys at the send; the keys are now
+`PenaltyKey`, so the field list and the word agree at compile time. The
+bottom tank label's rule is written as bruce's plot has it (no label on a
+band with no layers) and its docstring says so. A stale readings request
+no longer clears the loading flag of the newer one. The forced-step
+summary says steps, which is what the word names, and the seed request's
+comment states what the word is for.
+
+## 2026-11-18 — Primary-loop flow is decided by the layout, and each channel-name match says what replaces it (`850f74e`, jm/ops-683-review, OPS-683)
+
+**Why.** Whether a sieg house's primary loop counts as flowing was
+decided by whether a `sieg-send` reading happened to be in the snapshot,
+falling back to `primary-flow` when it was not. The layout decides: a
+layout that declares the sieg send channel reads that flow, any other
+reads the primary flow, and the page passes the layout fact down. Every
+channel-name match the range touched in the real-time diagram and the
+loop helpers now has a note naming the fact it extracts and the layout
+fact that replaces it, which is the input the layout word's next
+version takes.
+
+## 2026-11-17 — Passing tests (#29) (`ea7db85`, OPS-683)
+
+**Why.** The two axiom tests of `flo.rerun.request` assigned a forced
+step list onto a clone of the registry example, which the compiler
+refused as a write to a readonly field; the tests spread the clone into
+a new object with the bad list instead, and the suite is green.
+
+## 2026-11-17 — Real-time animation logic works with new relays + minor visual improvements (#28) (`1b1d033`, OPS-683)
+
+**Why.** The real-time diagram decided charge against discharge by
+matching `-relay(\d+)` on channel names and reading relay numbers off
+the result, a name match the house rule forbids and one the new relay
+layouts broke. The diagram now reads the `store.flow.relay` state
+(`ChargingStore` / `DischargingStore`) from the snapshot's state list and
+takes it as a typed prop; the relay map, its regex and the energized /
+deenergized strings are gone. A sieg loop counts as flowing only when a
+`sieg-send` reading is in the snapshot. Small visual changes on the
+visualizer page and the tool cards go with it.
+
+## 2026-11-17 — Add FLO rerun request (`6e8a601`, OPS-683)
+
+**Why.** The re-run panel could edit bruce's penalty tuning but not force
+heat pump steps on or off, which bruce's optimizer already accepts. The
+panel now sends `flo.rerun.request` 000, vendored from the registry with
+its two axioms as zod refinements and the registry example as the
+fixture: the hour's `flo.params` with the tuning edited, plus the
+forced-on and forced-off step lists chosen by clicking step bars above
+and below the path. The FLO view is reorganized around it: the path
+drawing moves out of `FloPlot` into `flo-path-view.ts` as typed views
+(bands, penalties, the path), the penalty fields get their own
+component, a bid plot draws the slot's bid against the forecast and the
+cleared price (fetched from the market's latest prices), and the old
+`FloRerunPanel` is gone.
+
+## 2026-11-16 — Hide re-run mode from FLO when not running locally (`a724474`, OPS-665)
+
+**Why.** The pencil that opens the re-run editor showed on every
+backend, with the Re-run button disabled and a tooltip where the route
+was absent. The pencil and the editor now render only where the probe
+of the route found it mounted, so a page against the web box shows no
+trace of the re-run.
+
 ## 2026-11-15 — The FLO re-run panel: the hour's penalty tuning edited, bruce's answer drawn in place of the journaled plot (`c7ad3f8`, OPS-665)
 
 **Why.** The optimizer author's inspection tool is to solve an hour again

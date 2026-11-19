@@ -1,0 +1,87 @@
+# Trace spec: beech's 00:00Z slot (19:00 ET) in BufferOnly mode with a previous plan in the
+# request: a flo.params 003 request, bruce's flo.recommendation 002 with its on-pair at $24/MWh,
+# and the flo.previous.run the LTN published when the slot cleared off.
+# Pulled from the production journal (gridworks.messages) at 2026-11-19 00:15Z; the three
+# bodies are beside this file, verbatim: beech-flo.params-003.json, beech-flo.recommendation-002.json
+# and beech-flo.previous.run-000.json. This file and the expected output below are the vector.
+name: 2026-11-18-beech-1900et
+concern: hub
+clauses_exercised: [a request is answered from its own bytes and the plant-shape matrix (hub invariant 2), the reply is complete over prices from the request's ceiling with one path per pair (hub invariant 3), every path is annotated with the store's state and the optimizer's penalties (hub invariant 6), the clearing is a word the LTN publishes and reads back (hub invariant 7), a recommendation for another bidder is dropped]
+event: >
+  Field window, production. Outdoor 45 F, the store in BufferOnly mode
+  at 143.8/138.7/84.3 F with 113.6 kWh of load over the two days and the
+  previous slot's plan in the request (PreviousOptimalPath present, so
+  the stability penalty is live). beech's LTN built its request for the
+  00:00Z slot at 23:57:15Z with the forecast price at $643/MWh now (the
+  distribution peak) and $91 to $115 for the rest of the horizon. bruce
+  at optimal-flexibility bccfe41 answered in 8.0 s with two pairs:
+  nothing above $24/MWh, and 6.36 kW at or below it. The slot cleared at
+  pair 0 (off); at 00:00:00Z the LTN published the cleared pair, its path
+  and the next slot's price. Forty seconds after beech's reply, hw1.flo's
+  recommendation for oak reached beech's LTN, which dropped it as the
+  answer to no request of its own.
+
+window:
+  start: 2026-11-18T23:57:00Z    # before beech's request
+  end: 2026-11-19T00:00:10Z      # after the previous.run
+time: arrival                    # order and timestamp by the journal's persisted_at
+decode: as-sent                  # the service parses flo.params 003 and refuses other versions
+senders:
+  - hw1.isone.me.versant.keene.beech   # the LTN
+  - hw1.flo
+bodies_for: [flo.params, flo.recommendation, flo.previous.run]
+
+input:
+  - t: 2026-11-18T23:57:15.472Z  # the one message the service answers for beech
+    created_ms: 1795046235402
+    type: flo.params 003
+    body: beech-flo.params-003.json
+    StartUnixS: 1795046400
+    Tuning: flo.tuning.bruce 002  # UnmetLoadPenaltyEnabled true at weight 10, StabilityPenaltyEnabled true at weight 0.5, ShortCyclePenaltyEnabled false
+    SeasonalStorageMode: BufferOnly
+    PreviousOptimalPath: present  # the 23:00Z slot's path, the stability penalty's reference
+    PriceUsdMwhList: 48 values, 91.07 to 654.31, first 643.442
+    LoadKwhList: 48 values, 113.6 kWh in all, first 2.51
+    steps: 48 of 60 minutes
+  - t: 2026-11-18T23:57:55.648Z  # oak's request, another bidder; the service answers it, beech's LTN never hears it
+    created_ms: 1795046275577
+    type: flo.params 003
+    GNodeAlias: hw1.isone.me.versant.keene.oak
+    body: not kept; the vector needs only its sender
+
+expected_out:
+  - t: 2026-11-18T23:57:23.799Z  # hw1.flo's send; the LTN's record copy follows at 23:57:23.916Z with the same CreatedMs
+    created_ms: 1795046243363
+    type: flo.recommendation 002
+    body: beech-flo.recommendation-002.json
+    BidderAlias: hw1.isone.me.versant.keene.beech
+    PriceUnit: USDPerMWh
+    QuantityUnit: AvgkW
+    PqPairs:                     # PriceX1000, QuantityX1000
+      - [2000000, 0]
+      - [24000, 6361]
+    OptimalPathList: 2 flo.optimal.path 000, StartUnixS 1795046400, 48 steps each
+    StoreStateList: 2 flo.tank.store.path 000, 9 layers, EmptyStoreWh 155446, FullStoreWh 183620
+    PathPenaltiesList: 2 flo.path.penalties.bruce 001, PathCostUsd 5.62 and 9.59; StabilityPenaltyUsdList sums 0.00 and 0.52, every other penalty list all zero
+    FloName: bruce
+    FloGitCommit: bccfe4189a828740aadd3008699416e0e6c54bde
+  - t: 2026-11-18T23:58:04.330Z  # hw1.flo's reply to oak; beech's LTN hears it and drops it
+    created_ms: 1795046283886
+    type: flo.recommendation 002
+    BidderAlias: hw1.isone.me.versant.keene.oak
+    body: not kept; the vector needs only its BidderAlias
+  - t: 2026-11-19T00:00:05.982Z  # the LTN, not the service: the clearing as a word (hub invariant 7)
+    created_ms: 1795046400353
+    from: hw1.isone.me.versant.keene.beech
+    type: flo.previous.run 000
+    body: beech-flo.previous.run-000.json
+    ClearedPairIndex: 0
+    ClearedPair: [2000000, 0]
+    NextSlotPriceX1000: 114496   # the request's PriceUsdMwhList[1]
+
+not_in_window:
+  - the routing keys and header Dst of each message; the journal keeps the body and the sender
+  - beech's plant-shape transition matrix; replay serves the one the request's plant shape hashes to
+  - a refusal of any kind
+  - the market's clearing message itself; only the LTN's record of it is here
+tolerance: the reply before GWFLO_REPLY_DEADLINE_S from the request's arrival; PqPairs, OptimalPathList, StoreStateList and PathPenaltiesList exact; CreatedMs free

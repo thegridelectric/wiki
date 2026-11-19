@@ -1,6 +1,6 @@
 # bruce FLO — the heat-pump-and-water-tank asset model
 
-Status: Draft · Pass 0 · Updated 2026-11-01
+Status: Draft · Pass 0 · Updated 2026-11-18
 
 > What this is: the spec of the FLO in `optimal-flexibility` (the `bruce`
 > package): what it takes as a request, what it assumes about the plant
@@ -22,7 +22,11 @@ The store is `num_layers` equal layers of water, `storage_volume_gallons`
 in all, described at any step by a top, middle and bottom temperature and
 two thermocline indices. Energy is relative to the coldest allowed
 state; `storage_losses_percent` of the energy above that floor leaks per
-hour.
+hour. The house reports its thermoclines in sensor positions counted
+from the top; bruce maps each onto the tuning's `NumLayers` as the same
+fraction of the modeled store, rounded to a layer and never above the
+top one (`optimal-flexibility` `src/bruce/service.py`
+`thermocline_layer`).
 
 ## The heat pump
 
@@ -92,16 +96,19 @@ other change is refused.
 ## Admissibility
 
 bruce models one heat pump charging one stratified store that serves one
-distribution system. An ops instance names it only where that holds: a
-House0 family whose `SiegLoopStrategy` is `HoldFullSend` or
-`StratProtect`. A Nolan family, or a House0 family running `LwtControl`,
-names `flo.tuning.alice`, the stub FLO that answers every request with a
+distribution system. The axiom on `gw.operational.params`
+(`FloTuningAdmitsFamily`) states the one exclusion written so far: a
+House0 family whose `SiegLoopStrategy` is `LwtControl` SHALL NOT name
+`flo.tuning.bruce`. A house held out of bidding names
+`flo.tuning.alice`, the stub FLO that answers every request with a
 recommendation holding no price-quantity pairs, from which no bid is
-made. The rule is an axiom on
-`gw.operational.params`, not a judgment in the caller.
+made. The axiom has no clause for a Nolan family; whether one belongs
+there is the Open item below.
 
 ## Open
 
 - Whether the constant lift holds against the fleet's measured lift:
   the design that tests it is in this domain's `designs/`.
 - `cop_lwt_coeff` is accepted and unused by the COP curve.
+- Whether `FloTuningAdmitsFamily` gains a clause for `gw.nolan.family.params`:
+  bruce models one store, and a Nolan plant has none.

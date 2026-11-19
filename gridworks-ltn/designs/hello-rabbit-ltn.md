@@ -1,6 +1,6 @@
 # hello-rabbit-ltn
 
-Status: Draft · Pass 0 · Updated 2026-11-04 · Linear: OPS-659
+Status: Draft · Pass 0 · Updated 2026-11-18 · Linear: OPS-659
 
 **EDD: yes** verified by a seam test on the dev broker: a paho stand-in
 scada on the MQTT face publishes `layout.lite`, the operating status and
@@ -288,7 +288,7 @@ is needed:
    and `ltn_actor.py` and its `asyncio.sleep` waits go through
    `plant_clock`, and `on_simulated_time` advances it. The same change
    the sim-time design wants
-   (`wiki/gridworks-scada/designs/simulated-test-environment/sim-time.md`,
+   (`wiki/simulated-world/designs/simulated-test-environment/sim-time.md`,
    "Where two clocks meet"); the scada's side of that clock is its
    own work there. This is also the first step of "Do this next" item
    1, so the FLO leg's test and the harness share it.
@@ -423,6 +423,48 @@ clock cannot drive it yet.
   edge back. Open: the request leg from a live `run_flo`, which needs a
   settable clock and a store reading in the seam test.
 
+## The forecasts off the broker
+
+The scada's LTN pulls both forecasts over HTTP every slot: the weather
+bundle from the weather service's `latest-forecast` route (the URL a
+setting) and `gw.price.forecast` from a URL hard-coded in `ltn.py`,
+kept on disk as the copy it reads when the service is unreachable. Both
+services are gwbase actors that broadcast the same documents on `rjb`:
+the price actor emits each new forecast on radio channel
+`e.<product>.<mm-alias>`, the weather service each bundle on its bundle
+name per `EmitPeriodS`. The gwbase LTN binds those two channels the way
+it binds the maker's `latest.price`, and the HTTP pulls and the
+hard-coded URL go.
+
+What a subscription alone does not give is the first forecast after a
+start. A broadcast comes when the service emits, and the price service
+emits once per ISO-NE posting, so a freshly booted LTN with nothing
+kept could wait hours. The fix is a request each service answers:
+
+- **The reply is the broadcast itself.** The request means "emit your
+  current forecast now", and the service answers by re-broadcasting the
+  current document on its normal radio channel. One new word per
+  service and no reply topology: a reply addressed to the requester
+  would need a per-requester topic or a reply to the whole `ltn` class,
+  which is a broadcast anyway. Every listener benefits from the
+  re-emission, a late LTN and a late journal alike. The request is
+  idempotent and cheap, since the document is already built and kept.
+- **The rule that makes it a second read path.** The house API pattern
+  puts reads on the public façade and writes on rabbit. A GNode on the
+  broker should need no public URL and no second identity to get what
+  another GNode publishes, so a broker consumer asks on the broker and
+  an outside reader uses the façade. The façade stays byte-identical to
+  the broadcast.
+- **The LTN's side.** Both radio channels bound; the request sent at
+  boot when nothing is kept or the kept copy is stale; the kept copy on
+  disk stays as the current-forecast store the broadcast refreshes; the
+  HTTP pulls removed.
+
+The words come first, through the sema canon and a proposal; then a
+handler in each actor and the LTN change. Its own flat issue, about a
+day. Until it is built the executor's `flo-boundary.md` describes the
+pulls as they run.
+
 ## Do this next
 
 The port is built: the vocabulary is the vendored snapshot, no scada
@@ -461,7 +503,7 @@ Next:
    sim-time design wants anyway: `clock.py` has the `Clock` interface,
    and the remaining wall-clock reads in `contract_handler.py` and
    `ltn_actor.py` go through `plant_clock` in one change
-   (`wiki/gridworks-scada/designs/simulated-test-environment/sim-time.md`
+   (`wiki/simulated-world/designs/simulated-test-environment/sim-time.md`
    names the LTN as the file to migrate whole).
 2. **The words.** `no.new.contract.warning` is coined (START HERE) and
    its local class in `words.py` retires; `send.snap`, `snap()` and the
@@ -494,3 +536,6 @@ Next:
    the executor; the first round is next, from the review above, and
    covers the contract handler first since it has no test and the
    three suspected bugs.
+7. **The forecasts off the broker** ("The forecasts off the broker"):
+   the two request words, the two handlers, the LTN binding the radio
+   channels, the HTTP pulls gone.

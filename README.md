@@ -79,7 +79,7 @@ design area.
 | [`gridworks-base/`](gridworks-base/) | The rabbit-transport actor framework + sema codec boundary |
 | [`gridworks-data/`](gridworks-data/) | The shared postgres+TimescaleDB schema, alembic migrations, and SQLAlchemy mapping (`gw_data`) consumed by app services |
 | [`gridworks-ltn/`](gridworks-ltn/) | LeafTransactiveNode — per-house transactive agent (parent of scada). Code currently at `gridworks-scada/gw_spaceheat/actors/ltn/`; runs via tmux; uses private `gridworks-innovations/gridworks-flo/`. Acceptable-minimum spec, lots Open. |
-| [`flo/`](flo/) | FLO — the per-house bid optimizer (`gridflo`, private `gridworks-innovations/gridworks-flo/`); runs in-process in each LTN today, becoming its own service (OPS-514). Executor hub stub only. |
+| [`gridworks-flo/`](gridworks-flo/) | FLO — the per-house bid optimizer (`gridflo`, private `gridworks-innovations/gridworks-flo/`); runs in-process in each LTN today, becoming its own service (OPS-514). Executor hub stub only. |
 | [`gridworks-weather-forecast/`](gridworks-weather-forecast/) | Weather service. Today: like-for-like port of `gjk/weather_service.py` (publishes `weather` v000). Eventually: forecasts (`weather.forecast`) for LTN forward-looking optimizers + observations under a renamed `gw.weather`-ish type. |
 | [`gridworks-web-backend/`](gridworks-web-backend/) | The fleet web page's two services: the read API over the journal DB and the realtime WebSocket gateway from the tap broker. |
 | [`gridworks-web-frontend/`](gridworks-web-frontend/) | The fleet dashboard in the browser, a GitHub Pages app over the web-backend API and gateway. Changelog only so far. |
@@ -93,6 +93,7 @@ design area.
 | [`heating-system-design/`](heating-system-design/) | Store-under-floor + heating-system engineering & economics |
 | [`awhp-launch/`](awhp-launch/) | Roadmap for launching transactive air-to-water heat pumps in the US: education, installers, manufacturers, the muni business model |
 | [`world/`](world/) | Standing up a GridWorks World — running the ecosystem at any scale/fidelity (laptop → hundreds of actors; real / simulated / hybrid) |
+| [`simulated-world/`](simulated-world/) | The work to run a simulated GridWorks world on the simulation host: the simulated plant, the services in containers, the `hw2-1` stack |
 
 ## Cross-cutting
 

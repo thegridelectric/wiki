@@ -13,6 +13,17 @@ Newest at the top.
 
 ---
 
+## 2026-11-18 — remove dead  get_house_available_kwh (`310675cc`, main, PR #628, OPS-654)
+
+**Why.** The LTN launch close-out. `get_house_available_kwh` scraped
+zone channel names for a house-energy figure nothing read: no caller on
+`main`, and the FLO request has never taken it. The lookup it should
+have been (each zone's circuit by position, weighted by `KwhPerDegF`)
+is a feature for the FLO words when a FLO wants house mass, not a
+cleanup of this function.
+
+**What.** 11 lines out of `actors/ltn/ltn.py`. No behaviour change.
+
 ## 2026-11-14 — The LTN port reads gw.price.forecast and asks the FLO with flo.params 002 (`d8bcdbf`, jm/price-forecast-word, OPS-666)
 
 **Why.** The same change as the scada's LTN, kept in step so the port

@@ -1,6 +1,6 @@
 # api-pattern — the house HTTP pattern
 
-Status: Draft · Pass 0 · Updated 2026-09-10
+Status: Draft · Pass 0 · Updated 2026-11-18
 
 > What this is: how GridWorks services expose HTTP surfaces — the
 > route grammar, the sema-word contract, and the read-façade posture.
@@ -17,6 +17,10 @@ request-shaped and belongs on HTTP. **Nothing binding crosses REST**
 service; REST serves derived, read-only projections. gwbase is
 deliberately HTTP-silent: serving HTTP is service-level composition,
 never a base-class capability.
+
+The façade serves readers outside the broker. A GNode finds another
+GNode by alias on their universe's broker and holds no other GNode's
+URL (`../world/primary.md` "Invariants", 5).
 
 The façade is thin: it translates HTTP onto the same
 transport-agnostic reads the service's other adapters use (gnr's

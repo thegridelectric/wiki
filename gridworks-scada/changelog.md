@@ -10,6 +10,136 @@ repo's git history.
 
 Newest at the top.
 
+## <!-- pending commit --> — A flo.tuning.bruce 001 in the ops file is refused (jm/no-flo-tuning-lift)
+
+**Why:** the scada speaks one version of each sema word and stays in
+lock-step with tlayouts. PR 629 added `_lift_flo_tuning_bruce` in
+`sema_to_dc.py`, which rewrote a nested `flo.tuning.bruce` 001 to 002
+with the penalty off before validation, so a scada could boot on the
+fleet's unregenerated ops files. That turned a stale layout pair, a
+fault the scada knows before any relay moves, into a silent default:
+every house ran with the unmet-load penalty off, and oak and beech
+never charged. The lift is deleted; `decode_operational_params`
+validates the file as authored, and a 001 tuning fails the decode and
+the boot. The test that asserted the lift becomes one that asserts the
+refusal (`tests/named_types/test_flo_tuning.py`). The 002 pairs the
+decode demands come from tlayouts, regenerated and rolled house by
+house.
+
+## 2026-11-18 — Adding unmet load penalty (`2105d874`, #629)
+
+**Why:** the FLO gains an unmet-load penalty. The snapshot is
+regenerated against sema: `flo.params` 003, `flo.path.penalties.bruce`
+001, `flo.recommendation` 002 and `flo.tuning.bruce` 002, which adds
+`UnmetLoadPenaltyEnabled` and `UnmetLoadPenaltyWeight`; the gwsproto
+twins and the test ops fixtures follow. The commit also added a
+hand-written lift of a nested 001 tuning to 002 in
+`decode_operational_params`, so the scada would boot on the fleet's
+unregenerated ops files with the penalty defaulted off. That lift is
+reversed in the entry above.
+
+## 2026-11-18 — A device says where it is for the log; the empty bus result is pinned (`4d8f93e9`, jm/plant-seam, OPS-692)
+
+**Why:** the second and fourth of the five behaviour differences PR 618
+does not list, and the third, which turned out to be already tested.
+Main's log lines named the BCM pin ("Setting pin 22 to High",
+"GpioSensor started on GPIO 22"); the branch's actor no longer knows
+its pin, the drive does, so the lines read "Energize set" and
+"GpioSensor started". The GPIO drive, the GPIO pin input and the two
+plant-link devices now print where they are (`GPIO 22`, `plant relay
+vdc-relay`, `plant pin opto-input`) and the two log lines use it; a
+test in `tests/test_plant.py`. The fourth: a bus reply of success with
+no value. Main passed `None` into the level arithmetic, which returned
+`None` on an active-high board and raised `TypeError` on an active-low
+one; the branch's drive reads it as a failed read with the bus's words
+or "bus op failed". That is the right behaviour and is now pinned,
+with the refused op and the timeout, in the same file. The third, a
+GPIO sensor publishing the first value after a run of failed reads
+whatever `AsyncCapture` says, has no counterpart on main (a raising
+read there ended the sensor's task) and was already asserted by
+`tests/actors/test_gpio_sensor.py` ("the first value after the outage
+is a change"); kept.
+
+## 2026-11-18 — A GPIO relay reports a failure after the write as a Critical glitch (`224ea39a`, jm/plant-seam, OPS-692)
+
+**Why:** the first of the five behaviour differences PR 618 does not
+list. Main wrote a GPIO relay's pin inline in `process_message`, on the
+proactor's loop, where hardware work does not belong; an exception
+there escaped to the scada's generic catch as an `actor-raised` Error
+glitch. The branch actuates as a task, like the I2C relays, and the
+drive hands a refused write back as data, which the actor reports as a
+Critical `relay-actuation-failed` glitch. That is better. But a task
+has nobody above it to catch what the rest of the coroutine raises, so
+a failure in the pin report, `send_state` or the full report died
+unseen ("Task exception was never retrieved"). The reporting now runs
+under one catch that sends a Critical `relay-report-failed` glitch
+naming the event, the exception, the trigger and the state the machine
+holds. Two tests in `tests/actors/test_relay_gpio_actuation.py`, on
+Nolan's `vdc-relay`: a refused write, and a step after the write that
+raises. The second failed before the fix with the exception in the
+task's repr and no glitch. The task object the proactor keeps per
+command is OPS-694.
+
+## 2026-11-18 — Merge main into jm/plant-seam: flo.params 003, snapshot regenerated for axiom 6 BusUniqueness (`1607446b`, OPS-692)
+
+**Why:** main's PR #629 moves the scada to `flo.params 003`,
+`flo.recommendation 002` and `flo.tuning.bruce 002`, the versions
+sema `dev` now has `gw.operational.params 000` refer to. With that in,
+one snapshot can again hold one version of each word, so the branch's
+snapshot is regenerated from sema `dev` cfa2b66 inside the merge: the
+only conflicts were in two generated snapshot files, and the regen is
+their resolution. Against main's snapshot the diff is the branch's
+`sim.plant.flux` and `sim.plant.actuation` words with the format they
+pull in, and axiom 6 of `gw1.scada.device.type.gt` as BusUniqueness.
+
+## 2026-11-18 — Axiom 6 is BusUniqueness; the bus actor checks for one bus itself (`952c1373`, jm/plant-seam, OPS-692)
+
+**Why:** sema's `gw1.scada.device.type.gt` axiom 6 is now BusUniqueness
+(every `BusList` Name and BusNumber unique) in place of SingleBus, which
+held a board record to one bus with a reason about the scada process.
+The gwsproto twin's `check_axiom_6` mirrors the new clauses, with a
+test per clause and one that a record with two distinct buses is
+accepted. The bus actor read `BusList[0]` on the strength of the old
+axiom; it now checks the record declares exactly one bus and fails the
+boot with the reason (this actor drives one adapter and has no rule for
+which to open until each bus node binds to its own entry), tested in
+`tests/actors/test_i2c_bus.py`. The scada's sema snapshot is not yet
+regenerated: sema `dev` also moved `gw.operational.params 000` to
+`flo.tuning.bruce 002` while the seed pins `flo.params 002`, which
+refs `001`, so one snapshot cannot hold one version; the scada adopts
+`flo.params 003` under OPS-683 first, then this branch regenerates.
+
+## 2026-11-18 — Each scada routes devices for the ShNodes under its own top node (s or s2) (`25d9ef3e`, jm/plant-seam, OPS-692)
+
+**Why:** One of the five behaviour differences PR 618 does not list:
+`route_devices` resolved every node in the layout, so bad board data on
+a node this process does not run failed its boot, and the secondary
+scada built an empty plant, so a device node under `s2` would have
+failed the secondary's boot on its first `my_device`. The proactor
+builds actors for the nodes under its own scada node and no others.
+`route_devices` now takes that node (`run_by`) and routes by the same
+rule; the primary passes `s` and the secondary `s2`. Three tests in
+`tests/test_plant.py`: a thermistor reader under the primary with a
+config the layout word accepts and the resolver rejects fails the boot
+(the device contract); the same reader under `s2` leaves the primary's
+boot alone; and on a real board the reader under `s2` is in the
+secondary's plant and the relays in the primary's. Today's House0
+layouts put only thermostats and the TSnap `MultipurposeSensor` under
+`s2`, which route nothing, so no house was exposed.
+
+## 2026-11-18 — Merge remote-tracking branch 'origin/main' into jm/plant-seam (`567736ef`, OPS-692)
+
+**Why:** PR 618 (device actors reach their hardware through a plant)
+forked from main on 2026-11-09 and main has nine commits since. The
+branch is cut from the PR's tip and main is merged in, so the plant seam
+can be checked, run on a bench Pi and tried in the field against the
+code the houses run now. Two resolutions. `strat_protect.py` is main's:
+the PR's blind-reason log line read `hp_turned_off_time`, which the sieg
+homing change removed, and main logs the reason at the same place; the
+PR's test of that line goes with it. The sema snapshot is regenerated
+from the two seed requests merged, which adds `sim.plant.flux` and
+`sim.plant.actuation` to main's vocabulary and changes nothing else.
+
 ## 2026-11-16 — Remove the sieg valve's at-the-stop shortcut (`341090c1`, main, OPS-392)
 
 **Why:** `97cb4440` made a strategy move to a stop the valve already
@@ -887,8 +1017,8 @@ into edge costs; the previous run lost when the minute-0 tick came
 before the price; held state going inconsistent for five hours at the
 fall-back change; `stop` unable to reach a run blocked in a wait, so
 systemd killed the unit; and a copy of bruce's `recommend` loop with
-an allow-list of what may change between phases. The design is the
-spoke's "One call and response".
+an allow-list of what may change between phases. The contract that
+came out of it is the LTN executor's `flo-boundary.md`.
 
 **What.** At the bid minute the LTN measures the store, builds
 `flo.params` for the next slot (`next_slot_start_s`, whole hours of

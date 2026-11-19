@@ -7,7 +7,7 @@ Status: Draft · Pass 0 · Updated 2026-10-26 · Linear: OPS-392
 > `jm/spruce-unlimbo` can connect to the production broker, and gives
 > the LTNs what they need once the word stops sending them operational
 > parameters. The segment after the LTNs run on the new code is
-> ltns-ready (OPS-654); the merge to `main` is `deployment.md`.
+> OPS-654, done; the merge to `main` is `deployment.md`.
 
 ## Do this next
 
@@ -71,8 +71,8 @@ the LTN harness mode.
    staging admin word sent over the broker, the shape of the scada's
    admin words. Then roll spruce, both halves, to the branch and leave
    it.
-4. Distill into `executor/`, move what is still open into
-   ltns-ready (OPS-654), delete this file.
+4. Distill into `executor/`, move what is still open into the LTN
+   executor's Open sections, delete this file.
 
 ## Open
 

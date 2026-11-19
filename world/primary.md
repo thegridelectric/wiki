@@ -1,6 +1,6 @@
 # world — standing up a GridWorks universe
 
-Status: Draft · Pass 0 · Updated 2026-06-09
+Status: Draft · Pass 0 · Updated 2026-11-18
 
 > What this is: the hub for **building and running a GridWorks World** — a
 > self-contained instance of the ecosystem, at any scale and fidelity (one
@@ -47,6 +47,15 @@ fleet".)
    **AMQP**. A World's broker must enable both and the bindings that fan
    between them. A from-scratch broker MUST declare its own exchanges +
    bindings — do not rely on a baked image's fabric.
+5. **Identity is the alias; the broker is the only address.** A GNode is
+   identified by its GNodeAlias and reached on its universe's broker. It
+   finds every other GNode by alias on that broker, and the broker's URL
+   is the one address it is configured with. A hostname, port or IP is a
+   deployment fact of a box and lives in gridworks-infra. It names
+   nothing in the universe, so an orchestrator may move it without the
+   universe noticing. A GNode's public HTTP route is a façade for readers
+   outside the broker, not a way for GNodes to find each other. A GNode
+   that holds another GNode's URL is the defect this rules out.
 
 ## Experiments (vs tests)
 
@@ -75,7 +84,7 @@ Two standing requirements follow:
 - **The World provides replicable experiment tooling** — a broker-coordinates
   profile, a generic observer/tap, a single-emit driver, branch-pinning,
   capture/replay, one-script orchestration. The backlog for this lives in the
-  scada `simulated-test-environment` design (spoke `experimentation-tools`,
+  `simulated-test-environment` design (OPS-40; spoke `experimentation-tools`,
   absorbed from this domain 2026-06-11); the as-is scada rig is in
   [`../gridworks-scada/executor/experimentation-rig.md`](../gridworks-scada/executor/experimentation-rig.md).
 

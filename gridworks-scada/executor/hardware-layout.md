@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-11-01
+Status: Draft · Pass 0 · Updated 2026-11-18
 
 # The hardware layout
 
@@ -339,7 +339,9 @@ breaks leaked House0 assumptions — and each becomes a **Sema layout type**:
 
 - **`gw.house0.layout`** — the five-home fleet (beech, elm, oak, fir, maple).
   Hubitat thermostats + eGauge power meter + TSnap ADS thermistors + pico tank
-  modules.
+  modules. The TSnap thermistors are installed hardware and no new layout
+  adds one: the `MultipurposeSensor` actor reads its ADS chip directly under
+  `s2`, outside the plant seam, and no sim layout names it.
 - **`gw.nolan.layout`** — the gw108 one-off (Spruce). The gw108 board does room
   temp + whitewire sensing.
 - **`gw1.simple.sim.layout`** — the deliberately-simplest fake-physics sim plant.

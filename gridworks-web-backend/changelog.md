@@ -10,6 +10,42 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-18 — minor README update (`a79b943`, jm/ops-683-review, OPS-683)
+
+The paragraph under "The FLO re-run on a laptop" still told a reader to
+install a local optimal-flexibility "over the pinned one" and to move
+the lock with `uv lock --upgrade-package`. With bruce an editable path
+source, neither applies: the sibling checkout is what solves, and a pull
+or branch switch there needs no re-sync. The paragraph now says that,
+and that a version mismatch answers 422 with bruce's own reason.
+
+## 2026-11-18 — bruce is the sibling checkout, and the re-run's 422 says what bruce said (`d236bc3`, jm/ops-683-review, OPS-683)
+
+**Why.** The lock pinned bruce at a commit that predates bruce's own
+`FloRerunRequest`, so the route imported a class the installed package
+lacked and every re-run answered 500. Production has no bruce, and on a
+laptop bruce is the sibling checkout being worked on, so a commit pin was
+the wrong shape: the `rerun` group now sources `bruce-energy` from
+`../optimal-flexibility`, editable, and `uv sync --group rerun` installs
+whatever is checked out there. In the route, the wrapper no longer
+rewrites every decode error as a version mismatch: a word bruce cannot
+read answers with bruce's reason, and bruce itself names both versions
+for a `flo.params` it reads but does not solve. The `isinstance` check on
+the inner params goes, since the wrapper's type already states it.
+
+## 2026-11-17 — Add FLO rerun request (`69a9b82`, OPS-683)
+
+**Why.** The re-run could edit bruce's penalty tuning but not force heat
+pump steps on or off, which bruce's optimizer already accepts and no
+word stated. The route's body becomes `flo.rerun.request` 000, published
+to the registry first: it wraps a `flo.params` with the forced-on and
+forced-off step lists, and its two axioms (steps inside the grid, no
+step in both lists) are validators in the vendored class. The snapshot
+takes the word and its sample; the tests send the wrapper. The lock
+stays at bruce `6632ea5`, which predates bruce's own `FloRerunRequest`,
+so the route's import fails until bruce is sourced from the sibling
+checkout in a following change.
+
 ## 2026-11-15 — The re-run solves with bruce at flo.params 002 (`c260b4a`, OPS-665)
 
 **Why.** The LTNs moved to `flo.params` 002 the evening of 2026-11-14 and

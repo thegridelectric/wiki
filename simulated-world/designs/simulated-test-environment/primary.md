@@ -61,7 +61,7 @@ and fleet behaviour with confidence, and is the prerequisite for the hybrid
 real+simulated fleet vision.
 
 So the simulation harness is the top of the scada work. The big projects ahead
-(the AllyLink / proactor-link redo — see `../executor/scada-ltn-link-state.md`)
+(the AllyLink / proactor-link redo — see `../../../gridworks-scada/executor/scada-ltn-link-state.md`)
 need testing by experiment, the way we want to test, so the harness comes first —
 and we set up the MVP the way it will work when we are really modeling terminal
 assets. For now, most of what we want to test is comms infrastructure. The MVP's
@@ -87,7 +87,7 @@ FULL-AllyLink territory.
 **The harness is also the spec-building instrument.** The 2026-06-10 live run
 (full ltn/scada on dev rabbit, ~5 minutes, wire capture + both process logs)
 produced essentially all the productive material in
-`../executor/scada-ltn-link-state.md` — observation-driven spec building. The rig
+`../../../gridworks-scada/executor/scada-ltn-link-state.md` — observation-driven spec building. The rig
 makes that a one-command cadence: bring up the stack, capture, write what IS, let
 divergences drive design.
 

@@ -1,6 +1,6 @@
 # grid-node-registry — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-10-10
+Status: Draft · Pass 0 · Updated 2026-11-18
 
 > What this is: the faithful spec of the **Grid Node Registry** (`gnr`) — the
 > authoritative record of GridWorks GNodes, their geographic positions, and the
@@ -35,7 +35,9 @@ an enum), held consistent with `base_class` and `alias` by the GT axioms below.
 point here.
 
 A **universe** is the first dotted segment of a GNodeAlias, and its **kind** is
-that segment's first letter. The kinds form a ladder — each step adds a
+that segment's first letter. The alias is the GNode's identity and the
+universe's broker its only address; a URL identifies nothing in a universe
+(`../../world/primary.md` "Invariants", 5). The kinds form a ladder — each step adds a
 requirement:
 
 - **`d` — dev: runs locally on a single computer.** The defining property: **all

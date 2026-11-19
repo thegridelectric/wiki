@@ -14,8 +14,8 @@ A terminal asset is the GNode avatar for a real-world transactive
 device. This repo's actors are built on gridworks-base
 (`GridworksActor`), AMQP-native on the rabbit routing fabric. The
 first inhabitant is `gwta.hello` — a heartbeat-only actor proving the
-comms plumbing; simulated sensor emission arrives with the scada
-simulated-test-environment design.
+comms plumbing; simulated sensor emission arrives with the
+simulated-test-environment design (OPS-40).
 
 ## Settled facts (verified by the hello-world live run, 2026-06-11)
 
@@ -60,7 +60,7 @@ simulated-test-environment design.
 
 - The simulated terminal asset proper (synthetic channels, comms-test
   knobs, sema words for simulated sensor data) — specified in the
-  scada `simulated-test-environment` design; distills back here as it
+  `simulated-test-environment` design (OPS-40); distills back here as it
   ships.
 - GNode registry: when a terminal asset stops self-minting and gets a
   real provisioned identity (carried from the hello-world design).

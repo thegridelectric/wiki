@@ -7,7 +7,7 @@ in a broker-based **experiment** (not a test) — messages cross a real RabbitMQ
 never an in-process backdoor. Written from a live run: a patched LTN's messages
 reaching a JournalKeeper over `gw-dev-rabbit`. The reusable-tooling wishlist this
 exposed is the `experimentation-tools` spoke of the
-`simulated-test-environment` design (this domain's `designs/`); the
+`simulated-test-environment` design (OPS-40); the
 methodology (experiment vs test) is in [`../../world/primary.md`](../../world/primary.md).
 
 > **Experiment, not test.** The in-process `ScadaLiveTest` harness

@@ -122,11 +122,21 @@ One request, one reply, no state on the service between them.
 
 - [`bruce-flo.md`](bruce-flo.md) — the bruce asset model: request,
   plant assumptions, costs, response.
+- [`recommendation-example.md`](recommendation-example.md) — one real
+  `flo.recommendation` annotated field by field: the bid, the paths,
+  the store, and what `PathCostUsd` sums.
 - [`sema_seed_request.yaml`](sema_seed_request.yaml) — the service's
   seed, a verbatim copy of `gridworks-flo` `main`'s.
-- [`traces/2026-11-11-oak-bid/trace.yaml`](traces/2026-11-11-oak-bid/trace.yaml)
-  — the first trace: one bruce request from oak and the two-pair
-  recommendation the service answered.
+- [`traces/2026-11-18-beech-1900et/trace.yaml`](traces/2026-11-18-beech-1900et/trace.yaml)
+  — production, beech's 19:00 ET slot: `flo.params` 003 with the
+  previous slot's plan in it, `flo.recommendation` 002 with the on-pair
+  at $24/MWh, `flo.previous.run` with the slot cleared off; the bodies
+  beside it, verbatim, the ones `recommendation-example.md` reads.
+- [`traces/2026-11-18-oak-penalty-on-bid/trace.yaml`](traces/2026-11-18-oak-penalty-on-bid/trace.yaml)
+  — production, `flo.params` 003 to `flo.recommendation` 002 to
+  `flo.previous.run`: the unmet-load penalty on, the on-pair at
+  $103/MWh, the on-peak slot cleared off; the bodies beside it,
+  verbatim.
 - The executor tables (the rulebook form in
   `../../conventions/executor-CLAUDE.md`): Open.
 

@@ -115,7 +115,7 @@ rebuild):
   [`../../research/gnode-taxonomy.md`](../../research/gnode-taxonomy.md) (currently
   Logical).
 - **Per-node unit (already designed):** compose
-  `../../../gridworks-scada/designs/simulated-test-environment.md`
+  `../../../simulated-world/designs/simulated-test-environment/primary.md`
   (a single simulated house on gwbase) up to fleet scale.
 - **gwbase primitives:** `GridworksActor`, `GNodeStubRecorder`,
   `TimeCoordinatorStubRecorder`.

@@ -6,7 +6,7 @@ hop above each scada in the GridWorks fleet. It schedules the house's
 heating against forecasts and prices using a forward-looking optimizer
 (FLO).
 
-> Status: Draft · Pass 0 · Updated 2026-11-02
+> Status: Draft · Pass 0 · Updated 2026-11-18
 >
 > **Acceptable-minimum bootstrap** for a domain whose code does not yet
 > live in its own repo (the production code is in
@@ -113,8 +113,9 @@ matures.)
    traffic visible to ear-tx-bound consumers. No change planned;
    LTN keeps publishing on amq.topic.
 4. **The FLO is behind one call.** The LTN and its FLO share the
-   vocabulary and nothing else; the optimizer is a tagged dependency
-   from the public GridWorks fork (`flo-boundary.md`).
+   vocabulary and nothing else: a `flo.params` out over the broker to
+   the universe's FLO service, a `flo.recommendation` or `flo.refusal`
+   back (`flo-boundary.md`).
 5. **Three command surfaces, each declared.** Down to the scada (the
    dispatch contract), across from admin, and out to the homeowner. The
    LTN is the single writer of dispatch and mode to the scada; every
@@ -220,6 +221,7 @@ cleanup commit when this domain becomes active:
    Sema-validate-init-JSON, shipped in gwbase 0.5.0
    ([`../../gridworks-base/executor/actors.md`](../../gridworks-base/executor/actors.md))
    — and the gridworks-base design `must-accept-current-ltn-messages`.
-3. Move the FLO call's transport from the child process to the
-   broker round trip with the `hw1.flo` service (OPS-514); nothing
-   else at the seam moves.
+3. The dashboard reads zone names off channel names with a regex
+   (`ltn/config.py` `DashboardSettings.thermostat_names`, and
+   `dashboard/channels/containers.py` rebuilds names from list order)
+   where the layout's zone circuits answer. Display only.

@@ -10,6 +10,56 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-18 — oak and beech back on Ltn (`f6850a4`, jm/beech-oak-hold-off)
+
+**Why.** Oak and beech were put under operator hold earlier today while
+oak's LTN was declining to charge for 30 hours. The cause was the
+unmet-load penalty defaulting off: the scada's hand lift of a
+`flo.tuning.bruce` 001 to 002 set `UnmetLoadPenaltyEnabled` false on
+every house. With the 002 tuning and the penalty on in the pairs, the
+hold has no reason left: `operator_hold` is false again in
+`beech_gen.py` and `oak_gen.py`, both outputs regenerated, only the
+hold flag differing. The other houses keep their hold.
+
+<!-- pending commit -->
+## 2026-11-18 — cedar: pico census stub for the Katahdin layout (jm/cedar-layout)
+
+**Why.** Cedar is the first house on the Katahdin layout, and no Katahdin
+layout word exists in the sema snapshot yet, so the gen cannot be
+authored. The picos are being provisioned now, and their hwuids and
+boards would otherwise live only in someone's head: `cedar_gen.py`
+records them in the `BtuSpec` shape every other gen uses, commented out
+until the word exists. Primary BTU `pico_934cac` on a Wiznet Pico 2
+(`PicoWiznetEth2350`), secondary BTU `pico_605430` on a Wiznet Pico
+(`PicoWiznetEth2040`); MicroPython releases not yet read off the boards.
+
+## 2026-11-18 — The fleet bruce tuning is 002 with the unmet-load penalty on; snapshot from sema dev cfa2b66 (`ae0da96`, jm/fleet-tuning-002)
+
+**Why.** `flo.tuning.bruce` 002 adds `UnmetLoadPenaltyEnabled` and
+`UnmetLoadPenaltyWeight`, and `gw.operational.params` 000 now takes the
+002. tlayouts still authored the fleet tuning at 001, so every scada
+lifted it at boot with the penalty off (sema's 001-to-002 upgrade keeps
+the old word's meaning), and bruce planned to leave load unserved at no
+cost. The vendored snapshot is regenerated from sema `dev` (cfa2b66),
+`BRUCE_FLEET_TUNING` is a 002 with the penalty on at weight 10, and
+every house is regenerated: the only changed field in each operational
+params file is the tuning's version and the two new fields. The
+`.uploaded.json` copies for elm, fir and maple also refreshed from the
+pis (they gained `last-hour-dist-energy`); not part of this change.
+
+## 2026-11-18 — until we figure out why oaks ltn is choosing not to charge for the next 30 hours, oak and beech back to local control (`6fd8d7e`, jm/oak-beech-operator-hold)
+
+**Why.** Both houses run BufferOnly with the fleet bruce tuning, whose
+`UnmetLoadPenaltyEnabled` is false. With unmet load free and the RSWT
+penalty at weight 0.075, bruce's cheapest 48-step plan is to never
+charge: oak's 12:00 EST recommendation drains the buffer by 05:00 and
+leaves 25 kWh of forecast load unserved, bidding at -$46/MWh to heat.
+The scada follows the cleared pair, so the heat pump ran once today
+(01:00 EST). `OperatorHold` true makes the scada refuse the dispatch
+contract (`dispatch-gate` reason `OperatorHold`) and heat under local
+control until the tuning is fixed. Regenerated with the scada venv; the
+only changed output field in each house is `OperatorHold`.
+
 ## 2026-11-14 — regenerate every layout: fleet FLO tuning and last-hour-dist-energy (`3516263`, jm/regen-layouts)
 
 **Why.** The td/new-house-params branch changed the shared generators
