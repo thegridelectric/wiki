@@ -1,6 +1,6 @@
 # gridworks-scada — Claude protocol
 
-Status: Draft · Pass 0 · Updated 2026-11-14
+Status: Draft · Pass 0 · Updated 2026-11-19
 
 ## Scada is a statue: chip, don't sculpt
 
@@ -35,6 +35,20 @@ control manifold (no iso valve, no buffer tank); the third is a cement
 store-under-floor with no water tanks at all. Scada code SHALL NOT assume a
 buffer tank, an iso valve, or water store tanks exist; "shared" means every
 layout we can imagine has it, not both current families.
+
+**Control code is selected once, by stated facts; no family branches
+inside a machine.** The local-control loader table (executor
+`local-control.md` "Selection") is the only place the scada chooses
+control code by family, and its keys are facts read once at construction
+from the layout and the operational params. A fact that changes a
+machine's states or transitions is a new machine and a new key in that
+table. A fact that changes only what a state acts on is read once at
+construction and held as an attribute. Do NOT add an `if` on the layout
+family, the layout word or a layout fact inside a machine. Do NOT add a
+layout word for a control difference: a word is for a plant whose
+required node roster differs in the axioms; a control difference states
+its fact in the Hydronic block or the family params and conditions the
+roster axioms on it.
 
 **The Nolan iso valve is NOT under hp-boss.** `NolanBufferOnlyTou` owns
 `iso-valve-relay`: the boot posture commands it open and nothing closes

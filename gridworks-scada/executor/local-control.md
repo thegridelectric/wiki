@@ -1,6 +1,6 @@
 # Local control
 
-Status: Draft · Pass 0 · Updated 2026-10-28
+Status: Draft · Pass 0 · Updated 2026-11-19
 
 > What this is: how a scada chooses its local control, what standby is,
 > the Nolan heating machine and the heat-pump watch it follows, the
@@ -30,6 +30,34 @@ An authored machine name would restate these facts and could disagree
 with each of them, so there is no strategy enum. A scada that touches
 nothing is `Standby` with posture `MonitorOnly`. The fields are read
 once at construction; a change is new operational params and a restart.
+
+### One selection, no family branches
+
+The table above is the only place the scada chooses control code by
+family. A machine, once selected, does not ask which family or which
+layout word it runs on, and it does not branch on a layout fact to
+change its states or transitions. The test for where a fact goes:
+
+- **A fact that changes the transition table selects a machine.** New
+  states, new events or new transitions are a new machine, and the fact
+  that calls for it becomes a key of the table, a stated layout or
+  params fact read once. The machine itself has no `if` on the fact.
+- **A fact that changes what a state does is read at construction.** A
+  machine asks the layout once for the nodes and channels it acts on
+  (the element relays, the pump recovery nodes) and holds the answer as
+  a plain attribute. It may act on an empty answer. It does not re-read
+  the layout to decide which rule applies.
+- **A layout word names a node roster.** A new word is for a plant
+  whose required ShNodes, channels and components differ in the axioms.
+  A control difference alone adds a key to the table, not a word; the
+  fact behind it is stated in the layout's Hydronic block or in the
+  family params, and the word's axioms condition the roster on it.
+
+The reason is that a machine with family branches inside it is read as
+one machine and behaves as several, and the behaviour the tests pin is
+the one the author had in mind. The leaf ally and every other reader in
+the list below follows the same rule: one selection by stated facts,
+read once.
 
 The other readers of the same facts:
 
