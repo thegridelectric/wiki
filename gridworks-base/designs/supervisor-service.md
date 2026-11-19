@@ -1,6 +1,6 @@
 # Supervisor service
 
-Status: Draft · Pass 0 · Updated 2026-11-18
+Status: Draft · Pass 0 · Updated 2026-11-18 · Linear: OPS-695
 
 **EDD: yes** verified by an experiment on the dev broker: N stand-in LTNs
 and one Supervisor; pausing one child (`SIGSTOP`) produces a glitch within

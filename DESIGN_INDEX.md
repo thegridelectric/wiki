@@ -63,7 +63,7 @@ _(every file under a `designs/` folder, anywhere in the wiki)_
 - **gridworks-base** — [`designs/mock-transport-for-tests.md`](gridworks-base/designs/mock-transport-for-tests.md)
 - **gridworks-base** — [`designs/neutral-message-metadata.md`](gridworks-base/designs/neutral-message-metadata.md)
 - **gridworks-base** — [`designs/publish-backpressure.md`](gridworks-base/designs/publish-backpressure.md) (bound the marshaled-send queue; backlog follow-up to OPS-383; Linear OPS-384)
-- **gridworks-base** — [`designs/supervisor-service.md`](gridworks-base/designs/supervisor-service.md) (the first real Supervisor: a monitor over N `gwltn@<house>` units, heartbeat + glitch, restarts nothing; Draft, no Linear issue yet)
+- **gridworks-base** — [`designs/supervisor-service.md`](gridworks-base/designs/supervisor-service.md) (the first real Supervisor: a monitor over N `gwltn@<house>` units, heartbeat + glitch, restarts nothing; Draft, Linear OPS-695)
 - **gridworks-fleet-index-service** — [`designs/hundred-home-cert-mint.md`](gridworks-fleet-index-service/designs/hundred-home-cert-mint.md) (one provisioning act per house at 100 homes: GNode rows derived from the registry or minted by the tool; Linear OPS-575)
 - **gridworks-homeassistant** — [`designs/btu-meter-integration.md`](gridworks-homeassistant/designs/btu-meter-integration.md) (BTU meter → HA via HACS integration; Linear OPS-47)
 - **gridworks-web-backend** — [`designs/login-hardening.md`](gridworks-web-backend/designs/login-hardening.md) (revocable sessions, login throttle, per-person accounts, one login path, auth in web-backend's own identity database; then the read-only role on gridworks-pii and the dashboard's Address and Contact sections return; depends on OPS-473; Draft, OPS-600)
