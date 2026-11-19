@@ -10,7 +10,54 @@ repo's git history.
 
 Newest at the top.
 
-## <!-- pending commit --> — A flo.tuning.bruce 001 in the ops file is refused (jm/no-flo-tuning-lift)
+## 2026-11-18 — Plant seam: device actors reach their hardware through a plant (`2b2028f0`, #630, OPS-692)
+
+**Why:** a device actor (relay, GPIO sensor, thermistor reader, power
+meter, 0-10 V output) now reaches its hardware through a drive the layout
+chooses per node: a real drive on a real board, or a link to a plant that
+stands in for the hardware when the layout says a component is simulated.
+That is what lets a simulated house run the production scada against a
+plant instead of a sim-flagged code path, the ground the simulated-world
+work stands on. PR 630 took PR 618 (the plant seam as authored) and added
+what the scada protocol asks of a sculpt: main merged in, the sema
+snapshot regenerated from sema `dev` cfa2b66, and the five behaviour
+differences an independent line-by-line comparison found against main
+each fixed or kept with a test (the entries below from `jm/plant-seam`
+record them one by one). The I2C sequences are unchanged. Spruce ran the
+branch from 19:15 ET with a clean boot, the fleet's one GPIO relay
+actuating under the pico cycler and every channel reporting, and the
+fleet then rolled to the merged main house by house
+(`experiments/2026-11-18-spruce-plant-seam-roll/`).
+
+## 2026-11-18 — The relay pin's in-use warning is dropped at its setup (`1c8f686c`, jm/plant-seam, OPS-692)
+
+**Why:** RPi.GPIO warns `This channel is already in use` whenever a pin is
+already configured, and the relay pin always is after a scada restart: the
+previous process leaves it driven on exit so the restart never drops the
+relay, which is what we want. The warning fires on every restart and
+cannot tell that from another process holding the pin, so it says
+nothing. `GpioRelayDrive.attach` drops that one warning around its one
+`setup` call under a `warnings.catch_warnings` filter, with the reason
+beside it; the global `setwarnings(False)` would also hide the sensor
+pins' warnings. One test in `tests/test_plant.py` stubs `RPi.GPIO` to warn
+at setup and asserts the relay drive is silent while a sensor pin still
+warns.
+
+## 2026-11-18 — shut up the known code-update API hits (`4b65110d`, #632)
+
+**Why:** every pico posts `/<node>/code-update` on each boot to announce
+its firmware, and the pico cycler reboots the picos on purpose, so the
+unserved-post catch-all logged a warning and sent an `unserved-post`
+glitch per path on every cycle (eight at spruce's boot on `jm/plant-seam`,
+six more at its first cycler reboot at 19:21). The post says nothing the
+box does not already know. The handler now answers a path ending in
+`/code-update` with 404 and neither logs nor reports it; the pico's
+firmware returns without updating on anything but a 200 with content, so
+its behaviour is unchanged. The in-field upgrade path is slated for
+retirement, so this is a suffix check, not a served route. One test posts
+a `new.code` body and asserts 404, no glitch, no log line.
+
+## 2026-11-18 — sema_to_dc maps one TypeName/Version pair onto each data class; the flo.tuning lift is deleted (`89adfb69`, #631)
 
 **Why:** the scada speaks one version of each sema word and stays in
 lock-step with tlayouts. PR 629 added `_lift_flo_tuning_bruce` in

@@ -10,6 +10,28 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-18 — Price panels at the off-peak delivery scale, one pink for on-peak, a zoomed plot holds auto-refresh (`350b921`, jm/flat-delivery-price, PR #32)
+
+The on-peak delivery premium (the on-peak delivery charge over the
+off-peak one, $530/MWh, one constant in `tou-tariff.ts`) comes off
+every on-peak hour of the price panel's forecast and real-time traces
+and of the FLO plot's price, so the off-peak variation shows at one
+scale and the bands alone say which hours are on-peak. The panel is
+titled "Price*" with the rule in a note under it. `gw.tou.tariff` 000
+states windows and no prices; a tariff word with per-period delivery
+prices retires the constant. The FLO plot's bands move from
+the $400/MWh threshold to the house's tariff windows, in the price
+panel's pink (`ON_PEAK_FILL`), and the re-run horizon bars mark the same
+hours. Dragging a plot into a zoom sets a zoomed flag on the page (a ref,
+since a re-render alone hands every plot a fresh layout and resets its
+zoom), which holds the auto-refresh tick until a double-click or a new
+plot query; `plot-zoom.ts` reads the relayout event.
+
+Why: the on-peak price, $600 and more, flattened the rest of the price
+trace to a line along the axis, and the viewer already had the bands to
+tell on-peak from off-peak. Auto-refresh redrew every plot at the full
+window, so a zoom survived at most thirty seconds.
+
 ## 2026-11-18 — The 002 test word is a typed literal, so tsc -b passes (`f0645f5`, jm/ops-683-review, OPS-683)
 
 `npm run build` is `tsc -b && vite build`, and `tsc -b` failed on main

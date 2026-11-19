@@ -1,6 +1,6 @@
 # gridworks-scada — Rebuild Specification (primary)
 
-Status: Draft · Pass 0 · Updated 2026-11-06
+Status: Draft · Pass 0 · Updated 2026-11-18
 
 The faithful-rebuild hub for `gridworks-scada`. Intended to grow into a
 language-agnostic account complete enough to rebuild the SCADA from these docs.
@@ -80,6 +80,19 @@ what they control, and how they connect — it defines the actor graph at
 startup (not runtime config). Built programmatically under
 `gw_spaceheat/layout_gen/`; in-memory form is
 `gwsproto.data_classes.house_0_layout.House0Layout`.
+
+### Devices: the plant seam
+
+A device actor (relay, 0-10 V output, thermistor reader, GPIO sensor,
+power meter, the simulated sensors) asks the plant for its device by node
+name when it is built and says to it only channels, positions and levels.
+What answers is chosen once per node when the app is built, from the
+layout's board record: the board's own drive where the board is real, a
+link to a simulated plant where it is not, and each scada process routes
+only the nodes under its own scada node. Nothing a device does raises; a
+streak reports once; a device node without its device fails the boot. The
+seam, the glitches on it and the scada's side of the plant contract
+(`sim.plant.flux` in, `sim.plant.actuation` out): [`plant.md`](plant.md).
 
 ### Boundary protocol vs. runtime (Sema)
 
@@ -191,6 +204,7 @@ Normative across the domain — full statements in
 | Heat pump comms (call contact and Modbus from the vendor side, per heat pump model) | [`heat-pump-comms/primary.md`](heat-pump-comms/primary.md) | Draft |
 | The Siegenthaler loop actor as it runs (what it does, what maple shows, where it falls short) | [`sieg-loop.md`](sieg-loop.md) | Draft |
 | Procedural interrupts (the pump doctors inside the command tree: a procedure sends as the current command node, never through the scada) | [`procedural-interrupts.md`](procedural-interrupts.md) | Draft |
+| Plant (how a device actor reaches its hardware; the device contract; routing per node and per process; the glitches on the device path; the scada's side of the plant contract on a simulated layout) | [`plant.md`](plant.md) | Accepted |
 
 ## Open (top-level)
 

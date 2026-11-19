@@ -153,7 +153,7 @@ decode each via a union decoder, then pair component↔cac via
 | `web.server.component.gt` | web server | no | embedded `WebServer` |
 | `fibaro.smart.implant.component.gt` | Fibaro Z-Wave | no | none |
 | `resistive.heater.component.gt` | resistive element | **yes** | none |
-| `sim.pico.tank.module.component.gt` | **sim** Pico tank | no | `SimulatesTypeName`/`Version`; `SimLifeS`/`SimRebootS` liveness script (the actor runs the pico in-process, no HTTP ingress; absent = no scripted death / a dead pico stays dead; reboots always succeed); `extra=allow` |
+| `sim.pico.tank.module.component.gt` | **sim** Pico tank | no | `SimulatesTypeName`/`Version`; `SimLifeS`/`SimRebootS` liveness script, read by the standing plant alone (absent = a pico that never dies on its own / a dead pico stays dead); the actor takes each plant flux with its channels as a post (`plant.md`); `extra=allow` |
 | `sim.pico.btu.meter.component.gt` | **sim** Pico BTU | no | `SimulatesTypeName`/`Version`; `SimLifeS`/`SimRebootS`; runs under `ApiBtuMeter` the way the sim tank runs under `ApiTankModule` |
 | `sim.pico.flow.module.component.gt` | **sim** Pico flow | no | `SimulatesTypeName`/`Version`; `SimLifeS`/`SimRebootS`; no actor runs it (`ApiFlowModule` takes the real word only) |
 

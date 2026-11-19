@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-12
+Status: Draft · Pass 0 · Updated 2026-11-18
 
 # Testing the SCADA — the two harnesses
 
@@ -80,17 +80,19 @@ layout, so a test scada may take LTN contracts by default;
 (`scada-ltn-link-state.md` "The trading gate"). Only the deed's
 `ValidationState` is read, so one deed serves both fixture pairs.
 
-**Pico liveness in-process.** The sim pico (`sim.pico.tank.module.component.gt`,
-`sim.pico.btu.meter.component.gt`) is the liveness source for the cycler and
-admin tests: `ApiTankModule` and `ApiBtuMeter` each run a `SimPicoSource`
-(`actors/sim_pico_source.py`) inside the actor, posting `microvolts` or a
-`multichannel.snapshot` to themselves at the channel's capture period, with
-no HTTP ingress, so the real actor's reading path runs on a sim house. `SimLifeS` scripts the death and
-`SimRebootS` the reboot after a vdc-relay close; a reboot always succeeds,
-so a sim house never produces a Zombie. The sim configs set 120 s / 20 s so a
-flatline and a cycle fit inside a five-minute broker rung; the real-house
-rhythm is a separate knob when one is wanted. The terminal-asset plant is
-the physics source and does not replace the sim pico.
+**The plant in-process.** A live test's scada runs on a simulated layout
+and reaches its plant through the in-process plant link
+(`plant_link.py` `InProcessPlantLink`): the harness sets `plant_link` to
+`InProcess` unless the test asks for `Standing`, and plays the plant as
+`h.plant` (`tests/utils/played_plant.py` `PlayedPlant`). The played plant
+is always there, silence switched off, and starts with every metered
+channel at 0 W, every tank at rest and every BTU-metered loop with standing
+flow and no lift; each change a test makes (`show`, `hide`, `meter_reads`)
+reaches the scada as one whole flux, as a plant's does. The sim pico
+actors take each flux that has their channels as a post, so hiding a
+pico's channels is the pico going quiet and the cycler has something to
+recover. The terminal-asset plant is the physics source behind the broker
+link; the harness never opens one.
 
 **The sim-time listener starts only in `Scada.start_tasks`.** An
 instantiated-but-not-started scada must not open a paho thread against the
@@ -176,6 +178,22 @@ is not its handle parent, so a state change at a handle is proof of who
 commanded it. Mosquitto rather than the dev rabbit because CI starts mosquitto
 from `tests/config/` and the admin tests already ride it. Model:
 `tests/actors/test_hp_boss_live.py`.
+
+## The plant tests
+
+Each file and what it pins; the behaviour is [`plant.md`](plant.md).
+
+| File | Pins |
+|---|---|
+| `tests/test_plant.py` | the router: a node is routed once, a node nothing was routed for cannot sense or be driven; a drive hands back what its device throws and does not raise; the app puts the link behind sim sensors, sim picos and simulated-board relays and the board behind a real board's relays; each scada routes the device nodes under its own node, so bad board data on a node the primary runs fails its boot and a node it does not run cannot; the secondary's plant has nothing behind it; the relay pin's in-use warning is dropped at setup; a device says where it is; a bus result with no value is a failed read |
+| `tests/test_plant_link.py` | the link: each sensor gets its own channels in flux order and hears nothing from a flux without them; a channel has one sensor; a relay position goes to the plant and reads back, an unchanged set tells the plant again; a plant first heard, or back from silence, is told every position, a plant heard steadily is not; the flux topic is the wrapped grammar from plant to scada; the broker link delivers a wrapped flux, ignores what is no flux, sends an actuation the snapshot decodes, subscribes and restates on every connect; no link without a simulated device; the settings pick `Broker` by default, `InProcess` and `Standing` |
+| `tests/test_standing_plant.py` | the standing plant: the first flux shows every channel a simulated device senses, a sim sensor channel every five seconds at its telemetry's value, every metered channel at no power, a board thermistor at what the simulated ADC holds; a pico posts at its capture period, dies after its life, stays dead without a reboot time, revives when the vdc relay closes after an open and no other relay touches it; a scada on the standing plant sees its whole plant |
+| `tests/actors/test_relay_on_plant.py` | a simulated relay: no position until commanded on a board that reads no pin, de-energized adopted at boot on one that does; the verify pass restates the position; nothing to the bus; a plant that cannot be told is a failed actuation that heals |
+| `tests/actors/test_relay_gpio_actuation.py` | a GPIO relay: a write the drive refuses is one Critical glitch and no report; a step that raises after the write is one Critical glitch and no report |
+| `tests/actors/test_relay_gpio_sim.py` | a simulated GPIO relay reports to its boss, and to the scada when admin commands it; a set that does not take is a glitch and no report |
+| `tests/actors/test_sim_sensor.py` | a sim sensor posts what the plant shows at the plant's read time, to the generator too for a derived channel, hears only its own channels, fails the boot with nothing behind it; a running scada holds what the plant shows |
+| `tests/actors/test_gpio_sensor.py`, `test_i2c_thermistor_reader.py`, `test_zero_ten_outputer.py`, `test_power_meter.py` | the readers and the output on the seam: the failure catalogues run the real drives on the bus's fake chips through `tests/utils/on_bus.py`; a failed GPIO read publishes nothing and the next good read is a first reading; a thermistor streak clears when the channel stops saying it |
+| `tests/named_types/test_sim_plant_flux.py`, `test_sim_plant_actuation.py` | the two words against the vendored snapshot |
 
 ## Running
 

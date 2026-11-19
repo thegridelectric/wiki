@@ -14,7 +14,7 @@ A simulated world has three layers, and each design here belongs to one.
 
 | Layer | What it is | Designs |
 | --- | --- | --- |
-| The house | A real scada reaching its devices through a plant seam, with a simulated terminal asset running a Modelica model behind it | `plant-seam-merge` (OPS-692), `simulated-test-environment` (OPS-40); flux on change is OPS-672, in the gridworks-terminalasset designs |
+| The house | A real scada reaching its devices through a plant seam, with a simulated terminal asset running a Modelica model behind it; the scada's side of the contract is the scada executor's [`plant.md`](../gridworks-scada/executor/plant.md) | `beech-sim-day`, `simulated-test-environment` (OPS-40); flux on change is OPS-672, in the gridworks-terminalasset designs |
 | The services | Every cloud service (registry, market maker, price, weather, ear, journalkeeper) started from its repo by one contract, then as a container | `dev-stack-contract` (OPS-614), `prepare-for-kubernetes` (OPS-676) |
 | The host | `hw2-1`, the first box built to run GridWorks from compose | none yet; the box's facts are in `gridworks-infra/hw2-1/` |
 
@@ -53,7 +53,32 @@ The designs are in [`designs/`](designs/), and
   broker, where the time coordinator has routing edges today
   (`gridworks-base/src/gwbase/topology.py`), or move to the plant's
   broker.
+- **As built against decisions 5 and 6.** The plant sends flux on its
+  own GNode connection; the scada's plant link is a second MQTT client
+  on the scada's upstream broker settings, TLS ignored, so decision 5
+  still needs a setting of its own on the scada, the plant's URL naming
+  that broker, and a second rabbit on `hw2-1`. The plant's Python is per
+  layout family (`house0.py`, `katahdin.py`) and the compiled model per
+  house (`Beech.mo` fixes two zones and three tanks, and `house0.py`
+  refuses a layout with another count), with `Hydronic.mo` the shared
+  parts library. Flux is every channel every 5 s and the model advances
+  on the flux timer; OPS-672 changes this.
+- **Sema gaps the plant's code notes.** Six relay-state enums absent
+  from the terminalasset snapshot (`store.flow.relay`,
+  `heat.pump.control`, `aquastat.control.state`, `primary.pump.control`,
+  `hp.loop.keep.send`, `heatcall.source`); thermistor divider constants
+  and gallons per pulse (`sensing.py`); a way for `sim.plant.actuation`
+  to say a 0-10 V level; the spaceheat channel names (OPS-444). The two
+  plant words are unsigned in
+  `designs/simulated-test-environment/new-sema-words-to-review.md`.
 - **Work with no design yet:**
+  - the simulated house past the plant seam (scada executor `plant.md`):
+    the pico actors' HTTP half has no simulated form and a sim-word actor
+    still registers its HTTP routes; `ApiFlowModule` has no simulated
+    form; no plant plays pico outages, so pico-cycler recovery on a
+    simulated house runs only when the plant stops showing a pico's
+    channels; `sim.plant.flux` and `sim.plant.actuation` are staging words
+    and the scada's snapshot is regenerated with staging allowed;
   - the `hw2-1` stack: the compose file, the plant broker, one simulated
     house end to end;
   - the plant link's broker as its own setting (decision 5);

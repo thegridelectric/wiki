@@ -1,6 +1,6 @@
 # The visualizer
 
-Status: Draft · Pass 0 · Updated 2026-11-15
+Status: Draft · Pass 0 · Updated 2026-11-18
 
 > What this is: the visualizer page of the web-frontend, one section per
 > plot, each saying what the plot shows, which word the backend serves it
@@ -15,6 +15,10 @@ local time). Every plot takes the window from the page; the default plot
 layout fixes the x-axis to it
 (`gridworks-web-frontend/src/visualizer/DefaultVisualizerPlot.tsx:203`).
 Each plot fetches its own data from the api through the session client.
+Auto-refresh moves the window's end to now every thirty seconds and
+redraws every plot at the full window; a plot the viewer has dragged
+into a zoom holds the tick until a double-click or a new plot query
+(`useVisualizerAutoRefresh.ts`, the relayout read in `plot-zoom.ts`).
 
 ## Heat pump
 
@@ -74,7 +78,8 @@ The price the house's FLO was asked to optimize against, as of the
 window's first hour, and the price its market then cleared at: one
 `gw.price.forecast` word and the market's `latest.price` words, drawn as
 two step traces on the page's time axis, with the tariff's on-peak hours
-shaded. The panel is titled "Price".
+shaded and drawn less the on-peak delivery premium. The panel is titled
+"Price*", the asterisk for the note under it that states the rule.
 
 - **Word and route.** `gw.price.forecast` 000, answered in wire form by
   `GET /api/v2/installations/{house}/price-forecast?time=` behind the
@@ -96,16 +101,22 @@ shaded. The panel is titled "Price".
   `forecastSeries`). One y axis that includes zero
   (`PriceForecastPlot.tsx`). The forecast is the full price the LTN
   expects to face; it has no parts to draw.
-- **Window.** The panel asks for the forecast at the window's start, on
-  the page's x range like every other panel. The series begins where
-  the journal does: a window before the service's first journaled
-  forecast (2026-11-14 18:29 EST) gets the route's 404, which the fetch
-  takes as a response rather than an error, and the panel shows "No
-  price forecast in this window".
-- **On-peak shading.** Light pink rectangles behind the trace over the
+- **The off-peak delivery scale.** Both traces are drawn with the
+  on-peak delivery premium, the on-peak delivery charge over the
+  off-peak one, taken off every on-peak hour, so each hour reads as if
+  it paid the off-peak delivery charge and the off-peak variation shows
+  at one scale; the bands alone say which hours are on-peak. The
+  premium is one constant in `src/visualizer/tou-tariff.ts`
+  (`ON_PEAK_DELIVERY_PREMIUM_USD_MWH`, $530, applied by
+  `flatDeliveryPrices`), a round figure for the A-1 sheet's two
+  seasonal on-peak charges over off-peak: `gw.tou.tariff` 000 states
+  the windows and no prices, and a tariff word stating each period's
+  delivery price retires the constant.
+- **On-peak shading.** Light pink rectangles (`ON_PEAK_FILL`, the one
+  fill for an on-peak hour on the page) behind the trace over the
   tariff's recurring on-peak windows laid across the window's range in
   the tariff's zone (`src/visualizer/tou-tariff.ts` `onPeakShapes`,
-  shared with the FLO plot). The tariff is the house's own: the
+  shared with the FLO plot and its re-run horizon bars). The tariff is the house's own: the
   `Tariff` of its `layout.lite` 014 row, read off the house summary
   the page already has (`tariffForHouse`); a house whose latest layout
   is older than 014 gets the fleet's one tariff from
@@ -130,7 +141,11 @@ shaded. The panel is titled "Price".
   `JOURNALED_PARAMS`), and the browser reads both through
   `AnyFloParams`; its price per step is the one list at 002 and the LMP
   and distribution lists summed at 001 (`src/sema/types/AnyFloParams.ts`
-  `priceUsdMwhList`).
+  `priceUsdMwhList`). The FLO plot draws that price on the same
+  off-peak delivery scale and bands the same on-peak hours, from the
+  house's tariff fetched once per house (`VisualizerPage.tsx`); with no
+  tariff it draws the price the optimizer saw and no band. The bid plot
+  keeps the prices as served.
 
 ## Secondary loop
 
