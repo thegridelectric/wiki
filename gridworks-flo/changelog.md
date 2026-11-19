@@ -6,6 +6,18 @@ Status: Accepted · Pass 0 · Updated 2026-11-06
 > (`optimal-flexibility` for the bruce optimizer; the FLO service repo when
 > it exists). Git is the what; this file is the why.
 
+## 2026-11-19 · optimal-flexibility · bruce reads the unmet-load knobs from Experimental and echoes the series there (`a87f8a7`, jm/flo-tuning-experimental, OPS-696)
+
+**Why.** With `flo.tuning.bruce` 003 the two unmet-load knobs are keys of
+the tuning's `Experimental` dict, and `flo.path.penalties.bruce` 002
+returns the per-step series under the same name. bruce reads each knob
+through `experimental_knob`, which states the type this commit reads the
+value as and refuses a missing key by name, since a knob under tuning has
+no default. The re-run path's penalty key list splits into declared keys
+and Experimental keys, so an edited knob reaches the dict. A 002 or 003
+request is lifted to 004 at the bytes boundary. The snapshot is rebuilt
+from the sema branch with `--allow-staged`.
+
 ## 2026-11-14 · gridworks-flo + optimal-flexibility · main merged into jm/price-forecast-word; snapshots from the published words (`d50fbf5` gridworks-flo; `d104a14` optimal-flexibility; OPS-666)
 
 **Why.** The price words are published (sema `bba18bc`), so both repos'

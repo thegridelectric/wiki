@@ -8,6 +8,23 @@ corresponding code-repo commit.
 This changelog does NOT track wiki edits — those live in the wiki
 repo's git history.
 
+## 2026-11-19 — experimental knob in bruce flo tuning (`c8cc461`, jm/flo-tuning-experimental, OPS-696)
+
+**Why:** two unmet-load knobs took five word bumps and a change in eight
+repos on 2026-11-18, and six of the eight only pass the tuning through.
+`flo.tuning.bruce` 003 and `flo.path.penalties.bruce` 002 each gain
+`Experimental`, an open container (`type: object`, no properties) for the
+knobs and penalty series bruce is still tuning; the generator renders it
+as a declared `dict[str, Any]` attribute every consumer has at every
+version. The two unmet-load knobs and their series move into it, so the
+first instance of the shape is non-empty. The referrers follow by the
+version-pin rule: `flo.params` 004, `flo.rerun.request` 002 (004 joins
+the union), `flo.recommendation` 003; `gw.operational.params` 000 is
+staging and repoints in place. The five new versions are staging for
+review. Upgrades move the keys; the penalties length axiom names the
+three declared lists, since an axiom may not constrain an open
+container's contents.
+
 ## 2026-11-18 — Replace SingleBus with BusUniqueness on gw1.scada.device.type.gt (dev cfa2b66, OPS-692)
 
 **Why:** axiom 6 held every board record to one `BusList` entry with the
