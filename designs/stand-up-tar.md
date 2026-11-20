@@ -1,6 +1,6 @@
 # Stand up TAR (the terminal-asset registry)
 
-Status: Draft · Pass 0 · Updated 2026-10-19 · Linear: [OPS-471](https://linear.app/gridworks/issue/OPS-471)
+Status: Draft · Pass 0 · Updated 2026-11-20 · Linear: [OPS-471](https://linear.app/gridworks/issue/OPS-471)
 
 **EDD: no** build-out — verified by the suite plus a deployed seed that round-trips
 layout + operational-params I/O and provisions a real SCADA from its record; not a
@@ -217,6 +217,21 @@ Drop (GNR-specific, not needed here):
 
 ## Open
 
+- **Where the device-type records live.** The `*.device.type.gt`
+  instances (scada board gw108 rev B and rev C, Krida, ADS111x, electric
+  meter, heat pump outdoor unit and control box) are authored as JSON in
+  `tlayouts/src/tlayouts/device_types/` and reach a box embedded in the
+  layout. The `.gt` suffix promises a seed table. A category-level table
+  of its own in this registry fits: one row per board kind shared by
+  every house, a row added by a hardware release rather than a house
+  change. To decide: whether a layout embeds the record or references
+  it by `DeviceType`, and who may add a row. A sema constant type is not
+  the fit (constants are scalar-only, no `$ref`, no axioms, one
+  version). Folded in 2026-11-20 from the gw108 rev C work.
+- **Publishing the layout and params words.** `gw.house0.layout`,
+  `gw.nolan.layout` and `gw.operational.params` are staging at 000. They
+  publish, with their closures, when this registry holds them: the
+  registry standing up is the event that fixes the words.
 - **Who mints an id.** When commissioning or a rewiring adds a component,
   ShNode or channel, either the registry mints its id and the gen asks for
   it, or the gen mints it and the registry keeps what the committed

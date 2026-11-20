@@ -10,7 +10,16 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-20 — The FLO routes serve the Experimental tuning versions (`a694aaf`, jm/flo-tuning-experimental, OPS-696)
+
+**Why.** `flo.tuning.bruce` 003 and `flo.path.penalties.bruce` 002 move the two unmet-load knobs and their penalty series into an open `Experimental` dict, so a knob under tuning changes bruce and nothing else (OPS-696). The words that nest them follow: `flo.params` 004, `flo.rerun.request` 002, `flo.recommendation` 003, `gw.operational.params` 000 repointed in place. All five are staging in sema (`c8cc461`), so the snapshot is a dev-only staged one until they promote. The seed vendors the new versions beside the journaled
+ones; the FLO route and the price-forecast route add the versions they
+serve; the re-run route takes a `flo.rerun.request` at 001 or 002 and hands
+it to bruce, which lifts a journaled 002 or 003 params to 004.
+
 ## 2026-11-18 — minor README update (`a79b943`, jm/ops-683-review, OPS-683)
+
+Merged to main with the entry below as `7001d27` (#38), 2026-11-19.
 
 The paragraph under "The FLO re-run on a laptop" still told a reader to
 install a local optimal-flexibility "over the pinned one" and to move

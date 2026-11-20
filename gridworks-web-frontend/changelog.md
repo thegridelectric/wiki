@@ -10,6 +10,15 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-20 — Bruce tuning and penalties take the Experimental knob (`a1da3c5`, jm/flo-tuning-experimental, OPS-696)
+
+**Why.** `flo.tuning.bruce` 003 and `flo.path.penalties.bruce` 002 move the two unmet-load knobs and their penalty series into an open `Experimental` dict, so a knob under tuning changes bruce and nothing else (OPS-696). The words that nest them follow: `flo.params` 004, `flo.rerun.request` 002, `flo.recommendation` 003, `gw.operational.params` 000 repointed in place. All five are staging in sema (`c8cc461`), so the snapshot is a dev-only staged one until they promote. The hand-written snapshot gains the five versions and
+keeps the replaced ones under `old_versions`. The re-run panel reads the two
+knobs from a 003 tuning's `Experimental` and writes an edit back into it,
+sending `flo.rerun.request` 002 around a 004 params; the path view reads the
+unmet-load series from a 002 penalties word's `Experimental`. The keys are
+read by name, with a note naming the declared field that retires each.
+
 ## 2026-11-18 — Price panels at the off-peak delivery scale, one pink for on-peak, a zoomed plot holds auto-refresh (`350b921`, jm/flat-delivery-price, PR #32)
 
 The on-peak delivery premium (the on-peak delivery charge over the

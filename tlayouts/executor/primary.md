@@ -38,10 +38,18 @@ to get right, not any output file.
   against the board record, with the spec dataclass beside its emitter:
   board, i2c relay, gpio relay, gpio sensor, DAC output, thermistor,
   tank module, power meter, BTU meter, Hubitat zone.
-- **`src/tlayouts/device_types/`** vendors the device-type records the
-  gens bind components to (gw108 rev B, the Krida board and its sim twin,
-  the Samsung outdoor unit and control box) in wire form, and defines
-  `SimDeviceType`.
+- **`src/tlayouts/device_types/`** holds the device-type records the
+  gens bind components to (gw108 rev B and rev C, the Krida board and its
+  sim twin, the Samsung outdoor unit and control box) in wire form, and
+  defines `SimDeviceType`. These files are the authority for what each
+  board kind offers: sema holds the words (`gw1.scada.device.type.gt`,
+  the `gw1.device.type` value) and no instance. A record changes here
+  first and reaches a box embedded in the layout the gen emits. The `.gt`
+  suffix says the rows belong in the terminal-asset registry's seed table
+  once it exists; until then this folder is that table. This is the
+  transitional arrangement: the durable home (a category-level seed
+  table in the registry, embedded or referenced from a layout) is
+  decided under OPS-471.
 - **`src/tlayouts/sema/`** is the vendored Sema snapshot, built by
   `scripts/regen_sema_snapshot.sh` from `sema_seed_request.yaml` against
   a sibling `sema` checkout and never hand-edited. The scada repo keeps a

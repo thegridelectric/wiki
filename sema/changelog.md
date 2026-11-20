@@ -8,6 +8,13 @@ corresponding code-repo commit.
 This changelog does NOT track wiki edits — those live in the wiki
 repo's git history.
 
+## <!-- pending commit --> gw1.device.type: add Gw108RevC (jm/gw108-revc, OPS-701)
+
+Spruce runs a Gw108 Rev C from 2026-11-20 and its board record needs a
+device type of its own: Valve 4 is driven natively, there are eight
+thermistor inputs over two ADCs, and the CT ADC sits behind the DAC mux.
+The enum version is staging, so the value is appended in place.
+
 ## 2026-11-19 — experimental knob in bruce flo tuning (`c8cc461`, jm/flo-tuning-experimental, OPS-696)
 
 **Why:** two unmet-load knobs took five word bumps and a change in eight

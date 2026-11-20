@@ -1,6 +1,6 @@
 # flo-tuning-experimental — a knob under tuning changes bruce and nothing else
 
-Status: Draft · Pass 0 · Updated 2026-11-19 · Linear: OPS-696
+Status: Draft · Pass 0 · Updated 2026-11-20 · Linear: OPS-696
 **EDD: no** the sema suite, the bruce suite and the key test: a knob read
 from `Experimental` reaches bruce's optimizer with no change to any word.
 
@@ -19,10 +19,10 @@ move once more at this bump:
 | repo | what it does with the tuning |
 |---|---|
 | sema | defines the words |
-| tlayouts | authors each house's tuning in its operational params |
+| tlayouts | authors each house's tuning in its operational params, `Experimental` included |
 | gridworks-scada | the LTN copies the tuning into each request, untouched |
 | gridworks-flo | dispatches on the Tuning TypeName, moves bytes |
-| optimal-flexibility | bruce: the one reader of the knobs, and the home of a knob's value while it is under tuning |
+| optimal-flexibility | bruce: the one reader of the knobs |
 | gridworks-journalkeeper | stores the request and the recommendation |
 | gridworks-web-backend | serves journaled words, relays a re-run |
 | gridworks-web-frontend | the penalty tuning panel and plot |
@@ -100,6 +100,8 @@ stabilization clause says the same of open words ("as schemas stabilize,
 types SHOULD transition toward `additionalProperties: false`"). Without the
 habit the dict becomes the permanent home of everything, which is the cost
 this design accepts for knobs still in flux and refuses for settled ones.
+When bruce settles as a whole, `Experimental` leaves both words and every
+remaining knob is declared (OPS-697).
 
 **What the dict cannot state.** An axiom may not constrain an open
 container's contents unconditionally (types.md "Open Containers"), so the
@@ -114,7 +116,7 @@ step count of `RswtPenaltyUsdList`. bruce's own tests state it.
 | `flo.path.penalties.bruce` | 002 | `UnmetLoadPenaltyUsdList` removed; `Experimental` added, the series moved into it; axiom PenaltyListLengths names the three declared lists |
 | `flo.params` | 004 | Tuning: bruce 002 → 003 |
 | `flo.rerun.request` | 002 | Params: flo.params 003 → 004 |
-| `flo.recommendation` | 003 | PathPenaltiesList: penalties 001 → 002; `Tuning` added, the tuning the FLO solved with |
+| `flo.recommendation` | 003 | PathPenaltiesList: penalties 001 → 002 |
 | `gw.operational.params` | 000, in place (staging) | FloTuning: bruce 002 → 003 |
 
 Every current version is `published`, so each is a new version; the
@@ -122,50 +124,50 @@ upgrades are dump, move the keys, validate.
 
 ## What the journal records
 
-**Where a knob's value lives while it is under tuning.** The point of the
-dict is that Thomas iterates inside bruce alone. So the values of the
-knobs under tuning are bruce's: a committed per-house table in
-optimal-flexibility (or a constant), read by alias, and applied over
-whatever `Experimental` the request brought. tlayouts authors the declared
-knobs; it learns a knob only at promotion. Until then the LTN's request
-may say nothing about the knob, or say something stale, and the request
-as the LTN sent it no longer states what ran.
+**Where a knob's value lives.** Every knob, declared or under tuning, is
+authored in tlayouts: a house's `gw.operational.params` names its
+`FloTuning`, `Experimental` included, and the LTN copies it into each
+request untouched. One authoring place for operational params, versioned
+with the rest, and journaled inside each request as sent. A knob under
+tuning differs from a declared one only in where the word stops
+describing it.
 
-**The record of a slot must state what ran.** Both words already reach
-S3 and the journal: the LTN's `flo.params` and the FLO's
-`flo.recommendation` go through the class taps to the ear, and the
-journalkeeper keys each on its `CreatedMs`
-(`gjk/sema_message_persistor.py` `MSG_CREATED_AT_FIELDS_MS`). The
-series are in each path's `PathPenaltiesList` `Experimental`. What is
-missing is the tuning bruce actually solved with, so the answer states
-it: **`flo.recommendation` 003 gains `Tuning`, the `flo.tuning.alice` or
-`flo.tuning.bruce` instance the FLO solved with, `Experimental`
-included.** The answer already names its optimizer (`FloName`,
-`FloRepo`, `FloGitCommit`); the tuning it ran is the same kind of fact.
-bruce builds it as the request's Tuning with its table applied, and the
-journal row of every recommendation then states its own knobs, with no
-new message and no new path.
+**The record of a slot is the two words already journaled.** The LTN's
+`flo.params` and the FLO's `flo.recommendation` go through the class taps
+to the ear, and the journalkeeper keys each on its `CreatedMs`
+(`gjk/sema_message_persistor.py` `MSG_CREATED_AT_FIELDS_MS`). The knobs
+are in the request's `Tuning.Experimental`, the series in each path's
+`PathPenaltiesList` `Experimental`. Nothing else is needed as long as the
+request bruce solves is the request the LTN sent, which two rules keep
+true:
 
-```json
-{"TypeName": "flo.recommendation", "Version": "003", ...,
- "Tuning": {"TypeName": "flo.tuning.bruce", "Version": "003", ...,
-            "Experimental": {"UnmetLoadPenaltyEnabled": true, "UnmetLoadPenaltyWeight": 10.0}}}
-```
+- **No defaults inside bruce.** A knob bruce reads MUST be present in
+  `Experimental`; a request lacking it is refused (`flo.refusal`). The
+  sketch does this (`bruce/service.py` `experimental_knob` raises on a
+  missing key). A default inside bruce would make the journaled request
+  lie about what ran.
+- **The lift is information-preserving.** bruce lifts a 002 or 003
+  request to 004 by moving the declared knobs into `Experimental`; the
+  journaled older version states the same values under their declared
+  names.
 
-`FloGitCommit` alone would recover the values from the table at that
-commit, but a journal reader should not need a checkout of
-optimal-flexibility to know what a slot ran on.
+**What a knob change costs.** Adding or retuning a knob at a live house
+is a tlayouts edit, regen, commit, push and `roll.sh` at that house,
+since the LTN reads operational params once at construction. A field
+roll per experiment, with no sema bump and no deploy of the other
+repos. Offline the knob is free: bruce's local runs and the visualizer's
+re-run set `Experimental` in the request directly.
 
-**Alternative: bruce returns the effective `flo.params` and the FLO
-broadcasts it (`rjb`).** This gives the journal a complete request as
-solved, which the re-run panel could load as is. Its costs: the journal's
-id is `(from_alias, TypeName, CreatedMs)`, so a `flo.params` from the
-FLO's alias is a second `flo.params` row for the same slot and every
-reader of "the hour's request" has to choose between the LTN's and the
-FLO's (or the broadcast is a new word); and the FLO, stateless and
-answering in kind today, gains a publish path to own. The echo on the
-recommendation records the one thing bruce may change and leaves the
-request the LTN's. Settle at Pass 1 with Thomas.
+**Rejected: knob values in a per-house table inside bruce, with the
+recommendation echoing the tuning it solved with.** It lets Thomas change
+a live knob with a bruce deploy alone, but splits operational params
+across two repos and needs a `Tuning` field on `flo.recommendation` so
+the journal states what ran. One authoring place won.
+
+**Rejected: bruce returns the effective `flo.params` and the FLO
+broadcasts it (`rjb`).** The journal's id is `(from_alias, TypeName,
+CreatedMs)`, so a `flo.params` from the FLO's alias is a second request
+row for the same slot, and the FLO gains a publish path to own.
 
 **Out of scope: re-runs.** The browser's re-run solves in a thread
 inside the web backend (`api/v2/routers/flo_rerun.py`) and nothing of it
@@ -191,13 +193,24 @@ deploy is coordinated.
    optimal-flexibility (bruce reads the knobs from `Experimental`, writes
    the series into it, lifts 002 and 003 requests to 004; snapshot
    rebuilt with `--allow-staged`; suite green).
-   Still to sketch: `Tuning` on `flo.recommendation` 003 in sema, and in
-   bruce the per-house table and the echo of the tuning it solved with.
-2. **Next move:** push both branches and open the two PRs as sketches for
-   Thomas; review together; design to Pass 1. Settle there whether the
+2. ✅ Shared with Thomas 2026-11-19. The remaining six repos updated
+   locally on `jm/flo-tuning-experimental` branches, each gate green:
+   journalkeeper, web-backend, web-frontend, gridworks-flo, scada (twins
+   and fixtures), tlayouts (every house at tuning 003). bruce's re-run
+   path lifts older params as the bytes path does.
+   End to end on the laptop dev stack the same evening: the LTN's 004
+   request with the knobs in the dict, bruce's 003 answer with the series
+   in the dict, the bid, both journaled
+   (`experiments/2026-11-19-flo-tuning-experimental-e2e/`, PASS).
+3. ✅ Thomas reviewed and agreed, 2026-11-19 (design to Pass 1 when
+   the stamp is bumped). Settle there whether the
    frontend's re-run panel renders `Experimental` as a generic key and
    value table.
-3. Promote the five versions (`sema promote`), then the roll per OPS-693's
-   order with the remaining six repos.
-4. Distill into `executor/bruce-flo.md` "Costs and penalties" and
+4. The five versions stay **staging** on the sema branch (`c8cc461`) while
+   Thomas finishes the PR; a 2026-11-19 promotion was reverted 2026-11-20
+   so he can edit the words in place without a sema version. **Next
+   move:** the seven commits are pushed on `jm/flo-tuning-experimental`
+   and Thomas takes the PR; promotion (bottom-up, `sema promote`) and the
+   roll per OPS-693's order follow his review.
+5. Distill into `executor/bruce-flo.md` "Costs and penalties" and
    `executor/primary.md`; delete this file.

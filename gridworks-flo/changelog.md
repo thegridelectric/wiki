@@ -6,6 +6,19 @@ Status: Accepted · Pass 0 · Updated 2026-11-06
 > (`optimal-flexibility` for the bruce optimizer; the FLO service repo when
 > it exists). Git is the what; this file is the why.
 
+## 2026-11-20 · gridworks-flo · The service speaks flo.params 004 and flo.recommendation 003 (`61886e7`, jm/flo-tuning-experimental, OPS-696)
+
+**Why.** `flo.tuning.bruce` 003 and `flo.path.penalties.bruce` 002 move the two unmet-load knobs and their penalty series into an open `Experimental` dict, so a knob under tuning changes bruce and nothing else (OPS-696). The words that nest them follow: `flo.params` 004, `flo.rerun.request` 002, `flo.recommendation` 003, `gw.operational.params` 000 repointed in place. All five are staging in sema (`c8cc461`), so the snapshot is a dev-only staged one until they promote. The service dispatches on the Tuning TypeName and
+moves bytes, so the change is the seed, the regenerated snapshot and the
+test fixtures at the new samples.
+
+## 2026-11-20 · optimal-flexibility · A re-run's older params are lifted as a request's are (`0033521`, jm/flo-tuning-experimental, OPS-696)
+
+**Why.** `flo_to_solve` refused a `flo.rerun.request` whose params were at
+002 or 003 while the bytes path lifted the same versions to 004, so every
+hour journaled before the roll could not be re-run (OPS-693 item 3). One
+`lift_flo_params` serves both paths.
+
 ## 2026-11-19 · optimal-flexibility · bruce reads the unmet-load knobs from Experimental and echoes the series there (`a87f8a7`, jm/flo-tuning-experimental, OPS-696)
 
 **Why.** With `flo.tuning.bruce` 003 the two unmet-load knobs are keys of

@@ -642,8 +642,9 @@ two backed by actors:
 2. **Board** — `gw1.scada.device.type.gt`, pure data: the physical map
    (`BusList`, `NativeGpioInputs`/`NativeGpioOutputs`, `I2cRelays`, `CtAdc`,
    `ThermistorAdcs`, `Dacs`), resolved through a node's `BoardComponentId` and
-   shared by **many** ShNodes. The gw108 instance is
-   `data_classes/device_types/scada_gw108.py`.
+   shared by **many** ShNodes. The instances are authored in tlayouts
+   (`src/tlayouts/device_types/`, one JSON per board kind) and arrive
+   embedded in the layout; the scada holds no board record of its own.
 3. **Device** — the per-relay / per-reader component, carried by **at most
    one** ShNode via `ComponentId`. Thin: it names *which* sub-device on the
    board it is (by that sub-device's `Name`) plus its control/channel config;

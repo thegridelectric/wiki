@@ -10,6 +10,22 @@ repo's git history.
 
 Newest at the top.
 
+<!-- pending commit -->
+## 2026-11-20 — the Gw108 Rev C device-type record (jm/gw108-revc, OPS-701)
+
+Spruce runs a Rev C. Its record is the Rev B one with the Rev C facts:
+relay names from the Rev C silk at the same expander bits, Valve 4 on
+native GPIO 13 with its sense on GPIO 19, two thermistor ADCs. The CT ADC
+is left out until `i2c.ct.interface.capability` can say it sits behind
+the mux.
+
+## 2026-11-20 — The fleet tuning puts the unmet-load knobs in Experimental (`41ec8e2`, jm/flo-tuning-experimental, OPS-696)
+
+**Why.** `flo.tuning.bruce` 003 and `flo.path.penalties.bruce` 002 move the two unmet-load knobs and their penalty series into an open `Experimental` dict, so a knob under tuning changes bruce and nothing else (OPS-696). The words that nest them follow: `flo.params` 004, `flo.rerun.request` 002, `flo.recommendation` 003, `gw.operational.params` 000 repointed in place. All five are staging in sema (`c8cc461`), so the snapshot is a dev-only staged one until they promote. tlayouts is the one authoring place for every knob,
+declared or under tuning: `BRUCE_FLEET_TUNING` moves the two knobs into
+`Experimental` and every house's operational params is regenerated at
+tuning 003. A knob Thomas adds under tuning is a line here and a roll.
+
 ## 2026-11-18 — oak and beech back on Ltn (`f6850a4`, jm/beech-oak-hold-off)
 
 **Why.** Oak and beech were put under operator hold earlier today while
@@ -20,6 +36,35 @@ every house. With the 002 tuning and the penalty on in the pairs, the
 hold has no reason left: `operator_hold` is false again in
 `beech_gen.py` and `oak_gen.py`, both outputs regenerated, only the
 hold flag differing. The other houses keep their hold.
+
+## 2026-11-19 — oops, maples elements are in tank1 and tank2 (`0ab43e1`, main)
+
+**Why.** The four elements George installed sit in tank1 and tank2; the
+first layout named them buffer and tank1. Same relays, same CTs: Relay25
+and Relay26 with registers 9000 and 9006 are tank1 top and bottom, Relay27
+and Relay28 with registers 9020 and 9022 are tank2 top and bottom, and the
+eGauge registers were renamed to match. The relay nodes and power channels
+are renamed in the gen, so the four get fresh ids and the buffer-named
+ones leave the layout.
+
+## 2026-11-19 — maple: four element relays and CTs; extra relays on any family's board (`0dbe4a0`, main)
+
+**Why.** George is adding four resistive elements at maple (buffer top
+and bottom, tank1 top and bottom), each on its own Krida relay and its
+own eGauge CT, because the Ecodan cannot reach maple's required supply
+temperature on cold days. The layout word already allows a relay beyond
+the fixed roster and a power channel beyond the required sensing, so
+`gw.house0.layout` is unchanged; what was missing was a way to declare
+such a relay in the gen. `extra_relays` on the shared gen config takes
+a node, a board position, a display name and a wiring kind, and
+`emit_extra_relays` emits each in the roster's shape after the family's
+own relays, refusing a position the board record lacks or the roster
+took. It runs on the House0 and Nolan builds alike. Maple declares
+Relay25 to Relay28 and meters the elements at eGauge registers 9000,
+9006, 9020 and 9022, all four in transactive power. The local control
+does not run the elements yet; that is the element-dispatch machine,
+designed separately. Element nameplate 4500 W is assumed pending
+George's confirmation.
 
 <!-- pending commit -->
 ## 2026-11-18 — cedar: pico census stub for the Katahdin layout (jm/cedar-layout)

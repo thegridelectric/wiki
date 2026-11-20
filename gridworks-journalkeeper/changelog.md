@@ -10,6 +10,21 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-20 — The journal reads the Experimental tuning versions (`7cb7be3`, jm/flo-tuning-experimental, OPS-696)
+
+**Why.** `flo.tuning.bruce` 003 and `flo.path.penalties.bruce` 002 move the two unmet-load knobs and their penalty series into an open `Experimental` dict, so a knob under tuning changes bruce and nothing else (OPS-696). The words that nest them follow: `flo.params` 004, `flo.rerun.request` 002, `flo.recommendation` 003, `gw.operational.params` 000 repointed in place. All five are staging in sema (`c8cc461`), so the snapshot is a dev-only staged one until they promote. The seed says every version of each flo word, so the
+regen alone makes the journal read the new versions beside the old; readers
+deploy first, per the OPS-693 order.
+
+## 2026-11-18 — Add unmet load penalty and udpate impacted types (`6db49d0`, #211, OPS-693)
+
+**Why.** The snapshot is regenerated so the journal reads the versions the
+fleet started sending on 2026-11-18: `flo.tuning.bruce` 002 with the two
+unmet-load knobs, `flo.path.penalties.bruce` 001 with its series,
+`flo.recommendation` 002 and `flo.params` 003. The seed already says every
+version of each flo word; until this regen a 003 request or a 002
+recommendation decoded degraded and was not persisted.
+
 ## 2026-11-16 — The journal hears gw.weather.archive.cmd; gwbase 0.7.3 and logs in local time (`5501699`, PR #210 `eb3313e`, OPS-603)
 
 **Why.** The journal keeps every minting act, and the archive command

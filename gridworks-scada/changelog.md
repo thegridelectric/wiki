@@ -10,6 +10,22 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-20 — The LTN speaks flo.params 004 and reads flo.recommendation 003 (`5f170fe6`, jm/flo-tuning-experimental, OPS-696)
+
+**Why.** `flo.tuning.bruce` 003 and `flo.path.penalties.bruce` 002 move the two unmet-load knobs and their penalty series into an open `Experimental` dict, so a knob under tuning changes bruce and nothing else (OPS-696). The words that nest them follow: `flo.params` 004, `flo.rerun.request` 002, `flo.recommendation` 003, `gw.operational.params` 000 repointed in place. All five are staging in sema (`c8cc461`), so the snapshot is a dev-only staged one until they promote. The oracle snapshot is regenerated; the twins
+`FloTuningBruce` and `FloPathPenaltiesBruce` move the fields into
+`Experimental` (a `Dict[str, Any]`, the generator's rendering of an open
+container) and `FloParams` and `FloRecommendation` take the new versions;
+the ops-params fixtures are the tlayouts output at 003. The scada speaks one
+version of each word, so a 002 tuning in an ops file is refused at boot.
+
+## 2026-11-19 — Remove minimum RSWT forecast (`2b1aa50d`, #633)
+
+**Why.** The LTN's FLO request clamped every forecast required source
+water temperature to at least 100 F before sending it. The clamp hid the
+RSWT curve's own answer from bruce; the curve is the place to fix a low
+value (OPS-646), so the request sends the forecast as computed.
+
 ## 2026-11-18 — Plant seam: device actors reach their hardware through a plant (`2b2028f0`, #630, OPS-692)
 
 **Why:** a device actor (relay, GPIO sensor, thermistor reader, power

@@ -1,6 +1,6 @@
 # Prepare for Kubernetes
 
-Status: Draft · Pass 0 · Updated 2026-11-14 · Linear: OPS-676
+Status: Draft · Pass 0 · Updated 2026-11-19 · Linear: OPS-676
 
 **EDD: no** a deployment-shape change; verified by the first service
 running as two copies with two identities, each seen connecting through
@@ -44,6 +44,30 @@ where the replica questions can be worked without touching the tree:
   auto-delete queue it declares itself, so a reboot loses the gap for
   that consumer. Two copies cover each other's gaps. The queue stays
   ephemeral; see "Queues stay ephemeral".
+
+## Decisions
+
+Three answers to the "Why" questions, settled 2026-11-19 while designing
+the Supervisor (OPS-695).
+
+1. **Replicas are principals.** A service with N running copies is N
+   identities, each with its own cert and lease, each serving or watching
+   a shard. The fabric has no replica set of one identity; the ear's two
+   copies above are the first instance of the rule.
+2. **Recreate, never RollingUpdate.** Kubernetes' default strategy starts
+   the new pod before it stops the old. Under supersession the new pod
+   takes the lease and the old one is refused for life, so every workload
+   that presents a cert uses the `Recreate` strategy, and a rolling
+   deploy is a controlled restart of one identity at a time.
+3. **Three owners at the seam.** Kubernetes owns processes: probes,
+   restarts, replica counts. FIS owns identity: it admits a pod as one
+   GNode or Service. A World service, the Supervisor, owns liveness on
+   the fabric, because a probe sees a running pod and not a half-open
+   broker link. The Supervisor reads the cluster's roster and reports
+   onto the fabric; it never acts on the cluster. Its roster comes from
+   the process owner (systemd's infra roster today, a label selector
+   under Kubernetes) and never from the registry, which does not know
+   where things run.
 
 ## Queues stay ephemeral
 

@@ -3,6 +3,14 @@
 One entry per `starter-scripts` commit (git = the what, this = the why).
 Entries before 2026-08-23 live in git history only.
 
+## 2026-11-20 — gw108_test_code.py is now for rev C (`c2021df`, jm/gw108-revc, OPS-701)
+
+Spruce runs a Gw108 Rev C from 2026-11-20. The Rev B bench script moves to
+`archived/gw108_revb_test_code.py`; `gw108_test_code.py` is the Rev C one,
+from Joe's bench code in gridworks-hardware: Valve 4 native on GPIO 13 with
+its sense on GPIO 19, the plant relays under the Rev C silk names, eight
+thermistors over two ADS1115s, the CT ADS1115 behind the mux on channel 4.
+
 ## 2026-10-28 — the pico API for tank modules mirrors params back (`2004217`, dev, OPS-628)
 
 The tank params handler answered every post with
