@@ -68,6 +68,13 @@ is not a condition of the merge to `main`.
   one store tank and no buffer; elm has the first three and a buffer tank.
   Whether elm is `gw.nolan.layout` with the buffer made a Hydronic fact, or
   a word of its own.
+- Elm's broker link: elm runs `legacy` in MonitorOnly
+  (`SCADA_SYSTEM_MODE=MonitorOnly` in its `.env`, since 2026-10-26) and
+  waits on a FIS principal for its cert (`fis principal create --kind
+  GNode --g-node-id 5896d71d-3f6d-40c4-849a-127e7ffd2912 --display-name
+  elm` on the fis box, then restart the scada); its cert-inventory row
+  in `gridworks-infra/authority/cert-inventory.md` is still owed
+  (`record elm --host elm`).
 - Everything above marked *(details to fill)*.
 - Which of the six name-tier / hydronic-tier structures each new family
   reuses vs owns.

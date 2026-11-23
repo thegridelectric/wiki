@@ -352,8 +352,9 @@ state → Linear ([`glossary.md`](glossary.md) "Where content lives").
 
 **Design-specs (`designs/`)** have one fixed location each
 (`wiki/<domain>/designs/<slug>.md` or `wiki/designs/<slug>.md`) and never
-move. **Linear is the authority on status.** On completion, distill into
-`executor/`, delete the design file, finalize the issue. **Designs are
+move. **Linear is the authority on status.** On completion, **distill**: fold
+the invariant into `executor/`, capture the key trace, delete the design
+file, finalize the issue. **Designs are
 ephemeral, so NOTHING may link to or name a design file** (sole exception:
 [`DESIGN_INDEX.md`](../DESIGN_INDEX.md)); reference work by its Linear
 issue. Full convention: [`designs-process.md`](designs-process.md).

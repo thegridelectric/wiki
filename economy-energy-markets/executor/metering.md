@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-06-07
+Status: Draft · Pass 0 · Updated 2026-11-22
 
 > What this is: the sub-spec for **metering topology** in the
 > Economy Energy Market System. Refines the metering-topology
@@ -29,13 +29,17 @@ Status: Draft · Pass 0 · Updated 2026-06-07
    monitoring). This CT is *internal monitoring*, not market
    data; only the master meter feeds the market.
 
-## Master economy meter — v1 commitment
+## Master economy meter
 
-The v1 master economy meter is the **EKM Omnimeter**. This is
-committed externally in the 2026-06-05 letter to ISO-NE
-([`../../../prospects/dera-stand-up/letter-to-iso.20260605.md`](../../../prospects/dera-stand-up/letter-to-iso.20260605.md))
-as the revenue-grade meter GridWorks will install behind the
-Versant bonus meter.
+The master economy meter is a 0.2-class Wh meter with 0.3-class CT
+and VT, the OP-18 Appendix C Energy Billing bar. It is the boundary
+meter of
+[`../../electricity-metering/README.md`](../../electricity-metering/README.md) "The chosen
+architecture": our own, built as two products (a low-voltage voltage
+beacon first, which also hosts the economy market maker, and our own
+class 0.2 meter second), with a bought class 0.2 meter bridging until
+ours is listed. GridWorks never registers as a DRR, so the Energy
+Billing column is the bar with no fallback.
 
 ## Placement evolution
 
@@ -126,7 +130,7 @@ just enables an analytics overlay.
   the architectural commitment this sub-spec refines.
 - [`../../economy-panel/executor/primary.md`](../../economy-panel/executor/primary.md)
   — the open-source residential smart panel architecture, which
-  encloses an EKM Omnimeter and (for v2+) provides whichever
+  encloses the master economy meter and (for v2+) provides whichever
   panel-side sub-metering approach gets adopted.
 - The CEP-settlement invariant in [`primary.md`](primary.md) — the CEP-settlement
   rule that the master economy meter feeds.

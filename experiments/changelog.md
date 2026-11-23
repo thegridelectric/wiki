@@ -7,7 +7,58 @@ the *why*.
 Newest at the top.
 
 <!-- pending commit -->
-## 2026-11-13 — sieg-valve-calibration: the procedure, and beech's first run (OPS-392)
+## 2026-11-22 — Remove the stray fis-gate-battery and sieg-keep-ratio-map leftovers from the top level
+
+**Why.** The 2026-11-13 tidy moved both folders under `archive/`, but
+each had gitignored artifacts (`certs/out/`, `g_node/`, `runs/`, a
+`traverses.txt`) that `git mv` left behind at the old path, where no
+`.gitignore` covered them. The 2026-11-14 `git add -A` swept 399 of
+them into `b2d1b51`: the battery's throwaway CA and client keys
+(`CN=FIS-Gate-Battery-Throwaway-CA`, `localhost` server cert, never
+used outside the laptop rig), its run logs, and the keep-ratio plan.
+None is a live credential. They come out before the first push of the
+series; the archived folders keep their own ignore rules.
+
+## 2026-11-22 — Over-cap captures live in s3://gwdev/experiments; plant-seam captures named there; .gitignore keeps full captures out (`a5d0b71`)
+
+**Why.** The two full tap captures of the plant-seam roll (3.4 MB and
+19.6 MB) stopped the commit at the large-file hook. The convention
+already said over-cap bytes go to the immutable store with the key in
+the README, but named no store: it is `s3://gwdev/experiments/<folder>/`,
+the path the sieg-keep-ratio-map folder used, and the README now says so
+with the copy-then-list check and the `-rows.jsonl` reduction a broker
+or tap capture commits in its place. The repo `.gitignore` keeps full
+tap captures out so `git add -A` stays safe. The wiki executor has the
+same rule in one bullet.
+
+## 2026-11-22 — Experiments: plant-seam roll and gw108 Rev C bench recorded, logbook and recipe, ci excludes the bench's pi scripts (`a9a18a2`)
+
+**Why.** Two field runs recorded to the convention and sema-fied.
+spruce-plant-seam-roll (2026-11-18): the sculpt-rule run of PR 630 on
+spruce and the fleet roll to the merged main, one `gw.experiment.run`
+for the window, the tap captures reduced to one row per message.
+spruce-gw108-revc-bench (2026-11-20): the first Rev C bench, four
+windows, one subject-named `gw.experiment.run` per window from the
+timeline's bounds, and the five pi-side CT scripts added to `ci.sh`'s
+pyright deny-list like every earlier pi script, since they import the
+box's ADC libraries. The 2026-11-14 dev witness of `latest.price` 001
+and the 2026-11-19 flo-tuning end-to-end run were not kept: the first
+is covered by the stopgap-mm folder and OPS-666, the second's one
+durable fact (a simulated layout needs `SCADA_PLANT_LINK=Standing` on
+the laptop) is in the dev-stack recipe and the simulated-world hub.
+
+## 2026-11-14 — wip sieg valve; experiments use the analyst journal DB login only (`b2d1b51`)
+
+**Why.** `experiments/.env` had the journalkeeper's own variable with
+the production writer login, so a shell that sourced it ran any
+journalkeeper it started against production. The only journal-DB login
+the file names now is the read-only `DB_ANALYST_URL`, and the recipe's
+"Things that bit" says why. The commit also brought the
+sieg-valve-calibration procedure and beech's first run (the entry
+below), the 2026-10-28 README fix, and, by accident, 399 leftover files
+of two archived folders (removed in the entry above).
+
+## 2026-11-13 — sieg-valve-calibration: the procedure, and beech's first run (`b2d1b51`, OPS-392)
 
 **Why.** The sieg loop's strategies stand on three valve positions in
 motor seconds that the scada holds as maple's constants (26 / 56 / 94 s).
@@ -23,8 +74,7 @@ per house. Beech, 2026-11-13: keep onset 13 s, keep complete 54 s, keep
 stop 75 s, lag 3.5 s, from one stop pair; the numbers are the beech gen's
 when the layout word exists.
 
-<!-- pending commit -->
-## 2026-11-13 — Four kinds of folder: archive, datasets, practices, procedures (OPS-392)
+## 2026-11-13 — Four kinds of folder: archive, datasets, practices, procedures (`fcb6be2`, OPS-392)
 
 **Why.** Ninety-two entries at the top of the repo had stopped being a
 layout. The README already named three kinds of folder beside the dated

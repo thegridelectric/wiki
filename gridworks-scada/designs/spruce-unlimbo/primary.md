@@ -1,14 +1,12 @@
 # Spruce un-limbo (hub)
 
-Status: Accepted · Pass 1 · Updated 2026-10-26 · Linear: OPS-392
+Status: Accepted · Pass 1 · Updated 2026-11-22 · Linear: OPS-392
 
 **EDD: yes** bench (honeysuckle) and box harness runs are the verification;
 spokes reach Verified only when an experiment runs against the real bus or a
 real broker.
 
-**▶ Active spoke: [`main-changes.md`](main-changes.md)** (the swap that
-makes the branch `main`; `finalize-layout-lite-13.md` stays the cutover
-record)
+**▶ Active spoke: [`deployment.md`](deployment.md)**
 
 > What this is: the hub for getting `jm/spruce-unlimbo`, the branch that
 > runs the Nolan layout at spruce, onto the whole fleet as `main` before
@@ -130,14 +128,12 @@ house runs the branch by a roll now.
   and tells the scada the channel is lost; the heat pump accessors return
   `None` for a flatlined channel; the pico actors flatline one quiet
   channel
-- `basic-sieg.md` (design pass est 4h → 8.5h; build est 4h) — the least the sieg loop has to change before
-  maple and beech take the branch, chipped not rebuilt: a valve that rests
-  at send while the heat pump is off, a start that parks the valve before
-  the call and then waits to open and fails open, one owner for the valve relays, the valve
-  commandable from the admin panel, `MonitorOnly` honoured, a restart that
-  finds the valve, scada2 re-sending its readings when its link goes
-  active, the relays' energization back as a channel, and the House0
-  rows of the hp-boss live test uncommented
+- ✅ DONE basic-sieg (design pass est 4h → 8.5h; build est 4h → 12.5h) — the
+  least the sieg loop had to change for maple and beech to take the
+  branch: the park-before-the-call start, one owner for the valve relays,
+  the valve commandable from the admin panel, scada2 re-sending its
+  readings, the relays' energization as a channel.
+  As it runs: `../../executor/sieg-loop.md`; the follow-on is OPS-705.
 - `cold-house-derived-setpoint.md` — the cold-house judgment at a house
   whose zone setpoints the scada derives: what stands in when the derived
   generator holds no setpoint, and the glitch scenarios that test it
@@ -166,11 +162,12 @@ house runs the branch by a roll now.
 - `odds-and-ends.md` (est 3h) — small launch items, one problem / change / test
   each (the panel's unobserved row offers every command; hp-boss
   reports its state at start; the LTN Dst-routing test)
-- **`main-changes.md`** — the commits `main` took after the branch point,
-  each with a verdict (done 2026-10-25: all present or superseded), the
-  swap order with `legacy` as the old `main`, and the gates: for the
-  swap itself, and for rolling a House0 house onto the new `main`
-  (OPS-619, fir repaired)
+- ✅ DONE main-changes (est 1.5h → 2.0h) — the eleven commits `main`
+  took after the branch point each read against the branch and found
+  present in another form or superseded; `main` is the branch tip since
+  2026-10-26, the old `main` kept as `legacy`, `actual-spruce` as
+  spruce's winter-hack line; how a house moves is `executor/running.md`
+  "Rolling a house between lines"
 - `report-all-machine-states.md` — the layout and `layout.lite` declare
   every machine the scada reports; the journal makes a channel of each
   by one rule, no hand-kept map; which transitions earn an asynchronous
@@ -188,7 +185,7 @@ published (`../spruce-settled/publish-layouts-and-operational-params.md`
 is that step): the ones that shape a word (`layout-word-axioms.md`,
 `operational-params-cleanup.md`, `control-strategy-selection.md`,
 `report-all-machine-states.md`, the `-set` axiom in
-`cold-house-derived-setpoint.md`, the sieg surface in `basic-sieg.md`)
+`cold-house-derived-setpoint.md`, the sieg surface in `../../executor/sieg-loop.md`)
 are the publish gate; the ones that do not (`command-tree-matrix.md`,
 `relay-actor-enforcement.md`, `sensor-freshness.md`, `odds-and-ends.md`)
 move to `../spruce-settled/` at the swap.

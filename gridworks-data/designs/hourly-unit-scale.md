@@ -1,6 +1,6 @@
 # hourly-unit-scale
 
-Status: Draft · Pass 0 · Updated 2026-11-16 · Linear: OPS-630
+Status: Draft · Pass 0 · Updated 2026-11-23 · Linear: OPS-630
 
 **EDD: no** build-out in gridworks-data, verified by the two hourly
 functions run on `tsdb_tap` over three windows: Maple's, with `hp_kwh_th`
@@ -41,6 +41,17 @@ by house) `hp-lwt`, `hp-ewt`, `dist-swt`, `dist-rwt` and
 `store-cold-pipe` are `CelsiusTimes100`; the function wants
 `WaterTempCTimes1000`, so hp, dist and store temperatures and energies
 are empty after it. The fix is the same join.
+
+The one-second reader under `calc_energy_1hr`
+(`create_udf_retrieve_readings_1s.sql`) gap-fills each `(channel, unit)`
+series on its own and holds a series' last value to the end of the
+window. With one literal per channel this meant that after a house's
+roll the old spelling's last reading stood in for the live one, so the
+post-roll `hp_kwh_th` and `dist_kwh` on prod are stale values, not
+empty cells. With both spellings read, the stale series would be
+averaged with the live one instead. The fix is a reader that treats a
+channel's rows as one lineage: one row per channel per second, the
+latest reading with that reading's unit.
 
 On 2026-10-26 the production `calc_energy_1hr` was edited in place to
 `unit IN ('GpmTimes100', 'GpmX100')` for primary-flow. The repo file has
@@ -97,20 +108,81 @@ beside `unit`, so no view changes.
 
 ## Plan
 
-Status: Accepted · Pass 1 · Updated 2026-11-16
+Status: Accepted · Pass 1 · Updated 2026-11-22
 
-1. A script under `misc/` that makes the repo's `calc_energy_1hr` the
-   deployed body (the `IN` form), so the repo states what runs.
-2. ✅ DONE The generator and `unit_scale`, with its test; the snapshot
-   regenerated with the two projection words.
-3. Both functions rewritten to the join and verified on `tsdb_tap`
-   (beech across 2026-01-09 and 2026-10-28, Maple on 2026-11-15; old
-   and new agree wherever the old literal matched). **Do this next:**
-   `alembic upgrade head` on prod as `gw_admin`, then the full refresh
-   of `cached_hourly_data` (`refresh_all_cached_hourly_data.py` with its
-   window set to now → 2024-10-13), recorded in gridworks-infra
+1. ✅ DONE (`32e07a2`) The repo's `calc_energy_1hr` is the deployed
+   body (the `IN` form), so the repo states what runs.
+2. ✅ DONE (`150ab92`) The generator and `unit_scale`, with its test;
+   the snapshot regenerated with the two projection words.
+3. ✅ CODE DONE (`26aa0e5`) Both functions rewritten to the join and
+   verified on `tsdb_tap` (beech across 2026-01-09 and 2026-10-28,
+   Maple on 2026-11-15; old and new agree wherever the old literal
+   matched): a migration (`c5d7e9f2a4b6`) that creates `gridworks.in_unit` (the
+   value in the unit a column wants, through the row's scale and base
+   unit; C↔F and Wh↔kWh are the conversions it states) and re-creates
+   both functions from the `misc/` scripts, with the 2026-06 migration
+   no longer creating them; and `tests/test_hourly_unit_join.py`, one
+   house across a unit boundary, which fails on the old bodies. Return
+   tables unchanged. The same commit, after the old-versus-new diff
+   over every hour in `tsdb_tap`: `retrieve_readings_1s` reads the
+   lineage (the test's
+   second hour steps the temperatures and fails on the per-series
+   reader), and `refresh_all_cached_hourly_data.py` deletes each day
+   before inserting it and takes its window from the command line. The
+   roll-night windows at oak and maple, where the 013 build wrote
+   Celsius × 1000 under `CelsiusTimes100`, are a glitch row in the
+   executor's `data-glitches.md`; the join reads them by label.
+   The second verification pass (2026-11-21) read the change against
+   the rest of the data it touches. The map, one analyst query over
+   prod's channel table and `readings_1hr`: 583 unit rows at the six
+   houses, 16 boundary kinds. The January 2026 rename is one kind at
+   five houses (the 12 depths, beech and oak at 00:00Z on 01-09, elm,
+   fir and maple at 10:00Z). The October roll is two events per house:
+   a 013-build blip on 10-23 at oak, maple and spruce, then the real
+   roll (spruce 10-25 21Z, elm 10-28 00Z, beech 10-28 23Z, fir, maple
+   and oak 10-29 23Z); at the real roll the journalkeeper reactivated
+   the blip's row (its `deactivated_date` back to null) rather than
+   making a new one, so one row's `readings_1hr` series spans both.
+   After each roll the old row has one straggler hour a day later
+   (beech 10-30 14Z, elm 10-28 17Z). Maple's `primary-flow`
+   (`GpmTimes100` to `GpmX100`, 2026-04-15 to 04-29) is a two-week gap
+   with no overlap. `sieg-send-flow` has one unit row at every house and
+   is off the list. The tap now holds 30 more house-hours, three around
+   each boundary the map shows (oak and fir's January rename, maple's
+   `primary-flow`, every house's real roll, both stragglers), its
+   channel table synced to prod's 2226 rows, and the pre-join bodies
+   installed as `calc_energy_1hr_old` and `calc_hourly_data_old`. The
+   diff over every hour in the tap (61 house-hours in
+   `calc_hourly_data`, 696 in `calc_energy_1hr`), per column: no column
+   the old function filled is empty in the new; every differing hour is
+   a roll hour where both rows reported (the old read its one row's
+   part of the hour), a straggler hour (the old read the straggler
+   alone), or oak's 10-23 glitch rows (the join reads Celsius × 1000 by
+   its label, as `data-glitches.md` records); every fill is an hour the
+   old literal matched nothing, including whole days of
+   `calc_energy_1hr` rows, which that function emits as zero for every
+   hour of a window once a house has one matching reading in it and not
+   at all otherwise. The functions include the `t_end` bucket, so a
+   diff computed one day at a time ends each day at 23:59:59.
+   `tests/test_hourly_unit_join.py` has its third hour: the new-era
+   series steps again after the boundary, so a retired series extended
+   past its end through the hourly aggregate's LAG and LEAD fails that
+   hour. `ci.sh` green (28 tests). `refresh_all_cached_hourly_data.py` over
+   2026-11-14 at six houses on the tap (880k readings): 5.8 s, 144 rows,
+   every column filled at every house; at that rate the prod refresh
+   from 2024-10-13 is about 770 days and under two hours, with prod's
+   own chunk sizes the unknown. Merged 2026-11-22 (PR #17); prod
+   migrated to `c5d7e9f2a4b6` at 08:23 ET and the full backfill started
+   08:23:30 ET at about 10 s a day. The first field report against the
+   refilled table: elm's `hp_kwh_el` empty since 10-28, because elm's
+   Arctic has no indoor unit and the column summed both units; the
+   column is now the sum of whichever units the house has (migration
+   `d2e4f6a8b0c1`, the test's third hour), merged as PR #18; prod at
+   `d2e4f6a8b0c1`, elm's hours since 10-28 refilled (612 of 612 have
+   `hp_kwh_el`), the refill newest-first still running at 2025-11-19 at
+   11:20 ET on 2026-11-22; both runs are recorded in gridworks-infra
    `databases/journaldb.md` "Data changes run by hand".
-4. The weather columns read the journal (added 2026-11-16 at the close
+4. ✅ CODE DONE (`beb5147`, jm/hourly-weather-columns, not yet pushed). The weather columns read the journal (added 2026-11-16 at the close
    of OPS-603). The weather GNode's rows sit under its own
    `terminal_asset_alias` (`hw1.isone.weather`), so the function reads
    the station's hourly values once and joins them to every house on
@@ -136,6 +208,35 @@ Status: Accepted · Pass 1 · Updated 2026-11-16
    is visible in the table and in the hourly CSV, which dumps the
    table's columns; they are new columns of `cached_hourly_data` and of
    the function's return table, altered and refilled with `ghi_w_m2`.
+   As built: the source columns name the channel read
+   (`kmlt-temperature`, `ommillinocket-temperature`, `forecast-oat`;
+   likewise wind), since the channel name is the identity the journal
+   has and the forecast has no station. Migration `e3f5a7b9c1d2`
+   appends the three columns and drops the function before re-creating
+   it; the `hp_kwh_el` migration now drops it too, because the tap
+   (still at `c5d7e9f2a4b6`) showed that migration failing on the
+   changed return type when the chain is upgraded from before it.
+   Verified on the tap, loaded with prod's 90,859 weather readings and
+   beech's 2025-11-19 to 11-22: across KMLT's dark weeks beech reads
+   the gridpoint through 2025-11-20 19Z and the station from 20Z; on
+   2026-11-14 all six houses read the station every hour and `ghi_w_m2`
+   is filled every hour; on the 2026-01-09 and 10-28 windows the
+   station fills every hour. Against prod's cached 2026-11-14 rows
+   (where `oat_f` and `ws_mph` were empty in all 144) every other
+   column agrees within 1e-6 except the day's 00:00 hour, which is the
+   verification window's own edge. One day runs in 0.4 to 2 s on the
+   tap; a four-day window in one call exceeded the tap container's
+   memory, so verification runs a day at a time, as the refresh script
+   does. `ci.sh` green (29 tests). Prod's `readings_1hr` has the weather
+   archive only from 2026-10-25 (the station) and 11-14 to 11-16 (the
+   gridpoint): the archived readings were loaded into the past and the
+   aggregate's policy covers two days, so the prod step refreshes the
+   aggregate over 2024-10-01 to now before the backfill.
+   **Do this next:** push and open the PR; on prod as `gw_admin`:
+   `alembic upgrade head`, `CALL refresh_continuous_aggregate('gridworks.readings_1hr', '2024-10-01', now())`,
+   then the full refresh (`refresh_all_cached_hourly_data.py` with no
+   arguments, under `nohup`) once the running refill has finished;
+   record all three in gridworks-infra `databases/journaldb.md`.
 
 ## Hourly channels
 
@@ -157,14 +258,60 @@ structural change. `derived.channel.gt` stays the scada's: its
 CreatedByNodeName is a layout node and its kind is defined as
 layout-declared.
 
-5. A service-declared channel word, raised spec-first on its own sema
-   branch under the sema protocol: the declaring service's alias, Name,
-   Quantity, Unit, the input channel names and strategy where the
-   channel is computed, the window length for an aggregate, Start and
-   Id as the weather word has them, and a `gw.channel.kind` value for
-   it. Instances for the hourly columns and for the three pseudo-channel
-   lists, which retire into it. The spec read-receipt and the human's
-   confirmation come before any registry edit.
+5. In design. `gw.service.channel.gt` 000 (draft), raised spec-first on
+   its own sema branch under the sema protocol: a channel a GNode
+   service declares for the readings it writes, as `derived.channel.gt`
+   is the scada's and `gw.weather.channel.gt` the weather GNode's. The
+   spec read-receipt and the human's confirmation come before any
+   registry edit. Fields, agreed:
+
+   | Field | Format | Meaning |
+   |---|---|---|
+   | Name | `spaceheat.name` | The channel's name, persisting across records; the format `data.channel.gt` and `derived.channel.gt` give Name, so every channel in the readings table shares one grammar |
+   | DisplayName | `non.empty.string` | Human-readable label |
+   | Quantity | `gw1.quantity` 003 | What is measured |
+   | Unit | `gw1.unit` 003 | The unit its readings are in |
+   | DeclaringGNodeAlias | `left.right.dot` | The GNode service that declares the channel and is its authority |
+   | TerminalAssetAlias | `left.right.dot`, optional | The house the channel is about; absent for a channel about no house |
+   | InputChannelNames | array of `spaceheat.name` | The channels it is computed from |
+   | Strategy | `spaceheat.name` | How it is computed from them, as `derived.channel.gt` names it |
+   | WindowS | `positive.int`, optional | The aggregation window, for an aggregate (3600 for hourly) |
+   | Start | `utc.iso8601.seconds` | When this record became the active record for Name |
+   | Id | `uuid4.str` | This record's identifier; a structural change is a new record under the same Name |
+   | TypeName, Version | consts | |
+
+   One axiom: Quantity equals the quantity the unit projection gives
+   for Unit, as `derived.channel.gt` states for OutputQuantity.
+   `gw.channel.kind` 001 adds ServiceChannel (000 is published); the
+   three journalkeeper kinds stay until their pseudo-channel lists
+   retire into instances.
+
+   Why these names. DeclaringGNodeAlias follows the registry's
+   role-prefix pattern (`FromGNodeAlias`, `AboutGNodeAlias`,
+   `HostGNodeAlias`); `FromGNodeAlias` means a message's sender in
+   every use, and a channel record outlives the message it came in.
+   The declarer is a GNode because the production universe is built
+   on GNodes; the coming price forecast service fits as it is.
+   TerminalAssetAlias stays optional and specific until an instance
+   is about some other kind of node. Start takes ISO because a person
+   declares an era boundary once and reads it by eye (the time-format
+   note under Open).
+
+   Still open:
+   - The hourly instances' names: a `-1hr` suffix on the column's
+     channel name (`hp-kwh-th-1hr`) is proposed.
+   - Per house per column, or once for the fleet. Per house is
+     proposed: the journal keys a channel by (name, terminal asset),
+     and Start then scopes each house's eras.
+   - Whether the price channels become instances now or wait for the
+     price-unit question under Open.
+   - Who declares the channels non-GNode services write today (the
+     journalkeeper's derived lists, gridworks-data's hourly job):
+     either that service takes a GNode alias under the universe root,
+     as the weather service has, or each channel moves to the GNode
+     whose meaning it is. The first instances can be the weather
+     GNode's and the price forecast service's; the rest is settled
+     with the writer in step 6.
 6. The hourly columns written as readings of those channels, one row
    per (channel, hour), with integers scaled by the channel's unit, so
    the `unit_scale` join reads them as it reads any other channel and
@@ -188,6 +335,23 @@ which is OPS-622's.
 
 ## Open
 
+- The lineage reader takes a second's value from its latest reading
+  where the per-series reader averaged the readings in that second;
+  where two readings land in one second (five of beech's `dist-swt`
+  seconds on 2026-01-09 01:00) an hour's `dist_kwh` moves by about 2%.
+  The latest reading is the lineage rule; left as is unless a reader
+  needs the within-second average.
+- On each roll day two rows of one channel report at once for minutes
+  (beech 2026-10-28 23:28 to the old row's last reading; the two rows
+  disagree, 58.7 against 36.8 °C on `dist-swt`). The lineage reader
+  takes whichever reported last each second, so those hours are not
+  comparable with either row alone. Whether these windows are glitch
+  rows or the layout's own account of a roll is a question for the
+  scada's layout word. The old row also reports once more a day
+  after the roll (beech 10-30 14Z, elm 10-28 17Z), one hour where the
+  two rows disagree again; and the journalkeeper reactivates a retired
+  row when its (name, unit, unit type) returns, so oak, maple and
+  spruce's 10-23 blip rows are their roll rows.
 - Whether the sema vocabulary gains a per-unit record stating base
   unit and scale, retiring the generator's name convention and map. A
   sema question with the spec first; raised separately, not in this
@@ -198,6 +362,14 @@ which is OPS-622's.
   and the per-MWh lives in the channel name. `gw1.unit` has no price
   unit; `market.quantity.unit` is the right neighbourhood. A sema
   question, raised separately.
+- A time-format convention to add to `conventions/sema-CLAUDE.md`
+  "Registry rules" at distill, beside the sender's-clock bullet:
+  telemetry timestamps take integer seconds or milliseconds
+  (`utc.seconds`, `utc.milliseconds`); a declared era boundary (a
+  channel record's Start, a station registration) takes
+  `utc.iso8601.seconds`, because a person writes it once and reads it
+  by eye. The weather words follow this; `data.channel.gt`'s `StartS`
+  converges at its next version. Not a sema spec matter.
 - Beech and oak reported their tank and buffer depths as Fahrenheit
   × 100 under the `WaterTempCTimes1000` channel for about a day before
   the 2026-01-09 rename; the join reads those hours by their label.

@@ -10,14 +10,44 @@ repo's git history.
 
 Newest at the top.
 
-<!-- pending commit -->
-## 2026-11-20 — the Gw108 Rev C device-type record (jm/gw108-revc, OPS-701)
+## 2026-11-20 — spruce: the iso valve is Valve3 (`fd77bfc`, jm/gw108-revc, OPS-701)
 
-Spruce runs a Rev C. Its record is the Rev B one with the Rev C facts:
-relay names from the Rev C silk at the same expander bits, Valve 4 on
-native GPIO 13 with its sense on GPIO 19, two thermistor ADCs. The CT ADC
-is left out until `i2c.ct.interface.capability` can say it sits behind
-the mux.
+**Why.** The Rev C column of `PLANT_RELAY_SILK` put the iso valve on
+Valve2, bit for bit from the Rev B IsoValve position. George's wiring
+has it on Valve3 (the Rev B DischargeValve bit): under admin at 16:34 the
+Valve2 relay took and nothing in the store loop changed. One field moves
+in the generated layout, the iso valve's RelayName; Valve2 is unused at
+spruce.
+
+## 2026-11-20 — spruce: the secondary-hx tank module (`37b18dc`, jm/gw108-revc, OPS-701)
+
+**Why.** George installed a pico tank module, `pico_5a5127` on a Pico W
+2040, with two probes on the secondary loop beside the secondary BTU
+meter; it was already posting to `/secondary-hx/tank-module-params` with
+no actor to serve it when spruce came up on Rev C. It joins the gen as a
+free-standing tank module like fancoil and floor1, and two identity
+deriveds name the probes: `secondary-hx-hot` on depth3 and
+`secondary-hx-cold` on depth2, the hotter and cooler of the pair with
+the heat pump on. Depth1 is unwired. Six channels and four nodes are
+added; nothing existing moves.
+
+## 2026-11-20 — Spruce on the Gw108 Rev C record (`c43d091`, jm/gw108-revc, OPS-701)
+
+**Why.** Spruce runs a Rev C, bench-checked component by component on
+2026-11-20, and rolls tonight. The Rev C record is the Rev B one with the
+Rev C facts: relay names from the Rev C silk at the same expander bits,
+Valve 4 on native GPIO 13 with its sense on GPIO 19, two thermistor ADCs;
+the CT ADC is left out until `i2c.ct.interface.capability` can say it
+sits behind the mux. The thermistor reader takes the board record from
+the config's `board_record_file` (it took a module constant pinned to
+the Rev B file, so its ADC name could not follow a record change). The
+Nolan plant roster becomes `PLANT_RELAY_SILK`, one column per board rev
+keyed by the record's DeviceType, so a gen on a rev with no column fails
+at the table and not at a box. Spruce's gen names the Rev C record and
+puts the secondary pump's 0-10 V on Dac3 channel C, where the bench
+drove it. The generated layout changes in the board identity, nine relay
+names, the DAC and ADC names and the embedded record; no component,
+node or channel id moves, and the operational params are unchanged.
 
 ## 2026-11-20 — The fleet tuning puts the unmet-load knobs in Experimental (`41ec8e2`, jm/flo-tuning-experimental, OPS-696)
 

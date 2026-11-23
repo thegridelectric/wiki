@@ -36,7 +36,7 @@ realization (`../../../gridworks-scada/designs/spruce-unlimbo/primary.md` "The i
 
 - **House0** — the sieg loop: `sieg-flow`, `sieg-cold`, the hp-loop
   valve relays and the sieg-loop actor's `SiegLoopReady` handshake, so
-  `basic-sieg.md`'s field question has a rehearsal rig; buffer, iso
+  the sieg loop's field question (OPS-705) has a rehearsal rig; buffer, iso
   valve, store tanks.
 - **House0 no-sieg** — the same plant with the sieg surface absent; the
   one that proves nothing above the family tier reaches for a sieg

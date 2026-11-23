@@ -16,14 +16,21 @@
 # Running it stamps the week; seven days later the daily line says the
 # next run is due.
 #
-# Boxes are probed in parallel; an unreachable box is flagged, never
-# crashed on.
+# Boxes are probed in parallel; a box that does not answer is flagged
+# with ssh's reason (connect timed out, host key verification failed,
+# permission denied, ...), never crashed on. A connect timeout is the one
+# reason the daily mode treats as possibly transient: it is relayed only
+# when the same box also timed out on the previous daily check (the list
+# in UNREACH). Every other reason is relayed at once; a missing host key
+# fails the same way every time and the line says what to run.
 
 MODE="${1:-daily}"
 MARKER="$HOME/.cache/gw-patch-check-$(date +%Y%m%d)"
 # The weekly run's prompt: `full` touches RUN, and once RUN is a week
 # old the daily line says the run is due. Nothing recurs in Linear.
 RUN="$HOME/.cache/gw-patch-run-last"
+# Boxes that timed out on the previous daily check; a second miss relays.
+UNREACH="$HOME/.cache/gw-patch-unreachable"
 if [ "$MODE" = daily ]; then
   if [ ! -f "$RUN" ]; then
     echo "WEEKLY PATCH RUN DUE (never run from this laptop): wiki/tools/check-patch.sh full, then the OPS-675 recipe."
@@ -43,9 +50,23 @@ mkdir -p "$HOME/.cache"
 VMS="certbot ear forecast gjk alerts gnr tap mm flo ltn hw2-1 rmqbot web-api2 pii"
 PIS="beech beech2 oak oak2 fir fir2 maple maple2 elm elm2 spruce"
 
-SSH="ssh -o BatchMode=yes -o ConnectTimeout=6"
+SSH="ssh -o BatchMode=yes -o ConnectTimeout=15"
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
+
+# ssh's stderr -> one short reason a person can act on.
+reason() {
+  local err="$1"
+  case "$err" in
+    *"Host key verification failed"*) echo "host key verification failed (not in known_hosts; ssh $2 once to accept)";;
+    *"REMOTE HOST IDENTIFICATION HAS CHANGED"*) echo "host key changed (check the box, then ssh-keygen -R its address)";;
+    *"Permission denied"*) echo "permission denied";;
+    *"Connection refused"*) echo "connection refused";;
+    *"Could not resolve"*) echo "could not resolve hostname";;
+    *"timed out"*|*"No route to host"*|*"Network is unreachable"*) echo "connect timed out";;
+    *) echo "unreachable: $(printf '%s' "$err" | grep -v '^$' | tail -1 | cut -c1-80)";;
+  esac
+}
 
 probe() {  # host mode -> writes $TMP/host (empty = nothing to say)
   local host="$1" mode="$2" r
@@ -74,7 +95,7 @@ probe() {  # host mode -> writes $TMP/host (empty = nothing to say)
       t=\$(printf '%s\n' \"\$u\" | grep -c .)
       echo \"\$s security, \$((t - s)) ordinary updates pending\"
     fi
-  " 2>/dev/null) || r="unreachable"
+  " 2>"$TMP/$host.err") || r="$(reason "$(cat "$TMP/$host.err")" "$host")"
   printf '%s' "$r" > "$TMP/$host"
 }
 
@@ -82,11 +103,19 @@ for h in $VMS $PIS; do probe "$h" "$MODE" & done
 wait
 
 OUT=""
+TIMED_OUT=""
 for h in $VMS $PIS; do
   r=$(cat "$TMP/$h" 2>/dev/null)
+  if [ "$MODE" = daily ] && [ "$r" = "connect timed out" ]; then
+    TIMED_OUT="$TIMED_OUT $h"
+    # first miss stays quiet; a miss on the previous daily check too relays
+    grep -qx "$h" "$UNREACH" 2>/dev/null || continue
+    r="connect timed out (second daily check in a row)"
+  fi
   [ -n "$r" ] && OUT="$OUT
   $h: $(echo "$r" | paste -sd ';' - | sed 's/;/; /g')"
 done
+[ "$MODE" = daily ] && printf '%s\n' $TIMED_OUT > "$UNREACH"
 
 if [ "$MODE" = full ]; then
   touch "$RUN"

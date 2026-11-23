@@ -93,7 +93,7 @@ its paho listener becoming the transport inside `TimestepClock`.
 1. ✅ `clock.py`, the interface property, `ManualClock`, `tests/test_clock.py`
    (from `test_sim_time.py`); the keepalive ping is an `on_step`
    callback of `TimestepClock`. The LTN app is not on the interface yet.
-2. The sieg package, during its rewrite (spruce-unlimbo `basic-sieg.md`
+2. The sieg package, during its rewrite (OPS-392 basic-sieg
    change 2): all 17 sites. Valve travel computes from `now()` at relay
    transitions, not from one-second sleep slices, which would each wait a
    full step.

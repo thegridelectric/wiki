@@ -17,14 +17,15 @@ The branch does not become `main` until:
 - Every launch spoke is green: the layout gens (OPS-539, done), the
   layout-word axioms (`layout-word-axioms.md`), the ops-word cleanup
   (`operational-params-cleanup.md`), the sieg loop proven on new code
-  (`basic-sieg.md`), the Nolan control loop (done),
+  (basic-sieg, done), the Nolan control loop (done),
   strategy selection (`control-strategy-selection.md`), and the small items
   (`odds-and-ends.md`).
 - `layout.lite/013` is published with its closure (`finalize-layout-lite-13.md`)
   — spruce cannot connect on the production broker until the word it sends on
   link-up is published.
-- The commits `main` took after the branch point are each carried or
-  dismissed (`main-changes.md`).
+- The commits `main` took after the branch point are each present on
+  the branch in another form or superseded (read 2026-10-25; the
+  changelog entry of 2026-10-26 has the verdicts).
 
 ## The first data catch
 

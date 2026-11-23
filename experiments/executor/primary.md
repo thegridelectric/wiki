@@ -1,6 +1,6 @@
 # experiments — executor spec
 
-Status: Draft · Pass 0 · Updated 2026-08-10
+Status: Draft · Pass 0 · Updated 2026-11-22
 
 > What this is: the faithful-rebuild spec for the `experiments` repo —
 > how GridWorks experiment records are structured, semafied, and
@@ -83,6 +83,12 @@ behind them:
   the snapshot, never ad-hoc dicts — a one-off exception requires
   explicit human authorization. Below the word layer the sema-gravity
   maxim applies (GridWorks_CLAUDE).
+- **Over-cap bytes go to `s3://gwdev/experiments/<folder>/`.** A
+  capture or pull over the 2 MB cap is copied there untouched, its key
+  and byte count named in the folder's README, and the folder commits
+  the reduction the analysis reads (a `-rows.jsonl` sibling for a
+  broker or tap capture); the repo's `.gitignore` keeps full tap
+  captures out of `git add -A`.
 - **`future/<slug>/`** holds queued experiments undated; a
   `<date>-<slug>/` date is the first run.
 - **`ci.sh` is the gate and covers new work by default**: pyright

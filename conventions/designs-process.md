@@ -1,6 +1,6 @@
 # designs-process — the `designs/` lifecycle
 
-Status: Draft · Pass 0 · Updated 2026-06-13
+Status: Draft · Pass 0 · Updated 2026-11-21
 
 > What this is: how design-specs live in the wiki across all domains.
 > Companion: [`linear.md`](linear.md) for the Linear interface. Aggregated
@@ -117,15 +117,15 @@ the words; try both, take whichever hits:
   in `wiki/<domain>/designs/` ("sema snapshot improvement" →
   `wiki/sema/designs/snapshot-improvement.md`).
 - **Spoke:** the slug as a file inside a hub folder,
-  `wiki/<domain>/designs/<hub>/<slug>.md` ("basic sieg" →
-  `wiki/gridworks-scada/designs/spruce-unlimbo/basic-sieg.md`); the hub's
+  `wiki/<domain>/designs/<hub>/<slug>.md` ("sensor freshness" →
+  `wiki/gridworks-scada/designs/spruce-unlimbo/sensor-freshness.md`); the hub's
   `primary.md` is the anchor.
 
 Don't assume the first word is a domain. Open the match as the session's
 anchor; if all miss, list candidates and ask — don't guess.
 
 **Focus names the active spoke when the design has one, else the design.**
-The active-claims Focus cell names the spoke being worked ("basic-sieg"); a
+The active-claims Focus cell names the spoke being worked ("sensor-freshness"); a
 design with no spokes is named by its own slug. The hub stays the session's
 anchor and altitude; when the work moves to another spoke, Focus moves with
 it.
@@ -252,8 +252,8 @@ explorations/          designs/
    │ /grill-me +         │ executes, ships
    │ /plan converges;    │
    │ clarity emerges     ▼
-   │                  deleted from designs/;
-   └──→ designs/      durable outcome → executor/primary.md;
+   │                  distilled: durable outcome → executor/,
+   └──→ designs/      key trace captured, file deleted,
                       Linear closes
 ```
 
@@ -378,10 +378,16 @@ which one a new item lands in; afterwards the difference is:
 
 The wiki holds full design content (rationale, alternatives, decision
 tree, classification matrices, sequencing) **only while the design is
-in `designs/`**. On completion:
+in `designs/`**. On completion the design is **distilled**. Distilling
+is the name for the whole close, not only the executor paragraph:
 
 - The **architectural distillate** (≤ ~100L: "here's the invariant we
   now hold") → updates `executor/primary.md` (or a sub-spec).
+- The **key trace** is captured or re-run and named from the executor,
+  so `Reviewed` has a reproducer to point at. Which trace is key is a
+  judgment: the one that witnesses the EDD clause, or the build-out
+  design's key test. A design whose traces are all already in the
+  executor's trace table has nothing to add here.
 - The **wiki design file/folder** is deleted.
 - The **Linear issue** is closed (status: Done). Its title (the slug)
   + the wiki path it once linked to preserve the historical record

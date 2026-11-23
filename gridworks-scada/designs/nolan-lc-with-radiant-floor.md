@@ -47,7 +47,7 @@ the buffer and was not reaching the room:
   fell toward 95 F. That looks like a mixing valve throttling the hot
   side; to be checked on site.
 - The living room's fan-coil circuit never called. That lever is the
-  spruce-settled thermostat-and-zone-control spoke's (OPS-532).
+  thermostat-and-zone-control design's (OPS-532).
 - Upstairs called from 22:24 to 01:45 and overshot from 68 F to 75.7 F.
   When that call ended, all three critical zones started cooling about
   three times faster. From then on the slab was the only heat path into

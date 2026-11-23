@@ -1,6 +1,6 @@
 # Price stages
 
-Status: Accepted · Pass 1 · Updated 2026-11-16 · Linear: OPS-684
+Status: Accepted · Pass 1 · Updated 2026-11-21 · Linear: OPS-684
 
 **EDD: yes** for a window that spans a weekday on-peak start, the journal
 shows the MarketMaker's `Provisional` price for the slot within 5 s of
@@ -153,6 +153,20 @@ at an on-peak boundary.
   which row, which tariff line, and the arithmetic. The bar is a
   teammate checking a day's prices without asking anyone.
 
+- **`latest.price` is the full price the LTN faces** (2026-11-13). It
+  determines the contract between the LTN and the MarketMaker, so it
+  includes every sub-stream the LTN faces at its node; a wholesale-only
+  meaning was rejected. The MarketMaker becomes, piece by piece, a DSO:
+  turning what the external market prices into what its own market
+  faces is its work.
+- **One MarketMaker identity per priced node.** A MarketMaker exists
+  wherever a distinct price forms: an ISO-NE PNode, later a distribution
+  constraint below one. A market is named by its MarketMaker's alias and
+  its product; whether one application hosts several identities is a
+  deployment choice the words do not depend on.
+- **The tariff is a property of the market.** A market declares one
+  tariff, and its price is the full price for every bidder on it.
+
 ## Plan
 
 **Do this next:** the dev-stack provocation run in simulated time, both
@@ -279,9 +293,32 @@ stage and the panel draws `Provisional` and `Final` apart.
    verification how-to; a teammate runs it on one day's prices.
 6. **The verifying window** on `tsdb_tap`, spanning a weekday on-peak
    start.
-
-The Keene product cutover to `rt60gate1` and its verifying window stay
-with OPS-666.
+7. **The product name cutover**, in the same roll as the staged price,
+   so the slot names change once. The Keene market's product is
+   `rt60gate1` (decided 2026-11-13): real-time energy, 60-minute slots,
+   gate closing 60 s before the slot. Both services claimed `rt60gate5`,
+   a 300 s gate, while the LTN asks the FLO 180 s before the slot and
+   the FLO answers in about 10 s, so bids reach the maker about 170 s
+   before the slot, after the gate the name claimed; a 300 s gate (a
+   420 s lead) was declined, since clearing takes milliseconds and the
+   60 s gate leaves about 110 s of slack against a FLO stall. The product
+   is a fact of the `gw.operational.params` word (`MarketProductName`,
+   with `MarketMakerAlias`), set per house in `tlayouts/<house>_gen.py`;
+   the MarketMaker's `market_product` and the price service's
+   `product_name` settings name the same product. All three move to
+   `rt60gate1` in one cutover, every house rolled by `roll.sh`, so no
+   service names a product the others do not. The slot names change with
+   the product, so the Keene `latest.price` series under `rt60gate5` ends
+   and a new one begins; the backend's real-time route follows its prefix
+   parameter. Prerequisite: the tlayouts snapshot vendors
+   `gw.market.product.name` 000, which lacks `rt60gate1`, and regenerates
+   at 001 first; gwsproto, the journalkeeper, the backend, the frontend
+   and the price service already vendor 001, and the maker takes the
+   product as a bare name. The FLO's hard-coded `rt60gate5` in its
+   `BidRecommendation` slot name is unused (the LTN builds the bid's slot
+   name from the ops word) and is a cleanup. Its check joins the
+   verifying window: the panel draws the real-time price beside the
+   forecast for a window that spans the cutover.
 
 ## Spokes
 

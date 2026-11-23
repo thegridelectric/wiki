@@ -10,7 +10,58 @@ repo's git history.
 
 Newest at the top.
 
-## <!-- pending commit --> — The hourly functions read each reading's unit from unit_scale (jm/hourly-unit-scale, OPS-630)
+## 2026-11-22 — The hourly weather columns read the station, then the gridpoint, then the forecast (`beb5147`, jm/hourly-weather-columns, OPS-630)
+
+**Why:** `calc_hourly_data`'s `oat_f` and `ws_mph` read the house's own
+`forecast-oat` and `forecast-ws`, a forecast standing in for an
+observation. The weather GNode's observed channels are in the journal
+from 2024-10-01 (OPS-603, OPS-688): KMLT's temperature and wind, and the
+model gridpoint's temperature, wind and irradiance. The columns are now
+the station's hourly observation, the gridpoint's where the station has
+none (KMLT's dark weeks), and the forecast only where neither exists;
+`oat_source` and `ws_source` name the channel each hour's value was
+read from, so the fallback is visible in the table and the hourly CSV;
+`ghi_w_m2` is the gridpoint's irradiance. The weather GNode alias and
+the channel names are constants in the function with a note naming the
+missing word (a house-to-station binding). Migration `e3f5a7b9c1d2`
+appends the three columns to `cached_hourly_data` and drops the
+function before re-creating it, since its return table changes; the
+`hp_kwh_el` migration drops it too, so a chain upgraded from before it
+no longer fails on the changed return type. The boundary test gains the
+weather GNode's channels across its three hours.
+
+## 2026-11-22 — .gitignore: temporary.env (`4047d0e`, jm/ignore-temporary-env)
+
+**Why:** `temporary.env` is where the journal DB's role credentials sit
+on a laptop for a hand-run migration or backfill. Ignored, so it can
+never be staged and the working tree reads clean while it exists.
+
+## 2026-11-22 — hp_kwh_el is the sum of the heat pump units the house has (`849cebc`, jm/hp-kwh-el-without-idu, OPS-630)
+
+**Why:** `calc_hourly_data` summed the indoor and outdoor unit power, so a
+house whose heat pump has no indoor unit had no `hp_kwh_el` at all: elm's
+Arctic, from the 2026-10-28 roll, has only `hp-odu-pwr`, and the column
+was null for every hour, which the hourly electricity view shows as
+zero. The column is now the sum of whichever units reported, null only
+when neither did. The boundary test's third hour drops the indoor unit
+and expects the outdoor unit's energy; it fails on the plain sum.
+Migration `d2e4f6a8b0c1` re-creates the function; elm's hours since
+2026-10-25 are refilled by hand.
+
+## 2026-11-22 — update README (`b7bdc22`, jm/readme-hourly-refresh, OPS-630)
+
+The README gains "The cached hourly table".
+
+**Why:** `cached_hourly_data` had two fillers and no documentation of
+either: the 30-minute TimescaleDB job over the last two days, and
+`refresh_all_cached_hourly_data.py` for everything older, whose only
+account was its docstring. The OPS-630 migration is the first of several
+that change `calc_hourly_data` behind the job's window (the weather
+columns are next), and each needs the backfill after it, so the README
+now says what the table is, what fills it, how to run the backfill and
+when it is required.
+
+## 2026-11-21 — The hourly functions read each reading's unit from unit_scale (`26aa0e5`, jm/hourly-unit-scale, OPS-630)
 
 **Why:** `calc_energy_1hr` and `calc_hourly_data` selected readings by a
 unit literal, so a channel in the other enum or the other era fell out
@@ -19,14 +70,42 @@ before 2026-01-09, and hp, dist and store temperatures after the
 2026-10 roll. Both now join `readings` to `gridworks.unit_scale` on
 `(unit_type, unit)`, select by channel name and quantity, and convert
 through `gridworks.in_unit`; no unit literal remains. A migration
-creates `in_unit` and both functions after `unit_scale` (the 2026-06
-migration stops creating them), with the return tables unchanged. A
-local test runs one house across a unit boundary and fails on the old
-bodies. On `tsdb_tap`, with beech's two boundary windows and a Maple
-window copied from prod, old and new agree to the digit wherever the
-old literal matched, and the new fills the empty hours; the hour
-2026-10-28 23:00, in which beech reported hp-lwt under both spellings,
-averages both.
+creates `in_unit`, re-creates `retrieve_readings_1s` and both functions
+after `unit_scale` (the 2026-06 migration stops creating the two
+functions), with the return tables unchanged.
+
+The one-second reader gap-filled each `(channel, unit)` series on its
+own and held a series' last value to the end of the window, so once
+both spellings of a channel are read, a retired row's last reading was
+averaged with the live row's for the rest of the window: on a seven-day
+window oak's `dist_kwh` came out three times the old function's over
+three days. The old function had the mirror fault unseen: after a
+house's roll its one spelling went quiet and the stale value stood in
+for the live one, so the post-roll hourly energies on prod are stale,
+not empty. The reader now returns one row per channel per second, the
+lineage's latest reading with that reading's unit, so a row's last
+value stops at the next row's first reading.
+
+Verified by an old-versus-new diff over every hour in `tsdb_tap`, with
+beech's two boundary windows and a Maple window copied from prod: old
+and new agree wherever the old literal matched a live series, the new
+fills the empty hours, and the only hours that differ are the roll-night
+glitch windows (executor `data-glitches.md`) and hours the old function
+filled from a stale series. A local test runs one house across a unit
+boundary with the temperatures stepping at the boundary; it fails on
+the old bodies and on the per-series reader.
+`refresh_all_cached_hourly_data.py` takes its window from the command
+line and deletes each day before inserting it; the table has no key, so
+the insert-only loop would have doubled every hour it refreshed.
+
+A second pass read the change against every boundary kind in prod's
+channel table: 30 more house-hours in `tsdb_tap` (the January rename at
+oak and fir, maple's `primary-flow`, each house's real October roll,
+the straggler hour each old row has a day later), 61 house-hours
+diffed, no fault. The test's third hour steps the new-era series again
+after the boundary, so a retired series extended through the hourly
+aggregate's LAG and LEAD past its end fails that hour. The refresh
+over a full day of six houses on the tap took 5.8 s.
 
 ## 2026-11-16 — unit_scale: what a reading's stored integer means, per unit enum value (`150ab92`, jm/hourly-unit-scale, OPS-630)
 

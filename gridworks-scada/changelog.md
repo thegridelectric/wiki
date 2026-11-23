@@ -10,6 +10,16 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-20 — gwsproto DeviceType gains Gw108RevC (`e9bf4a93`, jm/gw108-revc, OPS-701)
+
+Spruce runs a Gw108 Rev C and its board record names `Gw108RevC`, which
+sema's staging `gw1.device.type` now lists. The oracle snapshot is
+regenerated from the sema branch that adds only that value (`3b24e54`, on
+`cfa2b66`, so the experimental flo knob stays in its own wave) and the
+hand-written `DeviceType` twin gains the member. The four device-type
+tests that used `Gw108RevC` as their stand-in for a name outside the
+vocabulary use `Gw108RevZ`.
+
 ## 2026-11-20 — The LTN speaks flo.params 004 and reads flo.recommendation 003 (`5f170fe6`, jm/flo-tuning-experimental, OPS-696)
 
 **Why.** `flo.tuning.bruce` 003 and `flo.path.penalties.bruce` 002 move the two unmet-load knobs and their penalty series into an open `Experimental` dict, so a knob under tuning changes bruce and nothing else (OPS-696). The words that nest them follow: `flo.params` 004, `flo.rerun.request` 002, `flo.recommendation` 003, `gw.operational.params` 000 repointed in place. All five are staging in sema (`c8cc461`), so the snapshot is a dev-only staged one until they promote. The oracle snapshot is regenerated; the twins
@@ -1635,7 +1645,11 @@ follows, with a `back` and a `forward` test.
 to contain the old one, which means the merge runs on the branch first.
 Each of the eleven commits `main` took since the branch point was read
 against the branch and found present in another form or superseded
-(the spruce-unlimbo `main-changes` spoke has the table); main's new
+(present: the AllyGivesUp heartbeat guard `3d83bfdc`, `tank.module.params`
+200 `4d5375a7`, the pico-code twins `f83a0b77`, the proactor pin
+`55b2dc29`; superseded: the Standby fix `2ed4466a`, the WifiOrEthernet
+series `310509a3` `a02a7c4b` `cc360e37`, the `layout_gen` patches
+`ce05fcd5` `95ed3027`, the liveness margin `e0768309`); main's new
 tank-module test targets names the branch retired, and the branch's
 `test_pico_liveness.py` covers the same behavior. The roll script
 has to know the new line names before the first roll after the swap.

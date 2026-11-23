@@ -51,6 +51,14 @@ unchanged from Rev B; the names move to the Rev C silk.
 Zone relays on 0x20: reg 2 bits 0..5 are Zone1..6Failsafe, reg 3 bits
 0..5 are Zone1..6Scada, as on Rev B.
 
+Each FCM output has two LEDs. The one beside the relay follows the coil
+and so the expander bit. The one in the labelled FCM column has a sense
+network per channel; it lit for Valve 1 with the valve wired while the
+meter read no voltage across the Valve 1 pins, and stayed dark for Pump 3
+with its output open at a miswired FCM end. Neither LED proves the
+output is live; what they report is a question for Joe. Bench picture:
+[`images/pump3-led-1.png`](images/pump3-led-1.png).
+
 Valve 4 is energized by default when the backup toggle says boiler. The
 toggle's silk labels are reversed and its middle position de-energizes
 both Valve 4 and Valve 5; that position is never used.
@@ -94,3 +102,33 @@ can feed both by bridging the two inputs.
 - MISC 1 and MISC 2 R and COM labels reversed.
 - The FCM DB25 pinout follows the standard long-row-first numbering,
   unlike earlier revs.
+
+## Feedback for Joe (todo)
+
+To go back on his README (a Google doc:
+[gw108 Rev C README](https://docs.google.com/document/d/1EopAXAOvowKXY_0GLAVGe99Wgr72c_u8CqDanNw2Dy4/edit?tab=t.0#heading=h.f1znxpfuovjt))
+once the checklist is through. Collected as the bench finds them.
+
+- Everything the bench has reached so far matched the README and
+  `app.py` exactly: expander addresses and zone bits, the six whitewire
+  GPIOs, both thermistor ADCs, the CT ADC behind mux channel 4, the three
+  DACs. The README was the whole basis of the checklist.
+- On spruce the thermostat LEDs tracked the calls (Z1 and Z2 lit for the
+  calling zones, the rest dark), so the power-stealing erratum did not
+  show with spruce's thermostats; worth saying which thermostats it was
+  seen with.
+- The TCA9555 input registers (0 and 1) read the pin level back for the
+  output ports, and the bench uses that as the actuation witness; a line
+  in the README would save the next reader finding it.
+- GPIO 19: we read 1 with a load wired and Valve 4 de-energized; the
+  erratum says it reads energized with no load. The driven Valve 4 test
+  settles what 0 and 1 mean with a load.
+- The DB25 pinout erratum is the one that bit: the FCM end of spruce's
+  cable was built to the earlier alternating-row convention, so Rev C's
+  Pump 3 24 VAC reached another FCM terminal. Worth putting at the top of
+  the README as the first thing to check on a board swap, with the pin
+  table beside it.
+- What the labelled FCM LEDs report: Valve 1's lit with no voltage on
+  its pins, Pump 3's stayed dark with its output open. A sentence in the
+  README on what each of the two LEDs per FCM output means would settle
+  it.

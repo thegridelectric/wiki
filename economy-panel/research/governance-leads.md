@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-06-07
+Status: Draft · Pass 0 · Updated 2026-11-22
 
 > Research note (not normative). Tracks candidate stewards and
 > integration partners for the Economy Panel architecture. The
@@ -7,27 +7,21 @@ Status: Draft · Pass 0 · Updated 2026-06-07
 > See [`../executor/primary.md`](../executor/primary.md) "Why
 > this is open-source and not a startup".
 
-## EKM Metering — externally committed for v1 master economy meter
+## EKM Metering — a candidate for the master economy meter
 
-**Status:** The **EKM Omnimeter** is named in the 2026-06-05
-letter to ISO-NE (Matt White) as the revenue-grade meter
-GridWorks will install behind the Versant bonus meter — i.e.
-the master economy meter for the parallel-metering
-configuration. This is a public commitment, not an internal
-working choice.
+**Status:** candidate, not committed. The EKM Omnimeter has a UL
+test report against the ANSI C12.20 class 0.2 and 0.5 tables and
+costs about $200 at single-unit retail. The unit GridWorks has uses
+clamp-on CTs. Whether that combination is accepted by a utility or
+the ISO as revenue-quality metering: no, per
+`wiki/electricity-metering/research/ekm-omnimeter-acceptance.md`
+(California tenant-submeter approval, UL safety listing, a partial
+C12.20 test on solid-core CTs); the meter decision itself is in `wiki/electricity-metering/README.md` "The chosen
+architecture".
 
-**Per the letter (excerpted):** "We would also specifically
-welcome ISO-NE's input on the revenue-grade meter we install
-behind the Versant bonus meter. We have in mind the EKM
-Omnimeter."
-
-**What this fixes in the v1 spec:**
-- The master economy meter is revenue-grade (ANSI C12) by
-  EKM Omnimeter, ~$200 contribution to the BOM at single-unit
-  retail.
-- The Economy Panel encloses an EKM Omnimeter behind its
-  smart-side wiring; the TaReader reads it (probably pulse
-  output) for the ISO-NE AMR submission.
+**If chosen:** the Economy Panel encloses the Omnimeter behind its
+smart-side wiring and the TaReader reads it (probably pulse output)
+for the ISO-NE AMR submission.
 
 **Open follow-ups (broader EKM relationship):**
 - **Sub-metering layer (layer-b) integration.** EKM's per-

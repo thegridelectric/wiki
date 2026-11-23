@@ -111,6 +111,16 @@ The designs are in [`designs/`](designs/), and
 
   The positions of `sieg-hot` and `sieg-cold` are a guess, since the
   schematic does not show them.
+- **The laptop World's proven rung is the FLO round trip.** Twice on the
+  dev broker (2026-11-05, 2026-11-19): sim scada, scada-repo LTN,
+  `gridworks-flo` with bruce as `d1.flo`, journalkeeper; request to
+  answer in seconds, the bid built from it, both rows journaled. The
+  stand-up is `experiments/dev-stack-recipe.md` "A FLO round trip".
+  Since the plant seam a simulated layout needs a plant, and with no
+  terminal asset on the broker the scada's `.env` says
+  `SCADA_PLANT_LINK=Standing`, else every simulated sensor is silent and
+  the LTN reads `ScadaBlind`. The simulated World reproduces this rung
+  first, with its plant on the broker instead of inside the scada.
 - **Two experiments commits not yet read** (experiments PR 1, both
   2026-11-16): `5aaed2d`, a plant-loop run on orange with its persisted
   events as evidence, and `f64dddd`, which gives beech-sim-compose a pod

@@ -5,7 +5,7 @@ Status: Accepted · Pass 1 · Updated 2026-10-14 · Linear: OPS-392
 > What this is: a spoke of [`primary.md`](primary.md). A channel becomes
 > unknown to control code, and a pico dead, under one bound; a pico
 > channel that goes quiet, or keeps reading a rail, is noticed on its
-> own. It comes before [`basic-sieg.md`](basic-sieg.md), whose fail-open
+> own. It comes before the sieg loop (`../../executor/sieg-loop.md`), whose fail-open
 > layer 2 ("an input missing") rests on it. A launch item. The built
 > behaviour is spec in `executor/sensor-freshness.md`.
 

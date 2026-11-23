@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-06-07
+Status: Draft · Pass 0 · Updated 2026-11-22
 
 > What this is: the hub for the **Economy Panel** architecture — a
 > residential smart electrical panel that combines an NEC-grounded
@@ -32,8 +32,7 @@ Each layer is independently grounded and independently inspectable:
 
 2. **TaReader integration with a master economy meter.**
    The TaReader reads a single revenue-grade master economy
-   meter (committed externally as the EKM Omnimeter in the
-   2026-06-05 ISO-NE letter) and submits its AMR data upward
+   meter (0.2-class; the boundary meter of `../../electricity-metering/README.md`) and submits its AMR data upward
    to ISO-NE per III.6.4(f). **The architecture does NOT
    commit to per-TerminalAsset sub-metering at the v1 stage**
    — when homes add additional TerminalAssets (EV, HPWH,
@@ -92,9 +91,14 @@ with multiple TerminalAssets.
    numbers to keep in sync.
 5. **Master economy meter is the only required market-facing
    meter; per-TerminalAsset sub-metering is deliberately not
-   specified at v1.** The TaReader's only market-facing read is
-   the master economy meter (revenue-grade ANSI C12 — committed
-   externally as the EKM Omnimeter for v1). For homes with one
+   specified at v1.** The metering tiers under it are in
+   [`../../electricity-metering/README.md`](../../electricity-metering/README.md) "The
+   chosen architecture", which decided 2026-11-22 that the meter is
+   our own, built as two products (a low-voltage voltage beacon
+   first, our own class 0.2 boundary meter second) with a bought
+   class 0.2 meter bridging until ours is listed. The TaReader's only
+   market-facing read is the master economy meter (revenue-grade
+   ANSI C12, 0.2-class). For homes with one
    TerminalAsset (the heat-pump-thermal-storage v1 case), this
    is sufficient: the master meter IS the per-TA meter. For
    homes that later add additional TerminalAssets (EV, HPWH,
@@ -214,15 +218,14 @@ empirical or expert validation as the spec matures.
   test.
 - **Thermal / EMI in the shared enclosure** — combining
   100 A+ contactor chains with the smart-side MCU, radios,
-  switching PSU, and EKM Omnimeter in one enclosure requires
+  switching PSU, and the master economy meter in one enclosure requires
   thermal/EMI design discipline; v1 enclosure cost may run
   above the $80–150 estimate.
-- **EKM partnership** — EKM Omnimeter is named in the ISO-NE
-  letter as the master-economy-meter v1 choice. Broader
-  integration conversations (whether to use additional EKM
-  CTs for COP accounting, sub-metering protocol, longer-term
-  OEM-embedded path) are queued; v1 commits only to the
-  master meter.
+- **Master economy meter vendor** — undecided between a meter
+  of our own and a third-party revenue-grade meter beside a
+  separate voltage beacon. EKM Metering is one candidate
+  under evaluation (whether its Omnimeter with clamp-on CTs is
+  utility-accepted is being checked).
 - **Per-TerminalAsset sub-metering for multi-TA homes** —
   deliberately not specified at v1. When real v2+ deployments
   with multiple TerminalAssets behind one panel arise, the
@@ -251,8 +254,8 @@ empirical or expert validation as the spec matures.
 
 - 2026-06-07 · Pass 0 stub. Three-layer architecture named
   (analog failsafe + TaReader integration + latent
-  panel-MarketMaker). EKM Omnimeter as master economy meter
-  externally committed via ISO-NE letter. Per-TerminalAsset
+  panel-MarketMaker). Master economy meter vendor open.
+  Per-TerminalAsset
   sub-metering deliberately not specified at v1
   (architecture stays agnostic; for heat-pump-TS, master
   meter is sufficient + optional COP-accounting CT inside the

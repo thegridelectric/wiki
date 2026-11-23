@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-06-07
+Status: Draft · Pass 0 · Updated 2026-11-22
 
 > What this is: the hub for the **GridWorks Economy Energy Market
 > System** — the architecture that lets aggregations of heat-pump
@@ -221,8 +221,9 @@ is tagged with its origin: **GW** (GridWorks design choice), **ISO**
     revenue-grade (ANSI C12) master economy meter that captures
     the total economy-energy load behind a TaOwner's installation.
     Its interval data is what the TaReader submits to ISO-NE for
-    III.6.4(f) AMR settlement. Working v1 choice: the EKM Omnimeter
-    (committed externally in the 2026-06-05 ISO-NE letter).
+    III.6.4(f) AMR settlement. Which 0.2-class meter, our own or a
+    third-party meter beside a separate voltage beacon, is open:
+    `wiki/electricity-metering/README.md` "The chosen architecture".
     (b) **Per-TerminalAsset metering is required for per-asset
     market participation.** When a home has one TerminalAsset, the
     master economy meter is the per-TA meter. When a home has
@@ -287,8 +288,9 @@ is tagged with its origin: **GW** (GridWorks design choice), **ISO**
     that signal.
     (b) **Two ISO-NE registration paths give us this access.**
     Both are worth pursuing in parallel:
-    (i) **III.6.4(f) DERA Load Asset** — the path described in
-    the 2026-06-05 letter to ISO-NE. ISO-NE permits multi-nodal
+    (i) **III.6.4(f) DERA Load Asset** — the parallel-metering
+    reading in `wiki/regulatory/isone/dera-metering/primary.md`.
+    ISO-NE permits multi-nodal
     DER aggregations to settle at the weighted average of
     constituent Node LMPs. *Open follow-up:* verify the as-filed
     III.6.4 Load-Asset-flavored settlement-location wording

@@ -3,6 +3,30 @@
 One entry per `starter-scripts` commit (git = the what, this = the why).
 Entries before 2026-08-23 live in git history only.
 
+<!-- pending commit -->
+## 2026-11-20 — ct_waveform.py: pump current waveforms while the scada runs (jm/gw108-revc, OPS-701)
+
+The Rev C CT ADS1115 at 0x48 behind mux channel 4 is a chip the scada
+never reads, and the scada touches the mux only to select a DAC channel
+before each DAC write, so the CTs can be read with the service up. The
+script captures CT1 (store pump) and CT2 (secondary pump) in continuous
+mode at 860 SPS for a few seconds each, verifies the mux select and ADS
+config every 200 reads and drops the span around any mismatch, folds the
+samples at the fitted mains frequency into one dense cycle, prints the
+numbers and an ASCII trace, writes local-time-stamped CSVs under
+`~/.local/state/gridworks/starter/ct-waveforms/`, and prompts for the
+next capture. It never writes a DAC.
+
+## 2026-11-20 — gw108 test code: no relay clear on import (jm/gw108-revc, OPS-701)
+
+Importing the script cleared both expanders, so a relay held from one
+REPL was dropped by the next process to import it: on the bench the
+charge-discharge valve closed under a running store pump that way. The
+clear is now `clear_expanders()`, called on purpose; the header says how
+to run the script interactively and that the argument is the relay coil
+(1 turns Valve 2 and Valve 4 off, since the board energizes them by
+default).
+
 ## 2026-11-20 — gw108_test_code.py is now for rev C (`c2021df`, jm/gw108-revc, OPS-701)
 
 Spruce runs a Gw108 Rev C from 2026-11-20. The Rev B bench script moves to

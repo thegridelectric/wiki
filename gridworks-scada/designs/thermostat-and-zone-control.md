@@ -1,4 +1,4 @@
-# Zone circuits and the thermostat model (spoke)
+# Zone circuits and the thermostat model
 
 Status: Draft · Pass 0 · Updated 2026-11-01 · Linear: OPS-532
 
@@ -10,7 +10,7 @@ Status: Draft · Pass 0 · Updated 2026-11-01 · Linear: OPS-532
 > is not a launch item. The relay-actor enforcement that keeps every relay
 > reliable at launch is OPS-392. The model below is resolved, pending the
 > sema word-gate discussion before any vocabulary lands. Board facts:
-> `gw108-board.md`.
+> `spruce-settled/gw108-board.md`.
 
 ## MVP first: hold a circuit off
 
@@ -196,7 +196,7 @@ holds ARE this state, informally; hack parity = commanding
 Bosses (LocalControl, the LTN↔Scada surface, admin) command
 GOVERNANCE, not postures. A homeowner's app is never a boss here: the
 LTN takes the setpoint on its own surface and commands governance
-([`../../../command-surface.md`](../../../conventions/command-surface.md) rule 7).
+([`../../conventions/command-surface.md`](../../conventions/command-surface.md) rule 7).
 The command is `SetGovernance`, of
 (circuit handle, event, `SetpointF?`), axiom: `SetpointF` present ⇔
 event is `SwitchToThermostatic`. Takeover works uniformly on every
@@ -385,7 +385,7 @@ OPS-648.
   circuit's mode in hand).
 - Zone 0-10V analog outputs (dac1/dac2 a-c): in the capability
   surface someday (variable-speed zone circulators), or out until a
-  house uses one. Not blocking; the DAC map is in `gw108-board.md`.
+  house uses one. Not blocking; the DAC map is in `spruce-settled/gw108-board.md`.
 - Mode is system-level (`SystemMode`): capability declarations turn
   mode changes into checkable safety semantics — a system entering
   cooling mode must not route cold water to heat-only emitters. Meet

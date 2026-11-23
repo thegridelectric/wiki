@@ -9,8 +9,8 @@ Status: Draft · Pass 0 · Updated 2026-11-20
 
 ## Done 2026-11-20
 
-On `jm/gw108-revc` of `starter-scripts`, commit `c2021df` and the
-follow-up with pin readback:
+On `dev` of `starter-scripts`, commit `c2021df` and `0b8e836` with pin
+readback; the no-clear-on-import change is on `jm/gw108-revc`:
 
 1. `git mv gw108_test_code.py archived/gw108_revb_test_code.py`.
 2. Write the Rev C script. Keep the Rev B script's working choices

@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-05-30
+Status: Draft · Pass 0 · Updated 2026-11-22
 
 > What this is: the FERC-approved **ISO-NE Tariff Section III.6.4**
 > on **Metering and Telemetry Requirements for Distributed Energy
@@ -244,6 +244,48 @@ Regulation Resource per subsection b), and **energy** (Continuous
 Storage Facility-style arbitrage to the extent applicable to
 thermal stores). These are revenue streams *on top of* the retail
 supply pricing benefit.
+
+### The parallel-metering reading
+
+The least-obligation path for Versant, as read from III.6.4 and M-28.
+Not yet validated with the ISO.
+
+- Each enrolled home is on Versant Rate A-1, with a Versant-owned bonus
+  meter on a physically separate circuit and service entrance that
+  measures the thermal-storage load. GridWorks installs its own
+  revenue-grade meter behind the bonus meter, measuring the same thing.
+  This is the parallel-metering configuration the May 23, 2024 rehearing
+  order (187 FERC ¶ 61,100) describes as one of three approved options;
+  no reconstitution is required.
+- GridWorks self-designates as DERA Assigned Meter Reader under
+  III.6.4(f) and submits interval data on the Meter Reading Web Services
+  schedule. That submission is authoritative for the DERA Load Asset.
+- The M-28 Metering Domain residual computation does not specify how the
+  Host Participant derives its per-Load-Asset numbers, so Versant's
+  per-supplier allocation can keep running on its own bonus-meter read.
+  In the parallel configuration no GridWorks data is needed for that
+  allocation, though III.6.4(f)(1) still requires the 0800 next-business-
+  day delivery.
+- A dedicated CEP serving only the DERA cohort is settled at LMP times
+  the interval submission; the small profiled-versus-interval delta
+  absorbs into the existing Metering Domain residual.
+- Versant's III.6.4 scope then reduces to the written confirmation of
+  III.6.4(e), proposed as one class letter rather than a per-home
+  document: class, Rate A-1 residential customers with storage-controlled
+  load enrolled in the GridWorks DERA where the CEP has no other
+  customers; method, a parallel GridWorks meter behind the Versant bonus
+  meter on a separate circuit. The letter would confirm that A-1 parallel
+  bonus metering is an approved configuration, that the two meters are in
+  parallel so no reconstitution math applies, and that the GridWorks
+  interval submission is authoritative for the Load Asset while Versant's
+  allocation to the CEP continues unchanged.
+- The three questions for the ISO: whether the class-and-method reading
+  of (e) is reasonable; whether the dedicated CEP can be settled at LMP
+  times the interval submission with the delta in the residual; and
+  whether Versant then has no III.6.4 operational change beyond the (e)
+  confirmation.
+- The meter GridWorks installs is undecided: `wiki/electricity-metering/README.md`
+  "The chosen architecture".
 
 ## References (full list)
 

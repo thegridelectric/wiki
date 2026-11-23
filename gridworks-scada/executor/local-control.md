@@ -427,6 +427,14 @@ hour.
   while off), not from guesses.
 - Every boot hp-boss closes the pump pair for about 2 s before hp-watch's
   first report (seen at elm, 2026-10-28).
+- The secondary pump's 0-10 V actor sits flat under auto
+  (`auto.secondary-010v`), so an admin TurnOn to hp-boss returns the
+  secondary pump relay to hp-boss and leaves the speed with admin
+  (spruce, 2026-11-20 16:27). The speed belongs with the relay: the
+  actor moves under hp-boss, which takes it back with the relay. That is
+  a layout handle, an extension of the hp-boss sub-tree axiom in
+  `gw.nolan.layout`, and hp-boss returning the actor on the same path as
+  the relay.
 
 ## Tests
 

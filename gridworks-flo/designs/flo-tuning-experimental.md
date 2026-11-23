@@ -1,6 +1,6 @@
 # flo-tuning-experimental — a knob under tuning changes bruce and nothing else
 
-Status: Draft · Pass 0 · Updated 2026-11-20 · Linear: OPS-696
+Status: Draft · Pass 0 · Updated 2026-11-22 · Linear: OPS-696
 **EDD: no** the sema suite, the bruce suite and the key test: a knob read
 from `Experimental` reaches bruce's optimizer with no change to any word.
 
@@ -188,29 +188,52 @@ deploy is coordinated.
 
 ## Plan
 
-1. ✅ Sketch branches `jm/flo-tuning-experimental` in sema (committed,
-   `c8cc461`, `ci.sh` green; the five versions are staging) and in
-   optimal-flexibility (bruce reads the knobs from `Experimental`, writes
-   the series into it, lifts 002 and 003 requests to 004; snapshot
-   rebuilt with `--allow-staged`; suite green).
-2. ✅ Shared with Thomas 2026-11-19. The remaining six repos updated
-   locally on `jm/flo-tuning-experimental` branches, each gate green:
-   journalkeeper, web-backend, web-frontend, gridworks-flo, scada (twins
-   and fixtures), tlayouts (every house at tuning 003). bruce's re-run
-   path lifts older params as the bytes path does.
-   End to end on the laptop dev stack the same evening: the LTN's 004
-   request with the knobs in the dict, bruce's 003 answer with the series
-   in the dict, the bid, both journaled
-   (`experiments/2026-11-19-flo-tuning-experimental-e2e/`, PASS).
-3. ✅ Thomas reviewed and agreed, 2026-11-19 (design to Pass 1 when
-   the stamp is bumped). Settle there whether the
-   frontend's re-run panel renders `Experimental` as a generic key and
-   value table.
-4. The five versions stay **staging** on the sema branch (`c8cc461`) while
-   Thomas finishes the PR; a 2026-11-19 promotion was reverted 2026-11-20
-   so he can edit the words in place without a sema version. **Next
-   move:** the seven commits are pushed on `jm/flo-tuning-experimental`
-   and Thomas takes the PR; promotion (bottom-up, `sema promote`) and the
-   roll per OPS-693's order follow his review.
-5. Distill into `executor/bruce-flo.md` "Costs and penalties" and
-   `executor/primary.md`; delete this file.
+Built and reviewed. `jm/flo-tuning-experimental` branches are pushed in
+all eight repos, each gate green: sema (`c8cc461`, the five versions
+staging), optimal-flexibility (bruce reads the knobs from `Experimental`,
+writes the series into it, lifts 002 and 003 requests to 004),
+journalkeeper, web-backend, web-frontend, gridworks-flo, scada (twins and
+fixtures), tlayouts (every house at tuning 003). The laptop end-to-end run
+passed: the LTN's 004 request with the knobs in the dict, bruce's 003
+answer with the series in the dict, the bid, both journaled (2026-11-19,
+dev broker `d1__1`, slot 1795132800, 5.3 s request to answer). Thomas
+reviewed and agreed 2026-11-19 and owns the PRs from here.
+
+**To finish (Thomas):**
+
+1. Merge the PRs. The sema versions are edited in place while they are
+   staging; promotion is bottom-up with `sema promote` once the words are
+   final. A consumer regenerates its snapshot with
+   `scripts/regen_sema_snapshot.sh` as written in that repo.
+2. Roll in the order OPS-693 states: every reader vendors the new version
+   beside the old, the answer's readers deploy (LTNs, journalkeeper,
+   web), the answer's sender restarts (flo), the request's senders roll
+   (tlayouts regenerated, LTN houses).
+3. Decide whether the frontend's re-run panel renders `Experimental` as a
+   generic key and value table. If not now, it is an item on OPS-697.
+
+**To distill (once the fleet runs the new versions):**
+
+- `executor/bruce-flo.md` "Costs and penalties": `Experimental` on
+  `flo.tuning.bruce` and `flo.path.penalties.bruce` as the home of a knob
+  or series under tuning; the promotion rule (a settled knob becomes a
+  declared field with a description; when bruce settles as a whole,
+  `Experimental` leaves both words, OPS-697); no defaults inside bruce (a
+  knob bruce reads MUST be present or the request is refused); the lift
+  from an older params version is information-preserving; the step-count
+  rule for a series in `Experimental` is bruce's tests, since an axiom
+  cannot constrain an open container.
+- `executor/primary.md`: where a knob's value lives (authored in the
+  house's `gw.operational.params` in tlayouts, copied by the LTN into
+  each request untouched, journaled inside the request and the
+  recommendation), and what a knob change costs (a tlayouts edit, regen,
+  commit, push and roll at that house; no sema bump, no deploy of any
+  other repo). Note that a browser re-run journals nothing, edited knobs
+  included.
+- Key test, named from the executor: a knob read from `Experimental`
+  reaches bruce's optimizer with no change to any word (bruce suite), with
+  the e2e experiment above as the trace.
+- Changelog entries in `wiki/gridworks-flo/changelog.md` and in the sema,
+  tlayouts and scada changelogs, dated and titled from `git show` of each
+  merge.
+- Delete this file. OPS-696 to Done with hours logged.
