@@ -10,6 +10,29 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-24 — The journal reads flo.params 005 (`0422756`, jm/flo-params-005, PR 214)
+
+**Why:** the LTNs send `flo.params` 005 since the lift COP model was promoted (sema `df68501`), and the journal drops a message whose version its snapshot lacks. The regen takes 005 as the latest `FloParams` and keeps 004 under `old_versions`; nothing else changes, since `flo.params` is persisted as a message payload.
+
+## 2026-11-24 — flo.params 004 is published (`be3fa20`, jm/snapshot-staging-policy, OPS-702)
+
+**Why:** the snapshot takes `flo.params` 004 and `flo.recommendation` 003 as published, and `ci.sh` passes `--deploy-branch main` to the shipped check, so a pull request into main fails while the snapshot holds any staging word.
+
+## 2026-11-23 — The seed states the snapshot's staging policy; ci.sh checks the vendored snapshot against it (`4634a47`, jm/snapshot-staging-policy, OPS-702)
+
+**Why.** Whether the snapshot could hold staging words was an
+`ALLOW_STAGED=1` on the regen command, and a bare regen passed over the
+staging versions in silence: the committed snapshot lacked `flo.params` 004
+and its three companions after they were published, and said nothing
+(OPS-702). The seed now states the policy, no `staging` block, so the
+snapshot is published-only, with `package_name` and `vendor_dir`; the script
+is one `sema snapshot regen`. The snapshot ships its own `check_staging.py`,
+which `ci.sh` runs under `python -P` between pyright and pytest, and the
+hand-written main-only test goes. The regen from sema `ac40b4b` brings in
+`flo.params` 004, `flo.recommendation` 003, `flo.tuning.bruce` 003 and
+`flo.path.penalties.bruce` 002, all published, and reports the two staging
+versions it passes over, `latest.price` 002 and `gw.channel.kind` 001.
+
 ## 2026-11-20 — The journal reads the Experimental tuning versions (`7cb7be3`, jm/flo-tuning-experimental, OPS-696)
 
 **Why.** `flo.tuning.bruce` 003 and `flo.path.penalties.bruce` 002 move the two unmet-load knobs and their penalty series into an open `Experimental` dict, so a knob under tuning changes bruce and nothing else (OPS-696). The words that nest them follow: `flo.params` 004, `flo.rerun.request` 002, `flo.recommendation` 003, `gw.operational.params` 000 repointed in place. All five are staging in sema (`c8cc461`), so the snapshot is a dev-only staged one until they promote. The seed says every version of each flo word, so the

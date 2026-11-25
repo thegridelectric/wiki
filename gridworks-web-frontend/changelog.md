@@ -10,6 +10,10 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-24 — The visualizer reads flo.params 005 and re-runs with flo.rerun.request 003 (`38d2afe`, jm/flo-params-005, PR 40)
+
+**Why:** the LTNs send `flo.params` 005, the lift COP model, since its promotion (sema `df68501`), and the zod snapshot pinned `FloParams` at 004 and `FloRerunRequest` at 002, so the FLO view could not parse a 005 hour and a re-run could not wrap one. 005 and 003 are now the latest, with 004 and 002 under `old_versions`. `heatPumpCop` reads the lift coefficient each version names. A penalty edit keeps a 005 request at 005 and lifts 002 to 004 requests to 004, as before.
+
 ## 2026-11-20 — Bruce tuning and penalties take the Experimental knob (`a1da3c5`, jm/flo-tuning-experimental, OPS-696)
 
 **Why.** `flo.tuning.bruce` 003 and `flo.path.penalties.bruce` 002 move the two unmet-load knobs and their penalty series into an open `Experimental` dict, so a knob under tuning changes bruce and nothing else (OPS-696). The words that nest them follow: `flo.params` 004, `flo.rerun.request` 002, `flo.recommendation` 003, `gw.operational.params` 000 repointed in place. All five are staging in sema (`c8cc461`), so the snapshot is a dev-only staged one until they promote. The hand-written snapshot gains the five versions and

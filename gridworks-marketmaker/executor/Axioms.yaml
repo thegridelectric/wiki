@@ -48,27 +48,25 @@ data:
     Name: OnePublishPerSlot
     Statement: >-
       For every slot that begins while the maker runs, the maker SHALL
-      publish exactly one price, within fetch_deadline_s of the slot's
-      start; the slot open when the maker starts SHALL get none.
+      publish exactly one price, at the first tick of the slot; the slot
+      open when the maker starts SHALL get none.
     Reason: A house clears against one price per hour, the one it hears after the top of the hour when its bid is in.
   - Concern: gate
     Number: 2
-    Name: TheSlotsFirstInterval
+    Name: OneFetchBeforeTheHour
     Statement: >-
-      A slot's wholesale price SHALL be the 5-minute LMP of the interval
-      that begins as the slot opens; from the slot's start the maker
-      SHALL ask ISO-NE for its current interval on every tick until the
-      answer is that interval, and SHALL publish on it.
-    Reason: The market's real-time hourly price is defined as the hour's first 5-minute price, and ISO-NE posts it about 25 s into the hour; every second the houses wait is a second off their slot.
+      A slot's wholesale price SHALL be ISO-NE's current 5-minute LMP in
+      its parts, asked for once, fetch_lead_s before the slot's start,
+      and the ask SHALL NOT be repeated for the slot.
+    Reason: One ask per slot, late enough to be the latest interval posted before the hour and early enough that the publish is at the top of the hour, inside the window in which a house takes a price.
   - Concern: gate
     Number: 3
     Name: StaleBeforeSilent
     Statement: >-
-      A slot whose first interval ISO-NE has not posted fetch_deadline_s
-      after the slot's start SHALL be published at the last wholesale
-      parts published, with the slot's own delivery price and a critical
-      fault; such a slot with nothing published before SHALL get the
-      fault and no price.
+      A slot whose fetch did not come back SHALL be published at the
+      last wholesale parts published, with the slot's own delivery price
+      and a critical fault; such a slot with nothing published before
+      SHALL get the fault and no price.
     Reason: The houses still clear, and a person is paged for a price that is not the market's.
   # -- publication -----------------------------------------------------
   - Concern: publication

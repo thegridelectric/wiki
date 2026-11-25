@@ -10,6 +10,87 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-24 — The CT ADC twin takes its mux fields (`6c2bd833`, squash of jm/gw108-ct-mux, PR #640, OPS-701)
+
+**Why.** sema `081c944` lets i2c.ct.interface.capability place the CT
+ADC behind a board mux, and the spruce Rev C layout now states its CtAdc
+that way. The snapshot is regenerated from that commit, and the twins
+follow the oracle: `I2cCtInterfaceCapability` gains `MuxName` and
+`MuxChannel` with `check_axiom_1` MuxPairing, and the device-type twin's
+`check_axiom_4` checks the CtAdc against Muxes as it checks each DAC.
+The named-types tests cover both, and gw1.scada.device.type.gt axiom 4
+leaves the known-untested allowlist. Today's scada ignored the two
+fields on decode, so the layout boots either way; the twin keeps the
+scada's conformance sweep honest.
+
+## 2026-11-24 — pump doctors check power also (`246a3073`, jm/pump-doctor-power-guard, OPS-714)
+
+**Why.** Beech, 2026-11-24 11:16: local control closed the store pump
+relay for a charge, the pump drew 19 to 24 W and the store hot pipe rose
+8 °C, the store flow meter read zero as it has since 2026-10-25, and the
+store pump doctor cycled the pump three times and paged Critical "Store
+Pump Failed!!". The same replayed at 18:14 until admin took the pump.
+The doctors judged a pump by its loop's flow meter alone, so a dead
+meter read as a dead pump. Both monitors now read the circulator's
+power channel from the layout's `gw.circulator` record for the role:
+power above a stall ceiling of 6 W means the pump is running, the
+doctor is not triggered, and after 60 s of no flow under a running pump
+one Warning glitch goes on the flow meter's node (the channel's
+`CapturedByNodeName`) with the power and flow in its details, once per
+relay close or zone call. Both doctors count a running draw on two
+consecutive polls as a successful attempt, so a stall that clears
+counts even with the meter dead. At or below the ceiling the flow meter
+decides as before: a stalled ecocirc+ hums at 1 to 5 W, and oak dist
+runs at 4 to 5 W at its deployed 5.0 V and keeps its flow-based
+verdict. The ceiling is a module constant in
+`actors/procedural/pump_power.py`; the per-model figure from the
+circulator's device type retires it (design, OPS-714). Tests replay the
+beech trace (no doctor, one Warning, no second), the 2026-01-22 stall
+(doctor triggered, at 1 W and at the ceiling) and an attempt that
+succeeds on power alone, on both pumps and both House0 fixtures. A
+bounded chip rolled to beech ahead of the design's Accepted gate, on
+the human's go.
+
+## 2026-11-24 — The scada and LTN state the lift COP model: cop.curve 001, flo.params 005, ha1.params 007 (`6460f07e`, jm/flo-params-005, draft PR 639, OPS-710)
+
+**Why.** Since 2026-11-20 the derived generator and bruce compute COP as
+`CopIntercept + CopLwtCoeff * max(0, LwtF - OatF)`, while cop.curve 000,
+flo.params 004 and ha1.params 006 declare an outdoor-air model in those
+field names. The twins move to the versions that state the lift model
+(`Intercept`/`CopIntercept` and `LwtMinusOatCoeff`/`CopLwtMinusOatCoeff`)
+with their NonPositive lift axioms, and `make_ha1_params` and the LTN's
+flo.params fill copy the two fields from the ops. The derived generator's
+formula and values are unchanged. `FloParamsHouse0.COP` had no caller
+and computed the outdoor-air model; it is removed. The four test ops
+files take cop.curve 001 with their intercept and a lift coefficient of
+0. The seed allows flo.params and ha1.params while 005 and 007 are
+staging; the LTN on this branch sends flo.params 005, so no box runs it
+before promotion. Snapshot from sema `749dbd7`.
+
+## 2026-11-24 — gwsproto DeviceType gains Gw108RevC (#638) (`10ace55b`, jm/gw108-revc, OPS-701)
+
+**Why.** Closes the jm/gw108-revc branch spruce ran (`e9bf4a93`). #637 already has the same Gw108RevC change, so the squash changes no file; main is the one branch every pi deploys from.
+
+## 2026-11-24 — The seed states the snapshot's staging policy; ci.sh checks the vendored snapshot against it; gw.boiler.backup twin at 001 (`65b66d4e`, jm/snapshot-staging-policy, OPS-702)
+
+**Why.** Whether the oracle snapshot may hold staging words was decided
+by a hard-coded `--allow-staged` in the regen script, one of three
+conventions across the six consumers (OPS-702). The seed now states it:
+`staging.allow` names the 100 staging words the closure reaches (the
+contract, layout and operational-params vocabulary), with `package_name`
+and `vendor_dir`, and `scripts/regen_sema_snapshot.sh` is one call to
+`sema snapshot regen` with no flag. The snapshot ships its own
+`check_staging.py`, which `ci.sh` runs under `python -P` (the vendored
+`types/` package would otherwise shadow the standard library): it fails on
+a staging word the seed does not allow and on a seed that changed since
+the build. The snapshot is regenerated from sema `ac40b4b`, the pushed dev
+commit that adds the policy; the only vocabulary change it brings is
+`Gw108RevC` in `gw1.device.type`, so the `DeviceType` twin and its test
+from `e9bf4a93` come with it, uncommitted here, so the conformance test
+passes on main before jm/gw108-revc merges.
+
+One squashed commit. Sema split `gw.boiler.backup`: 000, the relay required, is published as every shipped layout holds it; 001, staging, makes `FailsafeRelayName` optional for a boiler that fires on its own aquastat, and `gw.hydronic` references 001 alone. The twin follows, and the house0, no-sieg and nolan families keep requiring the relay through `check_backup_relays`. The seed, the layout fixtures and the loader-guard test are at 001. A box runs this only after its layout file is regenerated at 001 and rolled. `ci.sh` names no deploy branch, since the scada rolls branches to boxes.
+
 ## 2026-11-20 — gwsproto DeviceType gains Gw108RevC (`e9bf4a93`, jm/gw108-revc, OPS-701)
 
 Spruce runs a Gw108 Rev C and its board record names `Gw108RevC`, which
@@ -20,7 +101,7 @@ hand-written `DeviceType` twin gains the member. The four device-type
 tests that used `Gw108RevC` as their stand-in for a name outside the
 vocabulary use `Gw108RevZ`.
 
-## 2026-11-20 — The LTN speaks flo.params 004 and reads flo.recommendation 003 (`5f170fe6`, jm/flo-tuning-experimental, OPS-696)
+## 2026-11-20 — The LTN speaks flo.params 004 and reads flo.recommendation 003 (`abe831f2`, #636, jm/flo-tuning-experimental, OPS-696)
 
 **Why.** `flo.tuning.bruce` 003 and `flo.path.penalties.bruce` 002 move the two unmet-load knobs and their penalty series into an open `Experimental` dict, so a knob under tuning changes bruce and nothing else (OPS-696). The words that nest them follow: `flo.params` 004, `flo.rerun.request` 002, `flo.recommendation` 003, `gw.operational.params` 000 repointed in place. All five are staging in sema (`c8cc461`), so the snapshot is a dev-only staged one until they promote. The oracle snapshot is regenerated; the twins
 `FloTuningBruce` and `FloPathPenaltiesBruce` move the fields into

@@ -1,10 +1,96 @@
 # FLO changelog
 
-Status: Accepted · Pass 0 · Updated 2026-11-06
+Status: Accepted · Pass 0 · Updated 2026-11-23
 
 > What this is: one entry per code-repo commit in the FLO domain
 > (`optimal-flexibility` for the bruce optimizer; the FLO service repo when
 > it exists). Git is the what; this file is the why.
+
+## 2026-11-24 · gridworks-flo · The service speaks flo.params 005 (`c0eff8b`, jm/flo-params-005, draft PR 11, OPS-710)
+
+**Why.** The service decodes the one flo.params version its snapshot
+has, so it moves to 005 together with bruce and the LTNs. 005 is
+staging, so the seed allows it, and the branch merges after promotion
+with the allow block removed; until then ci.sh's `--deploy-branch main`
+check fails a pull request into main. The test fixtures read the 005
+sample. Snapshot from sema `b433adc`.
+
+## 2026-11-24 · optimal-flexibility · bruce reads flo.params 005, the lift COP model (`302940a`, jm/flo-params-005, draft PR 13, OPS-710)
+
+**Why.** Since 2026-11-20 bruce computes COP as
+`CopIntercept + CopLwtCoeff * max(0, LwtF - OatF)`, while flo.params 004
+declares an outdoor-air model in those field names. flo.params 005 states
+the lift model flat (`CopIntercept`, `CopLwtMinusOatCoeff`), and the
+params take its names: `cop_lwt_minus_oat_coeff` replaces `cop_lwt_coeff`,
+and the four outdoor-air fields go. A 002, 003 or 004 request is lifted to
+005; the 004 upgrade reads `CopLwtCoeff` as the lift coefficient, which is
+what every LTN has sent. A re-run of a 005 is `flo.rerun.request` 003.
+Both words are staging, so the seed allows them; the branch merges once
+they are promoted and the allow block is removed. ci.sh runs the staging
+check with `--deploy-branch main`, so a pull request into main fails until
+then. The code is the 005 work of `d4465c5` (`jm/flo-params-005-draft`),
+applied on main after the policy merge. Snapshot from sema `b433adc`.
+
+## 2026-11-24 · optimal-flexibility · The seed states the snapshot's staging policy; flo.params 004 is published; ci.sh keeps staging off main; the dict twin of flo.params goes (`438f86e`, jm/snapshot-staging-policy, OPS-702)
+
+**Why.** The regen script took no staging option, and the committed
+snapshot on main was a staging one from before the flo words of OPS-696
+promoted (OPS-702). The seed now states the policy: no `staging` block, so
+the snapshot is published-only at `flo.params` 004, `flo.recommendation`
+003 and `flo.rerun.request` 000 to 002, with `package_name` and
+`vendor_dir`; the script is one call to `sema snapshot regen`. The snapshot
+ships its own `check_staging.py`, and the new `ci.sh` runs it under
+`python -P` and then pytest. `flo_params.py`, the hand-written dict twin of
+`flo.params` from before bruce had a snapshot, is deleted; nothing reads it.
+The flo.params 005 work (OPS-710) that shared this branch is kept on
+`jm/flo-params-005-draft` and comes back as the `jm/flo-params-005` branch
+cut from this one. Snapshot from sema `ac40b4b`.
+
+One squashed commit. The snapshot moves `flo.params` 004 and `flo.recommendation` 003 from staging to published and the staging marker goes; `ci.sh` runs the shipped `check_staging.py` with `--deploy-branch main`, so a pull request into main fails while the snapshot holds any staging word.
+
+## 2026-11-24 · gridworks-flo · The flo.params 004 is published, seed states whether using staging; ci.sh keeps staging off main (`1f70ed4`, jm/snapshot-staging-policy, OPS-702)
+
+**Why.** The regen script took no staging option and the seed said nothing
+about staging, so the only guard against a dev-only snapshot on `main` was a
+hand-written test that looked each word up in a sibling sema registry
+(OPS-702). The seed now states the policy: no `staging` block, so the
+snapshot is published-only, with `package_name` and `vendor_dir`, and the
+script is one call to `sema snapshot regen`. The snapshot ships its own
+`check_staging.py`, which `ci.sh` runs under `python -P` between pyright and
+pytest; it fails on a staging word the seed does not allow and on a seed
+that changed since the build, so the hand-written main-only test goes. The
+request stays at `flo.params` 004, the published version bruce `main`
+reads; 005 (OPS-710) is staging and comes to this seed when it promotes.
+Snapshot from sema `ac40b4b`.
+
+The squash of three commits: `flo.params` 004, `flo.recommendation` 003, `flo.tuning.bruce` 003 and `flo.path.penalties.bruce` 002 go from staging to published in the snapshot and the staging marker goes, `ci.sh` passes `--deploy-branch main` so a pull request into main fails while the snapshot holds any staging word, and the snapshot ships the current `check_staging.py`.
+
+## 2026-11-23 · optimal-flexibility · The visualizer re-run path is flo.rerun.request; the dict twin of flo.params goes (`2157f7b`, jm/snapshot-staging-policy, OPS-702)
+
+**Why.** `flo_params.py` was the first visualizer re-run path, from before
+bruce had a sema snapshot: a journaled payload dict in, penalty-knob
+overrides and forced steps applied to the dict through hand-written
+pydantic models of `flo.params`, plot series or a PNG out. The need is met
+by the words: `flo.rerun.request` wraps the journaled params with edited
+values and the forced steps, and `recommend` answers with a
+`flo.recommendation` the visualizer draws. No repo imported the module.
+The per-repo regen script goes in the same commit; `sema snapshot regen`
+replaces it.
+
+## 2026-11-23 · optimal-flexibility · bruce speaks flo.params 005; the seed states its staging policy and ci.sh checks the snapshot (`d4465c5`, jm/snapshot-staging-policy, OPS-702, OPS-710)
+
+**Why.** `flo.params` 005 declares the COP model bruce has run since
+2026-11-20: `CopIntercept + CopLwtMinusOatCoeff * max(0, Lwt - Oat)`, with
+the three dead fields gone (OPS-710). bruce's params, request decode and
+tests take the new names; a 004 request is lifted to 005 through the
+generated upgrade, which reads its `CopLwtCoeff` as the lift coefficient.
+The seed pins `flo.rerun.request` 003, whose `Params` admits a 005, so a
+journaled 005 can be re-run. The seed gains `package_name`, `vendor_dir`
+and `staging.allow: [flo.params, flo.rerun.request]`, so whether the
+snapshot may hold staging is a line in the seed rather than a flag at
+regen (OPS-702); a new `ci.sh` runs the shipped `check_staging.py` under
+`-P` before the tests. The `allow` line goes when 005 and 003 are
+promoted. Snapshot from sema `7d36e67`.
 
 ## 2026-11-20 · gridworks-flo · The service speaks flo.params 004 and flo.recommendation 003 (`61886e7`, jm/flo-tuning-experimental, OPS-696)
 

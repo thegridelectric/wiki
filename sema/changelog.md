@@ -8,7 +8,222 @@ corresponding code-repo commit.
 This changelog does NOT track wiki edits — those live in the wiki
 repo's git history.
 
-## <!-- pending commit --> gw1.device.type: add Gw108RevC (jm/gw108-revc, OPS-701)
+## 2026-11-24 — The CT ADC can sit behind a board mux (`081c944`, jm/gw108-ct-mux, OPS-701)
+
+**Why.** On the Gw108 Rev C the CT ADC moved behind the DAC mux, and
+i2c.ct.interface.capability had no way to say so, so the Rev C record
+had no CtAdc at all. The word gains optional `MuxName` and `MuxChannel`,
+the pair i2c.dac.capability has, with the same axiom 1 MuxPairing (both
+present or both absent). gw1.scada.device.type.gt axiom 4 MuxConsistency
+reads "an entry in Dacs or CtAdc" in all three clauses, so a CT ADC behind
+a mux is checked against Muxes as a DAC is. Both words are staging, so the
+edits are in place. The axiom templates and the registry's mutation tests
+follow: a CT test module for MuxPairing and three CtAdc clauses beside the
+DAC ones.
+
+## 2026-11-24 — ha1.params 007, staging, states the lift COP model (`749dbd7`, jm/flo-params-005, OPS-710)
+
+**Why:** the scada builds `ha1.params` from its operational params, and
+its derived generator computes the midday COP as
+`CopIntercept + CopLwtCoeff * max(0, LwtF - OatF)`, the lift model under
+006's outdoor-air field names. Once the operational params state
+cop.curve 001, 006's three outdoor-air fields have no source. 006 is
+published, so the change is 007: `CopIntercept` and `CopLwtMinusOatCoeff`,
+worded as in flo.params 005, with axiom 1 NonPositiveCopLiftCoefficient as
+in flo.params 005 and cop.curve 001. The 006 upgrade renames
+`CopLwtCoeff` and drops the other three, the delta flo.params 004 to 005
+makes. No current message embeds `ha1.params`: layout.lite 011 and 012 and
+scada.params 005 did, and the journal's snapshot decodes those old
+messages through `include_all_versions`.
+
+## 2026-11-24 — flo params 005 (`447a22d`, jm/flo-params-005, OPS-710)
+
+gw.operational.params 000 states the house COP as cop.curve 001.
+
+**Why:** the houses' layouts hold the lift fit (intercept and lift
+coefficient) in cop.curve 000's `Intercept` and `LwtCoeff`, a meaning
+000 does not declare. Repointing the staging operational params at
+cop.curve 001 lets tlayouts and the scada state the model they run. The
+edit is in place because 000 is staging, and its `created` moves forward
+to stay no earlier than cop.curve 001. The example and the runtime
+fixture take beech's lift fit. The branch merges to `dev` only when
+flo.params 005, flo.rerun.request 003 and cop.curve 001 are promoted:
+scada and tlayouts `main` allow gw.operational.params as staging, and a
+main regen against `dev` would otherwise pull cop.curve 001 onto boxes
+running 000 code.
+
+## 2026-11-24 — gw.boiler.backup 000 published with the failsafe relay required; 001, staging, makes it optional (`b433adc`, jm/boiler-backup-001, OPS-702)
+
+**Why:** 5ccb2dc made `FailsafeRelayName` optional in staging 000 for
+Katahdin, whose boiler fires on its own aquastat, while every shipped
+layout and the scada's twin hold 000 with the relay required; the scada's
+conformance gate reported the drift. As with `cop.curve`, the version
+that is on the boxes is promoted as it shipped and the change is the next
+version: 000 requires the relay and is published; 001, staging, makes it
+optional with DistinctRelays applying where both relays are present.
+
+## 2026-11-24 — check_staging gains --deploy-branch: on that branch any staging word fails (`d9891af`, jm/snapshot-main-rule, OPS-702)
+
+**Why:** the seed's `staging.allow` makes a staging snapshot legitimate on
+a branch, and nothing then stopped the same snapshot merging to the
+branch a service deploys from. The shipped check now takes
+`--deploy-branch <name>`: when the branch under test is that branch and
+the snapshot holds any staging word, allowed or not, the check fails and
+names the words. The branch under test is the pull request's target on
+GitHub Actions, else the pushed ref, else the checkout's branch. Sema
+names no branch; each cloud consumer's `ci.sh` passes `--deploy-branch
+main`, and scada and tlayouts, which roll branches to boxes and a laptop,
+pass nothing, which is the whole of their exception. A dev-only
+experiment edits `allow` on its branch and its CI passes; the PR into
+main fails until the line goes.
+
+## 2026-11-24 — cop.curve 000 published; cop.curve 001, staging, is the lift-based model (`58452e1`, jm/cop-curve-001, OPS-710)
+
+**Why.** Two sessions with different focuses shared `cop.curve` 000 while
+it was staging: an in-place edit for the COP sweep became a broken regen
+for the Katahdin layout. Versioning and immutability are what let the two
+proceed independently. 000 is promoted as the five-field model every
+operational-params instance on the boxes holds, and the lift-based model
+is 001, staging: `Intercept`, `LwtMinusOatCoeff`, the non-positive lift
+axiom. `gw.operational.params` 000 keeps referencing 000 until tlayouts
+and scada take the new names, when it is repointed in place. A 000 does
+not upgrade to 001: the lift coefficients are a different regression and
+cannot be derived from the outdoor-air model, so the upgrade refuses with
+`UpgradeRequiresContext`. The type-level description now defers to the
+version.
+
+## 2026-11-23 — cop.curve 000 back to its five fields; flo.rerun.request 003 admits flo.params 005; check_staging runs under -P (`7d36e67`, jm/cop-curve-revert, OPS-710, OPS-702)
+
+**Why.** The in-place lift edit of `cop.curve` 000 reached tlayouts through
+a regen for the Katahdin layout, where the generator still authors the
+five-field curve, and the consumer sweep is not the moment to migrate
+tlayouts and scada to the lift model. `cop.curve` 000 goes back to
+`Intercept`, `OatCoeff`, `LwtCoeff`, `Min`, `MinOatF` in place, with the
+`gw.operational.params` example and fixture, and its lift axiom goes with
+it; both staging words take a fresh `created`. `flo.params` 005 keeps the
+lift model: that is the word the COP sweep converges on, and the
+operational-params curve follows it when tlayouts and scada take the new
+names in one sitting.
+
+`flo.rerun.request` 003, staging, adds `flo.params` 005 to `Params`: a
+re-run of a journaled 005 had no word, and bruce's re-run tests against
+005 failed for it. A 002 lifts to 003 by lifting a 004 params to 005.
+
+`check_staging.py` sits beside the snapshot's `types/` package, so run as
+`python check_staging.py` the script's own directory shadows the standard
+library's `types` module and the import of `pathlib` fails. The docstring
+and the snapshot README say `python -P`; sema's own test already ran it
+under `-I`, which implies `-P`, which is why the suite never saw it.
+
+## 2026-11-23 — A boiler backup's heat pump failsafe relay is optional; Katahdin has none and its V4/V5 configs follow the backup kind (`5ccb2dc`, jm/katahdin-layout, OPS-711)
+
+**Why.** `gw.katahdin.layout` 000 required, through `gw.boiler.backup`, a
+heat pump failsafe relay whose states are Scada / BufferTankAquastat. A
+Katahdin has no buffer tank: the boiler fires on its own internal
+aquastat, and with the scada dead the heat pump is off, so the plant has
+no such relay. The terminalasset Katahdin adapter had to hardcode that
+relay's meaning to get past the word (PR 6, `katahdin.py:136`). The
+failsafe's valve posture (D1116: boiler failsafe V1 C, V2 O, V3 C, V4 C,
+V5 O; element failsafe V4 O, V5 C) is set by which valve the Gw108 Rev C
+backup toggle powers at rest, so the V4 and V5 relay configs are a
+function of the backup kind and the word now says so.
+
+**What.** `gw.boiler.backup` 000 (staging, in place): `FailsafeRelayName`
+leaves `required`; DistinctRelays applies where it is present.
+`gw.house0.layout`, `gw.house0.no.sieg`, `gw.nolan.layout`: BackupRelays
+gains clause a, a boiler backup SHALL name its FailsafeRelayName.
+`gw.katahdin.layout` 000: BackupRelays clause a, a boiler backup SHALL
+have no FailsafeRelayName; new axiom 34 ValveDefaultsFollowBackup, the
+v4-house-return-relay and v5-boiler-relay configs have StateType
+valve.open.or.closed, energized ValveOpen / ValveClosed with a boiler
+and v4 energized ValveClosed with elements; `valve.open.or.closed:000`
+added to its axiom dependencies. Templates, runtime, indexes
+regenerated; mutation tests for the boiler word and the two House0
+fixtures (clause a); Katahdin's mutation tests wait on the first
+Katahdin fixture from the tlayouts gen. `./ci.sh` green.
+
+## 2026-11-23 — Non-positive lift coefficient axiom on cop.curve 000 and flo.params 005 (`6c9a097` "adding an axiom", jm/cop-axiom, OPS-710)
+
+**Why:** the lift model's coefficient is negative for a real heat pump,
+and the ops-word edit asked whether that invariant was stated. It is now
+an axiom on both words (`LwtMinusOatCoeff` and `CopLwtMinusOatCoeff`
+SHALL be at most zero), with a refusal test each. Both words are staging
+and revise in place; their `created` and gw.operational.params 000's move
+forward with them. gw.operational.params 000's registry summary, grown by
+months of in-place revisions into a restatement of the schema, is cut to
+the one line a first version takes.
+
+## 2026-11-23 — flo.params 005 and cop.curve 000: the lift-based COP model, declared (`85c0e32`, jm/cop-fields, OPS-710)
+
+**Why:** the COP model changed in code on 2026-11-20 (optimal-flexibility
+#9, scada #634) to `CopIntercept + CopLwtCoeff * max(0, Lwt - Oat)` while
+flo.params 003 and 004 kept the five undescribed fields of the old
+model, so `CopLwtCoeff` meant two things depending on the sender's date
+and three fields were sent dead. cop.curve 000, staging, said the old
+model in full. Now cop.curve 000 states the lift model with `Intercept`
+and `LwtMinusOatCoeff`; flo.params 005 has `CopIntercept` and
+`CopLwtMinusOatCoeff`, described, and the dead fields gone; the 004 to
+005 upgrade maps the coefficient and drops the rest. gw.operational.params
+000 moves its `created` forward with its dependency. The five COP fields
+on published 003 and 004 gain descriptions that state both meanings and
+the date; that is prose only, structurally identical to the pinned files,
+and the pins were rewritten under the human-sanctioned path.
+
+## 2026-11-23 — Snapshot staging policy lives in the seed: staging.allow, regen, shipped check_staging.py (`ac40b4b`, jm/snapshot-staging-policy, OPS-702)
+
+**Why:** six consumers copied `regen_sema_snapshot.sh` and drifted into
+three conventions for one choice, whether a snapshot may hold staging
+words, and the choice was made at every regen by whoever typed the
+command. The flo-tuning hand-off merged staging words to every main
+because of it. Now the committed seed decides: `staging.allow` names the
+words whose staging versions the snapshot may hold, absent means refuse,
+and prepare fails naming any other staging word in the closure. Prepare
+prints each version it passes over, so a published-only build that omits
+a staging version says so. `sema snapshot regen <seed>` reads
+`package_name` and `vendor_dir` from the seed and does prepare, build and
+the mirror, so the per-repo scripts go. Every snapshot ships
+`check_staging.py`, standard library only, which a consumer's CI runs from
+the vendored tree: it fails on a held staging word the seed does not allow
+or a seed that changed since the build. `--allow-staged` is gone. Spec:
+`spec/snapshot.md` "Published-only by default" and "Consumer-side
+verification".
+
+## 2026-11-23 — Publish flo.tuning.bruce 003, flo.path.penalties.bruce 002, flo.params 004, flo.rerun.request 002, flo.recommendation 003 (`a7b9667`, jm/publish-flo-tuning, OPS-702)
+
+**Why:** the flo-tuning-experimental hand-off merged to every consumer's
+main on 2026-11-23 with the five words still staging; the promotion
+step in the hand-off note did not run. Journalkeeper's published-only
+test held, so its main stayed on flo.params 003 while the fleet sent
+004. Promotion is the fix: five status flips, five hash pins, the
+public registry, bottom-up. The consumers then regen published-only.
+The policy that stops a staging word reaching a main is OPS-702.
+
+## 2026-11-23 — gw.service.channel.gt 000 and gw.channel.kind 001, staging (`7de3c80`, jm/service-channel, OPS-630)
+
+**Why:** the journal's hourly columns, and the three channel lists the
+journalkeeper keeps by hand, are channels with no record: no Id, no
+unit a reader can look up, no era. `gw.service.channel.gt` is the
+record a service that is not a GNode sends for a channel it writes
+readings to; a GNode declares its channels through its own word, as
+the weather GNode does with `gw.weather.channel.gt`. Fields: Name,
+DisplayName, Quantity and Unit (with the unit-projection axiom
+`derived.channel.gt` has, implemented in the generated template),
+DeclaringServiceAlias (the alias the service claims on the broker,
+`hw1.isone.journal` for the live journalkeeper), an optional
+TerminalAssetAlias for a channel about one house, InputChannelNames
+and Strategy, an optional WindowS for an aggregate, Start and Id as
+`gw.weather.channel.gt` has them. `gw.channel.kind` 001 adds
+ServiceChannel; 000 is published, so the value takes a new version.
+Both are staging: usable by a dev-broker consumer that asks for
+staging, mutable in place until the journalkeeper's hourly channels
+run end to end, and passed over by a published-only snapshot, which
+still resolves `gw.channel.kind` to 000. The enum-structure registry
+test gains the draft rule the type test already had, as the spec
+states it. The same change resolves the conflict markers the
+`jm/gw108-revc` merge (`df58362`) left in the registry's
+`last_updated` line, which made the registry unparseable on `dev`.
+
+## 2026-11-20 — gw1.device.type: add Gw108RevC (`3b24e54`, jm/gw108-revc, OPS-701)
 
 Spruce runs a Gw108 Rev C from 2026-11-20 and its board record needs a
 device type of its own: Valve 4 is driven natively, there are eight

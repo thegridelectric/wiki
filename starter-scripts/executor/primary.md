@@ -1,13 +1,13 @@
 # starter-scripts — executor spec
 
-Status: Draft · Pass 0 · Updated 2026-10-09
+Status: Draft · Pass 0 · Updated 2026-11-24
 
 > What this is: the fast primer on the `starter-scripts` repo as it is
 > used today — the hand-run and systemd-run scripts that operate the
 > spruce gw108 while the scada relay port is still being built. Read
 > this before touching anything on the spruce pi. Board facts
-> (expander map, signal chains) live in the scada design spokes; the
-> per-home field log is Linear GRI-11; experiment records are the
+> (expander map, signal chains) are the scada executor
+> `gw108-rev-c-board.md`; the per-home field log is Linear GRI-11; experiment records are the
 > `experiments` repo.
 
 ## Overview
@@ -33,10 +33,9 @@ hand-copies).
   `sick_spruce.py` — runs only with the service **stopped**
   (`sudo systemctl stop spruce-summer-hack`, restart after). Two
   processes doing read-modify-write on one register clobber each other.
-- **Importing `gw108_test_code.py` clears both expanders** (its import
-  does clear-then-configure). The hack therefore never imports it and
-  heals the clear on its next enforce pass; `spruce_hack.py` (winter
-  elements) does import it.
+- **Importing `gw108_test_code.py` leaves the expanders as they are**;
+  the clear is a function the operator calls. `spruce_hack.py` (winter
+  elements) imports it.
 - **Clear-then-configure on init.** TCA9555 POR leaves outputs 0xFF
   with pins Hi-Z; configuring as output before clearing would energize
   every relay at once. Every init in this repo writes regs 2,3 = 0
@@ -81,7 +80,8 @@ hand-copies).
 | `charge_valve_test.py` | 0x21 | 2026-08-16 charge-valve leg test (superseded by on-site result, below) |
 | `program_dac_eeprom.py` | DAC EEPROM | one-time power-on defaults |
 | `watchdog_power_cycle.py` | GPIO (watchdog pi) | full power removal of the primary pi |
-| `gw108_test_code.py` | clears both expanders on import | the authored board map; interactive use only, hack stopped |
+| `gw108_test_code.py` | 0x20/0x21, DACs, on call | the Rev C board map, one function per silk name with pin readback, readers for zones, thermistors and CTs; interactive use only, hack stopped. The Rev B map is `archived/gw108_revb_test_code.py` |
+| `ct_waveform.py` | no | pump current waveform on a CT input while the scada runs: raw peak, crest factor, a 60 Hz fit |
 | `snap_ads.py` | no | one pass over the 12 multipurpose-board thermistor terminals on the second pi: `channelN` with F to one decimal, `open` (≥ 4.80 V) or `short` (≤ 0.05 V), and the raw volts; stop that pi's scada first |
 | `turn_off_5v.py` / `turn_on_5v.py` | spruce: GPIO 23; else Krida board 1 relays 1, 5, 6, 8 | drop / restore this house's 5V DC bus, keyed on hostname (`five_v_bus.py`); a House0 off also holds the heat pump and oil boiler off via relays 5, 6, 8, and on releases them unless `--keep-hp-off`; Krida writes are read-modify-write of the live port, never through `adafruit_pcf8575` (its write buffer starts all-zero) |
 | `start_api.sh` | no | the starter-scripts pico API on port 8000, the port the scada's web server uses; with the scada stopped, every pico POST prints here |
@@ -141,16 +141,18 @@ Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-23@5fda749 
 
 ## The gw108 CT chain
 
-The four CT inputs share one ADS1115 (U1, address 0x48 on the default
-bus, 3.3 V reference, the board record's `CtAdc` capability), read
+The four CT inputs share one ADS1115 (U1, address 0x48, on Rev C behind
+`DacMux` channel 4, 3.3 V reference, the board record's `CtAdc`
+capability), read
 single-ended against ground: CT1 → AIN0 (P0), CT2 → AIN1 (P1), CT3 →
 AIN2 (P2), CT4 → AIN3 (P3). Each terminal pair is a + (signal) and −
 pair; the − side of every channel is one shared node, `1V65`, the
 midpoint of two 100 kΩ resistors between 3.3 V and ground. The input
 node has a 100 nF capacitor to ground, two Schottky clamps, and a
-two-pin header that, with a shunt fitted, puts the board's 470 Ω
-burden across the CT. The headers are numbered the opposite way to the
-channels: CT1 → JP4, CT2 → JP3, CT3 → JP2, CT4 → JP1. The chip's
+two-pin header (a DIP switch on Rev C) that, when closed, puts the
+board's 470 Ω burden across the CT. The headers are numbered the
+opposite way to the channels: CT1 → JP4, CT2 → JP3, CT3 → JP2, CT4 →
+JP1; Rev C's switch 1 is CT4. The chip's
 ALERT/RDY pin is unconnected, so the pi never sees conversion-ready.
 
 **An empty input reads its neighbour.** With a CT on P3 and nothing
@@ -179,11 +181,11 @@ component vocabulary. The bench harness (`capture.py`, `fold.py`,
 `peek.py` in the rung above) runs from the pi's `~/experiments` clone
 with the scada venv and writes instances through the vendored class.
 
-**Spruce, 2026-09-07.** CT1 (P0, JP4) clamps the store pump through a
-current-output CT, 100 A to 50 mA, and needs the JP4 shunt; CT2 (P1,
-JP3) clamps the secondary pump through an eGauge-style voltage-output
-CT, 20 A rated, burden inside, so JP3 stays open; CT3 and CT4 are
-empty. No shunts were fitted that day. The secondary pump on CT2
+**Spruce, 2026-09-07.** CT1 (P0, JP4) clamps the store pump and CT2
+(P1, JP3) the secondary pump, each through a YHDC SCT013 current-output
+CT, 100 A to 50 mA, one turn, so each needs its burden closed on the
+board; CT3 and CT4 are empty. No shunts were fitted that day. The
+secondary pump on CT2
 tracked from 10 mV rms at minimum speed to 274 mV at maximum on one
 pass with the fold locking at every level; the absolute scale is
 still unpinned. Cross-check: the secondary-btu pico reports

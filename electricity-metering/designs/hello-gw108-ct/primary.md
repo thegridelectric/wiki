@@ -1,6 +1,6 @@
 # Hello Gw108 CT (hub)
 
-Status: Draft · Pass 0 · Updated 2026-11-22 · Linear: OPS-703
+Status: Draft · Pass 0 · Updated 2026-11-24 · Linear: OPS-703
 
 **EDD: yes** every step is witnessed on spruce against the running scada:
 the CT ADC read behind the mux, the actor's CT and indicator channels
@@ -53,10 +53,10 @@ eGauge and the secondary flow, the RMS-against-power plot).
 - The eGauge `05-secondary-pump` register and the CT disagree by a factor
   of four on the pump's current; the checks are in
   `what-the-ct-reports.md` "eGauge sanity checks".
-- Bench facts for the board and the SCT-013 burden (470 Ω, 0.235 V RMS
-  per amp, clipping at 0.5 V) are in the Gw108 Rev C design's bench
-  checklist "CT ADC (last)" and its window-3 log; they move to the Rev C
-  device record when that design distills.
+- Bench facts for the board and the CT inputs (the 470 Ω burden per input
+  behind a reversed-numbered DIP switch, the bias shortfall) are the scada
+  executor `gw108-rev-c-board.md`; the SCT-013 scale, 0.235 V RMS per amp
+  with clipping at 0.5 V, is the bench constant in `what-the-ct-reports.md`.
 - The capture tool today is `starter-scripts/ct_waveform.py` (folds
   samples at the fitted mains frequency, writes CSV under the box's state
   dir). The sema word `gw.adc.waveform` v000 already describes one burst

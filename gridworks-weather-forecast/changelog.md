@@ -11,6 +11,34 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-23 — Open-Meteo requests retry a top-of-hour 5xx (`b0b845a`, squash of jm/open-meteo-retry, PR #19, OPS-709)
+
+**Why:** the first live ommillinocket slot after the nearest-in deploy
+(2026-11-23 21:00 UTC) got a 503 from Open-Meteo at the exact top of
+the hour, when every hourly client arrives at once, and a failed
+observation fetch is a glitch with no second try, so the hour was a
+hole until an archive command filled it. The request helper now retries
+a 5xx or a transport failure over three short pauses before the error
+stands; a 4xx is not retried. The forecast product and the long pull
+go through the same helper and gain the same patience.
+
+## 2026-11-23 — The model gridpoint observes every channel, nearest-in (`70b5b33`, squash of jm/gridpoint-nearest-in, PR #18, OPS-709)
+
+**Why:** the ommillinocket stream went dark at the 2026-11-16 mint of
+its temperature and wind speed channels: the scheduler builder admitted
+a model gridpoint only when irradiance was its sole channel, and logged
+the refusal at every boot since. The Open-Meteo fetch now takes every
+quantity the station's channels name in one request, in the fleet's
+natural units, and parses it as the archive parses history, so each
+hour's observation is one reading per channel and the live message is
+the one the archive replay would emit for that grid point. The value
+published at a slot is the model's nearest-in value for the hour that
+starts there (temperature and wind at the slot, irradiance over the
+hour from it), so the hour is on the wire at its start; the earlier
+stream published the hour just ended. The single irradiance variable
+pin and the hour-mean fetch are gone; one variables table serves the
+forecast product, the live observation and the long pull.
+
 ## 2026-11-16 — dev-records: the gridpoint station gains temperature and wind speed channels (`dcdce92`, squash of jm/gridpoint-temp-wind, PR #17, OPS-688)
 
 Two `gw.weather.channel.gt` records on `ommillinocket`,

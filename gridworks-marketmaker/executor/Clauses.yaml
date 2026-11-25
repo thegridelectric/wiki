@@ -99,11 +99,11 @@ data:
     Kind: transition
     Boundary: isone-current-lmp
     Condition: >-
-      A tick finds a slot open whose price is not yet published and the
-      deadline not passed.
+      A tick finds the wall clock within fetch_lead_s of the next slot's
+      start and no ask made for that slot.
     Obligation: >-
-      The maker asks ISO-NE for its current interval; when the interval
-      begins at the slot's start, the slot's price goes out on it.
+      The maker asks ISO-NE once for its current interval and keeps the
+      answer's parts as that slot's wholesale parts.
     Recovery: ""
   - Concern: gate
     Number: 2
@@ -111,24 +111,24 @@ data:
     Kind: failure
     Boundary: ""
     Condition: >-
-      An ask raises, answers with a body that is not a price for the
-      maker's location, or answers with an interval other than the
-      slot's first.
+      The ask raises or answers with a body that is not a price for the
+      maker's location.
     Obligation: >-
-      The failure's text is kept as the slot's latest; the next tick
-      asks again.
+      The failure's text is kept as the slot's; no second ask is made
+      for the slot.
     Recovery: >-
-      The asks go on until the slot's interval is posted or the deadline passes.
+      The slot is published at its start under 3b, or gets the fault
+      alone under 3c.
   - Concern: gate
     Number: 3
     Label: a
     Kind: transition
     Boundary: mm-mic
     Condition: >-
-      An ask answers with the slot's first interval.
+      The slot opens with wholesale parts fetched for it.
     Obligation: >-
-      The slot's price is that interval's parts plus the tariff's
-      delivery for the slot's hour.
+      The slot's price is those parts plus the tariff's delivery for the
+      slot's hour.
     Recovery: ""
   - Concern: gate
     Number: 3
@@ -136,8 +136,8 @@ data:
     Kind: failure
     Boundary: mm-mic
     Condition: >-
-      fetch_deadline_s pass after a slot's start with no price for it
-      and a price published before in this run.
+      The slot opens with no wholesale parts fetched for it and a price
+      published before in this run.
     Obligation: >-
       The slot's price is the last published wholesale parts plus the
       tariff's delivery for this slot's hour; a glitch of type Critical
@@ -145,22 +145,22 @@ data:
       it, its details naming the slot, the failure and the slot the
       parts came from.
     Recovery: >-
-      The next slot with a fresh price is published fresh; nothing is
-      republished for the stale slot.
+      The next slot with a fetch that came back is published fresh;
+      nothing is republished for the stale slot.
   - Concern: gate
     Number: 3
     Label: c
     Kind: failure
     Boundary: mm-mic
     Condition: >-
-      fetch_deadline_s pass after a slot's start with no price for it
-      and nothing published in this run.
+      The slot opens with no wholesale parts fetched for it and nothing
+      published in this run.
     Obligation: >-
       No price goes out; a glitch of type Critical with summary "no
       price to publish" goes out on the mic, its details naming the slot
       and the failure.
     Recovery: >-
-      The next slot with a fresh price is published fresh.
+      The next slot with a fetch that came back is published fresh.
   # -- publication -----------------------------------------------------
   - Concern: publication
     Number: 1

@@ -1,6 +1,6 @@
-# Heating curve: two models, two words
+# House models: heating curve and COP, one word per model
 
-Status: Draft · Pass 0 · Updated 2026-11-14 · Linear: OPS-668
+Status: Draft · Pass 0 · Updated 2026-11-24 · Linear: OPS-668
 
 **EDD: no** a word splits in two along a seam the code already has;
 verified by the sema and scada suites, the four test ops files and oak
@@ -10,7 +10,8 @@ rolled to the new pair with its FLO still bidding.
 > the quadratic heat-load curve the scada runs and the regression load
 > forecast with a radiator RSWT model the LTN runs, and says nothing
 > about which field serves which. Each model gets its own word in
-> `gw.operational.params`.
+> `gw.operational.params`. The heat pump's COP model has the same two
+> readers, and whether it stays one model is open below.
 
 ## Why
 
@@ -55,8 +56,28 @@ the word hold fields it never uses.
   elements can heat the store above the heat pump's leaving temperature
   and the word has to state that house as it is.
 
+## The COP model
+
+The heat pump's COP is the second house model with two readers. The
+scada's derived generator computes the midday COP from `Ha1Params`
+(`derived_generator.py:1200`), and the LTN copies the same `CopCurve`
+fields into each flo.params request (`flo_request.py:300`). Both read
+the one `CopCurve` in `gw.operational.params`, so their values cannot
+differ. The word states the formula both compute: cop.curve 001, the
+lift model `Intercept + LwtMinusOatCoeff * max(0, LwtF - OatF)`, which
+`gw.operational.params` 000 references, and flo.params 005 and
+ha1.params 007 copy flat as `CopIntercept` and `CopLwtMinusOatCoeff`.
+
 ## Open
 
+- **One COP model or two.** The heating curve splits because the scada
+  keeps a simpler model than the optimizer. For COP no such reason
+  exists today. If the scada and the LTN share one model, the scada
+  checks that the COP in each flo.params its LTN sends equals the
+  cop.curve in its operational params, and a mismatch is a glitch. If
+  the optimizer needs a richer COP model than the scada, COP splits the
+  way the heating curve does, with a second word in
+  `gw.operational.params`.
 - The new word's name. `gw.load.forecast.model` says what it is;
   `gw.house.load.regression` says how. The registry's first-segment
   convention groups by owner, so `gw.` is right either way.

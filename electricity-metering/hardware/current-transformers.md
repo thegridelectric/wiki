@@ -10,8 +10,8 @@ Status: Draft · Pass 0 · Updated 2026-11-22
 
 | photo | part | rating | class | core | where |
 |---|---|---|---|---|---|
-| [`first-ct.png`](first-ct.png) | YHDC SCT013, 100 A : 50 mA | 100 A | 1 | split | spruce, one turn on the store pump (CT1) and the secondary pump (CT2), into the Gw108's 470 Ω burden |
-| [`another-ct.png`](another-ct.png) | YHDC SCT006, 20 A : 25 mA | 20 A | 1 | split | spare; the better fit for a 2 A circulator, which sits at 10% of its rating rather than 2% |
+| [`yhdc.sct013.000.png`](yhdc.sct013.000.png) | YHDC SCT013, 100 A : 50 mA | 100 A | 1 | split | spruce, one turn on the store pump (CT1) and the secondary pump (CT2), into the Gw108's 470 Ω burden |
+| [`yhdc.sct006.png`](yhdc.sct006.png) | YHDC SCT006, 20 A : 25 mA | 20 A | 1 | split | spare; the better fit for a 2 A circulator, which sits at 10% of its rating rather than 2% |
 
 Both are YHDC (Beijing Yaohuadechang) class 1 split-core clamps with a
 current output (no internal burden; the burden is on the board). Class 1

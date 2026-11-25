@@ -10,6 +10,98 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-24 — The Gw108 Rev C record states its CT ADC (`3adf93f`, jm/gw108-ct-mux, OPS-701)
+
+**Why.** The Rev C record omitted the CT ADC because the capability word
+could not place it behind the DAC mux. With sema `jm/gw108-ct-mux` the
+record gains its CtAdc: `Ct` at 0x48 on DefaultBus, Ads1115, 3.3 V, four
+channels, behind `DacMux` channel 4, as the 2026-11-20 bench read it. The
+spruce gen's CT comment now states what is on the board: two YHDC SCT013
+current-output clamps at one turn, on the store pump and the secondary
+pump; the earlier note's "eGauge voltage-output" on CT 2 was wrong. The
+snapshot is re-vendored from that sema commit and the spruce output
+regenerated before the roll.
+
+## 2026-11-24 — The houses state their COP as cop.curve 001 (`3d4bf75`, jm/flo-params-005, draft PR 7, OPS-710)
+
+**Why.** Each house's lift fit sat in cop.curve 000's `Intercept` and
+`LwtCoeff`, with `OatCoeff`, `Min` and `MinOatF` unread. On sema
+`jm/flo-params-005` (`447a22d`), `gw.operational.params` references
+cop.curve 001, so the gen states the fit by its own names: `cop_intercept`
+and `cop_lwt_minus_oat_coeff`, with the same values every house ran. The
+seed allows cop.curve while 001 is staging. The sims that had
+`cop_lwt_coeff=0` (hazel, orange, willow, honeysuckle's commented block)
+keep 0, a constant COP of 1.02. Regenerating all outputs also brings the
+orange and willow sims up to `StabilityPenaltyEnabled` false (`b46bca7`)
+and the spruce sim's capture tunings up to its gen; the `.uploaded.json`
+files the gens fetched from the boxes are left as they were. The branch
+merges after cop.curve 001 is promoted and the sema branch is on `dev`,
+with the scada branch that reads 001, and every house's ops is rolled
+with that scada.
+
+## 2026-11-24 — FLO: disabling the stability penalty (`b46bca7`, main)
+
+**Why:** a FLO tuning choice for the fleet: `layout_gen.py` sets
+`StabilityPenaltyEnabled=False` in the bruce tuning, and the operational
+params of beech, elm, fir, maple and oak are regenerated with it.
+
+## 2026-11-24 — Undo changes for spruce - is on another branch (`74e5ce2`, main)
+
+**Why:** spruce runs `jm/gw108-revc` and takes its storage mode from that
+work, so `spruce_gen.py` goes back to `BufferOnly`, with spruce's and
+spruce-async1's operational params regenerated.
+
+## 2026-11-24 — Putting all homes in AllTanks + LocalControl (`5903afe`, main)
+
+**Why:** the fleet runs on whole-store seasonal storage under local
+control: beech, elm, fir, maple, oak and spruce move from `BufferOnly` to
+`AllTanks`, and beech, fir and oak set `operator_hold=True`.
+
+## 2026-11-24 — The snapshot takes gw.boiler.backup 001 and the layouts emit it (`8e5d89d`, jm/boiler-backup-001, OPS-702)
+
+**Why:** sema split `gw.boiler.backup`: 000, the failsafe relay required,
+is published as every shipped layout holds it, and 001, staging, makes
+the relay optional for a boiler that fires on its own aquastat;
+`gw.hydronic` references 001 alone. The regen against sema b433adc takes
+001 and drops `cop.curve` from the seed's allow list, since 000 is
+published. Every house gen with a boiler backup (beech, elm, fir, maple,
+oak and the hazel, orange, willow and larch sims) emits a 001 instance,
+which a box needs before it runs a scada whose twin is at 001. The regen
+also showed stale committed outputs for fir's operational params, the
+spruce sim and two uploaded files; those are left as committed.
+
+## 2026-11-23 — katahdin_sema_gen.py and the larch sim driver: the first Katahdin layout (`b7a4d9d`, jm/katahdin-layout, OPS-711)
+
+**Why.** The Katahdin houses (cedar first, Olly's larch sim beside it)
+had no generator: the terminalasset repo derived a Katahdin layout from
+a House0 one and inherited a heat pump failsafe relay the plant does not
+have. Every sim layout is a tlayouts gen, and the fixture terminalasset
+tests against is a byte copy of this gen's output.
+
+**What.** `katahdin_sema_gen.py`: `KatahdinSemaGen` on the gw108
+zone-call machinery (`NolanSemaGen`, whose zone axes move to a shared
+`Gw108ZoneGenConfig`), with the Katahdin plant: V1 to V3 and V5 on the
+board's i2c valve positions, V4 on the native GPIO relay, the heat pump
+call and secondary pump under hp-boss, the boiler intercept as
+`aquastat-ctrl-relay`, a boiler backup with no FailsafeRelayName. Every
+valve is power-to-open; V2 and, by the backup kind, V5 or V4 are powered
+at rest, so their relays take the new `VALVE_OPEN_AT_REST` kind
+(`hardware/i2c_relay.py`). `has_buffer` is a shared config axis: the tank
+module and depth-calibration emitters emit the buffer only where the
+plant has one, and the Katahdin gen refuses a buffer. `larch_sim_gen.py`
+writes `output/larch-sim/gw.katahdin.layout.json` (committed): four
+fan-coil zones, three store tanks, an oil boiler, sim drivers, a d1
+identity. No operational-params artifact: gw.operational.params has no
+Katahdin FamilyParams branch yet. Seed migrated to the snapshot staging
+policy (`package_name`, `vendor_dir`, `staging.allow` naming every
+staging word in the closure); `scripts/regen_sema_snapshot.sh` goes;
+`gw.katahdin.layout` joins the seed; snapshot regenerated from sema
+`7d36e67`, so its `cop.curve` keeps the five fields the gens author; a
+test runs the shipped `check_staging.py` against the seed under `-P`.
+Tests: `tests/test_katahdin_gen.py` (no failsafe relay, no buffer, the
+V2 / V4 / V5 energized states per backup kind, V4 on the GPIO relay, a
+buffer refused).
+
 ## 2026-11-20 — spruce: the iso valve is Valve3 (`fd77bfc`, jm/gw108-revc, OPS-701)
 
 **Why.** The Rev C column of `PLANT_RELAY_SILK` put the iso valve on

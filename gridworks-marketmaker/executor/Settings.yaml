@@ -31,6 +31,6 @@ data:
   - {Key: isone_user, Type: str, Default: "", Required: true}
   - {Key: isone_api_pass, Type: SecretStr, Default: "", Required: true}
   - {Key: isone_location_id, Type: str, Default: "43790", Required: false}
-  - {Key: fetch_deadline_s, Type: int, Default: "240", Required: false}
+  - {Key: fetch_lead_s, Type: int, Default: "20", Required: false}
   - {Key: my_super_alias, Type: str, Default: d1.super, Required: false}
   - {Key: my_time_coordinator_alias, Type: str, Default: d1.time, Required: false}

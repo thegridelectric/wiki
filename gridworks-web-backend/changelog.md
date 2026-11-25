@@ -10,7 +10,29 @@ repo's git history.
 
 Newest at the top.
 
-## 2026-11-20 — The FLO routes serve the Experimental tuning versions (`a694aaf`, jm/flo-tuning-experimental, OPS-696)
+## 2026-11-24 — The FLO routes serve flo.params 005 and take flo.rerun.request 003 (`f8ca616`, jm/flo-params-005, PR 41)
+
+**Why:** the LTNs send `flo.params` 005, the lift COP model, since its promotion (sema `df68501`), and `flo.rerun.request` 002 cannot hold a 005 params. The api seed names its versions, so the regen adds 005 and 003 only through the seed. 004 and 002 join the versions the routes accept, and the tests serve oak's hour at 005 and solve a 005 hour with bruce.
+
+## 2026-11-24 — The seeds state the snapshots' staging policy; ci.sh checks both vendored snapshots and keeps staging off main (`3d80456`, jm/snapshot-staging-policy, OPS-702)
+
+**Why.** Whether a snapshot could hold staging words was an `ALLOW_STAGED=1`
+on the regen command, and nothing checked `main` but a hand-written test
+that read each snapshot's registry (OPS-702). The committed api snapshot was
+in fact a staging one: its marker listed `flo.params` 004,
+`flo.recommendation` 003, `flo.rerun.request` 002, `flo.tuning.bruce` 003
+and `flo.path.penalties.bruce` 002, all published since. Each seed now
+states its policy, no `staging` block, so both snapshots are published-only,
+with `package_name` and `vendor_dir`; the script is one `sema snapshot
+regen` per package. Each snapshot ships its own `check_staging.py`, and the
+new `ci.sh` (the repo had none) runs both checks under `python -P` and then
+pytest; the hand-written main-only test goes. Both snapshots are
+regenerated from sema `ac40b4b`: the api build passes over the staging
+`gw.channel.kind` 001 and says so, and the staging marker is gone.
+
+One squashed commit. `ci.sh` runs each snapshot's shipped `check_staging.py` with `--deploy-branch main`, so a pull request into main fails while either snapshot holds a staging word; both snapshots sit at the published `flo.params` 004.
+
+## 2026-11-20 — The FLO routes serve the Experimental tuning versions (`e2d8b2c`, #39, jm/flo-tuning-experimental, OPS-696)
 
 **Why.** `flo.tuning.bruce` 003 and `flo.path.penalties.bruce` 002 move the two unmet-load knobs and their penalty series into an open `Experimental` dict, so a knob under tuning changes bruce and nothing else (OPS-696). The words that nest them follow: `flo.params` 004, `flo.rerun.request` 002, `flo.recommendation` 003, `gw.operational.params` 000 repointed in place. All five are staging in sema (`c8cc461`), so the snapshot is a dev-only staged one until they promote. The seed vendors the new versions beside the journaled
 ones; the FLO route and the price-forecast route add the versions they

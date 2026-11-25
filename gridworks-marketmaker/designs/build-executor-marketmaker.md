@@ -1,6 +1,6 @@
 # Build the marketmaker executor
 
-Status: Draft · Pass 0 · Updated 2026-11-15 · Linear: OPS-617
+Status: Draft · Pass 0 · Updated 2026-11-25 · Linear: OPS-617
 
 **EDD: yes** the trace replay is the verification: the marketmaker
 executor reaches Verified when every clause has a vector and every
@@ -84,7 +84,11 @@ fabric has no binding from there into `mm_tx`, decisive for OPS-431.
    axioms with clauses; the publication, the gate fetch and the bid
    drop become Concerns; the registry record, the broker fabric, ISO-NE
    and the tariff table are Boundaries rows.
-3. **Traces.** The hw1 first hour is the first trace: the published
-   word in `experiments/2026-10-22-stopgap-mm/instances/` is its
-   expected output.
+3. **Traces.** Waits for gridworks-marketmaker PR 82 (the price in two
+   stages, `latest.price` 002 with `price.stage`) to merge. The first
+   trace is then taken from the merged service: one slot with a
+   Provisional price at the top of the hour and a Final on ISO-NE's
+   posting. The stopgap's 001 hour in
+   `experiments/2026-10-22-stopgap-mm/instances/` is the heritage
+   reference for the gate timing.
 4. **Adversarial pass**, per Concern and at the Domain, then Accepted.

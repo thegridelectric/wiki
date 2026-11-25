@@ -258,12 +258,15 @@ structural change. `derived.channel.gt` stays the scada's: its
 CreatedByNodeName is a layout node and its kind is defined as
 layout-declared.
 
-5. In design. `gw.service.channel.gt` 000 (draft), raised spec-first on
-   its own sema branch under the sema protocol: a channel a GNode
-   service declares for the readings it writes, as `derived.channel.gt`
-   is the scada's and `gw.weather.channel.gt` the weather GNode's. The
-   spec read-receipt and the human's confirmation come before any
-   registry edit. Fields, agreed:
+5. ✅ WORDS IN STAGING (sema `7de3c80`, jm/service-channel; the
+   branch stays local until the words run end to end and are
+   published). `gw.service.channel.gt` 000 and `gw.channel.kind` 001:
+   a channel a service that is not a GNode declares for the readings
+   it writes. A GNode declares its
+   channels through its own word, as the weather GNode does with
+   `gw.weather.channel.gt`; this word is for the journal-side services
+   (the journalkeeper, service alias `hw1.isone.journal`; the hourly
+   aggregator). Fields:
 
    | Field | Format | Meaning |
    |---|---|---|
@@ -271,8 +274,8 @@ layout-declared.
    | DisplayName | `non.empty.string` | Human-readable label |
    | Quantity | `gw1.quantity` 003 | What is measured |
    | Unit | `gw1.unit` 003 | The unit its readings are in |
-   | DeclaringGNodeAlias | `left.right.dot` | The GNode service that declares the channel and is its authority |
-   | TerminalAssetAlias | `left.right.dot`, optional | The house the channel is about; absent for a channel about no house |
+   | DeclaringServiceAlias | `left.right.dot` | The service that declares the channel and writes its readings; the alias it claims on the broker |
+   | TerminalAssetAlias | `left.right.dot`, optional | The house the channel is about; absent for a channel about no single house |
    | InputChannelNames | array of `spaceheat.name` | The channels it is computed from |
    | Strategy | `spaceheat.name` | How it is computed from them, as `derived.channel.gt` names it |
    | WindowS | `positive.int`, optional | The aggregation window, for an aggregate (3600 for hourly) |
@@ -286,42 +289,58 @@ layout-declared.
    three journalkeeper kinds stay until their pseudo-channel lists
    retire into instances.
 
-   Why these names. DeclaringGNodeAlias follows the registry's
+   Why these names. DeclaringServiceAlias follows the registry's
    role-prefix pattern (`FromGNodeAlias`, `AboutGNodeAlias`,
    `HostGNodeAlias`); `FromGNodeAlias` means a message's sender in
    every use, and a channel record outlives the message it came in.
-   The declarer is a GNode because the production universe is built
-   on GNodes; the coming price forecast service fits as it is.
-   TerminalAssetAlias stays optional and specific until an instance
-   is about some other kind of node. Start takes ISO because a person
-   declares an era boundary once and reads it by eye (the time-format
-   note under Open).
+   The declarer is a service and not a GNode by definition of the
+   word: neither the journalkeeper nor the hourly job is a GNode, and
+   a GNode (weather, the coming price forecast service) has its own
+   channel word. TerminalAssetAlias stays optional and specific until
+   an instance is about some other kind of node. Start takes ISO
+   because a person declares an era boundary once and reads it by eye
+   (the time-format note under Open).
 
    Still open:
    - The hourly instances' names: a `-1hr` suffix on the column's
      channel name (`hp-kwh-th-1hr`) is proposed.
-   - Per house per column, or once for the fleet. Per house is
-     proposed: the journal keys a channel by (name, terminal asset),
-     and Start then scopes each house's eras.
+   - Decided: an hourly column is one channel record per house
+     (`hp-kwh-el-1hr` at beech is one record); the journal keys a
+     channel by (name, terminal asset), and Start scopes each house's
+     eras.
    - Whether the price channels become instances now or wait for the
      price-unit question under Open.
-   - Who declares the channels non-GNode services write today (the
-     journalkeeper's derived lists, gridworks-data's hourly job):
-     either that service takes a GNode alias under the universe root,
-     as the weather service has, or each channel moves to the GNode
-     whose meaning it is. The first instances can be the weather
-     GNode's and the price forecast service's; the rest is settled
-     with the writer in step 6.
-6. The hourly columns written as readings of those channels, one row
-   per (channel, hour), with integers scaled by the channel's unit, so
-   the `unit_scale` join reads them as it reads any other channel and
-   the weather source is channel identity (kmlt, gridpoint and house
-   forecast each keep their own hourly rows; the fallback is a declared
-   strategy, not a column). Where the writer lives (the journalkeeper
-   as a periodic persistor, or gridworks-data's hourly job) is decided
-   in this step with the human. A pivot view keeps the cache table's
-   shape for the visualizer, the two CSV routers, the refresh job and
-   the FLO side quests until each reads channels.
+   - Decided: the declarer is the non-GNode service itself, under its
+     broker alias; for the hourly channels that is the journalkeeper
+     (`hw1.isone.journal`), which already writes readings and
+     declares the three lists this word retires.
+6. Next. The hourly columns written as readings of those channels,
+   one row per (channel, hour), with integers scaled by the channel's
+   unit, so the `unit_scale` join reads them as it reads any other
+   channel and the weather source is channel identity (kmlt,
+   gridpoint and house forecast each keep their own hourly rows; the
+   fallback is a declared strategy, not a column). The computation
+   stays in gridworks-data's `calc_hourly_data`; the journalkeeper is
+   the writer: it declares one `gw.service.channel.gt` record per
+   house per column under `hw1.isone.journal`, persists the
+   `reading_channels` row from its own record as the weather channel
+   persistor does, and an hourly task calls the function for the hour
+   just ended and writes the readings. A pivot view keeps
+   `cached_hourly_data`'s shape for the visualizer, the two CSV
+   routers, the refresh job and the FLO side quests until each reads
+   channels. Order: vendor the staging snapshot into the journalkeeper
+   (dev broker only while staging); local test in `tests/` on the
+   step 4 boundary fixture; run against `tsdb_tap` on a window
+   spanning a layout change and compare the readings with the cache
+   columns for the same hours; then publish the words, push and merge
+   the sema branch, re-vendor, the journalkeeper PR, deploy to the gjk
+   box, and record the data change in journaldb.md.
+
+   **Do this next:** in the journalkeeper on a `jm/` branch: vendor
+   the staging snapshot (`--allow-staged`, dev broker only), write the
+   failing local test for one house's `hp-kwh-el-1hr` over the step 4
+   fixture hours, and build to it.
+
 7. The CSV units row: both web-backend routers (`readings.download`,
    `hourly.data`) write a row of units above the channel-name row, read
    from the channel table, under the backend protocol.

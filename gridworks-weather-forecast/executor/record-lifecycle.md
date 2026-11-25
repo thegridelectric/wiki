@@ -1,6 +1,6 @@
 # record-lifecycle — how a record enters
 
-Status: Draft · Pass 0 · Updated 2026-11-16
+Status: Draft · Pass 0 · Updated 2026-11-23
 
 What this is: how a location, station, channel, forecast channel,
 bundle or seasonal template enters the service's record set, and how a
@@ -78,10 +78,15 @@ a station's channels would claim the station observed what a model
 computed.
 
 A station with no network identifier is a model gridpoint. Its
-observation stream is the pinned model's hour-mean value for the hour
-just ended, from the product the forecast fetch already pulls, so the
-series stays continuous after a backfill with no further command. The
-Open-Meteo Millinocket gridpoint (`ommillinocket`) has three channels.
+observation stream is the pinned model's nearest-in value for the hour
+that starts at the slot, from the model's most recent run: an
+instantaneous quantity at the slot, an hour-mean quantity over the hour
+from it, one reading per channel on the station, timed at the slot. It
+is the same message the archive replay emits for that grid point, so
+the series stays continuous after a backfill with no further command,
+and the hour's value is on the wire at the hour's start rather than its
+end. The Open-Meteo Millinocket gridpoint (`ommillinocket`) has three
+channels.
 Its irradiance is the fleet's irradiance actual: no measured irradiance
 is in reach. Its temperature and wind speed are a second, labelled
 instrument beside kmlt's, which stays the station record; a consumer

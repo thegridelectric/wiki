@@ -24,16 +24,16 @@ schema:
 data:
   - {Concern: "", Idx: 1, Kind: example, Clause: "1a", Path: "latest.price/001"}
   - {Concern: "", Idx: 2, Kind: example, Clause: "1a", Path: "glitch/000"}
-  - {Concern: "", Idx: 3, Kind: trace, Clause: "1b", Path: ""}
+  - {Concern: "", Idx: 3, Kind: trace, Clause: "1b", Path: "traces/2026-11-25-dev-cold-failure-and-inbox"}
   - {Concern: "", Idx: 4, Kind: trace, Clause: "2a", Path: "traces/2026-11-15-keene-first-hour"}
   - {Concern: gate, Idx: 1, Kind: trace, Clause: "1a", Path: "traces/2026-11-15-keene-first-hour"}
-  - {Concern: gate, Idx: 2, Kind: trace, Clause: "1b", Path: ""}
+  - {Concern: gate, Idx: 2, Kind: trace, Clause: "1b", Path: "traces/2026-11-15-keene-first-hour"}
   - {Concern: gate, Idx: 3, Kind: trace, Clause: "2a", Path: "traces/2026-11-15-keene-first-hour"}
   - {Concern: gate, Idx: 4, Kind: counterexample, Clause: "2b", Path: "traces/2026-11-11-keene-stale-price"}
   - {Concern: gate, Idx: 5, Kind: trace, Clause: "3a", Path: "traces/2026-11-15-keene-first-hour"}
   - {Concern: gate, Idx: 6, Kind: counterexample, Clause: "3b", Path: "traces/2026-11-11-keene-stale-price"}
-  - {Concern: gate, Idx: 7, Kind: counterexample, Clause: "3c", Path: ""}
+  - {Concern: gate, Idx: 7, Kind: counterexample, Clause: "3c", Path: "traces/2026-11-25-dev-cold-failure-and-inbox"}
   - {Concern: publication, Idx: 1, Kind: trace, Clause: "1a", Path: "traces/2026-11-15-keene-first-hour"}
   - {Concern: publication, Idx: 2, Kind: trace, Clause: "1b", Path: "traces/2026-11-15-keene-first-hour"}
   - {Concern: publication, Idx: 3, Kind: trace, Clause: "1c", Path: "traces/2026-11-15-keene-first-hour"}
-  - {Concern: inbox, Idx: 1, Kind: trace, Clause: "1a", Path: ""}
+  - {Concern: inbox, Idx: 1, Kind: trace, Clause: "1a", Path: "traces/2026-11-25-dev-cold-failure-and-inbox"}

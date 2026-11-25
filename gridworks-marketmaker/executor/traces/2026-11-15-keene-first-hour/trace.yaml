@@ -7,6 +7,7 @@ name: 2026-11-15-keene-first-hour
 concern: gate
 clauses_exercised:
   - "hub 2a: the publish is at a gate tick on the new slot, with nothing inbound"
+  - "gate 1b: the slot open at the start, 1794711600, is passed over with no publish"
   - "gate 1a: one publish at the slot's start"
   - "gate 2a: one fetch of the current wholesale price before the slot"
   - "gate 3a: a fresh price is published fresh"

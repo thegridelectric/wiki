@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-11-18
+Status: Draft · Pass 0 · Updated 2026-11-24
 
 # The hardware layout
 
@@ -786,6 +786,11 @@ Krida addresses are field-chosen by DIP switch: the record carries
 board component's `I2cAddressList`, index-aligned. The relay and bus
 actors read only the fixed address today; the chosen-address path is an
 open gap.
+
+### The Gw108 Rev C board
+
+The board spruce runs, its record, what spruce wires to it, the facts a
+build has to know and the bench witness: `gw108-rev-c-board.md`.
 
 ### The 0-10V output actuator
 

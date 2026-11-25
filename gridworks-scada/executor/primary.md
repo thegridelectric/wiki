@@ -204,6 +204,7 @@ Normative across the domain — full statements in
 | Heat pump comms (call contact and Modbus from the vendor side, per heat pump model) | [`heat-pump-comms/primary.md`](heat-pump-comms/primary.md) | Draft |
 | The Siegenthaler loop actor as it runs (what it does, what maple shows, where it falls short) | [`sieg-loop.md`](sieg-loop.md) | Draft |
 | Procedural interrupts (the pump doctors inside the command tree: a procedure sends as the current command node, never through the scada) | [`procedural-interrupts.md`](procedural-interrupts.md) | Draft |
+| The Gw108 Rev C board (its record, what spruce wires to it, the facts a build has to know, the bench witness) | [`gw108-rev-c-board.md`](gw108-rev-c-board.md) | Verified |
 | Plant (how a device actor reaches its hardware; the device contract; routing per node and per process; the glitches on the device path; the scada's side of the plant contract on a simulated layout) | [`plant.md`](plant.md) | Accepted |
 
 ## Open (top-level)
