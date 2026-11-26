@@ -4,6 +4,50 @@ One entry per commit in `thegridelectric/gridworks-alerter`,
 `thegridelectric/gridworks-alerts` and `thegridelectric/gridworks-alert-manager`
 (git = the what, this = the why).
 
+## 2026-11-25 — The alerter decodes the layout.lite the fleet sends (`715ccc0`, PR #16, gridworks-alerter)
+
+The seed names `layout.lite` bare, so a regen takes the latest published
+version, 014 today; 011 and 012 leave the snapshot and the listener and
+store handle the one version. Why: the fleet has sent 013 since
+2026-10-22 and 014 since 2026-11-15, and the alerter dropped each one
+with `Unsupported version`, 856 error lines on the box by 2026-11-25.
+The whole fleet moves to a new layout version within a day, so one
+version is enough, and a bare target makes the next move a regen with no
+seed or code edit. No page was missed, because an arrival counts before
+the decode and nothing reads the stored layout yet; the reboot-loop and
+heat pump kinds will read it.
+
+## 2026-11-25 — CI runs the sema snapshot staging check (`e141762`, merged `eb0e466`, PR #15, gridworks-alerter)
+
+`ci.sh` and the workflow's lint job run the snapshot's
+`check_staging.py` against the committed seed with `--deploy-branch
+main`. Why: the snapshot shipped the check but nothing ran it, so a
+staging word reaching the closure, or a seed edited without a regen,
+would have passed CI on main. The seed has no `staging:` block; with
+none, no staging word is allowed.
+
+## 2026-11-25 — The alerter relays the scada's Critical glitches; gwbase 0.7.3, logs in local time (`5b2ef4b`, gridworks-alerter)
+
+`CriticalGlitch` is live on the alerter: a Critical `glitch` from a
+tracked scada raises with the glitch's summary and node, a Warning does
+not, a repeat inside `critical_glitch_hold_s` (7200 s) extends, the hold
+resolves, a different summary supersedes. The `glitch` word joins the
+seed. gwbase moves to 0.7.3 and the template gains `GWALERTER_LOG_TZ`
+(America/New_York on the box), so the alerter's log reads in the fleet's
+time like the other services. Why: the Critical pages were gwalert's
+only remaining useful path, and the port is the detector-port design's
+next spoke; the UTC log cost a misread of this morning's incident.
+
+## 2026-11-25 — drop glitch and dist pump/store pump checks (`06ba09c`, gridworks-alerts)
+
+`check_for_glitches` moves to the alerter as `CriticalGlitch`.
+`check_dist_pump` and `check_store_pump` go with their thresholds and
+the pump channels: they keyed relays by the trailing digit of the old
+channel names (`relay9`, `relay5`) and have skipped every pass since the
+layout words renamed them, and the scada's own pump doctors now judge
+flow against pump power and glitch the meter or page. The unused
+`Glitch` type goes with them.
+
 ## 2026-10-20 — The tap reads Opsgenie's listing every tap_listing_s (`3b7968b`, merged `356abb7`, PR #13)
 
 `tap_listing_s` (default 300 s) sets how often the tap reads the listing

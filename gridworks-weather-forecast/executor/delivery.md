@@ -1,6 +1,6 @@
 # delivery — cadence, binding shape, the pull path
 
-Status: Draft · Pass 0 · Updated 2026-10-18
+Status: Draft · Pass 0 · Updated 2026-11-26
 
 What this is: how a message leaves the service, for
 [the hub](primary.md): when it is published, on what routing key, and
@@ -22,6 +22,26 @@ Status: Verified · Pass 0 · Updated 2026-09-02 · Reviewed 2026-08-11@711a8cc 
   single time when minted, so the archive resolves an archived message
   against the record active at its time. There is no re-broadcast and
   no boot re-emission.
+- **A stream emits once when it becomes active, then on its grid.** On
+  the first tick after the scheduler is built, a stream with no published
+  state at or before the clock's now (a station or bundle just minted, an
+  empty database, a clock that moved back) fires the latest grid slot at
+  or before now; a stream with such state waits for its next slot.
+  Published state is the stream's own: the station's last published slot
+  for an observation stream, the bundle's newest served forecast for a
+  forecast stream. A source's stored product is shared by every bundle
+  on that source, so it says nothing about whether a bundle has
+  published. State stamped after now is dropped at build.
+- **A channel joins at its station's next fresh observation.** An
+  observation channel minted on a station that has already published is
+  in the station's next message with a newer observation time. The last
+  observation is never sent again with the new channel added.
+- **A rebuild loses no slot.** When the records change, the streams as
+  they were fire what is due at that tick, and the rebuilt streams start
+  from the same now.
+- **A failed build is tried again.** A scheduler build that fails is a
+  Warning glitch and is retried 30 s later; the streams built before it
+  keep emitting until one succeeds.
 
 ## Broadcast binding shape
 
@@ -51,3 +71,13 @@ latest forecast per bundle, and a ping. There is no broker
 request/response vocabulary. A consumer that misses a broadcast, or
 boots without one, pulls here; the emission schedule on the record is
 what tells it a message is late.
+
+## Open
+
+- **One stream that cannot be wired fails the whole build.** A forecast
+  channel whose Method has no adapter stops every stream from being
+  rebuilt. No record has hit it.
+- **Bundles with different horizons on one source overwrite each
+  other's stored product.** After a restart with the live fetch failing,
+  the longer bundle can find a stored product too short for its grid and
+  fall to the template rung until the next live fetch.

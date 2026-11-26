@@ -6,6 +6,28 @@ Status: Accepted · Pass 0 · Updated 2026-11-23
 > (`optimal-flexibility` for the bruce optimizer; the FLO service repo when
 > it exists). Git is the what; this file is the why.
 
+## 2026-11-25 · optimal-flexibility · fix issue where a discharge can predict one layer more than the tank has (`3410c61`, jm/overhanging-prediction, OPS-716)
+
+**Why.** At `0b51fc9` bruce could not build a transition matrix for any
+shape. The discharge model predicts, for about 0.05 % of state and action
+pairs at 9 layers and at 27, a store whose second thermocline is one
+layer below the bottom of the tank. `state_distance` compares such a
+state on the layers the tank has, because `zip` stops at the shorter
+list. The array form of the same comparison in `_closest_state_index`
+(`2d5f324`) raised on the extra layer, so the first build of a new shape
+or tuning failed; houses with a cached matrix were unaffected. The array
+form now compares the same layers `state_distance` does, which is the
+equivalence its docstring states. Found filling the sim pod's matrices
+at 27 layers.
+
+**Test.** `tests/test_closest_state.py` finds every such prediction for
+the largest discharge on the one-tank, nine-layer shape and asks
+`closest_state` for each; it fails with the broadcast error before the
+change.
+
+**Open.** Whether the discharge model should predict such a state at
+all is the optimizer's question and is untouched here.
+
 ## 2026-11-24 · gridworks-flo · The service speaks flo.params 005 (`c0eff8b`, jm/flo-params-005, draft PR 11, OPS-710)
 
 **Why.** The service decodes the one flo.params version its snapshot

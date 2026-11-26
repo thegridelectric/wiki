@@ -11,6 +11,46 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-26 — A bundle activates on its own published forecast; a rebuild fires before it replaces; a failed build retries (`9a59a24`, squash of jm/activation-by-bundle, PR #21, OPS-723)
+
+**Why:** the sim-box run of `8650c01` showed `bobcat` and `raccoon`
+emitting on activation and `moose` waiting 29 minutes for the grid.
+Activation asked whether every source of the bundle had a stored
+product, and a product belongs to its acquisition, so `bobcat`'s fetch
+of the kmlt gridpoint counted as `moose` having published. Now a
+forecast stream's published state is the bundle's newest served
+forecast at or before now (`latest_forecast_slot`), which also stops a
+bundle that activated on the template rung from sending again at every
+rebuild in the period. Two smaller gaps in the same path close with it.
+A rebuild started every cursor at now, so a slot that fell between the
+previous tick and the rebuild tick was never fired; `tick` now runs the
+scheduler being replaced first. And since `8650c01` moved the build
+from the constructor to the first tick, a build that failed at boot
+left the actor running with no scheduler until the next create, where
+it used to end the process and be retried by the restart; a failed
+build is now tried again `BUILD_RETRY_S` (30 s) later. Left for later,
+in `delivery.md` "Open": a stream that cannot be wired failing the
+whole build, and mixed horizons overwriting a shared stored product.
+
+## 2026-11-25 — One clock in the actor; a stream emits once when it becomes active (`8650c01`, squash of jm/weather-clock-activation, PR #20, OPS-723)
+
+**Why:** on the sim box no forecast existed for up to an hour after the
+pod started, because the scheduler fires only on the record's grid and
+the pod's weather database starts empty; the same hour is lost in prod
+whenever a bundle is minted. Now a stream with no published state at or
+before now fires the latest grid slot on the first tick after the
+scheduler is built, and state stamped after now is dropped so a clock
+that moved back finds a stream that has never emitted. The actor's five
+wall-clock reads go through one `Clock` (`gwwf/clock.py`), picked by
+`GWWF_CLOCK_SOURCE`: Wall on the fleet, Timestep fed by gwbase's
+`on_simulated_time`, with `sim.ready` sent after each tick, so the actor
+is ready for the time coordinator. The scheduler is built on the main
+loop's thread at the first tick and after each create (the create
+handler marks it stale), which also ends the cross-thread swap; a build
+that fails is a Warning glitch and the actor keeps running. The vendored
+sema snapshot is regenerated from sema dev `672c1aa`, which ships
+`check_staging.py`, and ci.sh runs it with `--deploy-branch main`.
+
 ## 2026-11-23 — Open-Meteo requests retry a top-of-hour 5xx (`b0b845a`, squash of jm/open-meteo-retry, PR #19, OPS-709)
 
 **Why:** the first live ommillinocket slot after the nearest-in deploy

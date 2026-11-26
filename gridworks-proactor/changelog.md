@@ -13,6 +13,43 @@ Newest at the top.
 
 ---
 
+## 2026-11-25 — One jittered reconnect schedule and a 30 s keepalive (`e16a032`, jm/cap-mqtt-backoff, OPS-304)
+
+The proactor owns every reconnect. Paho's own retry inside
+`loop_forever` is off (`reconnect_on_failure=False`), so a dropped link
+returns to the client thread and takes the same schedule as a link that
+never connected: `ReconnectBackoff`, full jitter, each wait random in
+[0, step], the step doubling from 1 s to the 30 s cap and staying
+there, reset by an accepting CONNACK. The jitter is for the broker and
+everything behind a login: the 2026-10-11 drill brought six LTNs back
+within 42 ms of each other, each a TLS handshake, a FIS lease check and
+a flush of held reports, because paho's schedule has no jitter and the
+whole fleet lost the broker in the same second. The reset is new too:
+the old loop never reset on success, so a link that struggled at boot
+kept its long waits for a drop days later. The configured keepalive now
+reaches `connect()` (it never did; paho ran its own 60 s default) and
+the default is 30 s, so a half-open socket is noticed within a minute
+instead of two, and the whole recovery fits the design's ~90 s. Tests:
+the schedule's bounds, cap, reset and per-link difference; the
+never-connected link's recorded waits; the configured keepalive handed
+to `connect()`; a forced drop against the test broker reconnecting
+through the client thread's schedule, once, from step 1.
+
+## 2026-11-25 — Cap MQTT reconnect waits at 30 s on both retry paths (`f06de54`, jm/cap-mqtt-backoff, OPS-304)
+
+A link whose broker is unreachable retried on two schedules, each able
+to leave the link idle long after the broker was back: the client
+thread's outer loop doubled its wait up to 1024 s for a link that never
+connected (the 2026-02-12 Maple and Fir blackout, ~17 min comms-dead),
+and paho's reconnect inside `loop_forever` doubled up to 120 s for a
+link whose connection dropped (the 2026-10-11 prod-broker drill, every
+LTN back 46–49 s after the broker). Both caps are now 30 s, from one
+module constant; nothing else in the loop changes. Two tests fail on
+the old code: the outer loop's recorded waits exceed 30 s, and paho's
+configured cap reads 120 s. Jitter and the keepalive wiring stay with
+OPS-304; this is the interim bound. Version `4.1.13+jm4` with the lock
+refreshed, for scada to repin.
+
 ## 2026-10-08 — Bump version to 4.1.13+jm3
 
 Scada pins the fork by git tag, so the client_id change needs a new tag

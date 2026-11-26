@@ -1,6 +1,6 @@
 # gridworks-proactor — Rebuild Specification (primary)
 
-Status: Draft · Pass 0 · Updated 2026-06-23
+Status: Draft · Pass 0 · Updated 2026-11-25
 
 > **First pass — acceptable minimum.** This captures the load-bearing
 > structure of `gridworks-proactor` from its README and package layout so
@@ -99,6 +99,13 @@ reproduce.
 3. Locally-generated Events are store-and-forward: persisted until acked,
    retransmitted on reconnection/active-restore.
 4. TLS by default; identity via `gwcert`-issued certs.
+5. One reconnect schedule per link, owned by the proactor: paho's own
+   retry is off, and a link that never connected or whose connection
+   dropped waits a full-jitter interval in [0, step], the step doubling
+   from 1 s to a 30 s cap, reset by an accepting CONNACK
+   (`gwproactor/links/reconnect_backoff.py`). The configured MQTT
+   keepalive (`MQTTClient.keepalive`, default 30 s) reaches `connect()`,
+   so a half-open socket is noticed within two keepalives.
 
 ## Open (the bulk of the real spec)
 

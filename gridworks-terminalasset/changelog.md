@@ -12,6 +12,111 @@ Newest at the top.
 
 ---
 
+## 2026-11-26 — minor doc fixes
+
+`13e92bf`, branch `jm/intercept-relay`, OPS-721. The `state_effects` docstring and the
+README said the intercept relay has no row because the model's boiler fires
+on its own aquastat. That is true of a real Katahdin and of the Beech plant.
+The Katahdin models' boiler is water and iron with no burner, which is the
+reason the relay has nothing to switch. Both sentences now say so. Giving
+the plant a boiler that fires and a relay that stops it is OPS-725.
+
+## 2026-11-25 — The four fixtures follow tlayouts with updated GNodeIds from the grid node seed
+
+`41949da`, branch `jm/intercept-relay`, OPS-721. Every layout in `tests/config` is a
+byte copy of its `output/*-sim` file at tlayouts `d907d9e`, where the sim
+houses take their d1 identity from the registry's export (OPS-720): larch,
+hazel and orange get the registry's GNodeIds and PositionPointIds and
+shorter display names ("Larch LTN", "Hazel1 Scada"), and beech1's display
+names derive from the real house. Aliases unchanged; nothing the plant
+reads changed.
+
+## 2026-11-25 — The scada's clock cannot run the plant ahead; the fmu tests run in a Linux container
+
+`0abd0a7`, branch `jm/intercept-relay`, OPS-721. Three asks of the PR 6 review, done
+on our branch for the author to evaluate. An actuation is logged with its
+stamp's offset from the plant's clock and warns over 2 s, so a run's log
+shows whether the scada and the plant agree on the time. `actuate` takes
+the plant's `now_ms` and the FMU runs no further than it: a scada whose
+clock is ahead used to run the model into the future and the next flux
+reported that future as now. `ci.sh` runs the host tests without the fmu
+marker and the fmu tests in a Linux container (`scripts/test_fmu.sh`),
+since an FMU's binary loads on Linux only; the script joins the dev
+broker's container network on a laptop and the host's in CI.
+
+## 2026-11-25 — The Beech fixture takes the registry's d1 identities
+
+`1258637`, branch `jm/intercept-relay`, OPS-721. `tests/config/gw.house0.beech.layout.json`
+is a byte copy of tlayouts `5313ab2` `output/beech1-sim/gw.house0.layout.json`:
+the sim Beech is `d1.isone.me.versant.keene.beech1` with the GNodeIds of
+the registry's dev seed, one source for d1 identity (OPS-720). Nothing
+about the plant changed.
+
+## 2026-11-25 — heat call on opto pin does not need a threshold; its boolan
+
+`fc0f85e`, branch `jm/intercept-relay`, OPS-721. The Gw108 reads a zone's heat call
+on an opto input: whether the thermostat circuit is closed, a digital
+fact. The plant fed that pin from the wire's power in the model through a
+hand-kept 0.5 W threshold, a trip level no hardware has and no word could
+state. The three models gain a `zoneCall[nZones]` output, the zone valve's
+0/1 position, and the pin reads it. A wire channel that is a power reading
+(the House0 "power" source) keeps `zoneCallPower`; there the scada's own
+`GreaterThanThreshold` derivation and its `Threshold` are in the layout.
+Both adapters choose by the channel's telemetry, so `variable_by_channel`
+takes the `PlantLayout`. FMUs rebuilt; checks green in the Linux
+container.
+
+## 2026-11-25 — The layouts are the generator's, and each relay's states are read from them
+
+`8dc2f5d`, branch `jm/intercept-relay`, cut on top of `ow/beech-plant`
+(685d1a5), OPS-711. PR #7 into `beech-plant`, a copy of the PR 6 head in
+thegridelectric's repo. The scada and the layout generator moved to `gw.boiler.backup`
+001 with `InterceptRelayName`, and a plant at 685d1a5 refused the layouts
+they now write ("Version Input should be '000'"), so the simulated stack
+could not start.
+
+The snapshot is regenerated from sema dev `672c1aa`, where
+`gw.boiler.backup` 001 is published. The regen script
+called `sema snapshot prepare --allow-staged`, a flag the CLI no longer
+has; the seed now states `package_name`, `vendor_dir` and the
+`staging.allow` list, and the script runs `sema snapshot regen`.
+
+The four layouts in `tests/config` are byte copies of tlayouts main
+`bf2cb02` (beech-sim, hazel-sim, orange-sim, larch-sim). The Katahdin
+layout made in this repo from hazel had a heat pump failsafe relay, which
+`gw.katahdin.layout` axiom 32 refuses, so `katahdin_layout.py` and
+`ta-katahdin-layout` are gone. A test that needs a house with no boiler
+or with two zones adjusts larch's layout and decodes it again through
+the word, the way the scada's layout tests vary a house.
+
+The larch layout gives each valve relay a `valve.open.or.closed` config,
+so the Katahdin relay table no longer keeps valve orientation by hand:
+both families use one `StateEffect` table form and one `relay_effects`
+lookup in `fmu_model.py`. With no failsafe relay the model's
+`hpScadaControl` input stays at its start value of 1.
+
+A Katahdin's zones are read by the board itself: the temperatures on the
+Gw108's thermistor ADC and the heat calls on its opto pins. The scada
+already takes those from the plant by channel name when the board is of
+a simulated type, so the plant now shows them on the same rule: a
+channel is the plant's when its sensor is a simulated device or an input
+of a simulated board. The thermistor voltage uses the divider in the
+board's `i2c.thermistor.interface.capability` and the beta in the
+reader's config; the pin level follows the `Interpretation` of the heat
+call derived from it (larch: `DigitalZeroIsActive`, so 0 while the zone
+calls); `gw1.heat.call.interpretation` joins the seed for that.
+
+With no failsafe relay nothing drove the model's `hpScadaControl` input,
+so it is removed from `Katahdin.mo` and `KatahdinComponents.mo`.
+
+`ci.sh` runs the snapshot's staging check after pyright.
+
+The FMU binaries are for Linux, so `./ci.sh` cannot pass on an Apple
+silicon laptop. Its steps were run by hand: the FMU build on the laptop,
+then in a Linux container on the dev broker's network ruff, pyright, the
+staging check and pytest with the `fmu` and `live` tests (97 passed, 1
+skipped).
+
 ## 2026-11-08 — Snapshot adds gw.katahdin.layout and catches up to sema dev
 
 The seed gains `gw.katahdin.layout`, the layout of the first simulated

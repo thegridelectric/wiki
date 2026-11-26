@@ -1,6 +1,6 @@
 # world — standing up a GridWorks universe
 
-Status: Draft · Pass 0 · Updated 2026-11-18
+Status: Draft · Pass 0 · Updated 2026-11-25
 
 > What this is: the hub for **building and running a GridWorks World** — a
 > self-contained instance of the ecosystem, at any scale and fidelity (one
@@ -56,6 +56,31 @@ fleet".)
    universe noticing. A GNode's public HTTP route is a façade for readers
    outside the broker, not a way for GNodes to find each other. A GNode
    that holds another GNode's URL is the defect this rules out.
+
+## DNS names
+
+There are two kinds of DNS name, and they follow different rules.
+
+- **An endpoint name follows the universe.** `<universe>-<run>` is the
+  broker of that run, the DNS-safe spelling of its vhost
+  `<universe>__<run>`: `hw1-1.electricity.works` is the broker whose
+  vhost is `hw1__1`. Anything else the universe exposes is named from it
+  (`hw1-1-s3-ear`). An endpoint name can be pointed at another machine
+  without changing any GNode's settings, which is what lets a broker
+  move. This is the only kind of DNS name a universe owns, because the
+  broker's URL is the only address a GNode has (invariant 5).
+- **A machine name follows the machine's function and names no
+  universe.** `rmqbot` is the box the `hw1-1` broker runs on; `ltn` and
+  `gjk` are others. A machine outlives the universes it hosts and may
+  host several, and under an orchestrator it is a node.
+
+Under Kubernetes a run is a namespace named `<universe>-<run>`, and its
+broker is the Service `rabbit` in that namespace. Simulations side by
+side are separate namespaces, and they may use the same GNode aliases
+because each has its own broker.
+
+A GNode has no DNS name. A `d` universe's broker is inside its own pod or
+namespace, so a `d` universe has no public DNS name either.
 
 ## Experiments (vs tests)
 
@@ -117,10 +142,29 @@ debt that has to be undone:
 - **Tier 2 (10–50, mid-term):** container per actor type, parameterised by
   layout file + identity env vars. Validate broker memory; consider a
   non-baked broker.
-- **Tier 3 (100s, far-term):** open — candidates: k3s/k8s + rabbit cluster;
-  Nomad; a custom process-per-actor supervisor pool. Decision deferred; record
-  candidates + criteria (process isolation, broker fan-out limits, experiment
-  reproducibility) when it's live.
+- **Tier 3 (100s, far-term):** Kubernetes, reached by the hosting path
+  below. The broker's own scaling (a rabbit cluster, fan-out limits) is
+  open.
+
+**The hosting path** (decided 2026-11-25). Three stages, each one learned
+and documented before the next:
+
+1. **systemd runs podman containers.** Each service is a container
+   started by a systemd unit with a restart policy and a health check.
+   The simulation host is first; the production boxes follow.
+2. **k3s**, on a laptop and on the simulation host, from the same pod
+   descriptions. The orchestrator then starts, restarts and moves the
+   containers.
+3. **Kubernetes that GridWorks hosts itself**, kept to the minimum set of
+   add-ons, each added by a team decision. A cloud provider's managed
+   service is considered only after this stage is understood.
+
+At every stage one thing owns the processes: systemd, then the
+orchestrator. The Supervisor (OPS-695) watches liveness over the broker
+and never starts, stops or moves a process. A GNode's alias and the
+broker's URL are all a container needs to find the rest of its universe
+(invariant 5), so no stage uses the orchestrator's service discovery
+between GNodes. The work is OPS-676.
 
 Journal-DB retention and scale are gridworks-data work (OPS-503).
 

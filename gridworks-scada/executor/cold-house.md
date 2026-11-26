@@ -1,6 +1,6 @@
 # Cold house
 
-Status: Draft · Pass 0 · Updated 2026-10-20
+Status: Draft · Pass 0 · Updated 2026-11-25
 
 > What this is: how a scada judges that a house is cold, what it says when
 > it is, and how it stops taking dispatch until a person clears it. One
@@ -199,7 +199,7 @@ the peak.
 A backup is a second source of heat, declared in the layout as the
 optional `Hydronic.Backup`, one of two words. `gw.boiler.backup` is a
 boiler held by its aquastat, whatever its fuel; `FailsafeRelayName` and
-`AquastatCtrlRelayName` name its two relays by role, because `InBackup`
+`InterceptRelayName` name its two relays by role, because `InBackup`
 commands each differently. `gw.element.backup` is one or more resistive
 elements on the relays `ElementRelayNames` lists. Each carries
 `InService`, false for a backup installed but unwired or out of service;

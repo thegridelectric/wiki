@@ -8,6 +8,58 @@ corresponding code-repo commit.
 This changelog does NOT track wiki edits — those live in the wiki
 repo's git history.
 
+## 2026-11-25 — gw.boiler.backup 001 is published (`672c1aa`, OPS-716)
+
+**Why.** The scada, tlayouts and the terminal asset plant all decode
+gw.boiler.backup, and 001 changed in place between 2026-11-24 and
+2026-11-25, so two repos that both said 001 could disagree and no pin
+showed it. The sim pod's plant, still on 000, could not read the layout
+the scada read. The `InterceptRelayName` shape is settled, so 001 is
+promoted and its content hash pinned; a further change is 002 and shows
+in every seed. Its only dependency is the format `spaceheat.name`, which
+is published. The words that refer to it (gw.hydronic and the layouts)
+stay staging.
+
+## 2026-11-25 — A Katahdin fixture and the mutation tests of its boiler backup axioms (`593fb99`, jm/katahdin-fixture, OPS-711)
+
+**Why.** gw.katahdin.layout had no instance in the registry's own suite,
+so its axioms were tested only through tlayouts. The fixture is the
+regenerated larch sim layout, a byte copy, and the first tests refuse a
+backup whose intercept relay is not a Relay node (axiom 32 b) and an
+intercept relay that holds the boiler off when de-energized (axiom 35).
+
+## 2026-11-25 — The boiler's intercept relay: InterceptRelayName, and a Katahdin's passes at rest (`57bf614`, jm/intercept-relay, OPS-711)
+
+**Why.** "Aquastat control" named a House0 arrangement: an aquastat on
+the buffer tank that the heat pump could fall back to. A Katahdin has no
+such aquastat. Its boiler fires on its own, and the relay on the boiler's
+TT terminals exists so the scada can hold the boiler off. The field name
+`AquastatCtrlRelayName` read as the House0 arrangement at a plant that
+does not have it. `InterceptRelayName` says what the relay does in every
+family and matches the Gw108 silk, `BoilerIntercept`. gw.boiler.backup
+001 is staging, so the rename is in place and the 000 upgrade moves the
+value across. The House0 and Nolan node name `aquastat-ctrl-relay` is a
+deployed name and does not change. gw.katahdin.layout gains axiom 35,
+InterceptPassesAtRest: the intercept relay's de-energized state is
+`Boiler`, which is the property that keeps the relay out of the failsafe
+posture, and nothing stated it before.
+
+## 2026-11-25 — ta.deed 001 and the universe format: a d universe holds no real asset (`b073956`, jm/d-means-delete, OPS-717)
+
+**Why.** A `d` universe is all simulated, its data kept by no one and
+trusted by no one, and it may run on a shared box, so localhost no longer
+says what `d` means. The deed is where a reader learns what an asset is,
+and ta.deed 000 had only the converse rule (a simulated asset is never in
+`w`): nothing forbade a real-asset deed on a `d1` alias. 000 is published,
+so the rule is 001, staging, with axiom 2 NoRealAssetInDUniverse: a deed
+whose TaAlias is in a `d` universe is UnValidated or
+ValidatedSimulatedAsset. The runtime checks axioms at decode, so a `d`
+scada refuses a real-asset deed at boot. No field changes; the 000 upgrade
+only moves the version. The `universe` format, published, gives the
+universe token its grammar with the kind constraint in the pattern
+(`d…`, `h…`, exactly `w`) and the three kinds' meaning in its description,
+so gwbase's hand-kept kind check has the word it named as missing.
+
 ## 2026-11-24 — The CT ADC can sit behind a board mux (`081c944`, jm/gw108-ct-mux, OPS-701)
 
 **Why.** On the Gw108 Rev C the CT ADC moved behind the DAC mux, and

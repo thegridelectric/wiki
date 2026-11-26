@@ -9,6 +9,12 @@
 # silent outcome. Fails silent on unreachable boxes (they get flagged
 # as unreachable, not crashed on).
 #
+# Comms grace: a session can start before the laptop's network and
+# tailnet pass traffic. The check first waits for any probe box to
+# answer; when none does it prints "not checked" and writes no marker,
+# so the next session checks again. A platform box is called unreachable
+# only after ssh itself fails twice.
+#
 # Checks per platform box: checkout == origin/main and clean; every
 # service process started AFTER the checkout's last commit landed (the
 # 2026-07-24 stale-write-loop lesson); ear retry caches empty; each box's
@@ -26,10 +32,44 @@ mkdir -p "$HOME/.cache"
 SSH="ssh -o BatchMode=yes -o ConnectTimeout=6"
 OUT=""
 
+# Up to four rounds over the probe boxes, about 30 s when nothing answers.
+PROBE_BOXES="gnr rmqbot"
+comms_up() {
+  local round host
+  for round in 1 2 3 4; do
+    for host in $PROBE_BOXES; do
+      ssh -o BatchMode=yes -o ConnectTimeout=3 "$host" true 2>/dev/null && return 0
+    done
+    [ "$round" = 4 ] || sleep 3
+  done
+  return 1
+}
+if ! comms_up; then
+  echo "Platform drift: not checked (no probe box answered: $PROBE_BOXES; the next session checks again)"
+  exit 0
+fi
+
+# ssh exits 255 when the connection fails; any other status is the
+# remote script's own.
+SSH_FAILED=255
+
 check_box() {  # host repo units...
   local host="$1" repo="$2"; shift 2
-  local r
-  r=$($SSH "$host" "
+  local r rc attempt
+  for attempt in 1 2; do
+    r=$(box_state "$host" "$repo" "$@"); rc=$?
+    [ "$rc" = "$SSH_FAILED" ] || break
+    [ "$attempt" = 2 ] || sleep 4
+  done
+  [ "$rc" = "$SSH_FAILED" ] && r="unreachable"
+  [ -n "$r" ] && OUT="$OUT
+  $host:
+$(echo "$r" | sed 's/^/    /')"
+}
+
+box_state() {  # host repo units... -> one line per fault; ssh's exit status
+  local host="$1" repo="$2"; shift 2
+  $SSH "$host" "
     cd ~/$repo 2>/dev/null || { echo 'NO CHECKOUT'; exit 0; }
     git fetch -q 2>/dev/null
     s=\$(git status -sb | head -1); d=\$(git status -s | wc -l | tr -d ' ')
@@ -43,10 +83,7 @@ check_box() {  # host repo units...
       [ \"\$sa\" = active ] || echo \"\$u: \$sa\"
       [ \"\$se\" -ge \"\$ct\" ] || echo \"\$u: process older than checkout (restart needed)\"
     done
-  " 2>/dev/null) || r="unreachable"
-  [ -n "$r" ] && OUT="$OUT
-  $host:
-$(echo "$r" | sed 's/^/    /')"
+  " 2>/dev/null
 }
 
 check_box gnr grid-node-registry gnr-rabbit gnr-api
@@ -60,8 +97,15 @@ check_box alerts gridworks-alerts gridworks-alerts
 
 # Broker definitions: the mounted boot file must match gwbase main's
 # committed artifact (definitions-are-law; drift here means the next
-# broker restart silently changes topology).
-MAIN_SHA=$(curl -s --max-time 8 https://raw.githubusercontent.com/thegridelectric/gridworks-base/main/rabbit/rabbitconfig/hybrid_definitions.json | shasum -a 256 | cut -d" " -f1)
+# broker restart silently changes topology). A fetch that fails or comes
+# back empty is no comparison, so MAIN_SHA stays empty and nothing is
+# reported.
+MAIN_SHA=""
+MAIN_DEFS=$(mktemp)
+if curl -sf --retry 2 --retry-delay 3 --max-time 8 -o "$MAIN_DEFS" https://raw.githubusercontent.com/thegridelectric/gridworks-base/main/rabbit/rabbitconfig/hybrid_definitions.json && [ -s "$MAIN_DEFS" ]; then
+  MAIN_SHA=$(shasum -a 256 "$MAIN_DEFS" | cut -d" " -f1)
+fi
+rm -f "$MAIN_DEFS"
 BOX_SHA=$($SSH rmqbot 'shasum -a 256 ~/rmq-docker/config/rabbit_definitions.json 2>/dev/null | cut -d" " -f1' 2>/dev/null)
 if [ -n "$MAIN_SHA" ] && [ -n "$BOX_SHA" ] && [ "$MAIN_SHA" != "$BOX_SHA" ]; then
   OUT="$OUT

@@ -8,6 +8,22 @@ corresponding code-repo commit.
 This changelog does NOT track wiki edits.
 
 
+## 2026-11-26 — The maker ships as an image: Dockerfile, GHCR workflow (`93933ef`, #83)
+
+The simulated stack and the sim box have been building every GridWorks
+service image from source on whatever machine runs the pod, which ties
+the image to that machine's CPU (an arm64 laptop cannot pack for an x86
+box) and leaves "how images reach the box" unwritten. The marketmaker is
+the first service to publish its own image, on the pattern gridworks-base
+set with `dev-rabbit`: a `Dockerfile` in the repo, built for amd64 and
+arm64 by CI on every push and PR and pushed to
+`ghcr.io/thegridelectric/marketmaker:<short-sha>` and `:latest` from
+`main`. Unlike the dev-sim `mm.Dockerfile` it replaces, the image bakes
+in no identity: the g.node.gt file is mounted at run time and named by
+`GWMM_G_NODE_PATH`, so one image serves every universe. Base images are
+named with their registry, because a fresh Ubuntu podman has no
+unqualified-search registries.
+
 ## 2026-11-15 — The price in two stages: Provisional at the top of the hour, Final on ISO-NE's posting (`b19764c`, jm/price-at-slot-open, OPS-684)
 
 **Why:** a house must act at the top of an on-peak hour and ISO-NE posts

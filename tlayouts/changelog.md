@@ -10,6 +10,114 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-25 — simulate() builds a sim house from a real spec; sim_gen.py beech1, beech2 and spruce; the beech2 twin (`d907d9e`, jm/sim-gen, OPS-720, on main)
+
+**Why.** The spruce and beech sims each restated, by hand, how a real
+house becomes a simulated one, and the two restatements had drifted (the
+spruce sim kept its real pico hwuids and traded with the hw1 market
+maker). `tlayouts.simulate.simulate(config, ltn_alias, ops)` holds the
+rules once, each about a kind of hardware: a heat-pump part becomes its
+sim twin by the node it serves, hwuids and hosts are blank, tank modules
+are sim sensors, a pico BTU meter is a sim BTU meter on a Nolan home and
+goes on a sieg-loop House0 home, a Hubitat stat becomes a dial with a
+Learned setpoint, the market maker is the LTN's alias parent, and the
+per-house `ops` override is the one slot (spruce: no operator hold, bruce
+as FLO). `sim_gen.py <house>` runs it for beech1, beech2 and spruce and
+replaces `beech_sim_gen.py` and `spruce_sim_gen.py`; the authored sims
+keep their drivers. beech2 is beech1's twin, one spec at a second alias
+with its ids from beech1's output, and a test holds the two layouts equal
+except for `GNodes` and every `TerminalAssetAlias`. The committed outputs
+change beyond identity: display names derive from the real house's
+("Sim Keene Spruce Scada", "Sim heat-pump outdoor unit"), spruce's BTU
+meters lose their hwuids, its tank calibrations become identity as a sim
+sensor's are, and its ops name the d1 market maker.
+
+## 2026-11-25 — Sim houses take their d1 identity from the registry's export; beech-sim is beech1-sim; a regen test over every sim (`5313ab2`, jm/d1-identity-export, OPS-720)
+
+**Why.** Each sim driver stated its house's three `g.node.gt` records as
+typed constants, and they disagreed with the registry's dev seed, which is
+the authority for d1 identity. `src/tlayouts/dev_universe/` is a copy of
+the registry's `dev-universe/` export at the commit in `REGISTRY_COMMIT`
+(`d0c8679`), and `tlayouts.dev_universe.house_gnodes` looks a house's LTN,
+TerminalAsset and Scada up by alias, failing by name for an alias the
+export lacks; `minted_gnodes` takes the snapshot instances. Every sim
+layout's GNodeIds change once, to the seed's, and a TerminalAsset and its
+LTN now have different PositionPointIds, as the seed issues them. The
+beech sim is `d1.isone.me.versant.keene.beech1`, one of the two twins the
+seed names, and its output folder follows. Each driver exposes
+`write(out_dir)` so one test regenerates all six and compares bytes; the
+same test checks every sim GNode against the export and that no driver
+contains an id. hazel-sim joins the committed outputs. Regenerating
+spruce-sim also folded in what the real spruce gained since its last
+regen: the secondary-hx tank module and its channels, and the 27-layer
+FLO tuning.
+
+## 2026-11-25 — The snapshot takes gw.boiler.backup 001 as published (`240fc01`, jm/boiler-backup-001-published, OPS-716)
+
+**Why.** gw.boiler.backup 001 was promoted in sema (`672c1aa`) so that
+every repo that decodes it reads one fixed shape. The seed no longer
+allows it as a staging word, and the snapshot is regenerated from that
+sema commit. The word's schema is the one tlayouts already had, so no
+code or layout changes.
+
+## 2026-11-25 — The boiler intercept relay: InterceptRelayName, and boiler-intercept-relay at a Katahdin (`bf2cb02`, jm/intercept-relay, OPS-711)
+
+**Why.** gw.boiler.backup 001 names its relay `InterceptRelayName`, so
+the gens that build a boiler backup follow, and every committed layout
+with a boiler is regenerated. At a Katahdin the node itself is
+`boiler-intercept-relay`: the plant has no aquastat for the heat pump to
+fall back to, and the old node name suggested one. House0 and Nolan keep
+`aquastat-ctrl-relay`, a deployed name. A layout from this line decodes
+only on a scada whose snapshot has the renamed field, so a house rolls to
+it with the scada line that has the matching twin.
+
+## 2026-11-25 — A sim Beech derived from the real Beech (`c23bb77`, jm/beech-sim-gen)
+
+**Why.** The simulated Beech that the plant work runs against was built
+from orange's all-sim skeleton with Beech's zones and tank count written
+in by hand, so nothing tied it to the real house. `beech_sim_gen.py` is
+`dataclasses.replace(BEECH, ...)`, the way `spruce_sim_gen.py` is of
+`SPRUCE`: zones, tanks, circulators, relays, 0-10V outputs, the eGauge
+channel surface and the ops block come from `beech_gen.BEECH`, and a
+change there reaches the sim or breaks its gen. `beech_gen.py` gains the
+`emit` function `spruce_gen.py` has, so both Beech drivers write through
+one gate; the real Beech's two artifacts are byte-identical after it.
+
+What the sim replaces is hardware with no simulated twin. The Honeywell
+stats read through the Hubitat become dial zones on a sim temperature
+sensor with a Learned setpoint, and the four pico BTU meters and the ADS
+board give way to the sim sensors the House0 family gen puts behind the
+flow positions and pipe temperatures. The ADS zone air temperatures have
+no sim source and are absent. A sim Hubitat thermostat and running the
+BTU meters as sim picos on a sieg-loop home would close both gaps.
+
+The identity is `d1.isone.me.versant.keene.beech` with the GNodeIds the
+simulated Beech already had in its terminalasset fixture, and the market
+maker is the d1 Keene one. The resulting layout has the node and channel
+names of that fixture plus `oil-boiler-pwr`. Its ops are now Beech's
+(HoldFullSend, KeepBufferFull, Beech's COP and heating curves) where the
+hand-built sim had orange's stub values. `output/beech-sim/` is committed
+so a consumer can copy it byte for byte.
+
+## 2026-11-25 — Put beech and fir back in LTN (`a27f512`)
+
+**What.** `operator_hold` goes from True to False in `beech_gen.py` and
+`fir_gen.py`, and each house's committed operational params follow
+(`OperatorHold` false). With the hold off the two houses take dispatch
+from their LTNs.
+
+## 2026-11-24 — Tripple the FLO's number of layers (resolution) (`6f3fe05`)
+
+**What.** The fleet bruce tuning's `NumLayers` goes from 9 to 27
+(`src/tlayouts/layout_gen.py`), and the operational params of beech,
+elm, fir, maple and oak are regenerated with it. The sim outputs
+(orange, willow, spruce-sim) were not regenerated in this commit.
+
+## 2026-11-24 — oak back in ltn (`9dd8a89`)
+
+**What.** `operator_hold` goes from True to False in `oak_gen.py`, and
+oak's committed operational params follow.
+
 ## 2026-11-24 — The Gw108 Rev C record states its CT ADC (`3adf93f`, jm/gw108-ct-mux, OPS-701)
 
 **Why.** The Rev C record omitted the CT ADC because the capability word
@@ -188,8 +296,7 @@ does not run the elements yet; that is the element-dispatch machine,
 designed separately. Element nameplate 4500 W is assumed pending
 George's confirmation.
 
-<!-- pending commit -->
-## 2026-11-18 — cedar: pico census stub for the Katahdin layout (jm/cedar-layout)
+## 2026-11-18 — picos for the new cedar house (`c888224`, jm/cedar-layout)
 
 **Why.** Cedar is the first house on the Katahdin layout, and no Katahdin
 layout word exists in the sema snapshot yet, so the gen cannot be

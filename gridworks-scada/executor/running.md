@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-10-28
+Status: Draft · Pass 0 · Updated 2026-11-25
 
 # Running an LTN + SCADA from a checkout (cold start)
 
@@ -195,9 +195,6 @@ lines too. A uv line and a pip line keep separate venvs (`.venv`,
 `gw_spaceheat/venv`) in one checkout, and a roll between them always
 stops on the requirements guard, since `uv.lock` exists on one side
 only.
-
-**No roll to beech (2026-10-20).** Beech is unwell in the field. Do NOT
-roll it until this line is removed.
 
 A roll puts words on the production broker, so every word that crosses
 the wire is published before a box speaks it, with the closure words it

@@ -1,6 +1,6 @@
 # Katahdin layout: the relay roster the plant actually has
 
-Status: Accepted · Pass 1 · Updated 2026-11-23 · Linear: OPS-711
+Status: Accepted · Pass 1 · Updated 2026-11-25 · Linear: OPS-711
 
 **EDD: no** verified by the sema round-trip (`./ci.sh`, the mutation tests
 of the new axiom clauses), the tlayouts fixture tests, and the
@@ -62,9 +62,13 @@ orientation. To confirm against the install.
 NC with the aquastat signal passing to the boiler at rest, so it never
 touches the failsafe. It costs two wires on the boiler's TT terminals,
 and without it the boiler burns oil all winter keeping its internal tank
-warm behind a closed V5. `AquastatCtrlRelayName` in `gw.boiler.backup`
-keeps its meaning unchanged at a Katahdin. Node name
-`aquastat-ctrl-relay`. To confirm against the install.
+warm behind a closed V5. `gw.boiler.backup` names it `InterceptRelayName`
+in every family, since "aquastat control" described the House0
+buffer-tank aquastat that a Katahdin does not have. Node name
+`boiler-intercept-relay` at a Katahdin; House0 and Nolan keep
+`aquastat-ctrl-relay`. Axiom 35 InterceptPassesAtRest requires the
+relay's de-energized state to be `Boiler`. The wiring is confirmed: the
+install runs the two wires to the boiler.
 
 **A Katahdin has no heat pump failsafe relay** (facts 1 and 4). So
 `gw.boiler.backup` 000 makes `FailsafeRelayName` optional and each
@@ -91,7 +95,7 @@ v5-boiler-relay goes, the element relays from `gw.element.backup` come in.
 
 `gw.boiler.backup` 000: `FailsafeRelayName` leaves `required`; its
 description stays. Axiom 1 DistinctRelays becomes "where FailsafeRelayName
-is present, it SHALL NOT equal AquastatCtrlRelayName".
+is present, it SHALL NOT equal InterceptRelayName".
 
 `gw.house0.layout`, `gw.house0.no.sieg`, `gw.nolan.layout`: the
 BackupRelays axiom gains a clause: where Hydronic.Backup is a
@@ -100,7 +104,7 @@ gw.boiler.backup, FailsafeRelayName SHALL be present.
 `gw.katahdin.layout` 000:
 
 - BackupRelays (axiom 32), boiler half: FailsafeRelayName SHALL be absent;
-  AquastatCtrlRelayName SHALL name a Relay ShNode. Element half unchanged.
+  InterceptRelayName SHALL name a Relay ShNode. Element half unchanged.
 - New axiom ValveDefaultsFollowBackup: where Hydronic.Backup is a
   gw.boiler.backup, the relay.control.config of v4-house-return-relay
   SHALL state the valve open as EnergizedState and v5-boiler-relay closed
@@ -117,7 +121,7 @@ regenerated in the same wave.
 `tlayouts/katahdin_sema_gen.py`, a family gen; drivers `cedar_gen.py`
 (the first real Katahdin house; its pico census is already stubbed) and
 `larch_sim_gen.py` (the simulated Katahdin). Hydronic.Backup is a
-gw.boiler.backup with AquastatCtrlRelayName and InService. Valve relay
+gw.boiler.backup with InterceptRelayName and InService. Valve relay
 configs per the table. The terminalasset Katahdin fixture is a byte copy
 of the larch output; the repo's House0-to-Katahdin derivation
 (`ta-katahdin-layout`) goes, and with it the adapter's hardcoded failsafe

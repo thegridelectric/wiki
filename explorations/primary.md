@@ -33,5 +33,8 @@ ones stay under that domain's `research/explorations/`.
   Kubernetes: what the cluster teaches (declared state, the two kinds of
   workload, volumes, secrets, operators) and the order to learn it in;
   the actionable plan is OPS-676.
+- [`aggregator.md`](aggregator.md) — the business entity that bids and
+  may dispatch for a set of TerminalAssets under their trading rights;
+  the rules every form satisfies and the forms still open.
 - [`aris-collaboration.md`](aris-collaboration.md) — the Aris Hydronics /
   Jonathon Woolley collaboration and its open business-model questions.

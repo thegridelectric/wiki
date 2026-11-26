@@ -1,4 +1,4 @@
-Status: Draft · Pass 0 · Updated 2026-09-21
+Status: Draft · Pass 0 · Updated 2026-11-25
 
 # SCADA ↔ LTN link state (the proactor linking mechanism)
 
@@ -345,39 +345,51 @@ A real outage, not a wire-capture finding: the scada stayed **comms-dead
 for ~15 minutes while looking healthy.** The service was up and logging
 normally (confirmed over SSH), but had no traffic to or from the broker
 the entire time. The trigger was a network/IP routing change on the Pi
-side; the connection did not recover on its own for ~15 minutes (how it
-eventually recovered is not established).
+side; the connection did not recover on its own for ~15 minutes. Maple
+and Fir stopped delivering at ~19:11 UTC on 2026-02-12, the broker
+closed its side on the missed keepalive at ~19:12, and the clients
+reconnected at ~19:28.
 
 This is a different gap from the emission gap above. There the transition
 *is* detected internally and only the live announcement is missing. Here
 the detection itself failed one layer down: the broker connection was
 silently dead and **nothing fired a transition or forced a reconnect**. A
 route/IP change blackholes packets without a TCP RST, so the socket sits
-half-open; paho's loop sees no error, and without a working
-keepalive→reconnect cycle or an independent reachability probe, a dead
-connection persists until something external resets it. The broker/peer
+half-open and paho's loop sees no error. The MQTT keepalive is the one
+thing that notices it: `MQTTClient.keepalive` (30 s, a `.env` value)
+reaches `connect()`, paho pings after one keepalive of silence and
+closes the socket after a second with no answer, and the proactor's
+client thread reconnects on a jittered schedule capped at 30 s
+(`gwproactor/links/reconnect_backoff.py`). The incident ran with paho's
+60 s default, the configured value never passed, and a retry cap of
+1024 s. An independent reachability probe is OPS-428. The broker/peer
 conflation (below) makes it invisible from the contract stream: the only
 liveness signal rides broker-message accounting, which itself depends on
 the dead broker connection.
 
-It lands on the redo's **broker-connection machine** — the "up or it
-isn't" half of the two-machines split, which this incident shows is not
-trivial when the failure mode is a silent blackhole. That machine needs a
-first-class **broker-access liveness check** (an active probe that the
-broker is actually reachable, not just "paho believes it is connected")
-and a **bounded reconnect** that tears down and re-establishes — re-
-resolving DNS/route, since the trigger was an IP change — well before
-minutes pass. The MQTT keepalive interval and paho's reconnect backoff
-are the levers; whatever they are set to today, they did not reconnect in
-15 minutes.
+The second failure of the same layer is the return from a broker
+outage. The 2026-10-11 prod-broker drill
+(`experiments/2026-10-11-prod-broker-outage-drill/`) stopped the broker
+for 9 min 20 s; the MQTT clients came back 46 to 49 s after it was
+accepting again, all six LTNs within 42 ms of each other and four scadas
+within 2.2 s, because every client lost the broker in the same second
+and paho's schedule had no jitter. The jittered schedule above spreads
+that return: about seven logins a second for 200 clients across the
+30 s cap, each login a TLS handshake, a FIS lease check and a flush of
+held reports. The re-run on 2026-11-25
+(`experiments/2026-11-25-prod-broker-outage-drill-2/`), a 151 s stop with
+the fleet on jm4, had the twelve MQTT clients back between 3 and 27 s
+after the listener, none within 100 ms of another, every link active
+within 28 s.
 
-Worth examining whether a small mitigation fits the **existing** proactor
-ahead of the redo (tighten the MQTT keepalive / reconnect so detection is
-bounded to a minute or two) rather than carrying this only as a redo
-requirement. Raise to a Linear issue when picked up. The specifics —
-exact duration, what the IP change was, what the logs did and did not
-show — may sharpen from the aging Linear issues being triaged; this note
-is the symptom-level account plus the design seed.
+The redo's **broker-connection machine** (the "up or it isn't" half of
+the two-machines split) still owes a first-class **broker-access
+liveness check**, an active probe that the broker is reachable rather
+than paho's belief that it is connected (OPS-428). Open on the interim:
+the fault-injection experiment that is its bar for Verified, a paho or
+socket stub that establishes and then silently blackholes, asserting
+detection within about one keepalive and reconnection in under about
+90 s, on the old settings (reproducing the blackout) and the new.
 
 ## Multiple children — the structural critique 
 

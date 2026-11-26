@@ -1,6 +1,8 @@
 # detector-port — every house alert on the broker alerter
 
-Status: Draft · Pass 0 · Updated 2026-10-19 · Linear: OPS-602
+Status: Draft · Pass 0 · Updated 2026-11-25 · Linear: OPS-602
+
+**▶ Active spoke: [`critical-glitch.md`](critical-glitch.md)**
 
 **EDD: yes** each kind reaches Verified by a witness on the dev broker
 (a mocked scada driving the condition, the alerter restarted while the
@@ -65,9 +67,8 @@ now.)
 - ✅ DONE no-data — the silence trio (`ScadaSilent`, `LtnSilent`,
   `NoData`), live on the alerter since 2026-10-15.
 - [`critical-glitch.md`](critical-glitch.md) — the scada's own
-  Critical glitch relayed. Next: the `glitch` word is published and
-  unchanged by the merge below, and once this kind is live the zone
-  conditions the scada judges page through it.
+  Critical glitch relayed; the zone and pump conditions the scada judges
+  page through it.
 - [`scada-reboot-loop.md`](scada-reboot-loop.md) — layouts arriving in
   a loop. Counts arrivals of the layout word whatever its version, so
   it does not wait on the merge.
@@ -80,12 +81,9 @@ the heat pump's behaviour in sema, operational params with the tariff,
 and the scada's own Critical glitches for a cold critical zone and a
 freezing zone. Each of these reads something it changes.
 
-- [`no-dist-flow.md`](no-dist-flow.md) — a heat call ended with no
-  distribution flow. The heat-call channels and their meaning come
-  from the new zone words.
-- [`no-store-flow.md`](no-store-flow.md) — store pump on, no store flow;
-  only where a store pump exists. The store pump's role comes from the
-  new water-store word.
+- Gone, 2026-11-25: no-dist-flow and no-store-flow. The scada's pump
+  doctors judge a pump against its power and flow and raise the glitch;
+  `critical-glitch.md` pages it.
 - [`hp-not-responding.md`](hp-not-responding.md) — heat pump commanded
   on, no power. Starts with a review of how the heat pump's behaviour
   is captured in sema.

@@ -67,7 +67,18 @@ before anything is written (`beech_gen.py:263`).
 The houses today: beech and maple (House0, deployment), spruce and
 honeysuckle (Nolan; honeysuckle is the bench), and the sim pairs
 orange-sim, willow-sim (House0) and spruce-sim (Nolan), which are the
-scada suite's fixtures. Oak, fir and elm have no siegenthaler loop and
+scada suite's fixtures. beech1-sim, beech2-sim (House0) and spruce-sim
+(Nolan) are `sim_gen.py <house>`: `tlayouts.simulate.simulate` over the
+real house's config, with the rules for what replaces each kind of
+hardware held once, so a change to the real house reaches its sims or
+breaks the gen. beech1 and beech2 are twins, one spec at two aliases whose
+layouts differ only in `GNodes` and `TerminalAssetAlias`; which variant
+each runs is only in its operational params. Every sim
+house's GNodes are the grid node registry's dev seed, read from the copy of
+its export in `src/tlayouts/dev_universe/` (pinned by `REGISTRY_COMMIT`);
+no driver states an id, and `tests/test_sim_regen.py` holds every
+committed sim output equal to a regen and every sim GNode equal to the
+seed's. Oak, fir and elm have no siegenthaler loop and
 are authored as House0 homes until a sieg-less layout word exists. Oak
 carries a fake sieg BTU meter (`sieg-btu`, on a pico that does not
 exist) whose node and four sieg channels are disabled, and runs its
@@ -133,7 +144,7 @@ live record.
   another name is skipped (`LayoutIDMap.without_ids_of`).
 - **The output folders a gen regenerates byte-identically are committed.**
   `.gitignore` names them (beech, maple, oak, spruce, spruce-async1 and
-  the three sim pairs), each with its `<house>.uploaded.json` reference,
+  the sim pairs), each with its `<house>.uploaded.json` reference,
   so a minted id is durable in git. Every other path under `output/` is
   ignored.
 - **Every component is referenced by exactly one ShNode** (the second

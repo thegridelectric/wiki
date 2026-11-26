@@ -10,6 +10,10 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-25 — The gateway reads layout.lite 013 and 014; a layouts row it cannot read is skipped (`81afb99`, jm/gateway-layout-014, PR 42)
+
+**Why:** the fleet has sent `layout.lite` 014 since 2026-11-15 and the gateway's seed stopped at 013, so every live layout raised `Unsupported version 014` and the gateway had no layout for any house: no thermostat names on the realtime page. The gateway reads only what the scadas send now, so its seed lists two versions, the fleet's and the one before it, which covers a rollout moving through the scadas; 011 and 012 leave, and `system_mode`, which only they had and no page read, leaves the status message with them. The api snapshot keeps every version, because its routes read stored words from any era. The start-up read of `gridworks.layouts` raised on the first 014 row and lost every row, although its docstring says such a row is skipped; the decode now sits inside the skip.
+
 ## 2026-11-24 — The FLO routes serve flo.params 005 and take flo.rerun.request 003 (`f8ca616`, jm/flo-params-005, PR 41)
 
 **Why:** the LTNs send `flo.params` 005, the lift COP model, since its promotion (sema `df68501`), and `flo.rerun.request` 002 cannot hold a 005 params. The api seed names its versions, so the regen adds 005 and 003 only through the seed. 004 and 002 join the versions the routes accept, and the tests serve oak's hour at 005 and solve a 005 hour with bruce.

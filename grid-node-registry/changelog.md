@@ -10,6 +10,78 @@ git history.
 
 Newest at the top.
 
+## 2026-11-26 — The registry publishes its image; the twins are named for their variant; the first snapshot's delay is a setting (jm/image-and-twin-names)
+
+<!-- pending commit -->
+
+**Why.** The simulated stack ran no registry, so its journal's `g_nodes`
+rows were inserted by SQL and the journal was the only place a display
+name existed. For the journal to be a projection there, the stack has to
+run the registry itself, and a stack pulls an image. The repo now builds
+one (a Dockerfile, and a workflow that pushes
+`ghcr.io/thegridelectric/grid-node-registry` on each push to `main`,
+tagged by commit SHA), with the migrations inside so the same image
+creates the schema, seeds the dev universe and runs either process.
+
+The twins' TerminalAssets take the display names `beech-at` and
+`beech-buf`. A display name is a label for people, and "Beech1" and
+"Beech2" tell a reader of the front end nothing about which variant they
+are looking at. The rule that a twin's name says nothing about its
+variant is about the alias.
+
+The first snapshot's delay was a constant of 300 s, right for a box
+where a restart should not re-broadcast and wrong for a stack whose
+journal starts empty with the registry and would show no names for five
+minutes. It is now the required setting `GNR_SNAPSHOT_STARTUP_DELAY_S`.
+A deployed box needs the line in its `.env` before it pulls this commit.
+
+## 2026-11-25 — The d1 twins are beech1 and beech2 (`edcd151`, jm/d-means-delete, OPS-720, merged `d0c8679`, PR 20)
+
+**Why.** `beech` and `beech2` read as an original and a copy, and the twin
+rule says the name says nothing about the variant. Two numbered siblings
+say that, and they join the seed's convention for homes that exist only
+as simulations (`orange1`, `hazel1`, `willow1`). OPS-720 is the one moment
+every seed, generator and dev identity file is rewritten together, so the
+rename costs nothing beyond this commit. The export is regenerated and
+the seed tests follow the alias.
+
+## 2026-11-25 — The dev seed is the one source of d1 identity: the simulated fleet, d1.weather and d1.price, and gnr export-dev (`7ed1d06`, jm/d-means-delete, OPS-720, merged `d0c8679`, PR 20)
+
+**Why.** Five places stated a d1 GNode's alias, GNodeId and
+PositionPointId and they disagreed (beech's id in the seed and in the
+simulated layout differed, and the market maker's image ran under an id
+the seed never issued). The registry is the authority for GNodes and the
+seed's ids are a function of the alias, so the seed becomes the one
+source and the rest copy from it. The seed grows what the simulations
+run: `beech2` (beech's twin, same spec, variant only in the operational
+params) and `larch` under keene, and a `d1.isone.ct.newhaven` market with
+`hazel1`, `orange1` and `willow1`. The weather and price services move to
+`d1.weather` and `d1.price`, where a cloud GNode service that is not grid
+topology belongs. `gnr export-dev <dir>` writes the seed as one
+`g.node.gt` wire-form file per GNode, named by the sema filename grammar,
+and the committed `dev-universe/` folder is that export: a test compares
+it byte for byte with a fresh one, so a seed change cannot merge without
+its export. A consumer copies its file and records the registry commit
+beside it. Leg 1 of the OPS-720 design.
+
+## 2026-11-25 — A d universe means delete; gwbase 0.7.3; snapshot regen and the staging check in CI (`4ed552c`, jm/d-means-delete, OPS-717, merged `d0c8679`, PR 20)
+
+**Why.** Three things the registry owed in one pass. The README's universe
+ladder follows the registry executor's "Universes" section, which now
+defines `d` as all simulated, nothing kept, nothing trusted, with no real
+asset and no public broker name, in place of "runs on one computer through
+localhost". The gwbase pin moves from 0.5.15 to 0.7.3 so the service can
+take `GNR_LOG_TZ` from its `.env` and log in Maine time with the offset;
+the one contract change on the way is `process_message` receiving the
+`GridworksHeader` of a wrapped message, so the five overrides take
+`header`. The sema snapshot is regenerated from sema `b073956`, which
+ships `check_staging.py` into the vendored tree; `ci.sh` and the GitHub
+workflow run it against the committed seed with `--deploy-branch main`,
+the pattern the other consumers follow, since the registry deploys from
+`main` and a deployed service never runs a staging snapshot. The regen
+changes nothing the registry holds: the seed stays published-only, and the
+generated axiom refusals now name the axiom and clause.
+
 ## 2026-11-05 — d1.flo in the dev universe (merged `0e21ff7`, PR 19)
 
 **Why.** The FLO runs in production as the GNode `hw1.flo`, and the

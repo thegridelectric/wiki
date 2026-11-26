@@ -1,6 +1,6 @@
 # Prepare for Kubernetes
 
-Status: Draft · Pass 0 · Updated 2026-11-19 · Linear: OPS-676
+Status: Draft · Pass 0 · Updated 2026-11-25 · Linear: OPS-676
 
 **EDD: no** a deployment-shape change; verified by the first service
 running as two copies with two identities, each seen connecting through
@@ -102,6 +102,22 @@ things gate it:
 Hosting it ourselves is the plan: Tiger runs only on AWS and Azure, and
 the Community edition of TimescaleDB is free to self-host. The S3
 eventstore stays the record of truth; the journal stays a projection.
+
+## Open
+
+- **Which Kubernetes, on which node OS.** The hosting path
+  (`../../world/primary.md` "Scale trajectory") names k3s for stage 2
+  and Kubernetes that GridWorks hosts itself for stage 3. Talos Linux is
+  a candidate for either stage: an operating system that is only a
+  Kubernetes node, configured through an API from one machine config,
+  with no SSH, no shell and no package manager, running upstream
+  Kubernetes (<https://www.siderolabs.com/talos-linux>; quote not
+  captured; read before citing). It cannot be stage 1, which needs a
+  login and a systemd user unit. Choosing it replaces every box recipe
+  that assumes a shell (the instance-README build steps, the pull on the
+  box) with a machine config kept in git. The experiment that informs
+  the choice is the sim pod's `pod.yaml` on a laptop Talos cluster and
+  on k3s, side by side.
 
 ## Plan
 

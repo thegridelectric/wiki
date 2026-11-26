@@ -1,6 +1,6 @@
 # gridworks-weather-forecast — rebuild spec
 
-Status: Draft · Pass 0 · Updated 2026-10-18
+Status: Draft · Pass 0 · Updated 2026-11-25
 
 > Faithful-rebuild hub for the weather service: observation and
 > forecast delivery through the `gw.weather.*` vocabulary. Read this
@@ -13,6 +13,10 @@ Status: Draft · Pass 0 · Updated 2026-10-18
 A gwbase cloud GNode, role `WeatherForecastService`, Logical, one per
 universe, hanging directly under the universe root (`d1.weather`,
 `hw1.weather`). It owns the weather database and is its only accessor.
+It reads plant time from one clock, `gwwf/clock.py`: the wall on the
+fleet, the time coordinator's `sim.timestep` steps when
+`GWWF_CLOCK_SOURCE=Timestep`, in which case it answers each step with
+`sim.ready` after its tick.
 Where it runs and how it is operated is
 `gridworks-infra/forecast/instance-README.md`.
 

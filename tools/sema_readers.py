@@ -19,7 +19,8 @@ answer is what is merged and not what a working tree happens to hold:
     (a zod schema, a hand-written pydantic twin), with the versions they pin.
 
 Each repo gets an action for the version: none (it decodes it already),
-regen, seed edit + regen, or hand edit. A repo that holds the word only
+regen, seed edit + regen, or hand edit. A repo with several snapshots is
+judged one seed at a time, each against the snapshot under its directory. A repo that holds the word only
 through another word's closure is reported too, since its regen brings the
 new version in once the referring word moves to it.
 
@@ -61,6 +62,7 @@ class SeedUse(NamedTuple):
     vendored: bool  # a vendored snapshot sits under the seed's directory
     listed: tuple[str, ...]  # the versions an explicit list names
     allowed_staging: bool
+    held: tuple[str, ...]  # versions the snapshot beside this seed holds
 
 
 class HandPin(NamedTuple):
@@ -116,7 +118,9 @@ def word_status(type_name: str, version: str) -> str:
     return "in neither the sema origin/dev nor the working-tree registry"
 
 
-def seed_use(path: str, text: str, type_name: str, held: bool, vendored: bool) -> SeedUse | None:
+def seed_use(
+    path: str, text: str, type_name: str, held: tuple[str, ...], vendored: bool
+) -> SeedUse | None:
     try:
         seed = yaml.safe_load(text) or {}
     except yaml.YAMLError:
@@ -130,13 +134,13 @@ def seed_use(path: str, text: str, type_name: str, held: bool, vendored: bool) -
             continue
         spec = spec or {}
         if spec.get("include_all_versions"):
-            return SeedUse(path, "include_all_versions", vendored, (), allowed)
+            return SeedUse(path, "include_all_versions", vendored, (), allowed, held)
         if spec.get("versions"):
             listed = tuple(str(v) for v in spec["versions"])
-            return SeedUse(path, f"versions {list(listed)}", vendored, listed, allowed)
-        return SeedUse(path, "latest published", vendored, (), allowed)
+            return SeedUse(path, f"versions {list(listed)}", vendored, listed, allowed, held)
+        return SeedUse(path, "latest published", vendored, (), allowed, held)
     if held:
-        return SeedUse(path, "closure only", vendored, (), allowed)
+        return SeedUse(path, "closure only", vendored, (), allowed, held)
     return None
 
 
@@ -175,9 +179,13 @@ def scan(repo: Path, type_name: str, version: str, before: str | None) -> RepoRe
     for f in files:
         if not f.endswith(SEED_NAME):
             continue
-        seed_dir = f.rsplit("/", 1)[0] if "/" in f else ""
-        held_here = any(s.startswith(seed_dir) for s in held_by_dir)
-        vendored = any(s.startswith(seed_dir) for s in snapshot_dirs)
+        # A repo may vendor several snapshots (an api and a gateway); each
+        # seed answers for the snapshot under its own directory.
+        prefix = f.rsplit("/", 1)[0] + "/" if "/" in f else ""
+        held_here = tuple(
+            sorted(set().union(*(v for s, v in held_by_dir.items() if s.startswith(prefix))))
+        )
+        vendored = any(s.startswith(prefix) for s in snapshot_dirs)
         use = seed_use(f, git(repo, "show", f"{files_ref}:{f}"), type_name, held_here, vendored)
         if use:
             seeds.append(use)
@@ -207,14 +215,13 @@ def scan(repo: Path, type_name: str, version: str, before: str | None) -> RepoRe
 
     actions: list[str] = []
     for s in seeds:
-        if not s.vendored or (version in held and s.mode != "closure only"):
+        if not s.vendored or version in s.held:
             continue
         if s.listed and version not in s.listed:
             actions.append(f"seed edit: add {version} to {s.path}, then regen")
         elif s.mode == "closure only":
-            if version not in held:
-                actions.append(f"regen once the word that refers to it moves to {version} ({s.path})")
-        elif version not in held:
+            actions.append(f"regen once the word that refers to it moves to {version} ({s.path})")
+        else:
             actions.append(f"regen ({s.path})")
     pinned = sorted({v for h in hand for v in h.versions})
     if hand and version not in pinned:
@@ -250,7 +257,8 @@ def main() -> int:
         for s in r.seeds:
             allow = ", in staging.allow" if s.allowed_staging else ""
             unused = "" if s.vendored else " (no vendored snapshot beside it)"
-            print(f"  seed {s.path}: {s.mode}{allow}{unused}")
+            holds = f", holds {', '.join(s.held)}" if s.vendored else ""
+            print(f"  seed {s.path}: {s.mode}{allow}{unused}{holds}")
         for h in r.hand:
             print(f"  hand-kept {h.path}: pins {', '.join(h.versions)}")
         for a in r.actions:

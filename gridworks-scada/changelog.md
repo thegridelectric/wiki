@@ -10,6 +10,27 @@ repo's git history.
 
 Newest at the top.
 
+## 2026-11-25 — The snapshot takes gw.boiler.backup 001 as published (`8559fc37`, squash of jm/boiler-backup-001-published, PR #644, OPS-716)
+
+**Why.** gw.boiler.backup 001 was promoted in sema (`672c1aa`) so that
+every repo that decodes it reads one fixed shape. The seed no longer
+allows it as a staging word, and the snapshot is regenerated from that
+sema commit. The word's schema is the one the scada already had, so no
+code or layout changes.
+
+## 2026-11-25 — gw.boiler.backup names its relay InterceptRelayName (`44bd8271`, squash of jm/intercept-relay, PR #643, OPS-711)
+
+**Why.** Sema renamed `AquastatCtrlRelayName` to `InterceptRelayName` in
+gw.boiler.backup 001, in place while the version is staging, because the
+old name described the House0 buffer-tank aquastat at plants that have
+none. The snapshot is regenerated and the twin, the backup axiom helper
+and the three layout fixtures follow it. Nothing the scada does changes:
+the field is read in one place, the roster check that every relay a
+backup names is a Relay node, and the House0 and Nolan node name
+`aquastat-ctrl-relay` stays. A layout written before the rename does not
+decode on this line, so a house moves to it by `roll.sh` with the
+regenerated tlayouts file.
+
 ## 2026-11-24 — The CT ADC twin takes its mux fields (`6c2bd833`, squash of jm/gw108-ct-mux, PR #640, OPS-701)
 
 **Why.** sema `081c944` lets i2c.ct.interface.capability place the CT
@@ -23,7 +44,19 @@ leaves the known-untested allowlist. Today's scada ignored the two
 fields on decode, so the layout boots either way; the twin keeps the
 scada's conformance sweep honest.
 
-## 2026-11-24 — pump doctors check power also (`246a3073`, jm/pump-doctor-power-guard, OPS-714)
+## 2026-11-25 — Proactor pin to v4.1.13+jm4 (`1393c09b`, squash of jm/proactor-jm4, OPS-304)
+
+The fork's jm4 bounds the scada's MQTT recovery: one jittered reconnect
+schedule capped at 30 s for a link that never connected and for one
+whose connection dropped (paho's own retry is off), reset by an
+accepting CONNACK, and the configured keepalive reaching `connect()`
+with a 30 s default, so a half-open socket is noticed within a minute.
+The 2026-02-12 blackout (Maple and Fir comms-dead ~17 min on a socket
+with no RST) and the 2026-10-11 drill's in-phase return are the two
+behaviours it ends. Pin and lock only; the fleet picks it up at the
+next roll.
+
+## 2026-11-25 — pump doctors check power also (`4c8897c1`, squash of jm/pump-doctor-power-guard, PR #641, OPS-714)
 
 **Why.** Beech, 2026-11-24 11:16: local control closed the store pump
 relay for a charge, the pump drew 19 to 24 W and the store hot pipe rose

@@ -1,6 +1,6 @@
 # grid-node-registry — spec (primary)
 
-Status: Draft · Pass 0 · Updated 2026-11-18
+Status: Draft · Pass 0 · Updated 2026-11-25
 
 > What this is: the faithful spec of the **Grid Node Registry** (`gnr`) — the
 > authoritative record of GridWorks GNodes, their geographic positions, and the
@@ -40,26 +40,45 @@ universe's broker its only address; a URL identifies nothing in a universe
 (`../../world/primary.md` "Invariants", 5). The kinds form a ladder — each step adds a
 requirement:
 
-- **`d` — dev: runs locally on a single computer.** The defining property: **all
-  comms go through localhost brokers.** That is the isolation guarantee (nothing
-  can reach a real system or real money), and why the test harness and CI are dev
-  universes — a laptop or a CI runner *is* the single computer.
+- **`d` — delete: all simulated, nothing kept, nothing trusted.** Every
+  participant is a simulation, no one keeps the data, and a reader of a
+  `d` universe's data cannot know where it came from. It runs on a laptop
+  offline, on a laptop online or on a shared box; the place makes no
+  difference. The test harness and CI are `d` universes.
 - **`h` — hybrid: the most flexible.** Distributed comms; real and simulated
   participants mixed in one tree; real hardware allowed; re-runnable
-  (`hw1__1`, `hw1__2`, …). Trust is by configuration/mTLS — **no validation-cert
-  requirement** — and still no real money.
+  (`hw1__1`, `hw1__2`, …); the data is kept. Trust is by configuration/mTLS —
+  **no validation-cert requirement** — and still no real money.
 - **`w` — production: validation required.** Scadas and MarketMakers MUST carry
   **Validation certs** (the TaValidator/TaDeed plane) — the full trust machinery
   — and it is the **only** place GridWorks MarketMakers manage real money.
 
-There are **many** dev/hybrid universes (`d1`, `d2`, `hw1`, …) but exactly
-**one** production universe. So `universe_of(alias) = alias.split(".")[0]`, and
-"is this real money?" ⇔ "is the universe the single production one?" (The
-enforcement guardrail — a GNode may only talk on a broker in its own universe,
-the broker host/vhost encoding that universe, `gw-dev-rabbit` serving `d1__1` on
-localhost — lives in the scada executor (`testing.md` "The universe
-guardrail"); what binds
-*here* is that every alias the registry holds carries its universe in segment 0.)
+There are **many** delete and hybrid universes (`d1`, `d2`, `hw1`, …) but
+exactly **one** production universe, whose token is exactly `w`. The token's
+grammar, with the kind constraint, is the sema format `universe`. So
+`universe_of(alias) = alias.split(".")[0]`, and "is this real money?" ⇔ "is
+the universe `w`?"
+
+**The isolation guarantee of a `d` universe** is that nothing in it can
+reach a real system or real money. It has two parts, each enforced where it
+can be checked:
+
+- **What joins.** A `d` universe holds no real asset. The `ta.deed` says so:
+  a deed whose TaAlias is in a `d` universe is UnValidated or
+  ValidatedSimulatedAsset (`ta.deed` 001 axiom 2), and every reader checks
+  the axiom at decode, so a `d` scada refuses a real-asset deed at boot.
+- **Where its broker is.** A `d` universe's broker has no public DNS name
+  (`../../world/primary.md` "DNS names"). At boot a service checks the broker
+  URL's host against its alias kind: a `d`-kind alias requires a non-public
+  host (localhost, a single-label name such as a pod or compose service, or
+  a private address), and an `h`- or `w`-kind alias requires a public DNS
+  name whose first label names the universe and run (`hw1-1`). A `d1`
+  service cannot be pointed at `hw1-1.electricity.works`, and an `hw1`
+  service cannot be pointed at a localhost or pod broker. The check lives in
+  gwbase (`actors.md` "Every broker URL is checked") and, for the MQTT side,
+  in the scada executor (`testing.md` "The universe guardrail"); what binds
+  *here* is that every alias the registry holds carries its universe in
+  segment 0.
 
 A registry instance is **scoped to one universe**: a dev registry holds the `d1`
 tree, the production registry holds the `w` tree. This is what lets a **dev
@@ -636,8 +655,11 @@ the write loop) a real broker by the layered suite:
   and the box `.env`; they drifted once and cost an unrouted command): decodes `g.node.reparent.cmd` → `apply_reparent` → root-keyed
   `g.node.forest` broadcast; `broadcast_snapshot(root)` is the anti-entropy
   path, run by a thread inside the rabbit actor once per
-  `GNR_SNAPSHOT_INTERVAL_S` (required deploy config), the first tick five
-  minutes after start. The `gnrmic_tx → amq.topic` bridge
+  `GNR_SNAPSHOT_INTERVAL_S`, the first tick
+  `GNR_SNAPSHOT_STARTUP_DELAY_S` after start (both required deploy
+  config; a deployed box waits 300 s so a restart or a crash loop does
+  not re-broadcast at once, and a stack that starts with the registry
+  sets a few seconds to get its forest early). The `gnrmic_tx → amq.topic` bridge
   (gwbase ≥ 0.5.6) carries broadcasts to MQTT-native listeners.
 - **`gnr.api`** — the FastAPI read façade (routes
   `/<service>/<sema-type-with-hyphens>`, no logic of its own):

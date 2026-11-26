@@ -1,6 +1,6 @@
 # gwalert — the legacy detector
 
-Status: Draft · Pass 0 · Updated 2026-09-17
+Status: Draft · Pass 0 · Updated 2026-11-25
 
 > What this is: the legacy house-alert detector **gwalert**
 > (`thegridelectric/gridworks-alerts`, package `gwalert`) as it runs on
@@ -74,10 +74,16 @@ detector.
 
 ## Known gaps / Open
 
-- **Thin test coverage** on the detector logic; the no-data and zone
-  temperature checks have unit tests, the pump and heat-pump detectors
-  (`/100`, `/1000` literals on flow and power) do not. For the thing we
-  trust at 3 a.m., this is the priority.
+- **Thin test coverage** on the detector logic; the zone temperature
+  checks have unit tests, the heat-pump detectors (`/1000` literals on
+  power) do not.
+- **The relay-keyed checks are dead on the current layouts.** The
+  heat-pump checks key relays by the trailing digit of the old channel
+  names (`relay5`); the layout words name relays without a number, so
+  those checks skip every pass with "Missing relay5 data!". The pump
+  checks and the Critical-glitch relay, which shared this, are gone
+  (2026-11-25): the alerter's `CriticalGlitch` kind pages the glitch, and
+  the scada's pump doctors judge the pumps.
 - **Setpoints that report only on change never reach the 2-hour window.**
   Spruce's `zoneN-…-set` channels last reported between July and early
   September, so the setpoint check logs "Missing setpoint channel" for
