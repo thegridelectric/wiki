@@ -6,6 +6,40 @@ the *why*.
 
 Newest at the top.
 
+## 2026-11-23 — beech-sim runs AllTanks and BufferOnly side by side (`b538183`)
+
+**Why.** Comparing how the two seasonal storage modes run the same
+Beech plant needs two scada+ta pairs on one journal, not two pods.
+`house/` is AllTanks at `d1.isone.me.versant.keene.beech.at`.
+`house-buffer/` is BufferOnly at `d1.isone.me.versant.keene.beech.buf`.
+A GNode alias is LeftRightDot, so the last segment cannot be
+`beech-at`; `beech.at` / `beech.buf` are the legal spelling. The
+journal inserts both TerminalAssets at boot (display names `beech-at`
+and `beech-buf`), so the keeper can project each scada's layout and
+readings, and the web house list shows both. Each scada has its own
+local Mosquitto (topics would collide on one). The FLO, weather, price
+and maker stay shared. Login `beech` / `beech` is an admin and sees
+both.
+
+## 2026-11-23 — package.sh zips the Beech sim for another box (`196475a`)
+
+**Why.** Running the sim on a new box meant cloning every sibling repo
+and rebuilding every image. `package.sh` writes one zip of the images
+the pod runs (localhost builds and the pulled ones), the house files,
+the bruce volume when it is already filled, and the ISO-NE env files,
+with a `run.sh` that loads them and plays the pod. The checkout's
+`run.sh` still builds.
+
+## 2026-11-23 — beech-sim-compose: journal, weather, web, FLO and market as one pod (`e88ed60`)
+
+**Why.** The compose stack was four processes. The pod now also runs the
+house's LTN, FLO, price, market maker, weather, journal and web app, and
+`./run.sh` builds those images. The frontend learns this house's weather
+bundle from `./house` at start. The plant's thermostat wire reads 175 W
+(`PZoneValve` in `plant-overrides.json`), as Beech's eGauge does; the
+layout's heat-call split stays greater than 10 W, as the real asset
+layout does.
+
 <!-- pending commit -->
 ## 2026-11-22 — Remove the stray fis-gate-battery and sieg-keep-ratio-map leftovers from the top level
 
