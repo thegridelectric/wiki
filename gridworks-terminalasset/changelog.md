@@ -117,6 +117,19 @@ then in a Linux container on the dev broker's network ruff, pyright, the
 staging check and pytest with the `fmu` and `live` tests (97 passed, 1
 skipped).
 
+## 2026-11-23 — Improve simulation fidelity (`685d1a5`)
+
+Rebuild Beech's Q and COP tables from October buffer charges with the
+Millinocket forecast outdoor air (capacity about 1.7× the old table, COP
+closer to the measured 2.2–2.7 band), set the indoor unit's share of
+compressor power to 36 %, and give `Hydronic.HeatPumpCycle` a one-minute
+first-order rise of compressor heat and power after a call (five-second
+fall when the call drops). The shared cycle also soft-starts the Katahdin
+component plant; Beech's tables alone change. Raise the zone envelope
+losses (`UAZone`) from 113 W/K to 164 W/K so overnight distribution heat
+matches those October nights; the old fit had assumed −5 °C with no
+measured outdoor air.
+
 ## 2026-11-18 — Beech's zones are fitted to the house: cycling thermostats, emitters the water passes along, rooms of air and fabric (`910b09e`)
 
 The simulated Beech's two zones were one placeholder twice: a deadband

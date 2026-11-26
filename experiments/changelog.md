@@ -6,6 +6,21 @@ the *why*.
 
 Newest at the top.
 
+## 2026-11-23 — beech-sim runs AllTanks and BufferOnly side by side (`b538183`)
+
+**Why.** Comparing how the two seasonal storage modes run the same
+Beech plant needs two scada+ta pairs on one journal, not two pods.
+`house/` is AllTanks at `d1.isone.me.versant.keene.beech.at`.
+`house-buffer/` is BufferOnly at `d1.isone.me.versant.keene.beech.buf`.
+A GNode alias is LeftRightDot, so the last segment cannot be
+`beech-at`; `beech.at` / `beech.buf` are the legal spelling. The
+journal inserts both TerminalAssets at boot (display names `beech-at`
+and `beech-buf`), so the keeper can project each scada's layout and
+readings, and the web house list shows both. Each scada has its own
+local Mosquitto (topics would collide on one). The FLO, weather, price
+and maker stay shared. Login `beech` / `beech` is an admin and sees
+both.
+
 ## 2026-11-23 — package.sh zips the Beech sim for another box (`196475a`)
 
 **Why.** Running the sim on a new box meant cloning every sibling repo
